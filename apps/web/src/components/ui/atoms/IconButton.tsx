@@ -30,7 +30,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       type="button"
       aria-label={label}
       title={label}
-      className={`grid place-items-center rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-[#22201F]/20 disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}
+      className={`grid place-items-center rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}
       {...props}
     >
       {children}

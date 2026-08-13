@@ -7,6 +7,7 @@ import { taskService } from '../../../lib/api/taskService';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
+import { fetchMembers } from '../../../store/workspaceSlice';
 
 interface CreateSubtaskModalProps {
   parentTask: Task | null;
@@ -22,7 +23,13 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
   onCreated,
 }) => {
   const dispatch = useAppDispatch();
-  const { activeWorkspaceId } = useAppSelector((state: RootState) => state.workspace);
+  const { activeWorkspaceId, workspaces, members, isMembersLoading } = useAppSelector(
+    (state: RootState) => state.workspace
+  );
+  const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
+  const canPlan = Boolean(
+    activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role)
+  );
 
   const [title, setTitle] = useState('');
   const [deliveryArea, setDeliveryArea] = useState<DeliveryArea>('frontend');
@@ -39,9 +46,12 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       setAssigneeId('');
       setDueDate('');
     }
-  }, [isOpen]);
+    if (isOpen && activeWorkspaceId && canPlan) {
+      dispatch(fetchMembers(activeWorkspaceId));
+    }
+  }, [isOpen, activeWorkspaceId, canPlan, dispatch]);
 
-  if (!parentTask) return null;
+  if (!parentTask || !canPlan) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,10 +94,11 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+          <label htmlFor="subtask-title" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
             Subtask Title *
           </label>
           <Input
+            id="subtask-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Implement API contracts & migration"
@@ -97,11 +108,12 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+            <label htmlFor="subtask-delivery-area" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
               Delivery Area *
             </label>
             <select
               value={deliveryArea}
+              id="subtask-delivery-area"
               onChange={(e) => setDeliveryArea(e.target.value as DeliveryArea)}
               className="w-full rounded-xl border border-stone-200 bg-white p-2.5 text-xs font-medium text-stone-800 focus:border-amber-500 focus:outline-hidden dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
             >
@@ -112,11 +124,12 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+            <label htmlFor="subtask-priority" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
               Priority
             </label>
             <select
               value={priority}
+              id="subtask-priority"
               onChange={(e) => setPriority(e.target.value as TaskPriority)}
               className="w-full rounded-xl border border-stone-200 bg-white p-2.5 text-xs font-medium text-stone-800 focus:border-amber-500 focus:outline-hidden dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
             >
@@ -129,11 +142,32 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+          <label htmlFor="subtask-assignee" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+            Assignee
+          </label>
+          <select
+            id="subtask-assignee"
+            value={assigneeId}
+            onChange={(e) => setAssigneeId(e.target.value)}
+            disabled={isMembersLoading}
+            className="w-full rounded-xl border border-stone-200 bg-white p-2.5 text-xs font-medium text-stone-800 focus:border-brand-500 focus:outline-hidden dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
+          >
+            <option value="">Unassigned</option>
+            {members.map((member) => (
+              <option key={member.userId} value={member.userId}>
+                {member.user?.name || member.user?.email || member.userId} ({member.role})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="subtask-due-date" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
             Due Date
           </label>
           <Input
             type="date"
+            id="subtask-due-date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />

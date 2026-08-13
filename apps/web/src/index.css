@@ -6,20 +6,20 @@
 
 @layer base {
   :root {
-    --color-brand: #B1E743;
-    --color-brand-dark: #22201F;
+    --color-brand: #6366F1;
+    --color-brand-dark: #0B1C30;
     --color-bg-cream: #FBFCF7;
     --color-success: #10B981;
     --color-warning: #F59E0B;
     --color-neutral: #64748B;
-    --color-sidebar: #22201F;
-    --radius-card: 20px;
+    --color-sidebar: #0B1C30;
+    --radius-card: 16px;
   }
 
   body {
     margin: 0;
     min-width: 320px;
-    font-family: 'Figtree', Inter, system-ui, sans-serif;
+    font-family: Inter, system-ui, sans-serif;
     background: #FBFCF7;
     color: #22201F;
   }
@@ -40,4 +40,3 @@
   .pill-nav-active { @apply bg-[#22201F] text-white shadow-xs font-semibold dark:bg-[#B1E743] dark:text-[#22201F]; }
   .pill-nav-inactive { @apply text-stone-600 hover:text-stone-900 hover:bg-stone-200/50 font-medium dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800/50; }
 }
-

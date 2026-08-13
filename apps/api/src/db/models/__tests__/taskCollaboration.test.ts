@@ -333,4 +333,40 @@ describe('Task Collaboration Integrity Tests (ST1)', () => {
       }
     );
   });
+
+  test('Preserves collaboration history when a mentioned member leaves the workspace', async () => {
+    const activity = await TaskActivityModel.create({
+      workspaceId: workspace1.id,
+      taskId: parentTask1.id,
+      actorId: userB.id,
+      action: 'task.viewed',
+    });
+    const comment = await TaskCommentModel.create({
+      workspaceId: workspace1.id,
+      taskId: parentTask1.id,
+      authorId: userB.id,
+      body: 'Leaving a final implementation note.',
+    });
+    const mention = await TaskCommentMentionModel.create({
+      commentId: comment.id,
+      userId: userB.id,
+      workspaceId: workspace1.id,
+    });
+
+    await WorkspaceMemberModel.destroy({
+      where: { workspaceId: workspace1.id, userId: userB.id },
+    });
+
+    const [storedActivity, storedComment, storedMention] = await Promise.all([
+      TaskActivityModel.findByPk(activity.id),
+      TaskCommentModel.findByPk(comment.id),
+      TaskCommentMentionModel.findOne({
+        where: { commentId: mention.commentId, userId: mention.userId },
+      }),
+    ]);
+
+    assert.strictEqual(storedActivity?.actorId, userB.id);
+    assert.strictEqual(storedComment?.authorId, userB.id);
+    assert.strictEqual(storedMention?.userId, userB.id);
+  });
 });

@@ -20,7 +20,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center font-semibold rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[#22201F]/20 disabled:opacity-50 disabled:pointer-events-none select-none cursor-pointer';
+    'inline-flex items-center justify-center font-semibold rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:opacity-50 disabled:pointer-events-none select-none cursor-pointer';
 
   const sizeStyles = {
     sm: 'min-h-[36px] px-3.5 text-xs gap-1.5',
@@ -30,7 +30,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantStyles = {
     primary:
-      'bg-[#22201F] text-white shadow-sm hover:bg-[#383533] active:bg-[#141413] dark:bg-[#B1E743] dark:text-[#22201F] dark:hover:bg-[#a2d837]',
+      'bg-[#22201F] text-white shadow-xs hover:bg-stone-800 active:bg-stone-900 dark:bg-[#B1E743] dark:text-[#22201F] dark:hover:bg-[#9ed434] dark:active:bg-[#8cc026]',
     secondary:
       'bg-stone-100 text-stone-800 hover:bg-stone-200 active:bg-stone-300 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700',
     destructive:

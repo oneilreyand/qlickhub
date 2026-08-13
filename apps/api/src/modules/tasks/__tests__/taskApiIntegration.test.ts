@@ -603,7 +603,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       assert.strictEqual(updated.title, 'Edited by workspace admin');
     });
 
-    test('Allows QA to mutate only own or unassigned tasks', async () => {
+    test('Keeps QA read-only for parent tasks', async () => {
       const ownTask = await taskService.createTask(
         user.id,
         CreateTaskSchema.parse({
@@ -625,11 +625,17 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         })
       );
 
-      await assert.doesNotReject(() => taskService.completeTask(qaMember.id, workspaceA.id, ownTask.id, { status: 'done' }));
-      await assert.doesNotReject(() => taskService.moveTask(qaMember.id, workspaceA.id, unassignedTask.id, { targetFolderId: activeFolderA.id }));
+      await assert.rejects(
+        () => taskService.completeTask(qaMember.id, workspaceA.id, ownTask.id, { status: 'done' }),
+        /Only Product Owner, Admin, or Owner may update parent tasks/
+      );
+      await assert.rejects(
+        () => taskService.moveTask(qaMember.id, workspaceA.id, unassignedTask.id, { targetFolderId: activeFolderA.id }),
+        /Only Product Owner, Admin, or Owner can move parent tasks/
+      );
       await assert.rejects(
         () => taskService.updateTask(qaMember.id, workspaceA.id, anotherMembersTask.id, { title: 'Forbidden edit' }),
-        /QA members may mutate only tasks assigned to themselves or unassigned tasks/
+        /Only Product Owner, Admin, or Owner may update parent tasks/
       );
     });
 
@@ -653,7 +659,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       );
       await assert.rejects(
         () => taskService.updateTask(qaMember.id, workspaceA.id, unassignedTask.id, { assigneeId: user.id }),
-        /QA members may assign tasks only to themselves/
+        /Only Product Owner, Admin, or Owner may update parent tasks/
       );
     });
 

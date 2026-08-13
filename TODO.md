@@ -66,6 +66,10 @@ Tasks store `startDate`, `dueDate`, `completedAt`, `status`, and `priority`. A p
 
 - [x] **Done** (Codex - 2026-08-14) — RPT1: Build an API-backed QA delivery report page with date filtering, status/priority summaries, delivery progress, and loading/empty/error states. Verified with the frontend test suite and production build before unrelated concurrent subtask UI changes introduced their own type errors.
 
+## P1 — Audit remediation
+
+- [x] **Done** (Codex - 2026-08-14) — AUD1: Audit the committed parent/subtask collaboration release and fix verified policy, audit-trail, and UI permission defects. Verified with migrations 26/27, the 74-test API integration suite, frontend tests, and production builds.
+
 ## P1 — Parent tasks, subtasks, and collaboration
 
 Reference: `docs/plans/TASK_SUBTASK_COLLABORATION_PLAN.md`.

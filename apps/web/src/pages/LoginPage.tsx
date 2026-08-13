@@ -30,6 +30,7 @@ export const LoginPage: React.FC = () => {
       localStorage.setItem('user_role', res.user.role || 'qa_member');
       localStorage.setItem('user_email', res.user.email || email);
       localStorage.setItem('user_name', res.user.name || 'User');
+      localStorage.setItem('user_id', res.user.id);
 
       setIsLoading(false);
       const requestedPath = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;

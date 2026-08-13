@@ -73,18 +73,7 @@ export function assertCanMutateTask(
     throw new Error('FORBIDDEN: Only Product Owner, Admin, Owner, or the assigned member may update this subtask.');
   }
 
-  // Parent Task Mutation
-  if (role !== 'qa') {
-    throw new Error('FORBIDDEN: Your workspace role cannot mutate parent tasks.');
-  }
-
-  if (currentTask.assigneeId && currentTask.assigneeId !== actorId) {
-    throw new Error('FORBIDDEN: QA members may mutate only tasks assigned to themselves or unassigned tasks.');
-  }
-
-  if (input.assigneeId !== undefined && input.assigneeId !== null && input.assigneeId !== actorId) {
-    throw new Error('FORBIDDEN: QA members may assign tasks only to themselves or leave them unassigned.');
-  }
+  throw new Error('FORBIDDEN: Only Product Owner, Admin, or Owner may update parent tasks.');
 }
 
 /**
@@ -96,7 +85,7 @@ export function assertCanMoveTask(role: WorkspaceRole, isSubtask: boolean): void
     throw new Error('FORBIDDEN: Subtasks cannot be moved independently from their parent task.');
   }
 
-  if (isPlanner(role) || role === 'qa') return;
+  if (isPlanner(role)) return;
 
-  throw new Error('FORBIDDEN: Only Product Owner, Admin, Owner, or QA can move parent tasks.');
+  throw new Error('FORBIDDEN: Only Product Owner, Admin, or Owner can move parent tasks.');
 }

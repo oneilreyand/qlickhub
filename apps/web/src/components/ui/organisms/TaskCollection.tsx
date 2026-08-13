@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChevronRight, Search, Calendar, Folder } from 'lucide-react';
-import type { Task, FolderTreeNode } from '@qa/contracts';
+import { ChevronDown, ChevronRight, Search, Calendar, Folder } from 'lucide-react';
+import type { Task, FolderTreeNode, TaskStatus } from '@qa/contracts';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Skeleton } from '../atoms/Skeleton';
@@ -12,6 +12,18 @@ interface TaskCollectionProps {
   isLoading: boolean;
   selectedTaskId?: string | null;
   onSelect: (task: Task) => void;
+}
+
+const statusGroups: { status: TaskStatus; label: string }[] = [
+  { status: 'todo', label: 'To Do' },
+  { status: 'in_progress', label: 'In Progress' },
+  { status: 'in_review', label: 'In Review' },
+  { status: 'done', label: 'Done' },
+  { status: 'canceled', label: 'Canceled' },
+];
+
+function isActivationKey(event: React.KeyboardEvent) {
+  return event.key === 'Enter' || event.key === ' ';
 }
 
 function getPriorityBadge(priority: Task['priority']) {
@@ -93,6 +105,26 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
   onSelect,
 }) => {
   const folderMap = React.useMemo(() => buildFolderMap(folders), [folders]);
+  const [collapsedStatuses, setCollapsedStatuses] = React.useState<Set<TaskStatus>>(new Set());
+  const groupedTasks = React.useMemo(
+    () =>
+      statusGroups
+        .map((group) => ({
+          ...group,
+          tasks: tasks.filter((task) => task.status === group.status),
+        }))
+        .filter((group) => group.tasks.length > 0),
+    [tasks]
+  );
+
+  const toggleStatus = (status: TaskStatus) => {
+    setCollapsedStatuses((current) => {
+      const next = new Set(current);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  };
 
   return (
     <>
@@ -105,47 +137,70 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                 <Skeleton variant="text" className="h-4 w-3/4" />
               </Card>
             ))
-          : tasks.map((task) => {
-              const folderName = task.folderId ? folderMap.get(task.folderId) || 'Folder' : 'Unfiled';
+          : groupedTasks.map((group) => {
+              const isCollapsed = collapsedStatuses.has(group.status);
               return (
-                <Card
-                  key={task.id}
-                  onClick={() => onSelect(task)}
-                  className={`cursor-pointer space-y-3 p-4 transition hover:border-stone-400 dark:hover:border-stone-600 ${
-                    selectedTaskId === task.id ? 'border-amber-500 bg-amber-50/10 dark:bg-amber-950/20' : ''
-                  }`}
-                >
-                  <div className="flex justify-between items-center gap-2">
-                    <span className="font-mono text-[11px] font-bold text-stone-500 dark:text-stone-400 shrink-0">
-                      {task.id.substring(0, 8)}
-                    </span>
-                    <TaskStatusBadge state={task.status} />
-                  </div>
-                  <p className="text-xs font-bold text-stone-900 dark:text-stone-100 leading-snug break-words">
-                    {task.title}
-                  </p>
-                  {renderSubtaskSummary(task.subtaskSummary)}
-                  <div className="flex items-center justify-between gap-2 text-[11px] text-stone-500 dark:text-stone-400 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 font-medium text-stone-700 dark:text-stone-300 max-w-[180px] truncate">
-                      <Folder className="h-3 w-3 text-amber-500 shrink-0" />
-                      <span className="truncate">{folderName}</span>
-                    </span>
-                    {getPriorityBadge(task.priority)}
-                  </div>
-                  {(task.startDate || task.dueDate) && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-stone-500 dark:text-stone-400 whitespace-nowrap">
-                      <Calendar className="h-3.5 w-3.5 text-stone-400 shrink-0" />
-                      <span>
-                        {task.startDate ? task.startDate : 'Any'} → {task.dueDate ? task.dueDate : 'No due date'}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-end border-t border-stone-100 dark:border-stone-800 pt-2.5">
-                    <Button variant="ghost" size="sm" rightIcon={<ChevronRight className="h-3.5 w-3.5" />}>
-                      Inspect
-                    </Button>
-                  </div>
-                </Card>
+                <section key={group.status} className="space-y-2">
+                  <button
+                    type="button"
+                    className="flex min-h-11 w-full items-center justify-between rounded-xl bg-stone-100 px-3 text-left text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-200"
+                    onClick={() => toggleStatus(group.status)}
+                    aria-expanded={!isCollapsed}
+                  >
+                    <span>{group.label} ({group.tasks.length})</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
+                  </button>
+                  {!isCollapsed && group.tasks.map((task) => {
+                    const folderName = task.folderId ? folderMap.get(task.folderId) || 'Folder' : 'Unfiled';
+                    return (
+                      <Card
+                        key={task.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Inspect task ${task.title}`}
+                        onClick={() => onSelect(task)}
+                        onKeyDown={(event) => {
+                          if (isActivationKey(event)) {
+                            event.preventDefault();
+                            onSelect(task);
+                          }
+                        }}
+                        className={`cursor-pointer space-y-3 p-4 transition hover:border-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:hover:border-stone-600 ${
+                          selectedTaskId === task.id ? 'border-amber-500 bg-amber-50/10 dark:bg-amber-950/20' : ''
+                        }`}
+                      >
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="font-mono text-[11px] font-bold text-stone-500 dark:text-stone-400 shrink-0">
+                            {task.id.substring(0, 8)}
+                          </span>
+                          <TaskStatusBadge state={task.status} />
+                        </div>
+                        <p className="text-xs font-bold text-stone-900 dark:text-stone-100 leading-snug break-words">
+                          {task.title}
+                        </p>
+                        {renderSubtaskSummary(task.subtaskSummary)}
+                        <div className="flex items-center justify-between gap-2 text-[11px] text-stone-500 dark:text-stone-400 flex-wrap">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 font-medium text-stone-700 dark:text-stone-300 max-w-[180px] truncate">
+                            <Folder className="h-3 w-3 text-amber-500 shrink-0" />
+                            <span className="truncate">{folderName}</span>
+                          </span>
+                          {getPriorityBadge(task.priority)}
+                        </div>
+                        {(task.startDate || task.dueDate) && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-stone-500 dark:text-stone-400 whitespace-nowrap">
+                            <Calendar className="h-3.5 w-3.5 text-stone-400 shrink-0" />
+                            <span>{task.startDate || 'Any'} → {task.dueDate || 'No due date'}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-end border-t border-stone-100 dark:border-stone-800 pt-2.5">
+                          <Button variant="ghost" size="sm" rightIcon={<ChevronRight className="h-3.5 w-3.5" />}>
+                            Inspect
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </section>
               );
             })}
         {!isLoading && tasks.length === 0 ? <Empty /> : null}
@@ -173,13 +228,22 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                     </td>
                   </tr>
                 ))
-              : tasks.map((task) => {
+              : groupedTasks.flatMap((group) => {
+                  const isCollapsed = collapsedStatuses.has(group.status);
+                  const taskRows = isCollapsed ? [] : group.tasks.map((task) => {
                   const folderName = task.folderId ? folderMap.get(task.folderId) || 'Folder' : 'Unfiled';
                   return (
                     <tr
                       key={task.id}
+                      tabIndex={0}
                       onClick={() => onSelect(task)}
-                      className={`cursor-pointer transition hover:bg-stone-50 dark:hover:bg-stone-800/60 ${
+                      onKeyDown={(event) => {
+                        if (isActivationKey(event)) {
+                          event.preventDefault();
+                          onSelect(task);
+                        }
+                      }}
+                      className={`cursor-pointer transition hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 dark:hover:bg-stone-800/60 ${
                         selectedTaskId === task.id ? 'bg-stone-100 dark:bg-stone-800' : ''
                       }`}
                     >
@@ -234,6 +298,23 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                       </td>
                     </tr>
                   );
+                });
+                  return [
+                    <tr key={`${group.status}-header`} className="bg-stone-50/70 dark:bg-stone-900/70">
+                      <td colSpan={6} className="p-0">
+                        <button
+                          type="button"
+                          className="flex min-h-11 w-full items-center justify-between px-3.5 text-left text-xs font-bold text-stone-700 dark:text-stone-200"
+                          onClick={() => toggleStatus(group.status)}
+                          aria-expanded={!isCollapsed}
+                        >
+                          <span>{group.label} ({group.tasks.length})</span>
+                          <ChevronDown className={`h-4 w-4 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
+                        </button>
+                      </td>
+                    </tr>,
+                    ...taskRows,
+                  ];
                 })}
           </tbody>
         </table>

@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { describe, test } from 'node:test';
-import { assertCanCreateTask, assertCanMutateTask } from '../taskPolicy.js';
+import { assertCanCreateTask, assertCanMutateTask, assertCanMoveTask } from '../taskPolicy.js';
 
 const qaUserId = '00000000-0000-4000-8000-000000000001';
 const anotherUserId = '00000000-0000-4000-8000-000000000002';
@@ -22,17 +22,22 @@ describe('Task policy', () => {
     );
   });
 
-  test('allows QA to mutate only own or unassigned work and prevents reassignment to another user', () => {
-    assert.doesNotThrow(() => assertCanMutateTask('qa', qaUserId, { assigneeId: null }, { title: 'New title' }));
-    assert.doesNotThrow(() => assertCanMutateTask('qa', qaUserId, { assigneeId: qaUserId }, { assigneeId: null }));
+  test('keeps QA read-only for parent tasks while allowing assigned subtask execution updates', () => {
     assert.throws(
-      () => assertCanMutateTask('qa', qaUserId, { assigneeId: anotherUserId }, { title: 'Test' }),
-      /QA members may mutate only tasks assigned to themselves/
+      () => assertCanMutateTask('qa', qaUserId, { parentTaskId: null, assigneeId: qaUserId }, { title: 'Test' }),
+      /Only Product Owner, Admin, or Owner may update parent tasks/
     );
+    assert.doesNotThrow(() => assertCanMutateTask('qa', qaUserId, { parentTaskId: qaUserId, assigneeId: qaUserId }, { status: 'done' }));
     assert.throws(
-      () => assertCanMutateTask('qa', qaUserId, { assigneeId: null }, { assigneeId: anotherUserId }),
-      /QA members may assign tasks only to themselves/
+      () => assertCanMutateTask('qa', qaUserId, { parentTaskId: qaUserId, assigneeId: qaUserId }, { priority: 'high' }),
+      /may update only their own subtask execution/
     );
+  });
+
+  test('keeps parent task moves reserved for planner roles', () => {
+    assert.throws(() => assertCanMoveTask('qa', false), /Only Product Owner, Admin, or Owner can move parent tasks/);
+    assert.throws(() => assertCanMoveTask('dev', false), /Only Product Owner, Admin, or Owner can move parent tasks/);
+    assert.doesNotThrow(() => assertCanMoveTask('po', false));
   });
 
   test('keeps Dev role restricted from parent task creation', () => {

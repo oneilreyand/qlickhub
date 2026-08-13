@@ -20,6 +20,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         localStorage.setItem('user_role', user.role);
         localStorage.setItem('user_email', user.email);
         localStorage.setItem('user_name', user.name);
+        localStorage.setItem('user_id', user.id);
         setStatus('authenticated');
       })
       .catch(() => {

@@ -68,7 +68,7 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(screen.getByDisplayValue('Test Parent Task Title')).toBeInTheDocument();
     expect(screen.getByText('Overview')).toBeInTheDocument();
     expect(screen.getByText(/Subtasks/)).toBeInTheDocument();
-    expect(screen.getByText('Activity Audit')).toBeInTheDocument();
+    expect(screen.getByText(/^Activity Audit/)).toBeInTheDocument();
     expect(screen.getByText(/Discussion/)).toBeInTheDocument();
   });
 
@@ -81,8 +81,19 @@ describe('TaskDetailDrawer UI Component', () => {
     fireEvent.click(discussionTab);
     expect(screen.getByText('Task Discussion Thread')).toBeInTheDocument();
 
-    const activityTab = screen.getByText('Activity Audit');
+    const activityTab = screen.getByText(/^Activity Audit/);
     fireEvent.click(activityTab);
     expect(screen.getByText('Immutable Audit Trail')).toBeInTheDocument();
+  });
+
+  test('renders parent tasks as read-only without a planning role', () => {
+    renderWithRedux(
+      <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />
+    );
+
+    expect(screen.getByLabelText('Task Title')).toBeDisabled();
+    expect(screen.getByLabelText('Description')).toBeDisabled();
+    expect(screen.queryByText('Save Changes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Complete Task')).not.toBeInTheDocument();
   });
 });

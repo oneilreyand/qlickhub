@@ -347,6 +347,11 @@ export const MyTasksPage: React.FC = () => {
         task={selectedTask}
         folders={folders}
         onClose={() => dispatch(setSelectedTaskId(null))}
+        onDataChanged={() => {
+          if (activeWorkspaceId) {
+            dispatch(fetchTasks({ workspaceId: activeWorkspaceId }));
+          }
+        }}
       />
 
       {/* Create Task Modal */}

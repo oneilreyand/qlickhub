@@ -119,6 +119,40 @@ async function logActivity(
   );
 }
 
+async function moveDirectSubtasksToFolder(
+  workspaceId: string,
+  parentTaskId: string,
+  targetFolderId: string | null,
+  actorId: string,
+  transaction: Transaction
+): Promise<void> {
+  const subtasks = await TaskModel.findAll({
+    where: { workspaceId, parentTaskId },
+    attributes: ['id', 'folderId'],
+    transaction,
+  });
+
+  if (subtasks.length === 0) return;
+
+  await TaskModel.update(
+    { folderId: targetFolderId },
+    { where: { workspaceId, parentTaskId }, transaction }
+  );
+
+  await Promise.all(
+    subtasks.map((subtask) =>
+      logActivity(
+        workspaceId,
+        subtask.id,
+        actorId,
+        'subtask.moved',
+        { oldFolderId: subtask.folderId, newFolderId: targetFolderId, parentTaskId },
+        transaction
+      )
+    )
+  );
+}
+
 async function assertAssigneeBelongsToWorkspace(
   workspaceId: string,
   assigneeId: string | null | undefined,
@@ -488,7 +522,20 @@ export class TaskService {
       const membership = await getActorMembership(workspaceId, actorId, transaction);
       assertCanMutateTask(membership.role, actorId, task, input);
 
+      if (input.parentTaskId !== undefined && input.parentTaskId !== task.parentTaskId) {
+        throw new Error('BAD_REQUEST: A task parent cannot be changed after creation.');
+      }
+
+      if (!task.parentTaskId && input.deliveryArea !== undefined) {
+        throw new Error('BAD_REQUEST: Delivery area is allowed only for subtasks.');
+      }
+
+      if (task.parentTaskId && input.deliveryArea === null) {
+        throw new Error('BAD_REQUEST: Delivery area is required for subtasks.');
+      }
+
       const changes: Record<string, { old: any; new: any }> = {};
+      let requiresSubtaskFolderMove = false;
 
       if (input.folderId !== undefined && input.folderId !== task.folderId) {
         if (task.parentTaskId) {
@@ -511,12 +558,7 @@ export class TaskService {
         }
         changes['folderId'] = { old: task.folderId, new: input.folderId };
         task.folderId = input.folderId;
-
-        // Cascade folderId update to subtasks
-        await TaskModel.update(
-          { folderId: input.folderId },
-          { where: { workspaceId, parentTaskId: task.id }, transaction }
-        );
+        requiresSubtaskFolderMove = true;
       }
 
       if (input.title !== undefined && input.title !== task.title) {
@@ -565,7 +607,15 @@ export class TaskService {
         }
       }
 
+      if (task.startDate && task.dueDate && task.startDate > task.dueDate) {
+        throw new Error('BAD_REQUEST: Start date cannot be after due date.');
+      }
+
       await task.save({ transaction });
+
+      if (requiresSubtaskFolderMove) {
+        await moveDirectSubtasksToFolder(workspaceId, task.id, task.folderId, actorId, transaction);
+      }
 
       // Record Activity audit event for updates
       if (Object.keys(changes).length > 0) {
@@ -621,11 +671,8 @@ export class TaskService {
       task.folderId = input.targetFolderId;
       await task.save({ transaction });
 
-      // Propagate folder change to direct subtasks in the same transaction
-      await TaskModel.update(
-        { folderId: input.targetFolderId },
-        { where: { workspaceId, parentTaskId: taskId }, transaction }
-      );
+      // Propagate folder change to direct subtasks and audit each visible change.
+      await moveDirectSubtasksToFolder(workspaceId, taskId, input.targetFolderId, actorId, transaction);
 
       // Record Activity audit event for move
       await logActivity(

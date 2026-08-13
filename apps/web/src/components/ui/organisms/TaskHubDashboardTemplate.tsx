@@ -119,6 +119,8 @@ export const TaskHubDashboardTemplate: React.FC = () => {
           query: {
             folderId: selectedFolderId || undefined,
             includeDescendants: selectedFolderIsParent,
+            rootOnly: true,
+            includeSubtaskSummary: true,
             datePreset: datePresetView !== 'all' ? datePresetView : undefined,
             startDate: dateRange?.startDate || undefined,
             endDate: dateRange?.endDate || undefined,
@@ -139,7 +141,11 @@ export const TaskHubDashboardTemplate: React.FC = () => {
             query: {
               folderId: selectedFolderId || undefined,
               includeDescendants: selectedFolderIsParent,
+              rootOnly: true,
+              includeSubtaskSummary: true,
               datePreset: datePresetView !== 'all' ? datePresetView : undefined,
+              startDate: dateRange?.startDate || undefined,
+              endDate: dateRange?.endDate || undefined,
             },
           })
         ).unwrap(),
@@ -262,14 +268,15 @@ export const TaskHubDashboardTemplate: React.FC = () => {
             Create Task
           </Button>
 
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => void loadWorkspaceData()}
-            className="flex items-center gap-2 rounded-full border border-stone-200/90 bg-white px-4 py-2 text-xs font-semibold text-stone-800 shadow-xs hover:bg-stone-50 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
+            isLoading={isTaskLoading || isFolderLoading}
+            leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
           >
-            <RefreshCw className={`h-3.5 w-3.5 text-stone-500 ${isTaskLoading || isFolderLoading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
+            Refresh
+          </Button>
         </div>
       </div>
 
@@ -496,6 +503,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         task={selectedTask}
         folders={folders}
         onClose={() => dispatch(setSelectedTaskId(null))}
+        onDataChanged={() => void loadWorkspaceData()}
       />
 
       {/* Create Task Modal */}
