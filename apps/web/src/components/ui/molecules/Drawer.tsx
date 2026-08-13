@@ -9,7 +9,7 @@ export interface DrawerProps {
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  width?: 'sm' | 'md' | 'lg';
+  width?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export const Drawer: React.FC<DrawerProps> = ({
@@ -41,6 +41,7 @@ export const Drawer: React.FC<DrawerProps> = ({
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-xl',
+    xl: 'max-w-2xl',
   };
 
   return (

@@ -366,7 +366,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       <Drawer
         isOpen={Boolean(task)}
         onClose={onClose}
-        width="md"
+        width="xl"
         title={`${task.parentTaskId ? 'Subtask' : 'Task'} ${task.id.substring(0, 8)}`}
         subtitle={task.deliveryArea ? `Delivery Area: ${task.deliveryArea.toUpperCase()}` : `Created ${new Date(task.createdAt).toLocaleDateString()}`}
         footer={
