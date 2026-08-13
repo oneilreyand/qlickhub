@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-brand: #B1E743;
+    --color-brand-dark: #22201F;
+    --color-bg-cream: #FBFCF7;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-neutral: #64748B;
+    --color-sidebar: #22201F;
+    --radius-card: 20px;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    font-family: 'Figtree', Inter, system-ui, sans-serif;
+    background: #FBFCF7;
+    color: #22201F;
+  }
+
+  .dark body {
+    background: #141413;
+    color: #FBFCF7;
+  }
+}
+
+@layer utilities {
+  .shadow-xs { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+}
+
+@layer components {
+  .glass-card { @apply rounded-[24px] bg-white border border-stone-200/70 shadow-xs dark:bg-[#1C1A19] dark:border-stone-800; }
+  .glass-input { @apply rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:border-[#22201F] focus:ring-2 focus:ring-[#22201F]/10 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100; }
+  .pill-nav-active { @apply bg-[#22201F] text-white shadow-xs font-semibold dark:bg-[#B1E743] dark:text-[#22201F]; }
+  .pill-nav-inactive { @apply text-stone-600 hover:text-stone-900 hover:bg-stone-200/50 font-medium dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800/50; }
+}
+
