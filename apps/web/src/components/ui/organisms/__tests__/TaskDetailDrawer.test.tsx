@@ -123,6 +123,7 @@ describe('TaskDetailDrawer UI Component', () => {
       contentMarkdown: '## Goal\nMake checkout clearer.',
       inScope: [{ id: '123e4567-e89b-12d3-a456-426614174003', text: 'Saved payment methods', position: 0 }],
       outScope: [{ id: '123e4567-e89b-12d3-a456-426614174004', text: 'Native mobile checkout', position: 0 }],
+      acceptanceCriteria: [{ id: '123e4567-e89b-12d3-a456-426614174005', text: 'User can review payment details before confirmation', position: 0 }],
       createdBy: '123e4567-e89b-12d3-a456-426614174000',
       createdAt: '2026-08-14T00:00:00.000Z',
     },
@@ -210,6 +211,7 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(await screen.findByDisplayValue('Checkout Product Brief')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Saved payment methods')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Native mobile checkout')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('User can review payment details before confirmation')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Save new version' }));
     await waitFor(() => {
@@ -220,6 +222,7 @@ describe('TaskDetailDrawer UI Component', () => {
           title: 'Checkout Product Brief',
           inScope: expect.arrayContaining([expect.objectContaining({ text: 'Saved payment methods' })]),
           outScope: expect.arrayContaining([expect.objectContaining({ text: 'Native mobile checkout' })]),
+          acceptanceCriteria: expect.arrayContaining([expect.objectContaining({ text: 'User can review payment details before confirmation' })]),
         })
       );
     });

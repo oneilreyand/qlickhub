@@ -31,6 +31,7 @@ import type {
   TaskDocumentLink,
   ProductBrief,
   ProductBriefScopeItem,
+  ProductBriefAcceptanceCriterion,
   ProductBriefStatus,
 } from '@qa/contracts';
 import { Drawer } from '../molecules/Drawer';
@@ -104,6 +105,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [productBriefContent, setProductBriefContent] = useState('');
   const [productBriefInScope, setProductBriefInScope] = useState<ProductBriefScopeItem[]>([]);
   const [productBriefOutScope, setProductBriefOutScope] = useState<ProductBriefScopeItem[]>([]);
+  const [productBriefAcceptanceCriteria, setProductBriefAcceptanceCriteria] = useState<ProductBriefAcceptanceCriterion[]>([]);
   const [productBriefStatus, setProductBriefStatus] = useState<ProductBriefStatus>('draft');
   const [productBriefOwnerId, setProductBriefOwnerId] = useState('');
 
@@ -197,6 +199,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       setProductBriefContent(brief?.currentVersion.contentMarkdown || '');
       setProductBriefInScope(brief?.currentVersion.inScope || []);
       setProductBriefOutScope(brief?.currentVersion.outScope || []);
+      setProductBriefAcceptanceCriteria(brief?.currentVersion.acceptanceCriteria || []);
       setProductBriefStatus(brief?.document.status || 'draft');
       setProductBriefOwnerId(brief?.document.ownerId || currentUserId || '');
     } catch (err) {
@@ -239,6 +242,25 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
+  const addAcceptanceCriterion = () => {
+    setProductBriefAcceptanceCriteria((items) => [
+      ...items,
+      { id: crypto.randomUUID(), text: '', position: items.length },
+    ]);
+  };
+
+  const updateAcceptanceCriterion = (id: string, text: string) => {
+    setProductBriefAcceptanceCriteria((items) =>
+      items.map((item) => (item.id === id ? { ...item, text } : item))
+    );
+  };
+
+  const removeAcceptanceCriterion = (id: string) => {
+    setProductBriefAcceptanceCriteria((items) =>
+      items.filter((item) => item.id !== id).map((item, position) => ({ ...item, position }))
+    );
+  };
+
   const handleSaveProductBrief = async () => {
     if (!activeWorkspaceId || !task || !productBriefTitle.trim()) return;
     const inScope = productBriefInScope.filter((item) => item.text.trim()).map((item, position) => ({
@@ -251,6 +273,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       text: item.text.trim(),
       position,
     }));
+    const acceptanceCriteria = productBriefAcceptanceCriteria
+      .filter((item) => item.text.trim())
+      .map((item, position) => ({
+        ...item,
+        text: item.text.trim(),
+        position,
+      }));
 
     setIsSavingProductBrief(true);
     try {
@@ -259,12 +288,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         contentMarkdown: productBriefContent,
         inScope,
         outScope,
+        acceptanceCriteria,
         ownerId: productBriefOwnerId || undefined,
         status: productBriefStatus,
       });
       setProductBrief(brief);
       setProductBriefInScope(brief.currentVersion.inScope);
       setProductBriefOutScope(brief.currentVersion.outScope);
+      setProductBriefAcceptanceCriteria(brief.currentVersion.acceptanceCriteria);
       dispatch(enqueueSnackbar(`Product Brief saved as version ${brief.currentVersion.version}.`, 'success'));
       loadActivity(1);
     } catch (err) {
@@ -1224,6 +1255,36 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                             ))}
                             {canPlan && <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => addScopeItem('out')}>Add Out of Scope</Button>}
                           </div>
+                        </div>
+
+                        <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/20">
+                          <div>
+                            <h5 className="text-xs font-bold text-indigo-900 dark:text-indigo-100">Acceptance Criteria</h5>
+                            <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
+                              Observable delivery targets for the developer. QA verification status will be added separately.
+                            </p>
+                          </div>
+                          {productBriefAcceptanceCriteria.map((criterion) => (
+                            <div key={criterion.id} className="flex gap-2">
+                              <Input
+                                aria-label="Acceptance criterion"
+                                value={criterion.text}
+                                onChange={(event) => updateAcceptanceCriterion(criterion.id, event.target.value)}
+                                disabled={!canPlan}
+                                placeholder="Example: User can review selected payment method before confirming."
+                              />
+                              {canPlan && (
+                                <IconButton label="Remove acceptance criterion" size="sm" variant="ghost" onClick={() => removeAcceptanceCriterion(criterion.id)}>
+                                  <Trash2 className="h-4 w-4 text-rose-500" />
+                                </IconButton>
+                              )}
+                            </div>
+                          ))}
+                          {canPlan && (
+                            <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={addAcceptanceCriterion}>
+                              Add Acceptance Criterion
+                            </Button>
+                          )}
                         </div>
 
                         {canPlan && (

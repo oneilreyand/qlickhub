@@ -377,7 +377,7 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(ver.version, 2);
     });
 
-    test('validates a Product Brief with separate scope snapshots', () => {
+    test('validates a Product Brief with separate scope and acceptance snapshots', () => {
       const input = UpsertProductBriefSchema.parse({
         workspaceId: validUuid,
         taskId: validUuid,
@@ -385,9 +385,11 @@ describe('Contracts Validation Suite', () => {
         contentMarkdown: '## Goal\nReduce checkout abandonment.',
         inScope: [{ text: 'Saved payment methods', position: 0 }],
         outScope: [{ text: 'Native mobile checkout', position: 0 }],
+        acceptanceCriteria: [{ text: 'A user can review payment details before confirmation.', position: 0 }],
       });
       assert.strictEqual(input.status, 'draft');
       assert.strictEqual(input.inScope.length, 1);
+      assert.strictEqual(input.acceptanceCriteria.length, 1);
 
       const brief = ProductBriefSchema.parse({
         document: {
@@ -411,11 +413,13 @@ describe('Contracts Validation Suite', () => {
           contentMarkdown: '## Goal',
           inScope: [{ id: validUuid, text: 'Saved payment methods', position: 0 }],
           outScope: [{ id: validUuid, text: 'Native mobile checkout', position: 0 }],
+          acceptanceCriteria: [{ id: validUuid, text: 'A user can review payment details before confirmation.', position: 0 }],
           createdBy: validUuid,
           createdAt: new Date().toISOString(),
         },
       });
       assert.strictEqual(brief.document.docType, 'product_brief');
+      assert.strictEqual(brief.currentVersion.acceptanceCriteria.length, 1);
     });
   });
 

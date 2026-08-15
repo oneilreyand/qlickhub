@@ -54,6 +54,7 @@ function formatVersion(v: QaDocumentVersionModel | Record<string, any>): QaDocum
     contentMarkdown: json.contentMarkdown,
     inScope: Array.isArray(json.inScope) ? json.inScope : [],
     outScope: Array.isArray(json.outScope) ? json.outScope : [],
+    acceptanceCriteria: Array.isArray(json.acceptanceCriteria) ? json.acceptanceCriteria : [],
     changelog: json.changelog || null,
     createdBy: json.createdBy,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
@@ -193,6 +194,7 @@ export class QaDocumentService {
           contentMarkdown: input.contentMarkdown,
           inScope: normalizeScopeItems(input.inScope),
           outScope: normalizeScopeItems(input.outScope),
+          acceptanceCriteria: normalizeScopeItems(input.acceptanceCriteria),
           changelog: input.changelog || 'Initial document creation',
           createdBy: actorId,
         },
@@ -245,6 +247,7 @@ export class QaDocumentService {
           contentMarkdown: input.contentMarkdown,
           inScope: normalizeScopeItems(input.inScope),
           outScope: normalizeScopeItems(input.outScope),
+          acceptanceCriteria: normalizeScopeItems(input.acceptanceCriteria),
           changelog: input.changelog || `Updated to version ${nextVersionNumber}`,
           createdBy: actorId,
         },
@@ -317,6 +320,7 @@ export class QaDocumentService {
     await assertOwnerIsWorkspaceMember(workspaceId, ownerId);
     const inScope = normalizeScopeItems(input.inScope);
     const outScope = normalizeScopeItems(input.outScope);
+    const acceptanceCriteria = normalizeScopeItems(input.acceptanceCriteria);
 
     return sequelize.transaction(async (transaction) => {
       const existingLink = await TaskDocumentModel.findOne({
@@ -383,6 +387,7 @@ export class QaDocumentService {
           contentMarkdown: input.contentMarkdown,
           inScope,
           outScope,
+          acceptanceCriteria,
           changelog: input.changelog || (isNew ? 'Initial Product Brief created' : `Updated to version ${versionNumber}`),
           createdBy: actorId,
         },
@@ -408,6 +413,7 @@ export class QaDocumentService {
             status: document.status,
             inScopeCount: inScope.length,
             outScopeCount: outScope.length,
+            acceptanceCriteriaCount: acceptanceCriteria.length,
           },
         },
         { transaction }

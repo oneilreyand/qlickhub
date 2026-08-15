@@ -5,6 +5,7 @@ import {
   TaskDocumentLink,
   ProductBrief,
   ProductBriefScopeItem,
+  ProductBriefAcceptanceCriterion,
   ProductBriefStatus,
 } from '@qa/contracts';
 
@@ -86,6 +87,7 @@ export const qaDocumentService = {
       contentMarkdown: string;
       inScope: ProductBriefScopeItem[];
       outScope: ProductBriefScopeItem[];
+      acceptanceCriteria: ProductBriefAcceptanceCriterion[];
       ownerId?: string;
       status: ProductBriefStatus;
     }

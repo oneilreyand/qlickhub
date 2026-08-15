@@ -208,7 +208,7 @@ describe('QA Document API & Versioning Integration Tests', () => {
     assert.ok(activity);
   });
 
-  test('Creates one versioned Product Brief with complete scope snapshots and activity', async () => {
+  test('Creates one versioned Product Brief with scope and acceptance snapshots plus activity', async () => {
     const { qaDocumentService } = await import('../qaDocumentService.js');
 
     const brief = await qaDocumentService.upsertProductBrief(workspace1.id, task1.id, userA.id, {
@@ -219,6 +219,9 @@ describe('QA Document API & Versioning Integration Tests', () => {
         { text: 'Preview payment error states', position: 1 },
       ],
       outScope: [{ text: 'Native mobile checkout', position: 0 }],
+      acceptanceCriteria: [
+        { text: 'A returning user can review the selected payment method before confirming.', position: 0 },
+      ],
       ownerId: userA.id,
       status: 'draft',
       changelog: 'Initial product scope',
@@ -230,6 +233,7 @@ describe('QA Document API & Versioning Integration Tests', () => {
     assert.strictEqual(brief.currentVersion.version, 1);
     assert.strictEqual(brief.currentVersion.inScope.length, 2);
     assert.strictEqual(brief.currentVersion.outScope[0].text, 'Native mobile checkout');
+    assert.strictEqual(brief.currentVersion.acceptanceCriteria[0].text, 'A returning user can review the selected payment method before confirming.');
 
     const linkCount = await TaskDocumentModel.count({
       where: { taskId: task1.id, linkType: 'primary_prd' },
@@ -242,7 +246,7 @@ describe('QA Document API & Versioning Integration Tests', () => {
     assert.ok(activity);
   });
 
-  test('Versions the Product Brief without replacing scope history and keeps one primary link', async () => {
+  test('Versions the Product Brief without replacing scope or acceptance history and keeps one primary link', async () => {
     const { qaDocumentService } = await import('../qaDocumentService.js');
 
     const next = await qaDocumentService.upsertProductBrief(workspace1.id, task1.id, userA.id, {
@@ -252,6 +256,10 @@ describe('QA Document API & Versioning Integration Tests', () => {
       outScope: [
         { text: 'Native mobile checkout', position: 0 },
         { text: 'Gift-card redemption', position: 1 },
+      ],
+      acceptanceCriteria: [
+        { text: 'Payment failure is shown without losing the selected method.', position: 0 },
+        { text: 'The confirmed order records the selected payment method.', position: 1 },
       ],
       ownerId: userA.id,
       status: 'approved',
@@ -269,6 +277,8 @@ describe('QA Document API & Versioning Integration Tests', () => {
     const initialVersion = details.versions.find((version) => version.version === 1);
     assert.strictEqual(initialVersion?.inScope.length, 2);
     assert.strictEqual(initialVersion?.outScope.length, 1);
+    assert.strictEqual(initialVersion?.acceptanceCriteria.length, 1);
+    assert.strictEqual(next.currentVersion.acceptanceCriteria.length, 2);
 
     const linkCount = await TaskDocumentModel.count({
       where: { taskId: task1.id, linkType: 'primary_prd' },
@@ -288,6 +298,7 @@ describe('QA Document API & Versioning Integration Tests', () => {
       contentMarkdown: 'No write permission.',
       inScope: [],
       outScope: [],
+      acceptanceCriteria: [],
       status: 'draft' as const,
     };
 

@@ -107,3 +107,7 @@ Reference: `docs/plans/QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md`.
 ## P0 — Regression integrity
 
 - [x] **Done** (Codex - 2026-08-15) — R3: Repair the task integration fixture so its QA delegation assertion explicitly uses the Workspace Restricted policy; preserve the configurable default policy and restore a green full API suite. Verified: 94/94 API integration tests passed.
+
+## P0 — Product handoff foundation
+
+- [x] **Done** (Codex - 2026-08-15) — PB3: Add versioned Product Brief acceptance criteria so a PO can define observable developer delivery targets alongside context and scope; keep QA verification status out of this slice while preserving historical PRD snapshots and audit metadata. Verified: migration 35, 26 contract tests, 8 Product Brief/document API integration tests, 5 Task Detail Drawer tests, and API/web production builds.

@@ -23,6 +23,10 @@ export const ProductBriefScopeItemSchema = ProductBriefScopeItemInputSchema.exte
 });
 export type ProductBriefScopeItem = z.infer<typeof ProductBriefScopeItemSchema>;
 
+export const ProductBriefAcceptanceCriterionInputSchema = ProductBriefScopeItemInputSchema;
+export const ProductBriefAcceptanceCriterionSchema = ProductBriefScopeItemSchema;
+export type ProductBriefAcceptanceCriterion = z.infer<typeof ProductBriefAcceptanceCriterionSchema>;
+
 export const QaDocumentSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
@@ -48,6 +52,7 @@ export const QaDocumentVersionSchema = z.object({
   contentMarkdown: z.string(),
   inScope: z.array(ProductBriefScopeItemSchema).default([]),
   outScope: z.array(ProductBriefScopeItemSchema).default([]),
+  acceptanceCriteria: z.array(ProductBriefAcceptanceCriterionSchema).default([]),
   changelog: z.string().nullable().optional(),
   createdBy: z.string().uuid(),
   createdAt: z.string(),
@@ -65,6 +70,7 @@ export const CreateQaDocumentSchema = z.object({
   contentMarkdown: z.string().min(1),
   inScope: z.array(ProductBriefScopeItemInputSchema).max(100).optional().default([]),
   outScope: z.array(ProductBriefScopeItemInputSchema).max(100).optional().default([]),
+  acceptanceCriteria: z.array(ProductBriefAcceptanceCriterionInputSchema).max(100).optional().default([]),
   changelog: z.string().nullable().optional(),
 });
 
@@ -77,6 +83,7 @@ export const CreateQaDocumentVersionSchema = z.object({
   contentMarkdown: z.string().min(1),
   inScope: z.array(ProductBriefScopeItemInputSchema).max(100).optional().default([]),
   outScope: z.array(ProductBriefScopeItemInputSchema).max(100).optional().default([]),
+  acceptanceCriteria: z.array(ProductBriefAcceptanceCriterionInputSchema).max(100).optional().default([]),
   changelog: z.string().nullable().optional(),
 });
 
@@ -110,6 +117,7 @@ export const UpsertProductBriefSchema = z.object({
   contentMarkdown: z.string().max(100_000),
   inScope: z.array(ProductBriefScopeItemInputSchema).max(100).default([]),
   outScope: z.array(ProductBriefScopeItemInputSchema).max(100).default([]),
+  acceptanceCriteria: z.array(ProductBriefAcceptanceCriterionInputSchema).max(100).default([]),
   ownerId: z.string().uuid().optional(),
   status: ProductBriefStatusSchema.default('draft'),
   changelog: z.string().trim().max(2_000).optional(),
