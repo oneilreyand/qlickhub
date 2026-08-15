@@ -12,7 +12,7 @@ import {
   assertCanUploadAttachment,
   assertCanDeleteAttachment,
 } from '../../policies/attachmentPolicy.js';
-import { TaskAttachment } from '@qa/contracts';
+import { AttachmentCategory, TaskAttachment } from '@qa/contracts';
 
 function formatAttachment(a: TaskAttachmentModel): TaskAttachment {
   const json = a.toJSON();
@@ -23,7 +23,9 @@ function formatAttachment(a: TaskAttachmentModel): TaskAttachment {
     fileName: json.fileName,
     fileSize: json.fileSize,
     mimeType: json.mimeType,
-    storageRef: json.storageRef,
+    storageProvider: json.storageProvider,
+    category: json.category,
+    caption: json.caption || null,
     uploaderId: json.uploaderId,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: json.updatedAt ? new Date(json.updatedAt).toISOString() : new Date().toISOString(),
@@ -73,6 +75,8 @@ export class AttachmentService {
       originalname: string;
       mimetype: string;
       size: number;
+      category: AttachmentCategory;
+      caption?: string;
     }
   ): Promise<TaskAttachment> {
     const member = await getActorMembership(workspaceId, actorId);
@@ -92,46 +96,61 @@ export class AttachmentService {
       workspace?.allowQaTaskCreation ?? true
     );
 
-    const { storageRef, fileSize } = await storageService.saveFile(
-      file.buffer,
-      file.originalname,
+    const stored = await storageService.saveFile({
+      buffer: file.buffer,
+      fileName: file.originalname,
+      mimeType: file.mimetype || 'application/octet-stream',
       workspaceId,
-      taskId
-    );
-
-    return await sequelize.transaction(async (transaction) => {
-      const attachment = await TaskAttachmentModel.create(
-        {
-          workspaceId,
-          taskId,
-          fileName: file.originalname.trim(),
-          fileSize,
-          mimeType: file.mimetype || 'application/octet-stream',
-          storageRef,
-          uploaderId: actorId,
-        },
-        { transaction }
-      );
-
-      // Record Activity audit log in transaction
-      await TaskActivityModel.create(
-        {
-          workspaceId,
-          taskId,
-          actorId,
-          action: 'attachment_created',
-          metadataJson: {
-            attachmentId: attachment.id,
-            fileName: attachment.fileName,
-            fileSize: attachment.fileSize,
-            mimeType: attachment.mimeType,
-          },
-        },
-        { transaction }
-      );
-
-      return formatAttachment(attachment);
+      taskId,
     });
+
+    try {
+      return await sequelize.transaction(async (transaction) => {
+        const attachment = await TaskAttachmentModel.create(
+          {
+            workspaceId,
+            taskId,
+            fileName: file.originalname.trim(),
+            fileSize: stored.fileSize,
+            mimeType: file.mimetype || 'application/octet-stream',
+            storageRef: stored.storageRef,
+            storageProvider: stored.provider,
+            providerFileId: stored.providerFileId,
+            category: file.category,
+            caption: file.caption || null,
+            uploaderId: actorId,
+          },
+          { transaction }
+        );
+
+        await TaskActivityModel.create(
+          {
+            workspaceId,
+            taskId,
+            actorId,
+            action: 'attachment_created',
+            metadataJson: {
+              attachmentId: attachment.id,
+              fileName: attachment.fileName,
+              fileSize: attachment.fileSize,
+              mimeType: attachment.mimeType,
+              category: attachment.category,
+              storageProvider: attachment.storageProvider,
+            },
+          },
+          { transaction }
+        );
+
+        return formatAttachment(attachment);
+      });
+    } catch (error) {
+      await storageService.deleteFile({
+        provider: stored.provider,
+        storageRef: stored.storageRef,
+        providerFileId: stored.providerFileId,
+      });
+      throw error;
+    }
   }
 
   async getAttachmentForDownload(
@@ -139,7 +158,7 @@ export class AttachmentService {
     taskId: string,
     attachmentId: string,
     actorId: string
-  ): Promise<{ attachment: TaskAttachment; filePath: string }> {
+  ): Promise<{ attachment: TaskAttachment; stream: import('node:stream').Readable }> {
     const member = await getActorMembership(workspaceId, actorId);
     assertCanReadAttachments(member.role);
 
@@ -151,11 +170,15 @@ export class AttachmentService {
       throw new Error('NOT_FOUND: Attachment evidence not found.');
     }
 
-    const filePath = storageService.getFilePath(attachment.storageRef);
+    const stream = await storageService.openFile({
+      provider: attachment.storageProvider,
+      storageRef: attachment.storageRef,
+      providerFileId: attachment.providerFileId,
+    });
 
     return {
       attachment: formatAttachment(attachment),
-      filePath,
+      stream,
     };
   }
 
@@ -176,6 +199,12 @@ export class AttachmentService {
 
     assertCanDeleteAttachment(member.role, actorId, { uploaderId: attachment.uploaderId });
 
+    await storageService.deleteFile({
+      provider: attachment.storageProvider,
+      storageRef: attachment.storageRef,
+      providerFileId: attachment.providerFileId,
+    });
+
     await sequelize.transaction(async (transaction) => {
       await attachment.destroy({ transaction });
 
@@ -189,13 +218,13 @@ export class AttachmentService {
           metadataJson: {
             attachmentId,
             fileName: attachment.fileName,
+            category: attachment.category,
           },
         },
         { transaction }
       );
     });
 
-    await storageService.deleteFile(attachment.storageRef);
     return { success: true };
   }
 }

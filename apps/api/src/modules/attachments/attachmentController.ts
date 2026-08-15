@@ -1,8 +1,19 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { attachmentService } from './attachmentService.js';
+import { UploadTaskAttachmentSchema } from '@qa/contracts';
+import { ZodError } from 'zod';
 
 function handleError(res: Response, error: unknown) {
+  if (error instanceof ZodError) {
+    return res.status(400).json({
+      type: 'https://api.qa-hub.com/errors/bad-request',
+      title: 'Bad Request',
+      status: 400,
+      detail: error.issues.map((issue) => issue.message).join('; '),
+      code: 'BAD_REQUEST',
+    });
+  }
   const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
   if (message.startsWith('NOT_FOUND:')) {
     return res.status(404).json({
@@ -76,12 +87,25 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
     }
 
     const mimeType = (req.headers['content-type'] as string) || 'application/octet-stream';
+    const categoryHeader = req.headers['x-attachment-category'];
+    const captionHeader = req.headers['x-attachment-caption'];
+    const category = Array.isArray(categoryHeader) ? categoryHeader[0] : categoryHeader;
+    const caption = Array.isArray(captionHeader) ? captionHeader[0] : captionHeader;
+    const metadata = UploadTaskAttachmentSchema.parse({
+      fileName,
+      mimeType: mimeType.split(';')[0],
+      fileSize: buffer.length,
+      category: category || 'general',
+      caption: caption ? decodeURIComponent(caption) : undefined,
+    });
 
     const attachment = await attachmentService.uploadAttachment(workspaceId, taskId, actorId, {
       buffer,
-      originalname: fileName,
-      mimetype: mimeType.split(';')[0],
-      size: buffer.length,
+      originalname: metadata.fileName,
+      mimetype: metadata.mimeType,
+      size: metadata.fileSize,
+      category: metadata.category,
+      caption: metadata.caption,
     });
 
     return res.status(201).json({ attachment });
@@ -95,7 +119,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     const { workspaceId, taskId, attachmentId } = req.params;
     const actorId = req.user!.userId;
 
-    const { attachment, filePath } = await attachmentService.getAttachmentForDownload(
+    const { attachment, stream } = await attachmentService.getAttachmentForDownload(
       workspaceId,
       taskId,
       attachmentId,
@@ -105,7 +129,11 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     res.setHeader('Content-Type', attachment.mimeType);
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(attachment.fileName)}"`);
 
-    return res.sendFile(filePath);
+    stream.on('error', (error) => {
+      if (!res.headersSent) return handleError(res, error);
+      res.destroy(error);
+    });
+    return stream.pipe(res);
   } catch (error) {
     return handleError(res, error);
   }

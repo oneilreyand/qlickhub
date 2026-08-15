@@ -17,6 +17,11 @@ export function assertCanCreateQaDocument(role: WorkspaceRole): void {
   throw new Error('FORBIDDEN: Only Product Owner, Admin, Owner, or QA members can create or edit QA documents.');
 }
 
+export function assertCanManageProductBrief(role: WorkspaceRole): void {
+  if (isPlanner(role)) return;
+  throw new Error('FORBIDDEN: Only Product Owner, Admin, or Owner members can create or update a Product Brief.');
+}
+
 export function assertCanLinkQaDocument(
   role: WorkspaceRole,
   actorId: string,

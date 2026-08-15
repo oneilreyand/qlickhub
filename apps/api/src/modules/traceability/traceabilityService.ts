@@ -80,6 +80,8 @@ function formatDocument(d: QaDocumentModel | Record<string, any>): QaDocument {
     folderId: json.folderId || null,
     title: json.title,
     docType: json.docType,
+    status: json.status || 'draft',
+    ownerId: json.ownerId || null,
     currentVersion: json.currentVersion,
     createdBy: json.createdBy,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),

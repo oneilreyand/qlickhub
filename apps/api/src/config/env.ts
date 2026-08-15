@@ -21,6 +21,9 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  ATTACHMENT_STORAGE_PROVIDER: z.enum(['local', 'google_drive']).optional(),
+  GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().min(1).optional(),
+  GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
 });
 
 const parseEnv = () => {
@@ -33,6 +36,7 @@ const parseEnv = () => {
   const defaultDevelopmentDatabaseUrl = 'postgres://postgres:postgres@localhost:5432/qa_management_dev';
   const defaultTestDatabaseUrl = 'postgres://postgres:postgres@localhost:5432/qa_management_test';
   const isProduction = values.NODE_ENV === 'production';
+  const attachmentStorageProvider = values.ATTACHMENT_STORAGE_PROVIDER || (isProduction ? 'google_drive' : 'local');
   const databaseUrl = values.NODE_ENV === 'test'
     ? values.TEST_DATABASE_URL || defaultTestDatabaseUrl
     : values.DATABASE_URL || defaultDevelopmentDatabaseUrl;
@@ -45,12 +49,19 @@ const parseEnv = () => {
       throw new Error('CORS_ORIGIN must be an explicit allowlist in production.');
     }
     if (!values.DATABASE_SSL) throw new Error('DATABASE_SSL=true is required in production.');
+    if (attachmentStorageProvider !== 'google_drive') {
+      throw new Error('ATTACHMENT_STORAGE_PROVIDER=google_drive is required in production.');
+    }
+    if (!values.GOOGLE_DRIVE_ROOT_FOLDER_ID) {
+      throw new Error('GOOGLE_DRIVE_ROOT_FOLDER_ID must be configured when using Google Drive storage.');
+    }
   }
 
   return {
     ...values,
     DATABASE_URL: databaseUrl,
     JWT_ACCESS_SECRET: jwtAccessSecret,
+    ATTACHMENT_STORAGE_PROVIDER: attachmentStorageProvider,
   };
 };
 

@@ -9,13 +9,17 @@ export interface TaskAttachmentAttributes {
   fileSize: number;
   mimeType: string;
   storageRef: string;
+  storageProvider: 'local' | 'google_drive';
+  providerFileId?: string | null;
+  category: 'product_media' | 'qa_evidence' | 'general';
+  caption?: string | null;
   uploaderId: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export interface TaskAttachmentCreationAttributes
-  extends Optional<TaskAttachmentAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<TaskAttachmentAttributes, 'id' | 'storageProvider' | 'providerFileId' | 'category' | 'caption' | 'createdAt' | 'updatedAt'> {}
 
 export class TaskAttachmentModel
   extends Model<TaskAttachmentAttributes, TaskAttachmentCreationAttributes>
@@ -28,6 +32,10 @@ export class TaskAttachmentModel
   declare fileSize: number;
   declare mimeType: string;
   declare storageRef: string;
+  declare storageProvider: 'local' | 'google_drive';
+  declare providerFileId: string | null;
+  declare category: 'product_media' | 'qa_evidence' | 'general';
+  declare caption: string | null;
   declare uploaderId: string;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -69,6 +77,26 @@ TaskAttachmentModel.init(
       type: DataTypes.STRING(512),
       allowNull: false,
       field: 'storage_ref',
+    },
+    storageProvider: {
+      type: DataTypes.STRING(24),
+      allowNull: false,
+      defaultValue: 'local',
+      field: 'storage_provider',
+    },
+    providerFileId: {
+      type: DataTypes.STRING(512),
+      allowNull: true,
+      field: 'provider_file_id',
+    },
+    category: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'general',
+    },
+    caption: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
     },
     uploaderId: {
       type: DataTypes.UUID,

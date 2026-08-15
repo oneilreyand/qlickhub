@@ -11,11 +11,7 @@ import {
   Edit2,
   Send,
   FileCode2,
-  Link as LinkIcon,
-  CheckSquare,
   Upload,
-  ExternalLink,
-  X,
   Paperclip,
   Download,
   File as FileIcon,
@@ -28,17 +24,23 @@ import type {
   TaskActivity,
   TaskComment,
   TaskAttachment,
+  AttachmentCategory,
   Requirement,
   TaskRequirementLink,
   QaDocument,
   TaskDocumentLink,
+  ProductBrief,
+  ProductBriefScopeItem,
+  ProductBriefStatus,
 } from '@qa/contracts';
 import { Drawer } from '../molecules/Drawer';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Input } from '../atoms/Input';
 import { Textarea } from '../atoms/Textarea';
+import { Select } from '../atoms/Select';
 import { Tabs, TabItem } from '../molecules/Tabs';
+import { Modal } from '../molecules/Modal';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { Skeleton } from '../atoms/Skeleton';
 import { Alert } from '../atoms/Alert';
@@ -93,18 +95,26 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [dueDate, setDueDate] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // PRD & Specification state (Multi-Link)
-  const [prdLinks, setPrdLinks] = useState<{ id: string; title: string; url: string }[]>([]);
-  const [newPrdTitle, setNewPrdTitle] = useState('');
-  const [newPrdUrl, setNewPrdUrl] = useState('');
-  const [prdSpecs, setPrdSpecs] = useState('');
+  // Persisted Product Brief state
+  const [productBrief, setProductBrief] = useState<ProductBrief | null>(null);
+  const [isLoadingProductBrief, setIsLoadingProductBrief] = useState(false);
+  const [productBriefError, setProductBriefError] = useState<string | null>(null);
+  const [isSavingProductBrief, setIsSavingProductBrief] = useState(false);
+  const [productBriefTitle, setProductBriefTitle] = useState('');
+  const [productBriefContent, setProductBriefContent] = useState('');
+  const [productBriefInScope, setProductBriefInScope] = useState<ProductBriefScopeItem[]>([]);
+  const [productBriefOutScope, setProductBriefOutScope] = useState<ProductBriefScopeItem[]>([]);
+  const [productBriefStatus, setProductBriefStatus] = useState<ProductBriefStatus>('draft');
+  const [productBriefOwnerId, setProductBriefOwnerId] = useState('');
 
   // Evidence Attachments State (Persisted API)
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [attachmentCategory, setAttachmentCategory] = useState<AttachmentCategory>('general');
+  const [attachmentCaption, setAttachmentCaption] = useState('');
+  const [previewAttachment, setPreviewAttachment] = useState<TaskAttachment | null>(null);
 
   // Task Requirements & Links state
   const [taskRequirementLinks, setTaskRequirementLinks] = useState<TaskRequirementLink[]>([]);
@@ -168,12 +178,101 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         loadActivity(1);
         loadComments(1);
         loadAttachments();
+        loadProductBrief();
         loadTaskRequirements();
         loadTaskDocuments();
         dispatch(fetchMembers(activeWorkspaceId));
       }
     }
   }, [task, activeWorkspaceId, dispatch]);
+
+  const loadProductBrief = async () => {
+    if (!activeWorkspaceId || !task) return;
+    setIsLoadingProductBrief(true);
+    setProductBriefError(null);
+    try {
+      const brief = await qaDocumentService.getProductBrief(activeWorkspaceId, task.id);
+      setProductBrief(brief);
+      setProductBriefTitle(brief?.document.title || `${task.title} Product Brief`);
+      setProductBriefContent(brief?.currentVersion.contentMarkdown || '');
+      setProductBriefInScope(brief?.currentVersion.inScope || []);
+      setProductBriefOutScope(brief?.currentVersion.outScope || []);
+      setProductBriefStatus(brief?.document.status || 'draft');
+      setProductBriefOwnerId(brief?.document.ownerId || currentUserId || '');
+    } catch (err) {
+      setProductBriefError(errorMessage(err, 'Unable to load the Product Brief.'));
+    } finally {
+      setIsLoadingProductBrief(false);
+    }
+  };
+
+  const addScopeItem = (kind: 'in' | 'out') => {
+    const item: ProductBriefScopeItem = {
+      id: crypto.randomUUID(),
+      text: '',
+      position: kind === 'in' ? productBriefInScope.length : productBriefOutScope.length,
+    };
+    if (kind === 'in') {
+      setProductBriefInScope((items) => [...items, item]);
+    } else {
+      setProductBriefOutScope((items) => [...items, item]);
+    }
+  };
+
+  const updateScopeItem = (kind: 'in' | 'out', id: string, text: string) => {
+    const update = (items: ProductBriefScopeItem[]) =>
+      items.map((item) => (item.id === id ? { ...item, text } : item));
+    if (kind === 'in') {
+      setProductBriefInScope(update);
+    } else {
+      setProductBriefOutScope(update);
+    }
+  };
+
+  const removeScopeItem = (kind: 'in' | 'out', id: string) => {
+    const remove = (items: ProductBriefScopeItem[]) =>
+      items.filter((item) => item.id !== id).map((item, position) => ({ ...item, position }));
+    if (kind === 'in') {
+      setProductBriefInScope(remove);
+    } else {
+      setProductBriefOutScope(remove);
+    }
+  };
+
+  const handleSaveProductBrief = async () => {
+    if (!activeWorkspaceId || !task || !productBriefTitle.trim()) return;
+    const inScope = productBriefInScope.filter((item) => item.text.trim()).map((item, position) => ({
+      ...item,
+      text: item.text.trim(),
+      position,
+    }));
+    const outScope = productBriefOutScope.filter((item) => item.text.trim()).map((item, position) => ({
+      ...item,
+      text: item.text.trim(),
+      position,
+    }));
+
+    setIsSavingProductBrief(true);
+    try {
+      const brief = await qaDocumentService.upsertProductBrief(activeWorkspaceId, task.id, {
+        title: productBriefTitle.trim(),
+        contentMarkdown: productBriefContent,
+        inScope,
+        outScope,
+        ownerId: productBriefOwnerId || undefined,
+        status: productBriefStatus,
+      });
+      setProductBrief(brief);
+      setProductBriefInScope(brief.currentVersion.inScope);
+      setProductBriefOutScope(brief.currentVersion.outScope);
+      dispatch(enqueueSnackbar(`Product Brief saved as version ${brief.currentVersion.version}.`, 'success'));
+      loadActivity(1);
+    } catch (err) {
+      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to save Product Brief'), 'error'));
+    } finally {
+      setIsSavingProductBrief(false);
+    }
+  };
 
   const loadTaskRequirements = async () => {
     if (!activeWorkspaceId || !task) return;
@@ -327,9 +426,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         task.id,
         buffer,
         file.name,
-        file.type
+        file.type,
+        { category: attachmentCategory, caption: attachmentCaption }
       );
-      dispatch(enqueueSnackbar(`Evidence file "${file.name}" uploaded successfully.`, 'success'));
+      dispatch(enqueueSnackbar(`Attachment "${file.name}" uploaded successfully.`, 'success'));
+      setAttachmentCaption('');
+      setAttachmentCategory('general');
       loadAttachments();
       loadActivity(1);
       if (onDataChanged) onDataChanged();
@@ -346,6 +448,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     try {
       await attachmentService.deleteAttachment(activeWorkspaceId, task.id, attachmentId);
       dispatch(enqueueSnackbar(`Evidence file "${fileName}" removed.`, 'success'));
+      if (previewAttachment?.id === attachmentId) {
+        setPreviewAttachment(null);
+      }
       loadAttachments();
       loadActivity(1);
       if (onDataChanged) onDataChanged();
@@ -998,116 +1103,144 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     )}
                   </div>
 
-                  {/* Multi-Link PRD Section */}
-                  <div className="space-y-3">
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 flex items-center gap-1.5">
-                      <LinkIcon className="h-4 w-4 text-stone-400" />
-                      <span>PRD & Specification Links ({prdLinks.length})</span>
-                    </label>
-
-                    {canEditTask && (
-                      <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 dark:bg-stone-950/50 dark:border-stone-800 space-y-3">
-                        <span className="text-xs font-bold text-stone-900 dark:text-stone-100">Add New Specification Link</span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Input
-                            type="text"
-                            placeholder="Link Title (e.g., PRD Doc, Figma, API Swagger)"
-                            value={newPrdTitle}
-                            onChange={(e) => setNewPrdTitle(e.target.value)}
-                          />
-                          <Input
-                            type="url"
-                            placeholder="URL (https://...)"
-                            value={newPrdUrl}
-                            onChange={(e) => setNewPrdUrl(e.target.value)}
-                          />
-                        </div>
-                        <div className="flex justify-end pt-1">
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            disabled={!newPrdUrl.trim()}
-                            leftIcon={<Plus className="h-3.5 w-3.5" />}
-                            onClick={() => {
-                              if (!newPrdUrl.trim()) return;
-                              setPrdLinks((prev) => [
-                                ...prev,
-                                {
-                                  id: String(Date.now()),
-                                  title: newPrdTitle.trim() || `PRD Link ${prev.length + 1}`,
-                                  url: newPrdUrl.trim(),
-                                },
-                              ]);
-                              setNewPrdTitle('');
-                              setNewPrdUrl('');
-                              dispatch(enqueueSnackbar('PRD link added', 'success'));
-                            }}
-                          >
-                            Add Link
-                          </Button>
-                        </div>
+                  {/* Persisted Product Brief */}
+                  <div className="space-y-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900/70 dark:bg-indigo-950/20">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">Product Brief</h4>
+                        <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                          The versioned product source of truth. Use scope for commitments; create Subtasks for execution work.
+                        </p>
                       </div>
-                    )}
+                      <span className="shrink-0 rounded-lg bg-indigo-100 px-2 py-1 text-[11px] font-bold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200">
+                        {productBrief ? `v${productBrief.currentVersion.version}` : 'New draft'}
+                      </span>
+                    </div>
 
-                    {/* PRD Links List */}
-                    {prdLinks.length === 0 ? (
-                      <p className="text-xs text-stone-400 italic py-2">No PRD or spec links added yet.</p>
+                    {isLoadingProductBrief ? (
+                      <div className="space-y-3"><Skeleton className="h-10 w-full rounded-xl" /><Skeleton className="h-44 w-full rounded-xl" /></div>
+                    ) : productBriefError ? (
+                      <Alert tone="error" title="Product Brief unavailable">
+                        <div className="flex items-center justify-between gap-3">
+                          <span>{productBriefError}</span>
+                          <Button size="sm" variant="outline" onClick={() => void loadProductBrief()}>Retry</Button>
+                        </div>
+                      </Alert>
                     ) : (
-                      <div className="space-y-2">
-                        {prdLinks.map((link) => (
-                          <div
-                            key={link.id}
-                            className="flex items-center justify-between p-3 rounded-xl border border-stone-200 bg-white text-xs dark:border-stone-800 dark:bg-stone-900"
+                      <>
+                        {!canPlan && (
+                          <Alert tone="info" title="Read-only Product Brief">
+                            Only a Product Owner, Admin, or Owner can update Product Brief content and scope.
+                          </Alert>
+                        )}
+
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <Input
+                            id="product-brief-title"
+                            label="PRD title"
+                            value={productBriefTitle}
+                            onChange={(event) => setProductBriefTitle(event.target.value)}
+                            disabled={!canPlan}
+                            placeholder="Checkout product brief"
+                          />
+                          <Select
+                            id="product-brief-status"
+                            label="PRD status"
+                            value={productBriefStatus}
+                            onChange={(event) => setProductBriefStatus(event.target.value as ProductBriefStatus)}
+                            disabled={!canPlan}
                           >
-                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                                <LinkIcon className="h-3.5 w-3.5" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="font-bold text-stone-900 dark:text-stone-100 truncate">{link.title}</p>
-                                <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate">{link.url}</p>
-                              </div>
-                            </div>
+                            <option value="draft">Draft</option>
+                            <option value="in_review">In review</option>
+                            <option value="approved">Approved</option>
+                          </Select>
+                        </div>
 
-                            <div className="flex items-center gap-2 shrink-0 ml-3">
-                              <a
-                                href={link.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-lg dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-                              >
-                                <span>Open</span>
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                              {canEditTask && (
-                                <IconButton
-                                  label="Delete PRD link"
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => setPrdLinks((prev) => prev.filter((item) => item.id !== link.id))}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 text-rose-500" />
-                                </IconButton>
-                              )}
+                        <Select
+                          id="product-brief-owner"
+                          label="Product owner"
+                          value={productBriefOwnerId}
+                          onChange={(event) => setProductBriefOwnerId(event.target.value)}
+                          disabled={!canPlan}
+                        >
+                          {!productBriefOwnerId && <option value="">Select an owner</option>}
+                          {productBriefOwnerId && !members.some((member) => member.userId === productBriefOwnerId) && (
+                            <option value={productBriefOwnerId}>{productBriefOwnerId}</option>
+                          )}
+                          {members.map((member) => (
+                            <option key={member.userId} value={member.userId}>
+                              {member.user?.name || member.user?.email || member.userId}
+                            </option>
+                          ))}
+                        </Select>
+
+                        <Textarea
+                          id="product-brief-content"
+                          label="Product context & requirements"
+                          rows={16}
+                          value={productBriefContent}
+                          onChange={(event) => setProductBriefContent(event.target.value)}
+                          disabled={!canPlan}
+                          placeholder="Explain the problem, intended user outcome, behaviour, decisions, and supporting links in Markdown."
+                        />
+
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                          <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                            <div>
+                              <h5 className="text-xs font-bold text-emerald-900 dark:text-emerald-100">In Scope</h5>
+                              <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Product commitments included in this task.</p>
                             </div>
+                            {productBriefInScope.map((item) => (
+                              <div key={item.id} className="flex gap-2">
+                                <Input
+                                  aria-label="In Scope item"
+                                  value={item.text}
+                                  onChange={(event) => updateScopeItem('in', item.id, event.target.value)}
+                                  disabled={!canPlan}
+                                  placeholder="Example: Preview design images"
+                                />
+                                {canPlan && <IconButton label="Remove In Scope item" size="sm" variant="ghost" onClick={() => removeScopeItem('in', item.id)}><Trash2 className="h-4 w-4 text-rose-500" /></IconButton>}
+                              </div>
+                            ))}
+                            {canPlan && <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => addScopeItem('in')}>Add In Scope</Button>}
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1 flex items-center gap-1.5">
-                      <CheckSquare className="h-4 w-4 text-stone-400" />
-                      <span>Detailed Functional Requirements & Acceptance Criteria</span>
-                    </label>
-                    <Textarea
-                      rows={10}
-                      value={prdSpecs}
-                      onChange={(e) => setPrdSpecs(e.target.value)}
-                      disabled={!canEditTask}
-                      placeholder="Write user stories, acceptance criteria [x], edge cases, and API specifications here..."
-                    />
+                          <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+                            <div>
+                              <h5 className="text-xs font-bold text-amber-900 dark:text-amber-100">Out of Scope</h5>
+                              <p className="text-[11px] text-amber-700 dark:text-amber-300">Explicit exclusions for this release.</p>
+                            </div>
+                            {productBriefOutScope.map((item) => (
+                              <div key={item.id} className="flex gap-2">
+                                <Input
+                                  aria-label="Out of Scope item"
+                                  value={item.text}
+                                  onChange={(event) => updateScopeItem('out', item.id, event.target.value)}
+                                  disabled={!canPlan}
+                                  placeholder="Example: Direct video upload"
+                                />
+                                {canPlan && <IconButton label="Remove Out of Scope item" size="sm" variant="ghost" onClick={() => removeScopeItem('out', item.id)}><Trash2 className="h-4 w-4 text-rose-500" /></IconButton>}
+                              </div>
+                            ))}
+                            {canPlan && <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => addScopeItem('out')}>Add Out of Scope</Button>}
+                          </div>
+                        </div>
+
+                        {canPlan && (
+                          <div className="flex justify-end border-t border-indigo-100 pt-3 dark:border-indigo-900/60">
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              isLoading={isSavingProductBrief}
+                              disabled={!productBriefTitle.trim()}
+                              onClick={handleSaveProductBrief}
+                            >
+                              Save new version
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -1123,10 +1256,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     <Paperclip className="h-5 w-5 text-[#22201F] dark:text-[#B1E743]" />
                     <div>
                       <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                        Task Evidence & Attachments ({attachments.length})
+                        Product Media & Evidence ({attachments.length})
                       </h3>
                       <p className="text-xs text-stone-500 dark:text-stone-400">
-                        Persisted workspace-scoped evidence (images, documents, logs, test artifacts).
+                        Workspace-scoped product references, QA evidence, and supporting files.
                       </p>
                     </div>
                   </div>
@@ -1138,9 +1271,32 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
                         <Upload className="h-3.5 w-3.5 text-stone-500" />
-                        <span>Upload Evidence File</span>
+                        <span>Add attachment</span>
                       </span>
                       <span className="text-[11px] text-stone-400">Max size: 15MB</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Select
+                        id="attachment-category"
+                        label="Attachment type"
+                        value={attachmentCategory}
+                        disabled={isUploadingAttachment}
+                        onChange={(event) => setAttachmentCategory(event.target.value as AttachmentCategory)}
+                      >
+                        <option value="product_media">Product media</option>
+                        <option value="qa_evidence">QA evidence</option>
+                        <option value="general">General attachment</option>
+                      </Select>
+                      <Input
+                        id="attachment-caption"
+                        label="Caption (optional)"
+                        value={attachmentCaption}
+                        maxLength={500}
+                        disabled={isUploadingAttachment}
+                        onChange={(event) => setAttachmentCaption(event.target.value)}
+                        placeholder="What should the team notice?"
+                      />
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -1157,7 +1313,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           isUploadingAttachment ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                       >
-                        <Paperclip className="h-4 w-4" />
                         <span>{isUploadingAttachment ? 'Uploading...' : 'Choose File to Upload'}</span>
                       </label>
                       {isUploadingAttachment && <Skeleton className="h-4 w-24" />}
@@ -1192,61 +1347,69 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   <div className="py-12 text-center border border-dashed border-stone-200 rounded-xl dark:border-stone-800">
                     <Paperclip className="h-8 w-8 text-stone-300 mx-auto dark:text-stone-600 mb-2" />
                     <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
-                      No evidence attachments uploaded yet.
+                      No product media or evidence attachments yet.
                     </p>
                     <p className="text-[11px] text-stone-400">Upload screenshots, logs, or test reports to persist them securely in this workspace.</p>
                   </div>
                 )}
 
-                {/* Attachments List & Image Preview Grid */}
+                {/* Media is always an attachment; the gallery is only a filtered view. */}
                 {!isLoadingAttachments && !attachmentsError && attachments.length > 0 && (
-                  <div className="space-y-4">
-                    {/* Image Attachments Preview Grid */}
-                    {attachments.some((att) => att.mimeType.startsWith('image/')) && (
+                  <div className="space-y-5">
+                    {attachments.some((att) => att.mimeType.startsWith('image/') || att.mimeType.startsWith('video/')) && (
                       <div className="space-y-2">
-                        <span className="text-xs font-bold text-stone-700 dark:text-stone-300">Images ({attachments.filter((a) => a.mimeType.startsWith('image/')).length})</span>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <span className="text-xs font-bold text-stone-700 dark:text-stone-300">Media gallery</span>
+                            <p className="text-[11px] text-stone-400">Click an image or video to view it larger.</p>
+                          </div>
+                          <span className="text-[11px] font-semibold text-stone-400">
+                            {attachments.filter((att) => att.mimeType.startsWith('image/') || att.mimeType.startsWith('video/')).length} items
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                           {attachments
-                            .filter((att) => att.mimeType.startsWith('image/'))
+                            .filter((att) => att.mimeType.startsWith('image/') || att.mimeType.startsWith('video/'))
                             .map((att) => {
                               const downloadUrl = attachmentService.getDownloadUrl(activeWorkspaceId!, task.id, att.id);
+                              const isVideo = att.mimeType.startsWith('video/');
                               return (
-                                <div
-                                  key={att.id}
-                                  className="group relative rounded-xl border border-stone-200 bg-stone-100 overflow-hidden dark:border-stone-800 dark:bg-stone-900"
-                                >
-                                  <img
-                                    src={downloadUrl}
-                                    alt={att.fileName}
-                                    className="h-32 w-full object-cover transition-transform group-hover:scale-105 cursor-pointer"
-                                    onClick={() => setPreviewImage(downloadUrl)}
-                                  />
-                                  <div className="p-2 bg-white dark:bg-stone-900 flex justify-between items-center border-t border-stone-100 dark:border-stone-800">
-                                    <div className="min-w-0 flex-1 pr-1">
-                                      <p className="text-[11px] font-semibold text-stone-800 dark:text-stone-200 truncate">{att.fileName}</p>
-                                      <p className="text-[10px] text-stone-400">{(att.fileSize / 1024).toFixed(1)} KB</p>
+                                <div key={att.id} className="overflow-hidden rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewAttachment(att)}
+                                    className="group relative block w-full overflow-hidden bg-stone-100 text-left focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-stone-950"
+                                    aria-label={`Open ${att.fileName}`}
+                                  >
+                                    {isVideo ? (
+                                      <video src={downloadUrl} muted preload="metadata" className="h-32 w-full object-cover transition-transform group-hover:scale-105" />
+                                    ) : (
+                                      <img src={downloadUrl} alt={att.caption || att.fileName} className="h-32 w-full object-cover transition-transform group-hover:scale-105" />
+                                    )}
+                                    <span className="absolute left-2 top-2 rounded-md bg-stone-950/75 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                                      {isVideo ? 'Video' : 'Image'}
+                                    </span>
+                                  </button>
+                                  <div className="space-y-1 border-t border-stone-100 p-2 dark:border-stone-800">
+                                    <div className="flex items-start justify-between gap-1">
+                                      <div className="min-w-0 flex-1">
+                                        <p className="truncate text-[11px] font-semibold text-stone-800 dark:text-stone-200">{att.fileName}</p>
+                                        {att.caption && <p className="mt-0.5 line-clamp-2 text-[10px] text-stone-500 dark:text-stone-400">{att.caption}</p>}
+                                      </div>
+                                      <div className="flex shrink-0 gap-0.5">
+                                        <a href={downloadUrl} target="_blank" rel="noreferrer" className="rounded p-1 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800" title="Open or download">
+                                          <Download className="h-3.5 w-3.5" />
+                                        </a>
+                                        {canEditTask && (
+                                          <IconButton label="Delete attachment" size="sm" variant="ghost" onClick={() => handleDeleteAttachment(att.id, att.fileName)}>
+                                            <Trash2 className="h-3.5 w-3.5 text-rose-500" />
+                                          </IconButton>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="flex gap-1 shrink-0">
-                                      <a
-                                        href={downloadUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="p-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500"
-                                        title="Download/Open"
-                                      >
-                                        <Download className="h-3.5 w-3.5" />
-                                      </a>
-                                      {canEditTask && (
-                                        <button
-                                          type="button"
-                                          className="p-1 rounded hover:bg-rose-50 text-rose-500 dark:hover:bg-rose-950/50"
-                                          onClick={() => handleDeleteAttachment(att.id, att.fileName)}
-                                          title="Delete attachment"
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                      )}
-                                    </div>
+                                    <p className="text-[10px] text-stone-400">
+                                      {att.category.replace('_', ' ')} • {(att.fileSize / 1024).toFixed(1)} KB
+                                    </p>
                                   </div>
                                 </div>
                               );
@@ -1255,52 +1418,29 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                       </div>
                     )}
 
-                    {/* Non-Image Attachments List */}
-                    {attachments.some((att) => !att.mimeType.startsWith('image/')) && (
+                    {attachments.some((att) => !att.mimeType.startsWith('image/') && !att.mimeType.startsWith('video/')) && (
                       <div className="space-y-2">
-                        <span className="text-xs font-bold text-stone-700 dark:text-stone-300">Files & Documents ({attachments.filter((a) => !a.mimeType.startsWith('image/')).length})</span>
+                        <span className="text-xs font-bold text-stone-700 dark:text-stone-300">
+                          Files & Documents ({attachments.filter((att) => !att.mimeType.startsWith('image/') && !att.mimeType.startsWith('video/')).length})
+                        </span>
                         <div className="space-y-2">
                           {attachments
-                            .filter((att) => !att.mimeType.startsWith('image/'))
+                            .filter((att) => !att.mimeType.startsWith('image/') && !att.mimeType.startsWith('video/'))
                             .map((att) => {
                               const downloadUrl = attachmentService.getDownloadUrl(activeWorkspaceId!, task.id, att.id);
                               return (
-                                <div
-                                  key={att.id}
-                                  className="flex items-center justify-between p-3 rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900"
-                                >
-                                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                                      <FileIcon className="h-4 w-4" />
-                                    </div>
+                                <div key={att.id} className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
+                                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300"><FileIcon className="h-4 w-4" /></div>
                                     <div className="min-w-0 flex-1">
-                                      <p className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">{att.fileName}</p>
-                                      <p className="text-[11px] text-stone-400">
-                                        {(att.fileSize / 1024).toFixed(1)} KB • {att.mimeType}
-                                      </p>
+                                      <p className="truncate text-xs font-bold text-stone-900 dark:text-stone-100">{att.fileName}</p>
+                                      <p className="text-[11px] text-stone-400">{att.category.replace('_', ' ')} • {(att.fileSize / 1024).toFixed(1)} KB • {att.mimeType}</p>
+                                      {att.caption && <p className="mt-0.5 truncate text-[11px] text-stone-500 dark:text-stone-400">{att.caption}</p>}
                                     </div>
                                   </div>
-
-                                  <div className="flex items-center gap-2 shrink-0 ml-3">
-                                    <a
-                                      href={downloadUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-lg dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-                                    >
-                                      <Download className="h-3 w-3" />
-                                      <span>Download</span>
-                                    </a>
-                                    {canEditTask && (
-                                      <IconButton
-                                        label="Delete attachment"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleDeleteAttachment(att.id, att.fileName)}
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5 text-rose-500" />
-                                      </IconButton>
-                                    )}
+                                  <div className="ml-3 flex shrink-0 items-center gap-2">
+                                    <a href={downloadUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-800 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"><Download className="h-3 w-3" /><span>Download</span></a>
+                                    {canEditTask && <IconButton label="Delete attachment" size="sm" variant="ghost" onClick={() => handleDeleteAttachment(att.id, att.fileName)}><Trash2 className="h-3.5 w-3.5 text-rose-500" /></IconButton>}
                                   </div>
                                 </div>
                               );
@@ -1312,24 +1452,37 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 )}
               </Card>
 
-              {/* Fullscreen Image Preview Modal */}
-              {previewImage && (
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-                  onClick={() => setPreviewImage(null)}
-                >
-                  <div className="relative max-w-4xl max-h-[90vh]">
-                    <img src={previewImage} alt="Preview" className="max-h-[85vh] max-w-full rounded-xl shadow-2xl" />
-                    <button
-                      type="button"
-                      onClick={() => setPreviewImage(null)}
-                      className="absolute -top-3 -right-3 grid h-8 w-8 place-items-center rounded-full bg-white text-stone-900 shadow-md dark:bg-stone-800 dark:text-white"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+              <Modal
+                isOpen={Boolean(previewAttachment)}
+                onClose={() => setPreviewAttachment(null)}
+                title={previewAttachment?.fileName || 'Media preview'}
+                description={previewAttachment?.caption || `${previewAttachment?.category?.replace('_', ' ') || 'attachment'} preview`}
+                size="lg"
+              >
+                {previewAttachment && activeWorkspaceId && task && (
+                  <div className="space-y-3">
+                    {previewAttachment.mimeType.startsWith('video/') ? (
+                      <video
+                        src={attachmentService.getDownloadUrl(activeWorkspaceId, task.id, previewAttachment.id)}
+                        controls
+                        autoPlay
+                        className="max-h-[65vh] w-full rounded-xl bg-black"
+                      >
+                        Your browser cannot play this video. Use the download link instead.
+                      </video>
+                    ) : (
+                      <img
+                        src={attachmentService.getDownloadUrl(activeWorkspaceId, task.id, previewAttachment.id)}
+                        alt={previewAttachment.caption || previewAttachment.fileName}
+                        className="max-h-[65vh] w-full rounded-xl object-contain bg-stone-100 dark:bg-stone-950"
+                      />
+                    )}
+                    <div className="flex justify-end">
+                      <a href={attachmentService.getDownloadUrl(activeWorkspaceId, task.id, previewAttachment.id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-stone-100 px-3 py-2 text-xs font-bold text-stone-800 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"><Download className="h-3.5 w-3.5" />Open or download</a>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </Modal>
             </div>
           )}
 

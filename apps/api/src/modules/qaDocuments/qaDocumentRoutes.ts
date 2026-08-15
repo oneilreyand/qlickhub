@@ -6,6 +6,8 @@ import {
   getDocumentDetails,
   createDocument,
   createDocumentVersion,
+  getProductBrief,
+  upsertProductBrief,
   listTaskDocuments,
   linkDocumentToTask,
   unlinkDocumentFromTask,
@@ -38,6 +40,18 @@ qaDocumentRoutes.post(
   '/workspaces/:workspaceId/documents/:documentId/versions',
   requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
   createDocumentVersion
+);
+
+qaDocumentRoutes.get(
+  '/workspaces/:workspaceId/tasks/:taskId/product-brief',
+  requireWorkspaceMember(),
+  getProductBrief
+);
+
+qaDocumentRoutes.put(
+  '/workspaces/:workspaceId/tasks/:taskId/product-brief',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  upsertProductBrief
 );
 
 // Task QA document linking

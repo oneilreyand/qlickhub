@@ -95,3 +95,11 @@ Reference: `docs/plans/QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md`.
 - [x] **Done** (Antigravity - 2026-08-15) — WH-4: QA documents and authorised evidence. Add QA documents with Markdown versioning and task/requirement evidence linking.
 - [x] **Done** (Antigravity - 2026-08-15) — WH-5: QA traceability. Add requirement-to-test-case links and bug trace reports across workspace folders.
 - [x] **Done** (Antigravity - 2026-08-15) — WH-6: Production retirement and release validation. Retire legacy demo routes and perform full release validation.
+
+## P0 — Product Brief foundation
+
+- [x] **Done** (Codex - 2026-08-15) — PB1: Persist one versioned Product Brief per task using the existing document/version/link records; add long-form Markdown, separate In Scope and Out of Scope snapshots, owner/status metadata, Product role authorization, audit activity, API contracts, and Task Detail UI states. Verified: 26 contract tests, 8 Product Brief/document API integration tests, 24 web tests, API/web production builds. Google Drive media remains a follow-up slice after the server-side storage adapter is configured and verified.
+
+## P0 — Product media foundation
+
+- [x] **Done** (Codex - 2026-08-15) — PB2: Extend the persisted task attachment record for Product Media categories/captions and a server-side Google Drive storage adapter; retain local storage only for development/test, stream authorised image/video previews, and add accessible gallery/video fullscreen UI without exposing Drive credentials or raw storage references. Verified: test migration 34, 26 contract tests, 5 attachment API integration tests, 5 Task Detail Drawer tests, and API/web production builds. Full API suite has one unrelated existing QA task-assignment regression (93/94 passed).

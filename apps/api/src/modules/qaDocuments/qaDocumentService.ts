@@ -12,6 +12,7 @@ import {
   assertCanReadQaDocuments,
   assertCanCreateQaDocument,
   assertCanLinkQaDocument,
+  assertCanManageProductBrief,
 } from '../../policies/qaDocumentPolicy.js';
 import {
   QaDocument,
@@ -19,7 +20,11 @@ import {
   CreateQaDocumentInput,
   CreateQaDocumentVersionInput,
   TaskDocumentLink,
+  ProductBrief,
+  ProductBriefScopeItem,
+  UpsertProductBriefInput,
 } from '@qa/contracts';
+import { randomUUID } from 'node:crypto';
 
 function formatDocument(d: QaDocumentModel | Record<string, any>): QaDocument {
   const json = typeof (d as any).toJSON === 'function' ? (d as any).toJSON() : d;
@@ -29,6 +34,8 @@ function formatDocument(d: QaDocumentModel | Record<string, any>): QaDocument {
     folderId: json.folderId || null,
     title: json.title,
     docType: json.docType,
+    status: json.status || 'draft',
+    ownerId: json.ownerId || null,
     currentVersion: json.currentVersion,
     createdBy: json.createdBy,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
@@ -45,6 +52,8 @@ function formatVersion(v: QaDocumentVersionModel | Record<string, any>): QaDocum
     version: json.version,
     title: json.title,
     contentMarkdown: json.contentMarkdown,
+    inScope: Array.isArray(json.inScope) ? json.inScope : [],
+    outScope: Array.isArray(json.outScope) ? json.outScope : [],
     changelog: json.changelog || null,
     createdBy: json.createdBy,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
@@ -59,6 +68,7 @@ function formatTaskDocumentLink(l: TaskDocumentModel): TaskDocumentLink {
     workspaceId: json.workspaceId,
     taskId: json.taskId,
     documentId: json.documentId,
+    linkType: json.linkType || 'reference',
     linkedBy: json.linkedBy,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
     document: docObj ? formatDocument(docObj) : undefined,
@@ -73,6 +83,25 @@ async function getActorMembership(workspaceId: string, actorId: string) {
     throw new Error('FORBIDDEN: You are not a member of this workspace.');
   }
   return member;
+}
+
+function normalizeScopeItems(
+  items: Array<{ id?: string; text: string; position: number }> | undefined
+): ProductBriefScopeItem[] {
+  return (items || []).map((item, index) => ({
+    id: item.id || randomUUID(),
+    text: item.text.trim(),
+    position: item.position ?? index,
+  }));
+}
+
+async function assertOwnerIsWorkspaceMember(workspaceId: string, ownerId: string): Promise<void> {
+  const ownerMembership = await WorkspaceMemberModel.findOne({
+    where: { workspaceId, userId: ownerId },
+  });
+  if (!ownerMembership) {
+    throw new Error('BAD_REQUEST: Product Brief owner must be a member of this workspace.');
+  }
 }
 
 export class QaDocumentService {
@@ -134,6 +163,11 @@ export class QaDocumentService {
   ): Promise<{ document: QaDocument; version: QaDocumentVersion }> {
     const member = await getActorMembership(workspaceId, actorId);
     assertCanCreateQaDocument(member.role);
+    if (input.docType === 'product_brief') {
+      throw new Error('BAD_REQUEST: Create a Product Brief through its task endpoint.');
+    }
+    const ownerId = input.ownerId || actorId;
+    await assertOwnerIsWorkspaceMember(workspaceId, ownerId);
 
     return await sequelize.transaction(async (transaction) => {
       const doc = await QaDocumentModel.create(
@@ -142,6 +176,8 @@ export class QaDocumentService {
           folderId: input.folderId || null,
           title: input.title.trim(),
           docType: input.docType || 'test_plan',
+          status: input.status || 'draft',
+          ownerId,
           currentVersion: 1,
           createdBy: actorId,
         },
@@ -155,6 +191,8 @@ export class QaDocumentService {
           version: 1,
           title: input.title.trim(),
           contentMarkdown: input.contentMarkdown,
+          inScope: normalizeScopeItems(input.inScope),
+          outScope: normalizeScopeItems(input.outScope),
           changelog: input.changelog || 'Initial document creation',
           createdBy: actorId,
         },
@@ -187,6 +225,9 @@ export class QaDocumentService {
       if (!doc) {
         throw new Error('NOT_FOUND: QA Document not found in this workspace.');
       }
+      if (doc.docType === 'product_brief') {
+        assertCanManageProductBrief(member.role);
+      }
 
       const nextVersionNumber = doc.currentVersion + 1;
       const newTitle = input.title?.trim() || doc.title;
@@ -202,6 +243,8 @@ export class QaDocumentService {
           version: nextVersionNumber,
           title: newTitle,
           contentMarkdown: input.contentMarkdown,
+          inScope: normalizeScopeItems(input.inScope),
+          outScope: normalizeScopeItems(input.outScope),
           changelog: input.changelog || `Updated to version ${nextVersionNumber}`,
           createdBy: actorId,
         },
@@ -211,6 +254,168 @@ export class QaDocumentService {
       return {
         document: formatDocument(doc),
         version: formatVersion(ver),
+      };
+    });
+  }
+
+  async getProductBrief(
+    workspaceId: string,
+    taskId: string,
+    actorId: string
+  ): Promise<ProductBrief | null> {
+    const member = await getActorMembership(workspaceId, actorId);
+    assertCanReadQaDocuments(member.role);
+
+    const task = await TaskModel.findOne({ where: { id: taskId, workspaceId } });
+    if (!task) {
+      throw new Error('NOT_FOUND: Task not found in this workspace.');
+    }
+
+    const link = await TaskDocumentModel.findOne({
+      where: { workspaceId, taskId, linkType: 'primary_prd' },
+      include: [{ model: QaDocumentModel, as: 'document' }],
+    });
+    if (!link?.document) return null;
+
+    const document = link.document as QaDocumentModel;
+    if (document.docType !== 'product_brief') {
+      throw new Error('BAD_REQUEST: The primary Product Brief link is invalid.');
+    }
+
+    const currentVersion = await QaDocumentVersionModel.findOne({
+      where: {
+        workspaceId,
+        documentId: document.id,
+        version: document.currentVersion,
+      },
+    });
+    if (!currentVersion) {
+      throw new Error('NOT_FOUND: Current Product Brief version was not found.');
+    }
+
+    return {
+      document: formatDocument(document),
+      currentVersion: formatVersion(currentVersion),
+    };
+  }
+
+  async upsertProductBrief(
+    workspaceId: string,
+    taskId: string,
+    actorId: string,
+    input: Omit<UpsertProductBriefInput, 'workspaceId' | 'taskId'>
+  ): Promise<ProductBrief> {
+    const member = await getActorMembership(workspaceId, actorId);
+    assertCanManageProductBrief(member.role);
+
+    const task = await TaskModel.findOne({ where: { id: taskId, workspaceId } });
+    if (!task) {
+      throw new Error('NOT_FOUND: Task not found in this workspace.');
+    }
+
+    const ownerId = input.ownerId || actorId;
+    await assertOwnerIsWorkspaceMember(workspaceId, ownerId);
+    const inScope = normalizeScopeItems(input.inScope);
+    const outScope = normalizeScopeItems(input.outScope);
+
+    return sequelize.transaction(async (transaction) => {
+      const existingLink = await TaskDocumentModel.findOne({
+        where: { workspaceId, taskId, linkType: 'primary_prd' },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      const isNew = !existingLink;
+      let document: QaDocumentModel;
+      let versionNumber: number;
+      let previousStatus: string | null = null;
+
+      if (existingLink) {
+        document = await QaDocumentModel.findOne({
+          where: { id: existingLink.documentId, workspaceId, docType: 'product_brief' },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        }) as QaDocumentModel;
+        if (!document) {
+          throw new Error('BAD_REQUEST: The primary Product Brief link is invalid.');
+        }
+
+        previousStatus = document.status;
+        versionNumber = document.currentVersion + 1;
+        document.title = input.title.trim();
+        document.ownerId = ownerId;
+        document.status = input.status;
+        document.currentVersion = versionNumber;
+        await document.save({ transaction });
+      } else {
+        document = await QaDocumentModel.create(
+          {
+            workspaceId,
+            title: input.title.trim(),
+            docType: 'product_brief',
+            status: input.status,
+            ownerId,
+            currentVersion: 1,
+            createdBy: actorId,
+          },
+          { transaction }
+        );
+        versionNumber = 1;
+
+        await TaskDocumentModel.create(
+          {
+            workspaceId,
+            taskId,
+            documentId: document.id,
+            linkType: 'primary_prd',
+            linkedBy: actorId,
+          },
+          { transaction }
+        );
+      }
+
+      const version = await QaDocumentVersionModel.create(
+        {
+          workspaceId,
+          documentId: document.id,
+          version: versionNumber,
+          title: document.title,
+          contentMarkdown: input.contentMarkdown,
+          inScope,
+          outScope,
+          changelog: input.changelog || (isNew ? 'Initial Product Brief created' : `Updated to version ${versionNumber}`),
+          createdBy: actorId,
+        },
+        { transaction }
+      );
+
+      const action = isNew
+        ? 'product_brief_created'
+        : previousStatus !== input.status && input.status === 'approved'
+          ? 'product_brief_approved'
+          : 'product_brief_version_created';
+
+      await TaskActivityModel.create(
+        {
+          workspaceId,
+          taskId,
+          actorId,
+          action,
+          metadataJson: {
+            documentId: document.id,
+            version: version.version,
+            title: document.title,
+            status: document.status,
+            inScopeCount: inScope.length,
+            outScopeCount: outScope.length,
+          },
+        },
+        { transaction }
+      );
+
+      return {
+        document: formatDocument(document),
+        currentVersion: formatVersion(version),
       };
     });
   }
@@ -268,6 +473,9 @@ export class QaDocumentService {
 
     if (!doc) {
       throw new Error('BAD_REQUEST: QA Document not found or belongs to a different workspace.');
+    }
+    if (doc.docType === 'product_brief') {
+      throw new Error('BAD_REQUEST: Product Briefs are managed through their task endpoint.');
     }
 
     const existingLink = await TaskDocumentModel.findOne({

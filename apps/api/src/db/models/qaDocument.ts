@@ -6,7 +6,9 @@ export interface QaDocumentAttributes {
   workspaceId: string;
   folderId?: string | null;
   title: string;
-  docType: 'test_plan' | 'test_strategy' | 'release_report' | 'qa_guide';
+  docType: 'product_brief' | 'test_plan' | 'test_strategy' | 'release_report' | 'qa_guide';
+  status: 'draft' | 'in_review' | 'approved';
+  ownerId?: string | null;
   currentVersion: number;
   createdBy: string;
   createdAt?: Date;
@@ -14,7 +16,7 @@ export interface QaDocumentAttributes {
 }
 
 export interface QaDocumentCreationAttributes
-  extends Optional<QaDocumentAttributes, 'id' | 'folderId' | 'docType' | 'currentVersion' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<QaDocumentAttributes, 'id' | 'folderId' | 'docType' | 'status' | 'ownerId' | 'currentVersion' | 'createdAt' | 'updatedAt'> {}
 
 export class QaDocumentModel
   extends Model<QaDocumentAttributes, QaDocumentCreationAttributes>
@@ -24,7 +26,9 @@ export class QaDocumentModel
   declare workspaceId: string;
   declare folderId: string | null;
   declare title: string;
-  declare docType: 'test_plan' | 'test_strategy' | 'release_report' | 'qa_guide';
+  declare docType: 'product_brief' | 'test_plan' | 'test_strategy' | 'release_report' | 'qa_guide';
+  declare status: 'draft' | 'in_review' | 'approved';
+  declare ownerId: string | null;
   declare currentVersion: number;
   declare createdBy: string;
   declare readonly createdAt: Date;
@@ -59,6 +63,16 @@ QaDocumentModel.init(
       allowNull: false,
       defaultValue: 'test_plan',
       field: 'doc_type',
+    },
+    status: {
+      type: DataTypes.STRING(24),
+      allowNull: false,
+      defaultValue: 'draft',
+    },
+    ownerId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'owner_id',
     },
     currentVersion: {
       type: DataTypes.INTEGER,

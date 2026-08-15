@@ -19,6 +19,8 @@ import {
   QaDocumentSchema,
   CreateQaDocumentSchema,
   QaDocumentVersionSchema,
+  UpsertProductBriefSchema,
+  ProductBriefSchema,
   RequirementTestCaseSchema,
   CreateRequirementTestCaseSchema,
   WorkspaceTraceabilitySummarySchema,
@@ -269,7 +271,9 @@ describe('Contracts Validation Suite', () => {
         fileName: 'screenshot_evidence.png',
         fileSize: 1048576,
         mimeType: 'image/png',
-        storageRef: 'evidence/workspace-1/task-1/screenshot_evidence.png',
+        storageProvider: 'google_drive',
+        category: 'product_media',
+        caption: 'Payment summary on the checkout screen',
         uploaderId: validUuid,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -277,6 +281,8 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(validAttachment.fileName, 'screenshot_evidence.png');
       assert.strictEqual(validAttachment.fileSize, 1048576);
       assert.strictEqual(validAttachment.mimeType, 'image/png');
+      assert.strictEqual(validAttachment.storageProvider, 'google_drive');
+      assert.strictEqual(validAttachment.category, 'product_media');
     });
 
     test('rejects task attachment metadata with invalid fileSize or empty fileName', () => {
@@ -288,7 +294,6 @@ describe('Contracts Validation Suite', () => {
           fileName: '',
           fileSize: -10,
           mimeType: 'image/png',
-          storageRef: 'ref',
           uploaderId: validUuid,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -371,6 +376,47 @@ describe('Contracts Validation Suite', () => {
       });
       assert.strictEqual(ver.version, 2);
     });
+
+    test('validates a Product Brief with separate scope snapshots', () => {
+      const input = UpsertProductBriefSchema.parse({
+        workspaceId: validUuid,
+        taskId: validUuid,
+        title: 'Checkout Product Brief',
+        contentMarkdown: '## Goal\nReduce checkout abandonment.',
+        inScope: [{ text: 'Saved payment methods', position: 0 }],
+        outScope: [{ text: 'Native mobile checkout', position: 0 }],
+      });
+      assert.strictEqual(input.status, 'draft');
+      assert.strictEqual(input.inScope.length, 1);
+
+      const brief = ProductBriefSchema.parse({
+        document: {
+          id: validUuid,
+          workspaceId: validUuid,
+          title: 'Checkout Product Brief',
+          docType: 'product_brief',
+          status: 'in_review',
+          ownerId: validUuid,
+          currentVersion: 1,
+          createdBy: validUuid,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        currentVersion: {
+          id: validUuid,
+          workspaceId: validUuid,
+          documentId: validUuid,
+          version: 1,
+          title: 'Checkout Product Brief',
+          contentMarkdown: '## Goal',
+          inScope: [{ id: validUuid, text: 'Saved payment methods', position: 0 }],
+          outScope: [{ id: validUuid, text: 'Native mobile checkout', position: 0 }],
+          createdBy: validUuid,
+          createdAt: new Date().toISOString(),
+        },
+      });
+      assert.strictEqual(brief.document.docType, 'product_brief');
+    });
   });
 
   describe('Traceability & QA Test Case Contracts', () => {
@@ -429,4 +475,3 @@ describe('Contracts Validation Suite', () => {
     });
   });
 });
-

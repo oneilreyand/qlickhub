@@ -15,11 +15,13 @@ import {
 describe('QA Document API & Versioning Integration Tests', () => {
   let userA: UserModel;
   let userB: UserModel;
+  let qaUser: UserModel;
   let workspace1: WorkspaceModel;
   let workspace2: WorkspaceModel;
   let task1: TaskModel;
   let doc1: QaDocumentModel;
   let docCrossWorkspace: QaDocumentModel;
+  let productBriefDocumentId: string | undefined;
 
   before(async () => {
     await sequelize.authenticate();
@@ -34,6 +36,12 @@ describe('QA Document API & Versioning Integration Tests', () => {
       email: `doc_other_${Date.now()}@example.com`,
       passwordHash: 'hashed_pw',
       name: 'Other Doc User',
+    });
+
+    qaUser = await UserModel.create({
+      email: `doc_qa_${Date.now()}@example.com`,
+      passwordHash: 'hashed_pw',
+      name: 'QA Document User',
     });
 
     workspace1 = await WorkspaceModel.create({
@@ -52,6 +60,12 @@ describe('QA Document API & Versioning Integration Tests', () => {
       workspaceId: workspace1.id,
       userId: userA.id,
       role: 'owner',
+    });
+
+    await WorkspaceMemberModel.create({
+      workspaceId: workspace1.id,
+      userId: qaUser.id,
+      role: 'qa',
     });
 
     await WorkspaceMemberModel.create({
@@ -76,11 +90,14 @@ describe('QA Document API & Versioning Integration Tests', () => {
     if (doc1) await QaDocumentModel.destroy({ where: { id: doc1.id } });
     if (docCrossWorkspace) await QaDocumentVersionModel.destroy({ where: { documentId: docCrossWorkspace.id } });
     if (docCrossWorkspace) await QaDocumentModel.destroy({ where: { id: docCrossWorkspace.id } });
+    if (productBriefDocumentId) await QaDocumentVersionModel.destroy({ where: { documentId: productBriefDocumentId } });
+    if (productBriefDocumentId) await QaDocumentModel.destroy({ where: { id: productBriefDocumentId } });
     if (task1) await TaskModel.destroy({ where: { id: task1.id } });
     if (workspace1) await WorkspaceModel.destroy({ where: { id: workspace1.id } });
     if (workspace2) await WorkspaceModel.destroy({ where: { id: workspace2.id } });
     if (userA) await UserModel.destroy({ where: { id: userA.id } });
     if (userB) await UserModel.destroy({ where: { id: userB.id } });
+    if (qaUser) await UserModel.destroy({ where: { id: qaUser.id } });
   });
 
   test('Creates QA Document with initial v1 version', async () => {
@@ -189,5 +206,102 @@ describe('QA Document API & Versioning Integration Tests', () => {
       where: { taskId: task1.id, action: 'document_unlinked' },
     });
     assert.ok(activity);
+  });
+
+  test('Creates one versioned Product Brief with complete scope snapshots and activity', async () => {
+    const { qaDocumentService } = await import('../qaDocumentService.js');
+
+    const brief = await qaDocumentService.upsertProductBrief(workspace1.id, task1.id, userA.id, {
+      title: 'Checkout Product Brief',
+      contentMarkdown: '# Checkout\n\nReduce payment abandonment for returning customers.',
+      inScope: [
+        { text: 'Show saved payment methods', position: 0 },
+        { text: 'Preview payment error states', position: 1 },
+      ],
+      outScope: [{ text: 'Native mobile checkout', position: 0 }],
+      ownerId: userA.id,
+      status: 'draft',
+      changelog: 'Initial product scope',
+    });
+
+    assert.strictEqual(brief.document.docType, 'product_brief');
+    productBriefDocumentId = brief.document.id;
+    assert.strictEqual(brief.document.ownerId, userA.id);
+    assert.strictEqual(brief.currentVersion.version, 1);
+    assert.strictEqual(brief.currentVersion.inScope.length, 2);
+    assert.strictEqual(brief.currentVersion.outScope[0].text, 'Native mobile checkout');
+
+    const linkCount = await TaskDocumentModel.count({
+      where: { taskId: task1.id, linkType: 'primary_prd' },
+    });
+    assert.strictEqual(linkCount, 1);
+
+    const activity = await TaskActivityModel.findOne({
+      where: { taskId: task1.id, action: 'product_brief_created' },
+    });
+    assert.ok(activity);
+  });
+
+  test('Versions the Product Brief without replacing scope history and keeps one primary link', async () => {
+    const { qaDocumentService } = await import('../qaDocumentService.js');
+
+    const next = await qaDocumentService.upsertProductBrief(workspace1.id, task1.id, userA.id, {
+      title: 'Checkout Product Brief',
+      contentMarkdown: '# Checkout\n\nReduce payment abandonment and support a clearer review flow.',
+      inScope: [{ text: 'Show saved payment methods', position: 0 }],
+      outScope: [
+        { text: 'Native mobile checkout', position: 0 },
+        { text: 'Gift-card redemption', position: 1 },
+      ],
+      ownerId: userA.id,
+      status: 'approved',
+      changelog: 'Approved release scope',
+    });
+
+    assert.strictEqual(next.currentVersion.version, 2);
+    assert.strictEqual(next.document.status, 'approved');
+
+    const details = await qaDocumentService.getDocumentWithVersions(
+      workspace1.id,
+      next.document.id,
+      userA.id
+    );
+    const initialVersion = details.versions.find((version) => version.version === 1);
+    assert.strictEqual(initialVersion?.inScope.length, 2);
+    assert.strictEqual(initialVersion?.outScope.length, 1);
+
+    const linkCount = await TaskDocumentModel.count({
+      where: { taskId: task1.id, linkType: 'primary_prd' },
+    });
+    assert.strictEqual(linkCount, 1);
+
+    const activity = await TaskActivityModel.findOne({
+      where: { taskId: task1.id, action: 'product_brief_approved' },
+    });
+    assert.ok(activity);
+  });
+
+  test('Rejects Product Brief mutation from QA and a non-member owner', async () => {
+    const { qaDocumentService } = await import('../qaDocumentService.js');
+    const input = {
+      title: 'Unauthorized Product Brief',
+      contentMarkdown: 'No write permission.',
+      inScope: [],
+      outScope: [],
+      status: 'draft' as const,
+    };
+
+    await assert.rejects(
+      () => qaDocumentService.upsertProductBrief(workspace1.id, task1.id, qaUser.id, input),
+      (error: Error) => error.message.includes('FORBIDDEN')
+    );
+
+    await assert.rejects(
+      () => qaDocumentService.upsertProductBrief(workspace1.id, task1.id, userA.id, {
+        ...input,
+        ownerId: userB.id,
+      }),
+      (error: Error) => error.message.includes('BAD_REQUEST')
+    );
   });
 });

@@ -6,12 +6,13 @@ export interface TaskDocumentAttributes {
   workspaceId: string;
   taskId: string;
   documentId: string;
+  linkType: 'reference' | 'primary_prd';
   linkedBy: string;
   createdAt?: Date;
 }
 
 export interface TaskDocumentCreationAttributes
-  extends Optional<TaskDocumentAttributes, 'id' | 'createdAt'> {}
+  extends Optional<TaskDocumentAttributes, 'id' | 'linkType' | 'createdAt'> {}
 
 export class TaskDocumentModel
   extends Model<TaskDocumentAttributes, TaskDocumentCreationAttributes>
@@ -21,6 +22,7 @@ export class TaskDocumentModel
   declare workspaceId: string;
   declare taskId: string;
   declare documentId: string;
+  declare linkType: 'reference' | 'primary_prd';
   declare linkedBy: string;
   declare readonly createdAt: Date;
   declare document?: any;
@@ -47,6 +49,12 @@ TaskDocumentModel.init(
       type: DataTypes.UUID,
       allowNull: false,
       field: 'document_id',
+    },
+    linkType: {
+      type: DataTypes.STRING(24),
+      allowNull: false,
+      defaultValue: 'reference',
+      field: 'link_type',
     },
     linkedBy: {
       type: DataTypes.UUID,

@@ -1,5 +1,12 @@
 import { apiClient } from './apiClient';
-import { QaDocument, QaDocumentVersion, TaskDocumentLink } from '@qa/contracts';
+import {
+  QaDocument,
+  QaDocumentVersion,
+  TaskDocumentLink,
+  ProductBrief,
+  ProductBriefScopeItem,
+  ProductBriefStatus,
+} from '@qa/contracts';
 
 export const qaDocumentService = {
   async listWorkspaceDocuments(
@@ -59,6 +66,38 @@ export const qaDocumentService = {
         body: JSON.stringify(input),
       }
     );
+  },
+
+  async getProductBrief(
+    workspaceId: string,
+    taskId: string
+  ): Promise<ProductBrief | null> {
+    const res = await apiClient<{ brief: ProductBrief | null }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/product-brief`
+    );
+    return res.brief;
+  },
+
+  async upsertProductBrief(
+    workspaceId: string,
+    taskId: string,
+    input: {
+      title: string;
+      contentMarkdown: string;
+      inScope: ProductBriefScopeItem[];
+      outScope: ProductBriefScopeItem[];
+      ownerId?: string;
+      status: ProductBriefStatus;
+    }
+  ): Promise<ProductBrief> {
+    const res = await apiClient<{ brief: ProductBrief }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/product-brief`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      }
+    );
+    return res.brief;
   },
 
   async listTaskDocumentLinks(

@@ -94,6 +94,8 @@ describe('Attachment API & Evidence Storage Integration Tests', () => {
         originalname: 'test_evidence.png',
         mimetype: 'image/png',
         size: fileContent.length,
+        category: 'product_media',
+        caption: 'Checkout confirmation reference',
       }
     );
 
@@ -101,6 +103,9 @@ describe('Attachment API & Evidence Storage Integration Tests', () => {
     assert.strictEqual(attachment.mimeType, 'image/png');
     assert.strictEqual(attachment.workspaceId, workspace1.id);
     assert.strictEqual(attachment.taskId, task1.id);
+    assert.strictEqual(attachment.category, 'product_media');
+    assert.strictEqual(attachment.caption, 'Checkout confirmation reference');
+    assert.strictEqual(attachment.storageProvider, 'local');
 
     // Verify TaskActivity audit log created
     const activity = await TaskActivityModel.findOne({
@@ -140,8 +145,13 @@ describe('Attachment API & Evidence Storage Integration Tests', () => {
       userA.id
     );
 
-    assert.ok(download.filePath);
     assert.strictEqual(download.attachment.fileName, 'test_evidence.png');
+    const chunks: Buffer[] = [];
+    for await (const chunk of download.stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    const streamedContent = Buffer.concat(chunks);
+    assert.deepStrictEqual(streamedContent, Buffer.from('FAKE_SCREENSHOT_BINARY_DATA'));
   });
 
   test('Delete attachment removes file record and logs attachment_deleted TaskActivity', async () => {

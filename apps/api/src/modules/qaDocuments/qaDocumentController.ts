@@ -5,9 +5,20 @@ import {
   CreateQaDocumentSchema,
   CreateQaDocumentVersionSchema,
   LinkDocumentSchema,
+  UpsertProductBriefSchema,
 } from '@qa/contracts';
+import { ZodError } from 'zod';
 
 function handleError(res: Response, error: unknown) {
+  if (error instanceof ZodError) {
+    return res.status(400).json({
+      type: 'https://api.qa-hub.com/errors/bad-request',
+      title: 'Bad Request',
+      status: 400,
+      detail: error.issues.map((issue) => issue.message).join('; '),
+      code: 'BAD_REQUEST',
+    });
+  }
   const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
   if (message.startsWith('NOT_FOUND:')) {
     return res.status(404).json({
@@ -107,6 +118,33 @@ export const createDocumentVersion = async (req: AuthenticatedRequest, res: Resp
       parsed
     );
     return res.status(201).json(data);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const getProductBrief = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { workspaceId, taskId } = req.params;
+    const actorId = req.user!.userId;
+    const brief = await qaDocumentService.getProductBrief(workspaceId, taskId, actorId);
+    return res.status(200).json({ brief });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const upsertProductBrief = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { workspaceId, taskId } = req.params;
+    const actorId = req.user!.userId;
+    const parsed = UpsertProductBriefSchema.parse({
+      ...req.body,
+      workspaceId,
+      taskId,
+    });
+    const brief = await qaDocumentService.upsertProductBrief(workspaceId, taskId, actorId, parsed);
+    return res.status(200).json({ brief });
   } catch (error) {
     return handleError(res, error);
   }

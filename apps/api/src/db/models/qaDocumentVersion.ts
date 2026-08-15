@@ -8,13 +8,15 @@ export interface QaDocumentVersionAttributes {
   version: number;
   title: string;
   contentMarkdown: string;
+  inScope: Array<{ id: string; text: string; position: number }>;
+  outScope: Array<{ id: string; text: string; position: number }>;
   changelog?: string | null;
   createdBy: string;
   createdAt?: Date;
 }
 
 export interface QaDocumentVersionCreationAttributes
-  extends Optional<QaDocumentVersionAttributes, 'id' | 'changelog' | 'createdAt'> {}
+  extends Optional<QaDocumentVersionAttributes, 'id' | 'inScope' | 'outScope' | 'changelog' | 'createdAt'> {}
 
 export class QaDocumentVersionModel
   extends Model<QaDocumentVersionAttributes, QaDocumentVersionCreationAttributes>
@@ -26,6 +28,8 @@ export class QaDocumentVersionModel
   declare version: number;
   declare title: string;
   declare contentMarkdown: string;
+  declare inScope: Array<{ id: string; text: string; position: number }>;
+  declare outScope: Array<{ id: string; text: string; position: number }>;
   declare changelog: string | null;
   declare createdBy: string;
   declare readonly createdAt: Date;
@@ -60,6 +64,18 @@ QaDocumentVersionModel.init(
       type: DataTypes.TEXT,
       allowNull: false,
       field: 'content_markdown',
+    },
+    inScope: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: [],
+      field: 'in_scope',
+    },
+    outScope: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: [],
+      field: 'out_scope',
     },
     changelog: {
       type: DataTypes.TEXT,
