@@ -55,6 +55,8 @@ export class WorkspaceService {
 
       return {
         ...workspace.toJSON(),
+        allowQaTaskCreation: workspace.allowQaTaskCreation ?? true,
+        role: member.role,
         myRole: member.role,
       };
     });
@@ -83,7 +85,9 @@ export class WorkspaceService {
           slug: ws.slug,
           description: ws.description,
           ownerId: ws.ownerId,
+          allowQaTaskCreation: ws.allowQaTaskCreation ?? true,
           role: m.role,
+          myRole: m.role,
           joinedAt: m.joinedAt,
           createdAt: ws.createdAt,
           updatedAt: ws.updatedAt,
@@ -108,6 +112,8 @@ export class WorkspaceService {
 
     return {
       ...workspace.toJSON(),
+      allowQaTaskCreation: workspace.allowQaTaskCreation ?? true,
+      role: membership.role,
       myRole: membership.role,
     };
   }
@@ -120,9 +126,13 @@ export class WorkspaceService {
 
     if (input.name) workspace.name = input.name.trim();
     if (input.description !== undefined) workspace.description = input.description;
+    if (input.allowQaTaskCreation !== undefined) workspace.allowQaTaskCreation = input.allowQaTaskCreation;
 
     await workspace.save();
-    return workspace.toJSON();
+    return {
+      ...workspace.toJSON(),
+      allowQaTaskCreation: workspace.allowQaTaskCreation ?? true,
+    };
   }
 
   async getWorkspaceMembers(workspaceId: string) {

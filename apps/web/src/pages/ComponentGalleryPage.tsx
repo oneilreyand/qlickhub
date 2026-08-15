@@ -15,6 +15,7 @@ import {
 import { Button } from '../components/ui/atoms/Button';
 import { Badge } from '../components/ui/atoms/Badge';
 import { Input } from '../components/ui/atoms/Input';
+import { Select } from '../components/ui/atoms/Select';
 import { Checkbox, ToggleSwitch } from '../components/ui/atoms/Checkbox';
 import { Avatar } from '../components/ui/atoms/Avatar';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
@@ -200,8 +201,13 @@ export const ComponentGalleryPage: React.FC = () => {
             </div>
           </Section>
 
-          <Section category="Atoms" title="Form Selection Controls" description="Accessible checkboxes and interactive toggle switches.">
+          <Section category="Atoms" title="Form Selection Controls" description="Accessible selects, checkboxes, and interactive toggle switches.">
             <div className="flex flex-col gap-3">
+              <Select label="Task status" defaultValue="in_progress" className="max-w-md">
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="done">Done</option>
+              </Select>
               <Checkbox
                 label="Enable automated QA notifications"
                 checked={checkboxChecked}

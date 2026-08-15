@@ -12,6 +12,7 @@ export const WorkspaceSchema = z.object({
   slug: z.string().min(1).max(100),
   description: z.string().nullable().optional(),
   ownerId: z.string().uuid(),
+  allowQaTaskCreation: z.boolean().default(true),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -55,6 +56,7 @@ export type CreateWorkspaceInput = z.infer<typeof CreateWorkspaceSchema>;
 export const UpdateWorkspaceSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100).optional(),
   description: z.string().max(500).optional(),
+  allowQaTaskCreation: z.boolean().optional(),
 });
 
 export type UpdateWorkspaceInput = z.infer<typeof UpdateWorkspaceSchema>;

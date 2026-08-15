@@ -7,6 +7,10 @@ import { authRouter } from './modules/auth/auth.routes.js';
 import { workspaceRoutes } from './modules/workspaces/workspaceRoutes.js';
 import { folderRoutes } from './modules/folders/folderRoutes.js';
 import { taskRoutes } from './modules/tasks/taskRoutes.js';
+import { attachmentRoutes } from './modules/attachments/attachmentRoutes.js';
+import { requirementRoutes } from './modules/requirements/requirementRoutes.js';
+import { qaDocumentRoutes } from './modules/qaDocuments/qaDocumentRoutes.js';
+import { traceabilityRoutes } from './modules/traceability/traceabilityRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
 
@@ -51,6 +55,10 @@ export const createApp = () => {
   app.use('/v1/workspaces/:workspaceId/folders', folderRoutes);
   app.use('/v1/projects/:projectId/folders', folderRoutes);
   app.use('/v1/workspaces/:workspaceId/tasks', taskRoutes);
+  app.use('/v1', attachmentRoutes);
+  app.use('/v1', requirementRoutes);
+  app.use('/v1', qaDocumentRoutes);
+  app.use('/v1', traceabilityRoutes);
 
   // 404 Route Handler
   app.use((_req: Request, res: Response) => {

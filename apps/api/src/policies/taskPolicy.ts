@@ -16,7 +16,8 @@ export function assertCanCreateTask(
   role: WorkspaceRole,
   actorId: string,
   assigneeId: string | null | undefined,
-  parentTaskId?: string | null
+  parentTaskId?: string | null,
+  allowQaTaskCreation: boolean = true
 ): void {
   if (parentTaskId) {
     if (!isPlanner(role)) {
@@ -28,8 +29,9 @@ export function assertCanCreateTask(
   if (isPlanner(role)) return;
 
   if (role === 'qa') {
+    if (allowQaTaskCreation) return;
     if (!assigneeId || assigneeId === actorId) return;
-    throw new Error('FORBIDDEN: QA members may assign new tasks only to themselves or leave them unassigned.');
+    throw new Error('FORBIDDEN: QA members may assign new tasks only to themselves or leave them unassigned when approval is required.');
   }
 
   throw new Error('FORBIDDEN: Your workspace role cannot create parent tasks.');

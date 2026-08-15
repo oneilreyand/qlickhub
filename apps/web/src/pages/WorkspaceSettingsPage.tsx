@@ -46,7 +46,9 @@ export const WorkspaceSettingsPage: React.FC = () => {
 
   const [workspaceName, setWorkspaceName] = useState('');
   const [workspaceDesc, setWorkspaceDesc] = useState('');
+  const [allowQaTaskCreation, setAllowQaTaskCreation] = useState(true);
   const [isSavingDetails, setIsSavingDetails] = useState(false);
+  const [isUpdatingPolicy, setIsUpdatingPolicy] = useState(false);
 
   const [searchMember, setSearchMember] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -62,11 +64,39 @@ export const WorkspaceSettingsPage: React.FC = () => {
     if (activeWorkspace) {
       setWorkspaceName(activeWorkspace.name);
       setWorkspaceDesc(activeWorkspace.description || '');
+      setAllowQaTaskCreation(activeWorkspace.allowQaTaskCreation ?? true);
       dispatch(fetchMembers(activeWorkspace.id));
     }
   }, [activeWorkspace?.id, dispatch]);
 
-  const canManageMembers = activeWorkspace?.role === 'owner' || activeWorkspace?.role === 'admin';
+  const userRole = activeWorkspace?.role || activeWorkspace?.myRole;
+  const canManageMembers = userRole === 'owner' || userRole === 'admin';
+
+  const handleToggleQaPolicy = async (newValue: boolean) => {
+    if (!activeWorkspace || !canManageMembers) return;
+    setIsUpdatingPolicy(true);
+    try {
+      await dispatch(
+        updateWorkspace({
+          workspaceId: activeWorkspace.id,
+          input: { allowQaTaskCreation: newValue },
+        })
+      ).unwrap();
+      setAllowQaTaskCreation(newValue);
+      dispatch(
+        enqueueSnackbar(
+          newValue
+            ? 'QA Task Creation Policy updated: Direct creation & assignment enabled.'
+            : 'QA Task Creation Policy updated: Restricted to self-assignment.',
+          'success'
+        )
+      );
+    } catch (err) {
+      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update policy', 'error'));
+    } finally {
+      setIsUpdatingPolicy(false);
+    }
+  };
 
   const handleSaveDetails = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,6 +242,46 @@ export const WorkspaceSettingsPage: React.FC = () => {
                 </Button>
               )}
             </form>
+          </Card>
+
+          {/* QA Task Creation Policy Card */}
+          <Card id="task-policy" className="p-5 space-y-4">
+            <div className="flex items-center gap-2 border-b border-stone-100 pb-3 dark:border-stone-800">
+              <Shield className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
+              <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">QA Task Creation Policy</h2>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold text-stone-900 dark:text-stone-100">
+                    Direct Task Creation for QA Members
+                  </p>
+                  <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 leading-relaxed">
+                    {allowQaTaskCreation
+                      ? 'Enabled (Default): QA members can create and assign parent tasks to any workspace member.'
+                      : 'Restricted: QA members can only assign new tasks to themselves or leave them unassigned.'}
+                  </p>
+                </div>
+
+                <label className="relative inline-flex cursor-pointer items-center shrink-0">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={allowQaTaskCreation}
+                    disabled={!canManageMembers || isUpdatingPolicy}
+                    onChange={(e) => void handleToggleQaPolicy(e.target.checked)}
+                  />
+                  <div className="peer h-6 w-11 rounded-full bg-stone-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-stone-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#22201F] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-stone-700 dark:peer-checked:bg-[#B1E743] dark:peer-checked:after:bg-stone-900" />
+                </label>
+              </div>
+
+              {!canManageMembers && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 italic">
+                  Only Workspace Owner or Admin can modify task creation policy settings.
+                </p>
+              )}
+            </div>
           </Card>
         </div>
 

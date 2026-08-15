@@ -12,6 +12,16 @@ import {
   FolderSchema,
   FolderTreeResponseSchema,
   TaskSchema,
+  TaskAttachmentSchema,
+  RequirementSchema,
+  CreateRequirementSchema,
+  TaskRequirementLinkSchema,
+  QaDocumentSchema,
+  CreateQaDocumentSchema,
+  QaDocumentVersionSchema,
+  RequirementTestCaseSchema,
+  CreateRequirementTestCaseSchema,
+  WorkspaceTraceabilitySummarySchema,
   TaskStatusSchema,
   TaskPrioritySchema,
   CreateTaskSchema,
@@ -245,6 +255,147 @@ describe('Contracts Validation Suite', () => {
           title: 'Parent with area',
         })
       );
+    });
+  });
+
+  describe('Attachment Contracts', () => {
+    const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+
+    test('validates valid task attachment metadata', () => {
+      const validAttachment = TaskAttachmentSchema.parse({
+        id: validUuid,
+        workspaceId: validUuid,
+        taskId: validUuid,
+        fileName: 'screenshot_evidence.png',
+        fileSize: 1048576,
+        mimeType: 'image/png',
+        storageRef: 'evidence/workspace-1/task-1/screenshot_evidence.png',
+        uploaderId: validUuid,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      assert.strictEqual(validAttachment.fileName, 'screenshot_evidence.png');
+      assert.strictEqual(validAttachment.fileSize, 1048576);
+      assert.strictEqual(validAttachment.mimeType, 'image/png');
+    });
+
+    test('rejects task attachment metadata with invalid fileSize or empty fileName', () => {
+      assert.throws(() =>
+        TaskAttachmentSchema.parse({
+          id: validUuid,
+          workspaceId: validUuid,
+          taskId: validUuid,
+          fileName: '',
+          fileSize: -10,
+          mimeType: 'image/png',
+          storageRef: 'ref',
+          uploaderId: validUuid,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      );
+    });
+  });
+
+  describe('Requirement Contracts', () => {
+    const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+
+    test('validates valid requirement creation and requirement object', () => {
+      const reqInput = CreateRequirementSchema.parse({
+        workspaceId: validUuid,
+        code: 'REQ-101',
+        title: 'User Authentication Flow',
+        description: 'Detailed spec for OAuth2 login',
+      });
+      assert.strictEqual(reqInput.code, 'REQ-101');
+
+      const reqObj = RequirementSchema.parse({
+        id: validUuid,
+        workspaceId: validUuid,
+        code: 'REQ-101',
+        title: 'User Authentication Flow',
+        createdBy: validUuid,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      assert.strictEqual(reqObj.status, 'active');
+    });
+
+    test('validates task requirement link structure', () => {
+      const link = TaskRequirementLinkSchema.parse({
+        id: validUuid,
+        workspaceId: validUuid,
+        taskId: validUuid,
+        requirementId: validUuid,
+        linkedBy: validUuid,
+        createdAt: new Date().toISOString(),
+      });
+      assert.strictEqual(link.taskId, validUuid);
+    });
+  });
+
+  describe('QA Document Contracts', () => {
+    const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+
+    test('validates QA document creation and versioning schemas', () => {
+      const createInput = CreateQaDocumentSchema.parse({
+        workspaceId: validUuid,
+        title: 'Master Test Strategy 2026',
+        docType: 'test_strategy',
+        contentMarkdown: '# Master Test Strategy\n\n- Scope: Frontend & API',
+      });
+      assert.strictEqual(createInput.docType, 'test_strategy');
+
+      const doc = QaDocumentSchema.parse({
+        id: validUuid,
+        workspaceId: validUuid,
+        title: 'Master Test Strategy 2026',
+        docType: 'test_strategy',
+        currentVersion: 1,
+        createdBy: validUuid,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      assert.strictEqual(doc.currentVersion, 1);
+
+      const ver = QaDocumentVersionSchema.parse({
+        id: validUuid,
+        workspaceId: validUuid,
+        documentId: validUuid,
+        version: 2,
+        title: 'Master Test Strategy 2026 - Rev 2',
+        contentMarkdown: '# Rev 2',
+        changelog: 'Updated API coverage',
+        createdBy: validUuid,
+        createdAt: new Date().toISOString(),
+      });
+      assert.strictEqual(ver.version, 2);
+    });
+  });
+
+  describe('Traceability & QA Test Case Contracts', () => {
+    const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+
+    test('validates Requirement Test Case and Traceability summary schemas', () => {
+      const tcInput = CreateRequirementTestCaseSchema.parse({
+        workspaceId: validUuid,
+        requirementId: validUuid,
+        title: 'Verify OAuth2 JWT token expiration',
+        testType: 'e2e',
+        status: 'passed',
+      });
+      assert.strictEqual(tcInput.status, 'passed');
+
+      const summary = WorkspaceTraceabilitySummarySchema.parse({
+        totalRequirements: 5,
+        coveredRequirements: 4,
+        uncoveredRequirements: 1,
+        totalTasks: 10,
+        totalTestCases: 8,
+        passRatePercent: 87.5,
+        matrix: [],
+      });
+      assert.strictEqual(summary.passRatePercent, 87.5);
     });
   });
 

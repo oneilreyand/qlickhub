@@ -5,6 +5,7 @@ import {
   TaskActivityModel,
   WorkFolderModel,
   WorkspaceMemberModel,
+  WorkspaceModel,
   UserModel,
 } from '../../db/models/index.js';
 import { assertCanCreateTask, assertCanMutateTask, assertCanMoveTask } from '../../policies/taskPolicy.js';
@@ -422,8 +423,14 @@ export class TaskService {
     return await sequelize.transaction(async (transaction) => {
       const { workspaceId, folderId, parentTaskId, deliveryArea, title, description, status, priority, assigneeId, startDate, dueDate } = input;
       const membership = await getActorMembership(workspaceId, actorId, transaction);
-
-      assertCanCreateTask(membership.role, actorId, assigneeId, parentTaskId);
+      const workspace = await WorkspaceModel.findByPk(workspaceId, { transaction });
+      assertCanCreateTask(
+        membership.role,
+        actorId,
+        assigneeId,
+        parentTaskId,
+        workspace?.allowQaTaskCreation ?? true
+      );
 
       let targetFolderId = folderId || null;
 

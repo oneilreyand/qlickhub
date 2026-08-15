@@ -13,13 +13,14 @@ describe('Task policy', () => {
     }
   });
 
-  test('allows QA to create only unassigned work or work assigned to themselves', () => {
-    assert.doesNotThrow(() => assertCanCreateTask('qa', qaUserId, null));
-    assert.doesNotThrow(() => assertCanCreateTask('qa', qaUserId, qaUserId));
+  test('allows QA to create tasks based on workspace allowQaTaskCreation policy', () => {
+    assert.doesNotThrow(() => assertCanCreateTask('qa', qaUserId, null, null, false));
+    assert.doesNotThrow(() => assertCanCreateTask('qa', qaUserId, qaUserId, null, false));
     assert.throws(
-      () => assertCanCreateTask('qa', qaUserId, anotherUserId),
+      () => assertCanCreateTask('qa', qaUserId, anotherUserId, null, false),
       /QA members may assign new tasks only to themselves/
     );
+    assert.doesNotThrow(() => assertCanCreateTask('qa', qaUserId, anotherUserId, null, true));
   });
 
   test('keeps QA read-only for parent tasks while allowing assigned subtask execution updates', () => {

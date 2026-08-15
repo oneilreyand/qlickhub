@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Component, ShieldCheck, Layers, Building2, FileBarChart } from 'lucide-react';
+import { Component, ShieldCheck, Layers, Building2, FileBarChart, CheckSquare } from 'lucide-react';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -19,6 +19,11 @@ const navItems: NavItem[] = [
     name: 'Work Hub',
     path: '/work',
     icon: Layers,
+  },
+  {
+    name: 'My Tasks',
+    path: '/my-tasks',
+    icon: CheckSquare,
   },
   {
     name: 'Report',

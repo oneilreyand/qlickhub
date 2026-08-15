@@ -27,6 +27,7 @@ Tasks store `startDate`, `dueDate`, `completedAt`, `status`, and `priority`. A p
 
 ## P0 — Foundation
 
+- [x] **Done** (Antigravity - 2026-08-14) — WH-Pre: Secure evidence storage. Replace local/in-memory attachment state with workspace-scoped persisted evidence API, Sequelize model/migration, authorization policies, activity logs on upload/delete, secure preview/download API, and UI integration with proper loading/empty/error/permission states.
 - [x] **Done** (Antigravity - 2026-08-13) — F0: Define folder/task contracts: Zod request/response schemas for workspaces, folders, task create/update/move, date filters, and problem-detail errors. Preserve the contracts package as the only API boundary.
 - [x] **Done** (Antigravity - 2026-08-13) — F1: Restore minimal Workspace persistence: Sequelize migration/model for `workspaces` and membership; create server-side membership policy with owner/admin/member roles.
 - [x] **Done** (Antigravity - 2026-08-13) — F2: Implement Workspace API: authenticated create, list memberships, read, and update endpoints with cross-workspace authorization tests.
@@ -61,6 +62,8 @@ Tasks store `startDate`, `dueDate`, `completedAt`, `status`, and `priority`. A p
 - [x] **Done** (Codex - 2026-08-13) — Q1: Add critical-path frontend tests for Workspace selection, folder hierarchy, task move, date filters, mutation errors, snackbar behavior, and responsive navigation.
 - [x] **Done** (Codex - 2026-08-13) — Q2: Run clean-database migrations and full release validation. Recorded clean migrations, API authorization regressions, package builds, desktop/mobile checks, keyboard behavior, and empty/loading/error states.
 - [x] **Done** (Codex - 2026-08-14) — UX2: Use the two frontend banner assets in an accessible Overview carousel with automatic rotation, polished transitions, and responsive presentation.
+- [x] **Done** (Codex - 2026-08-14) — UX3: Replace the Task Hub’s row of status filter buttons with an accessible compact status dropdown. Verified with the Select atom test and frontend production build.
+- [x] **Done** (Codex - 2026-08-14) — UX4: Keep Task Hub custom date-range and status filters horizontally adjacent at every viewport width. Verified with frontend production build.
 
 ## P1 — Reporting
 
@@ -80,3 +83,15 @@ Reference: `docs/plans/TASK_SUBTASK_COLLABORATION_PLAN.md`.
 - [x] **Done** (Antigravity - 2026-08-14) — ST4: Implement persisted task discussion, replies, mentions, and workspace-scoped authorization. Messages are human collaboration; they remain separate from activity audit events.
 - [x] **Done** (Antigravity - 2026-08-14) — ST5: Build Work Hub UI for parent-task status groups, subtask progress/FE-BE-QA summaries, subtask creation and assignment, Activity, and Discussion across desktop and mobile.
 - [x] **Done** (Antigravity - 2026-08-14) — ST6: Add integration/frontend tests and release validation for data integrity, role matrix, activity/discussion visibility, loading-empty-error states, keyboard interaction, and responsive layouts.
+
+## P1 — Work Hub Delivery Plan Slices
+
+Reference: `docs/plans/QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md`.
+
+- [x] **Done** (Antigravity - 2026-08-15) — WH-0: Cleanup inventory and route protection. Audit Component Gallery, GenericPage, and legacy routes; ensure route compatibility and zero broken production navigation paths.
+- [x] **Done** (Antigravity - 2026-08-15) — WH-1: Folder persistence and policy foundation. Add Zod contracts, migration, model, policy helpers, services, routes, and tests for folders/subfolders.
+- [x] **Done** (Antigravity - 2026-08-15) — WH-2: Work Hub read experience and task placement. Build WorkHubPage, tree/list views, folder_id placement, and Inbox/Unfiled fallback.
+- [x] **Done** (Antigravity - 2026-08-15) — WH-3: Task detail and requirement links. Add task_requirements contracts/migrations/service/routes and requirement linking UI.
+- [x] **Done** (Antigravity - 2026-08-15) — WH-4: QA documents and authorised evidence. Add QA documents with Markdown versioning and task/requirement evidence linking.
+- [x] **Done** (Antigravity - 2026-08-15) — WH-5: QA traceability. Add requirement-to-test-case links and bug trace reports across workspace folders.
+- [x] **Done** (Antigravity - 2026-08-15) — WH-6: Production retirement and release validation. Retire legacy demo routes and perform full release validation.

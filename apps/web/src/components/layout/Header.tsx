@@ -344,10 +344,14 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
                 <button
                   type="button"
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    navigate('/workspaces/settings#task-policy');
+                  }}
                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
                 >
                   <Shield className="h-4 w-4 text-stone-400" />
-                  <span>Security & Permissions</span>
+                  <span>Task Creation Policy</span>
                 </button>
               </div>
 

@@ -19,8 +19,10 @@ import { EmptyState } from '../molecules/EmptyState';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { BarChart } from './Chart';
 import { StatCard } from './StatCard';
+import { QaTraceabilityMatrix } from './QaTraceabilityMatrix';
 
 interface TaskReportDashboardProps {
+  workspaceId?: string;
   workspaceName?: string;
   tasks: Task[];
   total: number;
@@ -56,6 +58,7 @@ function priorityWeight(priority: Task['priority']): number {
 }
 
 export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
+  workspaceId,
   workspaceName,
   tasks,
   total,
@@ -67,6 +70,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
   onOpenWorkHub,
   requiresWorkspace = false,
 }) => {
+  const [activeReportTab, setActiveReportTab] = React.useState<'delivery' | 'traceability'>('delivery');
   const report = useMemo(() => {
     const byStatus = Object.fromEntries(statusOrder.map((status) => [status, 0])) as Record<TaskStatus, number>;
     const byPriority = Object.fromEntries(
@@ -133,11 +137,13 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <DateRangePicker
-            value={dateRange}
-            onChange={onDateRangeChange}
-            placeholder="Filter due dates"
-          />
+          {activeReportTab === 'delivery' && (
+            <DateRangePicker
+              value={dateRange}
+              onChange={onDateRangeChange}
+              placeholder="Filter due dates"
+            />
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -150,12 +156,38 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
         </div>
       </div>
 
+      {/* Sub-tab Navigation */}
+      <div className="flex items-center gap-2 border-b border-stone-200 dark:border-stone-800 pb-2">
+        <button
+          onClick={() => setActiveReportTab('delivery')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+            activeReportTab === 'delivery'
+              ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm'
+              : 'text-stone-600 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800'
+          }`}
+        >
+          Delivery Progress & Health
+        </button>
+        <button
+          onClick={() => setActiveReportTab('traceability')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+            activeReportTab === 'traceability'
+              ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm'
+              : 'text-stone-600 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800'
+          }`}
+        >
+          QA Traceability Matrix
+        </button>
+      </div>
+
       {requiresWorkspace ? (
         <EmptyState
           icon={<ClipboardCheck className="h-6 w-6" />}
           title="Choose a workspace to view reports"
           description="Reports are calculated from the tasks you are permitted to see in the active workspace."
         />
+      ) : activeReportTab === 'traceability' && workspaceId ? (
+        <QaTraceabilityMatrix workspaceId={workspaceId} />
       ) : error && tasks.length === 0 ? (
         <Alert tone="error" icon={<AlertTriangle className="h-4 w-4" />} title="Report unavailable">
           <div className="flex flex-wrap items-center justify-between gap-3">

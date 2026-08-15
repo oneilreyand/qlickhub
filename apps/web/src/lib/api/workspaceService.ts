@@ -13,7 +13,9 @@ export interface WorkspaceItem {
   slug: string;
   description?: string | null;
   ownerId: string;
+  allowQaTaskCreation?: boolean;
   role: WorkspaceRole;
+  myRole?: WorkspaceRole;
   joinedAt?: string;
   createdAt: string;
   updatedAt: string;

@@ -33,6 +33,7 @@ export const ReportPage: React.FC = () => {
 
   return (
     <TaskReportDashboard
+      workspaceId={activeWorkspaceId || undefined}
       workspaceName={activeWorkspace?.name}
       tasks={tasks}
       total={total}

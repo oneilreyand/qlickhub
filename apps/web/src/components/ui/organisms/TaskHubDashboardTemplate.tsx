@@ -14,6 +14,7 @@ import { FolderTreeNode, TaskDatePreset } from '@qa/contracts';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Input } from '../atoms/Input';
+import { Select } from '../atoms/Select';
 import { DateRange, DateRangePicker } from '../molecules/DateRangePicker';
 import { Drawer } from '../molecules/Drawer';
 import { FolderTree } from './FolderTree';
@@ -444,18 +445,26 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <DateRangePicker value={dateRange} onChange={setDateRange} placeholder="Custom range" />
-                {statusFilters.map((s) => (
-                  <Button
-                    key={s.value}
-                    variant={statusFilter === s.value ? 'primary' : 'outline'}
-                    size="sm"
-                    onClick={() => setStatusFilter(s.value)}
-                  >
-                    {s.label}
-                  </Button>
-                ))}
+              <div className="grid w-full grid-cols-[minmax(8.5rem,1fr)_9rem] items-end gap-2 sm:w-80">
+                <DateRangePicker
+                  value={dateRange}
+                  onChange={setDateRange}
+                  placeholder="Custom range"
+                  className="min-w-0 w-full [&>button]:w-full"
+                />
+                <Select
+                  id="task-status-filter"
+                  aria-label="Filter tasks by status"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                  className="w-full"
+                >
+                  {statusFilters.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.value === 'ALL' ? 'All statuses' : status.label}
+                    </option>
+                  ))}
+                </Select>
               </div>
             </div>
 

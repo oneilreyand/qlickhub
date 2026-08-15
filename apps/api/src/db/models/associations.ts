@@ -7,6 +7,13 @@ import { TaskModel } from './task.js';
 import { TaskActivityModel } from './taskActivity.js';
 import { TaskCommentModel } from './taskComment.js';
 import { TaskCommentMentionModel } from './taskCommentMention.js';
+import { TaskAttachmentModel } from './taskAttachment.js';
+import { RequirementModel } from './requirement.js';
+import { TaskRequirementModel } from './taskRequirement.js';
+import { QaDocumentModel } from './qaDocument.js';
+import { QaDocumentVersionModel } from './qaDocumentVersion.js';
+import { TaskDocumentModel } from './taskDocument.js';
+import { RequirementTestCaseModel } from './requirementTestCase.js';
 
 export function setupAssociations() {
   UserModel.hasMany(AuthSessionModel, { foreignKey: 'userId', as: 'authSessions', onDelete: 'CASCADE' });
@@ -85,6 +92,55 @@ export function setupAssociations() {
 
   WorkspaceModel.hasMany(TaskCommentMentionModel, { foreignKey: 'workspaceId', as: 'commentMentions', onDelete: 'CASCADE' });
   TaskCommentMentionModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
+
+  // Task Attachment Associations
+  TaskModel.hasMany(TaskAttachmentModel, { foreignKey: 'taskId', as: 'attachments', onDelete: 'CASCADE' });
+  TaskAttachmentModel.belongsTo(TaskModel, { foreignKey: 'taskId', as: 'task', onDelete: 'CASCADE' });
+
+  WorkspaceModel.hasMany(TaskAttachmentModel, { foreignKey: 'workspaceId', as: 'taskAttachments', onDelete: 'CASCADE' });
+  TaskAttachmentModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
+
+  UserModel.hasMany(TaskAttachmentModel, { foreignKey: 'uploaderId', as: 'uploadedAttachments', onDelete: 'RESTRICT' });
+  TaskAttachmentModel.belongsTo(UserModel, { foreignKey: 'uploaderId', as: 'uploader', onDelete: 'RESTRICT' });
+
+  // Requirement & Task Requirement Link Associations
+  WorkspaceModel.hasMany(RequirementModel, { foreignKey: 'workspaceId', as: 'requirements', onDelete: 'CASCADE' });
+  RequirementModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
+
+  UserModel.hasMany(RequirementModel, { foreignKey: 'createdBy', as: 'createdRequirements', onDelete: 'RESTRICT' });
+  RequirementModel.belongsTo(UserModel, { foreignKey: 'createdBy', as: 'creator', onDelete: 'RESTRICT' });
+
+  TaskModel.hasMany(TaskRequirementModel, { foreignKey: 'taskId', as: 'requirementLinks', onDelete: 'CASCADE' });
+  TaskRequirementModel.belongsTo(TaskModel, { foreignKey: 'taskId', as: 'task', onDelete: 'CASCADE' });
+
+  RequirementModel.hasMany(TaskRequirementModel, { foreignKey: 'requirementId', as: 'taskLinks', onDelete: 'CASCADE' });
+  TaskRequirementModel.belongsTo(RequirementModel, { foreignKey: 'requirementId', as: 'requirement', onDelete: 'CASCADE' });
+
+  UserModel.hasMany(TaskRequirementModel, { foreignKey: 'linkedBy', as: 'linkedTaskRequirements', onDelete: 'RESTRICT' });
+  TaskRequirementModel.belongsTo(UserModel, { foreignKey: 'linkedBy', as: 'linker', onDelete: 'RESTRICT' });
+
+  // QA Document Associations
+  WorkspaceModel.hasMany(QaDocumentModel, { foreignKey: 'workspaceId', as: 'qaDocuments', onDelete: 'CASCADE' });
+  QaDocumentModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
+
+  WorkFolderModel.hasMany(QaDocumentModel, { foreignKey: 'folderId', as: 'qaDocuments', onDelete: 'SET NULL' });
+  QaDocumentModel.belongsTo(WorkFolderModel, { foreignKey: 'folderId', as: 'folder', onDelete: 'SET NULL' });
+
+  QaDocumentModel.hasMany(QaDocumentVersionModel, { foreignKey: 'documentId', as: 'versions', onDelete: 'CASCADE' });
+  QaDocumentVersionModel.belongsTo(QaDocumentModel, { foreignKey: 'documentId', as: 'document', onDelete: 'CASCADE' });
+
+  TaskModel.hasMany(TaskDocumentModel, { foreignKey: 'taskId', as: 'documentLinks', onDelete: 'CASCADE' });
+  TaskDocumentModel.belongsTo(TaskModel, { foreignKey: 'taskId', as: 'task', onDelete: 'CASCADE' });
+
+  QaDocumentModel.hasMany(TaskDocumentModel, { foreignKey: 'documentId', as: 'taskLinks', onDelete: 'CASCADE' });
+  TaskDocumentModel.belongsTo(QaDocumentModel, { foreignKey: 'documentId', as: 'document', onDelete: 'CASCADE' });
+
+  // Requirement Test Cases Associations
+  RequirementModel.hasMany(RequirementTestCaseModel, { foreignKey: 'requirementId', as: 'testCases', onDelete: 'CASCADE' });
+  RequirementTestCaseModel.belongsTo(RequirementModel, { foreignKey: 'requirementId', as: 'requirement', onDelete: 'CASCADE' });
+
+  WorkspaceModel.hasMany(RequirementTestCaseModel, { foreignKey: 'workspaceId', as: 'testCases', onDelete: 'CASCADE' });
+  RequirementTestCaseModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
 }
 
 setupAssociations();
