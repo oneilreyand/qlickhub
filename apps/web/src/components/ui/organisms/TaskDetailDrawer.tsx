@@ -909,6 +909,176 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 </div>
 
                 <div className="space-y-4">
+                  {/* Persisted Product Brief */}
+                  <div className="space-y-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900/70 dark:bg-indigo-950/20">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">Product Brief</h4>
+                        <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                          The versioned product source of truth. Use scope for commitments; create Subtasks for execution work.
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-lg bg-indigo-100 px-2 py-1 text-[11px] font-bold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200">
+                        {productBrief ? `v${productBrief.currentVersion.version}` : 'New draft'}
+                      </span>
+                    </div>
+
+                    {isLoadingProductBrief ? (
+                      <div className="space-y-3"><Skeleton className="h-10 w-full rounded-xl" /><Skeleton className="h-44 w-full rounded-xl" /></div>
+                    ) : productBriefError ? (
+                      <Alert tone="error" title="Product Brief unavailable">
+                        <div className="flex items-center justify-between gap-3">
+                          <span>{productBriefError}</span>
+                          <Button size="sm" variant="outline" onClick={() => void loadProductBrief()}>Retry</Button>
+                        </div>
+                      </Alert>
+                    ) : (
+                      <>
+                        {!canPlan && (
+                          <Alert tone="info" title="Read-only Product Brief">
+                            Only a Product Owner, Admin, or Owner can update Product Brief content and scope.
+                          </Alert>
+                        )}
+
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <Input
+                            id="product-brief-title"
+                            label="PRD title"
+                            value={productBriefTitle}
+                            onChange={(event) => setProductBriefTitle(event.target.value)}
+                            disabled={!canPlan}
+                            placeholder="Checkout product brief"
+                          />
+                          <Select
+                            id="product-brief-status"
+                            label="PRD status"
+                            value={productBriefStatus}
+                            onChange={(event) => setProductBriefStatus(event.target.value as ProductBriefStatus)}
+                            disabled={!canPlan}
+                          >
+                            <option value="draft">Draft</option>
+                            <option value="in_review">In review</option>
+                            <option value="approved">Approved</option>
+                          </Select>
+                        </div>
+
+                        <Select
+                          id="product-brief-owner"
+                          label="Product owner"
+                          value={productBriefOwnerId}
+                          onChange={(event) => setProductBriefOwnerId(event.target.value)}
+                          disabled={!canPlan}
+                        >
+                          {!productBriefOwnerId && <option value="">Select an owner</option>}
+                          {productBriefOwnerId && !members.some((member) => member.userId === productBriefOwnerId) && (
+                            <option value={productBriefOwnerId}>{productBriefOwnerId}</option>
+                          )}
+                          {members.map((member) => (
+                            <option key={member.userId} value={member.userId}>
+                              {member.user?.name || member.user?.email || member.userId}
+                            </option>
+                          ))}
+                        </Select>
+
+                        <Textarea
+                          id="product-brief-content"
+                          label="Product context & requirements"
+                          rows={16}
+                          value={productBriefContent}
+                          onChange={(event) => setProductBriefContent(event.target.value)}
+                          disabled={!canPlan}
+                          placeholder="Explain the problem, intended user outcome, behaviour, decisions, and supporting links in Markdown."
+                        />
+
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                          <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                            <div>
+                              <h5 className="text-xs font-bold text-emerald-900 dark:text-emerald-100">In Scope</h5>
+                              <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Product commitments included in this task.</p>
+                            </div>
+                            {productBriefInScope.map((item) => (
+                              <div key={item.id} className="flex gap-2">
+                                <Input
+                                  aria-label="In Scope item"
+                                  value={item.text}
+                                  onChange={(event) => updateScopeItem('in', item.id, event.target.value)}
+                                  disabled={!canPlan}
+                                  placeholder="Example: Preview design images"
+                                />
+                                {canPlan && <IconButton label="Remove In Scope item" size="sm" variant="ghost" onClick={() => removeScopeItem('in', item.id)}><Trash2 className="h-4 w-4 text-rose-500" /></IconButton>}
+                              </div>
+                            ))}
+                            {canPlan && <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => addScopeItem('in')}>Add In Scope</Button>}
+                          </div>
+
+                          <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+                            <div>
+                              <h5 className="text-xs font-bold text-amber-900 dark:text-amber-100">Out of Scope</h5>
+                              <p className="text-[11px] text-amber-700 dark:text-amber-300">Explicit exclusions for this release.</p>
+                            </div>
+                            {productBriefOutScope.map((item) => (
+                              <div key={item.id} className="flex gap-2">
+                                <Input
+                                  aria-label="Out of Scope item"
+                                  value={item.text}
+                                  onChange={(event) => updateScopeItem('out', item.id, event.target.value)}
+                                  disabled={!canPlan}
+                                  placeholder="Example: Direct video upload"
+                                />
+                                {canPlan && <IconButton label="Remove Out of Scope item" size="sm" variant="ghost" onClick={() => removeScopeItem('out', item.id)}><Trash2 className="h-4 w-4 text-rose-500" /></IconButton>}
+                              </div>
+                            ))}
+                            {canPlan && <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => addScopeItem('out')}>Add Out of Scope</Button>}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/20">
+                          <div>
+                            <h5 className="text-xs font-bold text-indigo-900 dark:text-indigo-100">Acceptance Criteria</h5>
+                            <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
+                              Observable delivery targets for the developer. QA verification status will be added separately.
+                            </p>
+                          </div>
+                          {productBriefAcceptanceCriteria.map((criterion) => (
+                            <div key={criterion.id} className="flex gap-2">
+                              <Input
+                                aria-label="Acceptance criterion"
+                                value={criterion.text}
+                                onChange={(event) => updateAcceptanceCriterion(criterion.id, event.target.value)}
+                                disabled={!canPlan}
+                                placeholder="Example: User can review selected payment method before confirming."
+                              />
+                              {canPlan && (
+                                <IconButton label="Remove acceptance criterion" size="sm" variant="ghost" onClick={() => removeAcceptanceCriterion(criterion.id)}>
+                                  <Trash2 className="h-4 w-4 text-rose-500" />
+                                </IconButton>
+                              )}
+                            </div>
+                          ))}
+                          {canPlan && (
+                            <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={addAcceptanceCriterion}>
+                              Add Acceptance Criterion
+                            </Button>
+                          )}
+                        </div>
+
+                        {canPlan && (
+                          <div className="flex justify-end border-t border-indigo-100 pt-3 dark:border-indigo-900/60">
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              isLoading={isSavingProductBrief}
+                              disabled={!productBriefTitle.trim()}
+                              onClick={handleSaveProductBrief}
+                            >
+                              Save new version
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
                   {/* Linked Requirements Section */}
                   <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-3 dark:border-stone-800 dark:bg-stone-950/40">
                     <div className="flex items-center justify-between">
@@ -1134,175 +1304,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     )}
                   </div>
 
-                  {/* Persisted Product Brief */}
-                  <div className="space-y-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900/70 dark:bg-indigo-950/20">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">Product Brief</h4>
-                        <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                          The versioned product source of truth. Use scope for commitments; create Subtasks for execution work.
-                        </p>
-                      </div>
-                      <span className="shrink-0 rounded-lg bg-indigo-100 px-2 py-1 text-[11px] font-bold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200">
-                        {productBrief ? `v${productBrief.currentVersion.version}` : 'New draft'}
-                      </span>
-                    </div>
-
-                    {isLoadingProductBrief ? (
-                      <div className="space-y-3"><Skeleton className="h-10 w-full rounded-xl" /><Skeleton className="h-44 w-full rounded-xl" /></div>
-                    ) : productBriefError ? (
-                      <Alert tone="error" title="Product Brief unavailable">
-                        <div className="flex items-center justify-between gap-3">
-                          <span>{productBriefError}</span>
-                          <Button size="sm" variant="outline" onClick={() => void loadProductBrief()}>Retry</Button>
-                        </div>
-                      </Alert>
-                    ) : (
-                      <>
-                        {!canPlan && (
-                          <Alert tone="info" title="Read-only Product Brief">
-                            Only a Product Owner, Admin, or Owner can update Product Brief content and scope.
-                          </Alert>
-                        )}
-
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Input
-                            id="product-brief-title"
-                            label="PRD title"
-                            value={productBriefTitle}
-                            onChange={(event) => setProductBriefTitle(event.target.value)}
-                            disabled={!canPlan}
-                            placeholder="Checkout product brief"
-                          />
-                          <Select
-                            id="product-brief-status"
-                            label="PRD status"
-                            value={productBriefStatus}
-                            onChange={(event) => setProductBriefStatus(event.target.value as ProductBriefStatus)}
-                            disabled={!canPlan}
-                          >
-                            <option value="draft">Draft</option>
-                            <option value="in_review">In review</option>
-                            <option value="approved">Approved</option>
-                          </Select>
-                        </div>
-
-                        <Select
-                          id="product-brief-owner"
-                          label="Product owner"
-                          value={productBriefOwnerId}
-                          onChange={(event) => setProductBriefOwnerId(event.target.value)}
-                          disabled={!canPlan}
-                        >
-                          {!productBriefOwnerId && <option value="">Select an owner</option>}
-                          {productBriefOwnerId && !members.some((member) => member.userId === productBriefOwnerId) && (
-                            <option value={productBriefOwnerId}>{productBriefOwnerId}</option>
-                          )}
-                          {members.map((member) => (
-                            <option key={member.userId} value={member.userId}>
-                              {member.user?.name || member.user?.email || member.userId}
-                            </option>
-                          ))}
-                        </Select>
-
-                        <Textarea
-                          id="product-brief-content"
-                          label="Product context & requirements"
-                          rows={16}
-                          value={productBriefContent}
-                          onChange={(event) => setProductBriefContent(event.target.value)}
-                          disabled={!canPlan}
-                          placeholder="Explain the problem, intended user outcome, behaviour, decisions, and supporting links in Markdown."
-                        />
-
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                          <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
-                            <div>
-                              <h5 className="text-xs font-bold text-emerald-900 dark:text-emerald-100">In Scope</h5>
-                              <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Product commitments included in this task.</p>
-                            </div>
-                            {productBriefInScope.map((item) => (
-                              <div key={item.id} className="flex gap-2">
-                                <Input
-                                  aria-label="In Scope item"
-                                  value={item.text}
-                                  onChange={(event) => updateScopeItem('in', item.id, event.target.value)}
-                                  disabled={!canPlan}
-                                  placeholder="Example: Preview design images"
-                                />
-                                {canPlan && <IconButton label="Remove In Scope item" size="sm" variant="ghost" onClick={() => removeScopeItem('in', item.id)}><Trash2 className="h-4 w-4 text-rose-500" /></IconButton>}
-                              </div>
-                            ))}
-                            {canPlan && <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => addScopeItem('in')}>Add In Scope</Button>}
-                          </div>
-
-                          <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
-                            <div>
-                              <h5 className="text-xs font-bold text-amber-900 dark:text-amber-100">Out of Scope</h5>
-                              <p className="text-[11px] text-amber-700 dark:text-amber-300">Explicit exclusions for this release.</p>
-                            </div>
-                            {productBriefOutScope.map((item) => (
-                              <div key={item.id} className="flex gap-2">
-                                <Input
-                                  aria-label="Out of Scope item"
-                                  value={item.text}
-                                  onChange={(event) => updateScopeItem('out', item.id, event.target.value)}
-                                  disabled={!canPlan}
-                                  placeholder="Example: Direct video upload"
-                                />
-                                {canPlan && <IconButton label="Remove Out of Scope item" size="sm" variant="ghost" onClick={() => removeScopeItem('out', item.id)}><Trash2 className="h-4 w-4 text-rose-500" /></IconButton>}
-                              </div>
-                            ))}
-                            {canPlan && <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => addScopeItem('out')}>Add Out of Scope</Button>}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/20">
-                          <div>
-                            <h5 className="text-xs font-bold text-indigo-900 dark:text-indigo-100">Acceptance Criteria</h5>
-                            <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
-                              Observable delivery targets for the developer. QA verification status will be added separately.
-                            </p>
-                          </div>
-                          {productBriefAcceptanceCriteria.map((criterion) => (
-                            <div key={criterion.id} className="flex gap-2">
-                              <Input
-                                aria-label="Acceptance criterion"
-                                value={criterion.text}
-                                onChange={(event) => updateAcceptanceCriterion(criterion.id, event.target.value)}
-                                disabled={!canPlan}
-                                placeholder="Example: User can review selected payment method before confirming."
-                              />
-                              {canPlan && (
-                                <IconButton label="Remove acceptance criterion" size="sm" variant="ghost" onClick={() => removeAcceptanceCriterion(criterion.id)}>
-                                  <Trash2 className="h-4 w-4 text-rose-500" />
-                                </IconButton>
-                              )}
-                            </div>
-                          ))}
-                          {canPlan && (
-                            <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={addAcceptanceCriterion}>
-                              Add Acceptance Criterion
-                            </Button>
-                          )}
-                        </div>
-
-                        {canPlan && (
-                          <div className="flex justify-end border-t border-indigo-100 pt-3 dark:border-indigo-900/60">
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              isLoading={isSavingProductBrief}
-                              disabled={!productBriefTitle.trim()}
-                              onClick={handleSaveProductBrief}
-                            >
-                              Save new version
-                            </Button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
                 </div>
               </Card>
             </div>

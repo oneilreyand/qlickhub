@@ -190,6 +190,22 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(screen.getByText('Immutable Audit Trail')).toBeInTheDocument();
   });
 
+  test('places the Product Brief before requirements and supporting documents', async () => {
+    renderWithRedux(
+      <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />,
+      'po'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /PRD & Specs/ }));
+
+    const productBriefHeading = await screen.findByRole('heading', { name: 'Product Brief' });
+    const requirementsHeading = screen.getByText(/Linked Workspace Requirements/);
+    const qaDocumentsHeading = screen.getByText(/Linked QA Documents/);
+
+    expect(productBriefHeading.compareDocumentPosition(requirementsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(productBriefHeading.compareDocumentPosition(qaDocumentsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   test('renders parent tasks as read-only without a planning role', () => {
     renderWithRedux(
       <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />

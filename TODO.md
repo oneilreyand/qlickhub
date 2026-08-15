@@ -111,3 +111,4 @@ Reference: `docs/plans/QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md`.
 ## P0 — Product handoff foundation
 
 - [x] **Done** (Codex - 2026-08-15) — PB3: Add versioned Product Brief acceptance criteria so a PO can define observable developer delivery targets alongside context and scope; keep QA verification status out of this slice while preserving historical PRD snapshots and audit metadata. Verified: migration 35, 26 contract tests, 8 Product Brief/document API integration tests, 5 Task Detail Drawer tests, and API/web production builds.
+- [x] **Done** (Codex - 2026-08-15) — PB4: Place Product Brief first in the task PRD & Specs flow, before requirements and supporting QA documents; preserve accessible reading and keyboard order. Verified: 6 Task Detail Drawer tests and web production build.
