@@ -102,4 +102,8 @@ Reference: `docs/plans/QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md`.
 
 ## P0 — Product media foundation
 
-- [x] **Done** (Codex - 2026-08-15) — PB2: Extend the persisted task attachment record for Product Media categories/captions and a server-side Google Drive storage adapter; retain local storage only for development/test, stream authorised image/video previews, and add accessible gallery/video fullscreen UI without exposing Drive credentials or raw storage references. Verified: test migration 34, 26 contract tests, 5 attachment API integration tests, 5 Task Detail Drawer tests, and API/web production builds. Full API suite has one unrelated existing QA task-assignment regression (93/94 passed).
+- [x] **Done** (Codex - 2026-08-15) — PB2: Extend the persisted task attachment record for Product Media categories/captions and a server-side Google Drive storage adapter; retain local storage only for development/test, stream authorised image/video previews, and add accessible gallery/video fullscreen UI without exposing Drive credentials or raw storage references. Verified: test migration 34, 26 contract tests, 5 attachment API integration tests, 5 Task Detail Drawer tests, and API/web production builds.
+
+## P0 — Regression integrity
+
+- [x] **Done** (Codex - 2026-08-15) — R3: Repair the task integration fixture so its QA delegation assertion explicitly uses the Workspace Restricted policy; preserve the configurable default policy and restore a green full API suite. Verified: 94/94 API integration tests passed.

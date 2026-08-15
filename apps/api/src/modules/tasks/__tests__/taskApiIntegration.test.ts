@@ -639,7 +639,9 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       );
     });
 
-    test('Prevents QA from assigning work to another member', async () => {
+    test('Prevents QA from assigning work to another member when Workspace policy is restricted', async () => {
+      await workspaceA.update({ allowQaTaskCreation: false });
+
       await assert.rejects(
         () =>
           taskService.createTask(
