@@ -112,3 +112,9 @@ Reference: `docs/plans/QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md`.
 
 - [x] **Done** (Codex - 2026-08-15) — PB3: Add versioned Product Brief acceptance criteria so a PO can define observable developer delivery targets alongside context and scope; keep QA verification status out of this slice while preserving historical PRD snapshots and audit metadata. Verified: migration 35, 26 contract tests, 8 Product Brief/document API integration tests, 5 Task Detail Drawer tests, and API/web production builds.
 - [x] **Done** (Codex - 2026-08-15) — PB4: Place Product Brief first in the task PRD & Specs flow, before requirements and supporting QA documents; preserve accessible reading and keyboard order. Verified: 6 Task Detail Drawer tests and web production build.
+
+## P0 — Auth, Member Accounts & Multi-Workspace Management
+
+- [x] **Done** (Antigravity - 2026-08-16) — AUTH-1: Implement zero-cost Reset Password flow (Nodemailer + Gmail SMTP / safe token fallback, migration 36, API endpoints `/api/auth/forgot-password` & `/api/auth/reset-password`, `/forgot-password` & `/reset-password` frontend pages). Verified: contract validation, API typecheck, and web production build.
+- [x] **Done** (Antigravity - 2026-08-16) — AUTH-2: Implement Member Account Profile Update and Self Password Change (contracts, API `/api/auth/profile` & `/api/auth/change-password`, UserProfileModal in header/navbar). Verified: contract tests, API build, and web production build.
+- [x] **Done** (Antigravity - 2026-08-16) — WS-1: Enforce Admin-only access to Workspace Settings (sidebar hiding + 403 guard page) and implement Global Multi-Workspace Member Invitation with batch workspace assignment and Admin-assisted password reset. Verified: 26 contract tests, 26 web tests, and clean production builds.

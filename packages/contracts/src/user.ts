@@ -22,8 +22,37 @@ export const LoginRequestSchema = z.object({
 
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
-export const AuthResponseSchema = z.object({
-  user: UserSchema,
+export const ForgotPasswordRequestSchema = z.object({
+  email: z.string().email(),
 });
 
-export type AuthResponse = z.infer<typeof AuthResponseSchema>;
+export type ForgotPasswordRequest = z.infer<typeof ForgotPasswordRequestSchema>;
+
+export const ResetPasswordRequestSchema = z.object({
+  token: z.string().min(1),
+  newPassword: z.string().min(6),
+});
+
+export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequestSchema>;
+
+export const ChangePasswordRequestSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(6),
+});
+
+export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequestSchema>;
+
+export const UpdateProfileRequestSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+});
+
+export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;
+
+export const AdminResetPasswordRequestSchema = z.object({
+  targetUserId: z.string().uuid(),
+  newPassword: z.string().min(6),
+});
+
+export type AdminResetPasswordRequest = z.infer<typeof AdminResetPasswordRequestSchema>;
+

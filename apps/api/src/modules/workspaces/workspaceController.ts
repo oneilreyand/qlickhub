@@ -149,7 +149,7 @@ export const addWorkspaceMember = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    const member = await workspaceService.addWorkspaceMember(workspaceId, parseResult.data);
+    const member = await workspaceService.addWorkspaceMember(workspaceId, parseResult.data, req.user?.userId);
     return res.status(201).json({ data: member });
   } catch (error) {
     return handleError(res, error);

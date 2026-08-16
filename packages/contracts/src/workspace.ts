@@ -64,6 +64,7 @@ export type UpdateWorkspaceInput = z.infer<typeof UpdateWorkspaceSchema>;
 export const AddWorkspaceMemberSchema = z.object({
   email: z.string().email(),
   role: AssignableWorkspaceRoleSchema.default('dev'),
+  workspaceIds: z.array(z.string().uuid()).optional(),
 });
 
 export type AddWorkspaceMemberInput = z.infer<typeof AddWorkspaceMemberSchema>;

@@ -1,41 +1,48 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Building2,
-  Users,
-  UserPlus,
-  Shield,
-  Trash2,
-  Check,
-  Search,
-  Settings,
-  Mail,
-} from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchWorkspaces,
+  updateWorkspace,
   fetchMembers,
   addMember,
   updateMemberRole,
   removeMember,
-  updateWorkspace,
 } from '../store/workspaceSlice';
+import { AssignableWorkspaceRole } from '@qa/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
-import { AssignableWorkspaceRole, WorkspaceRole } from '@qa/contracts';
-import { Skeleton } from '../components/ui/atoms/Skeleton';
-import { Button } from '../components/ui/atoms/Button';
 import { Card } from '../components/ui/atoms/Card';
+import { Button } from '../components/ui/atoms/Button';
 import { Input } from '../components/ui/atoms/Input';
-import { Textarea } from '../components/ui/atoms/Textarea';
-import { Avatar } from '../components/ui/atoms/Avatar';
+import { Badge, BadgeProps } from '../components/ui/atoms/Badge';
 import { Modal } from '../components/ui/molecules/Modal';
-import { Badge } from '../components/ui/atoms/Badge';
+import { Avatar } from '../components/ui/atoms/Avatar';
+import { authService } from '../lib/api/authService';
+import {
+  Building2,
+  Users,
+  Shield,
+  Trash2,
+  UserPlus,
+  Search,
+  Check,
+  Mail,
+  Key,
+  ShieldAlert,
+  ArrowLeft,
+  CheckSquare,
+  Square,
+  Settings,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Textarea } from '../components/ui/atoms/Textarea';
+import { Skeleton } from '../components/ui/atoms/Skeleton';
 
-const roleLabels: Record<WorkspaceRole, { label: string; variant: 'passed' | 'review' | 'blocked' | 'draft' | 'neutral' | 'info'; desc: string }> = {
-  owner: { label: 'Owner', variant: 'info', desc: 'Full workspace authority' },
-  admin: { label: 'Admin', variant: 'review', desc: 'Workspace administration' },
-  po: { label: 'PO', variant: 'neutral', desc: 'Product Owner' },
-  dev: { label: 'Dev', variant: 'passed', desc: 'Developer' },
-  qa: { label: 'QA', variant: 'draft', desc: 'QA Engineer' },
+const roleLabels: Record<string, { label: string; variant: BadgeProps['variant'] }> = {
+  owner: { label: 'Owner', variant: 'passed' },
+  admin: { label: 'Admin', variant: 'info' },
+  po: { label: 'Product Owner', variant: 'review' },
+  dev: { label: 'Developer', variant: 'neutral' },
+  qa: { label: 'QA Engineer', variant: 'draft' },
 };
 
 export const WorkspaceSettingsPage: React.FC = () => {
@@ -54,7 +61,13 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<AssignableWorkspaceRole>('dev');
+  const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<string[]>([]);
   const [isInviting, setIsInviting] = useState(false);
+
+  // Admin Reset Member Password State
+  const [resetTargetUser, setResetTargetUser] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [newMemberPassword, setNewMemberPassword] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
     dispatch(fetchWorkspaces());
@@ -65,6 +78,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       setWorkspaceName(activeWorkspace.name);
       setWorkspaceDesc(activeWorkspace.description || '');
       setAllowQaTaskCreation(activeWorkspace.allowQaTaskCreation ?? true);
+      setSelectedWorkspaceIds([activeWorkspace.id]);
       dispatch(fetchMembers(activeWorkspace.id));
     }
   }, [activeWorkspace?.id, dispatch]);
@@ -117,6 +131,20 @@ export const WorkspaceSettingsPage: React.FC = () => {
     }
   };
 
+  const handleToggleWorkspaceSelection = (wsId: string) => {
+    setSelectedWorkspaceIds((prev) =>
+      prev.includes(wsId) ? prev.filter((id) => id !== wsId) : [...prev, wsId]
+    );
+  };
+
+  const handleSelectAllWorkspaces = () => {
+    if (selectedWorkspaceIds.length === workspaces.length) {
+      setSelectedWorkspaceIds([activeWorkspace?.id || '']);
+    } else {
+      setSelectedWorkspaceIds(workspaces.map((w) => w.id));
+    }
+  };
+
   const handleInviteMember = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!activeWorkspace || !inviteEmail) return;
@@ -125,16 +153,47 @@ export const WorkspaceSettingsPage: React.FC = () => {
       await dispatch(
         addMember({
           workspaceId: activeWorkspace.id,
-          input: { email: inviteEmail, role: inviteRole },
+          input: {
+            email: inviteEmail,
+            role: inviteRole,
+            workspaceIds: selectedWorkspaceIds.length > 0 ? selectedWorkspaceIds : [activeWorkspace.id],
+          },
         })
       ).unwrap();
-      dispatch(enqueueSnackbar(`Successfully added ${inviteEmail} as ${roleLabels[inviteRole].label}`, 'success'));
+      dispatch(
+        enqueueSnackbar(
+          `Successfully assigned ${inviteEmail} to ${selectedWorkspaceIds.length || 1} workspace(s) as ${roleLabels[inviteRole].label}`,
+          'success'
+        )
+      );
       setInviteEmail('');
       setShowInviteModal(false);
     } catch (err) {
       dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to add member', 'error'));
     } finally {
       setIsInviting(false);
+    }
+  };
+
+  const handleAdminResetPassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!resetTargetUser || newMemberPassword.length < 6) {
+      dispatch(enqueueSnackbar('Password must be at least 6 characters.', 'error'));
+      return;
+    }
+    setIsResettingPassword(true);
+    try {
+      const res = await authService.adminResetMemberPassword({
+        targetUserId: resetTargetUser.id,
+        newPassword: newMemberPassword,
+      });
+      dispatch(enqueueSnackbar(res.message, 'success'));
+      setResetTargetUser(null);
+      setNewMemberPassword('');
+    } catch (err: any) {
+      dispatch(enqueueSnackbar(err?.message || 'Failed to reset member password', 'error'));
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -175,6 +234,28 @@ export const WorkspaceSettingsPage: React.FC = () => {
     const name = m.user?.name.toLowerCase() || '';
     return email.includes(query) || name.includes(query) || m.role.includes(query);
   });
+
+  // Access restriction guard for non-admins
+  if (activeWorkspace && !canManageMembers) {
+    return (
+      <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-6">
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-900 shadow-sm">
+          <ShieldAlert className="h-8 w-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">Access Restricted</h2>
+          <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
+            Only workspace administrators or owners are authorized to manage workspace settings, members, and policies for <strong className="text-stone-800 dark:text-stone-200">{activeWorkspace.name}</strong>.
+          </p>
+        </div>
+        <div>
+          <Link to="/work">
+            <Button leftIcon={<ArrowLeft className="h-4 w-4" />}>Return to Work Hub</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12 animate-fadeIn">
@@ -481,14 +562,33 @@ export const WorkspaceSettingsPage: React.FC = () => {
 
                           <td className="py-3.5 px-3 text-right">
                             {canManageMembers && member.role !== 'owner' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveMember(member.userId, u?.email || 'this member')}
-                                aria-label="Remove member"
-                              >
-                                <Trash2 className="h-4 w-4 text-rose-500" />
-                              </Button>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setResetTargetUser({
+                                      id: member.userId,
+                                      name: u?.name || 'Workspace User',
+                                      email: u?.email || '',
+                                    });
+                                    setNewMemberPassword('');
+                                  }}
+                                  title="Reset Member Password"
+                                  aria-label="Reset Member Password"
+                                >
+                                  <Key className="h-4 w-4 text-amber-500" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveMember(member.userId, u?.email || 'this member')}
+                                  title="Remove Member"
+                                  aria-label="Remove member"
+                                >
+                                  <Trash2 className="h-4 w-4 text-rose-500" />
+                                </Button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -508,13 +608,13 @@ export const WorkspaceSettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Invite Member Modal */}
+      {/* Invite Member Modal with Multi-Workspace Support */}
       <Modal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        title="Invite Workspace Member"
-        description="Grant workspace capabilities to your colleague by email and role."
-        primaryActionLabel="Add Member"
+        title="Invite & Assign Team Member"
+        description="Grant workspace capabilities by email, role, and assign to one or multiple workspaces."
+        primaryActionLabel="Send Invitation"
         secondaryActionLabel="Cancel"
         onPrimaryAction={handleInviteMember}
         isPrimaryLoading={isInviting}
@@ -548,6 +648,74 @@ export const WorkspaceSettingsPage: React.FC = () => {
               <option value="dev">Dev — Developer</option>
               <option value="qa">QA — QA Engineer</option>
             </select>
+          </div>
+
+          {/* Multi-Workspace Assignment Checklist */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                Target Workspaces ({selectedWorkspaceIds.length}/{workspaces.length})
+              </label>
+              <button
+                type="button"
+                onClick={handleSelectAllWorkspaces}
+                className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+              >
+                {selectedWorkspaceIds.length === workspaces.length ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+            <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50">
+              {workspaces.map((ws) => {
+                const isSelected = selectedWorkspaceIds.includes(ws.id);
+                return (
+                  <button
+                    key={ws.id}
+                    type="button"
+                    onClick={() => handleToggleWorkspaceSelection(ws.id)}
+                    className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition-colors ${
+                      isSelected
+                        ? 'bg-indigo-50/80 text-indigo-900 font-semibold dark:bg-indigo-950/60 dark:text-indigo-200'
+                        : 'hover:bg-stone-100 text-stone-700 dark:hover:bg-stone-800 dark:text-stone-300'
+                    }`}
+                  >
+                    <span className="truncate">{ws.name}</span>
+                    {isSelected ? (
+                      <CheckSquare className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    ) : (
+                      <Square className="h-4 w-4 text-stone-400 shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Admin Reset Member Password Modal */}
+      <Modal
+        isOpen={Boolean(resetTargetUser)}
+        onClose={() => setResetTargetUser(null)}
+        title="Reset Member Password"
+        description={`Set a new temporary or permanent password for ${resetTargetUser?.name} (${resetTargetUser?.email}).`}
+        primaryActionLabel="Reset Password"
+        secondaryActionLabel="Cancel"
+        onPrimaryAction={handleAdminResetPassword}
+        isPrimaryLoading={isResettingPassword}
+      >
+        <form onSubmit={handleAdminResetPassword} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
+              New Password for Member
+            </label>
+            <Input
+              type="password"
+              value={newMemberPassword}
+              onChange={(e) => setNewMemberPassword(e.target.value)}
+              required
+              placeholder="Minimum 6 characters"
+              leftIcon={<Key className="h-4 w-4 text-stone-400" />}
+            />
           </div>
         </form>
       </Modal>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { authService } from '../lib/api/authService';
 import { Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Alert } from '../components/ui/atoms/Alert';
@@ -93,9 +93,9 @@ export const LoginPage: React.FC = () => {
               required
             />
             <div className="flex justify-end pt-0.5">
-              <a href="#" className="text-[11px] text-indigo-600 hover:text-indigo-700 hover:underline font-medium">
-                Forgot?
-              </a>
+              <Link to="/forgot-password" className="text-[11px] text-indigo-600 hover:text-indigo-700 hover:underline font-medium">
+                Forgot password?
+              </Link>
             </div>
           </div>
 

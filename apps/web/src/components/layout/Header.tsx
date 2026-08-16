@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bell, ChevronDown, LogOut, Menu, Moon, Sun, Shield, Building2, Plus, Check, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Menu, Moon, Sun, Shield, Building2, Plus, Check, RefreshCw, AlertCircle, Loader2, User as UserIcon } from 'lucide-react';
 import { useTheme } from '../../lib/theme/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchWorkspaces, setActiveWorkspaceId, createWorkspace } from '../../store/workspaceSlice';
@@ -9,6 +9,7 @@ import { IconButton } from '../ui/atoms/IconButton';
 import { Input } from '../ui/atoms/Input';
 import { Textarea } from '../ui/atoms/Textarea';
 import { Modal } from '../ui/molecules/Modal';
+import { UserProfileModal } from '../ui/organisms/UserProfileModal';
 import { useDismissableLayer } from '../../hooks/useDismissableLayer';
 
 interface HeaderProps {
@@ -31,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { workspaces, activeWorkspaceId, isLoading, error } = useAppSelector((state) => state.workspace);
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showWorkspaceMenu, setShowWorkspaceMenu] = useState(false);
   const [showCreateWsModal, setShowCreateWsModal] = useState(false);
@@ -335,24 +337,40 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   onClick={() => {
                     setIsProfileOpen(false);
-                    navigate('/workspaces/settings');
+                    setShowProfileModal(true);
                   }}
                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
                 >
-                  <Building2 className="h-4 w-4 text-stone-400" />
-                  <span>Workspace Settings</span>
+                  <UserIcon className="h-4 w-4 text-stone-400" />
+                  <span>Account & Profile Settings</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileOpen(false);
-                    navigate('/workspaces/settings#task-policy');
-                  }}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                >
-                  <Shield className="h-4 w-4 text-stone-400" />
-                  <span>Task Creation Policy</span>
-                </button>
+
+                {(activeWorkspace?.role === 'owner' || activeWorkspace?.role === 'admin' || activeWorkspace?.myRole === 'owner' || activeWorkspace?.myRole === 'admin') && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        navigate('/workspaces/settings');
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                    >
+                      <Building2 className="h-4 w-4 text-stone-400" />
+                      <span>Workspace Settings</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        navigate('/workspaces/settings#task-policy');
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                    >
+                      <Shield className="h-4 w-4 text-stone-400" />
+                      <span>Task Creation Policy</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="border-t border-stone-100 pt-1 dark:border-stone-800">
@@ -369,6 +387,18 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {/* User Profile & Password Modal */}
+      <UserProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        currentUser={{
+          id: localStorage.getItem('user_id') || '',
+          email: userEmail,
+          name: localStorage.getItem('user_name') || userName,
+          role: localStorage.getItem('user_role') || 'dev',
+        }}
+      />
 
       {/* Modal Molecule: Create New Workspace */}
       <Modal

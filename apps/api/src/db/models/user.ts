@@ -9,12 +9,14 @@ export interface UserAttributes {
   name: string;
   avatarUrl?: string | null;
   role: UserRole;
+  passwordResetToken?: string | null;
+  passwordResetExpiresAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
 }
 
-export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'passwordHash' | 'avatarUrl' | 'role'> {}
+export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'passwordHash' | 'avatarUrl' | 'role' | 'passwordResetToken' | 'passwordResetExpiresAt'> {}
 
 export class UserModel extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   declare id: string;
@@ -23,6 +25,8 @@ export class UserModel extends Model<UserAttributes, UserCreationAttributes> imp
   declare name: string;
   declare avatarUrl: string | null;
   declare role: UserRole;
+  declare passwordResetToken: string | null;
+  declare passwordResetExpiresAt: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
   declare readonly deletedAt: Date | null;
@@ -56,6 +60,14 @@ UserModel.init(
       type: DataTypes.ENUM('admin', 'qa_lead', 'qa_member', 'dev', 'po', 'viewer'),
       allowNull: false,
       defaultValue: 'qa_member',
+    },
+    passwordResetToken: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    passwordResetExpiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   },
   {

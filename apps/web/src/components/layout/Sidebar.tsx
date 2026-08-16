@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Component, ShieldCheck, Layers, Building2, FileBarChart, CheckSquare } from 'lucide-react';
+import { useAppSelector } from '../../store/hooks';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -46,8 +47,21 @@ const navItems: NavItem[] = [
 export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }) => {
   const [isHovered, setIsHovered] = useState(false);
   const location = useLocation();
+  const { workspaces, activeWorkspaceId } = useAppSelector((state) => state.workspace);
+
+  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
+  const userRole = activeWorkspace?.role || activeWorkspace?.myRole;
+  const canManageSettings = userRole === 'owner' || userRole === 'admin';
+
   // Mobile drawers always render expanded navigation.
   const isExpanded = isHovered || Boolean(onCloseMobile);
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.path === '/workspaces/settings') {
+      return canManageSettings;
+    }
+    return true;
+  });
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -92,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
           >
             Main Menu
           </div>
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
 

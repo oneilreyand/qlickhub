@@ -8,6 +8,7 @@ import {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
 } from '@qa/contracts';
+import { emailService } from '../../services/emailService.js';
 
 function slugify(text: string): string {
   return text
@@ -169,7 +170,7 @@ export class WorkspaceService {
     });
   }
 
-  async addWorkspaceMember(workspaceId: string, input: AddWorkspaceMemberInput) {
+  async addWorkspaceMember(workspaceId: string, input: AddWorkspaceMemberInput, actorId?: string) {
     if ((input as { role?: string }).role === 'owner') {
       throw new Error('FORBIDDEN: Assigning the owner role requires an ownership transfer.');
     }
@@ -179,26 +180,68 @@ export class WorkspaceService {
       throw new Error('NOT_FOUND: User with this email does not exist.');
     }
 
-    const existingMember = await WorkspaceMemberModel.findOne({
-      where: { workspaceId, userId: user.id },
+    const targetWorkspaceIds = Array.from(
+      new Set([workspaceId, ...(input.workspaceIds || [])])
+    );
+
+    const targetWorkspaces = await WorkspaceModel.findAll({
+      where: { id: targetWorkspaceIds },
     });
 
-    if (existingMember) {
-      throw new Error('CONFLICT: User is already a member of this workspace.');
+    let primaryMember: WorkspaceMemberModel | null = null;
+    const addedWorkspaceNames: string[] = [];
+
+    for (const ws of targetWorkspaces) {
+      const existingMember = await WorkspaceMemberModel.findOne({
+        where: { workspaceId: ws.id, userId: user.id },
+      });
+
+      if (!existingMember) {
+        const member = await WorkspaceMemberModel.create({
+          workspaceId: ws.id,
+          userId: user.id,
+          role: input.role || 'dev',
+        });
+        if (ws.id === workspaceId) {
+          primaryMember = member;
+        }
+        addedWorkspaceNames.push(ws.name);
+      } else if (ws.id === workspaceId) {
+        primaryMember = existingMember;
+      }
     }
 
-    const member = await WorkspaceMemberModel.create({
-      workspaceId,
-      userId: user.id,
-      role: input.role || 'dev',
-    });
+    if (!primaryMember && addedWorkspaceNames.length === 0) {
+      throw new Error('CONFLICT: User is already a member of all selected workspaces.');
+    }
+
+    if (!primaryMember) {
+      primaryMember = await WorkspaceMemberModel.findOne({
+        where: { workspaceId, userId: user.id },
+      }) as WorkspaceMemberModel;
+    }
+
+    // Send zero-cost invitation notification email if workspaces were added
+    if (addedWorkspaceNames.length > 0) {
+      let inviterName = 'Workspace Admin';
+      if (actorId) {
+        const actor = await UserModel.findByPk(actorId);
+        if (actor) inviterName = actor.name;
+      }
+      await emailService.sendWorkspaceInvitationEmail(
+        user.email,
+        addedWorkspaceNames,
+        inviterName,
+        input.role || 'dev'
+      );
+    }
 
     return {
-      id: member.id,
-      workspaceId: member.workspaceId,
-      userId: member.userId,
-      role: member.role,
-      joinedAt: member.joinedAt,
+      id: primaryMember?.id || 'batch-assignment',
+      workspaceId,
+      userId: user.id,
+      role: primaryMember?.role || input.role || 'dev',
+      joinedAt: primaryMember?.joinedAt ? primaryMember.joinedAt.toISOString() : new Date().toISOString(),
       user: {
         id: user.id,
         email: user.email,
