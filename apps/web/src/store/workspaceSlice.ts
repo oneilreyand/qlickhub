@@ -8,6 +8,7 @@ interface WorkspaceState {
   members: WorkspaceMemberItem[];
   isLoading: boolean;
   isMembersLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
 }
 
@@ -17,6 +18,7 @@ const initialState: WorkspaceState = {
   members: [],
   isLoading: false,
   isMembersLoading: false,
+  isInitialized: false,
   error: null,
 };
 
@@ -94,6 +96,7 @@ const workspaceSlice = createSlice({
       })
       .addCase(fetchWorkspaces.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isInitialized = true;
         state.workspaces = action.payload;
         
         // Ensure activeWorkspaceId is valid and exists in user's memberships
@@ -110,6 +113,7 @@ const workspaceSlice = createSlice({
       })
       .addCase(fetchWorkspaces.rejected, (state, action) => {
         state.isLoading = false;
+        state.isInitialized = true;
         state.error = action.error.message || 'Failed to fetch workspaces';
       })
       .addCase(createWorkspace.fulfilled, (state, action) => {

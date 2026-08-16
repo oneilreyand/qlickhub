@@ -46,7 +46,7 @@ import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorksp
 
 export const MyTasksPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { activeWorkspaceId, workspaces, isLoading: isWsLoading } = useAppSelector((state: RootState) => state.workspace);
+  const { activeWorkspaceId, workspaces, isLoading: isWsLoading, isInitialized: isWsInitialized } = useAppSelector((state: RootState) => state.workspace);
   const { tasks, isLoading, selectedTaskId } = useAppSelector((state: RootState) => state.task);
   const { folders } = useAppSelector((state: RootState) => state.folder);
 
@@ -61,7 +61,15 @@ export const MyTasksPage: React.FC = () => {
     }
   }, [activeWorkspaceId, dispatch]);
 
-  if (!isWsLoading && workspaces.length === 0) {
+  if (!isWsInitialized || isWsLoading) {
+    return (
+      <div className="py-24 flex items-center justify-center">
+        <div className="h-8 w-8 rounded-full border-2 border-stone-300 border-t-stone-800 dark:border-stone-700 dark:border-t-[#B1E743] animate-spin" />
+      </div>
+    );
+  }
+
+  if (workspaces.length === 0) {
     return <EmptyWorkspaceOnboarding />;
   }
 

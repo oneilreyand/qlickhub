@@ -53,6 +53,7 @@ describe('CreateSubtaskModal UI Component', () => {
           members: [],
           isLoading: false,
           isMembersLoading: false,
+          isInitialized: true,
           error: null,
         },
       },

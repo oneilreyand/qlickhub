@@ -48,7 +48,7 @@ const roleLabels: Record<string, { label: string; variant: BadgeProps['variant']
 
 export const WorkspaceSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { workspaces, activeWorkspaceId, members, isMembersLoading } = useAppSelector((state) => state.workspace);
+  const { workspaces, activeWorkspaceId, members, isMembersLoading, isLoading, isInitialized } = useAppSelector((state) => state.workspace);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
 
@@ -235,6 +235,15 @@ export const WorkspaceSettingsPage: React.FC = () => {
     const name = m.user?.name.toLowerCase() || '';
     return email.includes(query) || name.includes(query) || m.role.includes(query);
   });
+
+  // While checking or loading workspaces on initial refresh, render smooth loading
+  if (!isInitialized || isLoading) {
+    return (
+      <div className="py-24 flex items-center justify-center">
+        <div className="h-8 w-8 rounded-full border-2 border-stone-300 border-t-stone-800 dark:border-stone-700 dark:border-t-[#B1E743] animate-spin" />
+      </div>
+    );
+  }
 
   // If no workspaces exist yet, render empty onboarding
   if (!activeWorkspace || workspaces.length === 0) {

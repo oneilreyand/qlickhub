@@ -93,6 +93,7 @@ function renderWithRedux(ui: React.ReactElement, role?: 'owner' | 'admin' | 'po'
         members: [],
         isLoading: false,
         isMembersLoading: false,
+        isInitialized: true,
         error: null,
       },
     },
