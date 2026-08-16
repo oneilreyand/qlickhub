@@ -36,6 +36,7 @@ import {
 import { Link } from 'react-router-dom';
 import { Textarea } from '../components/ui/atoms/Textarea';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
+import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
 
 const roleLabels: Record<string, { label: string; variant: BadgeProps['variant'] }> = {
   owner: { label: 'Owner', variant: 'passed' },
@@ -235,8 +236,13 @@ export const WorkspaceSettingsPage: React.FC = () => {
     return email.includes(query) || name.includes(query) || m.role.includes(query);
   });
 
+  // If no workspaces exist yet, render empty onboarding
+  if (!activeWorkspace || workspaces.length === 0) {
+    return <EmptyWorkspaceOnboarding />;
+  }
+
   // Access restriction guard for non-admins
-  if (activeWorkspace && !canManageMembers) {
+  if (!canManageMembers) {
     return (
       <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-6">
         <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-900 shadow-sm">

@@ -95,9 +95,17 @@ const workspaceSlice = createSlice({
       .addCase(fetchWorkspaces.fulfilled, (state, action) => {
         state.isLoading = false;
         state.workspaces = action.payload;
-        if (!state.activeWorkspaceId && action.payload.length > 0) {
-          state.activeWorkspaceId = action.payload[0].id;
-          localStorage.setItem('active_workspace_id', action.payload[0].id);
+        
+        // Ensure activeWorkspaceId is valid and exists in user's memberships
+        const isValidActive = action.payload.some((w) => w.id === state.activeWorkspaceId);
+        if (!isValidActive) {
+          if (action.payload.length > 0) {
+            state.activeWorkspaceId = action.payload[0].id;
+            localStorage.setItem('active_workspace_id', action.payload[0].id);
+          } else {
+            state.activeWorkspaceId = null;
+            localStorage.removeItem('active_workspace_id');
+          }
         }
       })
       .addCase(fetchWorkspaces.rejected, (state, action) => {

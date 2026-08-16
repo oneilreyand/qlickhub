@@ -42,9 +42,11 @@ function getPriorityBadge(priority: Task['priority']) {
   }
 }
 
+import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
+
 export const MyTasksPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { activeWorkspaceId } = useAppSelector((state: RootState) => state.workspace);
+  const { activeWorkspaceId, workspaces, isLoading: isWsLoading } = useAppSelector((state: RootState) => state.workspace);
   const { tasks, isLoading, selectedTaskId } = useAppSelector((state: RootState) => state.task);
   const { folders } = useAppSelector((state: RootState) => state.folder);
 
@@ -58,6 +60,10 @@ export const MyTasksPage: React.FC = () => {
       dispatch(fetchTasks({ workspaceId: activeWorkspaceId }));
     }
   }, [activeWorkspaceId, dispatch]);
+
+  if (!isWsLoading && workspaces.length === 0) {
+    return <EmptyWorkspaceOnboarding />;
+  }
 
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId) || null,
