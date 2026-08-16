@@ -99,30 +99,19 @@ function getActivityIcon(action: string) {
 function renderHumanActivityDescription(act: TaskActivity) {
   const meta = (act.metadataJson || {}) as Record<string, any>;
   const action = act.action;
+  const changes = meta.changes || {};
 
-  if (action === 'task.created' || action === 'created') {
-    return <span className="text-stone-700 dark:text-stone-300">created this task</span>;
-  }
+  // Status changes (task or subtask)
+  if (
+    action.includes('status_updated') ||
+    action.includes('status_changed') ||
+    action === 'task.status' ||
+    action === 'subtask.status' ||
+    Boolean(changes.status)
+  ) {
+    const oldStatus = changes.status?.old ?? meta.oldStatus ?? meta.previousStatus;
+    const newStatus = changes.status?.new ?? meta.newStatus ?? meta.status;
 
-  if (action === 'task.completed' || action === 'completed') {
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        marked this task as <span className="font-semibold text-emerald-600 dark:text-emerald-400">Completed</span>
-      </span>
-    );
-  }
-
-  if (action === 'task.reopened' || action === 'reopened') {
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        reopened this task
-      </span>
-    );
-  }
-
-  if (action === 'task.status_changed' || action === 'status_changed' || action === 'status') {
-    const oldStatus = meta.oldStatus || meta.previousStatus;
-    const newStatus = meta.newStatus || meta.status;
     return (
       <span className="inline-flex items-center gap-1.5 flex-wrap text-stone-700 dark:text-stone-300">
         <span>changed status</span>
@@ -132,54 +121,126 @@ function renderHumanActivityDescription(act: TaskActivity) {
             <TaskStatusBadge state={oldStatus} />
           </>
         )}
-        <span>to</span>
-        {newStatus ? <TaskStatusBadge state={newStatus} /> : <span className="font-semibold">{action}</span>}
+        {newStatus && (
+          <>
+            <span>to</span>
+            <TaskStatusBadge state={newStatus} />
+          </>
+        )}
       </span>
     );
   }
 
-  if (action === 'task.priority_changed' || action === 'priority_changed' || action === 'priority') {
-    const oldP = meta.oldPriority || meta.previousPriority;
-    const newP = meta.newPriority || meta.priority;
+  // Priority changes
+  if (
+    action.includes('priority_updated') ||
+    action.includes('priority_changed') ||
+    action === 'task.priority' ||
+    action === 'subtask.priority' ||
+    Boolean(changes.priority)
+  ) {
+    const oldP = changes.priority?.old ?? meta.oldPriority ?? meta.previousPriority;
+    const newP = changes.priority?.new ?? meta.newPriority ?? meta.priority;
+
     return (
-      <span className="text-stone-700 dark:text-stone-300">
-        changed priority {oldP ? `from ${oldP} ` : ''}to <span className="font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{newP}</span>
+      <span className="inline-flex items-center gap-1.5 flex-wrap text-stone-700 dark:text-stone-300">
+        <span>changed priority</span>
+        {oldP && (
+          <>
+            <span>from</span>
+            <span className="font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">{oldP}</span>
+          </>
+        )}
+        {newP && (
+          <>
+            <span>to</span>
+            <span className="font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{newP}</span>
+          </>
+        )}
       </span>
     );
   }
 
-  if (action === 'task.assignee_changed' || action === 'assignee_changed') {
+  // Assignee changes
+  if (
+    action.includes('assignee_updated') ||
+    action.includes('assignee_changed') ||
+    Boolean(changes.assigneeId)
+  ) {
     const newAssignee = meta.newAssigneeName || meta.assigneeName;
-    if (!newAssignee) {
+    if (changes.assigneeId?.new === null || (!newAssignee && changes.assigneeId && !changes.assigneeId.new)) {
       return <span className="text-stone-700 dark:text-stone-300">unassigned this task</span>;
     }
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        assigned this task to <span className="font-semibold text-stone-900 dark:text-stone-100">{newAssignee}</span>
+        assigned task to <span className="font-semibold text-stone-900 dark:text-stone-100">{newAssignee || 'team member'}</span>
       </span>
     );
   }
 
-  if (action === 'task.dates_changed' || action === 'dates_changed') {
-    if (meta.dueDate) {
+  // Due date changes
+  if (
+    action.includes('dueDate_updated') ||
+    action.includes('dates_changed') ||
+    action.includes('date_updated') ||
+    Boolean(changes.dueDate) ||
+    Boolean(changes.startDate)
+  ) {
+    const oldDue = changes.dueDate?.old ?? meta.oldDueDate;
+    const newDue = changes.dueDate?.new ?? meta.newDueDate ?? meta.dueDate;
+
+    if (oldDue && newDue) {
       return (
         <span className="text-stone-700 dark:text-stone-300">
-          set due date to <span className="font-semibold text-stone-900 dark:text-stone-100">{meta.dueDate}</span>
+          changed due date from <span className="font-semibold text-stone-900 dark:text-stone-100">{oldDue}</span> to{' '}
+          <span className="font-semibold text-stone-900 dark:text-stone-100">{newDue}</span>
+        </span>
+      );
+    }
+    if (newDue) {
+      return (
+        <span className="text-stone-700 dark:text-stone-300">
+          set due date to <span className="font-semibold text-stone-900 dark:text-stone-100">{newDue}</span>
         </span>
       );
     }
     return <span className="text-stone-700 dark:text-stone-300">updated task schedule dates</span>;
   }
 
-  if (action === 'task.moved' || action === 'moved') {
-    const folderName = meta.targetFolderName || meta.newFolderName || 'another folder';
+  // Title changes
+  if (action.includes('title_updated') || Boolean(changes.title)) {
+    const newTitle = changes.title?.new ?? meta.title;
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        moved task to folder <span className="font-semibold text-stone-900 dark:text-stone-100">{folderName}</span>
+        renamed to <span className="font-semibold text-stone-900 dark:text-stone-100">"{newTitle}"</span>
       </span>
     );
   }
 
+  // Description changes
+  if (action.includes('description_updated') || Boolean(changes.description)) {
+    return <span className="text-stone-700 dark:text-stone-300">updated task description</span>;
+  }
+
+  // Generic multiple updates
+  if (action === 'task.updated' || action === 'subtask.updated' || action === 'updated') {
+    const changedFields = Object.keys(changes);
+    if (changedFields.length > 0) {
+      return (
+        <span className="text-stone-700 dark:text-stone-300">
+          updated {changedFields.join(', ')}
+        </span>
+      );
+    }
+    return <span className="text-stone-700 dark:text-stone-300">updated task details</span>;
+  }
+
+  // Task created
+  if (action === 'task.created' || action === 'created') {
+    return <span className="text-stone-700 dark:text-stone-300">created this task</span>;
+  }
+
+  // Subtask created
   if (action === 'subtask.created' || action === 'subtask_created') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
@@ -193,31 +254,31 @@ function renderHumanActivityDescription(act: TaskActivity) {
     );
   }
 
-  if (action === 'subtask.status_changed' || action === 'subtask_status_changed') {
-    return (
-      <span className="inline-flex items-center gap-1 flex-wrap text-stone-700 dark:text-stone-300">
-        <span>updated subtask <span className="font-semibold text-stone-900 dark:text-stone-100">"{act.taskTitle || meta.title}"</span> status to</span>
-        {meta.newStatus ? <TaskStatusBadge state={meta.newStatus} /> : <span className="font-semibold">{meta.status}</span>}
-      </span>
-    );
-  }
-
-  if (action === 'subtask.completed') {
+  // Task / Subtask completed
+  if (action.includes('completed')) {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        completed subtask <span className="font-semibold text-stone-900 dark:text-stone-100">"{act.taskTitle || meta.title}"</span>
+        marked as <span className="font-semibold text-emerald-600 dark:text-emerald-400">Completed</span>
       </span>
     );
   }
 
-  if (action === 'subtask.assignee_changed') {
+  // Task reopened
+  if (action.includes('reopened')) {
+    return <span className="text-stone-700 dark:text-stone-300">reopened this task</span>;
+  }
+
+  // Task / Subtask moved
+  if (action.includes('moved')) {
+    const folderName = meta.targetFolderName || meta.newFolderName || 'another folder';
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        assigned subtask <span className="font-semibold text-stone-900 dark:text-stone-100">"{act.taskTitle}"</span> to <span className="font-semibold text-stone-900 dark:text-stone-100">{meta.newAssigneeName || 'team member'}</span>
+        moved to folder <span className="font-semibold text-stone-900 dark:text-stone-100">{folderName}</span>
       </span>
     );
   }
 
+  // Requirement linked/unlinked
   if (action === 'requirement.linked' || action === 'requirement_linked') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
@@ -225,12 +286,12 @@ function renderHumanActivityDescription(act: TaskActivity) {
       </span>
     );
   }
-
   if (action === 'requirement.unlinked' || action === 'requirement_unlinked') {
     return <span className="text-stone-700 dark:text-stone-300">unlinked a requirement</span>;
   }
 
-  if (action === 'brief.updated' || action === 'brief_updated' || action === 'brief.created') {
+  // Specification Brief
+  if (action.includes('brief')) {
     return (
       <span className="text-stone-700 dark:text-stone-300">
         updated specification brief {meta.version ? `to version v${meta.version}` : ''}
@@ -238,11 +299,11 @@ function renderHumanActivityDescription(act: TaskActivity) {
     );
   }
 
-  if (action === 'comment.created' || action === 'comment_created') {
+  // Comments
+  if (action.includes('comment')) {
     return <span className="text-stone-700 dark:text-stone-300">posted a comment in discussion</span>;
   }
 
-  return <span className="text-stone-700 dark:text-stone-300">{action.replace(/[._]/g, ' ')}</span>;
 }
 
 interface TaskDetailDrawerProps {
