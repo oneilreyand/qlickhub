@@ -27,8 +27,6 @@ import type {
   AttachmentCategory,
   Requirement,
   TaskRequirementLink,
-  QaDocument,
-  TaskDocumentLink,
   ProductBrief,
   ProductBriefScopeItem,
   ProductBriefAcceptanceCriterion,
@@ -127,15 +125,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [newReqTitle, setNewReqTitle] = useState('');
   const [isCreatingReq, setIsCreatingReq] = useState(false);
 
-  // Task QA Documents State
-  const [taskDocumentLinks, setTaskDocumentLinks] = useState<TaskDocumentLink[]>([]);
-  const [allQaDocuments, setAllQaDocuments] = useState<QaDocument[]>([]);
-  const [isLoadingQaDocs, setIsLoadingQaDocs] = useState(false);
-  const [selectedDocToLink, setSelectedDocToLink] = useState('');
-  const [newDocTitle, setNewDocTitle] = useState('');
-  const [newDocContent, setNewDocContent] = useState('');
-  const [isCreatingDoc, setIsCreatingDoc] = useState(false);
-
   // Subtasks state
   const [subtasks, setSubtasks] = useState<Task[]>([]);
   const [isLoadingSubtasks, setIsLoadingSubtasks] = useState(false);
@@ -182,7 +171,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         loadAttachments();
         loadProductBrief();
         loadTaskRequirements();
-        loadTaskDocuments();
         dispatch(fetchMembers(activeWorkspaceId));
       }
     }
@@ -365,69 +353,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       dispatch(enqueueSnackbar(errorMessage(err, 'Failed to create requirement'), 'error'));
     } finally {
       setIsCreatingReq(false);
-    }
-  };
-
-  const loadTaskDocuments = async () => {
-    if (!activeWorkspaceId || !task) return;
-    setIsLoadingQaDocs(true);
-    try {
-      const [links, docs] = await Promise.all([
-        qaDocumentService.listTaskDocumentLinks(activeWorkspaceId, task.id),
-        qaDocumentService.listWorkspaceDocuments(activeWorkspaceId),
-      ]);
-      setTaskDocumentLinks(links);
-      setAllQaDocuments(docs);
-    } catch {
-      // Ignore background fetch error
-    } finally {
-      setIsLoadingQaDocs(false);
-    }
-  };
-
-  const handleLinkDocument = async () => {
-    if (!activeWorkspaceId || !task || !selectedDocToLink) return;
-    try {
-      await qaDocumentService.linkDocument(activeWorkspaceId, task.id, selectedDocToLink);
-      dispatch(enqueueSnackbar('QA Document linked to task', 'success'));
-      setSelectedDocToLink('');
-      loadTaskDocuments();
-      loadActivity(1);
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to link QA Document'), 'error'));
-    }
-  };
-
-  const handleUnlinkDocument = async (docId: string) => {
-    if (!activeWorkspaceId || !task) return;
-    try {
-      await qaDocumentService.unlinkDocument(activeWorkspaceId, task.id, docId);
-      dispatch(enqueueSnackbar('QA Document unlinked from task', 'info'));
-      loadTaskDocuments();
-      loadActivity(1);
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to unlink QA Document'), 'error'));
-    }
-  };
-
-  const handleCreateAndLinkDocument = async () => {
-    if (!activeWorkspaceId || !task || !newDocTitle.trim() || !newDocContent.trim()) return;
-    setIsCreatingDoc(true);
-    try {
-      const created = await qaDocumentService.createDocument(activeWorkspaceId, {
-        title: newDocTitle.trim(),
-        contentMarkdown: newDocContent.trim(),
-      });
-      await qaDocumentService.linkDocument(activeWorkspaceId, task.id, created.document.id);
-      dispatch(enqueueSnackbar(`QA Document "${created.document.title}" created and linked!`, 'success'));
-      setNewDocTitle('');
-      setNewDocContent('');
-      loadTaskDocuments();
-      loadActivity(1);
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to create QA Document'), 'error'));
-    } finally {
-      setIsCreatingDoc(false);
     }
   };
 
@@ -722,7 +647,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const detailTabs: TabItem[] = [
     { id: 'overview', label: 'Overview', icon: <FileText className="h-3.5 w-3.5" /> },
-    { id: 'prd', label: 'PRD & Specs', icon: <FileCode2 className="h-3.5 w-3.5" /> },
+    { id: 'prd', label: 'Specs & Requirements', icon: <FileCode2 className="h-3.5 w-3.5" /> },
     { id: 'evidence', label: `Evidence (${attachments.length})`, icon: <Paperclip className="h-3.5 w-3.5" /> },
     { id: 'subtasks', label: `Subtasks (${subtasks.length})`, icon: <ListTodo className="h-3.5 w-3.5" /> },
     { id: 'activity', label: `Activity (${activityTotal})`, icon: <History className="h-3.5 w-3.5" /> },
@@ -890,7 +815,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             </div>
           )}
 
-          {/* TAB 2: PRD & SPECS */}
+          {/* TAB 2: SPECS & REQUIREMENTS */}
           {activeTab === 'prd' && (
             <div className="space-y-4">
               <Card className="p-5 space-y-4 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90">
@@ -899,23 +824,23 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     <FileCode2 className="h-5 w-5 text-[#22201F] dark:text-[#B1E743]" />
                     <div>
                       <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                        Product Requirement Document (PRD) & Specifications
+                        Specifications & Requirements
                       </h3>
                       <p className="text-xs text-stone-500 dark:text-stone-400">
-                        Define feature requirements, acceptance criteria, and spec links.
+                        Define task specifications, scope, acceptance criteria, and requirement links.
                       </p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  {/* Persisted Product Brief */}
+                  {/* Persisted Specification Brief */}
                   <div className="space-y-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900/70 dark:bg-indigo-950/20">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">Product Brief</h4>
+                        <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">Specification Brief</h4>
                         <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                          The versioned product source of truth. Use scope for commitments; create Subtasks for execution work.
+                          The versioned specification source of truth. Use scope for commitments; create Subtasks for execution work.
                         </p>
                       </div>
                       <span className="shrink-0 rounded-lg bg-indigo-100 px-2 py-1 text-[11px] font-bold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200">
@@ -926,7 +851,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     {isLoadingProductBrief ? (
                       <div className="space-y-3"><Skeleton className="h-10 w-full rounded-xl" /><Skeleton className="h-44 w-full rounded-xl" /></div>
                     ) : productBriefError ? (
-                      <Alert tone="error" title="Product Brief unavailable">
+                      <Alert tone="error" title="Specification Brief unavailable">
                         <div className="flex items-center justify-between gap-3">
                           <span>{productBriefError}</span>
                           <Button size="sm" variant="outline" onClick={() => void loadProductBrief()}>Retry</Button>
@@ -935,23 +860,23 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     ) : (
                       <>
                         {!canPlan && (
-                          <Alert tone="info" title="Read-only Product Brief">
-                            Only a Product Owner, Admin, or Owner can update Product Brief content and scope.
+                          <Alert tone="info" title="Read-only Specification Brief">
+                            Only a Product Owner, Admin, or Owner can update Specification Brief content and scope.
                           </Alert>
                         )}
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <Input
                             id="product-brief-title"
-                            label="PRD title"
+                            label="Specification title"
                             value={productBriefTitle}
                             onChange={(event) => setProductBriefTitle(event.target.value)}
                             disabled={!canPlan}
-                            placeholder="Checkout product brief"
+                            placeholder="Specification brief title"
                           />
                           <Select
                             id="product-brief-status"
-                            label="PRD status"
+                            label="Specification status"
                             value={productBriefStatus}
                             onChange={(event) => setProductBriefStatus(event.target.value as ProductBriefStatus)}
                             disabled={!canPlan}
@@ -964,7 +889,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
                         <Select
                           id="product-brief-owner"
-                          label="Product owner"
+                          label="Specification owner"
                           value={productBriefOwnerId}
                           onChange={(event) => setProductBriefOwnerId(event.target.value)}
                           disabled={!canPlan}
@@ -982,7 +907,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
                         <Textarea
                           id="product-brief-content"
-                          label="Product context & requirements"
+                          label="Specification context & details"
                           rows={16}
                           value={productBriefContent}
                           onChange={(event) => setProductBriefContent(event.target.value)}
@@ -994,7 +919,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
                             <div>
                               <h5 className="text-xs font-bold text-emerald-900 dark:text-emerald-100">In Scope</h5>
-                              <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Product commitments included in this task.</p>
+                              <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Deliverables and commitments included in this task.</p>
                             </div>
                             {productBriefInScope.map((item) => (
                               <div key={item.id} className="flex gap-2">
@@ -1014,7 +939,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
                             <div>
                               <h5 className="text-xs font-bold text-amber-900 dark:text-amber-100">Out of Scope</h5>
-                              <p className="text-[11px] text-amber-700 dark:text-amber-300">Explicit exclusions for this release.</p>
+                              <p className="text-[11px] text-amber-700 dark:text-amber-300">Explicit exclusions for this task.</p>
                             </div>
                             {productBriefOutScope.map((item) => (
                               <div key={item.id} className="flex gap-2">
@@ -1036,7 +961,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           <div>
                             <h5 className="text-xs font-bold text-indigo-900 dark:text-indigo-100">Acceptance Criteria</h5>
                             <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
-                              Observable delivery targets for the developer. QA verification status will be added separately.
+                              Observable delivery targets and acceptance criteria for completion.
                             </p>
                           </div>
                           {productBriefAcceptanceCriteria.map((criterion) => (
@@ -1191,113 +1116,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                             >
                               Create & Link
                             </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Linked QA Documents Section */}
-                  <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-3 dark:border-stone-800 dark:bg-stone-950/40">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                        <FileCode2 className="h-4 w-4 text-stone-500" />
-                        <span>Linked QA Documents ({taskDocumentLinks.length})</span>
-                      </span>
-                    </div>
-
-                    {isLoadingQaDocs ? (
-                      <div className="space-y-2">
-                        <Skeleton className="h-10 w-full rounded-xl" />
-                      </div>
-                    ) : taskDocumentLinks.length === 0 ? (
-                      <p className="text-xs text-stone-500 italic py-1">
-                        No QA Test Plan or Strategy documents linked to this task yet.
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {taskDocumentLinks.map((link) => (
-                          <div
-                            key={link.id}
-                            className="flex items-center justify-between p-3 rounded-xl border border-stone-200 bg-white text-xs dark:border-stone-800 dark:bg-stone-900"
-                          >
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <span className="px-2 py-0.5 text-[11px] font-bold uppercase rounded bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200">
-                                {link.document?.docType?.replace('_', ' ') || 'DOC'} v{link.document?.currentVersion || 1}
-                              </span>
-                              <span className="font-semibold text-stone-900 dark:text-stone-100 truncate">
-                                {link.document?.title || 'QA Document'}
-                              </span>
-                            </div>
-                            {canEditTask && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleUnlinkDocument(link.documentId)}
-                              >
-                                Unlink
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {canEditTask && (
-                      <div className="pt-2 border-t border-stone-200 dark:border-stone-800 space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <select
-                            value={selectedDocToLink}
-                            onChange={(e) => setSelectedDocToLink(e.target.value)}
-                            className="sm:col-span-2 w-full rounded-xl border border-stone-200 bg-white p-2 text-xs text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
-                          >
-                            <option value="">-- Select QA Document to Link --</option>
-                            {allQaDocuments
-                              .filter((d) => !taskDocumentLinks.some((l) => l.documentId === d.id))
-                              .map((d) => (
-                                <option key={d.id} value={d.id}>
-                                  [{d.docType}] {d.title} (v{d.currentVersion})
-                                </option>
-                              ))}
-                          </select>
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            disabled={!selectedDocToLink}
-                            onClick={handleLinkDocument}
-                          >
-                            Link Document
-                          </Button>
-                        </div>
-
-                        <div className="pt-2">
-                          <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300 block mb-1.5">
-                            Or Create & Link New QA Document:
-                          </span>
-                          <div className="space-y-2">
-                            <Input
-                              type="text"
-                              placeholder="Document Title (e.g. Authentication Test Plan)"
-                              value={newDocTitle}
-                              onChange={(e) => setNewDocTitle(e.target.value)}
-                            />
-                            <Textarea
-                              placeholder="Markdown Content (Test objectives, scope, test cases...)"
-                              rows={3}
-                              value={newDocContent}
-                              onChange={(e) => setNewDocContent(e.target.value)}
-                            />
-                            <div className="flex justify-end">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                isLoading={isCreatingDoc}
-                                disabled={!newDocTitle.trim() || !newDocContent.trim()}
-                                onClick={handleCreateAndLinkDocument}
-                              >
-                                Create & Link Document
-                              </Button>
-                            </div>
                           </div>
                         </div>
                       </div>
