@@ -9,12 +9,10 @@ import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
 import type { Task } from '@qa/contracts';
 
-const { getProductBriefMock, upsertProductBriefMock, listAttachmentsMock, uploadAttachmentMock, deleteAttachmentMock } = vi.hoisted(() => ({
+const { getProductBriefMock, upsertProductBriefMock, listTaskActivitiesMock } = vi.hoisted(() => ({
   getProductBriefMock: vi.fn(),
   upsertProductBriefMock: vi.fn(),
-  listAttachmentsMock: vi.fn(),
-  uploadAttachmentMock: vi.fn(),
-  deleteAttachmentMock: vi.fn(),
+  listTaskActivitiesMock: vi.fn(),
 }));
 
 vi.mock('../../../../lib/api/qaDocumentService', () => ({
@@ -29,13 +27,15 @@ vi.mock('../../../../lib/api/qaDocumentService', () => ({
   },
 }));
 
-vi.mock('../../../../lib/api/attachmentService', () => ({
-  attachmentService: {
-    listAttachments: listAttachmentsMock,
-    uploadAttachment: uploadAttachmentMock,
-    deleteAttachment: deleteAttachmentMock,
-    getDownloadUrl: (_workspaceId: string, _taskId: string, attachmentId: string) =>
-      `https://api.example.test/attachments/${attachmentId}`,
+vi.mock('../../../../lib/api/taskService', () => ({
+  taskService: {
+    listTaskActivity: listTaskActivitiesMock,
+    listTaskActivities: listTaskActivitiesMock,
+    listTaskComments: vi.fn().mockResolvedValue({ comments: [], total: 0, page: 1, limit: 50 }),
+    listSubtasks: vi.fn().mockResolvedValue({ tasks: [], total: 0, page: 1, limit: 50 }),
+    updateTask: vi.fn(),
+    moveTask: vi.fn(),
+    completeTask: vi.fn(),
   },
 }));
 
@@ -132,36 +132,22 @@ describe('TaskDetailDrawer UI Component', () => {
   beforeEach(() => {
     getProductBriefMock.mockResolvedValue(productBrief);
     upsertProductBriefMock.mockResolvedValue(productBrief);
-    listAttachmentsMock.mockResolvedValue([
-      {
-        id: '123e4567-e89b-12d3-a456-426614174010',
-        workspaceId: mockTask.workspaceId,
-        taskId: mockTask.id,
-        fileName: 'checkout-reference.png',
-        fileSize: 1024,
-        mimeType: 'image/png',
-        storageProvider: 'google_drive',
-        category: 'product_media',
-        caption: 'Approved checkout state',
-        uploaderId: '123e4567-e89b-12d3-a456-426614174000',
-        createdAt: '2026-08-14T00:00:00.000Z',
-        updatedAt: '2026-08-14T00:00:00.000Z',
-      },
-      {
-        id: '123e4567-e89b-12d3-a456-426614174011',
-        workspaceId: mockTask.workspaceId,
-        taskId: mockTask.id,
-        fileName: 'prototype-walkthrough.mp4',
-        fileSize: 2048,
-        mimeType: 'video/mp4',
-        storageProvider: 'google_drive',
-        category: 'product_media',
-        caption: 'Prototype walkthrough',
-        uploaderId: '123e4567-e89b-12d3-a456-426614174000',
-        createdAt: '2026-08-14T00:00:00.000Z',
-        updatedAt: '2026-08-14T00:00:00.000Z',
-      },
-    ]);
+    listTaskActivitiesMock.mockResolvedValue({
+      activities: [
+        {
+          id: '123e4567-e89b-12d3-a456-426614174020',
+          workspaceId: mockTask.workspaceId,
+          taskId: mockTask.id,
+          actorName: 'Alex River',
+          action: 'task.status_changed',
+          metadataJson: { oldStatus: 'todo', newStatus: 'in_progress' },
+          createdAt: '2026-08-14T00:00:00.000Z',
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
   });
 
   test('Renders task title, status, and tab controls', () => {
@@ -187,7 +173,7 @@ describe('TaskDetailDrawer UI Component', () => {
 
     const activityTab = screen.getByRole('button', { name: /Activity/ });
     fireEvent.click(activityTab);
-    expect(screen.getByText('Immutable Audit Trail')).toBeInTheDocument();
+    expect(screen.getByText('Activity & Audit Trail')).toBeInTheDocument();
   });
 
   test('places the Specification Brief before requirements and supporting documents', async () => {
@@ -242,23 +228,16 @@ describe('TaskDetailDrawer UI Component', () => {
     });
   });
 
-  test('shows persisted product media in the evidence gallery and opens an accessible preview', async () => {
+  test('renders human-friendly activity timeline items with actor and action descriptions', async () => {
     renderWithRedux(
       <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />,
       'po'
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Evidence/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Activity/ }));
 
-    expect(await screen.findByText(/Product Media & Evidence/)).toBeInTheDocument();
-    expect(screen.getByLabelText('Attachment type')).toHaveValue('general');
-    expect(screen.getByText('Media gallery')).toBeInTheDocument();
-    expect(screen.getByText('Approved checkout state')).toBeInTheDocument();
-    expect(screen.getByText('Prototype walkthrough')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open checkout-reference.png' }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'checkout-reference.png' })).toBeInTheDocument();
-    expect(screen.getByText('Open or download')).toBeInTheDocument();
+    expect(await screen.findByText('Activity & Audit Trail')).toBeInTheDocument();
+    expect(screen.getByText('Alex River')).toBeInTheDocument();
+    expect(screen.getByText(/changed status/)).toBeInTheDocument();
   });
 });

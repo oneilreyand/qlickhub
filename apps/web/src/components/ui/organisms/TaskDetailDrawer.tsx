@@ -11,10 +11,12 @@ import {
   Edit2,
   Send,
   FileCode2,
-  Upload,
-  Paperclip,
-  Download,
-  File as FileIcon,
+  Clock,
+  AlertCircle,
+  User,
+  Folder,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
 import type {
   Task,
@@ -23,8 +25,6 @@ import type {
   FolderTreeNode,
   TaskActivity,
   TaskComment,
-  TaskAttachment,
-  AttachmentCategory,
   Requirement,
   TaskRequirementLink,
   ProductBrief,
@@ -39,7 +39,6 @@ import { Input } from '../atoms/Input';
 import { Textarea } from '../atoms/Textarea';
 import { Select } from '../atoms/Select';
 import { Tabs, TabItem } from '../molecules/Tabs';
-import { Modal } from '../molecules/Modal';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { Skeleton } from '../atoms/Skeleton';
 import { Alert } from '../atoms/Alert';
@@ -50,7 +49,6 @@ import { updateTask, moveTask, completeTask } from '../../../store/taskSlice';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
 import { taskService } from '../../../lib/api/taskService';
-import { attachmentService } from '../../../lib/api/attachmentService';
 import { requirementService } from '../../../lib/api/requirementService';
 import { qaDocumentService } from '../../../lib/api/qaDocumentService';
 import { fetchMembers } from '../../../store/workspaceSlice';
@@ -59,6 +57,192 @@ const PAGE_SIZE = 50;
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay === 1) return 'Yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function getActivityIcon(action: string) {
+  if (action.includes('completed')) return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
+  if (action.includes('status')) return <Clock className="h-3.5 w-3.5 text-indigo-500" />;
+  if (action.includes('priority')) return <AlertCircle className="h-3.5 w-3.5 text-amber-500" />;
+  if (action.includes('assignee')) return <User className="h-3.5 w-3.5 text-blue-500" />;
+  if (action.includes('date') || action.includes('schedule')) return <Calendar className="h-3.5 w-3.5 text-purple-500" />;
+  if (action.includes('moved') || action.includes('folder')) return <Folder className="h-3.5 w-3.5 text-amber-500" />;
+  if (action.includes('subtask')) return <ListTodo className="h-3.5 w-3.5 text-indigo-500" />;
+  if (action.includes('requirement') || action.includes('brief') || action.includes('spec')) return <FileText className="h-3.5 w-3.5 text-emerald-500" />;
+  if (action.includes('comment')) return <MessageSquare className="h-3.5 w-3.5 text-blue-500" />;
+  return <Sparkles className="h-3.5 w-3.5 text-stone-400" />;
+}
+
+function renderHumanActivityDescription(act: TaskActivity) {
+  const meta = (act.metadataJson || {}) as Record<string, any>;
+  const action = act.action;
+
+  if (action === 'task.created' || action === 'created') {
+    return <span className="text-stone-700 dark:text-stone-300">created this task</span>;
+  }
+
+  if (action === 'task.completed' || action === 'completed') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        marked this task as <span className="font-semibold text-emerald-600 dark:text-emerald-400">Completed</span>
+      </span>
+    );
+  }
+
+  if (action === 'task.reopened' || action === 'reopened') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        reopened this task
+      </span>
+    );
+  }
+
+  if (action === 'task.status_changed' || action === 'status_changed' || action === 'status') {
+    const oldStatus = meta.oldStatus || meta.previousStatus;
+    const newStatus = meta.newStatus || meta.status;
+    return (
+      <span className="inline-flex items-center gap-1.5 flex-wrap text-stone-700 dark:text-stone-300">
+        <span>changed status</span>
+        {oldStatus && (
+          <>
+            <span>from</span>
+            <TaskStatusBadge state={oldStatus} />
+          </>
+        )}
+        <span>to</span>
+        {newStatus ? <TaskStatusBadge state={newStatus} /> : <span className="font-semibold">{action}</span>}
+      </span>
+    );
+  }
+
+  if (action === 'task.priority_changed' || action === 'priority_changed' || action === 'priority') {
+    const oldP = meta.oldPriority || meta.previousPriority;
+    const newP = meta.newPriority || meta.priority;
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        changed priority {oldP ? `from ${oldP} ` : ''}to <span className="font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{newP}</span>
+      </span>
+    );
+  }
+
+  if (action === 'task.assignee_changed' || action === 'assignee_changed') {
+    const newAssignee = meta.newAssigneeName || meta.assigneeName;
+    if (!newAssignee) {
+      return <span className="text-stone-700 dark:text-stone-300">unassigned this task</span>;
+    }
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        assigned this task to <span className="font-semibold text-stone-900 dark:text-stone-100">{newAssignee}</span>
+      </span>
+    );
+  }
+
+  if (action === 'task.dates_changed' || action === 'dates_changed') {
+    if (meta.dueDate) {
+      return (
+        <span className="text-stone-700 dark:text-stone-300">
+          set due date to <span className="font-semibold text-stone-900 dark:text-stone-100">{meta.dueDate}</span>
+        </span>
+      );
+    }
+    return <span className="text-stone-700 dark:text-stone-300">updated task schedule dates</span>;
+  }
+
+  if (action === 'task.moved' || action === 'moved') {
+    const folderName = meta.targetFolderName || meta.newFolderName || 'another folder';
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        moved task to folder <span className="font-semibold text-stone-900 dark:text-stone-100">{folderName}</span>
+      </span>
+    );
+  }
+
+  if (action === 'subtask.created' || action === 'subtask_created') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        created subtask <span className="font-semibold text-stone-900 dark:text-stone-100">"{meta.title || act.taskTitle || 'Subtask'}"</span>
+        {meta.deliveryArea && (
+          <span className="ml-1 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase">
+            {meta.deliveryArea}
+          </span>
+        )}
+      </span>
+    );
+  }
+
+  if (action === 'subtask.status_changed' || action === 'subtask_status_changed') {
+    return (
+      <span className="inline-flex items-center gap-1 flex-wrap text-stone-700 dark:text-stone-300">
+        <span>updated subtask <span className="font-semibold text-stone-900 dark:text-stone-100">"{act.taskTitle || meta.title}"</span> status to</span>
+        {meta.newStatus ? <TaskStatusBadge state={meta.newStatus} /> : <span className="font-semibold">{meta.status}</span>}
+      </span>
+    );
+  }
+
+  if (action === 'subtask.completed') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        completed subtask <span className="font-semibold text-stone-900 dark:text-stone-100">"{act.taskTitle || meta.title}"</span>
+      </span>
+    );
+  }
+
+  if (action === 'subtask.assignee_changed') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        assigned subtask <span className="font-semibold text-stone-900 dark:text-stone-100">"{act.taskTitle}"</span> to <span className="font-semibold text-stone-900 dark:text-stone-100">{meta.newAssigneeName || 'team member'}</span>
+      </span>
+    );
+  }
+
+  if (action === 'requirement.linked' || action === 'requirement_linked') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        linked requirement <span className="font-semibold text-stone-900 dark:text-stone-100">[{meta.code || 'REQ'}] {meta.title || ''}</span>
+      </span>
+    );
+  }
+
+  if (action === 'requirement.unlinked' || action === 'requirement_unlinked') {
+    return <span className="text-stone-700 dark:text-stone-300">unlinked a requirement</span>;
+  }
+
+  if (action === 'brief.updated' || action === 'brief_updated' || action === 'brief.created') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        updated specification brief {meta.version ? `to version v${meta.version}` : ''}
+      </span>
+    );
+  }
+
+  if (action === 'comment.created' || action === 'comment_created') {
+    return <span className="text-stone-700 dark:text-stone-300">posted a comment in discussion</span>;
+  }
+
+  return <span className="text-stone-700 dark:text-stone-300">{action.replace(/[._]/g, ' ')}</span>;
 }
 
 interface TaskDetailDrawerProps {
@@ -106,15 +290,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [productBriefAcceptanceCriteria, setProductBriefAcceptanceCriteria] = useState<ProductBriefAcceptanceCriterion[]>([]);
   const [productBriefStatus, setProductBriefStatus] = useState<ProductBriefStatus>('draft');
   const [productBriefOwnerId, setProductBriefOwnerId] = useState('');
-
-  // Evidence Attachments State (Persisted API)
-  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
-  const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
-  const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
-  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-  const [attachmentCategory, setAttachmentCategory] = useState<AttachmentCategory>('general');
-  const [attachmentCaption, setAttachmentCaption] = useState('');
-  const [previewAttachment, setPreviewAttachment] = useState<TaskAttachment | null>(null);
 
   // Task Requirements & Links state
   const [taskRequirementLinks, setTaskRequirementLinks] = useState<TaskRequirementLink[]>([]);
@@ -168,7 +343,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         loadSubtasks();
         loadActivity(1);
         loadComments(1);
-        loadAttachments();
         loadProductBrief();
         loadTaskRequirements();
         dispatch(fetchMembers(activeWorkspaceId));
@@ -356,72 +530,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
-  const loadAttachments = async () => {
-    if (!activeWorkspaceId || !task) return;
-    setIsLoadingAttachments(true);
-    setAttachmentsError(null);
-    try {
-      const list = await attachmentService.listAttachments(activeWorkspaceId, task.id);
-      setAttachments(list);
-    } catch (err) {
-      setAttachmentsError(errorMessage(err, 'Unable to load evidence attachments.'));
-    } finally {
-      setIsLoadingAttachments(false);
-    }
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !activeWorkspaceId || !task) return;
-
-    setIsUploadingAttachment(true);
-    try {
-      const buffer = await file.arrayBuffer();
-      await attachmentService.uploadAttachment(
-        activeWorkspaceId,
-        task.id,
-        buffer,
-        file.name,
-        file.type,
-        { category: attachmentCategory, caption: attachmentCaption }
-      );
-      dispatch(enqueueSnackbar(`Attachment "${file.name}" uploaded successfully.`, 'success'));
-      setAttachmentCaption('');
-      setAttachmentCategory('general');
-      loadAttachments();
-      loadActivity(1);
-      if (onDataChanged) onDataChanged();
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to upload attachment'), 'error'));
-    } finally {
-      setIsUploadingAttachment(false);
-      event.target.value = '';
-    }
-  };
-
-  const handleDeleteAttachment = async (attachmentId: string, fileName: string) => {
-    if (!activeWorkspaceId || !task) return;
-    try {
-      await attachmentService.deleteAttachment(activeWorkspaceId, task.id, attachmentId);
-      dispatch(enqueueSnackbar(`Evidence file "${fileName}" removed.`, 'success'));
-      if (previewAttachment?.id === attachmentId) {
-        setPreviewAttachment(null);
-      }
-      loadAttachments();
-      loadActivity(1);
-      if (onDataChanged) onDataChanged();
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to delete attachment'), 'error'));
-    }
-  };
-
   const loadSubtasks = async () => {
     if (!activeWorkspaceId || !task) return;
     setIsLoadingSubtasks(true);
     setSubtasksError(null);
     try {
       const res = await taskService.listSubtasks(activeWorkspaceId, task.id);
-      setSubtasks(res.tasks);
+      setSubtasks(res?.tasks || (Array.isArray(res) ? res : []));
     } catch (error) {
       setSubtasksError(errorMessage(error, 'Unable to load subtasks.'));
     } finally {
@@ -648,7 +763,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const detailTabs: TabItem[] = [
     { id: 'overview', label: 'Overview', icon: <FileText className="h-3.5 w-3.5" /> },
     { id: 'prd', label: 'Specs & Requirements', icon: <FileCode2 className="h-3.5 w-3.5" /> },
-    { id: 'evidence', label: `Evidence (${attachments.length})`, icon: <Paperclip className="h-3.5 w-3.5" /> },
     { id: 'subtasks', label: `Subtasks (${subtasks.length})`, icon: <ListTodo className="h-3.5 w-3.5" /> },
     { id: 'activity', label: `Activity (${activityTotal})`, icon: <History className="h-3.5 w-3.5" /> },
     { id: 'discussion', label: `Discussion (${commentsTotal})`, icon: <MessageSquare className="h-3.5 w-3.5" /> },
@@ -1127,246 +1241,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             </div>
           )}
 
-          {/* TAB 3: SECURE PERSISTED EVIDENCE & ATTACHMENTS */}
-          {activeTab === 'evidence' && (
-            <div className="space-y-4">
-              <Card className="p-5 space-y-4 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-3 dark:border-stone-800">
-                  <div className="flex items-center gap-2">
-                    <Paperclip className="h-5 w-5 text-[#22201F] dark:text-[#B1E743]" />
-                    <div>
-                      <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                        Product Media & Evidence ({attachments.length})
-                      </h3>
-                      <p className="text-xs text-stone-500 dark:text-stone-400">
-                        Workspace-scoped product references, QA evidence, and supporting files.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Upload Action */}
-                {canEditTask ? (
-                  <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 dark:bg-stone-950/50 dark:border-stone-800 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                        <Upload className="h-3.5 w-3.5 text-stone-500" />
-                        <span>Add attachment</span>
-                      </span>
-                      <span className="text-[11px] text-stone-400">Max size: 15MB</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <Select
-                        id="attachment-category"
-                        label="Attachment type"
-                        value={attachmentCategory}
-                        disabled={isUploadingAttachment}
-                        onChange={(event) => setAttachmentCategory(event.target.value as AttachmentCategory)}
-                      >
-                        <option value="product_media">Product media</option>
-                        <option value="qa_evidence">QA evidence</option>
-                        <option value="general">General attachment</option>
-                      </Select>
-                      <Input
-                        id="attachment-caption"
-                        label="Caption (optional)"
-                        value={attachmentCaption}
-                        maxLength={500}
-                        disabled={isUploadingAttachment}
-                        onChange={(event) => setAttachmentCaption(event.target.value)}
-                        placeholder="What should the team notice?"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="file"
-                        id="evidence-file-input"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                        disabled={isUploadingAttachment}
-                      />
-                      <label
-                        htmlFor="evidence-file-input"
-                        className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-stone-800 bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 rounded-xl cursor-pointer transition-colors ${
-                          isUploadingAttachment ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                      >
-                        <span>{isUploadingAttachment ? 'Uploading...' : 'Choose File to Upload'}</span>
-                      </label>
-                      {isUploadingAttachment && <Skeleton className="h-4 w-24" />}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-500 dark:bg-stone-950 dark:border-stone-800 dark:text-stone-400">
-                    🔒 Only authorized members can upload evidence files to this task.
-                  </div>
-                )}
-
-                {/* Loading State */}
-                {isLoadingAttachments && (
-                  <div className="space-y-3 py-2">
-                    <Skeleton className="h-16 w-full rounded-xl" />
-                    <Skeleton className="h-16 w-full rounded-xl" />
-                  </div>
-                )}
-
-                {/* Error State */}
-                {attachmentsError && (
-                  <Alert tone="error">
-                    <div className="flex items-center justify-between w-full">
-                      <span>{attachmentsError}</span>
-                      <Button size="sm" variant="outline" onClick={loadAttachments}>Retry</Button>
-                    </div>
-                  </Alert>
-                )}
-
-                {/* Empty State */}
-                {!isLoadingAttachments && !attachmentsError && attachments.length === 0 && (
-                  <div className="py-12 text-center border border-dashed border-stone-200 rounded-xl dark:border-stone-800">
-                    <Paperclip className="h-8 w-8 text-stone-300 mx-auto dark:text-stone-600 mb-2" />
-                    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
-                      No product media or evidence attachments yet.
-                    </p>
-                    <p className="text-[11px] text-stone-400">Upload screenshots, logs, or test reports to persist them securely in this workspace.</p>
-                  </div>
-                )}
-
-                {/* Media is always an attachment; the gallery is only a filtered view. */}
-                {!isLoadingAttachments && !attachmentsError && attachments.length > 0 && (
-                  <div className="space-y-5">
-                    {attachments.some((att) => att.mimeType.startsWith('image/') || att.mimeType.startsWith('video/')) && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <span className="text-xs font-bold text-stone-700 dark:text-stone-300">Media gallery</span>
-                            <p className="text-[11px] text-stone-400">Click an image or video to view it larger.</p>
-                          </div>
-                          <span className="text-[11px] font-semibold text-stone-400">
-                            {attachments.filter((att) => att.mimeType.startsWith('image/') || att.mimeType.startsWith('video/')).length} items
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                          {attachments
-                            .filter((att) => att.mimeType.startsWith('image/') || att.mimeType.startsWith('video/'))
-                            .map((att) => {
-                              const downloadUrl = attachmentService.getDownloadUrl(activeWorkspaceId!, task.id, att.id);
-                              const isVideo = att.mimeType.startsWith('video/');
-                              return (
-                                <div key={att.id} className="overflow-hidden rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
-                                  <button
-                                    type="button"
-                                    onClick={() => setPreviewAttachment(att)}
-                                    className="group relative block w-full overflow-hidden bg-stone-100 text-left focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-stone-950"
-                                    aria-label={`Open ${att.fileName}`}
-                                  >
-                                    {isVideo ? (
-                                      <video src={downloadUrl} muted preload="metadata" className="h-32 w-full object-cover transition-transform group-hover:scale-105" />
-                                    ) : (
-                                      <img src={downloadUrl} alt={att.caption || att.fileName} className="h-32 w-full object-cover transition-transform group-hover:scale-105" />
-                                    )}
-                                    <span className="absolute left-2 top-2 rounded-md bg-stone-950/75 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                                      {isVideo ? 'Video' : 'Image'}
-                                    </span>
-                                  </button>
-                                  <div className="space-y-1 border-t border-stone-100 p-2 dark:border-stone-800">
-                                    <div className="flex items-start justify-between gap-1">
-                                      <div className="min-w-0 flex-1">
-                                        <p className="truncate text-[11px] font-semibold text-stone-800 dark:text-stone-200">{att.fileName}</p>
-                                        {att.caption && <p className="mt-0.5 line-clamp-2 text-[10px] text-stone-500 dark:text-stone-400">{att.caption}</p>}
-                                      </div>
-                                      <div className="flex shrink-0 gap-0.5">
-                                        <a href={downloadUrl} target="_blank" rel="noreferrer" className="rounded p-1 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800" title="Open or download">
-                                          <Download className="h-3.5 w-3.5" />
-                                        </a>
-                                        {canEditTask && (
-                                          <IconButton label="Delete attachment" size="sm" variant="ghost" onClick={() => handleDeleteAttachment(att.id, att.fileName)}>
-                                            <Trash2 className="h-3.5 w-3.5 text-rose-500" />
-                                          </IconButton>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <p className="text-[10px] text-stone-400">
-                                      {att.category.replace('_', ' ')} • {(att.fileSize / 1024).toFixed(1)} KB
-                                    </p>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    )}
-
-                    {attachments.some((att) => !att.mimeType.startsWith('image/') && !att.mimeType.startsWith('video/')) && (
-                      <div className="space-y-2">
-                        <span className="text-xs font-bold text-stone-700 dark:text-stone-300">
-                          Files & Documents ({attachments.filter((att) => !att.mimeType.startsWith('image/') && !att.mimeType.startsWith('video/')).length})
-                        </span>
-                        <div className="space-y-2">
-                          {attachments
-                            .filter((att) => !att.mimeType.startsWith('image/') && !att.mimeType.startsWith('video/'))
-                            .map((att) => {
-                              const downloadUrl = attachmentService.getDownloadUrl(activeWorkspaceId!, task.id, att.id);
-                              return (
-                                <div key={att.id} className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
-                                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300"><FileIcon className="h-4 w-4" /></div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="truncate text-xs font-bold text-stone-900 dark:text-stone-100">{att.fileName}</p>
-                                      <p className="text-[11px] text-stone-400">{att.category.replace('_', ' ')} • {(att.fileSize / 1024).toFixed(1)} KB • {att.mimeType}</p>
-                                      {att.caption && <p className="mt-0.5 truncate text-[11px] text-stone-500 dark:text-stone-400">{att.caption}</p>}
-                                    </div>
-                                  </div>
-                                  <div className="ml-3 flex shrink-0 items-center gap-2">
-                                    <a href={downloadUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-800 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"><Download className="h-3 w-3" /><span>Download</span></a>
-                                    {canEditTask && <IconButton label="Delete attachment" size="sm" variant="ghost" onClick={() => handleDeleteAttachment(att.id, att.fileName)}><Trash2 className="h-3.5 w-3.5 text-rose-500" /></IconButton>}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Card>
-
-              <Modal
-                isOpen={Boolean(previewAttachment)}
-                onClose={() => setPreviewAttachment(null)}
-                title={previewAttachment?.fileName || 'Media preview'}
-                description={previewAttachment?.caption || `${previewAttachment?.category?.replace('_', ' ') || 'attachment'} preview`}
-                size="lg"
-              >
-                {previewAttachment && activeWorkspaceId && task && (
-                  <div className="space-y-3">
-                    {previewAttachment.mimeType.startsWith('video/') ? (
-                      <video
-                        src={attachmentService.getDownloadUrl(activeWorkspaceId, task.id, previewAttachment.id)}
-                        controls
-                        autoPlay
-                        className="max-h-[65vh] w-full rounded-xl bg-black"
-                      >
-                        Your browser cannot play this video. Use the download link instead.
-                      </video>
-                    ) : (
-                      <img
-                        src={attachmentService.getDownloadUrl(activeWorkspaceId, task.id, previewAttachment.id)}
-                        alt={previewAttachment.caption || previewAttachment.fileName}
-                        className="max-h-[65vh] w-full rounded-xl object-contain bg-stone-100 dark:bg-stone-950"
-                      />
-                    )}
-                    <div className="flex justify-end">
-                      <a href={attachmentService.getDownloadUrl(activeWorkspaceId, task.id, previewAttachment.id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-stone-100 px-3 py-2 text-xs font-bold text-stone-800 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"><Download className="h-3.5 w-3.5" />Open or download</a>
-                    </div>
-                  </div>
-                )}
-              </Modal>
-            </div>
-          )}
-
-          {/* TAB 4: SUBTASKS */}
+          {/* TAB 3: SUBTASKS */}
           {activeTab === 'subtasks' && (
             <div className="space-y-3">
               {!task.parentTaskId && (
@@ -1423,14 +1298,28 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             </div>
           )}
 
-          {/* TAB 3: ACTIVITY AUDIT */}
+          {/* TAB 4: ACTIVITY AUDIT */}
           {activeTab === 'activity' && (
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-stone-900 dark:text-stone-100 block">
-                Immutable Audit Trail
-              </span>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-bold text-stone-900 dark:text-stone-100">
+                    Activity & Audit Trail
+                  </h3>
+                  <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                    Chronological history of all updates made to this task and its subtasks.
+                  </p>
+                </div>
+                <span className="text-[11px] font-semibold text-stone-400">
+                  {activityTotal} events
+                </span>
+              </div>
+
               {isLoadingActivity ? (
-                <Skeleton variant="text" className="h-20 w-full" />
+                <div className="space-y-2 py-2">
+                  <Skeleton variant="text" className="h-14 w-full rounded-xl" />
+                  <Skeleton variant="text" className="h-14 w-full rounded-xl" />
+                </div>
               ) : activityError ? (
                 <Alert tone="error" title="Audit trail unavailable">
                   <div className="flex items-center justify-between gap-3">
@@ -1441,27 +1330,53 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   </div>
                 </Alert>
               ) : activities.length === 0 ? (
-                <div className="py-8 text-center text-xs text-stone-400 border border-dashed border-stone-200 dark:border-stone-800 rounded-xl">
-                  No activity events recorded yet.
+                <div className="py-12 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-xl">
+                  <History className="h-7 w-7 text-stone-300 mx-auto dark:text-stone-600 mb-2" />
+                  <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
+                    No activity recorded yet.
+                  </p>
+                  <p className="text-[11px] text-stone-400">
+                    Any status updates, assignments, or edits will appear here.
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-2 relative border-l-2 border-stone-200 dark:border-stone-800 ml-2 pl-3">
+                <div className="relative pl-3 space-y-3 before:absolute before:left-6 before:top-3 before:bottom-3 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-800">
                   {activities.map((act) => (
-                    <div key={act.id} className="text-xs space-y-1 relative pb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-stone-800 dark:text-stone-200">{act.actorName}</span>
-                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400">
-                          {act.action}
-                        </span>
-                        {act.isSubtask && (
-                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                            [{act.deliveryArea?.toUpperCase() || 'SUBTASK'}: {act.taskTitle}]
+                    <div key={act.id} className="relative flex items-start gap-3 pl-0 group">
+                      {/* Avatar / Icon circle */}
+                      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-xs z-10">
+                        {getActivityIcon(act.action)}
+                      </div>
+
+                      {/* Card Content */}
+                      <div className="min-w-0 flex-1 rounded-xl border border-stone-200/80 bg-white/80 p-3 shadow-xs dark:border-stone-800 dark:bg-stone-900/70">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                            <span className="font-bold text-stone-900 dark:text-stone-100">
+                              {act.actorName || 'Team member'}
+                            </span>
+                            {renderHumanActivityDescription(act)}
+                          </div>
+                          <span
+                            className="text-[11px] font-medium text-stone-400 dark:text-stone-500 shrink-0"
+                            title={new Date(act.createdAt).toLocaleString()}
+                          >
+                            {formatRelativeTime(act.createdAt)}
                           </span>
+                        </div>
+
+                        {act.isSubtask && act.taskTitle && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md">
+                            <ListTodo className="h-3 w-3" />
+                            <span>Subtask: {act.taskTitle}</span>
+                            {act.deliveryArea && (
+                              <span className="uppercase text-[9px] font-bold px-1 bg-amber-200/60 dark:bg-amber-900/60 rounded">
+                                {act.deliveryArea}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
-                      <span className="text-[10px] text-stone-400 block">
-                        {new Date(act.createdAt).toLocaleString()}
-                      </span>
                     </div>
                   ))}
                 </div>
