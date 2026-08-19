@@ -40,6 +40,7 @@ export const ReportPage: React.FC = () => {
     <TaskReportDashboard
       workspaceId={activeWorkspaceId || undefined}
       workspaceName={activeWorkspace?.name}
+      userRole={activeWorkspace?.role}
       tasks={tasks}
       total={total}
       isLoading={isLoading || (isWorkspaceLoading && !activeWorkspaceId)}

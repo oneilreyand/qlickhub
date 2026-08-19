@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { Task, FolderTreeNode } from '@qa/contracts';
+import type { Task, FolderTreeNode } from '@qlick/contracts';
 import { TaskTimelineView } from '../TaskTimelineView';
 
 const mockFolders: FolderTreeNode[] = [

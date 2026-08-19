@@ -8,7 +8,7 @@ import {
 import {
   WorkspaceTraceabilitySummary,
   TestCaseStatus,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Input } from '../atoms/Input';

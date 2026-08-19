@@ -10,7 +10,7 @@ import {
   WorkspaceMemberModel,
   UserModel,
 } from '../../../db/models/index.js';
-import { CreateTaskSchema, CreateTaskCommentSchema, TaskCommentQuerySchema } from '@qa/contracts';
+import { CreateTaskSchema, CreateTaskCommentSchema, TaskCommentQuerySchema } from '@qlick/contracts';
 
 describe('Persisted Task Discussion Integration Tests (ST4)', () => {
   let owner: UserModel;
@@ -40,7 +40,7 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
       email: `st4-qa-${Date.now()}@example.com`,
       passwordHash: 'hashed_pw',
       name: 'QA Member',
-      role: 'qa_member',
+      role: 'qa',
     });
 
     nonMember = await UserModel.create({

@@ -34,7 +34,7 @@ The user’s current TODO takes priority over legacy Work Hub plans. Do not rest
 
 ## Acceptance criteria
 
-- API consumers can import all workspace/folder/task request and response types from `@qa/contracts`.
+- API consumers can import all workspace/folder/task request and response types from `@qlick/contracts`.
 - Invalid names, UUIDs, enum values, dates, and incompatible date filters are rejected by Zod.
 - Task time views are query/filter contracts, never folder names or folder hierarchy fields.
 - Contracts build successfully and no unrelated source is changed.

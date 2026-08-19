@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { TaskStatus, TaskPriority, FolderTreeNode } from '@qa/contracts';
+import React, { useEffect, useState, useRef } from 'react';
+import { TaskPriority, FolderTreeNode } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
@@ -32,23 +32,22 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [folderId, setFolderId] = useState<string | null>(defaultFolderId || null);
-  const [status, setStatus] = useState<TaskStatus>('todo');
   const [priority, setPriority] = useState<TaskPriority>('medium');
-  const [assigneeId, setAssigneeId] = useState<string>(currentUserId);
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const prevIsOpenRef = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       setFolderId(defaultFolderId || null);
-      const defaultAssignee = currentUserId || (members.length > 0 ? members[0].userId : '');
-      setAssigneeId(defaultAssignee);
       if (activeWorkspaceId) {
         dispatch(fetchMembers(activeWorkspaceId));
       }
     }
-  }, [defaultFolderId, isOpen, activeWorkspaceId, currentUserId, members, dispatch]);
+    prevIsOpenRef.current = isOpen;
+  }, [defaultFolderId, isOpen, activeWorkspaceId, dispatch]);
 
   const flattenFolders = (items: FolderTreeNode[], depth = 0): { id: string; name: string; depth: number }[] => {
     let result: { id: string; name: string; depth: number }[] = [];
@@ -72,11 +71,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       return;
     }
 
-    if (!assigneeId) {
-      dispatch(enqueueSnackbar('Assignee is required', 'error'));
-      return;
-    }
-
     if (startDate && dueDate && startDate > dueDate) {
       dispatch(enqueueSnackbar('Start date cannot be after due date', 'error'));
       return;
@@ -91,9 +85,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             title: title.trim(),
             description: description.trim() || undefined,
             folderId: folderId || null,
-            status,
+            status: 'todo',
             priority,
-            assigneeId: assigneeId || undefined,
+            assigneeId: undefined,
             startDate: startDate || undefined,
             dueDate: dueDate || undefined,
           },
@@ -101,7 +95,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         })
       ).unwrap();
 
-      dispatch(enqueueSnackbar('Task created successfully', 'success'));
+      dispatch(enqueueSnackbar('Parent Task created successfully', 'success'));
       setTitle('');
       setDescription('');
       setStartDate('');
@@ -146,6 +140,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             onChange={setDescription}
             placeholder="Detailed description or requirements with paragraphs, bullet points, bold text..."
             minRows={3}
+            defaultTab="write"
           />
         </div>
 
@@ -170,22 +165,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Assignee <span className="text-rose-500">*</span>
+              Created by (Reporter)
             </label>
-            <Select
-              value={assigneeId}
-              onChange={(e) => setAssigneeId(e.target.value)}
-              aria-label="Assignee"
-              required
-            >
-              {members.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  👤 {m.user?.name || m.user?.email || m.userId} ({m.role.toUpperCase()}) {m.userId === currentUserId ? '— (You)' : ''}
-                </option>
-              ))}
-            </Select>
+            <div className="flex items-center h-10 px-3 rounded-xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/50 text-xs font-semibold text-stone-700 dark:text-stone-300">
+              <span className="truncate">👤 {members.find((m) => m.userId === currentUserId)?.user?.name || 'You'} (PO/Reporter)</span>
+            </div>
             <p className="mt-1 text-[11px] text-stone-500 dark:text-stone-400">
-              Auto-assigned to creator by default.
+              Execution assignees (FE, BE, QA) are assigned on Subtasks.
             </p>
           </div>
         </div>
@@ -210,20 +196,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Status <span className="text-rose-500">*</span>
+              Initial Workflow Status
             </label>
-            <Select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as TaskStatus)}
-              aria-label="Status"
-              required
-            >
-              <option value="todo">To Do</option>
-              <option value="in_progress">In Progress</option>
-              <option value="in_review">In Review</option>
-              <option value="done">Done</option>
-              <option value="canceled">Canceled</option>
-            </Select>
+            <div className="flex items-center h-10 px-3 rounded-xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/50 text-xs font-semibold text-stone-600 dark:text-stone-400">
+              <span className="inline-block w-2 h-2 rounded-full bg-stone-400 mr-2" />
+              <span>To Do (Default for new tasks)</span>
+            </div>
           </div>
         </div>
 

@@ -6,7 +6,7 @@ import { CreateSubtaskModal } from '../CreateSubtaskModal';
 import taskReducer from '../../../../store/taskSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
-import type { Task } from '@qa/contracts';
+import type { Task } from '@qlick/contracts';
 
 const mockParentTask: Task = {
   id: 'parent-12345678-aaaa-bbbb-cccc-ddddeeeeffff',

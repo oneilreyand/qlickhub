@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <rect width="800" height="400" fill="#0b1c30" rx="16"/>
+  <text x="400" y="45" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="20" font-weight="bold" text-anchor="middle">ASPI EMVCo Dynamic QRIS Payment Architecture</text>
+  
+  <!-- Node: Customer -->
+  <rect x="50" y="100" width="180" height="90" fill="#1e293b" stroke="#6366f1" stroke-width="2" rx="12"/>
+  <text x="140" y="138" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">Customer Mobile</text>
+  <text x="140" y="160" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">BCA / Mandiri / GoPay</text>
+
+  <!-- Node: Gateway -->
+  <rect x="310" y="100" width="180" height="90" fill="#1e293b" stroke="#10b981" stroke-width="2" rx="12"/>
+  <text x="400" y="138" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">QRIS Gateway Engine</text>
+  <text x="400" y="160" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">ASPI TLV + Redis TTL</text>
+
+  <!-- Node: Bank Switch -->
+  <rect x="570" y="100" width="180" height="90" fill="#1e293b" stroke="#f59e0b" stroke-width="2" rx="12"/>
+  <text x="660" y="138" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">Bank Switch (ASPI)</text>
+  <text x="660" y="160" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Real-time Settlement</text>
+
+  <!-- Flow Arrows -->
+  <path d="M 230 145 L 310 145" stroke="#6366f1" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 490 145 L 570 145" stroke="#10b981" stroke-width="3" fill="none"/>
+  
+  <!-- Lower Node: Redis Mutex -->
+  <rect x="310" y="260" width="180" height="80" fill="#1e293b" stroke="#ec4899" stroke-width="2" rx="12"/>
+  <text x="400" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Redis 7.2 Cluster</text>
+  <text x="400" y="318" fill="#f472b6" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">TTL Lock: 900s</text>
+
+  <path d="M 400 190 L 400 260" stroke="#ec4899" stroke-width="2" stroke-dasharray="4" fill="none"/>
+</svg>

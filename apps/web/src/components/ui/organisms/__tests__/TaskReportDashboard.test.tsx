@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Task } from '@qa/contracts';
+import type { Task } from '@qlick/contracts';
 import { TaskReportDashboard } from '../TaskReportDashboard';
 
 const taskDefaults = {

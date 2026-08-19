@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import jwt, { SignOptions, VerifyOptions } from 'jsonwebtoken';
 import { env } from '../../config/env.js';
-import { UserRole } from '@qa/contracts';
+import { UserRole } from '@qlick/contracts';
 
 export const accessTokenCookieName = 'qa_access_token';
 

@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { traceabilityService } from './traceabilityService.js';
-import { CreateRequirementTestCaseSchema } from '@qa/contracts';
+import { CreateRequirementTestCaseSchema } from '@qlick/contracts';
 
 function handleError(res: Response, error: unknown) {
   const message = error instanceof Error ? error.message : 'An unexpected error occurred.';

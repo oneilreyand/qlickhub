@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const UserRoleSchema = z.enum(['admin', 'qa_lead', 'qa_member', 'dev', 'po', 'viewer']);
+export const UserRoleSchema = z.enum(['owner', 'admin', 'po', 'dev', 'qa', 'viewer']);
 export type UserRole = z.infer<typeof UserRoleSchema>;
 
 export const UserSchema = z.object({
@@ -9,11 +9,19 @@ export const UserSchema = z.object({
   name: z.string().min(2),
   role: UserRoleSchema,
   avatarUrl: z.string().url().optional().nullable(),
+  onboardingCompletedAt: z.string().datetime().optional().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 
 export type User = z.infer<typeof UserSchema>;
+
+export const CompleteOnboardingResponseSchema = z.object({
+  success: z.boolean(),
+  onboardingCompletedAt: z.string().datetime().nullable().optional(),
+});
+
+export type CompleteOnboardingResponse = z.infer<typeof CompleteOnboardingResponseSchema>;
 
 export const LoginRequestSchema = z.object({
   email: z.string().email(),

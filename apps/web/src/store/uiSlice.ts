@@ -1,4 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { InAppNotification, NotificationType } from '@qlick/contracts';
+import { notificationService } from '../lib/api/notificationService';
 
 export type SnackbarType = 'success' | 'warning' | 'error' | 'info';
 
@@ -9,18 +11,7 @@ export interface SnackbarNotification {
   statusCode?: number;
 }
 
-export type NotificationType = 'mention' | 'assignment' | 'status_change' | 'system';
-
-export interface InAppNotification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  taskId?: string;
-  actorName?: string;
-  createdAt: string;
-  isRead: boolean;
-}
+export type { InAppNotification, NotificationType };
 
 export interface ApiResponsePayload {
   message?: string;
@@ -41,49 +32,94 @@ interface UiState {
   error: string | null;
   notifications: SnackbarNotification[];
   inAppNotifications: InAppNotification[];
+  unreadNotificationCount: number;
+  isNotificationsLoading: boolean;
   pendingOperations: AsyncOperation[];
   mobileSidebarOpen: boolean;
 }
 
-const defaultInAppNotifications: InAppNotification[] = [
-  {
-    id: 'notif-1',
-    type: 'mention',
-    title: 'New Mention in Discussion',
-    message: '@Team: "[API Contract]: Payload response schema for auth endpoints is ready."',
-    actorName: 'BE Lead',
-    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    isRead: false,
-  },
-  {
-    id: 'notif-2',
-    type: 'status_change',
-    title: 'Ready for QA Verification',
-    message: 'Task "Google OAuth SSO Integration" has been moved to In Review by Dev team.',
-    actorName: 'FE Dev',
-    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    isRead: false,
-  },
-  {
-    id: 'notif-3',
-    type: 'assignment',
-    title: 'New Subtask Assigned',
-    message: 'You have been assigned to "[QA] Test Case Specification & Execution Matrix".',
-    actorName: 'Product Owner',
-    createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    isRead: true,
-  },
-];
-
 const initialState: UiState = {
   error: null,
   notifications: [],
-  inAppNotifications: defaultInAppNotifications,
+  inAppNotifications: [],
+  unreadNotificationCount: 0,
+  isNotificationsLoading: false,
   pendingOperations: [],
   mobileSidebarOpen: false,
 };
 
 const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+/** Fetches persisted in-app notifications from backend API */
+export const fetchInAppNotifications = createAsyncThunk(
+  'ui/fetchInAppNotifications',
+  async (
+    query: { workspaceId?: string; unreadOnly?: boolean; limit?: number; offset?: number } = {},
+    { rejectWithValue }
+  ) => {
+    try {
+      const data = await notificationService.listNotifications(query);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch notifications');
+    }
+  }
+);
+
+/** Marks a single notification as read on the backend */
+export const markNotificationAsReadThunk = createAsyncThunk(
+  'ui/markNotificationAsRead',
+  async (notificationId: string, { rejectWithValue }) => {
+    try {
+      const data = await notificationService.markAsRead(notificationId);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to mark notification as read');
+    }
+  }
+);
+
+/** Marks all notifications as read on the backend */
+export const markAllNotificationsAsReadThunk = createAsyncThunk(
+  'ui/markAllNotificationsAsRead',
+  async (workspaceId: string | undefined, { rejectWithValue }) => {
+    try {
+      const data = await notificationService.markAllAsRead(workspaceId);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to mark all as read');
+    }
+  }
+);
+
+/** Clears all notifications on the backend */
+export const clearInAppNotificationsThunk = createAsyncThunk(
+  'ui/clearInAppNotifications',
+  async (workspaceId: string | undefined, { rejectWithValue }) => {
+    try {
+      const data = await notificationService.clearAllNotifications(workspaceId);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to clear notifications');
+    }
+  }
+);
+
+/** Triggers background scan for tasks approaching their deadline */
+export const checkApproachingDeadlinesThunk = createAsyncThunk(
+  'ui/checkApproachingDeadlines',
+  async (workspaceId: string | undefined, { dispatch, rejectWithValue }) => {
+    try {
+      const data = await notificationService.checkApproachingDeadlines(workspaceId);
+      if (data.dispatchedCount > 0) {
+        dispatch(fetchInAppNotifications({ workspaceId }));
+      }
+      return data;
+    } catch (err) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to check deadlines');
+    }
+  }
+);
 
 /** Demonstrates the standard thunk lifecycle for future API-backed UI actions. */
 export const runUiDemoAction = createAsyncThunk(
@@ -152,10 +188,13 @@ const uiSlice = createSlice({
         message: string,
         type: NotificationType = 'system',
         taskId?: string,
-        actorName?: string
+        actorName?: string,
+        workspaceId?: string
       ) => ({
         payload: {
           id: createId(),
+          userId: '',
+          workspaceId: workspaceId || '',
           title,
           message,
           type,
@@ -163,25 +202,29 @@ const uiSlice = createSlice({
           actorName,
           createdAt: new Date().toISOString(),
           isRead: false,
-        },
+        } as InAppNotification,
       }),
       reducer: (state, action: PayloadAction<InAppNotification>) => {
         state.inAppNotifications.unshift(action.payload);
+        state.unreadNotificationCount += 1;
       },
     },
     markNotificationAsRead: (state, action: PayloadAction<string>) => {
       const notif = state.inAppNotifications.find((n) => n.id === action.payload);
-      if (notif) {
+      if (notif && !notif.isRead) {
         notif.isRead = true;
+        state.unreadNotificationCount = Math.max(0, state.unreadNotificationCount - 1);
       }
     },
     markAllNotificationsAsRead: (state) => {
       state.inAppNotifications.forEach((n) => {
         n.isRead = true;
       });
+      state.unreadNotificationCount = 0;
     },
     clearInAppNotifications: (state) => {
       state.inAppNotifications = [];
+      state.unreadNotificationCount = 0;
     },
     reportError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
@@ -195,6 +238,44 @@ const uiSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // Fetch notifications
+    builder
+      .addCase(fetchInAppNotifications.pending, (state) => {
+        state.isNotificationsLoading = true;
+      })
+      .addCase(fetchInAppNotifications.fulfilled, (state, action) => {
+        state.isNotificationsLoading = false;
+        state.inAppNotifications = action.payload.notifications;
+        state.unreadNotificationCount = action.payload.unreadCount;
+      })
+      .addCase(fetchInAppNotifications.rejected, (state) => {
+        state.isNotificationsLoading = false;
+      });
+
+    // Mark as read thunk
+    builder.addCase(markNotificationAsReadThunk.fulfilled, (state, action) => {
+      const notif = state.inAppNotifications.find((n) => n.id === action.payload.id);
+      if (notif && !notif.isRead) {
+        notif.isRead = true;
+        state.unreadNotificationCount = Math.max(0, state.unreadNotificationCount - 1);
+      }
+    });
+
+    // Mark all as read thunk
+    builder.addCase(markAllNotificationsAsReadThunk.fulfilled, (state) => {
+      state.inAppNotifications.forEach((n) => {
+        n.isRead = true;
+      });
+      state.unreadNotificationCount = 0;
+    });
+
+    // Clear notifications thunk
+    builder.addCase(clearInAppNotificationsThunk.fulfilled, (state) => {
+      state.inAppNotifications = [];
+      state.unreadNotificationCount = 0;
+    });
+
+    // Demo actions
     builder
       .addCase(runUiDemoAction.pending, (state, action) => {
         state.pendingOperations.push({ id: action.meta.requestId, label: action.meta.arg });

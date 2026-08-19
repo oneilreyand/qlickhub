@@ -13,6 +13,9 @@ taskRoutes.use(authenticate);
 taskRoutes.get('/', requireWorkspaceMember(), (req, res, next) => taskController.listTasks(req, res, next));
 taskRoutes.post('/', requireWorkspaceMember(['owner', 'admin', 'po', 'qa']), (req, res, next) => taskController.createTask(req, res, next));
 
+taskRoutes.get('/:taskId', requireWorkspaceMember(['owner', 'admin', 'po', 'dev', 'qa']), (req, res, next) => taskController.getTask(req, res, next));
+taskRoutes.delete('/:taskId', requireWorkspaceMember(['owner', 'admin', 'po']), (req, res, next) => taskController.deleteTask(req, res, next));
+
 taskRoutes.get('/:taskId/subtasks', requireWorkspaceMember(), (req, res, next) => taskController.listSubtasks(req, res, next));
 taskRoutes.post('/:taskId/subtasks', requireWorkspaceMember(['owner', 'admin', 'po']), (req, res, next) => taskController.createSubtask(req, res, next));
 
@@ -24,5 +27,6 @@ taskRoutes.patch('/:taskId/comments/:commentId', requireWorkspaceMember(), (req,
 taskRoutes.delete('/:taskId/comments/:commentId', requireWorkspaceMember(), (req, res, next) => taskController.deleteTaskComment(req, res, next));
 
 taskRoutes.patch('/:taskId', requireWorkspaceMember(['owner', 'admin', 'po', 'dev', 'qa']), (req, res, next) => taskController.updateTask(req, res, next));
+taskRoutes.patch('/:taskId/status', requireWorkspaceMember(['owner', 'admin', 'po', 'dev', 'qa']), (req, res, next) => taskController.updateTaskStatus(req, res, next));
 taskRoutes.put('/:taskId/move', requireWorkspaceMember(['owner', 'admin', 'po']), (req, res, next) => taskController.moveTask(req, res, next));
 taskRoutes.post('/:taskId/complete', requireWorkspaceMember(['owner', 'admin', 'po', 'dev', 'qa']), (req, res, next) => taskController.completeTask(req, res, next));

@@ -6,7 +6,7 @@ import { WorkFolderModel } from '../../../db/models/workFolder.js';
 import { WorkspaceModel } from '../../../db/models/workspace.js';
 import { WorkspaceMemberModel } from '../../../db/models/workspaceMember.js';
 import { UserModel } from '../../../db/models/user.js';
-import { CreateTaskSchema } from '@qa/contracts';
+import { CreateTaskSchema } from '@qlick/contracts';
 
 describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => {
   let owner: UserModel;
@@ -51,7 +51,7 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
       email: `dep-qa-${Date.now()}@example.com`,
       passwordHash: 'hashed_pw',
       name: 'QA Engineer',
-      role: 'qa_member',
+      role: 'qa',
     });
 
     workspace = await WorkspaceModel.create({

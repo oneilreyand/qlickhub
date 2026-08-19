@@ -21,7 +21,7 @@ export const EmptyWorkspaceOnboarding: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const userRole = (localStorage.getItem('user_role') || '').toLowerCase();
-  const canCreate = ['admin', 'qa_lead', 'po'].includes(userRole);
+  const canCreate = ['owner', 'admin', 'po', 'qa'].includes(userRole);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -79,7 +79,7 @@ export const EmptyWorkspaceOnboarding: React.FC = () => {
             {canCreate ? (
               <>
                 <Sparkles className="h-3 w-3 text-amber-500" />
-                <span>Welcome to QAREPORT Work Hub</span>
+                <span>Welcome to Qlick Hub</span>
               </>
             ) : (
               <>
@@ -93,7 +93,7 @@ export const EmptyWorkspaceOnboarding: React.FC = () => {
           </h2>
           <p className="text-sm text-stone-500 dark:text-stone-400 max-w-md mx-auto leading-relaxed">
             {canCreate
-              ? "Workspaces organize your team's initiatives, releases, tasks, and QA documentation. Get started by setting up your first team workspace."
+              ? "Workspaces organize your team's initiatives, folders, tasks, and collaboration. Get started by setting up your first team workspace."
               : 'You have not been assigned to any workspace yet. Please contact your workspace Owner, Admin, or Team Leader to be added to a workspace.'}
           </p>
         </div>
@@ -125,7 +125,7 @@ export const EmptyWorkspaceOnboarding: React.FC = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title="Create New Workspace"
-        description="Set up a workspace for your team to organize folders, tasks, and QA evidence."
+        description="Set up a workspace for your team to organize initiatives, tasks, attachments, and collaboration."
         primaryActionLabel="Create Workspace"
         secondaryActionLabel="Cancel"
         onPrimaryAction={handleCreate}
@@ -138,7 +138,7 @@ export const EmptyWorkspaceOnboarding: React.FC = () => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            placeholder="e.g. Core Engineering QA"
+            placeholder="e.g. Core Engineering Platform"
             autoFocus
           />
 

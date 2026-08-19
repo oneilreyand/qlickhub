@@ -24,6 +24,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         localStorage.setItem('user_email', user.email);
         localStorage.setItem('user_name', user.name);
         localStorage.setItem('user_id', user.id);
+        if (user.onboardingCompletedAt) {
+          localStorage.setItem('user_onboarding_completed_at', user.onboardingCompletedAt);
+        } else {
+          localStorage.removeItem('user_onboarding_completed_at');
+        }
         dispatch(setSessionUser(user));
         setStatus('authenticated');
       })

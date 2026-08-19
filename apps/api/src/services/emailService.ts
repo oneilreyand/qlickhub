@@ -45,7 +45,7 @@ export class EmailService {
    * Sends an email via configured SMTP (e.g. Gmail 0-cost SMTP) or logs as safe fallback.
    */
   async sendEmail(options: SendEmailOptions): Promise<EmailSendResult> {
-    const from = process.env.SMTP_FROM || `"QA Management System" <${process.env.SMTP_USER || 'noreply@qamanagement.local'}>`;
+    const from = process.env.SMTP_FROM || `"Qlick Hub" <${process.env.SMTP_USER || 'noreply@qlickhub.local'}>`;
 
     if (this.transporter && process.env.NODE_ENV !== 'test') {
       try {
@@ -82,7 +82,7 @@ export class EmailService {
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
         <div style="margin-bottom: 24px;">
-          <span style="font-size: 18px; font-weight: bold; color: #0f172a;">QA Management System</span>
+          <span style="font-size: 18px; font-weight: bold; color: #0f172a;">Qlick Hub</span>
         </div>
         <h2 style="font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">Reset Your Password</h2>
         <p style="font-size: 14px; line-height: 24px; color: #475569; margin-bottom: 24px;">
@@ -105,7 +105,7 @@ export class EmailService {
 
     return this.sendEmail({
       to: toEmail,
-      subject: 'Reset your password - QA Management System',
+      subject: 'Reset your password - Qlick Hub',
       html,
     });
   }
@@ -125,7 +125,7 @@ export class EmailService {
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
         <div style="margin-bottom: 24px;">
-          <span style="font-size: 18px; font-weight: bold; color: #0f172a;">QA Management System</span>
+          <span style="font-size: 18px; font-weight: bold; color: #0f172a;">Qlick Hub</span>
         </div>
         <h2 style="font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">You've been added to Workspace(s)</h2>
         <p style="font-size: 14px; line-height: 24px; color: #475569; margin-bottom: 16px;">

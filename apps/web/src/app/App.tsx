@@ -10,6 +10,7 @@ import { WorkHubPage } from '../pages/WorkHubPage';
 import { WorkspaceSettingsPage } from '../pages/WorkspaceSettingsPage';
 import { MyTasksPage } from '../pages/MyTasksPage';
 import { ReportPage } from '../pages/ReportPage';
+import { UserFlowPage } from '../pages/UserFlowPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { ErrorBoundary } from '../components/ui/organisms/ErrorBoundary';
 
@@ -77,6 +78,16 @@ export const App: React.FC = () => {
               <ProtectedRoute>
                 <AppLayout>
                   <ReportPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user-flows"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <UserFlowPage />
                 </AppLayout>
               </ProtectedRoute>
             }

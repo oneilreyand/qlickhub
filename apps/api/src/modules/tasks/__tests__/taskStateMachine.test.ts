@@ -6,7 +6,7 @@ import { WorkFolderModel } from '../../../db/models/workFolder.js';
 import { WorkspaceModel } from '../../../db/models/workspace.js';
 import { WorkspaceMemberModel } from '../../../db/models/workspaceMember.js';
 import { UserModel } from '../../../db/models/user.js';
-import { CreateTaskSchema } from '@qa/contracts';
+import { CreateTaskSchema } from '@qlick/contracts';
 
 describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () => {
   let owner: UserModel;
@@ -43,7 +43,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
       email: `sm-qa-${Date.now()}@example.com`,
       passwordHash: 'hashed_pw',
       name: 'QA Reviewer',
-      role: 'qa_member',
+      role: 'qa',
     });
 
     workspace = await WorkspaceModel.create({

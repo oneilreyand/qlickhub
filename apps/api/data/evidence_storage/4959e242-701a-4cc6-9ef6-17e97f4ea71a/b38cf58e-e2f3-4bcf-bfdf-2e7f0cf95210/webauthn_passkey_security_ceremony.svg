@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <rect width="800" height="400" fill="#0f172a" rx="16"/>
+  <text x="400" y="45" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="18" font-weight="bold" text-anchor="middle">FIDO2 / WebAuthn Passkey Biometric Ceremony</text>
+
+  <rect x="60" y="90" width="180" height="70" fill="#1e293b" stroke="#38bdf8" stroke-width="2" rx="10"/>
+  <text x="150" y="125" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">1. Client Browser</text>
+  <text x="150" y="145" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">navigator.credentials</text>
+
+  <rect x="310" y="90" width="180" height="70" fill="#1e293b" stroke="#a855f7" stroke-width="2" rx="10"/>
+  <text x="400" y="125" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">2. Biometric HW</text>
+  <text x="400" y="145" fill="#c084fc" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">TouchID / Secure Enclave</text>
+
+  <rect x="560" y="90" width="180" height="70" fill="#1e293b" stroke="#10b981" stroke-width="2" rx="10"/>
+  <text x="650" y="125" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">3. Relying Party API</text>
+  <text x="650" y="145" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">Verify Challenge Nonce</text>
+
+  <!-- Flow lines -->
+  <path d="M 240 125 L 310 125" stroke="#38bdf8" stroke-width="2" fill="none"/>
+  <path d="M 490 125 L 560 125" stroke="#a855f7" stroke-width="2" fill="none"/>
+  
+  <rect x="180" y="240" width="440" height="80" fill="#1e293b" stroke="#64748b" stroke-width="1.5" rx="12"/>
+  <text x="400" y="275" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Zero Shared Secrets over the Wire</text>
+  <text x="400" y="298" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Private keys never leave the device hardware Secure Enclave.</text>
+</svg>

@@ -1,4 +1,4 @@
-import { WorkspaceRole } from '@qa/contracts';
+import { WorkspaceRole } from '@qlick/contracts';
 
 const plannerRoles: readonly WorkspaceRole[] = ['owner', 'admin', 'po'];
 
@@ -13,8 +13,8 @@ export function assertCanReadQaDocuments(role: WorkspaceRole): void {
 }
 
 export function assertCanCreateQaDocument(role: WorkspaceRole): void {
-  if (isPlanner(role) || role === 'qa') return;
-  throw new Error('FORBIDDEN: Only Product Owner, Admin, Owner, or QA members can create or edit QA documents.');
+  if (role === 'owner' || role === 'admin' || role === 'qa') return;
+  throw new Error('FORBIDDEN: Only QA Engineer, Admin, or Owner members can create or edit QA documents.');
 }
 
 export function assertCanManageProductBrief(role: WorkspaceRole): void {
@@ -28,23 +28,20 @@ export function assertCanLinkQaDocument(
   task: {
     parentTaskId?: string | null;
     assigneeId?: string | null;
-  },
-  allowQaTaskCreation: boolean = true
+  }
 ): void {
-  if (isPlanner(role)) return;
+  if (role === 'owner' || role === 'admin') return;
 
   const isSubtask = Boolean(task.parentTaskId);
 
   if (isSubtask) {
-    if (task.assigneeId && task.assigneeId === actorId) return;
-    throw new Error('FORBIDDEN: Only assigned members or project planners can link QA documents to subtasks.');
+    if (role === 'qa' || (task.assigneeId && task.assigneeId === actorId)) return;
+    throw new Error('FORBIDDEN: Only QA members or project administrators can link QA documents to subtasks.');
   }
 
   if (role === 'qa') {
-    if (allowQaTaskCreation) return;
-    if (!task.assigneeId || task.assigneeId === actorId) return;
-    throw new Error('FORBIDDEN: QA members may link QA documents only to their own or unassigned tasks.');
+    return;
   }
 
-  throw new Error('FORBIDDEN: You do not have permission to link QA documents to this task.');
+  throw new Error('FORBIDDEN: Only QA Engineer, Admin, or Owner members can link QA documents to this task.');
 }

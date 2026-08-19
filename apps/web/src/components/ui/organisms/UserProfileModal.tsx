@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { authService, User } from '../../../lib/api/authService';
 import { useAppDispatch } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
@@ -37,13 +37,21 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Sync state if currentUser changes
-  React.useEffect(() => {
-    if (currentUser) {
-      setName(currentUser.name);
+  const prevIsOpenRef = useRef(false);
+
+  // Sync state only on open transition so typed edits are not wiped
+  useEffect(() => {
+    if (isOpen && !prevIsOpenRef.current && currentUser) {
+      setName(currentUser.name || localStorage.getItem('user_name') || '');
       setAvatarUrl(currentUser.avatarUrl || '');
+      setProfileError(null);
+      setPasswordError(null);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     }
-  }, [currentUser]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, currentUser]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();

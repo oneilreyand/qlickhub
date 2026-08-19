@@ -9,7 +9,7 @@ import {
   WorkspaceMemberModel,
   UserModel,
 } from '../../../db/models/index.js';
-import { CreateTaskSchema, TaskActivityQuerySchema } from '@qa/contracts';
+import { CreateTaskSchema, TaskActivityQuerySchema } from '@qlick/contracts';
 
 describe('Task Activity Audit Trail Integration Tests (ST3)', () => {
   let userA: UserModel;

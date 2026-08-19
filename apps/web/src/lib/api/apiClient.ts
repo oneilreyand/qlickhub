@@ -53,15 +53,24 @@ async function sendRequest<T>(url: string, config: RequestInit, endpoint: string
   if (!response.ok) {
     let errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
     let errorCode = '';
+    let validationErrors: any[] | undefined = undefined;
+
     try {
       const errorData = await response.json();
       if (errorData.error?.code) {
         errorCode = errorData.error.code;
       }
-      if (errorData.message) {
+      
+      if (errorData.detail) {
+        errorMessage = errorData.detail;
+      } else if (errorData.message) {
         errorMessage = errorData.message;
       } else if (errorData.error?.message) {
         errorMessage = errorData.error.message;
+      }
+
+      if (Array.isArray(errorData.errors)) {
+        validationErrors = errorData.errors;
       }
     } catch {
       // JSON parsing failed, use default message
@@ -79,7 +88,11 @@ async function sendRequest<T>(url: string, config: RequestInit, endpoint: string
       handleAuthFailure(errorCode);
     }
 
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage) as any;
+    if (validationErrors) {
+      error.errors = validationErrors;
+    }
+    throw error;
   }
 
   return response.json();

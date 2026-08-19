@@ -16,5 +16,6 @@ export * from './taskDocument.js';
 export * from './requirementTestCase.js';
 export * from './userFcmToken.js';
 export * from './taskCreationPermission.js';
+export * from './notification.js';
 import './associations.js';
 

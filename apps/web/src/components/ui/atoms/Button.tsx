@@ -48,12 +48,18 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {isLoading ? (
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-      ) : (
-        leftIcon
+        <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      ) : leftIcon ? (
+        <span className="inline-flex items-center justify-center shrink-0 self-center leading-none">{leftIcon}</span>
+      ) : null}
+      {children && (
+        <span className="inline-flex items-center justify-center leading-normal select-none">
+          {children}
+        </span>
       )}
-      {children && <span>{children}</span>}
-      {!isLoading && rightIcon}
+      {!isLoading && rightIcon && (
+        <span className="inline-flex items-center justify-center shrink-0 self-center leading-none">{rightIcon}</span>
+      )}
     </button>
   );
 };

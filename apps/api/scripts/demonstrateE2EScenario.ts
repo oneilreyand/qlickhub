@@ -9,7 +9,7 @@ import {
   TaskModel,
 } from '../src/db/models/index.js';
 import { taskService } from '../src/modules/tasks/taskService.js';
-import { CreateTaskSchema } from '@qa/contracts';
+import { CreateTaskSchema } from '@qlick/contracts';
 
 async function runE2EDemo() {
   console.log('========================================================================');
@@ -51,7 +51,7 @@ async function runE2EDemo() {
       id: uuidv4(),
       email: 'doni.qa@example.com',
       name: 'Doni Wijaya (QA Engineer)',
-      role: 'qa_member',
+      role: 'qa',
       passwordHash,
     },
   });

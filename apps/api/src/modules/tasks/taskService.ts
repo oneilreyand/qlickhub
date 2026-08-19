@@ -8,7 +8,7 @@ import {
   UserModel,
   TaskCreationPermissionModel,
 } from '../../db/models/index.js';
-import { assertCanCreateTask, assertCanMutateTask, assertCanMoveTask, isPlanner } from '../../policies/taskPolicy.js';
+import { assertCanCreateTask, assertCanMutateTask, assertCanMoveTask, assertCanAccessTask, isPlanner } from '../../policies/taskPolicy.js';
 import { fcmService } from '../../services/fcmService.js';
 import {
   CreateTaskInput,
@@ -23,7 +23,8 @@ import {
   SubtaskSummary,
   TaskActivityQuery,
   TaskActivityListResponse,
-} from '@qa/contracts';
+  WorkspaceRole,
+} from '@qlick/contracts';
 
 function formatTask(t: TaskModel): Task {
   const json = t.toJSON();
@@ -46,7 +47,8 @@ function formatTask(t: TaskModel): Task {
     completedAt: json.completedAt ? new Date(json.completedAt).toISOString() : null,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: json.updatedAt ? new Date(json.updatedAt).toISOString() : new Date().toISOString(),
-  };
+    ...((json as any).subtasks && { subtasks: (json as any).subtasks.map((st: any) => formatTask(st)) }),
+  } as Task;
 }
 
 async function assertRoleMatchesDeliveryArea(
@@ -231,12 +233,46 @@ export class TaskService {
   /**
    * Lists tasks in a workspace with filtering, hierarchy options, date presets, search, and pagination.
    */
-  async listTasks(workspaceId: string, query: TaskListQuery): Promise<TaskListResponse> {
+  async listTasks(
+    workspaceId: string,
+    query: TaskListQuery,
+    actorId?: string,
+    actorRole?: WorkspaceRole
+  ): Promise<TaskListResponse> {
     const page = query.page || 1;
     const limit = query.limit || 50;
     const offset = (page - 1) * limit;
 
     const where: WhereOptions<TaskModel> = { workspaceId };
+
+    // Role-based task scoping for Dev and QA (non-planners)
+    if (actorId && (actorRole === 'dev' || actorRole === 'qa')) {
+      if (query.rootOnly) {
+        // In Root-only (Task Hub), executors only see Parent Tasks where:
+        // 1. They have at least one assigned subtask, OR
+        // 2. They are the reporter/creator
+        const subtaskCondition = sequelize.literal(
+          `EXISTS (
+            SELECT 1 FROM tasks AS st
+            WHERE st.parent_task_id = "TaskModel"."id"
+              AND st.assignee_id = ${sequelize.escape(actorId)}
+              AND st.deleted_at IS NULL
+          )`
+        );
+        (where as any)[Op.and] = [
+          ...((where as any)[Op.and] || []),
+          {
+            [Op.or]: [
+              subtaskCondition,
+              { reporterId: actorId },
+            ],
+          },
+        ];
+      } else if (!query.parentTaskId && !query.assigneeId) {
+        // In general task queries (without explicit assignee or parent filter), executors default to their own tasks
+        (where as any).assigneeId = actorId;
+      }
+    }
 
     // Root-only vs parentTaskId vs default
     if (query.rootOnly) {
@@ -277,6 +313,16 @@ export class TaskService {
       } else {
         (where as any).folderId = folder.id;
       }
+    }
+
+    const include: any[] = [];
+    if (query.includeSubtasks) {
+      include.push({ model: TaskModel, as: 'subtasks' });
+    }
+
+    // Delivery Area filtering
+    if (query.deliveryArea) {
+      (where as any).deliveryArea = query.deliveryArea;
     }
 
     // Status filtering
@@ -337,6 +383,7 @@ export class TaskService {
 
     const { rows, count } = await TaskModel.findAndCountAll({
       where,
+      include,
       order: [['createdAt', 'DESC']],
       limit,
       offset,
@@ -356,6 +403,83 @@ export class TaskService {
     };
   }
 
+  async getTask(
+    workspaceId: string,
+    taskId: string,
+    actorId: string,
+    actorRole?: WorkspaceRole
+  ): Promise<Task> {
+    const task = await TaskModel.findOne({
+      where: { id: taskId, workspaceId },
+    });
+
+    if (!task) {
+      throw new Error('NOT_FOUND: Task not found in this workspace.');
+    }
+
+    if (actorRole && (actorRole === 'dev' || actorRole === 'qa')) {
+      let hasAssignedSubtask = false;
+      if (!task.parentTaskId) {
+        const count = await TaskModel.count({
+          where: {
+            workspaceId,
+            parentTaskId: task.id,
+            assigneeId: actorId,
+          },
+        });
+        hasAssignedSubtask = count > 0;
+      } else {
+        const count = await TaskModel.count({
+          where: {
+            workspaceId,
+            parentTaskId: task.parentTaskId,
+            assigneeId: actorId,
+          },
+        });
+        hasAssignedSubtask = count > 0;
+      }
+
+      assertCanAccessTask(actorRole, actorId, task, hasAssignedSubtask);
+    }
+
+    return formatTask(task);
+  }
+
+  async deleteTask(workspaceId: string, taskId: string, actorId: string): Promise<void> {
+    await sequelize.transaction(async (transaction) => {
+      const membership = await WorkspaceMemberModel.findOne({
+        where: { workspaceId, userId: actorId },
+        transaction,
+      });
+
+      if (!membership || !['owner', 'admin', 'po'].includes(membership.role)) {
+        throw new Error('FORBIDDEN: Only planners can delete tasks.');
+      }
+
+      const task = await TaskModel.findOne({
+        where: { id: taskId, workspaceId },
+        transaction,
+      });
+
+      if (!task) {
+        throw new Error('NOT_FOUND: Task not found in this workspace.');
+      }
+
+      const subtasks = await TaskModel.findAll({
+        where: { parentTaskId: taskId, workspaceId },
+        transaction,
+      });
+
+      for (const st of subtasks) {
+        await st.destroy({ transaction }); // Note: Using paranoid destroy by default in sequelize if configured
+        await logActivity(workspaceId, st.id, actorId, 'deleted', null, transaction);
+      }
+
+      await task.destroy({ transaction });
+      await logActivity(workspaceId, taskId, actorId, 'deleted', null, transaction);
+    });
+  }
+
   /**
    * Lists direct subtasks for a given parent task.
    */
@@ -363,14 +487,20 @@ export class TaskService {
     workspaceId: string,
     parentTaskId: string,
     page = 1,
-    limit = 50
+    limit = 50,
+    actorId?: string,
+    actorRole?: WorkspaceRole
   ): Promise<TaskListResponse> {
-    const parentTask = await TaskModel.findOne({
-      where: { id: parentTaskId, workspaceId },
-    });
+    if (actorId && actorRole) {
+      await this.getTask(workspaceId, parentTaskId, actorId, actorRole);
+    } else {
+      const parentTask = await TaskModel.findOne({
+        where: { id: parentTaskId, workspaceId },
+      });
 
-    if (!parentTask) {
-      throw new Error('NOT_FOUND: Parent task not found in this workspace.');
+      if (!parentTask) {
+        throw new Error('NOT_FOUND: Parent task not found in this workspace.');
+      }
     }
 
     const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
@@ -383,7 +513,7 @@ export class TaskService {
       limit: safeLimit,
     });
 
-    return this.listTasks(workspaceId, query);
+    return this.listTasks(workspaceId, query, actorId, actorRole);
   }
 
   /**
@@ -508,11 +638,9 @@ export class TaskService {
 
       let targetFolderId = folderId || null;
 
-      // Auto-assign to creator if assigneeId is not specified and creator is owner, admin, or po
-      let resolvedAssigneeId = assigneeId;
-      if (resolvedAssigneeId === undefined && (membership.role === 'owner' || membership.role === 'admin' || membership.role === 'po')) {
-        resolvedAssigneeId = actorId;
-      }
+      // Parent tasks have no individual assignee (unassigned feature container owned by reporter/PO)
+      // Subtasks hold the designated execution assignee (FE / BE / QA)
+      const resolvedAssigneeId = parentTaskId ? (assigneeId || null) : null;
 
       let parentTaskRecord: TaskModel | null = null;
       if (parentTaskId) {
@@ -633,6 +761,7 @@ export class TaskService {
             .sendTaskAssignmentNotification({
               assigneeId: createdResult.assigneeId!,
               assignerName: actorName,
+              assignerId: actorId,
               taskTitle: createdResult.title,
               taskId: createdResult.id,
               workspaceId: input.workspaceId,
@@ -641,6 +770,7 @@ export class TaskService {
         })
         .catch(() => {});
     }
+
 
     return createdResult.formatted;
   }
@@ -727,7 +857,11 @@ export class TaskService {
       }
 
       let roleCheckResult: { isMismatch: boolean; assigneeRole?: string } = { isMismatch: false };
-      if (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) {
+      if (!task.parentTaskId) {
+        if (task.assigneeId !== null) {
+          task.assigneeId = null;
+        }
+      } else if (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) {
         await assertAssigneeBelongsToWorkspace(workspaceId, input.assigneeId, transaction);
         roleCheckResult = await assertRoleMatchesDeliveryArea(
           workspaceId,
@@ -898,6 +1032,7 @@ export class TaskService {
             .sendTaskAssignmentNotification({
               assigneeId: updatedResult.assigneeId!,
               assignerName: actorName,
+              assignerId: actorId,
               taskTitle: updatedResult.title,
               taskId: updatedResult.id,
               workspaceId,
@@ -929,6 +1064,7 @@ export class TaskService {
               .sendTaskStatusUpdateNotification({
                 recipientUserIds: recipientIds,
                 updaterName: actorName,
+                updaterId: actorId,
                 taskTitle: updatedResult.title,
                 taskId: updatedResult.id,
                 workspaceId,
@@ -940,6 +1076,7 @@ export class TaskService {
           .catch(() => {});
       }
     }
+
 
     return updatedResult.formatted;
   }

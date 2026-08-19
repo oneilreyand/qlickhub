@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "paths": {
-      "@qa/contracts": ["../../packages/contracts/dist/index.d.ts"]
+      "@qlick/contracts": ["../../packages/contracts/dist/index.d.ts"]
     },
     "lib": ["ES2022"],
     "outDir": "./dist",

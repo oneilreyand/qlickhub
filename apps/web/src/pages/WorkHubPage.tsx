@@ -4,9 +4,9 @@ import { useAppSelector } from '../store/hooks';
 import { OverviewStoreDashboard } from '../components/ui/organisms/OverviewStoreDashboard';
 import { TaskHubDashboardTemplate } from '../components/ui/organisms/TaskHubDashboardTemplate';
 import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
-import { TaskItem } from '../types/task';
+import { Task } from '@qlick/contracts';
 
-export type { TaskItem };
+export type { Task as TaskItem };
 
 export const WorkHubPage: React.FC = () => {
   const [searchParams] = useSearchParams();

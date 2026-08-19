@@ -6,16 +6,16 @@ import {
   WorkspaceModel,
   WorkspaceMemberModel,
   UserFcmTokenModel,
+  NotificationModel,
 } from '../../../db/models/index.js';
-import { CreateTaskSchema } from '@qa/contracts';
+import { CreateTaskSchema } from '@qlick/contracts';
 import { signToken, accessTokenCookieName } from '../../auth/jwt.js';
 import { sessionManager } from '../../auth/sessionManager.js';
-import { fcmService } from '../../../services/fcmService.js';
 import { taskService } from '../../tasks/taskService.js';
 import { taskDiscussionService } from '../../tasks/taskDiscussionService.js';
 import { Server } from 'node:http';
 
-describe('FCM Push Notification API & Business Rule Triggers', () => {
+describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
   let appServer: Server;
   let baseUrl: string;
 
@@ -24,6 +24,7 @@ describe('FCM Push Notification API & Business Rule Triggers', () => {
   let qaUser: UserModel;
   let workspace: WorkspaceModel;
   let ownerCookie: string;
+  let devCookie: string;
 
   before(async () => {
     const app = createApp();
@@ -55,7 +56,7 @@ describe('FCM Push Notification API & Business Rule Triggers', () => {
     qaUser = await UserModel.create({
       email: `fcm_qa_${timestamp}@test.com`,
       name: 'FCM QA',
-      role: 'qa_member',
+      role: 'qa',
       passwordHash: 'dummy',
     });
 
@@ -91,6 +92,15 @@ describe('FCM Push Notification API & Business Rule Triggers', () => {
       sessionId: ownerSessionId,
     });
     ownerCookie = `${accessTokenCookieName}=${ownerToken}`;
+
+    const devSessionId = await sessionManager.createSession(devUser.id, 'TestAgent', '127.0.0.1');
+    const devToken = signToken({
+      userId: devUser.id,
+      email: devUser.email,
+      role: devUser.role,
+      sessionId: devSessionId,
+    });
+    devCookie = `${accessTokenCookieName}=${devToken}`;
   });
 
   after(async () => {
@@ -161,7 +171,7 @@ describe('FCM Push Notification API & Business Rule Triggers', () => {
       assert.strictEqual(saved, null);
     });
 
-    test('POST /v1/notifications/test sends test notification', async () => {
+    test('POST /v1/notifications/test sends test notification and creates persistent in-app record', async () => {
       const response = await fetch(`${baseUrl}/notifications/test`, {
         method: 'POST',
         headers: {
@@ -173,111 +183,278 @@ describe('FCM Push Notification API & Business Rule Triggers', () => {
       assert.strictEqual(response.status, 200);
       const json = (await response.json()) as any;
       assert.strictEqual(json.data.success, true);
+
+      const savedNotif = await NotificationModel.findOne({
+        where: { userId: ownerUser.id, type: 'system' },
+      });
+      assert.ok(savedNotif);
+      assert.strictEqual(savedNotif.title, '🔔 Test Notifikasi Qlick Hub');
+      assert.strictEqual(savedNotif.isRead, false);
     });
   });
 
-  describe('2. FCM Trigger 1: User Assigned to Task', () => {
-    test('dispatches assignment notification when task is created with assignee', async () => {
-      let notifiedAssigneeId = '';
-      let notifiedTaskTitle = '';
+  describe('2. In-App Notification Query & Mutation REST API', () => {
+    let testNotifId: string;
 
-      const originalSend = fcmService.sendTaskAssignmentNotification;
-      fcmService.sendTaskAssignmentNotification = async (params) => {
-        notifiedAssigneeId = params.assigneeId;
-        notifiedTaskTitle = params.taskTitle;
-      };
+    before(async () => {
+      // Create test notifications for devUser
+      const notif1 = await NotificationModel.create({
+        userId: devUser.id,
+        workspaceId: workspace.id,
+        type: 'assignment',
+        title: 'Assigned to Auth Subtask',
+        message: 'You have been assigned to implement auth endpoints.',
+        isRead: false,
+      });
+      testNotifId = notif1.id;
 
-      try {
-        await taskService.createTask(
-          ownerUser.id,
-          CreateTaskSchema.parse({
-            workspaceId: workspace.id,
-            title: 'Implement Auth Service',
-            assigneeId: devUser.id,
-          })
-        );
-
-        // Give async promise callback a moment to settle
-        await new Promise((r) => setTimeout(r, 50));
-
-        assert.strictEqual(notifiedAssigneeId, devUser.id);
-        assert.strictEqual(notifiedTaskTitle, 'Implement Auth Service');
-      } finally {
-        fcmService.sendTaskAssignmentNotification = originalSend;
-      }
+      await NotificationModel.create({
+        userId: devUser.id,
+        workspaceId: workspace.id,
+        type: 'mention',
+        title: 'Mention in Discussion',
+        message: 'QA Lead mentioned you in discussion.',
+        isRead: true,
+        readAt: new Date(),
+      });
     });
 
-    test('dispatches assignment notification when task assignee is updated', async () => {
-      const task = await taskService.createTask(
-        ownerUser.id,
-        CreateTaskSchema.parse({
-          workspaceId: workspace.id,
-          title: 'Perform QA Review',
-          assigneeId: devUser.id,
-        })
-      );
+    test('GET /v1/notifications lists user notifications with unreadCount and pagination', async () => {
+      const response = await fetch(`${baseUrl}/notifications?workspaceId=${workspace.id}`, {
+        headers: { Cookie: devCookie },
+      });
 
-      let notifiedAssigneeId = '';
-      const originalSend = fcmService.sendTaskAssignmentNotification;
-      fcmService.sendTaskAssignmentNotification = async (params) => {
-        notifiedAssigneeId = params.assigneeId;
-      };
+      assert.strictEqual(response.status, 200);
+      const json = (await response.json()) as any;
+      assert.ok(Array.isArray(json.data.notifications));
+      assert.ok(json.data.notifications.length >= 2);
+      assert.strictEqual(json.data.unreadCount, 1);
+      assert.strictEqual(json.data.totalCount >= 2, true);
+    });
 
-      try {
-        await taskService.updateTask(ownerUser.id, workspace.id, task.id, {
-          assigneeId: qaUser.id,
-        });
+    test('GET /v1/notifications?unreadOnly=true filters for unread notifications only', async () => {
+      const response = await fetch(`${baseUrl}/notifications?workspaceId=${workspace.id}&unreadOnly=true`, {
+        headers: { Cookie: devCookie },
+      });
 
-        await new Promise((r) => setTimeout(r, 50));
-        assert.strictEqual(notifiedAssigneeId, qaUser.id);
-      } finally {
-        fcmService.sendTaskAssignmentNotification = originalSend;
-      }
+      assert.strictEqual(response.status, 200);
+      const json = (await response.json()) as any;
+      assert.strictEqual(json.data.notifications.length, 1);
+      assert.strictEqual(json.data.notifications[0].isRead, false);
+    });
+
+    test('PATCH /v1/notifications/:id/read marks notification as read', async () => {
+      const response = await fetch(`${baseUrl}/notifications/${testNotifId}/read`, {
+        method: 'PATCH',
+        headers: { Cookie: devCookie },
+      });
+
+      assert.strictEqual(response.status, 200);
+      const json = (await response.json()) as any;
+      assert.strictEqual(json.data.id, testNotifId);
+      assert.strictEqual(json.data.isRead, true);
+      assert.ok(json.data.readAt);
+
+      const dbCheck = await NotificationModel.findByPk(testNotifId);
+      assert.strictEqual(dbCheck?.isRead, true);
+    });
+
+    test('POST /v1/notifications/read-all marks all unread notifications as read', async () => {
+      // Create another unread
+      await NotificationModel.create({
+        userId: devUser.id,
+        workspaceId: workspace.id,
+        type: 'status_change',
+        title: 'Status Updated',
+        message: 'Status was updated',
+        isRead: false,
+      });
+
+      const response = await fetch(`${baseUrl}/notifications/read-all`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: devCookie,
+        },
+        body: JSON.stringify({ workspaceId: workspace.id }),
+      });
+
+      assert.strictEqual(response.status, 200);
+      const json = (await response.json()) as any;
+      assert.strictEqual(json.data.success, true);
+
+      const unreadRemaining = await NotificationModel.count({
+        where: { userId: devUser.id, isRead: false },
+      });
+      assert.strictEqual(unreadRemaining, 0);
+    });
+
+    test('DELETE /v1/notifications/:id deletes a single notification', async () => {
+      const notifToDelete = await NotificationModel.create({
+        userId: devUser.id,
+        workspaceId: workspace.id,
+        type: 'system',
+        title: 'Temporary Notice',
+        message: 'Will be deleted',
+        isRead: false,
+      });
+
+      const response = await fetch(`${baseUrl}/notifications/${notifToDelete.id}`, {
+        method: 'DELETE',
+        headers: { Cookie: devCookie },
+      });
+
+      assert.strictEqual(response.status, 200);
+      const json = (await response.json()) as any;
+      assert.strictEqual(json.data.success, true);
+
+      const dbCheck = await NotificationModel.findByPk(notifToDelete.id);
+      assert.strictEqual(dbCheck, null);
+    });
+
+    test('DELETE /v1/notifications clears all notifications for user in workspace', async () => {
+      const response = await fetch(`${baseUrl}/notifications?workspaceId=${workspace.id}`, {
+        method: 'DELETE',
+        headers: { Cookie: devCookie },
+      });
+
+      assert.strictEqual(response.status, 200);
+      const json = (await response.json()) as any;
+      assert.strictEqual(json.data.success, true);
+
+      const remaining = await NotificationModel.count({
+        where: { userId: devUser.id, workspaceId: workspace.id },
+      });
+      assert.strictEqual(remaining, 0);
     });
   });
 
-  describe('3. FCM Trigger 2: User Updates Task Status', () => {
-    test('dispatches status update notification to assignee when owner updates parent task', async () => {
-      const task = await taskService.createTask(
-        ownerUser.id,
-        CreateTaskSchema.parse({
-          workspaceId: workspace.id,
-          title: 'Backend API Gateway',
-          assigneeId: devUser.id,
-        })
-      );
-
-      let notifiedRecipients: string[] = [];
-      let notifiedNewStatus = '';
-
-      const originalSend = fcmService.sendTaskStatusUpdateNotification;
-      fcmService.sendTaskStatusUpdateNotification = async (params) => {
-        notifiedRecipients = params.recipientUserIds;
-        notifiedNewStatus = params.newStatus;
-      };
-
-      try {
-        // Owner updates status to in_progress
-        await taskService.updateTask(ownerUser.id, workspace.id, task.id, {
-          status: 'in_progress',
-        });
-
-        await new Promise((r) => setTimeout(r, 50));
-
-        // Assignee (devUser) should be notified since Owner updated it
-        assert.ok(notifiedRecipients.includes(devUser.id));
-        assert.strictEqual(notifiedNewStatus, 'in_progress');
-      } finally {
-        fcmService.sendTaskStatusUpdateNotification = originalSend;
-      }
-    });
-
-    test('dispatches status update notification to reporter when assigned dev updates subtask', async () => {
+  describe('3. Trigger 1: User Assigned to Task creates DB record & FCM push', () => {
+    test('persists in-app notification when task is created with assignee', async () => {
       const parentTask = await taskService.createTask(
         ownerUser.id,
         CreateTaskSchema.parse({
           workspaceId: workspace.id,
-          title: 'Parent Feature for Subtask',
+          title: 'Parent Container',
+        })
+      );
+
+      await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          parentTaskId: parentTask.id,
+          deliveryArea: 'backend',
+          title: 'Implement Auth Service Subtask',
+          assigneeId: devUser.id,
+        })
+      );
+
+      // Give async promise callback a moment to settle
+      await new Promise((r) => setTimeout(r, 60));
+
+      const notif = await NotificationModel.findOne({
+        where: {
+          userId: devUser.id,
+          type: 'assignment',
+          title: 'Tugas Baru Ditugaskan',
+        },
+        order: [['createdAt', 'DESC']],
+      });
+
+      assert.ok(notif);
+      assert.ok(notif.message.includes('Implement Auth Service Subtask'));
+      assert.strictEqual(notif.isRead, false);
+    });
+
+    test('persists in-app notification when task assignee is updated', async () => {
+      const parentTask = await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          title: 'Parent Container for Reassignment',
+        })
+      );
+
+      const task = await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          parentTaskId: parentTask.id,
+          deliveryArea: 'backend',
+          title: 'Perform QA Review Subtask',
+          assigneeId: devUser.id,
+        })
+      );
+
+      await taskService.updateTask(ownerUser.id, workspace.id, task.id, {
+        assigneeId: qaUser.id,
+        deliveryArea: 'qa',
+      });
+
+      await new Promise((r) => setTimeout(r, 60));
+
+      const notif = await NotificationModel.findOne({
+        where: {
+          userId: qaUser.id,
+          type: 'assignment',
+          title: 'Tugas Baru Ditugaskan',
+        },
+        order: [['createdAt', 'DESC']],
+      });
+
+      assert.ok(notif);
+      assert.ok(notif.message.includes('Perform QA Review Subtask'));
+    });
+  });
+
+  describe('4. Trigger 2: User Updates Task Status persists DB record', () => {
+    test('persists status update notification to assignee when owner updates status', async () => {
+      const parentTask = await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          title: 'Parent Container for Status Test',
+        })
+      );
+
+      const task = await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          parentTaskId: parentTask.id,
+          deliveryArea: 'backend',
+          title: 'Backend API Gateway Subtask',
+          assigneeId: devUser.id,
+        })
+      );
+
+      // Owner updates status to in_progress
+      await taskService.updateTask(ownerUser.id, workspace.id, task.id, {
+        status: 'in_progress',
+      });
+
+      await new Promise((r) => setTimeout(r, 60));
+
+      const notif = await NotificationModel.findOne({
+        where: {
+          userId: devUser.id,
+          type: 'status_change',
+          title: 'Status Tugas Diperbarui',
+        },
+        order: [['createdAt', 'DESC']],
+      });
+
+      assert.ok(notif);
+      assert.ok(notif.message.includes('IN PROGRESS'));
+    });
+
+    test('persists status update notification to reporter when assigned dev updates subtask', async () => {
+      const parentTask = await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          title: 'Parent Feature for Dev Status Test',
         })
       );
 
@@ -287,70 +464,199 @@ describe('FCM Push Notification API & Business Rule Triggers', () => {
           workspaceId: workspace.id,
           parentTaskId: parentTask.id,
           deliveryArea: 'backend',
-          title: 'Backend Subtask Implementation',
+          title: 'Backend Subtask Status Test',
           assigneeId: devUser.id,
         })
       );
 
-      let notifiedRecipients: string[] = [];
-      const originalSend = fcmService.sendTaskStatusUpdateNotification;
-      fcmService.sendTaskStatusUpdateNotification = async (params) => {
-        notifiedRecipients = params.recipientUserIds;
-      };
+      // Assigned Dev updates subtask status to in_review
+      await taskService.updateTask(devUser.id, workspace.id, subtask.id, {
+        status: 'in_review',
+      });
 
-      try {
-        // Assigned Dev updates subtask status to in_review
-        await taskService.updateTask(devUser.id, workspace.id, subtask.id, {
-          status: 'in_review',
-        });
+      await new Promise((r) => setTimeout(r, 60));
 
-        await new Promise((r) => setTimeout(r, 50));
+      const notif = await NotificationModel.findOne({
+        where: {
+          userId: ownerUser.id,
+          type: 'status_change',
+          title: 'Status Tugas Diperbarui',
+        },
+        order: [['createdAt', 'DESC']],
+      });
 
-        // Reporter (ownerUser) should be notified
-        assert.ok(notifiedRecipients.includes(ownerUser.id));
-      } finally {
-        fcmService.sendTaskStatusUpdateNotification = originalSend;
-      }
+      assert.ok(notif);
+      assert.ok(notif.message.includes('IN REVIEW'));
     });
   });
 
-  describe('4. FCM Trigger 3: Discussion Update on Working Task', () => {
-    test('dispatches discussion notification to assigned user and mentions', async () => {
+  describe('5. Trigger 3: Discussion Update on Working Task persists DB records', () => {
+    test('persists discussion notification to assigned user and mentions', async () => {
       const task = await taskService.createTask(
         ownerUser.id,
         CreateTaskSchema.parse({
           workspaceId: workspace.id,
-          title: 'Payment Integration Flow',
+          title: 'Payment Integration Flow Discussion',
           assigneeId: devUser.id,
         })
       );
 
-      let notifiedRecipients: string[] = [];
-      let notifiedSnippet = '';
+      // QA user posts comment on task mentioning dev and owner
+      await taskDiscussionService.createTaskComment(qaUser.id, workspace.id, task.id, {
+        body: 'Found an edge case with multi-currency tokens @dev',
+        mentionedUserIds: [devUser.id],
+      });
 
-      const originalSend = fcmService.sendDiscussionUpdateNotification;
-      fcmService.sendDiscussionUpdateNotification = async (params) => {
-        notifiedRecipients = params.recipientUserIds;
-        notifiedSnippet = params.commentSnippet;
-      };
+      await new Promise((r) => setTimeout(r, 60));
 
-      try {
-        // QA user posts comment on task mentioning dev and owner
-        await taskDiscussionService.createTaskComment(qaUser.id, workspace.id, task.id, {
-          body: 'Found an edge case with multi-currency tokens @dev',
-          mentionedUserIds: [devUser.id],
-        });
+      const devNotif = await NotificationModel.findOne({
+        where: {
+          userId: devUser.id,
+          type: 'mention',
+          taskId: task.id,
+        },
+        order: [['createdAt', 'DESC']],
+      });
 
-        await new Promise((r) => setTimeout(r, 50));
+      assert.ok(devNotif);
+      assert.ok(devNotif.message.includes('Found an edge case with multi-currency tokens'));
 
-        // Dev (assignee + mentioned) and Owner (reporter) should be in recipients
-        assert.ok(notifiedRecipients.includes(devUser.id));
-        assert.ok(notifiedRecipients.includes(ownerUser.id));
-        assert.ok(!notifiedRecipients.includes(qaUser.id)); // author excluded
-        assert.strictEqual(notifiedSnippet, 'Found an edge case with multi-currency tokens @dev');
-      } finally {
-        fcmService.sendDiscussionUpdateNotification = originalSend;
-      }
+      const ownerNotif = await NotificationModel.findOne({
+        where: {
+          userId: ownerUser.id,
+          type: 'mention',
+          taskId: task.id,
+        },
+        order: [['createdAt', 'DESC']],
+      });
+
+      assert.ok(ownerNotif);
+    });
+
+    test('persists @channel broadcast notification to all task and subtask stakeholders', async () => {
+      const parentTask = await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          title: 'Core Architecture Parent Feature',
+        })
+      );
+
+      await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          parentTaskId: parentTask.id,
+          deliveryArea: 'backend',
+          title: 'BE Microservice Contract',
+          assigneeId: devUser.id,
+        })
+      );
+
+      await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          parentTaskId: parentTask.id,
+          deliveryArea: 'qa',
+          title: 'QA Performance Testing',
+          assigneeId: qaUser.id,
+        })
+      );
+
+      // Owner broadcasts to @channel on parent task
+      await taskDiscussionService.createTaskComment(ownerUser.id, workspace.id, parentTask.id, {
+        body: '@channel Urgent release sync for all FE, BE, and QA members today at 4 PM.',
+        mentionedUserIds: [],
+      });
+
+      await new Promise((r) => setTimeout(r, 250));
+
+      const devNotif = await NotificationModel.findOne({
+        where: {
+          userId: devUser.id,
+          taskId: parentTask.id,
+          type: 'mention',
+        },
+        order: [['createdAt', 'DESC']],
+      });
+
+      assert.ok(devNotif);
+      assert.ok(devNotif.title.includes('@channel'));
+      assert.ok(devNotif.message.includes('Urgent release sync'));
+
+      const qaNotif = await NotificationModel.findOne({
+        where: {
+          userId: qaUser.id,
+          taskId: parentTask.id,
+          type: 'mention',
+        },
+        order: [['createdAt', 'DESC']],
+      });
+
+      assert.ok(qaNotif);
+      assert.ok(qaNotif.title.includes('@channel'));
+    });
+  });
+
+  describe('6. Approaching Deadline Notifications & Anti-Spam Check', () => {
+    test('detects tasks approaching due date within 24h and creates deadline alerts with anti-spam', async () => {
+      const todayStr = new Date().toISOString().slice(0, 10);
+
+      const parentTask = await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          title: 'Parent Container for Deadline Feature',
+        })
+      );
+
+      const dueSubtask = await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          parentTaskId: parentTask.id,
+          deliveryArea: 'backend',
+          title: 'Payment Gateway Integration Due Soon',
+          dueDate: todayStr,
+          assigneeId: devUser.id,
+        })
+      );
+
+      // Trigger deadline scan via API
+      const res1 = await fetch(`${baseUrl}/notifications/check-deadlines?workspaceId=${workspace.id}`, {
+        method: 'POST',
+        headers: { Cookie: ownerCookie },
+      });
+
+      assert.strictEqual(res1.status, 200);
+      const json1 = (await res1.json()) as any;
+      assert.strictEqual(json1.data.success, true);
+      assert.ok(json1.data.dispatchedCount >= 1);
+
+      // Verify DB record
+      const deadlineNotif = await NotificationModel.findOne({
+        where: {
+          userId: devUser.id,
+          taskId: dueSubtask.id,
+          type: 'deadline',
+        },
+      });
+
+      assert.ok(deadlineNotif);
+      assert.strictEqual(deadlineNotif.title, '⏰ Batas Waktu Mendekati');
+      assert.ok(deadlineNotif.message.includes('Payment Gateway Integration Due Soon'));
+
+      // Re-trigger scan immediately: anti-spam should suppress duplicate notifications
+      const res2 = await fetch(`${baseUrl}/notifications/check-deadlines?workspaceId=${workspace.id}`, {
+        method: 'POST',
+        headers: { Cookie: ownerCookie },
+      });
+
+      assert.strictEqual(res2.status, 200);
+      const json2 = (await res2.json()) as any;
+      assert.strictEqual(json2.data.dispatchedCount, 0);
     });
   });
 });
+

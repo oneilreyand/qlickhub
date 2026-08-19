@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import {
-  listWorkspaceRequirements,
   createRequirement,
   listTaskRequirements,
   linkRequirementToTask,
@@ -13,16 +12,10 @@ export const requirementRoutes = Router({ mergeParams: true });
 
 requirementRoutes.use(authenticate);
 
-// Workspace level requirement management
-requirementRoutes.get(
-  '/workspaces/:workspaceId/requirements',
-  requireWorkspaceMember(),
-  listWorkspaceRequirements
-);
-
+// Workspace level requirement creation
 requirementRoutes.post(
   '/workspaces/:workspaceId/requirements',
-  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  requireWorkspaceMember(['owner', 'admin', 'po']),
   createRequirement
 );
 
@@ -35,12 +28,13 @@ requirementRoutes.get(
 
 requirementRoutes.post(
   '/workspaces/:workspaceId/tasks/:taskId/requirements',
-  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  requireWorkspaceMember(['owner', 'admin', 'po']),
   linkRequirementToTask
 );
 
 requirementRoutes.delete(
   '/workspaces/:workspaceId/tasks/:taskId/requirements/:requirementId',
-  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  requireWorkspaceMember(['owner', 'admin', 'po']),
   unlinkRequirementFromTask
 );
+

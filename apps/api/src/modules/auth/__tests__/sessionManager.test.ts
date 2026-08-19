@@ -14,7 +14,7 @@ describe('Enhanced Session Manager Tests', () => {
       email: `test-session-${Date.now()}@example.com`,
       passwordHash: 'dummy-hash',
       name: 'Session Test User',
-      role: 'qa_member',
+      role: 'qa',
     });
   });
 

@@ -3,7 +3,7 @@ import {
   WorkspaceTraceabilitySummary,
   RequirementTestCase,
   TestCaseStatus,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 export const traceabilityService = {
   async getTraceabilitySummary(

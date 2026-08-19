@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { test, describe } from 'node:test';
-import { CreateWorkspaceSchema, UpdateWorkspaceSchema } from '@qa/contracts';
+import { CreateWorkspaceSchema, UpdateWorkspaceSchema } from '@qlick/contracts';
 
 describe('Workspace API Authorization & Validation Tests', () => {
   describe('Input Contract Validation', () => {
@@ -49,14 +49,14 @@ describe('Workspace API Authorization & Validation Tests', () => {
       assert.strictEqual(allowedRoles.includes('qa'), false);
     });
 
-    test('Only owner, admin, and leader roles (admin, qa_lead, po) can create workspaces', () => {
-      const allowedCreationRoles = ['admin', 'qa_lead', 'po'];
+    test('Only owner, admin, po, and qa roles can create workspaces', () => {
+      const allowedCreationRoles = ['owner', 'admin', 'po', 'qa'];
 
+      assert.strictEqual(allowedCreationRoles.includes('owner'), true);
       assert.strictEqual(allowedCreationRoles.includes('admin'), true);
-      assert.strictEqual(allowedCreationRoles.includes('qa_lead'), true);
       assert.strictEqual(allowedCreationRoles.includes('po'), true);
+      assert.strictEqual(allowedCreationRoles.includes('qa'), true);
       assert.strictEqual(allowedCreationRoles.includes('dev'), false);
-      assert.strictEqual(allowedCreationRoles.includes('qa_member'), false);
       assert.strictEqual(allowedCreationRoles.includes('viewer'), false);
     });
   });

@@ -1,3 +1,4 @@
+/** @deprecated Use Task from @qlick/contracts instead */
 export interface TaskItem {
   id: string;
   title: string;

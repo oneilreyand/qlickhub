@@ -1,9 +1,10 @@
 import assert from 'node:assert';
 import { describe, test } from 'node:test';
-import { assertCanCreateTask, assertCanMutateTask, assertCanMoveTask } from '../taskPolicy.js';
+import { assertCanCreateTask, assertCanMutateTask, assertCanMoveTask, assertCanAccessTask } from '../taskPolicy.js';
 
 const qaUserId = '00000000-0000-4000-8000-000000000001';
 const anotherUserId = '00000000-0000-4000-8000-000000000002';
+const thirdUserId = '00000000-0000-4000-8000-000000000003';
 
 describe('Task policy', () => {
   test('allows owners, admins, and PO to create or mutate any task', () => {
@@ -59,4 +60,33 @@ describe('Task policy', () => {
     assert.throws(() => assertCanMoveTask('dev', false), /Only Product Owner, Admin, or Owner can move parent tasks/);
     assert.doesNotThrow(() => assertCanMoveTask('po', false));
   });
+
+  test('enforces role-based task access scoping', () => {
+    const parentTask = { id: 'parent-1', parentTaskId: null, assigneeId: null, reporterId: anotherUserId };
+    const assignedSubtask = { id: 'subtask-1', parentTaskId: 'parent-1', assigneeId: qaUserId, reporterId: anotherUserId };
+    const unassignedSubtask = { id: 'subtask-2', parentTaskId: 'parent-2', assigneeId: thirdUserId, reporterId: anotherUserId };
+
+    // Planners can access everything
+    assert.doesNotThrow(() => assertCanAccessTask('owner', qaUserId, parentTask, false));
+    assert.doesNotThrow(() => assertCanAccessTask('admin', qaUserId, parentTask, false));
+    assert.doesNotThrow(() => assertCanAccessTask('po', qaUserId, parentTask, false));
+
+    // Dev / QA can access if assigned or reporter
+    assert.doesNotThrow(() => assertCanAccessTask('qa', qaUserId, assignedSubtask, false));
+    assert.doesNotThrow(() => assertCanAccessTask('dev', qaUserId, { id: 'task-3', reporterId: qaUserId }, false));
+
+    // Dev / QA can access parent task if they have an assigned subtask under it
+    assert.doesNotThrow(() => assertCanAccessTask('qa', qaUserId, parentTask, true));
+
+    // Dev / QA is rejected if not assigned, not reporter, and has no assigned subtasks
+    assert.throws(
+      () => assertCanAccessTask('dev', qaUserId, unassignedSubtask, false),
+      /You do not have permission to access this task/
+    );
+    assert.throws(
+      () => assertCanAccessTask('qa', qaUserId, parentTask, false),
+      /You do not have permission to access this task/
+    );
+  });
 });
+

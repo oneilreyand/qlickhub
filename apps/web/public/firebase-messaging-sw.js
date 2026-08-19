@@ -1,34 +1,38 @@
 /* eslint-disable no-undef */
 // Firebase Messaging Service Worker for Background Push Notifications
+// Firebase config is sent to this SW via a postMessage from the main thread
+// (see useFcmNotifications.ts → registerToken) to avoid hardcoding secrets here.
 
-importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-messaging-compat.js');
 
-// Initialize Firebase in Service Worker
-const firebaseConfig = {
-  apiKey: "AIzaSyCoAJIUv_ZT0Y5Rg-6sQyIGAHsHDq6K4uY",
-  authDomain: "ndeks-fcm.firebaseapp.com",
-  projectId: "ndeks-fcm",
-  storageBucket: "ndeks-fcm.firebasestorage.app",
-  messagingSenderId: "1071941827248",
-  appId: "1:1071941827248:web:ed346c965e5e21aae45975",
-};
+let messaging = null;
 
-firebase.initializeApp(firebaseConfig);
+/**
+ * Receives Firebase config from the main thread and initialises the app.
+ * This avoids hardcoding credentials in a publicly-served file.
+ */
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'FIREBASE_CONFIG') {
+    const firebaseConfig = event.data.config;
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    messaging = firebase.messaging();
 
-const messaging = firebase.messaging();
-
-// Handle background messages
-messaging.onBackgroundMessage((payload) => {
-  const notificationTitle = payload.notification?.title || payload.data?.title || 'QA Management System';
-  const notificationOptions = {
-    body: payload.notification?.body || payload.data?.body || 'Anda memiliki pemberitahuan baru.',
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
-    data: payload.data || {},
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    // Handle background messages once messaging is ready
+    messaging.onBackgroundMessage((payload) => {
+      const notificationTitle =
+        payload.notification?.title || payload.data?.title || 'Qlick Hub';
+      const notificationOptions = {
+        body: payload.notification?.body || payload.data?.body || 'Anda memiliki pemberitahuan baru.',
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        data: payload.data || {},
+      };
+      self.registration.showNotification(notificationTitle, notificationOptions);
+    });
+  }
 });
 
 // Handle notification click to open / focus window
@@ -55,3 +59,4 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+

@@ -16,7 +16,7 @@ import {
   Requirement,
   Task,
   QaDocument,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 function formatTestCase(tc: RequirementTestCaseModel | Record<string, any>): RequirementTestCase {
   const json = typeof (tc as any).toJSON === 'function' ? (tc as any).toJSON() : tc;

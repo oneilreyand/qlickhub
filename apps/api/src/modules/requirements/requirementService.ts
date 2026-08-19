@@ -5,7 +5,6 @@ import {
   TaskModel,
   TaskActivityModel,
   WorkspaceMemberModel,
-  WorkspaceModel,
 } from '../../db/models/index.js';
 import {
   assertCanReadRequirements,
@@ -16,7 +15,7 @@ import {
   Requirement,
   CreateRequirementInput,
   TaskRequirementLink,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 function formatRequirement(r: RequirementModel | Record<string, any>): Requirement {
   const json = typeof (r as any).toJSON === 'function' ? (r as any).toJSON() : r;
@@ -59,22 +58,39 @@ async function getActorMembership(workspaceId: string, actorId: string) {
   return member;
 }
 
-export class RequirementService {
-  async listWorkspaceRequirements(
-    workspaceId: string,
-    actorId: string
-  ): Promise<Requirement[]> {
-    const member = await getActorMembership(workspaceId, actorId);
-    assertCanReadRequirements(member.role);
-
-    const list = await RequirementModel.findAll({
-      where: { workspaceId },
-      order: [['code', 'ASC']],
-    });
-
-    return list.map(formatRequirement);
+function generateAutoRequirementCode(url?: string | null): string {
+  let prefix = 'REF';
+  if (url) {
+    const lower = url.toLowerCase();
+    if (lower.includes('figma.com')) {
+      prefix = 'FIGMA';
+    } else if (
+      lower.includes('sheets.google.com') ||
+      lower.includes('docs.google.com/spreadsheets') ||
+      lower.includes('.xlsx') ||
+      lower.includes('.csv')
+    ) {
+      prefix = 'SHEET';
+    } else if (
+      lower.includes('docs.google.com/document') ||
+      lower.includes('notion.so') ||
+      lower.includes('confluence')
+    ) {
+      prefix = 'DOC';
+    } else if (
+      lower.includes('jira') ||
+      lower.includes('linear.app') ||
+      lower.includes('github.com')
+    ) {
+      prefix = 'ISSUE';
+    }
   }
+  const randomSuffix = Math.floor(100 + Math.random() * 900);
+  const timeSuffix = Date.now().toString(36).slice(-4).toUpperCase();
+  return `${prefix}-${timeSuffix}${randomSuffix}`;
+}
 
+export class RequirementService {
   async createRequirement(
     workspaceId: string,
     actorId: string,
@@ -83,16 +99,36 @@ export class RequirementService {
     const member = await getActorMembership(workspaceId, actorId);
     assertCanCreateRequirement(member.role);
 
-    const existingCode = await RequirementModel.findOne({
-      where: { workspaceId, code: input.code.trim().toUpperCase() },
-    });
-    if (existingCode) {
-      throw new Error(`BAD_REQUEST: A requirement with code "${input.code}" already exists in this workspace.`);
+    let finalCode = input.code?.trim().toUpperCase();
+    if (!finalCode) {
+      // Auto-generate code if omitted
+      let attempts = 0;
+      while (attempts < 5) {
+        const candidate = generateAutoRequirementCode(input.url);
+        const existing = await RequirementModel.findOne({
+          where: { workspaceId, code: candidate },
+        });
+        if (!existing) {
+          finalCode = candidate;
+          break;
+        }
+        attempts++;
+      }
+      if (!finalCode) {
+        finalCode = `REF-${Date.now().toString(36).toUpperCase()}`;
+      }
+    } else {
+      const existingCode = await RequirementModel.findOne({
+        where: { workspaceId, code: finalCode },
+      });
+      if (existingCode) {
+        throw new Error(`BAD_REQUEST: A requirement with code "${finalCode}" already exists in this workspace.`);
+      }
     }
 
     const requirement = await RequirementModel.create({
       workspaceId,
-      code: input.code.trim().toUpperCase(),
+      code: finalCode,
       title: input.title.trim(),
       description: input.description?.trim() || null,
       url: input.url?.trim() || null,
@@ -134,21 +170,14 @@ export class RequirementService {
     requirementId: string
   ): Promise<TaskRequirementLink> {
     const member = await getActorMembership(workspaceId, actorId);
-    const workspace = await WorkspaceModel.findByPk(workspaceId);
+    assertCanLinkRequirement(member.role);
+
     const task = await TaskModel.findOne({
       where: { id: taskId, workspaceId },
     });
-
     if (!task) {
       throw new Error('NOT_FOUND: Task not found in this workspace.');
     }
-
-    assertCanLinkRequirement(
-      member.role,
-      actorId,
-      { parentTaskId: task.parentTaskId, assigneeId: task.assigneeId },
-      workspace?.allowQaTaskCreation ?? true
-    );
 
     const requirement = await RequirementModel.findOne({
       where: { id: requirementId, workspaceId },
@@ -187,6 +216,7 @@ export class RequirementService {
             requirementId: requirement.id,
             code: requirement.code,
             title: requirement.title,
+            url: requirement.url || null,
           },
         },
         { transaction }
@@ -208,21 +238,14 @@ export class RequirementService {
     requirementId: string
   ): Promise<{ success: boolean }> {
     const member = await getActorMembership(workspaceId, actorId);
-    const workspace = await WorkspaceModel.findByPk(workspaceId);
+    assertCanLinkRequirement(member.role);
+
     const task = await TaskModel.findOne({
       where: { id: taskId, workspaceId },
     });
-
     if (!task) {
       throw new Error('NOT_FOUND: Task not found in this workspace.');
     }
-
-    assertCanLinkRequirement(
-      member.role,
-      actorId,
-      { parentTaskId: task.parentTaskId, assigneeId: task.assigneeId },
-      workspace?.allowQaTaskCreation ?? true
-    );
 
     const link = await TaskRequirementModel.findOne({
       where: { taskId, requirementId, workspaceId },
@@ -247,6 +270,7 @@ export class RequirementService {
             requirementId,
             code: link.requirement?.code || '',
             title: link.requirement?.title || '',
+            url: link.requirement?.url || null,
           },
         },
         { transaction }
@@ -258,3 +282,4 @@ export class RequirementService {
 }
 
 export const requirementService = new RequirementService();
+

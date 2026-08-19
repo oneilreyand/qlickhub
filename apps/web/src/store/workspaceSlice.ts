@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { workspaceService, WorkspaceItem, WorkspaceMemberItem } from '../lib/api/workspaceService';
-import { CreateWorkspaceInput, UpdateWorkspaceInput, AddWorkspaceMemberInput, AssignableWorkspaceRole } from '@qa/contracts';
+import { CreateWorkspaceInput, UpdateWorkspaceInput, AddWorkspaceMemberInput, AssignableWorkspaceRole } from '@qlick/contracts';
 
 interface WorkspaceState {
   workspaces: WorkspaceItem[];

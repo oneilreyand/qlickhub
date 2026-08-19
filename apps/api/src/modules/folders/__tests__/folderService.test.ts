@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { test, describe } from 'node:test';
-import { CreateFolderSchema, MoveFolderSchema } from '@qa/contracts';
+import { CreateFolderSchema, MoveFolderSchema } from '@qlick/contracts';
 
 describe('Folder Hierarchy & Policy Service Tests', () => {
   const workspaceA = '123e4567-e89b-12d3-a456-426614174000';

@@ -30,7 +30,7 @@ describe('Task Collaboration Integrity Tests (ST1)', () => {
       email: `st1-userb-${Date.now()}@example.com`,
       passwordHash: 'hashed_pw',
       name: 'User B',
-      role: 'qa_member',
+      role: 'qa',
     });
 
     workspace1 = await WorkspaceModel.create({

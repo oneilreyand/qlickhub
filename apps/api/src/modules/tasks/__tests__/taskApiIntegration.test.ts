@@ -12,7 +12,7 @@ import {
   MoveTaskSchema,
   CompleteTaskSchema,
   TaskListQuerySchema,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 describe('Task API Integration & Business Rules Tests (T3)', () => {
   let user: UserModel;
@@ -63,7 +63,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         email: `task-qa-${Date.now()}@example.com`,
         passwordHash: 'hashed_pw',
         name: 'Task QA Member',
-        role: 'qa_member',
+        role: 'qa',
       }),
       UserModel.create({
         email: `task-product-${Date.now()}@example.com`,
@@ -387,13 +387,23 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       assert.strictEqual(payload.data.reporterId, user.id);
     });
 
-    test('Rejects assigning a user who is not a member of the task workspace', async () => {
+    test('Rejects assigning a user who is not a member of the task workspace on a subtask', async () => {
+      const parentTask = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          title: 'Parent Container for Subtask Test',
+        })
+      );
+
       await assert.rejects(
         async () => {
           await taskService.createTask(
             user.id,
             CreateTaskSchema.parse({
               workspaceId: workspaceA.id,
+              parentTaskId: parentTask.id,
+              deliveryArea: 'backend',
               title: 'Cannot assign an external member',
               assigneeId: externalAssignee.id,
             })
@@ -406,18 +416,28 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       );
     });
 
-    test('Clears an assignee when their workspace membership is removed', async () => {
+    test('Clears a subtask assignee when their workspace membership is removed', async () => {
       await WorkspaceMemberModel.create({
         workspaceId: workspaceA.id,
         userId: externalAssignee.id,
         role: 'dev',
       });
 
-      const task = await taskService.createTask(
+      const parentTask = await taskService.createTask(
         user.id,
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
-          title: 'Task reassigned when member leaves',
+          title: 'Parent Container for Member Removal Test',
+        })
+      );
+
+      const subtask = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          parentTaskId: parentTask.id,
+          deliveryArea: 'backend',
+          title: 'Subtask reassigned when member leaves',
           assigneeId: externalAssignee.id,
         })
       );
@@ -426,8 +446,8 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         where: { workspaceId: workspaceA.id, userId: externalAssignee.id },
       });
 
-      const storedTask = await TaskModel.findByPk(task.id);
-      assert.strictEqual(storedTask?.assigneeId, null);
+      const storedSubtask = await TaskModel.findByPk(subtask.id);
+      assert.strictEqual(storedSubtask?.assigneeId, null);
     });
 
     test('Includes subfolder tasks when querying a parent with includeDescendants', async () => {
@@ -761,6 +781,110 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
 
       assert.strictEqual(statusCode, 403);
       assert.strictEqual(payload.code, 'FORBIDDEN');
+    });
+  });
+
+  describe('9. SDLC Role-Based Data Scoping and Direct Access Policy', () => {
+    let parentA: any;
+    let parentB: any;
+    let subtaskDev: any;
+
+    before(async () => {
+      // Create Parent Task A (with subtask assigned to developerMember)
+      parentA = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          title: 'Parent Task A (Dev assigned to subtask)',
+        })
+      );
+
+      subtaskDev = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          parentTaskId: parentA.id,
+          deliveryArea: 'backend',
+          title: 'Subtask assigned to Dev',
+          assigneeId: developerMember.id,
+        })
+      );
+
+      // Create Parent Task B (no subtask for developerMember, subtask for qaMember)
+      parentB = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          title: 'Parent Task B (Only QA assigned to subtask)',
+        })
+      );
+
+      await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          parentTaskId: parentB.id,
+          deliveryArea: 'qa',
+          title: 'Subtask assigned to QA',
+          assigneeId: qaMember.id,
+        })
+      );
+    });
+
+    test('Planner (PO/Admin/Owner) sees 100% of parent tasks in Task Hub (rootOnly: true)', async () => {
+      const result = await taskService.listTasks(
+        workspaceA.id,
+        TaskListQuerySchema.parse({ workspaceId: workspaceA.id, rootOnly: true }),
+        productMember.id,
+        'po'
+      );
+      assert.ok(result.tasks.some((t) => t.id === parentA.id));
+      assert.ok(result.tasks.some((t) => t.id === parentB.id));
+    });
+
+    test('Executor (Dev) in Task Hub (rootOnly: true) only sees Parent Tasks where they have an assigned subtask', async () => {
+      const result = await taskService.listTasks(
+        workspaceA.id,
+        TaskListQuerySchema.parse({ workspaceId: workspaceA.id, rootOnly: true }),
+        developerMember.id,
+        'dev'
+      );
+      assert.ok(result.tasks.some((t) => t.id === parentA.id));
+      assert.strictEqual(result.tasks.some((t) => t.id === parentB.id), false);
+    });
+
+    test('Executor (Dev) can access Parent Task A and its subtask via getTask', async () => {
+      const accessedParent = await taskService.getTask(
+        workspaceA.id,
+        parentA.id,
+        developerMember.id,
+        'dev'
+      );
+      assert.strictEqual(accessedParent.id, parentA.id);
+
+      const accessedSubtask = await taskService.getTask(
+        workspaceA.id,
+        subtaskDev.id,
+        developerMember.id,
+        'dev'
+      );
+      assert.strictEqual(accessedSubtask.id, subtaskDev.id);
+    });
+
+    test('Executor (Dev) is denied access (403 FORBIDDEN) to Parent Task B where they have no assigned subtask', async () => {
+      await assert.rejects(
+        () =>
+          taskService.getTask(
+            workspaceA.id,
+            parentB.id,
+            developerMember.id,
+            'dev'
+          ),
+        (err: Error) => {
+          assert.ok(err.message.includes('FORBIDDEN: You do not have permission to access this task.'));
+          return true;
+        }
+      );
     });
   });
 });

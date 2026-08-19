@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../http/middleware/authenticate.js';
 import { WorkspaceMemberModel } from '../db/models/workspaceMember.js';
-import { WorkspaceRole } from '@qa/contracts';
+import { WorkspaceRole } from '@qlick/contracts';
 
 export interface WorkspaceRequest extends AuthenticatedRequest {
   workspaceMembership?: WorkspaceMemberModel;
@@ -93,19 +93,19 @@ export const requireWorkspaceMember = (allowedRoles?: WorkspaceRole[]) => {
 
 /**
  * Express middleware to enforce permission to create new workspaces.
- * Only owner, admin, and leader roles ('admin', 'qa_lead', 'po') are authorized.
+ * Allowed roles: 'owner', 'admin', 'po'.
  */
 export const requireWorkspaceCreationPermission = () => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const userRole = req.user?.role;
-    const allowedRoles: string[] = ['admin', 'qa_lead', 'po'];
+    const allowedRoles: string[] = ['owner', 'admin', 'po'];
 
     if (!userRole || !allowedRoles.includes(userRole)) {
       return res.status(403).json({
         type: 'https://api.qa-hub.com/errors/forbidden',
         title: 'Forbidden',
         status: 403,
-        detail: 'Only workspace owners, admins, and team leads are authorized to create new workspaces.',
+        detail: 'Only workspace owners, admins, and product owners are authorized to create new workspaces.',
         code: 'FORBIDDEN',
       });
     }

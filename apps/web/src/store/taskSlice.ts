@@ -7,7 +7,7 @@ import {
   UpdateTaskInput,
   MoveTaskInput,
   CompleteTaskInput,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 interface TaskState {
   tasks: Task[];

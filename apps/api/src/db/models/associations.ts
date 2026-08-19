@@ -16,6 +16,7 @@ import { TaskDocumentModel } from './taskDocument.js';
 import { RequirementTestCaseModel } from './requirementTestCase.js';
 import { UserFcmTokenModel } from './userFcmToken.js';
 import { TaskCreationPermissionModel } from './taskCreationPermission.js';
+import { NotificationModel } from './notification.js';
 
 export function setupAssociations() {
   UserModel.hasMany(UserFcmTokenModel, { foreignKey: 'userId', as: 'fcmTokens', onDelete: 'CASCADE' });
@@ -159,6 +160,19 @@ export function setupAssociations() {
 
   WorkspaceModel.hasMany(RequirementTestCaseModel, { foreignKey: 'workspaceId', as: 'testCases', onDelete: 'CASCADE' });
   RequirementTestCaseModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
+
+  // Notifications Associations
+  UserModel.hasMany(NotificationModel, { foreignKey: 'userId', as: 'notifications', onDelete: 'CASCADE' });
+  NotificationModel.belongsTo(UserModel, { foreignKey: 'userId', as: 'user', onDelete: 'CASCADE' });
+
+  UserModel.hasMany(NotificationModel, { foreignKey: 'actorId', as: 'actedNotifications', onDelete: 'SET NULL' });
+  NotificationModel.belongsTo(UserModel, { foreignKey: 'actorId', as: 'actor', onDelete: 'SET NULL' });
+
+  WorkspaceModel.hasMany(NotificationModel, { foreignKey: 'workspaceId', as: 'notifications', onDelete: 'CASCADE' });
+  NotificationModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
+
+  TaskModel.hasMany(NotificationModel, { foreignKey: 'taskId', as: 'notifications', onDelete: 'SET NULL' });
+  NotificationModel.belongsTo(TaskModel, { foreignKey: 'taskId', as: 'task', onDelete: 'SET NULL' });
 }
 
 setupAssociations();

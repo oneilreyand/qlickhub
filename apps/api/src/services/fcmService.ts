@@ -3,7 +3,11 @@ import { getMessaging, MulticastMessage } from 'firebase-admin/messaging';
 import { Op } from 'sequelize';
 import { env } from '../config/env.js';
 import { UserFcmTokenModel } from '../db/models/userFcmToken.js';
-import { PushNotificationPayload } from '@qa/contracts';
+import { PushNotificationPayload } from '@qlick/contracts';
+// notificationService is imported lazily inside each helper to avoid a circular dependency
+// at module load time (notificationService → fcmService → notificationService).
+import type { NotificationService } from '../modules/notifications/notificationService.js';
+
 
 let firebaseApp: App | null = null;
 
@@ -189,78 +193,185 @@ export class FcmService {
 
   /**
    * Helper: Trigger 1 — Task Assignment Notification
+   * Delegates DB persistence to NotificationService and dispatches FCM push.
    */
   async sendTaskAssignmentNotification(params: {
     assigneeId: string;
     assignerName: string;
+    assignerId: string;
     taskTitle: string;
     taskId: string;
     workspaceId: string;
   }): Promise<void> {
-    const { assigneeId, assignerName, taskTitle, taskId, workspaceId } = params;
-    await this.sendToUser(assigneeId, {
-      title: 'Tugas Baru Ditugaskan',
-      body: `${assignerName} menugaskan Anda pada tugas: "${taskTitle}"`,
-      data: {
-        type: 'assignment',
-        taskId,
+    const { assigneeId, assignerName, assignerId, taskTitle, taskId, workspaceId } = params;
+    const title = 'Tugas Baru Ditugaskan';
+    const message = `${assignerName} menugaskan Anda pada tugas: "${taskTitle}"`;
+
+    // 1. Persist via NotificationService (single source of truth for notifications table)
+    try {
+      const { notificationService } = await import('../modules/notifications/notificationService.js');
+      await notificationService.createNotification({
+        userId: assigneeId,
         workspaceId,
-      },
+        taskId: taskId || null,
+        actorId: assignerId,
+        type: 'assignment',
+        title,
+        message,
+        sendFcm: false, // push is dispatched below
+      });
+    } catch (err) {
+      console.warn('⚠️ Failed to save in-app assignment notification in DB:', err);
+    }
+
+    // 2. Dispatch FCM Push
+    await this.sendToUser(assigneeId, {
+      title,
+      body: message,
+      data: { type: 'assignment', taskId, workspaceId },
     });
   }
 
   /**
    * Helper: Trigger 2 — Task Status Update Notification
+   * Delegates DB persistence to NotificationService and dispatches FCM multicast push.
    */
   async sendTaskStatusUpdateNotification(params: {
     recipientUserIds: string[];
     updaterName: string;
+    updaterId: string;
     taskTitle: string;
     taskId: string;
     workspaceId: string;
     oldStatus: string;
     newStatus: string;
   }): Promise<void> {
-    const { recipientUserIds, updaterName, taskTitle, taskId, workspaceId, oldStatus, newStatus } = params;
-    const formattedStatus = newStatus.replace('_', ' ').toUpperCase();
+    const { recipientUserIds, updaterName, updaterId, taskTitle, taskId, workspaceId, oldStatus, newStatus } = params;
+    // FIX: use regex so all underscores are replaced (e.g. "in_review_qa" → "IN REVIEW QA")
+    const formattedStatus = newStatus.replace(/_/g, ' ').toUpperCase();
+    const title = 'Status Tugas Diperbarui';
+    const message = `${updaterName} mengubah status "${taskTitle}" menjadi ${formattedStatus}`;
+
+    // 1. Persist via NotificationService
+    try {
+      const { notificationService } = await import('../modules/notifications/notificationService.js');
+      await notificationService.createBulkNotifications(
+        recipientUserIds.map((userId) => ({
+          userId,
+          workspaceId,
+          taskId: taskId || null,
+          actorId: updaterId,
+          type: 'status_change' as const,
+          title,
+          message,
+        })),
+        false // sendFcm handled below
+      );
+    } catch (err) {
+      console.warn('⚠️ Failed to save in-app status update notification in DB:', err);
+    }
+
+    // 2. Dispatch FCM multicast push
     await this.sendToUsers(recipientUserIds, {
-      title: 'Status Tugas Diperbarui',
-      body: `${updaterName} mengubah status "${taskTitle}" menjadi ${formattedStatus}`,
-      data: {
-        type: 'status_change',
-        taskId,
-        workspaceId,
-        oldStatus,
-        newStatus,
-      },
+      title,
+      body: message,
+      data: { type: 'status_change', taskId, workspaceId, oldStatus, newStatus },
     });
   }
 
   /**
-   * Helper: Trigger 3 — Discussion Update on Working Tasks
+   * Helper: Trigger 3 — Discussion Update on Working Tasks (with @channel support)
+   * Delegates DB persistence to NotificationService and dispatches FCM multicast push.
    */
   async sendDiscussionUpdateNotification(params: {
     recipientUserIds: string[];
     authorName: string;
+    authorId: string;
     taskTitle: string;
     taskId: string;
     workspaceId: string;
     commentId: string;
     commentSnippet: string;
+    isChannel?: boolean;
   }): Promise<void> {
-    const { recipientUserIds, authorName, taskTitle, taskId, workspaceId, commentId, commentSnippet } = params;
+    const { recipientUserIds, authorName, authorId, taskTitle, taskId, workspaceId, commentId, commentSnippet, isChannel } = params;
     const snippet = commentSnippet.length > 80 ? `${commentSnippet.slice(0, 77)}...` : commentSnippet;
+
+    const notifTitle = isChannel ? `📢 @channel: ${taskTitle}` : `Update Diskusi: ${taskTitle}`;
+    const notifBody = isChannel ? `${authorName} me-mention @channel: "${snippet}"` : `${authorName}: "${snippet}"`;
+    const notifType = isChannel ? 'mention' : 'discussion';
+
+    // 1. Persist via NotificationService
+    try {
+      const { notificationService } = await import('../modules/notifications/notificationService.js');
+      await notificationService.createBulkNotifications(
+        recipientUserIds.map((userId) => ({
+          userId,
+          workspaceId,
+          taskId: taskId || null,
+          actorId: authorId,
+          type: notifType as 'mention' | 'discussion',
+          title: notifTitle,
+          message: notifBody,
+        })),
+        false // sendFcm handled below
+      );
+    } catch (err) {
+      console.warn('⚠️ Failed to save in-app discussion notification in DB:', err);
+    }
+
+    // 2. Dispatch FCM multicast push
     await this.sendToUsers(recipientUserIds, {
-      title: `Update Diskusi: ${taskTitle}`,
-      body: `${authorName}: "${snippet}"`,
-      data: {
-        type: 'discussion',
-        taskId,
-        workspaceId,
-        commentId,
-      },
+      title: notifTitle,
+      body: notifBody,
+      data: { type: isChannel ? 'mention' : 'discussion', taskId, workspaceId, commentId },
+    });
+  }
+
+  /**
+   * Helper: Trigger 4 — Approaching Deadline Notification
+   * Delegates DB persistence to NotificationService and dispatches FCM multicast push.
+   */
+  async sendDeadlineApproachingNotification(params: {
+    recipientUserIds: string[];
+    taskTitle: string;
+    taskId: string;
+    workspaceId: string;
+    dueDate: string;
+  }): Promise<void> {
+    const { recipientUserIds, taskTitle, taskId, workspaceId, dueDate } = params;
+    const notifTitle = '⏰ Batas Waktu Mendekati';
+    const notifBody = `Tugas "${taskTitle}" jatuh tempo pada ${dueDate}. Segera selesaikan sebelum terlambat!`;
+
+    // 1. Persist via NotificationService (no actorId for system-generated deadline alerts)
+    try {
+      const { notificationService } = await import('../modules/notifications/notificationService.js');
+      await notificationService.createBulkNotifications(
+        recipientUserIds.map((userId) => ({
+          userId,
+          workspaceId,
+          taskId: taskId || null,
+          actorId: null,
+          type: 'deadline' as const,
+          title: notifTitle,
+          message: notifBody,
+        })),
+        false // sendFcm handled below
+      );
+    } catch (err) {
+      console.warn('⚠️ Failed to save in-app deadline notification in DB:', err);
+    }
+
+    // 2. Dispatch FCM multicast push
+    await this.sendToUsers(recipientUserIds, {
+      title: notifTitle,
+      body: notifBody,
+      data: { type: 'deadline', taskId, workspaceId },
     });
   }
 }
 
 export const fcmService = new FcmService();
+// Export type to allow type-only imports elsewhere
+export type { NotificationService };
+

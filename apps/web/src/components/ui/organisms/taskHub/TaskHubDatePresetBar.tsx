@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { TaskDatePreset } from '@qa/contracts';
+import { TaskDatePreset } from '@qlick/contracts';
 
 interface TaskHubDatePresetBarProps {
   datePresetView: TaskDatePreset | 'all';

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FolderTreeNode, TaskDatePreset } from '@qa/contracts';
+import { FolderTreeNode, TaskDatePreset } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { DateRange } from '../molecules/DateRangePicker';
 import { Drawer } from '../molecules/Drawer';

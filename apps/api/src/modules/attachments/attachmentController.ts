@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { attachmentService } from './attachmentService.js';
-import { UploadTaskAttachmentSchema } from '@qa/contracts';
+import { UploadTaskAttachmentSchema } from '@qlick/contracts';
 import { ZodError } from 'zod';
 
 function handleError(res: Response, error: unknown) {

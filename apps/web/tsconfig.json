@@ -22,7 +22,8 @@
 
     /* Path alias */
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@qlick/contracts": ["../../packages/contracts/dist/index.d.ts"]
     }
   },
   "include": ["src"]

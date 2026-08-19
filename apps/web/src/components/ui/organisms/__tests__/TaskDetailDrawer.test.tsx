@@ -8,12 +8,33 @@ import authReducer from '../../../../store/authSlice';
 import taskReducer from '../../../../store/taskSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
-import type { Task } from '@qa/contracts';
+import type { Task } from '@qlick/contracts';
 
-const { getProductBriefMock, upsertProductBriefMock, listTaskActivitiesMock } = vi.hoisted(() => ({
+const {
+  getProductBriefMock,
+  upsertProductBriefMock,
+  listTaskActivitiesMock,
+  listTaskRequirementLinksMock,
+  createRequirementMock,
+  linkRequirementMock,
+  unlinkRequirementMock,
+} = vi.hoisted(() => ({
   getProductBriefMock: vi.fn(),
   upsertProductBriefMock: vi.fn(),
   listTaskActivitiesMock: vi.fn(),
+  listTaskRequirementLinksMock: vi.fn(),
+  createRequirementMock: vi.fn(),
+  linkRequirementMock: vi.fn(),
+  unlinkRequirementMock: vi.fn(),
+}));
+
+vi.mock('../../../../lib/api/requirementService', () => ({
+  requirementService: {
+    listTaskRequirementLinks: listTaskRequirementLinksMock,
+    createRequirement: createRequirementMock,
+    linkRequirement: linkRequirementMock,
+    unlinkRequirement: unlinkRequirementMock,
+  },
 }));
 
 vi.mock('../../../../lib/api/qaDocumentService', () => ({
@@ -135,6 +156,24 @@ describe('TaskDetailDrawer UI Component', () => {
   beforeEach(() => {
     getProductBriefMock.mockResolvedValue(productBrief);
     upsertProductBriefMock.mockResolvedValue(productBrief);
+    listTaskRequirementLinksMock.mockResolvedValue([]);
+    createRequirementMock.mockResolvedValue({
+      id: 'req-figma-1',
+      workspaceId: mockTask.workspaceId,
+      code: 'FIGMA-01',
+      title: 'Checkout Flow UI Figma Prototype',
+      url: 'https://www.figma.com/file/123/Checkout',
+      status: 'active',
+      createdBy: 'user-1',
+    });
+    linkRequirementMock.mockResolvedValue({
+      id: 'link-1',
+      workspaceId: mockTask.workspaceId,
+      taskId: mockTask.id,
+      requirementId: 'req-figma-1',
+      linkedBy: 'user-1',
+    });
+    unlinkRequirementMock.mockResolvedValue(undefined);
     listTaskActivitiesMock.mockResolvedValue({
       activities: [
         {
@@ -153,30 +192,32 @@ describe('TaskDetailDrawer UI Component', () => {
     });
   });
 
-  test('Renders task title, status, and tab controls', () => {
+  test('Renders task title, status, and tab controls', async () => {
     renderWithRedux(
       <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />
     );
 
-    expect(screen.getByRole('heading', { name: 'Test Parent Task Title' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Test Parent Task Title' })).toBeInTheDocument();
     expect(screen.getByText('Overview')).toBeInTheDocument();
     expect(screen.getByText(/Subtasks/)).toBeInTheDocument();
     expect(screen.getByText(/^Activity \(/)).toBeInTheDocument();
     expect(screen.getByText(/Discussion/)).toBeInTheDocument();
   });
 
-  test('Switches between detail tabs when clicked', () => {
+  test('Switches between detail tabs when clicked', async () => {
     renderWithRedux(
       <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />
     );
 
+    expect(await screen.findByRole('heading', { name: 'Test Parent Task Title' })).toBeInTheDocument();
+
     const discussionTab = screen.getByRole('button', { name: /Discussion/ });
     fireEvent.click(discussionTab);
-    expect(screen.getByText('Task Discussion Thread')).toBeInTheDocument();
+    expect(await screen.findByText('Task Discussion Thread')).toBeInTheDocument();
 
     const activityTab = screen.getByRole('button', { name: /Activity/ });
     fireEvent.click(activityTab);
-    expect(screen.getByText('Activity & Audit Trail')).toBeInTheDocument();
+    expect(await screen.findByText('Activity & Audit Trail')).toBeInTheDocument();
   });
 
   test('places the Specification Brief before requirements and supporting documents', async () => {
@@ -188,17 +229,115 @@ describe('TaskDetailDrawer UI Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Specs & Requirements/ }));
 
     const specificationBriefHeading = await screen.findByRole('heading', { name: 'Specification Brief' });
-    const requirementsHeading = screen.getByText(/Linked Workspace Requirements/);
+    const requirementsHeading = await screen.findByText(/Requirement & Reference Links/);
 
     expect(specificationBriefHeading.compareDocumentPosition(requirementsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  test('renders parent tasks as read-only without a planning role', () => {
+  test('renders Requirement & Reference Links with Figma prototype and Google Sheet links and open reference button', async () => {
+    listTaskRequirementLinksMock.mockResolvedValueOnce([
+      {
+        id: 'link-1',
+        workspaceId: mockTask.workspaceId,
+        taskId: mockTask.id,
+        requirementId: 'req-1',
+        linkedBy: 'user-1',
+        createdAt: '2026-08-14T00:00:00.000Z',
+        requirement: {
+          id: 'req-1',
+          workspaceId: mockTask.workspaceId,
+          code: 'FIGMA-01',
+          title: 'Checkout Prototype UI',
+          url: 'https://www.figma.com/file/xyz/Checkout',
+          status: 'active',
+          createdBy: 'user-1',
+          createdAt: '2026-08-14T00:00:00.000Z',
+          updatedAt: '2026-08-14T00:00:00.000Z',
+        },
+      },
+      {
+        id: 'link-2',
+        workspaceId: mockTask.workspaceId,
+        taskId: mockTask.id,
+        requirementId: 'req-2',
+        linkedBy: 'user-1',
+        createdAt: '2026-08-14T00:00:00.000Z',
+        requirement: {
+          id: 'req-2',
+          workspaceId: mockTask.workspaceId,
+          code: 'SHEET-01',
+          title: 'Coupon Calculation Matrix',
+          url: 'https://docs.google.com/spreadsheets/d/abc/edit',
+          status: 'active',
+          createdBy: 'user-1',
+          createdAt: '2026-08-14T00:00:00.000Z',
+          updatedAt: '2026-08-14T00:00:00.000Z',
+        },
+      },
+    ]);
+
+    renderWithRedux(
+      <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />,
+      'po'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Specs & Requirements/ }));
+
+    expect(await screen.findByText('Checkout Prototype UI')).toBeInTheDocument();
+    expect(screen.getByText('Coupon Calculation Matrix')).toBeInTheDocument();
+    expect(screen.getByText('Figma')).toBeInTheDocument();
+    expect(screen.getByText('Spreadsheet')).toBeInTheDocument();
+
+    const openLinks = screen.getAllByRole('link', { name: /Open Reference/ });
+    expect(openLinks.length).toBe(2);
+    expect(openLinks[0]).toHaveAttribute('href', 'https://www.figma.com/file/xyz/Checkout');
+    expect(openLinks[0]).toHaveAttribute('target', '_blank');
+    expect(openLinks[0]).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  test('QA and Developer roles see 1-click open reference links and guidance message without embed form', async () => {
+    listTaskRequirementLinksMock.mockResolvedValueOnce([
+      {
+        id: 'link-1',
+        workspaceId: mockTask.workspaceId,
+        taskId: mockTask.id,
+        requirementId: 'req-1',
+        linkedBy: 'user-1',
+        createdAt: '2026-08-14T00:00:00.000Z',
+        requirement: {
+          id: 'req-1',
+          workspaceId: mockTask.workspaceId,
+          code: 'FIGMA-01',
+          title: 'Checkout Prototype UI',
+          url: 'https://www.figma.com/file/xyz/Checkout',
+          status: 'active',
+          createdBy: 'user-1',
+          createdAt: '2026-08-14T00:00:00.000Z',
+          updatedAt: '2026-08-14T00:00:00.000Z',
+        },
+      },
+    ]);
+
+    renderWithRedux(
+      <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />,
+      'qa'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Specs & Requirements/ }));
+
+    expect(await screen.findByText('Checkout Prototype UI')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open Reference/ })).toBeInTheDocument();
+    expect(screen.getByText(/Reference links are provided by the Product Owner/)).toBeInTheDocument();
+    expect(screen.queryByText(/Embed New Requirement Reference/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Unlink')).not.toBeInTheDocument();
+  });
+
+  test('renders parent tasks as read-only without a planning role', async () => {
     renderWithRedux(
       <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />
     );
 
-    expect(screen.getByLabelText('Task Overview & Description')).toBeDisabled();
+    expect(await screen.findByLabelText('Task Overview & Description')).toBeDisabled();
     expect(screen.queryByText('Save Changes')).not.toBeInTheDocument();
     expect(screen.queryByText('Complete Task')).not.toBeInTheDocument();
   });
@@ -250,6 +389,8 @@ describe('TaskDetailDrawer UI Component', () => {
       'qa'
     );
 
+    expect(await screen.findByRole('heading', { name: 'Test Parent Task Title' })).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: /Discussion/ }));
 
     expect(
@@ -269,6 +410,8 @@ describe('TaskDetailDrawer UI Component', () => {
       <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />,
       'qa'
     );
+
+    expect(await screen.findByRole('heading', { name: 'Test Parent Task Title' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Subtasks/ }));
 
@@ -297,6 +440,8 @@ describe('TaskDetailDrawer UI Component', () => {
       'qa'
     );
 
+    expect(await screen.findByRole('heading', { name: 'Test Parent Task Title' })).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: /Activity/ }));
 
     expect(
@@ -309,5 +454,66 @@ describe('TaskDetailDrawer UI Component', () => {
       'src',
       'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024043/ChatGPT_Image_Aug_18_2026_10_33_31_AM.png'
     );
+  });
+
+  test('preserves user draft input and active tab when task object reference updates for the same task id', async () => {
+    const { rerender } = renderWithRedux(
+      <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />,
+      'po'
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Test Parent Task Title' })).toBeInTheDocument();
+
+    // Navigate to discussion tab
+    fireEvent.click(screen.getByRole('button', { name: /Discussion/ }));
+    expect(await screen.findByText('Task Discussion Thread')).toBeInTheDocument();
+
+    // Type a message in the composer
+    const textarea = screen.getByPlaceholderText(/Write a message to your team/i);
+    fireEvent.change(textarea, { target: { value: 'My in-progress draft comment' } });
+    expect(textarea).toHaveValue('My in-progress draft comment');
+
+    // Simulate task object reference change with rerender
+    const updatedTaskReference = { ...mockTask, updatedAt: '2026-08-14T01:00:00.000Z' };
+    rerender(
+      <Provider
+        store={configureStore({
+          reducer: {
+            auth: authReducer,
+            task: taskReducer,
+            workspace: workspaceReducer,
+            ui: uiReducer,
+          },
+          preloadedState: {
+            workspace: {
+              workspaces: [
+                {
+                  id: 'ws-11111111-2222-3333-4444-555555555555',
+                  name: 'Test workspace',
+                  slug: 'test-workspace',
+                  ownerId: '123e4567-e89b-12d3-a456-426614174000',
+                  allowQaTaskCreation: false,
+                  role: 'po' as const,
+                  createdAt: '2026-08-14T00:00:00.000Z',
+                  updatedAt: '2026-08-14T00:00:00.000Z',
+                },
+              ],
+              activeWorkspaceId: 'ws-11111111-2222-3333-4444-555555555555',
+              members: [],
+              isLoading: false,
+              isMembersLoading: false,
+              isInitialized: true,
+              error: null,
+            },
+          },
+        })}
+      >
+        <TaskDetailDrawer task={updatedTaskReference} folders={[]} onClose={vi.fn()} />
+      </Provider>
+    );
+
+    // Active tab and draft comment must NOT be lost
+    expect(screen.getByText('Task Discussion Thread')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Write a message to your team/i)).toHaveValue('My in-progress draft comment');
   });
 });

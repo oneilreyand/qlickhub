@@ -1,5 +1,5 @@
 import React from 'react';
-import { TaskStatus } from '@qa/contracts';
+import { TaskStatus } from '@qlick/contracts';
 import { Badge, BadgeProps } from '../atoms/Badge';
 
 export type TaskQaState = 'Passed' | 'In Review' | 'Blocked' | 'Draft';

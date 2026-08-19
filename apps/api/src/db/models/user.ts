@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../sequelize.js';
-import { UserRole } from '@qa/contracts';
+import { UserRole } from '@qlick/contracts';
 
 export interface UserAttributes {
   id: string;
@@ -11,12 +11,13 @@ export interface UserAttributes {
   role: UserRole;
   passwordResetToken?: string | null;
   passwordResetExpiresAt?: Date | null;
+  onboardingCompletedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
 }
 
-export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'passwordHash' | 'avatarUrl' | 'role' | 'passwordResetToken' | 'passwordResetExpiresAt'> {}
+export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'passwordHash' | 'avatarUrl' | 'role' | 'passwordResetToken' | 'passwordResetExpiresAt' | 'onboardingCompletedAt'> {}
 
 export class UserModel extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   declare id: string;
@@ -27,6 +28,7 @@ export class UserModel extends Model<UserAttributes, UserCreationAttributes> imp
   declare role: UserRole;
   declare passwordResetToken: string | null;
   declare passwordResetExpiresAt: Date | null;
+  declare onboardingCompletedAt: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
   declare readonly deletedAt: Date | null;
@@ -59,9 +61,9 @@ UserModel.init(
       field: 'avatar_url',
     },
     role: {
-      type: DataTypes.ENUM('admin', 'qa_lead', 'qa_member', 'dev', 'po', 'viewer'),
+      type: DataTypes.ENUM('owner', 'admin', 'po', 'dev', 'qa', 'viewer'),
       allowNull: false,
-      defaultValue: 'qa_member',
+      defaultValue: 'dev',
     },
     passwordResetToken: {
       type: DataTypes.STRING(255),
@@ -72,6 +74,11 @@ UserModel.init(
       type: DataTypes.DATE,
       allowNull: true,
       field: 'password_reset_expires_at',
+    },
+    onboardingCompletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'onboarding_completed_at',
     },
   },
   {

@@ -8,7 +8,7 @@ import {
   AssignableWorkspaceRole,
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 import { emailService } from '../../services/emailService.js';
 
 function slugify(text: string): string {
@@ -29,10 +29,10 @@ export class WorkspaceService {
       slug = `ws-${Date.now()}`;
     }
 
-    // Check user permission (only owner/admin/leader roles: admin, qa_lead, po)
+    // Check user permission (allowed roles: owner, admin, po, qa)
     const user = await UserModel.findByPk(userId);
-    if (!user || !['admin', 'qa_lead', 'po'].includes(user.role)) {
-      throw new Error('FORBIDDEN: Only workspace owners, admins, and team leads are authorized to create new workspaces.');
+    if (!user || !['owner', 'admin', 'po', 'qa'].includes(user.role)) {
+      throw new Error('FORBIDDEN: Only workspace owners, admins, product owners, and QA are authorized to create new workspaces.');
     }
 
     // Check slug uniqueness

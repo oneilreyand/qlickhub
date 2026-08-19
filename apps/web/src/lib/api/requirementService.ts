@@ -1,17 +1,10 @@
 import { apiClient } from './apiClient';
-import { Requirement, TaskRequirementLink } from '@qa/contracts';
+import { Requirement, TaskRequirementLink } from '@qlick/contracts';
 
 export const requirementService = {
-  async listWorkspaceRequirements(workspaceId: string): Promise<Requirement[]> {
-    const res = await apiClient<{ requirements: Requirement[] }>(
-      `/workspaces/${workspaceId}/requirements`
-    );
-    return res.requirements || [];
-  },
-
   async createRequirement(
     workspaceId: string,
-    input: { code: string; title: string; description?: string; url?: string }
+    input: { code?: string; title: string; description?: string; url?: string }
   ): Promise<Requirement> {
     const res = await apiClient<{ requirement: Requirement }>(
       `/workspaces/${workspaceId}/requirements`,

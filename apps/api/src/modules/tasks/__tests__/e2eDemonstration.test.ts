@@ -10,7 +10,7 @@ import {
   TaskModel,
 } from "../../../db/models/index.js";
 import { taskService } from "../taskService.js";
-import { CreateTaskSchema } from "@qa/contracts";
+import { CreateTaskSchema } from "@qlick/contracts";
 
 describe("LIVE E2E DEMONSTRATION SCENARIO (1 PO, 1 DEV, 1 QA)", () => {
   let poUser: UserModel;
@@ -53,7 +53,7 @@ describe("LIVE E2E DEMONSTRATION SCENARIO (1 PO, 1 DEV, 1 QA)", () => {
       id: uuidv4(),
       email: `doni.qa.${Date.now()}@example.com`,
       name: "Doni Wijaya (QA Engineer)",
-      role: "qa_member",
+      role: 'qa',
       passwordHash,
     });
     console.log(`   ✅ 3. QA  : ${qaUser.name} (${qaUser.email})`);

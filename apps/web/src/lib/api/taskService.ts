@@ -1,6 +1,7 @@
 import { apiClient } from './apiClient';
 import {
   Task,
+  TaskStatus,
   TaskListResponse,
   TaskListQuery,
   CreateTaskInput,
@@ -12,9 +13,41 @@ import {
   CreateTaskCommentInput,
   UpdateTaskCommentInput,
   TaskComment,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 export const taskService = {
+  async getTask(workspaceId: string, taskId: string): Promise<Task> {
+    const res = await apiClient<{ data: Task }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}`
+    );
+    return res.data;
+  },
+
+  async deleteTask(workspaceId: string, taskId: string): Promise<{ success: boolean }> {
+    const res = await apiClient<{ data: { success: boolean } }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    return res.data;
+  },
+
+  async updateTaskStatus(
+    workspaceId: string,
+    taskId: string,
+    status: TaskStatus
+  ): Promise<Task> {
+    const res = await apiClient<{ data: Task }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }
+    );
+    return res.data;
+  },
+
   async listTasks(
     workspaceId: string,
     query?: Partial<Omit<TaskListQuery, 'workspaceId'>>

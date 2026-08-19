@@ -11,7 +11,7 @@ import {
   ChangePasswordRequestSchema,
   UpdateProfileRequestSchema,
   AdminResetPasswordRequestSchema,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 import { UserModel, WorkspaceMemberModel } from '../../db/models/index.js';
 import { AuthenticatedRequest, authenticate } from '../../http/middleware/authenticate.js';
 import { loginRateLimiter } from '../../http/middleware/rateLimit.js';
@@ -33,6 +33,7 @@ const toAuthenticatedUser = (user: UserModel) => ({
   name: user.name,
   role: user.role,
   avatarUrl: user.avatarUrl || null,
+  onboardingCompletedAt: user.onboardingCompletedAt ? user.onboardingCompletedAt.toISOString() : null,
   createdAt: user.createdAt.toISOString(),
   updatedAt: user.updatedAt.toISOString(),
 });
@@ -270,6 +271,45 @@ authRouter.get('/session', authenticate, async (req: AuthenticatedRequest, res: 
     return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Your session is no longer valid.' } });
   }
   return res.status(200).json({ data: { user: toAuthenticatedUser(user) } });
+});
+
+// POST /v1/auth/onboarding/complete — marks onboarding as completed for current authenticated user
+authRouter.post('/onboarding/complete', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  const user = await UserModel.findByPk(req.user!.userId);
+  if (!user) {
+    return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'User not found.' } });
+  }
+
+  const now = new Date();
+  user.onboardingCompletedAt = now;
+  await user.save();
+
+  return res.status(200).json({
+    data: {
+      success: true,
+      onboardingCompletedAt: now.toISOString(),
+      user: toAuthenticatedUser(user),
+    },
+  });
+});
+
+// POST /v1/auth/onboarding/reset — resets onboarding completion status (for testing / restart)
+authRouter.post('/onboarding/reset', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  const user = await UserModel.findByPk(req.user!.userId);
+  if (!user) {
+    return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'User not found.' } });
+  }
+
+  user.onboardingCompletedAt = null;
+  await user.save();
+
+  return res.status(200).json({
+    data: {
+      success: true,
+      onboardingCompletedAt: null,
+      user: toAuthenticatedUser(user),
+    },
+  });
 });
 
 // POST /v1/auth/refresh — extends active session & issues fresh cookie

@@ -12,7 +12,7 @@ import {
   assertCanUploadAttachment,
   assertCanDeleteAttachment,
 } from '../../policies/attachmentPolicy.js';
-import { AttachmentCategory, TaskAttachment } from '@qa/contracts';
+import { AttachmentCategory, TaskAttachment } from '@qlick/contracts';
 
 function formatAttachment(a: TaskAttachmentModel): TaskAttachment {
   const json = a.toJSON();

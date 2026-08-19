@@ -7,7 +7,6 @@ import {
   TaskActivityModel,
   WorkFolderModel,
   WorkspaceMemberModel,
-  WorkspaceModel,
 } from '../../db/models/index.js';
 import {
   assertCanReadQaDocuments,
@@ -24,7 +23,7 @@ import {
   ProductBrief,
   ProductBriefScopeItem,
   UpsertProductBriefInput,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 import { randomUUID } from 'node:crypto';
 
 function formatDocument(d: QaDocumentModel | Record<string, any>): QaDocument {
@@ -359,7 +358,7 @@ export class QaDocumentService {
         previousStatus = document.status;
         versionNumber = document.currentVersion + 1;
         document.title = input.title.trim();
-        document.ownerId = ownerId;
+        document.ownerId = document.ownerId || ownerId;
         document.status = input.status;
         document.currentVersion = versionNumber;
         await document.save({ transaction });
@@ -469,7 +468,6 @@ export class QaDocumentService {
     documentId: string
   ): Promise<TaskDocumentLink> {
     const member = await getActorMembership(workspaceId, actorId);
-    const workspace = await WorkspaceModel.findByPk(workspaceId);
     const task = await TaskModel.findOne({
       where: { id: taskId, workspaceId },
     });
@@ -481,8 +479,7 @@ export class QaDocumentService {
     assertCanLinkQaDocument(
       member.role,
       actorId,
-      { parentTaskId: task.parentTaskId, assigneeId: task.assigneeId },
-      workspace?.allowQaTaskCreation ?? true
+      { parentTaskId: task.parentTaskId, assigneeId: task.assigneeId }
     );
 
     const doc = await QaDocumentModel.findOne({
@@ -547,7 +544,6 @@ export class QaDocumentService {
     documentId: string
   ): Promise<{ success: boolean }> {
     const member = await getActorMembership(workspaceId, actorId);
-    const workspace = await WorkspaceModel.findByPk(workspaceId);
     const task = await TaskModel.findOne({
       where: { id: taskId, workspaceId },
     });
@@ -559,8 +555,7 @@ export class QaDocumentService {
     assertCanLinkQaDocument(
       member.role,
       actorId,
-      { parentTaskId: task.parentTaskId, assigneeId: task.assigneeId },
-      workspace?.allowQaTaskCreation ?? true
+      { parentTaskId: task.parentTaskId, assigneeId: task.assigneeId }
     );
 
     const link = await TaskDocumentModel.findOne({

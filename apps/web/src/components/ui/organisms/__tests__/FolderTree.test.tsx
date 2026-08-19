@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { FolderTreeNode } from '@qa/contracts';
+import type { FolderTreeNode } from '@qlick/contracts';
 import { FolderTree } from '../FolderTree';
 
 const rootFolder: FolderTreeNode = {

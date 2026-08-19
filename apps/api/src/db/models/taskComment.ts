@@ -92,6 +92,7 @@ TaskCommentModel.init(
     sequelize,
     tableName: 'task_comments',
     timestamps: true,
+    paranoid: true,
     underscored: true,
   }
 );

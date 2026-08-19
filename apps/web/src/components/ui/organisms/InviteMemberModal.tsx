@@ -1,6 +1,6 @@
 import React from 'react';
 import { Mail, CheckSquare, Square } from 'lucide-react';
-import { AssignableWorkspaceRole } from '@qa/contracts';
+import { AssignableWorkspaceRole } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
 import { Select } from '../atoms/Select';

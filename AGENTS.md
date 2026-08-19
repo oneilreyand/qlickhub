@@ -1,6 +1,6 @@
-# Agent Workflow — QA Management System
+# Agent Workflow — Qlick Hub (Task Management & Collaboration Hub)
 
-This file is the mandatory operating guide for every agent working in this repository.
+This file is the mandatory operating guide for every agent working in this repository. Qlick Hub is a unified Task Management & Collaboration platform connecting Product Owners, Developers (Frontend & Backend), and QA for end-to-end task orchestration and delivery.
 
 ## Source of truth
 

@@ -7,7 +7,7 @@ import {
   MoveFolderInput,
   FolderTreeNode,
   Folder,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 function formatFolder(f: WorkFolderModel): Folder {
   const json = f.toJSON();

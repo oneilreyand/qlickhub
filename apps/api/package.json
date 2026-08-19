@@ -1,5 +1,5 @@
 {
-  "name": "@qa/api",
+  "name": "@qlick/api",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -14,10 +14,11 @@
     "db:seed:full": "tsx scripts/seedFullTestData.ts",
     "db:reset:admin": "tsx scripts/resetAndSeedAdmin.ts",
     "db:clear:non-users": "tsx scripts/clearAllExceptUsers.ts",
+    "test": "NODE_ENV=test npm run build && NODE_ENV=test node --test $(find dist -type f -path '*/__tests__/*.test.js' -print)",
     "test:integration": "NODE_ENV=test npm run build && NODE_ENV=test node --test $(find dist -type f -path '*/__tests__/*.test.js' -print)"
   },
   "dependencies": {
-    "@qa/contracts": "*",
+    "@qlick/contracts": "*",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

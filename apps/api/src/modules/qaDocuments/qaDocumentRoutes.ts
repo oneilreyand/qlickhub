@@ -32,13 +32,13 @@ qaDocumentRoutes.get(
 
 qaDocumentRoutes.post(
   '/workspaces/:workspaceId/documents',
-  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  requireWorkspaceMember(['owner', 'admin', 'qa']),
   createDocument
 );
 
 qaDocumentRoutes.post(
   '/workspaces/:workspaceId/documents/:documentId/versions',
-  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  requireWorkspaceMember(['owner', 'admin', 'qa']),
   createDocumentVersion
 );
 
@@ -63,12 +63,12 @@ qaDocumentRoutes.get(
 
 qaDocumentRoutes.post(
   '/workspaces/:workspaceId/tasks/:taskId/documents',
-  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  requireWorkspaceMember(['owner', 'admin', 'qa']),
   linkDocumentToTask
 );
 
 qaDocumentRoutes.delete(
   '/workspaces/:workspaceId/tasks/:taskId/documents/:documentId',
-  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  requireWorkspaceMember(['owner', 'admin', 'qa']),
   unlinkDocumentFromTask
 );

@@ -11,7 +11,7 @@ import {
   RefreshCw,
   FolderPlus,
 } from 'lucide-react';
-import { FolderTreeNode, WorkspaceRole } from '@qa/contracts';
+import { FolderTreeNode, WorkspaceRole } from '@qlick/contracts';
 import { IconButton } from '../atoms/IconButton';
 import { Button } from '../atoms/Button';
 import { Skeleton } from '../atoms/Skeleton';

@@ -8,7 +8,7 @@ import {
   updateMemberRole,
   removeMember,
 } from '../store/workspaceSlice';
-import { AssignableWorkspaceRole } from '@qa/contracts';
+import { AssignableWorkspaceRole } from '@qlick/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { authService } from '../lib/api/authService';
 import { Building2 } from 'lucide-react';

@@ -16,4 +16,13 @@ describe('Workspace Policy Unit Tests', () => {
     assert.strictEqual(hasWorkspaceRole('dev', ['owner', 'admin']), false);
     assert.strictEqual(hasWorkspaceRole('qa', ['qa', 'dev', 'po']), true);
   });
+
+  test('workspace creation allows owner, admin, and po but blocks qa and dev', () => {
+    const creationAllowedRoles: any[] = ['owner', 'admin', 'po'];
+    assert.strictEqual(hasWorkspaceRole('owner', creationAllowedRoles), true);
+    assert.strictEqual(hasWorkspaceRole('admin', creationAllowedRoles), true);
+    assert.strictEqual(hasWorkspaceRole('po', creationAllowedRoles), true);
+    assert.strictEqual(hasWorkspaceRole('qa', creationAllowedRoles), false);
+    assert.strictEqual(hasWorkspaceRole('dev', creationAllowedRoles), false);
+  });
 });

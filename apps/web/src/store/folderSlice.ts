@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { folderService } from '../lib/api/folderService';
-import { FolderTreeNode, CreateFolderInput, UpdateFolderInput } from '@qa/contracts';
+import { FolderTreeNode, CreateFolderInput, UpdateFolderInput } from '@qlick/contracts';
 
 interface FolderState {
   folders: FolderTreeNode[];

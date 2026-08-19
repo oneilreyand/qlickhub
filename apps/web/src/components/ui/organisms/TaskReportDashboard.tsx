@@ -8,7 +8,7 @@ import {
   FileBarChart,
   RefreshCw,
 } from 'lucide-react';
-import type { Task, TaskStatus } from '@qa/contracts';
+import type { Task, TaskStatus } from '@qlick/contracts';
 import { Alert } from '../atoms/Alert';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
@@ -20,10 +20,12 @@ import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { BarChart } from './Chart';
 import { StatCard } from './StatCard';
 import { QaTraceabilityMatrix } from './QaTraceabilityMatrix';
+import { QaDocumentsManager } from './QaDocumentsManager';
 
 interface TaskReportDashboardProps {
   workspaceId?: string;
   workspaceName?: string;
+  userRole?: string;
   tasks: Task[];
   total: number;
   isLoading: boolean;
@@ -60,6 +62,7 @@ function priorityWeight(priority: Task['priority']): number {
 export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
   workspaceId,
   workspaceName,
+  userRole = 'qa',
   tasks,
   total,
   isLoading,
@@ -70,7 +73,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
   onOpenWorkHub,
   requiresWorkspace = false,
 }) => {
-  const [activeReportTab, setActiveReportTab] = React.useState<'delivery' | 'traceability'>('delivery');
+  const [activeReportTab, setActiveReportTab] = React.useState<'delivery' | 'traceability' | 'docs'>('delivery');
   const report = useMemo(() => {
     const byStatus = Object.fromEntries(statusOrder.map((status) => [status, 0])) as Record<TaskStatus, number>;
     const byPriority = Object.fromEntries(
@@ -178,6 +181,16 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
         >
           QA Traceability Matrix
         </button>
+        <button
+          onClick={() => setActiveReportTab('docs')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+            activeReportTab === 'docs'
+              ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm'
+              : 'text-stone-600 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800'
+          }`}
+        >
+          QA Test Plans & Documents
+        </button>
       </div>
 
       {requiresWorkspace ? (
@@ -186,6 +199,8 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
           title="Choose a workspace to view reports"
           description="Reports are calculated from the tasks you are permitted to see in the active workspace."
         />
+      ) : activeReportTab === 'docs' && workspaceId ? (
+        <QaDocumentsManager workspaceId={workspaceId} userRole={userRole} />
       ) : activeReportTab === 'traceability' && workspaceId ? (
         <QaTraceabilityMatrix workspaceId={workspaceId} />
       ) : error && tasks.length === 0 ? (
@@ -316,9 +331,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                         <p className="mt-2 truncate text-sm font-bold text-stone-900 dark:text-stone-100">{task.title}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2 text-xs font-semibold">
-                        <span className={isOverdue ? 'text-rose-600 dark:text-rose-300' : 'text-amber-700 dark:text-amber-300'}>
-                          <CalendarDays className="mr-1 inline h-3.5 w-3.5" />
-                          {isOverdue ? `Overdue · ${task.dueDate}` : `Due today · ${task.dueDate}`}
+                        <span className={`inline-flex items-center gap-1.5 ${isOverdue ? 'text-rose-600 dark:text-rose-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                          <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                          <span>{isOverdue ? `Overdue · ${task.dueDate}` : `Due today · ${task.dueDate}`}</span>
                         </span>
                         <span className="rounded-full bg-stone-100 px-2 py-1 text-[11px] text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                           {priorityLabels[task.priority]}

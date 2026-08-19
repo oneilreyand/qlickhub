@@ -10,7 +10,8 @@ import {
   TaskCommentQuerySchema,
   CreateTaskCommentSchema,
   UpdateTaskCommentSchema,
-} from '@qa/contracts';
+  UpdateTaskStatusSchema,
+} from '@qlick/contracts';
 import { taskService } from './taskService.js';
 import { taskDiscussionService } from './taskDiscussionService.js';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
@@ -78,7 +79,13 @@ export class TaskController {
         workspaceId,
       });
 
-      const result = await taskService.listTasks(workspaceId, query);
+      const membership = (req as any).workspaceMembership;
+      const result = await taskService.listTasks(
+        workspaceId,
+        query,
+        req.user?.userId,
+        membership?.role
+      );
       res.status(200).json({ data: result });
     } catch (err) {
       formatProblemDetails(err, res);
@@ -92,7 +99,15 @@ export class TaskController {
       const page = req.query.page ? Number(req.query.page) : 1;
       const limit = req.query.limit ? Number(req.query.limit) : 50;
 
-      const result = await taskService.listSubtasks(workspaceId, parentTaskId, page, limit);
+      const membership = (req as any).workspaceMembership;
+      const result = await taskService.listSubtasks(
+        workspaceId,
+        parentTaskId,
+        page,
+        limit,
+        req.user?.userId,
+        membership?.role
+      );
       res.status(200).json({ data: result });
     } catch (err) {
       formatProblemDetails(err, res);
@@ -244,6 +259,49 @@ export class TaskController {
       const input = CompleteTaskSchema.parse(req.body);
 
       const task = await taskService.completeTask(req.user!.userId, workspaceId, taskId, input);
+      res.status(200).json({ data: task });
+    } catch (err) {
+      formatProblemDetails(err, res);
+    }
+  }
+
+  async getTask(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+    try {
+      const workspaceId = req.params.workspaceId;
+      const taskId = req.params.taskId;
+      const membership = (req as any).workspaceMembership;
+
+      const task = await taskService.getTask(
+        workspaceId,
+        taskId,
+        req.user!.userId,
+        membership?.role
+      );
+      res.status(200).json({ data: task });
+    } catch (err) {
+      formatProblemDetails(err, res);
+    }
+  }
+
+  async deleteTask(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+    try {
+      const workspaceId = req.params.workspaceId;
+      const taskId = req.params.taskId;
+
+      await taskService.deleteTask(workspaceId, taskId, req.user!.userId);
+      res.status(200).json({ data: { success: true } });
+    } catch (err) {
+      formatProblemDetails(err, res);
+    }
+  }
+
+  async updateTaskStatus(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+    try {
+      const workspaceId = req.params.workspaceId;
+      const taskId = req.params.taskId;
+      const input = UpdateTaskStatusSchema.parse(req.body);
+
+      const task = await taskService.updateTask(req.user!.userId, workspaceId, taskId, input);
       res.status(200).json({ data: task });
     } catch (err) {
       formatProblemDetails(err, res);

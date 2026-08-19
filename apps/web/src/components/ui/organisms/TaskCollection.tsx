@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChevronDown, ChevronRight, Calendar, Folder } from 'lucide-react';
-import type { Task, FolderTreeNode, TaskStatus } from '@qa/contracts';
+import { ChevronDown, ChevronRight, Calendar, Folder, ChevronsUpDown } from 'lucide-react';
+import type { Task, FolderTreeNode, TaskStatus } from '@qlick/contracts';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Skeleton } from '../atoms/Skeleton';
@@ -120,6 +120,18 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
     [tasks]
   );
 
+  const isAllCollapsed =
+    groupedTasks.length > 0 &&
+    groupedTasks.every((group) => collapsedStatuses.has(group.status));
+
+  const toggleCollapseAll = () => {
+    if (isAllCollapsed) {
+      setCollapsedStatuses(new Set());
+    } else {
+      setCollapsedStatuses(new Set(groupedTasks.map((group) => group.status)));
+    }
+  };
+
   const toggleStatus = (status: TaskStatus) => {
     setCollapsedStatuses((current) => {
       const next = new Set(current);
@@ -130,9 +142,31 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
   };
 
   return (
-    <>
+    <div className="space-y-3">
+      {/* Collapse / Expand All Toolbar */}
+      {!isLoading && !error && tasks.length > 0 && groupedTasks.length > 0 && (
+        <div className="flex items-center justify-between border-b border-stone-200/80 pb-2 dark:border-stone-800/80">
+          <div className="text-xs text-stone-500 dark:text-stone-400 font-medium">
+            <span className="font-bold text-stone-700 dark:text-stone-300">
+              {groupedTasks.length}
+            </span>{' '}
+            {groupedTasks.length === 1 ? 'status group' : 'status groups'}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleCollapseAll}
+            className="h-7 text-xs px-2.5 text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+            leftIcon={<ChevronsUpDown className="h-3.5 w-3.5" />}
+            aria-label={isAllCollapsed ? 'Expand all status groups' : 'Collapse all status groups'}
+          >
+            {isAllCollapsed ? 'Expand All' : 'Collapse All'}
+          </Button>
+        </div>
+      )}
+
       {/* Mobile Card List */}
-      <div className="mt-4 space-y-3 sm:hidden">
+      <div className="space-y-3 sm:hidden">
         {isLoading
           ? [1, 2, 3].map((id) => (
               <Card key={id} className="space-y-2 p-4">
@@ -210,7 +244,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
       </div>
 
       {/* Desktop Data Table View */}
-      <div className="mt-4 hidden overflow-x-auto sm:block">
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-left text-xs min-w-[650px]">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50/50 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-400">
@@ -323,7 +357,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
         </table>
         {!isLoading && !error && tasks.length === 0 ? <Empty /> : null}
       </div>
-    </>
+    </div>
   );
 };
 

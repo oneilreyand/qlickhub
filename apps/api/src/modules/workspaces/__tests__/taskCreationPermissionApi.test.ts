@@ -8,7 +8,7 @@ import { WorkspaceModel } from '../../../db/models/workspace.js';
 import { WorkspaceMemberModel } from '../../../db/models/workspaceMember.js';
 import { TaskCreationPermissionModel } from '../../../db/models/taskCreationPermission.js';
 import { UserModel } from '../../../db/models/user.js';
-import { CreateTaskSchema } from '@qa/contracts';
+import { CreateTaskSchema } from '@qlick/contracts';
 
 describe('Task Creation Permissions API Tests (P1 Remediation)', () => {
   let owner: UserModel;

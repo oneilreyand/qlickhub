@@ -6,6 +6,7 @@ export interface User {
   name: string;
   role: string;
   avatarUrl?: string | null;
+  onboardingCompletedAt?: string | null;
 }
 
 export interface AuthResponseData {
@@ -32,6 +33,20 @@ export const authService = {
   async getSession(): Promise<User> {
     const response = await apiClient<{ data: AuthResponseData }>('/auth/session');
     return response.data.user;
+  },
+
+  async completeOnboarding(): Promise<{ success: boolean; onboardingCompletedAt: string; user: User }> {
+    const response = await apiClient<{ data: { success: boolean; onboardingCompletedAt: string; user: User } }>('/auth/onboarding/complete', {
+      method: 'POST',
+    });
+    return response.data;
+  },
+
+  async resetOnboarding(): Promise<{ success: boolean; onboardingCompletedAt: null; user: User }> {
+    const response = await apiClient<{ data: { success: boolean; onboardingCompletedAt: null; user: User } }>('/auth/onboarding/reset', {
+      method: 'POST',
+    });
+    return response.data;
   },
 
   async forgotPassword(email: string): Promise<{ message: string }> {
@@ -133,6 +148,12 @@ export const authService = {
     localStorage.removeItem('user_email');
     localStorage.removeItem('user_name');
     localStorage.removeItem('user_id');
+    localStorage.removeItem('user_onboarding_completed_at');
+    try {
+      sessionStorage.clear();
+    } catch {
+      // ignore
+    }
     if (window.location.pathname !== '/login') {
       window.location.href = '/login';
     }

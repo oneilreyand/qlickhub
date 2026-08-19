@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import type { Task, DeliveryArea, TaskPriority } from '@qa/contracts';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import type { Task, DeliveryArea, TaskPriority } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
+import { Textarea } from '../atoms/Textarea';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
 import { Code2, Layers, Bug, Sparkles } from 'lucide-react';
@@ -52,51 +53,56 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
   );
 
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [deliveryArea, setDeliveryArea] = useState<DeliveryArea>('frontend');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [assigneeId, setAssigneeId] = useState<string>('');
+  const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [allowRoleMismatch, setAllowRoleMismatch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const prevIsOpenRef = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       setTitle('');
+      setDescription('');
       setDeliveryArea('frontend');
       setPriority('medium');
       setAssigneeId('');
+      setStartDate('');
       setDueDate('');
-      setAllowRoleMismatch(false);
+      if (activeWorkspaceId && canPlan) {
+        dispatch(fetchMembers(activeWorkspaceId));
+      }
     }
-    if (isOpen && activeWorkspaceId && canPlan) {
-      dispatch(fetchMembers(activeWorkspaceId));
-    }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, activeWorkspaceId, canPlan, dispatch]);
 
-  const selectedMember = members.find((m) => m.userId === assigneeId);
-  const isRoleMismatch = useMemo(() => {
-    if (!selectedMember) return false;
-    const role = selectedMember.role;
-    if (['owner', 'admin', 'po'].includes(role)) return false;
-    if ((deliveryArea === 'frontend' || deliveryArea === 'backend') && role !== 'dev') return true;
-    if (deliveryArea === 'qa' && role !== 'qa') return true;
-    return false;
-  }, [selectedMember, deliveryArea]);
-
-  // Sort members so that role matching the delivery area is at the top
-  const sortedMembers = useMemo(() => {
-    return [...members].sort((a, b) => {
-      const matchA =
-        (deliveryArea === 'qa' && a.role === 'qa') ||
-        ((deliveryArea === 'frontend' || deliveryArea === 'backend') && a.role === 'dev');
-      const matchB =
-        (deliveryArea === 'qa' && b.role === 'qa') ||
-        ((deliveryArea === 'frontend' || deliveryArea === 'backend') && b.role === 'dev');
-      if (matchA && !matchB) return -1;
-      if (!matchA && matchB) return 1;
-      return 0;
+  // Filter members strictly based on delivery area
+  const filteredMembers = useMemo(() => {
+    return members.filter((m) => {
+      const isPlannerRole = ['owner', 'admin', 'po'].includes(m.role);
+      if (isPlannerRole) return true;
+      if (deliveryArea === 'frontend' || deliveryArea === 'backend') {
+        return m.role === 'dev';
+      }
+      if (deliveryArea === 'qa') {
+        return m.role === 'qa';
+      }
+      return true;
     });
   }, [members, deliveryArea]);
+
+  // When delivery area changes, reset assignee if they are no longer eligible
+  useEffect(() => {
+    if (assigneeId && filteredMembers.length > 0) {
+      const isStillEligible = filteredMembers.some((m) => m.userId === assigneeId);
+      if (!isStillEligible) {
+        setAssigneeId('');
+      }
+    }
+  }, [deliveryArea, filteredMembers, assigneeId]);
 
   if (!parentTask || !canPlan) return null;
 
@@ -114,13 +120,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       return;
     }
 
-    if (isRoleMismatch && !allowRoleMismatch) {
-      dispatch(
-        enqueueSnackbar(
-          `Assignee has role "${selectedMember?.role}", which does not match delivery area "${deliveryArea.toUpperCase()}". Check the override box to proceed.`,
-          'error'
-        )
-      );
+    if (startDate && dueDate && startDate > dueDate) {
+      dispatch(enqueueSnackbar('Start date cannot be after due date', 'error'));
       return;
     }
 
@@ -128,12 +129,13 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
     try {
       await taskService.createSubtask(activeWorkspaceId, parentTask.id, {
         title: title.trim(),
+        description: description.trim() || undefined,
         deliveryArea,
         status: 'todo',
         priority,
         assigneeId,
+        startDate: startDate || undefined,
         dueDate: dueDate || undefined,
-        allowRoleMismatch: isRoleMismatch ? allowRoleMismatch : undefined,
       });
 
       dispatch(enqueueSnackbar(`Planned ${deliveryArea.toUpperCase()} subtask successfully`, 'success'));
@@ -250,11 +252,26 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
           />
         </div>
 
+        {/* Subtask Description */}
+        <div>
+          <label htmlFor="subtask-description" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+            Technical Description (Optional)
+          </label>
+          <Textarea
+            id="subtask-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Technical context, checklist, or instructions for the assignee (supports Markdown)..."
+            rows={3}
+            className="text-xs"
+          />
+        </div>
+
         {/* Assignee and Priority Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="subtask-assignee" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Assignee <span className="text-rose-500">*</span>
+              Assignee ({deliveryArea.toUpperCase()} Team) <span className="text-rose-500">*</span>
             </label>
             <Select
               id="subtask-assignee"
@@ -263,19 +280,18 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               disabled={isMembersLoading}
               aria-label="Assignee"
             >
-              <option value="">Select Assignee *</option>
-              {sortedMembers.map((member) => {
-                const isRecommended =
-                  (deliveryArea === 'qa' && member.role === 'qa') ||
-                  ((deliveryArea === 'frontend' || deliveryArea === 'backend') && member.role === 'dev');
-
-                return (
-                  <option key={member.userId} value={member.userId}>
-                    {member.user?.name || member.user?.email || member.userId} ({member.role}){isRecommended ? ' ★' : ''}
-                  </option>
-                );
-              })}
+              <option value="">Select {deliveryArea.toUpperCase()} Member *</option>
+              {filteredMembers.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.user?.name || member.user?.email || member.userId} ({member.role.toUpperCase()})
+                </option>
+              ))}
             </Select>
+            {filteredMembers.length === 0 && !isMembersLoading && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                No active members with role matching {deliveryArea.toUpperCase()}.
+              </p>
+            )}
           </div>
 
           <div>
@@ -296,38 +312,31 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
           </div>
         </div>
 
-        {/* Role Mismatch Warning & Override Checkbox */}
-        {isRoleMismatch && (
-          <div className="p-2.5 rounded-xl border border-amber-300 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs space-y-1.5 animate-fadeIn">
-            <div className="font-semibold flex items-center gap-1.5">
-              <span>⚠️ Role Mismatch Warning</span>
-            </div>
-            <p className="text-[11px] text-amber-800 dark:text-amber-300">
-              Selected member has role <strong>{selectedMember?.role}</strong>, but the subtask is in <strong>{deliveryArea.toUpperCase()}</strong>.
-            </p>
-            <label className="flex items-center gap-2 cursor-pointer pt-0.5">
-              <input
-                type="checkbox"
-                checked={allowRoleMismatch}
-                onChange={(e) => setAllowRoleMismatch(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
-              />
-              <span className="text-[11px] font-medium">Confirm assignment override (allow role mismatch)</span>
+        {/* Start Date and Due Date Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="subtask-start-date" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+              Start Date (Optional)
             </label>
+            <Input
+              type="date"
+              id="subtask-start-date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
           </div>
-        )}
 
-        {/* Due Date */}
-        <div>
-          <label htmlFor="subtask-due-date" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-            Due Date (Optional)
-          </label>
-          <Input
-            type="date"
-            id="subtask-due-date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
+          <div>
+            <label htmlFor="subtask-due-date" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+              Due Date (Optional)
+            </label>
+            <Input
+              type="date"
+              id="subtask-due-date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* Modal Actions */}

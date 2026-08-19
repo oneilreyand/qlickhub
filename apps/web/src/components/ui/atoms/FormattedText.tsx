@@ -180,6 +180,87 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
       continue;
     }
 
+    // ── GFM Table Detection ──────────────────────────────────────────────────
+    // A table starts when the current line is a pipe-row AND the next line is a
+    // separator row like | :--- | --- | :---: |
+    if (
+      line.trim().startsWith('|') &&
+      i + 1 < lines.length &&
+      /^\|[\s|:\-]+\|/.test(lines[i + 1].trim())
+    ) {
+      // Collect all consecutive pipe-lines starting from i
+      const tableLines: string[] = [];
+      let j = i;
+      while (j < lines.length && lines[j].trim().startsWith('|')) {
+        tableLines.push(lines[j]);
+        j++;
+      }
+
+      // tableLines[0] = header row, tableLines[1] = separator, tableLines[2..] = body rows
+      const parseRow = (row: string): string[] =>
+        row
+          .replace(/^\||\|$/g, '') // strip leading/trailing |
+          .split('|')
+          .map((cell) => cell.trim());
+
+      // Determine column alignments from separator row
+      const separatorCells = parseRow(tableLines[1] ?? '');
+      const alignments: ('left' | 'center' | 'right')[] = separatorCells.map((cell) => {
+        if (cell.startsWith(':') && cell.endsWith(':')) return 'center';
+        if (cell.endsWith(':')) return 'right';
+        return 'left';
+      });
+
+      const alignClass = (a: 'left' | 'center' | 'right') =>
+        a === 'center' ? 'text-center' : a === 'right' ? 'text-right' : 'text-left';
+
+      const headerCells = parseRow(tableLines[0]);
+      const bodyRows = tableLines.slice(2).map(parseRow);
+
+      elements.push(
+        <div
+          key={`table-${i}`}
+          className="my-3 w-full overflow-x-auto rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs"
+        >
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="bg-stone-100 dark:bg-stone-900/80">
+                {headerCells.map((cell, ci) => (
+                  <th
+                    key={ci}
+                    className={`border-b border-stone-200 dark:border-stone-800 px-3 py-2 font-bold text-stone-700 dark:text-stone-300 whitespace-nowrap ${alignClass(alignments[ci] ?? 'left')}`}
+                  >
+                    {parseInlineFormatting(cell)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {bodyRows.map((row, ri) => (
+                <tr
+                  key={ri}
+                  className="border-b border-stone-100 dark:border-stone-800/60 last:border-0 odd:bg-white even:bg-stone-50/60 dark:odd:bg-transparent dark:even:bg-stone-900/30 transition-colors hover:bg-stone-100/70 dark:hover:bg-stone-800/30"
+                >
+                  {row.map((cell, ci) => (
+                    <td
+                      key={ci}
+                      className={`px-3 py-2 text-stone-800 dark:text-stone-200 leading-relaxed ${alignClass(alignments[ci] ?? 'left')}`}
+                    >
+                      {parseInlineFormatting(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+
+      i = j - 1; // skip all processed table lines
+      continue;
+    }
+    // ── End Table Detection ──────────────────────────────────────────────────
+
     // Headings
     if (line.startsWith('# ')) {
       elements.push(

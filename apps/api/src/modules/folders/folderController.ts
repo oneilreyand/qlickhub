@@ -6,7 +6,7 @@ import {
   UpdateFolderSchema,
   MoveFolderSchema,
   ArchiveFolderSchema,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 function handleError(res: Response, error: unknown) {
   const message = error instanceof Error ? error.message : 'An error occurred';

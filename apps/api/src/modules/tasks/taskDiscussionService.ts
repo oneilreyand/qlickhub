@@ -13,7 +13,7 @@ import {
   TaskCommentQuery,
   TaskComment,
   TaskCommentListResponse,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 import { fcmService } from '../../services/fcmService.js';
 
 async function getActorMembership(
@@ -281,6 +281,57 @@ export class TaskDiscussionService {
         transaction,
       });
 
+      const isChannelMention = /@(channel|all)\b/i.test(input.body);
+
+      const channelRecipientIds: string[] = [];
+      if (isChannelMention) {
+        const parentId = task.parentTaskId || task.id;
+
+        // 1. Add current task's reporter and assignee
+        if (task.assigneeId) channelRecipientIds.push(task.assigneeId);
+        if (task.reporterId) channelRecipientIds.push(task.reporterId);
+
+        // 2. All related subtasks (or parent task if this is a subtask)
+        const relatedSubtasks = await TaskModel.findAll({
+          where: {
+            workspaceId,
+            [Op.or]: [
+              { parentTaskId: parentId },
+              { id: parentId },
+            ],
+          },
+          attributes: ['reporterId', 'assigneeId'],
+          transaction,
+        });
+
+        for (const rt of relatedSubtasks) {
+          if (rt.assigneeId) channelRecipientIds.push(rt.assigneeId);
+          if (rt.reporterId) channelRecipientIds.push(rt.reporterId);
+        }
+
+        // 3. All previous comment authors on this task
+        const previousComments = await TaskCommentModel.findAll({
+          where: { taskId },
+          attributes: ['authorId'],
+          transaction,
+        });
+        for (const pc of previousComments) {
+          if (pc.authorId) channelRecipientIds.push(pc.authorId);
+        }
+
+        // 4. Fallback: all workspace members if no specific participants
+        if (channelRecipientIds.filter((id) => id !== actorId).length === 0) {
+          const allMembers = await WorkspaceMemberModel.findAll({
+            where: { workspaceId },
+            attributes: ['userId'],
+            transaction,
+          });
+          for (const m of allMembers) {
+            channelRecipientIds.push(m.userId);
+          }
+        }
+      }
+
       return {
         formatted: formatComment(createdComment!),
         taskTitle: task.title,
@@ -289,19 +340,23 @@ export class TaskDiscussionService {
         parentCommentAuthorId,
         mentionedUserIds,
         commentId: comment.id,
+        isChannelMention,
+        channelRecipientIds,
       };
     });
 
     // Trigger 3: Discussion update on task user is working on (assignee), created (reporter), mentioned, or replying to
-    const recipientIds = Array.from(
-      new Set(
-        [
+    const baseRecipients = commentResult.isChannelMention
+      ? commentResult.channelRecipientIds
+      : [
           commentResult.assigneeId,
           commentResult.reporterId,
           commentResult.parentCommentAuthorId,
           ...commentResult.mentionedUserIds,
-        ].filter((id): id is string => Boolean(id && id !== actorId))
-      )
+        ];
+
+    const recipientIds = Array.from(
+      new Set(baseRecipients.filter((id): id is string => Boolean(id && id !== actorId)))
     );
 
     if (recipientIds.length > 0) {
@@ -312,16 +367,19 @@ export class TaskDiscussionService {
             .sendDiscussionUpdateNotification({
               recipientUserIds: recipientIds,
               authorName,
+              authorId: actorId,
               taskTitle: commentResult.taskTitle,
               taskId,
               workspaceId,
               commentId: commentResult.commentId,
               commentSnippet: input.body,
+              isChannel: commentResult.isChannelMention,
             })
             .catch((err) => console.warn('Failed to dispatch FCM discussion notification:', err));
         })
         .catch(() => {});
     }
+
 
     return commentResult.formatted;
   }
@@ -341,6 +399,7 @@ export class TaskDiscussionService {
 
       const comment = await TaskCommentModel.findOne({
         where: { id: commentId, taskId, workspaceId },
+        paranoid: false,
         include: [
           {
             model: UserModel,
@@ -431,11 +490,15 @@ export class TaskDiscussionService {
         throw new Error('FORBIDDEN: You can delete only your own comments.');
       }
 
-      comment.deletedAt = new Date();
       comment.body = '[This comment has been deleted]';
       await comment.save({ transaction });
+      await comment.destroy({ transaction });
 
-      return formatComment(comment);
+      const formatted = formatComment(comment);
+      if (!formatted.deletedAt) {
+        formatted.deletedAt = new Date().toISOString();
+      }
+      return formatted;
     });
   }
 }

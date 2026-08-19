@@ -33,8 +33,12 @@ export const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}>
-      {icon ? icon : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
-      <span>{children}</span>
+      {icon ? (
+        <span className="inline-flex items-center justify-center shrink-0 leading-none">{icon}</span>
+      ) : (
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+      )}
+      <span className="inline-flex items-center justify-center leading-normal">{children}</span>
     </span>
   );
 };

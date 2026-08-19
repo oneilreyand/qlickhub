@@ -69,4 +69,29 @@ describe('Header', () => {
 
     expect(reportButton).toHaveClass('bg-[#22201F]');
   });
+
+  it('highlights the My Tasks button as active when on /my-tasks', () => {
+    const store = configureStore({
+      reducer: {
+        auth: authReducer,
+        ui: uiReducer,
+        workspace: workspaceReducer,
+        folder: folderReducer,
+        task: taskReducer,
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/my-tasks']}>
+            <Header onToggleMobileSidebar={vi.fn()} />
+          </MemoryRouter>
+        </ThemeProvider>
+      </Provider>
+    );
+
+    const myTasksButton = screen.getByRole('button', { name: 'My Tasks' });
+    expect(myTasksButton).toHaveClass('bg-[#22201F]');
+  });
 });

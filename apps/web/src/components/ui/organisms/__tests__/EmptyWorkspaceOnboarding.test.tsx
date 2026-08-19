@@ -42,7 +42,7 @@ describe('EmptyWorkspaceOnboarding Organism', () => {
   });
 
   it('opens create workspace modal when button is clicked by permitted role', () => {
-    localStorage.setItem('user_role', 'qa_lead');
+    localStorage.setItem('user_role', 'qa');
     renderWithProviders(<EmptyWorkspaceOnboarding />);
 
     const createBtn = screen.getByRole('button', { name: /create workspace/i });

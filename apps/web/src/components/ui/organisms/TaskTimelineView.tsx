@@ -8,12 +8,18 @@ import {
   AlertTriangle,
   CheckCircle2,
   Info,
+  Code2,
+  Layers,
+  Bug,
 } from 'lucide-react';
-import type { Task, FolderTreeNode } from '@qa/contracts';
+import type { Task, FolderTreeNode, DeliveryArea } from '@qlick/contracts';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Skeleton } from '../atoms/Skeleton';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
+import { TaskScheduleHealthBadge } from '../molecules/TaskScheduleHealthBadge';
+import { taskService } from '../../../lib/api/taskService';
+import { calculateSubtaskScheduleHealth } from '../../../lib/utils/scheduleHealth';
 
 export const EMPTY_TASKS_ILLUSTRATION_URL =
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787027457/ChatGPT_Image_Aug_18_2026_11_30_28_AM.png';
@@ -89,6 +95,35 @@ function getPriorityBadge(priority: Task['priority']) {
   }
 }
 
+function getDeliveryAreaBadge(area?: DeliveryArea | null) {
+  switch (area) {
+    case 'frontend':
+      return (
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0">
+          <Code2 className="h-2.5 w-2.5" /> FE
+        </span>
+      );
+    case 'backend':
+      return (
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
+          <Layers className="h-2.5 w-2.5" /> BE
+        </span>
+      );
+    case 'qa':
+      return (
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+          <Bug className="h-2.5 w-2.5" /> QA
+        </span>
+      );
+    default:
+      return (
+        <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 shrink-0">
+          SUB
+        </span>
+      );
+  }
+}
+
 export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
   tasks,
   folders = [],
@@ -98,12 +133,48 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 }) => {
   const [scale, setScale] = useState<TimeScale>('week');
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
+  const [taskSubtasksMap, setTaskSubtasksMap] = useState<Map<string, Task[]>>(new Map());
+  const [loadingSubtasksMap, setLoadingSubtasksMap] = useState<Map<string, boolean>>(new Map());
   const [isUnscheduledExpanded, setIsUnscheduledExpanded] = useState(false);
   const [dateOffset, setDateOffset] = useState(0); // Offset in weeks/days from anchor
 
   const folderMap = useMemo(() => buildFolderMap(folders), [folders]);
   const today = useMemo(() => new Date(), []);
   const todayKey = useMemo(() => formatDateKey(today), [today]);
+
+  const toggleTaskSubtasks = async (task: Task, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const taskId = task.id;
+    const isCurrentlyExpanded = expandedTaskIds.has(taskId);
+
+    setExpandedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (isCurrentlyExpanded) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+
+    if (!isCurrentlyExpanded && !taskSubtasksMap.has(taskId)) {
+      setLoadingSubtasksMap((prev) => new Map(prev).set(taskId, true));
+      try {
+        const res = await taskService.listSubtasks(task.workspaceId, taskId);
+        const subList = res?.tasks || (Array.isArray(res) ? res : []);
+        setTaskSubtasksMap((prev) => new Map(prev).set(taskId, subList));
+      } catch (err) {
+        console.error('Failed to load subtasks for timeline expansion', err);
+      } finally {
+        setLoadingSubtasksMap((prev) => {
+          const next = new Map(prev);
+          next.delete(taskId);
+          return next;
+        });
+      }
+    }
+  };
 
   // Separate tasks with dates vs unscheduled tasks
   const { scheduledTasks, unscheduledTasks } = useMemo(() => {
@@ -266,6 +337,8 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     });
   };
 
+  const canvasWidthPx = columns.length * columnWidthPx;
+
   // Helper to compute task bar position & width percentage/pixels
   const computeTaskBarStyles = (task: Task) => {
     const totalDurationMs = Math.max(endDateRange.getTime() - startDateRange.getTime(), 1);
@@ -318,7 +391,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     return (todayOffsetMs / totalDurationMs) * 100;
   }, [startDateRange, endDateRange, today]);
 
-  // Bar colour helper
+  // Bar colour helper for parent tasks
   const getTaskBarStyle = (task: Task) => {
     const isOverdue = task.dueDate && task.dueDate < todayKey && task.status !== 'done' && task.status !== 'canceled';
     if (isOverdue) {
@@ -336,6 +409,30 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       case 'todo':
       default:
         return 'bg-stone-600 hover:bg-stone-700 text-white shadow-xs dark:bg-stone-700 dark:hover:bg-stone-600';
+    }
+  };
+
+  // Bar colour helper for role subtasks
+  const getSubtaskBarStyle = (st: Task) => {
+    const health = calculateSubtaskScheduleHealth(st, today);
+    if (health.status === 'delayed') {
+      return 'bg-rose-500 hover:bg-rose-600 text-white shadow-xs ring-1 ring-rose-600/40';
+    }
+    if (health.status === 'completed') {
+      return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs ring-1 ring-emerald-700/40';
+    }
+    if (health.status === 'at_risk') {
+      return 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs ring-1 ring-amber-600/40';
+    }
+    switch (st.deliveryArea) {
+      case 'frontend':
+        return 'bg-sky-600 hover:bg-sky-700 text-white shadow-xs';
+      case 'backend':
+        return 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs';
+      case 'qa':
+        return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
+      default:
+        return 'bg-stone-500 hover:bg-stone-600 text-white shadow-xs';
     }
   };
 
@@ -380,8 +477,6 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       </div>
     );
   }
-
-  const canvasWidthPx = columns.length * columnWidthPx;
 
   return (
     <div className="space-y-4 animate-fadeIn">
@@ -447,7 +542,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
           <div className="w-80 sm:w-96 md:w-[380px] shrink-0 sticky left-0 z-20 bg-white dark:bg-[#1C1A19] border-r border-stone-200 dark:border-stone-800 shadow-sm">
             {/* Header */}
             <div className="h-14 px-4 flex items-center justify-between border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-              <span>Task & Folder</span>
+              <span>Task & Subtasks by Role</span>
               <span className="text-[10px] lowercase font-medium bg-stone-200/80 dark:bg-stone-800 text-stone-600 dark:text-stone-300 px-2 py-0.5 rounded-full">
                 {scheduledTasks.length} scheduled
               </span>
@@ -484,30 +579,89 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                   {!isCollapsed &&
                     group.tasks.map((task) => {
                       const isSelected = selectedTaskId === task.id;
+                      const hasSubtasks = Boolean(task.subtaskSummary && task.subtaskSummary.total > 0);
+                      const isTaskExpanded = expandedTaskIds.has(task.id);
+                      const subtasks = taskSubtasksMap.get(task.id) || [];
+                      const isLoadingSubtasks = loadingSubtasksMap.get(task.id) || false;
+
                       return (
-                        <div
-                          key={task.id}
-                          onClick={() => onSelect(task)}
-                          className={`h-12 px-3 pl-6 flex items-center justify-between border-t border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/40 cursor-pointer transition-colors ${
-                            isSelected ? 'bg-amber-50/40 dark:bg-amber-950/20' : ''
-                          }`}
-                        >
-                          <div className="min-w-0 pr-2">
-                            <p
-                              className="text-xs font-semibold text-stone-900 dark:text-stone-100 truncate"
-                              title={task.title}
-                            >
-                              {task.title}
-                            </p>
-                            <div className="flex items-center gap-1.5 text-[10px] text-stone-400 mt-0.5">
-                              <span className="font-mono">{task.id.slice(0, 8)}</span>
-                              {task.subtaskSummary && task.subtaskSummary.total > 0 && (
-                                <span>• {task.subtaskSummary.completed}/{task.subtaskSummary.total} subtasks</span>
+                        <React.Fragment key={task.id}>
+                          {/* Parent Task Row */}
+                          <div
+                            onClick={() => onSelect(task)}
+                            className={`h-12 px-3 pl-6 flex items-center justify-between border-t border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/40 cursor-pointer transition-colors ${
+                              isSelected ? 'bg-amber-50/40 dark:bg-amber-950/20' : ''
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2 flex items-center gap-1.5">
+                              {hasSubtasks && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleTaskSubtasks(task, e)}
+                                  className="p-1 rounded hover:bg-stone-200/80 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-all shrink-0"
+                                  title={isTaskExpanded ? 'Collapse subtasks' : 'Expand role subtasks'}
+                                >
+                                  <ChevronRight
+                                    className={`h-3.5 w-3.5 transition-transform ${isTaskExpanded ? 'rotate-90 text-indigo-600 dark:text-indigo-400' : ''}`}
+                                  />
+                                </button>
                               )}
+
+                              <div className="min-w-0">
+                                <p
+                                  className="text-xs font-semibold text-stone-900 dark:text-stone-100 truncate"
+                                  title={task.title}
+                                >
+                                  {task.title}
+                                </p>
+                                <div className="flex items-center gap-1.5 text-[10px] text-stone-400 mt-0.5">
+                                  <span className="font-mono">{task.id.slice(0, 8)}</span>
+                                  {task.subtaskSummary && task.subtaskSummary.total > 0 && (
+                                    <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                                      • {task.subtaskSummary.completed}/{task.subtaskSummary.total} subtasks
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
+                            <div className="shrink-0">{getPriorityBadge(task.priority)}</div>
                           </div>
-                          <div className="shrink-0">{getPriorityBadge(task.priority)}</div>
-                        </div>
+
+                          {/* Expanded Subtask Rows */}
+                          {isTaskExpanded && (
+                            <>
+                              {isLoadingSubtasks ? (
+                                <div className="h-9 pl-12 pr-3 flex items-center gap-2 bg-stone-50/60 dark:bg-stone-900/30 border-t border-stone-100 dark:border-stone-800/40 text-[11px] text-stone-400">
+                                  <Clock className="h-3 w-3 animate-spin" />
+                                  <span>Loading role subtasks...</span>
+                                </div>
+                              ) : subtasks.length === 0 ? (
+                                <div className="h-9 pl-12 pr-3 flex items-center bg-stone-50/60 dark:bg-stone-900/30 border-t border-stone-100 dark:border-stone-800/40 text-[11px] text-stone-400 italic">
+                                  No subtasks found
+                                </div>
+                              ) : (
+                                subtasks.map((st) => {
+                                  const health = calculateSubtaskScheduleHealth(st, today);
+                                  return (
+                                    <div
+                                      key={`sub-label-${st.id}`}
+                                      onClick={() => onSelect(task)}
+                                      className="h-9 pl-11 pr-3 flex items-center justify-between bg-stone-50/40 dark:bg-stone-900/20 border-t border-stone-100/80 dark:border-stone-800/30 hover:bg-stone-100/60 dark:hover:bg-stone-800/50 cursor-pointer transition-colors"
+                                    >
+                                      <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                                        {getDeliveryAreaBadge(st.deliveryArea)}
+                                        <span className="text-[11px] font-medium text-stone-700 dark:text-stone-300 truncate" title={st.title}>
+                                          {st.title}
+                                        </span>
+                                      </div>
+                                      <TaskScheduleHealthBadge status={health.status} label={health.label} compact={true} />
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </>
+                          )}
+                        </React.Fragment>
                       );
                     })}
                 </div>
@@ -586,76 +740,139 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                         const isSelected = selectedTaskId === task.id;
                         const isOverdue =
                           task.dueDate && task.dueDate < todayKey && task.status !== 'done' && task.status !== 'canceled';
+                        const isTaskExpanded = expandedTaskIds.has(task.id);
+                        const subtasks = taskSubtasksMap.get(task.id) || [];
+                        const isLoadingSubtasks = loadingSubtasksMap.get(task.id) || false;
 
                         const dateRangeTooltip = `${task.title} • ${task.startDate || '—'} → ${task.dueDate || '—'} (${task.status})`;
 
                         return (
-                          <div
-                            key={`bar-${task.id}`}
-                            className="h-12 border-t border-stone-100 dark:border-stone-800/50 relative flex items-center"
-                          >
+                          <React.Fragment key={`bar-group-${task.id}`}>
+                            {/* Parent Task Bar */}
                             <div
-                              style={barData.style}
-                              role="button"
-                              tabIndex={0}
-                              aria-label={`Inspect ${task.title}`}
-                              title={dateRangeTooltip}
-                              onClick={() => onSelect(task)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  onSelect(task);
-                                }
-                              }}
-                              className={`absolute h-7 rounded-xl px-2 flex items-center justify-between text-xs font-semibold cursor-pointer transition-all duration-150 z-10 hover:scale-[1.01] hover:z-30 ${getTaskBarStyle(
-                                task
-                              )} ${isSelected ? 'ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-[#1C1A19]' : ''}`}
+                              className="h-12 border-t border-stone-100 dark:border-stone-800/50 relative flex items-center"
                             >
-                              <div className="flex items-center gap-1.5 min-w-0 pr-0.5 overflow-hidden">
-                                {task.status === 'done' ? (
-                                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                                ) : isOverdue ? (
-                                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-200" />
-                                ) : (
-                                  <Clock className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                              <div
+                                style={barData.style}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Inspect ${task.title}`}
+                                title={dateRangeTooltip}
+                                onClick={() => onSelect(task)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onSelect(task);
+                                  }
+                                }}
+                                className={`absolute h-7 rounded-xl px-2 flex items-center justify-between text-xs font-semibold cursor-pointer transition-all duration-150 z-10 hover:scale-[1.01] hover:z-30 ${getTaskBarStyle(
+                                  task
+                                )} ${isSelected ? 'ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-[#1C1A19]' : ''}`}
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0 pr-0.5 overflow-hidden">
+                                  {task.status === 'done' ? (
+                                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                  ) : isOverdue ? (
+                                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-200" />
+                                  ) : (
+                                    <Clock className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                                  )}
+                                  {!barData.isCompact && (
+                                    <span className="truncate text-[11px] font-bold">{task.title}</span>
+                                  )}
+                                </div>
+
+                                {barData.widthPx > 220 && (
+                                  <div className="flex items-center gap-1 shrink-0 text-[10px] opacity-90 ml-1">
+                                    <span>
+                                      {task.startDate ? formatShortDate(new Date(task.startDate + 'T00:00:00')) : ''}
+                                      {task.startDate && task.dueDate ? ' → ' : ''}
+                                      {task.dueDate ? formatShortDate(new Date(task.dueDate + 'T00:00:00')) : ''}
+                                    </span>
+                                  </div>
                                 )}
-                                {!barData.isCompact && (
-                                  <span className="truncate text-[11px] font-bold">{task.title}</span>
+
+                                {barData.isCompact && (
+                                  <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onSelect(task);
+                                    }}
+                                    className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap flex items-center gap-2 pointer-events-auto z-20"
+                                  >
+                                    <span className="text-[11px] font-bold text-stone-800 dark:text-stone-200 hover:text-amber-600 dark:hover:text-amber-400 drop-shadow-xs transition-colors">
+                                      {task.title}
+                                    </span>
+                                    <span className="text-[10px] font-medium text-stone-500 dark:text-stone-400 bg-stone-100/90 dark:bg-stone-800/90 px-1.5 py-0.5 rounded border border-stone-200/60 dark:border-stone-700/60 shadow-xs">
+                                      {task.startDate ? formatShortDate(new Date(task.startDate + 'T00:00:00')) : ''}
+                                      {task.startDate && task.dueDate ? ' → ' : ''}
+                                      {task.dueDate ? formatShortDate(new Date(task.dueDate + 'T00:00:00')) : ''}
+                                    </span>
+                                  </div>
                                 )}
                               </div>
-
-                              {/* Only show dates inside bar if bar is sufficiently wide (> 220px) */}
-                              {barData.widthPx > 220 && (
-                                <div className="flex items-center gap-1 shrink-0 text-[10px] opacity-90 ml-1">
-                                  <span>
-                                    {task.startDate ? formatShortDate(new Date(task.startDate + 'T00:00:00')) : ''}
-                                    {task.startDate && task.dueDate ? ' → ' : ''}
-                                    {task.dueDate ? formatShortDate(new Date(task.dueDate + 'T00:00:00')) : ''}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* If bar is compact (e.g. Week / Month zoom), render the label adjacent on the right! */}
-                              {barData.isCompact && (
-                                <div
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSelect(task);
-                                  }}
-                                  className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap flex items-center gap-2 pointer-events-auto z-20"
-                                >
-                                  <span className="text-[11px] font-bold text-stone-800 dark:text-stone-200 hover:text-amber-600 dark:hover:text-amber-400 drop-shadow-xs transition-colors">
-                                    {task.title}
-                                  </span>
-                                  <span className="text-[10px] font-medium text-stone-500 dark:text-stone-400 bg-stone-100/90 dark:bg-stone-800/90 px-1.5 py-0.5 rounded border border-stone-200/60 dark:border-stone-700/60 shadow-xs">
-                                    {task.startDate ? formatShortDate(new Date(task.startDate + 'T00:00:00')) : ''}
-                                    {task.startDate && task.dueDate ? ' → ' : ''}
-                                    {task.dueDate ? formatShortDate(new Date(task.dueDate + 'T00:00:00')) : ''}
-                                  </span>
-                                </div>
-                              )}
                             </div>
-                          </div>
+
+                            {/* Expanded Subtask Gantt Rows */}
+                            {isTaskExpanded && (
+                              <>
+                                {isLoadingSubtasks ? (
+                                  <div className="h-9 border-t border-stone-100/80 dark:border-stone-800/30 bg-stone-50/20 dark:bg-stone-900/10" />
+                                ) : subtasks.length === 0 ? (
+                                  <div className="h-9 border-t border-stone-100/80 dark:border-stone-800/30 bg-stone-50/20 dark:bg-stone-900/10" />
+                                ) : (
+                                  subtasks.map((st) => {
+                                    const stBarData = computeTaskBarStyles(st);
+                                    const health = calculateSubtaskScheduleHealth(st, today);
+                                    const isSubOverdue = health.status === 'delayed';
+
+                                    return (
+                                      <div
+                                        key={`canvas-sub-${st.id}`}
+                                        className="h-9 border-t border-stone-100/80 dark:border-stone-800/30 relative flex items-center bg-stone-50/20 dark:bg-stone-900/10"
+                                      >
+                                        {st.startDate || st.dueDate ? (
+                                          <div
+                                            style={stBarData.style}
+                                            onClick={() => onSelect(task)}
+                                            title={`${st.title} (${st.deliveryArea?.toUpperCase() || 'SUBTASK'}) • ${st.startDate || '—'} → ${st.dueDate || '—'} [${health.label}]`}
+                                            className={`absolute h-5 rounded-md px-1.5 flex items-center justify-between text-[10px] font-semibold cursor-pointer transition-all duration-150 z-10 hover:scale-[1.01] hover:z-30 ${getSubtaskBarStyle(
+                                              st
+                                            )}`}
+                                          >
+                                            <div className="flex items-center gap-1 min-w-0 pr-0.5 overflow-hidden">
+                                              {isSubOverdue ? (
+                                                <AlertTriangle className="h-2.5 w-2.5 shrink-0 text-amber-200" />
+                                              ) : health.status === 'completed' ? (
+                                                <CheckCircle2 className="h-2.5 w-2.5 shrink-0" />
+                                              ) : (
+                                                <Clock className="h-2.5 w-2.5 shrink-0 opacity-80" />
+                                              )}
+                                              {!stBarData.isCompact && (
+                                                <span className="truncate">{st.title}</span>
+                                              )}
+                                            </div>
+
+                                            {stBarData.isCompact && (
+                                              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap flex items-center gap-1.5 pointer-events-none z-20">
+                                                <span className="text-[10px] font-bold text-stone-700 dark:text-stone-300">
+                                                  {st.title}
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="pl-3 text-[10px] text-stone-400 italic">
+                                            No dates
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                   </div>

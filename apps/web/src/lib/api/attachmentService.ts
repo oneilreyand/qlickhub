@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
-import { AttachmentCategory, TaskAttachment } from '@qa/contracts';
+import { AttachmentCategory, TaskAttachment } from '@qlick/contracts';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
 

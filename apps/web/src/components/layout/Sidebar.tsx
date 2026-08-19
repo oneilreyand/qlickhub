@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Component, ShieldCheck, Layers, Building2, FileBarChart, CheckSquare } from 'lucide-react';
+import { Component, ShieldCheck, Layers, Building2, FileBarChart, CheckSquare, BookOpen } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 
 interface SidebarProps {
@@ -30,6 +30,12 @@ const navItems: NavItem[] = [
     name: 'Report',
     path: '/reports',
     icon: FileBarChart,
+  },
+  {
+    name: 'User Flow Guide',
+    path: '/user-flows',
+    icon: BookOpen,
+    badge: 'Guide',
   },
   {
     name: 'Workspace Settings',
@@ -90,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
               isExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 pointer-events-none'
             }`}
           >
-            <span className="text-xs font-bold tracking-tight text-stone-900 dark:text-white">QAREPORT</span>
+            <span className="text-xs font-bold tracking-tight text-stone-900 dark:text-white">Qlick Hub</span>
             <span className="text-[9px] font-semibold text-stone-500 dark:text-[#B1E743]">Work Hub v2.0</span>
           </div>
         </div>
@@ -108,7 +114,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
           </div>
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+            const isActive =
+              item.path === '/my-tasks'
+                ? location.pathname === '/my-tasks' ||
+                  location.pathname.startsWith('/my-tasks/') ||
+                  location.pathname === '/requirements'
+                : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
 
             return (
               <NavLink
@@ -120,28 +131,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
                   isActive
                     ? 'bg-[#22201F] text-white font-semibold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
                     : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800/80 dark:hover:text-white'
-                } ${isExpanded ? 'px-3.5 justify-between' : 'justify-center px-0'}`}
+                } ${isExpanded ? 'px-3 gap-2.5 justify-start' : 'justify-center px-0'}`}
               >
-                {/* Menu Icon: Ultra-compact h-3.5 w-3.5 (14px) icon visible when collapsed */}
-                {!isExpanded && (
-                  <div className="grid h-6 w-6 shrink-0 place-items-center">
-                    <Icon
-                      className={`h-3.5 w-3.5 transition-transform group-hover:scale-105 ${
-                        isActive
-                          ? 'text-white dark:text-[#22201F]'
-                          : 'text-stone-400 group-hover:text-stone-800 dark:group-hover:text-white'
-                      }`}
-                    />
-                  </div>
-                )}
+                {/* Menu Icon */}
+                <div className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                  <Icon
+                    className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-105 ${
+                      isActive
+                        ? 'text-white dark:text-[#22201F]'
+                        : 'text-stone-400 group-hover:text-stone-800 dark:group-hover:text-white'
+                    }`}
+                  />
+                </div>
 
                 {/* Text Label & Badge: ONLY visible when expanded (isExpanded) */}
                 {isExpanded && (
-                  <div className="flex flex-1 items-center justify-between truncate whitespace-nowrap">
-                    <span>{item.name}</span>
+                  <div className="flex flex-1 items-center justify-between truncate whitespace-nowrap min-w-0">
+                    <span className="truncate">{item.name}</span>
                     {item.badge && (
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ml-2 ${
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ml-2 shrink-0 ${
                           isActive
                             ? 'bg-white/20 text-white dark:bg-[#22201F]/20 dark:text-[#22201F]'
                             : 'bg-stone-100 text-stone-500 group-hover:bg-stone-200 group-hover:text-stone-800 dark:bg-stone-800 dark:text-stone-400 dark:group-hover:bg-stone-700 dark:group-hover:text-stone-200'
@@ -170,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
               isExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 pointer-events-none'
             }`}
           >
-            <span className="font-semibold text-stone-700 dark:text-stone-200">QA Active</span>
+            <span className="font-semibold text-stone-700 dark:text-stone-200">Workspace Active</span>
             <span className="text-[10px] font-medium text-stone-400 dark:text-stone-500">v2.0</span>
           </div>
         </div>

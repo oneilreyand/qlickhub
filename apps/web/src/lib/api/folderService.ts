@@ -4,7 +4,7 @@ import {
   Folder,
   CreateFolderInput,
   UpdateFolderInput,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 export const folderService = {
   async getFolderTree(workspaceId: string, includeArchived = false): Promise<FolderTreeNode[]> {

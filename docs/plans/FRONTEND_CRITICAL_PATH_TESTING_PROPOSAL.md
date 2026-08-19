@@ -9,7 +9,7 @@ Per the repository operating rules in `AGENTS.md` and `TODO.md` ("*Do not introd
 ## 1. Current Baseline & Tooling Blocker
 
 ### Baseline State
-Currently, `apps/web` (`@qa/web`) provides static type checking (`npm --prefix apps/web run typecheck` via `tsc --noEmit`) and production compilation (`npm run build:web` via `vite build`).
+Currently, `apps/web` (`@qlick/web`) provides static type checking (`npm --prefix apps/web run typecheck` via `tsc --noEmit`) and production compilation (`npm run build:web` via `vite build`).
 
 ### Tooling Blocker
 `apps/web/package.json` does **not** include a DOM unit testing framework (such as Vitest or Jest), a React component testing library (`@testing-library/react`), or an End-to-End browser automation suite (such as Playwright or Cypress).

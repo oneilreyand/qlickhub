@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   CheckCircle2,
   RotateCcw,
@@ -13,6 +13,7 @@ import {
   FileCode2,
   Clock,
   AlertCircle,
+  AlertTriangle,
   User,
   Folder,
   Calendar,
@@ -22,6 +23,8 @@ import {
   Bug,
   TrendingUp,
   ExternalLink,
+  Lock,
+  Volume2,
 } from 'lucide-react';
 import type {
   Task,
@@ -30,12 +33,12 @@ import type {
   FolderTreeNode,
   TaskActivity,
   TaskComment,
-  Requirement,
   TaskRequirementLink,
+  TaskDocumentLink,
   ProductBrief,
   ProductBriefScopeItem,
   ProductBriefAcceptanceCriterion,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 function getExternalLinkMeta(url?: string | null) {
   if (!url) return null;
@@ -80,19 +83,22 @@ function getExternalLinkMeta(url?: string | null) {
   };
 }
 import { Drawer } from '../molecules/Drawer';
+import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Input } from '../atoms/Input';
 import { Textarea } from '../atoms/Textarea';
 import { Select } from '../atoms/Select';
-import { FormattedText } from '../atoms/FormattedText';
 import { RichTextEditor } from '../molecules/RichTextEditor';
 import { Tabs, TabItem } from '../molecules/Tabs';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
+import { TaskScheduleHealthBadge } from '../molecules/TaskScheduleHealthBadge';
+import { calculateRoleOverlapAndBottlenecks } from '../../../lib/utils/scheduleHealth';
 import { Skeleton } from '../atoms/Skeleton';
 import { Alert } from '../atoms/Alert';
 import { IconButton } from '../atoms/IconButton';
 import { CreateSubtaskModal } from './CreateSubtaskModal';
+import { SubtaskList } from './SubtaskList';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateTask, moveTask, completeTask } from '../../../store/taskSlice';
 import { enqueueSnackbar, addInAppNotification } from '../../../store/uiSlice';
@@ -397,6 +403,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const canPlan = Boolean(
     activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role)
   );
+  const userWorkspaceRole = (activeWorkspace?.role || '').toLowerCase();
+  const canManageQaDocs = ['owner', 'admin', 'qa'].includes(userWorkspaceRole);
 
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [title, setTitle] = useState('');
@@ -422,13 +430,20 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   // Task Requirements & Links state
   const [taskRequirementLinks, setTaskRequirementLinks] = useState<TaskRequirementLink[]>([]);
-  const [allRequirements, setAllRequirements] = useState<Requirement[]>([]);
   const [isLoadingRequirements, setIsLoadingRequirements] = useState(false);
-  const [selectedReqToLink, setSelectedReqToLink] = useState('');
   const [newReqCode, setNewReqCode] = useState('');
   const [newReqTitle, setNewReqTitle] = useState('');
   const [newReqUrl, setNewReqUrl] = useState('');
   const [isCreatingReq, setIsCreatingReq] = useState(false);
+
+  // Task QA Documents & Test Plans state
+  const [taskQaDocLinks, setTaskQaDocLinks] = useState<TaskDocumentLink[]>([]);
+  const [isLoadingQaDocs, setIsLoadingQaDocs] = useState(false);
+  const [isCreateQaDocModalOpen, setIsCreateQaDocModalOpen] = useState(false);
+  const [newQaDocTitle, setNewQaDocTitle] = useState('');
+  const [newQaDocType, setNewQaDocType] = useState('test_plan');
+  const [newQaDocContent, setNewQaDocContent] = useState('');
+  const [isSubmittingQaDoc, setIsSubmittingQaDoc] = useState(false);
 
   // Subtasks state
   const [subtasks, setSubtasks] = useState<Task[]>([]);
@@ -456,29 +471,46 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [editingCommentBody, setEditingCommentBody] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
 
+  const prevTaskIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (task) {
-      setTitle(task.title);
-      setDescription(task.description || '');
-      setStatus(task.status);
-      setPriority(task.priority);
-      setFolderId(task.folderId || null);
-      setStartDate(task.startDate || '');
-      setDueDate(task.dueDate || '');
-      setActiveTab('overview');
-      setActivityPage(1);
-      setCommentsPage(1);
+      const isNewTask = task.id !== prevTaskIdRef.current;
+      prevTaskIdRef.current = task.id;
 
-      if (activeWorkspaceId) {
-        loadSubtasks();
-        loadActivity(1);
-        loadComments(1);
-        loadProductBrief();
-        loadTaskRequirements();
-        dispatch(fetchMembers(activeWorkspaceId));
+      if (isNewTask) {
+        setTitle(task.title);
+        setDescription(task.description || '');
+        setStatus(task.status);
+        setPriority(task.priority);
+        setFolderId(task.folderId || null);
+        setStartDate(task.startDate || '');
+        setDueDate(task.dueDate || '');
+        setActiveTab('overview');
+        setActivityPage(1);
+        setCommentsPage(1);
+        setCommentBody('');
+        setMentionedUserIds([]);
+        setReplyParentId(null);
+        setEditingCommentId(null);
+
+        setSubtasks([]);
+        setSubtasksError(null);
+
+        if (activeWorkspaceId) {
+          loadSubtasks();
+          loadActivity(1);
+          loadComments(1);
+          loadProductBrief();
+          loadTaskRequirements();
+          loadTaskQaDocs();
+          dispatch(fetchMembers(activeWorkspaceId));
+        }
       }
+    } else {
+      prevTaskIdRef.current = null;
     }
-  }, [task, activeWorkspaceId, dispatch]);
+  }, [task?.id, activeWorkspaceId, dispatch]);
 
   const loadProductBrief = async () => {
     if (!activeWorkspaceId || !task) return;
@@ -599,29 +631,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     if (!activeWorkspaceId || !task) return;
     setIsLoadingRequirements(true);
     try {
-      const [links, reqs] = await Promise.all([
-        requirementService.listTaskRequirementLinks(activeWorkspaceId, task.id),
-        requirementService.listWorkspaceRequirements(activeWorkspaceId),
-      ]);
-      setTaskRequirementLinks(links);
-      setAllRequirements(reqs);
+      const links = await requirementService.listTaskRequirementLinks(activeWorkspaceId, task.id);
+      setTaskRequirementLinks(Array.isArray(links) ? links : []);
     } catch {
-      // Ignore background requirement fetch errors
+      setTaskRequirementLinks([]);
     } finally {
       setIsLoadingRequirements(false);
-    }
-  };
-
-  const handleLinkRequirement = async () => {
-    if (!activeWorkspaceId || !task || !selectedReqToLink) return;
-    try {
-      await requirementService.linkRequirement(activeWorkspaceId, task.id, selectedReqToLink);
-      dispatch(enqueueSnackbar('Requirement linked to task', 'success'));
-      setSelectedReqToLink('');
-      loadTaskRequirements();
-      loadActivity(1);
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to link requirement'), 'error'));
     }
   };
 
@@ -638,25 +653,79 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   };
 
   const handleCreateAndLinkRequirement = async () => {
-    if (!activeWorkspaceId || !task || !newReqCode.trim() || !newReqTitle.trim()) return;
+    if (!activeWorkspaceId || !task || !newReqTitle.trim() || !newReqUrl.trim()) return;
     setIsCreatingReq(true);
     try {
       const created = await requirementService.createRequirement(activeWorkspaceId, {
-        code: newReqCode.trim(),
+        code: newReqCode.trim() || undefined,
         title: newReqTitle.trim(),
         url: newReqUrl.trim() || undefined,
       });
       await requirementService.linkRequirement(activeWorkspaceId, task.id, created.id);
-      dispatch(enqueueSnackbar(`Requirement ${created.code} created and linked!`, 'success'));
+      dispatch(enqueueSnackbar(`Reference link "${created.title}" embedded successfully!`, 'success'));
       setNewReqCode('');
       setNewReqTitle('');
       setNewReqUrl('');
       loadTaskRequirements();
       loadActivity(1);
     } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to create requirement'), 'error'));
+      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to embed reference link'), 'error'));
     } finally {
       setIsCreatingReq(false);
+    }
+  };
+
+  const loadTaskQaDocs = async () => {
+    if (!activeWorkspaceId || !task) return;
+    setIsLoadingQaDocs(true);
+    try {
+      const links = await qaDocumentService.listTaskDocumentLinks(activeWorkspaceId, task.id);
+      setTaskQaDocLinks(Array.isArray(links) ? links : []);
+    } catch {
+      setTaskQaDocLinks([]);
+    } finally {
+      setIsLoadingQaDocs(false);
+    }
+  };
+
+  const handleUnlinkQaDoc = async (documentId: string) => {
+    if (!activeWorkspaceId || !task) return;
+    try {
+      await qaDocumentService.unlinkDocument(activeWorkspaceId, task.id, documentId);
+      dispatch(enqueueSnackbar('QA Document unlinked from task', 'info'));
+      loadTaskQaDocs();
+      loadActivity(1);
+    } catch (err) {
+      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to unlink QA document'), 'error'));
+    }
+  };
+
+  const handleCreateAndLinkQaDoc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeWorkspaceId || !task || !newQaDocTitle.trim() || !newQaDocContent.trim()) {
+      dispatch(enqueueSnackbar('Title and content are required.', 'error'));
+      return;
+    }
+    setIsSubmittingQaDoc(true);
+    try {
+      const docResult = await qaDocumentService.createDocument(activeWorkspaceId, {
+        title: newQaDocTitle.trim(),
+        docType: newQaDocType,
+        contentMarkdown: newQaDocContent,
+        changelog: 'Initial draft for task',
+        folderId: task.folderId || null,
+      });
+      await qaDocumentService.linkDocument(activeWorkspaceId, task.id, docResult.document.id);
+      dispatch(enqueueSnackbar(`QA Document "${docResult.document.title}" created and linked!`, 'success'));
+      setIsCreateQaDocModalOpen(false);
+      setNewQaDocTitle('');
+      setNewQaDocContent('');
+      loadTaskQaDocs();
+      loadActivity(1);
+    } catch (err) {
+      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to create and link QA document'), 'error'));
+    } finally {
+      setIsSubmittingQaDoc(false);
     }
   };
 
@@ -676,6 +745,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const handleSubtaskStatusChange = async (subtaskId: string, newStatus: TaskStatus) => {
     if (!activeWorkspaceId) return;
+    const subtaskIndex = subtasks.findIndex(s => s.id === subtaskId);
+    if (subtaskIndex === -1) return;
+    
+    const previousSubtask = subtasks[subtaskIndex];
+    const previousSubtasks = [...subtasks];
+
     try {
       let notes: string | undefined = undefined;
       if (newStatus === 'changes_requested') {
@@ -686,6 +761,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         }
         notes = inputNotes.trim();
       }
+
+      const updatedSubtasks = [...subtasks];
+      updatedSubtasks[subtaskIndex] = { ...previousSubtask, status: newStatus };
+      setSubtasks(updatedSubtasks);
 
       if (newStatus === 'done') {
         await taskService.completeTask(activeWorkspaceId, subtaskId, { status: 'done' });
@@ -717,9 +796,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         );
       }
       dispatch(enqueueSnackbar('Subtask status updated', 'success'));
-      void loadSubtasks();
       onDataChanged?.();
     } catch (error) {
+      setSubtasks(previousSubtasks);
       dispatch(enqueueSnackbar(errorMessage(error, 'Failed to update subtask status'), 'error'));
     }
   };
@@ -735,19 +814,28 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     return { feTotal, feDone, beTotal, beDone, qaTotal, qaDone, totalDone, total: subtasks.length };
   }, [subtasks]);
 
+  const scheduleOverlapAnalysis = React.useMemo(() => {
+    if (!task) return null;
+    return calculateRoleOverlapAndBottlenecks(task, subtasks, productBrief, members);
+  }, [task, subtasks, productBrief, members]);
+
   const incompleteSubtasks = React.useMemo(
     () => subtasks.filter((s) => s.status !== 'done' && s.status !== 'canceled'),
     [subtasks]
   );
   const hasIncompleteSubtasks = Boolean(task && !task.parentTaskId && incompleteSubtasks.length > 0);
 
-  const loadActivity = async (page = activityPage) => {
+  const loadActivity = async (page = activityPage, append = false) => {
     if (!activeWorkspaceId || !task) return;
     setIsLoadingActivity(true);
     setActivityError(null);
     try {
       const res = await taskService.listTaskActivity(activeWorkspaceId, task.id, page, PAGE_SIZE);
-      setActivities(res.activities);
+      if (append) {
+        setActivities((prev) => [...prev, ...res.activities]);
+      } else {
+        setActivities(res.activities);
+      }
       setActivityPage(res.page);
       setActivityTotal(res.total);
     } catch (error) {
@@ -757,13 +845,17 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
-  const loadComments = async (page = commentsPage) => {
+  const loadComments = async (page = commentsPage, append = false) => {
     if (!activeWorkspaceId || !task) return;
     setIsLoadingComments(true);
     setCommentsError(null);
     try {
       const res = await taskService.listTaskComments(activeWorkspaceId, task.id, page, PAGE_SIZE);
-      setComments(res.comments);
+      if (append) {
+        setComments((prev) => [...prev, ...res.comments]);
+      } else {
+        setComments(res.comments);
+      }
       setCommentsPage(res.page);
       setCommentsTotal(res.total);
     } catch (error) {
@@ -775,10 +867,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   if (!task) return null;
 
+  const isSubtask = Boolean(task.parentTaskId);
   const isAssignedExecutor = Boolean(
-    task.parentTaskId && task.assigneeId && task.assigneeId === currentUserId
+    isSubtask && task.assigneeId && task.assigneeId === currentUserId
   );
   const canEditTask = canPlan || isAssignedExecutor;
+  const canCompleteThisTask = isSubtask
+    ? Boolean(canPlan || (activeWorkspace && activeWorkspace.role === 'qa' && task.deliveryArea !== 'qa'))
+    : canPlan;
   const canEditPlanning = canPlan;
   const canManageComments = Boolean(
     activeWorkspace && ['owner', 'admin'].includes(activeWorkspace.role)
@@ -898,6 +994,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       }
 
       dispatch(enqueueSnackbar('Task & Specifications saved successfully', 'success'));
+      onDataChanged?.();
       onClose();
     } catch (err) {
       dispatch(
@@ -910,8 +1007,15 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const handleToggleComplete = async () => {
     if (!activeWorkspaceId || !task) return;
-    if (!canEditTask) {
-      dispatch(enqueueSnackbar('You do not have permission to update this task.', 'error'));
+    if (!canCompleteThisTask) {
+      dispatch(
+        enqueueSnackbar(
+          isSubtask
+            ? 'Only Product Owner or authorized QA reviewers may approve subtasks.'
+            : 'Only Product Owner, Admin, or Owner may complete parent tasks.',
+          'error'
+        )
+      );
       return;
     }
 
@@ -946,6 +1050,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         ).unwrap();
         dispatch(enqueueSnackbar('Task marked as Done', 'success'));
       }
+      onDataChanged?.();
       onClose();
     } catch (err) {
       dispatch(
@@ -1046,7 +1151,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         subtitle={`Task ID: ${task.id.substring(0, 8)} • Created ${new Date(task.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}${task.deliveryArea ? ` • Delivery Area: ${task.deliveryArea.toUpperCase()}` : ''}`}
         footer={
           <div className="flex items-center justify-between w-full">
-            {canEditTask ? (
+            {canCompleteThisTask ? (
               <div className="flex items-center gap-2">
                 <Button
                   variant={task.status === 'done' ? 'outline' : 'primary'}
@@ -1061,7 +1166,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     )
                   }
                 >
-                  {task.status === 'done' ? 'Reopen Task' : 'Complete Task'}
+                  {task.status === 'done'
+                    ? isSubtask
+                      ? 'Reopen Subtask'
+                      : 'Reopen Task'
+                    : isSubtask
+                    ? 'Approve Subtask (Done)'
+                    : 'Complete Task'}
                 </Button>
                 {hasIncompleteSubtasks && task.status !== 'done' && (
                   <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 hidden sm:inline">
@@ -1114,17 +1225,51 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
               {/* Delivery Progress & Multi-Role Readiness Banner */}
               <Card className="p-4 space-y-3 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90 shadow-xs">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-[#22201F] dark:text-[#B1E743]" />
                     <h4 className="text-xs font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider">
                       Delivery & Multi-Role Readiness
                     </h4>
                   </div>
-                  <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
-                    {subtaskMetrics.total > 0 ? `${subtaskMetrics.totalDone}/${subtaskMetrics.total} Complete` : '0 items'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {scheduleOverlapAnalysis && (
+                      <TaskScheduleHealthBadge
+                        status={scheduleOverlapAnalysis.overallHealth}
+                        label={
+                          scheduleOverlapAnalysis.overallHealth === 'delayed'
+                            ? `${scheduleOverlapAnalysis.primaryBottleneck.title} (${scheduleOverlapAnalysis.primaryBottleneck.overlapDays}d)`
+                            : scheduleOverlapAnalysis.overallHealth === 'at_risk'
+                            ? scheduleOverlapAnalysis.primaryBottleneck.title
+                            : 'Schedule On Track'
+                        }
+                      />
+                    )}
+                    <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
+                      {subtaskMetrics.total > 0 ? `${subtaskMetrics.totalDone}/${subtaskMetrics.total} Complete` : '0 items'}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Overlap / Bottleneck Root Cause Notice if not on track */}
+                {scheduleOverlapAnalysis && scheduleOverlapAnalysis.primaryBottleneck.role !== 'none' && (
+                  <div
+                    onClick={() => setActiveTab('subtasks')}
+                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs cursor-pointer transition-all ${
+                      scheduleOverlapAnalysis.primaryBottleneck.severity === 'delayed'
+                        ? 'bg-rose-50 border-rose-200 text-rose-900 dark:bg-rose-950/40 dark:border-rose-900/60 dark:text-rose-200'
+                        : 'bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/40 dark:border-amber-900/60 dark:text-amber-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertTriangle className="h-4 w-4 shrink-0 opacity-80" />
+                      <span className="font-medium truncate">
+                        <strong>{scheduleOverlapAnalysis.primaryBottleneck.title}:</strong> {scheduleOverlapAnalysis.primaryBottleneck.description}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold underline shrink-0">View Timeline ➔</span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                   {/* PRD Readiness */}
@@ -1326,31 +1471,74 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         )}
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Input
-                            id="product-brief-title"
-                            label="Specification title"
-                            value={productBriefTitle}
-                            onChange={(event) => setProductBriefTitle(event.target.value)}
-                            disabled={!canPlan}
-                            placeholder="Specification brief title"
-                          />
-                          <Select
-                            id="product-brief-owner"
-                            label="Specification owner"
-                            value={productBriefOwnerId}
-                            onChange={(event) => setProductBriefOwnerId(event.target.value)}
-                            disabled={!canPlan}
-                          >
-                            {!productBriefOwnerId && <option value="">Select an owner</option>}
-                            {productBriefOwnerId && !members.some((member) => member.userId === productBriefOwnerId) && (
-                              <option value={productBriefOwnerId}>{productBriefOwnerId}</option>
-                            )}
-                            {members.map((member) => (
-                              <option key={member.userId} value={member.userId}>
-                                {member.user?.name || member.user?.email || member.userId}
-                              </option>
-                            ))}
-                          </Select>
+                          <div>
+                            <label
+                              htmlFor="product-brief-title"
+                              className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+                            >
+                              Specification Title
+                            </label>
+                            <textarea
+                              id="product-brief-title"
+                              value={productBriefTitle}
+                              onChange={(event) => setProductBriefTitle(event.target.value)}
+                              disabled={!canPlan}
+                              rows={2}
+                              placeholder="Specification brief title..."
+                              className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-stone-900 leading-relaxed placeholder-stone-400 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400/10 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100 disabled:opacity-60 disabled:cursor-not-allowed resize-y break-words whitespace-pre-wrap"
+                            />
+                          </div>
+
+                          <div>
+                            <label
+                              htmlFor="product-brief-owner"
+                              className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+                            >
+                              Specification Owner / PO
+                            </label>
+                            {(() => {
+                              const specOwnerMember =
+                                members.find((member) => member.userId === productBriefOwnerId) ||
+                                members.find(
+                                  (member) =>
+                                    member.userId === (productBrief?.document.ownerId || task?.reporterId || currentUserId)
+                                );
+                              const specOwnerName =
+                                specOwnerMember?.user?.name ||
+                                specOwnerMember?.user?.email ||
+                                (productBriefOwnerId ? productBriefOwnerId : 'Product Owner');
+                              const specOwnerRole = specOwnerMember?.role ? specOwnerMember.role.toUpperCase() : 'PO';
+
+                              return (
+                                <div
+                                  id="product-brief-owner"
+                                  className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-stone-200 bg-stone-100/80 text-xs text-stone-800 dark:border-stone-800 dark:bg-stone-900/80 dark:text-stone-200 min-h-[46px]"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="w-6 h-6 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                      <User className="h-3.5 w-3.5" />
+                                    </div>
+                                    <span className="font-semibold truncate">
+                                      {specOwnerName}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 shrink-0">
+                                      {specOwnerRole === 'OWNER' ? 'OWNER' : 'PO'}
+                                    </span>
+                                  </div>
+                                  <div
+                                    className="flex items-center gap-1 text-[10px] text-stone-400 dark:text-stone-500 shrink-0"
+                                    title="Specification owner terkunci pada akun PO / Creator dan tidak dapat diubah"
+                                  >
+                                    <Lock className="h-3.5 w-3.5 text-stone-400 dark:text-stone-500" />
+                                    <span className="hidden sm:inline font-medium">Terkunci</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                            <p className="mt-1 text-[10px] text-stone-400 dark:text-stone-500">
+                              Akun PO / Creator pembuat spesifikasi ini terkunci secara permanen dan tidak dapat diubah.
+                            </p>
+                          </div>
                         </div>
 
                         <RichTextEditor
@@ -1452,21 +1640,21 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     )}
                   </div>
 
-                  {/* Linked Requirements Section */}
+                  {/* Requirement & Reference Links Section */}
                   <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-3 dark:border-stone-800 dark:bg-stone-950/40">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                        <FileText className="h-4 w-4 text-stone-500" />
-                        <span>Linked Workspace Requirements ({taskRequirementLinks.length})</span>
+                        <FileText className="h-4 w-4 text-indigo-500 shrink-0" />
+                        <span>Requirement & Reference Links ({(taskRequirementLinks || []).length})</span>
                       </span>
 
-                      {taskRequirementLinks.length === 0 ? (
+                      {(taskRequirementLinks || []).length === 0 ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/30">
-                          ⚠️ Coverage Warning: No Requirements Linked
+                          ⚠️ No Reference Links Attached
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
-                          ✅ Covered ({taskRequirementLinks.length})
+                          ✅ {(taskRequirementLinks || []).length} References Attached
                         </span>
                       )}
                     </div>
@@ -1476,125 +1664,213 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                       <div className="space-y-2">
                         <Skeleton className="h-10 w-full rounded-xl" />
                       </div>
-                    ) : taskRequirementLinks.length === 0 ? (
+                    ) : (taskRequirementLinks || []).length === 0 ? (
                       <p className="text-xs text-stone-500 italic py-1">
-                        This task is not linked to any formal requirement yet. Link a requirement below for QA traceability.
+                        {canPlan
+                          ? 'No reference links attached yet. As Product Owner, embed a Figma prototype, Google Spreadsheet, or PRD URL below for Developer and QA guidance.'
+                          : 'No external reference links attached by the Product Owner for this task.'}
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {taskRequirementLinks.map((link) => (
-                          <div
-                            key={link.id}
-                            className="flex items-center justify-between p-3 rounded-xl border border-stone-200 bg-white text-xs dark:border-stone-800 dark:bg-stone-900 gap-2"
-                          >
-                            <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                              <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200">
-                                {link.requirement?.code || 'REQ'}
-                              </span>
-                              <span className="font-semibold text-stone-900 dark:text-stone-100 truncate">
-                                {link.requirement?.title || 'Linked Requirement'}
-                              </span>
-                              {link.requirement?.url && (() => {
-                                const meta = getExternalLinkMeta(link.requirement.url);
-                                return (
+                        {taskRequirementLinks.map((link) => {
+                          const meta = getExternalLinkMeta(link.requirement?.url);
+                          return (
+                            <div
+                              key={link.id}
+                              className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-stone-200 bg-white text-xs dark:border-stone-800 dark:bg-stone-900 gap-2.5 shadow-sm"
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+                                <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200">
+                                  {link.requirement?.code || 'REF'}
+                                </span>
+                                <span className="font-semibold text-stone-900 dark:text-stone-100 break-words whitespace-normal leading-relaxed">
+                                  {link.requirement?.title || 'Requirement Reference'}
+                                </span>
+                                {link.requirement?.url && meta && (
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${meta.badgeClass}`}
+                                  >
+                                    <span>{meta.icon}</span>
+                                    <span>{meta.shortLabel}</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                                {link.requirement?.url ? (
                                   <a
                                     href={link.requirement.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border transition-all ${meta?.badgeClass}`}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 transition-colors"
                                     title={link.requirement.url}
                                   >
-                                    <span>{meta?.icon}</span>
-                                    <span>{meta?.shortLabel}</span>
-                                    <ExternalLink className="h-3 w-3 ml-0.5 opacity-70" />
+                                    <span>Open Reference</span>
+                                    <ExternalLink className="h-3 w-3 opacity-75" />
                                   </a>
-                                );
-                              })()}
+                                ) : null}
+                                {canPlan && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-stone-600 hover:text-rose-600 hover:border-rose-300 dark:text-stone-400 dark:hover:text-rose-400"
+                                    onClick={() => handleUnlinkRequirement(link.requirementId)}
+                                  >
+                                    Unlink
+                                  </Button>
+                                )}
+                              </div>
                             </div>
-                            {canEditTask && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleUnlinkRequirement(link.requirementId)}
-                              >
-                                Unlink
-                              </Button>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
 
-                    {/* Link or Create Requirement Form */}
-                    {canEditTask && (
-                      <div className="pt-2 border-t border-stone-200 dark:border-stone-800 space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <div className="sm:col-span-2">
-                            <Select
-                              value={selectedReqToLink}
-                              onChange={(e) => setSelectedReqToLink(e.target.value)}
-                              aria-label="Requirement to Link"
-                            >
-                              <option value="">-- Select Workspace Requirement to Link --</option>
-                              {allRequirements
-                                .filter((r) => !taskRequirementLinks.some((l) => l.requirementId === r.id))
-                                .map((r) => (
-                                  <option key={r.id} value={r.id}>
-                                    [{r.code}] {r.title} {r.url ? `(${r.url})` : ''}
-                                  </option>
-                                ))}
-                            </Select>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            disabled={!selectedReqToLink}
-                            onClick={handleLinkRequirement}
-                          >
-                            Link Requirement
-                          </Button>
-                        </div>
+                    {/* Developer & QA guidance info */}
+                    {!canPlan && (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-stone-100/70 dark:bg-stone-900/60 text-[11px] text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-800">
+                        <span className="text-sm">📌</span>
+                        <span>
+                          Reference links are provided by the Product Owner (PO) for developer and QA specifications. Click <strong>Open Reference ↗</strong> to view external resources.
+                        </span>
+                      </div>
+                    )}
 
-                        {/* Create New Requirement Inline */}
-                        <div className="pt-2">
-                          <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300 block mb-1.5">
-                            Or Create & Link New Requirement:
+                    {/* Embed New Reference Form (PO / Planner only) */}
+                    {canPlan && (
+                      <div className="pt-2.5 border-t border-stone-200 dark:border-stone-800 space-y-3">
+                        <div>
+                          <span className="text-[11px] font-bold text-stone-800 dark:text-stone-200 block mb-1.5 flex items-center gap-1">
+                            <span>🔗 Embed New Requirement Reference (PO / Planner):</span>
                           </span>
                           <div className="space-y-2">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              <Input
-                                type="text"
-                                placeholder="Code (e.g. REQ-101, FIGMA-01)"
-                                value={newReqCode}
-                                onChange={(e) => setNewReqCode(e.target.value)}
-                              />
-                              <Input
-                                type="text"
-                                placeholder="Title (e.g. Checkout Modal UI Specs)"
-                                value={newReqTitle}
-                                onChange={(e) => setNewReqTitle(e.target.value)}
-                              />
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <div className="sm:col-span-2">
+                                <Input
+                                  type="url"
+                                  placeholder="Reference URL (e.g. Figma / Spreadsheet / PRD / Jira URL)"
+                                  value={newReqUrl}
+                                  onChange={(e) => setNewReqUrl(e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <Input
+                                  type="text"
+                                  placeholder="Code (optional)"
+                                  value={newReqCode}
+                                  onChange={(e) => setNewReqCode(e.target.value)}
+                                />
+                              </div>
                             </div>
                             <div className="flex gap-2">
                               <Input
-                                type="url"
-                                placeholder="External Resource URL (e.g. Figma / Spreadsheet / Docs / Jira / API)"
-                                value={newReqUrl}
-                                onChange={(e) => setNewReqUrl(e.target.value)}
+                                type="text"
+                                placeholder="Reference Title (e.g. Checkout Modal UI Specs / Price Rules Sheet)"
+                                value={newReqTitle}
+                                onChange={(e) => setNewReqTitle(e.target.value)}
                                 className="flex-1"
                               />
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="primary"
                                 isLoading={isCreatingReq}
-                                disabled={!newReqCode.trim() || !newReqTitle.trim()}
+                                disabled={!newReqTitle.trim() || !newReqUrl.trim()}
                                 onClick={handleCreateAndLinkRequirement}
                               >
-                                Create & Link
+                                Embed Reference
                               </Button>
                             </div>
                           </div>
                         </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* QA Documents & Test Plans Section */}
+                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                          <Bug className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>QA Test Plans & Verification Docs ({(taskQaDocLinks || []).length})</span>
+                        </span>
+                        <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                          {canManageQaDocs
+                            ? 'Test plans, test scenarios, and QA sign-off documents linked to this task.'
+                            : 'Authored by QA Engineer, Admin, or Owner for quality verification.'}
+                        </p>
+                      </div>
+
+                      {canManageQaDocs && (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          leftIcon={<Plus className="h-3 w-3" />}
+                          onClick={() => setIsCreateQaDocModalOpen(true)}
+                        >
+                          New QA Doc
+                        </Button>
+                      )}
+                    </div>
+
+                    {isLoadingQaDocs ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-10 w-full rounded-xl" />
+                      </div>
+                    ) : (taskQaDocLinks || []).length === 0 ? (
+                      <div className="p-3 text-center border border-dashed border-emerald-200 dark:border-emerald-900/60 rounded-xl">
+                        <p className="text-xs text-stone-500 italic">
+                          {canManageQaDocs
+                            ? 'No QA test documents linked to this task yet. Click "New QA Doc" to author a test plan.'
+                            : 'No QA test documents attached to this task yet.'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {taskQaDocLinks.map((link) => {
+                          const versionNum = typeof link.document?.currentVersion === 'number'
+                            ? link.document.currentVersion
+                            : (link.document?.currentVersion as any)?.version || 1;
+                          return (
+                            <div
+                              key={link.id}
+                              className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-stone-200 bg-white text-xs dark:border-stone-800 dark:bg-stone-900 gap-2 shadow-xs"
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                  {link.document?.docType === 'test_plan'
+                                    ? '🧪 Test Plan'
+                                    : link.document?.docType === 'test_strategy'
+                                    ? '📋 Test Strategy'
+                                    : link.document?.docType === 'release_report'
+                                    ? '🚀 Release Report'
+                                    : link.document?.docType === 'qa_guide'
+                                    ? '📖 QA Guide'
+                                    : '📄 QA Doc'}
+                                </span>
+                                <span className="font-bold text-stone-900 dark:text-stone-100 truncate">
+                                  {link.document?.title || 'QA Document'}
+                                </span>
+                                <span className="text-[11px] font-mono text-stone-400">
+                                  v{versionNum}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                {canManageQaDocs && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-stone-600 hover:text-rose-600 hover:border-rose-300 dark:text-stone-400 dark:hover:text-rose-400"
+                                    onClick={() => handleUnlinkQaDoc(link.documentId)}
+                                  >
+                                    Unlink
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1606,167 +1882,25 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
           {/* TAB 3: SUBTASKS */}
           {activeTab === 'subtasks' && (
-            <div className="space-y-3">
-              {!task.parentTaskId && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
-                    Direct Subtasks ({subtasks.length})
-                  </span>
-                  {canPlan && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      leftIcon={<Plus className="h-3.5 w-3.5" />}
-                      onClick={() => setIsSubtaskModalOpen(true)}
-                    >
-                      Plan Subtask
-                    </Button>
-                  )}
-                </div>
-              )}
-
-              {isLoadingSubtasks ? (
-                <Skeleton variant="text" className="h-16 w-full" />
-              ) : subtasksError ? (
-                <Alert tone="error" title="Subtasks unavailable">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>{subtasksError}</span>
-                    <Button variant="outline" size="sm" onClick={() => void loadSubtasks()}>
-                      Retry
-                    </Button>
-                  </div>
-                </Alert>
-              ) : subtasks.length === 0 ? (
-                <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
-                  <div className="flex justify-center">
-                    <img
-                      src={EMPTY_SUBTASKS_ILLUSTRATION_URL}
-                      alt="No subtasks created"
-                      className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
-                      loading="lazy"
-                    />
-                    <div className="hidden dark:flex items-center justify-center py-2">
-                      <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
-                        <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
-                        <ListTodo className="h-7 w-7 text-[#B1E743]" />
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium max-w-sm mx-auto leading-relaxed">
-                    No subtasks created under this task.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {subtasks.map((st) => {
-                    const assignee = members.find((m) => m.userId === st.assigneeId);
-                    const isCompleted = st.status === 'done';
-
-                    return (
-                      <Card key={st.id} className="p-3.5 space-y-2.5 hover:border-stone-400 dark:hover:border-stone-600 transition-all">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {st.deliveryArea === 'frontend' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
-                                <Code2 className="h-3 w-3" /> FE
-                              </span>
-                            )}
-                            {st.deliveryArea === 'backend' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                <Layers className="h-3 w-3" /> BE
-                              </span>
-                            )}
-                            {st.deliveryArea === 'qa' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                <Bug className="h-3 w-3" /> QA
-                              </span>
-                            )}
-                            {!st.deliveryArea && (
-                              <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300">
-                                SUBTASK
-                              </span>
-                            )}
-
-                            <span className={`font-bold text-xs ${isCompleted ? 'line-through text-stone-400 dark:text-stone-500' : 'text-stone-900 dark:text-stone-100'}`}>
-                              {st.title}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                            <select
-                              value={st.status}
-                              onChange={(e) => void handleSubtaskStatusChange(st.id, e.target.value as TaskStatus)}
-                              className="h-7 rounded-lg border border-stone-200 bg-white px-2 text-[11px] font-bold text-stone-800 outline-none focus:ring-1 focus:ring-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
-                              title="Update Subtask Status"
-                            >
-                              <option value="todo">To Do</option>
-                              <option value="in_progress">In Progress</option>
-                              <option value="in_review">In Review</option>
-                              <option value="changes_requested">Changes Requested</option>
-                              <option value="done">Done</option>
-                              <option value="canceled">Canceled</option>
-                            </select>
-
-                            <TaskStatusBadge state={st.status} />
-                          </div>
-                        </div>
-
-                        {st.description && (
-                          <div className="text-xs text-stone-600 dark:text-stone-400">
-                            <FormattedText content={st.description} />
-                          </div>
-                        )}
-
-                        {st.reviewNotes && (
-                          <div className="text-xs p-2.5 rounded-xl bg-rose-50/80 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900/60 text-rose-900 dark:text-rose-200 space-y-1">
-                            <span className="font-bold flex items-center gap-1 text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-300">
-                              <AlertCircle className="h-3 w-3" /> Reviewer Notes:
-                            </span>
-                            <p className="text-xs leading-relaxed">{st.reviewNotes}</p>
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-3 text-[11px] text-stone-500 dark:text-stone-400 pt-1 border-t border-stone-100 dark:border-stone-800/80 flex-wrap justify-between">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="inline-flex items-center gap-1">
-                              <User className="h-3.5 w-3.5 text-stone-400" />
-                              <span>
-                                Assignee:{' '}
-                                <strong className="text-stone-700 dark:text-stone-300 font-semibold">
-                                  {assignee?.user?.name || assignee?.user?.email || 'Unassigned'}
-                                </strong>
-                              </span>
-                            </span>
-
-                            {st.reviewedBy && (
-                              <span className="inline-flex items-center gap-1 text-stone-600 dark:text-stone-400">
-                                <span>Reviewed by:</span>
-                                <strong className="text-stone-700 dark:text-stone-300 font-semibold">
-                                  {members.find((m) => m.userId === st.reviewedBy)?.user?.name || 'Reviewer'}
-                                </strong>
-                              </span>
-                            )}
-
-                            {(st.startDate || st.dueDate) && (
-                              <span className="inline-flex items-center gap-1">
-                                <Calendar className="h-3.5 w-3.5 text-stone-400" />
-                                <span>{st.startDate || '—'} / <strong>{st.dueDate || '—'}</strong></span>
-                              </span>
-                            )}
-                          </div>
-
-                          {st.deliveryArea === 'qa' && (subtaskMetrics.feDone < subtaskMetrics.feTotal || subtaskMetrics.beDone < subtaskMetrics.beTotal) && (
-                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-900">
-                              Pending FE/BE
-                            </span>
-                          )}
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <SubtaskList
+              subtasks={subtasks}
+              parentTask={task}
+              productBrief={productBrief}
+              workspaceId={activeWorkspaceId || ''}
+              currentUserId={currentUserId || undefined}
+              members={members}
+              isLoading={isLoadingSubtasks}
+              error={subtasksError}
+              canPlan={canPlan && !task.parentTaskId}
+              canMutate={Boolean(activeWorkspace && ['owner', 'admin', 'po', 'dev', 'qa'].includes(activeWorkspace.role))}
+              onOpenCreateModal={() => setIsSubtaskModalOpen(true)}
+              onRetry={() => void loadSubtasks()}
+              onSubtaskUpdated={(updated) => {
+                setSubtasks((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+                onDataChanged?.();
+              }}
+              onStatusChange={(subtaskId, newStatus) => void handleSubtaskStatusChange(subtaskId, newStatus)}
+            />
           )}
 
           {/* TAB 4: ACTIVITY AUDIT */}
@@ -1867,28 +2001,23 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   ))}
                 </div>
               )}
-              {!activityError && activityTotal > PAGE_SIZE && (
-                <div className="flex justify-between gap-2 pt-1">
+              {!activityError && activityTotal > activities.length && (
+                <div className="flex flex-col items-center gap-2 pt-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={activityPage <= 1}
-                    onClick={() => void loadActivity(activityPage - 1)}
+                    className="w-full sm:w-auto"
+                    isLoading={isLoadingActivity}
+                    onClick={() => void loadActivity(activityPage + 1, true)}
                   >
-                    Previous
-                  </Button>
-                  <span className="self-center text-xs text-stone-500">
-                    Page {activityPage} of {Math.ceil(activityTotal / PAGE_SIZE)}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={activityPage >= Math.ceil(activityTotal / PAGE_SIZE)}
-                    onClick={() => void loadActivity(activityPage + 1)}
-                  >
-                    Next
+                    Load older activities ({activityTotal - activities.length} remaining)
                   </Button>
                 </div>
+              )}
+              {!activityError && activityTotal > PAGE_SIZE && activities.length === activityTotal && (
+                <p className="text-center text-[11px] text-stone-400 pt-1">
+                  All {activityTotal} activity events loaded.
+                </p>
               )}
             </div>
           )}
@@ -1947,9 +2076,31 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 {members.length > 0 && (
                   <div className="space-y-1.5">
                     <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-wider dark:text-stone-400">
-                      Mention Workspace Members (Optional)
+                      Mention Members / Broadcast (Optional)
                     </label>
                     <div className="flex flex-wrap gap-1.5">
+                      {/* @channel broadcast chip */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!commentBody.includes('@channel')) {
+                            setCommentBody((prev) => (prev ? `@channel ${prev}` : '@channel '));
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                          commentBody.includes('@channel')
+                            ? 'bg-amber-500 text-white shadow-xs dark:bg-amber-400 dark:text-stone-950 ring-2 ring-amber-500/30'
+                            : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/60'
+                        }`}
+                        title="Broadcast ke semua orang di task ini (Reporter, Assignee, Subtask Assignees, Komentator)"
+                      >
+                        <Volume2 className="h-3 w-3" />
+                        <span>@channel</span>
+                        <span className="text-[9px] uppercase px-1 rounded font-extrabold bg-amber-500/20">
+                          Semua di task
+                        </span>
+                      </button>
+
                       {members.map((member) => {
                         const isSelected = mentionedUserIds.includes(member.userId);
                         const name = member.user?.name || member.user?.email || member.userId.substring(0, 6);
@@ -2164,28 +2315,23 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   ))}
                 </div>
               )}
-              {!commentsError && commentsTotal > PAGE_SIZE && (
-                <div className="flex justify-between gap-2 pt-1">
+              {!commentsError && commentsTotal > comments.length && (
+                <div className="flex flex-col items-center gap-2 pt-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={commentsPage <= 1}
-                    onClick={() => void loadComments(commentsPage - 1)}
+                    className="w-full sm:w-auto"
+                    isLoading={isLoadingComments}
+                    onClick={() => void loadComments(commentsPage + 1, true)}
                   >
-                    Previous
-                  </Button>
-                  <span className="self-center text-xs text-stone-500">
-                    Page {commentsPage} of {Math.ceil(commentsTotal / PAGE_SIZE)}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={commentsPage >= Math.ceil(commentsTotal / PAGE_SIZE)}
-                    onClick={() => void loadComments(commentsPage + 1)}
-                  >
-                    Next
+                    Load older messages ({commentsTotal - comments.length} remaining)
                   </Button>
                 </div>
+              )}
+              {!commentsError && commentsTotal > PAGE_SIZE && comments.length === commentsTotal && (
+                <p className="text-center text-[11px] text-stone-400 pt-1">
+                  All {commentsTotal} messages loaded.
+                </p>
               )}
             </div>
           )}
@@ -2201,6 +2347,77 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           onDataChanged?.();
         }}
       />
+
+      {/* Create & Link QA Document Modal */}
+      <Modal
+        isOpen={isCreateQaDocModalOpen}
+        onClose={() => setIsCreateQaDocModalOpen(false)}
+        title="Create & Link QA Document"
+        description={`Author a new QA test plan or scenario document linked to "${task?.title}"`}
+        size="lg"
+      >
+        <form onSubmit={handleCreateAndLinkQaDoc} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+              Document Title *
+            </label>
+            <Input
+              required
+              placeholder="e.g. Test Plan: Payment Gateway Integration"
+              value={newQaDocTitle}
+              onChange={(e) => setNewQaDocTitle(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+              Document Type *
+            </label>
+            <Select
+              value={newQaDocType}
+              onChange={(e) => setNewQaDocType(e.target.value)}
+            >
+              <option value="test_plan">🧪 Test Plan</option>
+              <option value="test_strategy">📋 Test Strategy</option>
+              <option value="test_cases">🔍 Test Scenarios</option>
+              <option value="qa_signoff">✅ QA Sign-off</option>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+              Document Content (Markdown) *
+            </label>
+            <RichTextEditor
+              id="new-task-qa-doc-content"
+              value={newQaDocContent}
+              onChange={setNewQaDocContent}
+              placeholder="Write test objectives, scope, test cases, and verification criteria..."
+              minRows={8}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-stone-100 dark:border-stone-800">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCreateQaDocModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              isLoading={isSubmittingQaDoc}
+              disabled={!newQaDocTitle.trim() || !newQaDocContent.trim()}
+            >
+              Create & Link Document
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </>
   );
 };

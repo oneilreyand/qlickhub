@@ -1,4 +1,4 @@
-import { WorkspaceRole, UpdateTaskInput, TaskStatus, DeliveryArea } from '@qa/contracts';
+import { WorkspaceRole, UpdateTaskInput, TaskStatus, DeliveryArea } from '@qlick/contracts';
 
 const plannerRoles: readonly WorkspaceRole[] = ['owner', 'admin', 'po'];
 
@@ -15,7 +15,7 @@ export function isPlanner(role: WorkspaceRole): boolean {
 export function assertCanCreateTask(
   role: WorkspaceRole,
   _actorId?: string,
-  assigneeId?: string | null,
+  _assigneeId?: string | null,
   parentTaskId?: string | null,
   hasSpecialPermission?: boolean
 ): void {
@@ -23,15 +23,40 @@ export function assertCanCreateTask(
     if (!isPlanner(role)) {
       throw new Error('FORBIDDEN: Only Product Owner, Admin, or Owner can create and plan subtasks.');
     }
-    if (!assigneeId) {
-      throw new Error('BAD_REQUEST: Assignee is required for subtasks.');
-    }
     return;
   }
 
   if (isPlanner(role) || hasSpecialPermission) return;
 
   throw new Error('FORBIDDEN: Only Product Owner, Admin, or Owner can create tasks.');
+}
+
+/**
+ * Applies policy to task read/access operations.
+ * Planners (owner, admin, po) can access all tasks in the workspace.
+ * Non-planners (dev, qa) can access tasks if:
+ * 1. The task is assigned to them, OR
+ * 2. They are the reporter/creator, OR
+ * 3. They are assigned to at least one subtask under the parent task (or sibling subtask).
+ */
+export function assertCanAccessTask(
+  role: WorkspaceRole,
+  actorId: string,
+  task: {
+    id: string;
+    parentTaskId?: string | null;
+    assigneeId?: string | null;
+    reporterId: string;
+  },
+  hasAssignedSubtask: boolean
+): void {
+  if (isPlanner(role)) return;
+
+  if (task.assigneeId === actorId || task.reporterId === actorId) return;
+
+  if (hasAssignedSubtask) return;
+
+  throw new Error('FORBIDDEN: You do not have permission to access this task.');
 }
 
 /**

@@ -20,7 +20,7 @@ export type Requirement = z.infer<typeof RequirementSchema>;
 
 export const CreateRequirementSchema = z.object({
   workspaceId: z.string().uuid(),
-  code: z.string().min(2).max(50).trim(),
+  code: z.string().min(2).max(50).trim().optional(),
   title: z.string().min(1).max(255).trim(),
   description: z.string().nullable().optional(),
   url: z.string().url().nullable().optional(),

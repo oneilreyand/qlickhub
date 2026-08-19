@@ -11,7 +11,7 @@ import {
   Bug,
   ShieldCheck,
 } from 'lucide-react';
-import { Task, WorkspaceRole } from '@qa/contracts';
+import { Task, WorkspaceRole } from '@qlick/contracts';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Badge } from '../atoms/Badge';

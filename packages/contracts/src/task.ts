@@ -49,7 +49,7 @@ export type SubtaskSummary = z.infer<typeof SubtaskSummarySchema>;
 /**
  * Persisted Task entity schema.
  */
-export const TaskSchema = z.object({
+export const TaskSchemaBase = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
   folderId: z.string().uuid().nullable().optional(),
@@ -72,7 +72,13 @@ export const TaskSchema = z.object({
   updatedAt: z.string(),
 });
 
-export type Task = z.infer<typeof TaskSchema>;
+export type Task = z.infer<typeof TaskSchemaBase> & {
+  subtasks?: Task[];
+};
+
+export const TaskSchema: z.ZodType<Task> = TaskSchemaBase.extend({
+  subtasks: z.lazy(() => TaskSchema.array().optional()),
+});
 
 /**
  * Input schema for creating a task.
@@ -99,14 +105,6 @@ export const CreateTaskSchema = z
         code: z.ZodIssueCode.custom,
         message: 'deliveryArea is required for a subtask',
         path: ['deliveryArea'],
-      });
-    }
-
-    if (data.parentTaskId && !data.assigneeId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'assigneeId is required for a subtask',
-        path: ['assigneeId'],
       });
     }
 
@@ -162,6 +160,15 @@ export const UpdateTaskSchema = z
 export type UpdateTaskInput = z.infer<typeof UpdateTaskSchema>;
 
 /**
+ * Input schema for updating only task status.
+ */
+export const UpdateTaskStatusSchema = z.object({
+  status: TaskStatusSchema,
+});
+
+export type UpdateTaskStatusInput = z.infer<typeof UpdateTaskStatusSchema>;
+
+/**
  * Input schema for moving a task to a folder or unfiled (null).
  */
 export const MoveTaskSchema = z.object({
@@ -189,7 +196,9 @@ export const TaskListQuerySchema = z
     workspaceId: z.string().uuid(),
     folderId: z.string().uuid().optional(),
     parentTaskId: z.string().uuid().optional(),
+    deliveryArea: DeliveryAreaSchema.optional(),
     rootOnly: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
+    includeSubtasks: z.coerce.boolean().optional().default(false),
     includeSubtaskSummary: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
     includeDescendants: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
     unfiledOnly: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),

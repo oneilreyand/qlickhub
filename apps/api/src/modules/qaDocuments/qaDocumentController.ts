@@ -6,7 +6,7 @@ import {
   CreateQaDocumentVersionSchema,
   LinkDocumentSchema,
   UpsertProductBriefSchema,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 import { ZodError } from 'zod';
 
 function handleError(res: Response, error: unknown) {

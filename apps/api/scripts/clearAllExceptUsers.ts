@@ -1,4 +1,8 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { sequelize } from '../src/db/sequelize.js';
+
+const STORAGE_BASE_DIR = path.resolve(process.cwd(), 'data', 'evidence_storage');
 
 export async function clearAllExceptUsers() {
   console.log('🔄 Connecting to database...');
@@ -26,6 +30,16 @@ export async function clearAllExceptUsers() {
     console.log('ℹ️ No tables found to truncate.');
   }
 
+  // Clean evidence storage directory
+  if (fs.existsSync(STORAGE_BASE_DIR)) {
+    const items = fs.readdirSync(STORAGE_BASE_DIR);
+    for (const item of items) {
+      const itemPath = path.join(STORAGE_BASE_DIR, item);
+      fs.rmSync(itemPath, { recursive: true, force: true });
+    }
+    console.log('🧹 Cleaned evidence storage directory.');
+  }
+
   const [userCountResult] = await sequelize.query(`SELECT count(*) as count FROM "users";`);
   const [usersList] = await sequelize.query(`SELECT id, email, name, role FROM "users" ORDER BY email ASC;`);
   
@@ -42,3 +56,4 @@ clearAllExceptUsers().catch((err) => {
   console.error('❌ Error during data cleanup:', err);
   process.exit(1);
 });
+

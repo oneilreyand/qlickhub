@@ -1,78 +1,151 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ChevronDown,
   ShieldCheck,
   ArrowRight,
   FileBarChart,
   Code2,
-  GitPullRequest,
   Compass,
   Rocket,
   Bug,
-  Activity,
+  Calendar,
+  ListTodo,
   Workflow,
+  ClipboardList,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { OverviewBannerCarousel } from './OverviewBannerCarousel';
 import { AnimatedCounter } from '../atoms/AnimatedCounter';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { RootState } from '../../../store/store';
-
-type DisciplineFilter = 'all' | 'product' | 'dev' | 'qa';
+import { fetchTasks } from '../../../store/taskSlice';
+import { fetchFolderTree } from '../../../store/folderSlice';
 
 export const OverviewStoreDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [selectedTimeframe, setSelectedTimeframe] = useState('This Sprint');
-  const [activeDiscipline, setActiveDiscipline] = useState<DisciplineFilter>('all');
-  const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(13); // Default highlighted day
+  const dispatch = useAppDispatch();
+  const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
 
   const { tasks } = useAppSelector((state: RootState) => state.task);
   const { folders } = useAppSelector((state: RootState) => state.folder);
   const { activeWorkspaceId, workspaces } = useAppSelector((state: RootState) => state.workspace);
+  const currentUser = useAppSelector((state: RootState) => state.auth.currentUser);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
 
-  // Compute live task metrics if available, otherwise sensible default numbers
-  const totalTasks = tasks.length > 0 ? tasks.length : 32;
-  const completedTasks = tasks.length > 0 ? tasks.filter((t) => t.status === 'done').length : 26;
-  const inReviewTasks = tasks.length > 0 ? tasks.filter((t) => t.status === 'in_review').length : 4;
-  const inProgressTasks = tasks.length > 0 ? tasks.filter((t) => t.status === 'in_progress').length : 7;
-  const blockedTasks =
-    tasks.length > 0 ? tasks.filter((t) => t.priority === 'urgent' || t.status === 'canceled').length : 1;
+  // Fetch fresh workspace tasks and folders on workspace load
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      void dispatch(fetchTasks({ workspaceId: activeWorkspaceId, query: { limit: 100 } }));
+      if (folders.length === 0) {
+        void dispatch(fetchFolderTree(activeWorkspaceId));
+      }
+    }
+  }, [activeWorkspaceId, dispatch, folders.length]);
 
-  // Domain-specific calculations
-  const productSpecCompletion = 94; // % PRD & feature requirements defined
-  const devPrMergeVelocity = 38; // PRs merged this sprint
-  const qaPassRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 88;
-  const releaseReadinessScore = Math.round((productSpecCompletion * 0.3 + 92 * 0.35 + qaPassRate * 0.35));
+  // Current month date calculations
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonthIndex = now.getMonth();
+  const startOfMonth = new Date(currentYear, currentMonthIndex, 1);
+  const endOfMonth = new Date(currentYear, currentMonthIndex + 1, 0);
 
-  // Multi-discipline pipeline analytics data (Product Specs, Dev Commits/PRs, QA Tests/Defects)
-  const pipelineAnalyticsData = [
-    { label: 'Day 1', date: 'Aug 01', productSpecs: 3, devCommits: 24, qaVerified: 18, defects: 2 },
-    { label: 'Day 2', date: 'Aug 02', productSpecs: 5, devCommits: 30, qaVerified: 22, defects: 3 },
-    { label: 'Day 3', date: 'Aug 03', productSpecs: 4, devCommits: 28, qaVerified: 25, defects: 1 },
-    { label: 'Day 4', date: 'Aug 04', productSpecs: 6, devCommits: 35, qaVerified: 30, defects: 4 },
-    { label: 'Day 5', date: 'Aug 05', productSpecs: 8, devCommits: 42, qaVerified: 38, defects: 2 },
-    { label: 'Day 6', date: 'Aug 06', productSpecs: 2, devCommits: 18, qaVerified: 15, defects: 1 },
-    { label: 'Day 7', date: 'Aug 07', productSpecs: 1, devCommits: 12, qaVerified: 10, defects: 0 },
-    { label: 'Day 8', date: 'Aug 08', productSpecs: 4, devCommits: 32, qaVerified: 28, defects: 3 },
-    { label: 'Day 9', date: 'Aug 09', productSpecs: 7, devCommits: 40, qaVerified: 34, defects: 2 },
-    { label: 'Day 10', date: 'Aug 10', productSpecs: 5, devCommits: 36, qaVerified: 32, defects: 1 },
-    { label: 'Day 11', date: 'Aug 11', productSpecs: 8, devCommits: 45, qaVerified: 40, defects: 2 },
-    { label: 'Day 12', date: 'Aug 12', productSpecs: 6, devCommits: 48, qaVerified: 42, defects: 3 },
-    { label: 'Day 13', date: 'Aug 13', productSpecs: 4, devCommits: 52, qaVerified: 48, defects: 1 },
-    { label: 'Day 14', date: 'Aug 14', productSpecs: 9, devCommits: 58, qaVerified: 54, defects: 2 }, // Highlighted
-    { label: 'Day 15', date: 'Aug 15', productSpecs: 3, devCommits: 22, qaVerified: 20, defects: 1 },
-    { label: 'Day 16', date: 'Aug 16', productSpecs: 2, devCommits: 16, qaVerified: 14, defects: 0 },
-    { label: 'Day 17', date: 'Aug 17', productSpecs: 6, devCommits: 38, qaVerified: 35, defects: 2 },
-    { label: 'Day 18', date: 'Aug 18', productSpecs: 8, devCommits: 46, qaVerified: 41, defects: 1 },
-    { label: 'Day 19', date: 'Aug 19', productSpecs: 5, devCommits: 40, qaVerified: 36, defects: 2 },
-    { label: 'Day 20', date: 'Aug 20', productSpecs: 7, devCommits: 50, qaVerified: 45, defects: 1 },
-  ];
+  const startIso = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-01`;
+  const endIso = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(
+    endOfMonth.getDate()
+  ).padStart(2, '0')}`;
+  const todayIso = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(
+    now.getDate()
+  ).padStart(2, '0')}`;
 
+  const monthName = startOfMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const formattedDateRange = `1 ${startOfMonth.toLocaleDateString('id-ID', {
+    month: 'short',
+  })} – ${endOfMonth.getDate()} ${endOfMonth.toLocaleDateString('id-ID', {
+    month: 'short',
+    year: 'numeric',
+  })}`;
+
+  // Filter tasks within current month range or active tasks in workspace
+  const monthlyTasks = useMemo(() => {
+    if (!tasks || tasks.length === 0) return [];
+    return tasks.filter((t) => {
+      const created = t.createdAt ? t.createdAt.slice(0, 10) : '';
+      const due = t.dueDate || '';
+      const isCreatedThisMonth = created >= startIso && created <= endIso;
+      const isDueThisMonth = due >= startIso && due <= endIso;
+      const isActive = t.status !== 'done' && t.status !== 'canceled';
+      return isCreatedThisMonth || isDueThisMonth || isActive;
+    });
+  }, [tasks, startIso, endIso]);
+
+  const activeTaskList = monthlyTasks.length > 0 ? monthlyTasks : tasks;
+
+  // Real KPI Metrics computed from actual task data
+  const totalTasks = activeTaskList.length;
+  const todoTasks = activeTaskList.filter((t) => t.status === 'todo').length;
+  const inProgressTasks = activeTaskList.filter((t) => t.status === 'in_progress').length;
+  const inReviewTasks = activeTaskList.filter(
+    (t) => t.status === 'in_review' || t.status === 'changes_requested'
+  ).length;
+  const completedTasks = activeTaskList.filter((t) => t.status === 'done').length;
+
+  const urgentTasks = activeTaskList.filter((t) => t.priority === 'urgent').length;
+  const overdueTasks = activeTaskList.filter(
+    (t) => Boolean(t.dueDate) && t.dueDate! < todayIso && t.status !== 'done' && t.status !== 'canceled'
+  ).length;
+  const blockedTasks = urgentTasks + overdueTasks;
+
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const inProgressRate = totalTasks > 0 ? Math.round((inProgressTasks / totalTasks) * 100) : 0;
+  const inReviewRate = totalTasks > 0 ? Math.round((inReviewTasks / totalTasks) * 100) : 0;
+  const todoRate = totalTasks > 0 ? Math.round((todoTasks / totalTasks) * 100) : 0;
+
+  // Real Weekly Activity Distribution for the current month
+  const daysInMonth = endOfMonth.getDate();
+  const weeklyAnalyticsData = useMemo(() => {
+    const intervals = [
+      { label: 'W1', period: `1-7 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 1, endDay: 7 },
+      { label: 'W2', period: `8-14 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 8, endDay: 14 },
+      { label: 'W3', period: `15-21 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 15, endDay: 21 },
+      { label: 'W4', period: `22-28 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 22, endDay: 28 },
+      { label: 'W5', period: `29-${daysInMonth} ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 29, endDay: daysInMonth },
+    ];
+
+    return intervals.map((intv) => {
+      const bucketTasks = activeTaskList.filter((t) => {
+        const d = t.createdAt ? new Date(t.createdAt).getDate() : (t.dueDate ? new Date(t.dueDate).getDate() : null);
+        if (d === null) return true;
+        return d >= intv.startDay && d <= intv.endDay;
+      });
+
+      return {
+        label: intv.label,
+        period: intv.period,
+        todo: bucketTasks.filter((t) => t.status === 'todo').length,
+        inProgress: bucketTasks.filter((t) => t.status === 'in_progress').length,
+        inReview: bucketTasks.filter((t) => t.status === 'in_review' || t.status === 'changes_requested').length,
+        done: bucketTasks.filter((t) => t.status === 'done').length,
+        defects: bucketTasks.filter((t) => t.priority === 'urgent').length,
+        total: bucketTasks.length,
+      };
+    });
+  }, [activeTaskList, daysInMonth, startOfMonth]);
+
+  const maxBucketTotal = Math.max(1, ...weeklyAnalyticsData.map((d) => d.total));
+
+  // Gauge calculations
   const donutCircumference = 2 * Math.PI * 15.9155; // ~100
-  const releaseDash = (releaseReadinessScore / 100) * donutCircumference;
-  const remainingReleaseDash = donutCircumference - releaseDash;
+  const releaseDash = (completionRate / 100) * donutCircumference;
+  const remainingReleaseDash = Math.max(0, donutCircumference - releaseDash);
+
+  // User Role & Bottom Stream Cards Logic
+  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || currentUser?.role || 'dev').toLowerCase();
+  const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
+  const isQA = userRole === 'qa';
+  const isPO = userRole === 'po';
+
+  const myAssignedTasks = tasks.filter((t) => t.assigneeId === currentUser?.id);
+  const myPendingTasks = myAssignedTasks.filter((t) => t.status !== 'done' && t.status !== 'canceled');
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -81,34 +154,26 @@ export const OverviewStoreDashboard: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
             <Workflow className="h-4 w-4 text-indigo-500 dark:text-[#B1E743]" />
-            <span>Cross-Functional Delivery Hub</span>
+            <span>Workspace Delivery Hub</span>
           </div>
           <h1 className="text-3xl font-extrabold text-[#22201F] tracking-tight dark:text-white mt-1">
             Overview
           </h1>
-          <p className="text-sm font-medium text-stone-500 mt-0.5 dark:text-stone-400">
-            Unified Product roadmap, Engineering velocity, and QA readiness for{' '}
-            <span className="font-semibold text-stone-800 dark:text-stone-200">
-              {activeWorkspace?.name || 'Workspace'}
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <p className="text-sm font-medium text-stone-500 dark:text-stone-400">
+              Ringkasan aktivitas delivery untuk{' '}
+              <span className="font-semibold text-stone-800 dark:text-stone-200">
+                {activeWorkspace?.name || 'Workspace'}
+              </span>
+            </p>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-0.5 text-xs font-semibold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+              <Calendar className="h-3.5 w-3.5 text-indigo-500 dark:text-[#B1E743]" />
+              <span>Bulan {monthName} ({formattedDateRange})</span>
             </span>
-          </p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Timeframe Selector Pill */}
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedTimeframe((prev) =>
-                prev === 'This Sprint' ? 'This Month' : prev === 'This Month' ? 'All Time' : 'This Sprint'
-              );
-            }}
-            className="flex items-center gap-2 rounded-full border border-stone-200/90 bg-white px-4 py-2 text-xs font-semibold text-stone-800 shadow-xs hover:bg-stone-50 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
-          >
-            <span>{selectedTimeframe}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-stone-400" />
-          </button>
-
+        <div className="flex items-center gap-3">
           {/* Quick Action: Open Task Hub */}
           <button
             type="button"
@@ -121,114 +186,62 @@ export const OverviewStoreDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Banner Carousel (Preserved) */}
+      {/* Main Banner Carousel */}
       <OverviewBannerCarousel />
 
-      {/* Discipline Perspective Switcher Tabs */}
-      <div className="flex items-center justify-between border-b border-stone-200/80 pb-3 dark:border-stone-800">
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: 'all', label: 'All Delivery Pipeline', icon: <Activity className="h-3.5 w-3.5" /> },
-            { id: 'product', label: 'Product & Specs', icon: <Compass className="h-3.5 w-3.5" /> },
-            { id: 'dev', label: 'Development (Dev)', icon: <Code2 className="h-3.5 w-3.5" /> },
-            { id: 'qa', label: 'Quality Assurance (QA)', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
-          ].map((tab) => {
-            const isActive = activeDiscipline === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveDiscipline(tab.id as DisciplineFilter)}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-[#22201F] text-white shadow-sm dark:bg-[#B1E743] dark:text-[#22201F]'
-                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700'
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="hidden md:flex items-center gap-2 text-xs font-semibold text-stone-400">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Live Workspace Sync</span>
-        </div>
-      </div>
-
-      {/* 4 Core Cross-Functional KPI Cards */}
+      {/* 4 Core Real KPI Cards (Current Month Data) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Product Scope & Specs */}
-        <div
-          className={`rounded-[24px] bg-white p-6 border shadow-xs space-y-3 transition-all dark:bg-[#1C1A19] ${
-            activeDiscipline === 'product' || activeDiscipline === 'all'
-              ? 'border-stone-200/80 dark:border-stone-800 ring-2 ring-indigo-500/20'
-              : 'border-stone-200/50 opacity-60 dark:border-stone-800/60'
-          }`}
-        >
+        {/* Card 1: Total Tasks Bulan Ini */}
+        <div className="rounded-[24px] bg-white p-6 border border-stone-200/80 shadow-xs space-y-3 dark:bg-[#1C1A19] dark:border-stone-800">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-              Product Scope
+              Total Tugas
             </span>
             <div className="grid h-8 w-8 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
-              <Compass className="h-4 w-4" />
+              <ListTodo className="h-4 w-4" />
             </div>
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-3xl font-extrabold text-[#22201F] dark:text-white">
-              <AnimatedCounter value={productSpecCompletion} suffix="%" />
+              <AnimatedCounter value={totalTasks} />
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
-              18/20 Epics
+              {todoTasks} To Do
             </span>
           </div>
           <p className="text-[11px] font-medium text-stone-400 truncate">
-            PRD specs & user requirements mapped
+            Tugas aktif pada rentang bulan ini
           </p>
         </div>
 
-        {/* Card 2: Dev Engineering Velocity */}
-        <div
-          className={`rounded-[24px] bg-white p-6 border shadow-xs space-y-3 transition-all dark:bg-[#1C1A19] ${
-            activeDiscipline === 'dev' || activeDiscipline === 'all'
-              ? 'border-stone-200/80 dark:border-stone-800 ring-2 ring-emerald-500/20'
-              : 'border-stone-200/50 opacity-60 dark:border-stone-800/60'
-          }`}
-        >
+        {/* Card 2: In Progress WIP */}
+        <div className="rounded-[24px] bg-white p-6 border border-stone-200/80 shadow-xs space-y-3 dark:bg-[#1C1A19] dark:border-stone-800">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              Dev Velocity
+              Sedang Dikerjakan
             </span>
             <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-              <GitPullRequest className="h-4 w-4" />
+              <Code2 className="h-4 w-4" />
             </div>
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-3xl font-extrabold text-[#22201F] dark:text-white">
-              <AnimatedCounter value={devPrMergeVelocity} suffix=" PRs" />
+              <AnimatedCounter value={inProgressTasks} />
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
-              <AnimatedCounter value={inProgressTasks} suffix=" WIP Tasks" />
+              {inProgressRate}% Beban Kerja
             </span>
           </div>
           <p className="text-[11px] font-medium text-stone-400 truncate">
-            Code merged & active sprint branches
+            Tugas dalam tahap implementasi aktif
           </p>
         </div>
 
-        {/* Card 3: QA Verification & Quality Pass */}
-        <div
-          className={`rounded-[24px] bg-white p-6 border shadow-xs space-y-3 transition-all dark:bg-[#1C1A19] ${
-            activeDiscipline === 'qa' || activeDiscipline === 'all'
-              ? 'border-stone-200/80 dark:border-stone-800 ring-2 ring-amber-500/20'
-              : 'border-stone-200/50 opacity-60 dark:border-stone-800/60'
-          }`}
-        >
+        {/* Card 3: QA & In Review */}
+        <div className="rounded-[24px] bg-white p-6 border border-stone-200/80 shadow-xs space-y-3 dark:bg-[#1C1A19] dark:border-stone-800">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              QA Verification
+              Menunggu Review QA
             </span>
             <div className="grid h-8 w-8 place-items-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
               <ShieldCheck className="h-4 w-4" />
@@ -236,22 +249,22 @@ export const OverviewStoreDashboard: React.FC = () => {
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-3xl font-extrabold text-[#22201F] dark:text-white">
-              <AnimatedCounter value={qaPassRate} suffix="%" />
+              <AnimatedCounter value={inReviewTasks} />
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
-              <AnimatedCounter value={inReviewTasks} suffix=" In Review" />
+              {inReviewRate}% Antrean QA
             </span>
           </div>
           <p className="text-[11px] font-medium text-stone-400 truncate">
-            <AnimatedCounter value={completedTasks} /> of <AnimatedCounter value={totalTasks} /> tests passed
+            Tugas siap pengujian & verifikasi
           </p>
         </div>
 
-        {/* Card 4: Release Readiness Score */}
+        {/* Card 4: Completion Rate */}
         <div className="rounded-[24px] bg-white p-6 border border-stone-200/80 shadow-xs space-y-3 dark:bg-[#1C1A19] dark:border-stone-800">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300">
-              Release Gate
+              Tingkat Selesai
             </span>
             <div className="grid h-8 w-8 place-items-center rounded-xl bg-stone-100 text-[#22201F] dark:bg-stone-800 dark:text-[#B1E743]">
               <Rocket className="h-4 w-4" />
@@ -259,36 +272,36 @@ export const OverviewStoreDashboard: React.FC = () => {
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-3xl font-extrabold text-[#22201F] dark:text-white">
-              <AnimatedCounter value={releaseReadinessScore} suffix="%" />
+              <AnimatedCounter value={completionRate} suffix="%" />
             </span>
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                releaseReadinessScore >= 80
+                completionRate >= 70
                   ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
-                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300'
+                  : 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
               }`}
             >
-              Ready for Staging
+              {completedTasks} Selesai
             </span>
           </div>
           <p className="text-[11px] font-medium text-stone-400 truncate">
-            Product + Dev + QA sign-off aggregate
+            {completedTasks} dari {totalTasks} tugas selesai bulan ini
           </p>
         </div>
       </div>
 
-      {/* Main Grid: Left Column Summary Gauges (35%), Right Column Cross-Functional Pipeline Analytics (65%) */}
+      {/* Main Grid: Left Column Health & Attention Gauges (35%), Right Column Real Monthly Pipeline Chart (65%) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Multi-Discipline Health Gauges (4 Cols on lg) */}
+        {/* Left Column: Progress & Attention Queues */}
         <div className="lg:col-span-4 space-y-5">
-          {/* Card: Release Readiness Donut Gauge */}
+          {/* Card: Monthly Task Progress Donut Gauge */}
           <div className="rounded-[24px] bg-white p-6 border border-stone-200/60 shadow-xs space-y-4 dark:bg-[#1C1A19] dark:border-stone-800">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold text-stone-700 dark:text-stone-300">
-                End-to-End Pipeline Health
+                Progress Tugas Bulan Ini
               </p>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                Sprint 4
+                {monthName}
               </span>
             </div>
 
@@ -296,14 +309,14 @@ export const OverviewStoreDashboard: React.FC = () => {
               <div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-extrabold text-[#22201F] dark:text-white">
-                    {releaseReadinessScore}%
+                    {completionRate}%
                   </span>
                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    +6.4%
+                    {completedTasks}/{totalTasks} Done
                   </span>
                 </div>
                 <p className="text-[11px] font-medium text-stone-400 mt-1">
-                  Overall sprint release readiness
+                  Persentase penyelesaian tugas
                 </p>
               </div>
 
@@ -328,41 +341,53 @@ export const OverviewStoreDashboard: React.FC = () => {
                   />
                 </svg>
                 <div className="absolute inset-0 grid place-items-center text-xs font-bold text-[#22201F] dark:text-white">
-                  {releaseReadinessScore}%
+                  {completionRate}%
                 </div>
               </div>
             </div>
 
-            {/* Discipline Weights Breakdown */}
+            {/* Real Status Breakdown */}
             <div className="space-y-2 pt-3 border-t border-stone-100 dark:border-stone-800 text-xs">
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-indigo-500" /> Product Specs
+                  <span className="h-2 w-2 rounded-full bg-indigo-500" /> To Do
                 </span>
                 <span className="font-bold text-stone-900 dark:text-stone-200">
-                  {productSpecCompletion}%
+                  {todoTasks} ({todoRate}%)
                 </span>
               </div>
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> Dev Implementation
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> In Progress
                 </span>
-                <span className="font-bold text-stone-900 dark:text-stone-200">92%</span>
+                <span className="font-bold text-stone-900 dark:text-stone-200">
+                  {inProgressTasks} ({inProgressRate}%)
+                </span>
               </div>
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-[#B1E743]" /> QA Verification
+                  <span className="h-2 w-2 rounded-full bg-amber-500" /> Review / QA
                 </span>
-                <span className="font-bold text-stone-900 dark:text-stone-200">{qaPassRate}%</span>
+                <span className="font-bold text-stone-900 dark:text-stone-200">
+                  {inReviewTasks} ({inReviewRate}%)
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span className="h-2 w-2 rounded-full bg-[#B1E743]" /> Selesai (Done)
+                </span>
+                <span className="font-bold text-stone-900 dark:text-stone-200">
+                  {completedTasks} ({completionRate}%)
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Card: Attention & Defect Triage Queue */}
+          {/* Card: Urgent & Blocker Attention Queue */}
           <div className="rounded-[24px] bg-white p-6 border border-stone-200/60 shadow-xs space-y-3 dark:bg-[#1C1A19] dark:border-stone-800">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold text-stone-700 dark:text-stone-300">
-                Cross-Team Blocker Queue
+                Perhatian Khusus & Blocker
               </p>
               <div className="grid h-8 w-8 place-items-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
                 <Bug className="h-4 w-4" />
@@ -375,8 +400,8 @@ export const OverviewStoreDashboard: React.FC = () => {
                 </span>
                 <p className="text-[11px] font-medium text-stone-400 mt-1">
                   {blockedTasks > 0
-                    ? `${blockedTasks} blockers pending Product / Dev / QA triage`
-                    : 'Zero blocking issues'}
+                    ? `${urgentTasks} tugas urgent & ${overdueTasks} melewati tenggat`
+                    : 'Tidak ada tugas yang membutuhkan perhatian darurat'}
                 </p>
               </div>
               <div className="h-8 w-28">
@@ -395,96 +420,120 @@ export const OverviewStoreDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Unified Cross-Discipline Pipeline Chart (8 Cols on lg) */}
+        {/* Right Column: Real Monthly Task Activity Distribution Chart */}
         <div className="lg:col-span-8 rounded-[24px] bg-white p-6 sm:p-8 border border-stone-200/60 shadow-xs space-y-6 dark:bg-[#1C1A19] dark:border-stone-800">
           {/* Header & Legend */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-[#22201F] dark:text-white">
-                Delivery Pipeline Analytics
+                Distribusi Tugas Bulan Ini
               </h2>
               <p className="text-xs text-stone-400 font-medium mt-0.5">
-                Product Specs defined, Dev commits/PRs merged, and QA tests verified
+                Aktivitas status tugas per periode minggu dalam bulan berjalan
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-stone-500 dark:text-stone-400">
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-indigo-500" /> Specs
+                <span className="h-2.5 w-2.5 rounded-full bg-indigo-500" /> To Do
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Dev PRs
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> In Progress
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#B1E743]" /> QA Verified
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> In Review
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-400" /> Defects
+                <span className="h-2.5 w-2.5 rounded-full bg-[#B1E743]" /> Done
               </span>
             </div>
           </div>
 
           {/* Bar Chart Area */}
           <div className="relative pt-8 pb-4">
-            {/* Y-Axis Scale Grid Lines */}
+            {/* Scale Grid Lines */}
             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] font-semibold text-stone-400">
-              {[120, 100, 80, 60, 40, 20, 0].map((val) => (
-                <div key={val} className="flex items-center gap-3">
-                  <span className="w-6 text-right">{val}</span>
-                  <div className="flex-1 border-b border-stone-100 dark:border-stone-800/60" />
-                </div>
-              ))}
+              {[maxBucketTotal, Math.round(maxBucketTotal * 0.75), Math.round(maxBucketTotal * 0.5), Math.round(maxBucketTotal * 0.25), 0].map(
+                (val, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <span className="w-6 text-right">{val}</span>
+                    <div className="flex-1 border-b border-stone-100 dark:border-stone-800/60" />
+                  </div>
+                )
+              )}
             </div>
 
             {/* Stacked Vertical Bars */}
-            <div className="relative z-10 ml-9 flex items-end justify-between h-72 pt-4 px-2">
-              {pipelineAnalyticsData.map((bar, idx) => {
+            <div className="relative z-10 ml-9 flex items-end justify-around h-72 pt-4 px-2">
+              {weeklyAnalyticsData.map((bar, idx) => {
                 const isHovered = hoveredBarIndex === idx;
+                const totalBarHeight = maxBucketTotal > 0 ? (bar.total / maxBucketTotal) * 200 : 0;
+                const minDisplayHeight = bar.total > 0 ? Math.max(16, totalBarHeight) : 4;
+
                 return (
                   <div
                     key={idx}
                     onMouseEnter={() => setHoveredBarIndex(idx)}
+                    onMouseLeave={() => setHoveredBarIndex(null)}
                     className="relative group flex flex-col items-center h-full justify-end cursor-pointer"
                   >
                     {/* Floating Tooltip Pill */}
                     {isHovered && (
-                      <div className="absolute -top-20 z-20 flex flex-col items-start rounded-xl bg-[#22201F] px-3.5 py-2.5 text-[10px] font-semibold text-white shadow-xl min-w-[130px] border border-stone-700 animate-fadeIn">
-                        <span className="text-stone-400 text-[9px] font-mono">{bar.date}</span>
+                      <div className="absolute -top-24 z-20 flex flex-col items-start rounded-xl bg-[#22201F] px-3.5 py-2.5 text-[10px] font-semibold text-white shadow-xl min-w-[130px] border border-stone-700 animate-fadeIn">
+                        <span className="text-stone-400 text-[9px] font-mono">{bar.period}</span>
                         <div className="mt-1 space-y-0.5">
                           <span className="flex items-center gap-1.5 text-indigo-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" /> {bar.productSpecs} Product Specs
+                            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" /> {bar.todo} To Do
                           </span>
                           <span className="flex items-center gap-1.5 text-emerald-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> {bar.devCommits} Dev PRs
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> {bar.inProgress} In Progress
+                          </span>
+                          <span className="flex items-center gap-1.5 text-amber-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {bar.inReview} In Review
                           </span>
                           <span className="flex items-center gap-1.5 text-[#B1E743]">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#B1E743]" /> {bar.qaVerified} QA Verified
-                          </span>
-                          <span className="flex items-center gap-1.5 text-rose-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-rose-400" /> {bar.defects} Defects
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#B1E743]" /> {bar.done} Selesai
                           </span>
                         </div>
                       </div>
                     )}
 
-                    {/* Multi-Discipline Stacked Bar */}
-                    <div className="w-3 sm:w-3.5 flex flex-col rounded-full overflow-hidden transition-all duration-200 group-hover:opacity-80">
-                      <div
-                        className="bg-rose-400 w-full"
-                        style={{ height: `${bar.defects * 3}px` }}
-                      />
-                      <div
-                        className="bg-[#B1E743] w-full"
-                        style={{ height: `${bar.qaVerified * 1.5}px` }}
-                      />
-                      <div
-                        className="bg-emerald-500 w-full"
-                        style={{ height: `${bar.devCommits * 1.2}px` }}
-                      />
-                      <div
-                        className="bg-indigo-500 w-full"
-                        style={{ height: `${bar.productSpecs * 2}px` }}
-                      />
+                    {/* Stacked Vertical Bar */}
+                    <div
+                      className="w-7 sm:w-10 flex flex-col rounded-xl overflow-hidden transition-all duration-200 group-hover:opacity-80 shadow-xs"
+                      style={{ height: `${minDisplayHeight}px` }}
+                    >
+                      {bar.done > 0 && (
+                        <div
+                          className="bg-[#B1E743] w-full"
+                          style={{ flex: bar.done }}
+                        />
+                      )}
+                      {bar.inReview > 0 && (
+                        <div
+                          className="bg-amber-400 w-full"
+                          style={{ flex: bar.inReview }}
+                        />
+                      )}
+                      {bar.inProgress > 0 && (
+                        <div
+                          className="bg-emerald-500 w-full"
+                          style={{ flex: bar.inProgress }}
+                        />
+                      )}
+                      {bar.todo > 0 && (
+                        <div
+                          className="bg-indigo-500 w-full"
+                          style={{ flex: bar.todo }}
+                        />
+                      )}
+                      {bar.total === 0 && (
+                        <div className="bg-stone-200 dark:bg-stone-800 w-full h-full" />
+                      )}
                     </div>
+
+                    <span className="text-[11px] font-bold text-stone-500 mt-2 dark:text-stone-400">
+                      {bar.label}
+                    </span>
                   </div>
                 );
               })}
@@ -493,70 +542,106 @@ export const OverviewStoreDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom Row: 3 Multi-Discipline Action Streams */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Stream 1: Product Workstream */}
+      {/* Bottom Row: Role-Adaptive Action Cards (Direct guidance to My Tasks) */}
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${
+          isOwnerOrAdmin ? 4 : isQA || isPO ? 2 : 2
+        } gap-5`}
+      >
+        {/* Primary Card 1: My Tasks (Direct guidance for everyone) */}
         <div
-          onClick={() => navigate('/work?tab=tasks')}
-          className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-indigo-300 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
+          onClick={() => navigate('/my-tasks')}
+          className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xs hover:border-[#B1E743] hover:ring-2 hover:ring-[#B1E743]/20 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
-              <Compass className="h-5 w-5" />
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-lime-50 text-[#22201F] dark:bg-lime-950/60 dark:text-[#B1E743]">
+              <ClipboardList className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                Product Roadmap
+              <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-emerald-600 dark:group-hover:text-[#B1E743] transition-colors flex items-center gap-1.5">
+                <span>Tugas Saya (My Tasks)</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                  {myPendingTasks.length} Aktif
+                </span>
               </h3>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                {folders.length || 4} Active feature initiatives
+                {myPendingTasks.length > 0
+                  ? `${myPendingTasks.length} tugas menunggu pengerjaan Anda`
+                  : 'Semua tugas yang ditugaskan ke Anda sudah selesai'}
               </p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-stone-400 group-hover:translate-x-1 transition-transform dark:text-stone-500" />
         </div>
 
-        {/* Stream 2: Dev Workstream */}
-        <div
-          onClick={() => navigate('/work?tab=tasks')}
-          className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-emerald-300 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-              <Code2 className="h-5 w-5" />
+        {/* Card 2: Product Roadmap (Visible for PO, Admin, Owner) */}
+        {(isPO || isOwnerOrAdmin) && (
+          <div
+            onClick={() => navigate('/work?tab=tasks')}
+            className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-indigo-300 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                <Compass className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  Product Roadmap
+                </h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400">
+                  {folders.length} Folder inisiatif aktif
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                Engineering Tasks
-              </h3>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                {inProgressTasks} Tasks currently in development
-              </p>
-            </div>
+            <ArrowRight className="h-4 w-4 text-stone-400 group-hover:translate-x-1 transition-transform dark:text-stone-500" />
           </div>
-          <ArrowRight className="h-4 w-4 text-stone-400 group-hover:translate-x-1 transition-transform dark:text-stone-500" />
-        </div>
+        )}
 
-        {/* Stream 3: QA Workstream */}
-        <div
-          onClick={() => navigate('/reports')}
-          className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-amber-300 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
-              <FileBarChart className="h-5 w-5" />
+        {/* Card 3: Engineering Tasks (Visible for Dev, Admin, Owner) */}
+        {(!isQA && !isPO) && (
+          <div
+            onClick={() => navigate('/work?tab=tasks')}
+            className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-emerald-300 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                <Code2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  Engineering Tasks
+                </h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400">
+                  {inProgressTasks} Tugas sedang dikerjakan tim
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                QA & Traceability
-              </h3>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                {inReviewTasks} Tasks awaiting QA sign-off
-              </p>
-            </div>
+            <ArrowRight className="h-4 w-4 text-stone-400 group-hover:translate-x-1 transition-transform dark:text-stone-500" />
           </div>
-          <ArrowRight className="h-4 w-4 text-stone-400 group-hover:translate-x-1 transition-transform dark:text-stone-500" />
-        </div>
+        )}
+
+        {/* Card 4: QA & Traceability (Visible for QA, Admin, Owner) */}
+        {(isQA || isOwnerOrAdmin) && (
+          <div
+            onClick={() => navigate('/reports')}
+            className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-amber-300 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
+                <FileBarChart className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                  QA & Traceability
+                </h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400">
+                  {inReviewTasks} Tugas menunggu pengujian
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-stone-400 group-hover:translate-x-1 transition-transform dark:text-stone-500" />
+          </div>
+        )}
       </div>
     </div>
   );

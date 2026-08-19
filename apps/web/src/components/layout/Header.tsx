@@ -22,6 +22,8 @@ import {
   Sparkles,
   ExternalLink,
   Laptop,
+  BookOpen,
+  Clock,
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -29,12 +31,15 @@ import { fetchWorkspaces, setActiveWorkspaceId, createWorkspace } from '../../st
 import {
   selectCurrentUser,
   selectCurrentUserRole,
+  setShowOnboardingModal,
 } from '../../store/authSlice';
 import {
   enqueueSnackbar,
-  markNotificationAsRead,
-  markAllNotificationsAsRead,
-  clearInAppNotifications,
+  fetchInAppNotifications,
+  markNotificationAsReadThunk,
+  markAllNotificationsAsReadThunk,
+  clearInAppNotificationsThunk,
+  checkApproachingDeadlinesThunk,
   InAppNotification,
 } from '../../store/uiSlice';
 import { setSelectedTaskId } from '../../store/taskSlice';
@@ -67,9 +72,10 @@ export const Header: React.FC<HeaderProps> = ({
 
   const { workspaces, activeWorkspaceId, isLoading, error } = useAppSelector((state) => state.workspace);
   const inAppNotifications = useAppSelector((state) => state.ui.inAppNotifications || []);
+  const isNotificationsLoading = useAppSelector((state) => state.ui.isNotificationsLoading);
   const currentUser = useAppSelector(selectCurrentUser);
   const currentUserRole = useAppSelector(selectCurrentUserRole);
-  const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'mentions'>('all');
+  const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'mentions' | 'deadlines'>('all');
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -100,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
   const effectiveName = currentUser?.name || effectiveEmail.split('@')[0].replace('.', ' ');
   const userInitial = effectiveEmail ? effectiveEmail[0].toUpperCase() : 'U';
   const userName = effectiveName;
-  const canCreateWorkspace = ['admin', 'qa_lead', 'po'].includes(currentUserRole);
+  const canCreateWorkspace = ['owner', 'admin', 'po', 'qa'].includes(currentUserRole);
 
   const unreadCount = useMemo(
     () => inAppNotifications.filter((n) => !n.isRead).length,
@@ -110,13 +116,14 @@ export const Header: React.FC<HeaderProps> = ({
   const filteredNotifications = useMemo(() => {
     return inAppNotifications.filter((n) => {
       if (notifFilter === 'unread') return !n.isRead;
-      if (notifFilter === 'mentions') return n.type === 'mention';
+      if (notifFilter === 'mentions') return n.type === 'mention' || n.type === 'discussion';
+      if (notifFilter === 'deadlines') return n.type === 'deadline';
       return true;
     });
   }, [inAppNotifications, notifFilter]);
 
   const handleNotificationClick = (notif: InAppNotification) => {
-    dispatch(markNotificationAsRead(notif.id));
+    dispatch(markNotificationAsReadThunk(notif.id));
     if (notif.taskId) {
       dispatch(setSelectedTaskId(notif.taskId));
       navigate('/my-tasks');
@@ -131,6 +138,16 @@ export const Header: React.FC<HeaderProps> = ({
   useEffect(() => {
     dispatch(fetchWorkspaces());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      dispatch(fetchInAppNotifications({ workspaceId: activeWorkspaceId }));
+      dispatch(checkApproachingDeadlinesThunk(activeWorkspaceId));
+    } else {
+      dispatch(fetchInAppNotifications({}));
+      dispatch(checkApproachingDeadlinesThunk(undefined));
+    }
+  }, [dispatch, activeWorkspaceId]);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
 
@@ -157,7 +174,10 @@ export const Header: React.FC<HeaderProps> = ({
 
   const isOverviewActive = location.pathname === '/work' && currentTab === 'overview';
   const isTasksActive = location.pathname === '/work' && currentTab === 'tasks';
-  const isReqsActive = location.pathname === '/requirements' || (location.pathname === '/work' && currentTab === 'requirements');
+  const isMyTasksActive =
+    location.pathname === '/my-tasks' ||
+    location.pathname === '/requirements' ||
+    (location.pathname === '/work' && currentTab === 'requirements');
   const isReportsActive = location.pathname === '/reports';
   const isComponentsActive = location.pathname === '/components';
   const isSettingsActive = location.pathname === '/workspaces/settings';
@@ -291,9 +311,9 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <button
-          onClick={() => navigate('/requirements')}
+          onClick={() => navigate('/my-tasks')}
           className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-            isReqsActive
+            isMyTasksActive
               ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
           }`}
@@ -338,6 +358,16 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Right section: Notifications & User profile */}
       <div className="flex items-center gap-2 sm:gap-3">
 
+        {/* User Flow Guide Button */}
+        <IconButton
+          onClick={() => navigate('/user-flows')}
+          label="User Flow & Quality Gate Guide"
+          size="sm"
+          className="rounded-full border border-stone-200/90 bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:text-white"
+        >
+          <BookOpen className="h-4 w-4 text-indigo-600 dark:text-[#B1E743]" />
+        </IconButton>
+
         {/* Quick Theme Toggle Button */}
         <IconButton
           onClick={toggleTheme}
@@ -381,7 +411,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {unreadCount > 0 && (
                     <button
                       type="button"
-                      onClick={() => dispatch(markAllNotificationsAsRead())}
+                      onClick={() => dispatch(markAllNotificationsAsReadThunk(activeWorkspaceId || undefined))}
                       className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:hover:text-stone-200 dark:hover:bg-stone-800 text-[11px] font-semibold flex items-center gap-1"
                       title="Mark all as read"
                     >
@@ -392,7 +422,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {inAppNotifications.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => dispatch(clearInAppNotifications())}
+                      onClick={() => dispatch(clearInAppNotificationsThunk(activeWorkspaceId || undefined))}
                       className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-[11px]"
                       title="Clear all notifications"
                     >
@@ -403,17 +433,18 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               {/* Filter Tabs */}
-              <div className="flex items-center gap-1 pt-2 pb-1 border-b border-stone-100 dark:border-stone-800">
+              <div className="flex items-center gap-1 pt-2 pb-1 border-b border-stone-100 dark:border-stone-800 overflow-x-auto scrollbar-none">
                 {[
                   { id: 'all', label: `All (${inAppNotifications.length})` },
                   { id: 'unread', label: `Unread (${unreadCount})` },
                   { id: 'mentions', label: 'Mentions' },
+                  { id: 'deadlines', label: 'Deadlines' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setNotifFilter(tab.id as typeof notifFilter)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 ${
                       notifFilter === tab.id
                         ? 'bg-stone-900 text-white dark:bg-[#B1E743] dark:text-[#22201F]'
                         : 'text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
@@ -460,7 +491,12 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Notification List */}
               <div className="mt-2 max-h-80 overflow-y-auto space-y-1.5 scrollbar-thin">
-                {filteredNotifications.length === 0 ? (
+                {isNotificationsLoading && inAppNotifications.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-stone-400 space-y-2">
+                    <Loader2 className="mx-auto h-5 w-5 animate-spin text-stone-400" />
+                    <p className="text-[11px]">Memuat notifikasi...</p>
+                  </div>
+                ) : filteredNotifications.length === 0 ? (
                   <div className="py-8 text-center text-xs text-stone-400 space-y-1">
                     <Sparkles className="mx-auto h-6 w-6 text-stone-300 dark:text-stone-600" />
                     <p className="font-semibold text-stone-600 dark:text-stone-300">All caught up!</p>
@@ -493,6 +529,11 @@ export const Header: React.FC<HeaderProps> = ({
                           {notif.type === 'assignment' && (
                             <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                               <UserCheck className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'deadline' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 animate-pulse">
+                              <Clock className="h-3.5 w-3.5" />
                             </div>
                           )}
                           {notif.type === 'system' && (
@@ -600,6 +641,30 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>Perangkat & Sesi Aktif</span>
                 </button>
 
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    navigate('/user-flows');
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                >
+                  <BookOpen className="h-4 w-4 text-indigo-500 dark:text-[#B1E743]" />
+                  <span>Panduan User Flow & Roles</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    dispatch(setShowOnboardingModal(true));
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                >
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  <span>Mulai Ulang Onboarding</span>
+                </button>
+
                 {(activeWorkspace?.role === 'owner' || activeWorkspace?.role === 'admin' || activeWorkspace?.myRole === 'owner' || activeWorkspace?.myRole === 'admin') && (
                   <>
                     <button
@@ -666,7 +731,7 @@ export const Header: React.FC<HeaderProps> = ({
         isOpen={showCreateWsModal}
         onClose={() => setShowCreateWsModal(false)}
         title="Create New Workspace"
-        description="Set up a workspace for your team to organize folders, tasks, and QA evidence."
+        description="Set up a workspace for your team to organize folders, tasks, attachments, and collaboration."
         primaryActionLabel="Create Workspace"
         secondaryActionLabel="Cancel"
         onPrimaryAction={handleCreateWs}
@@ -679,7 +744,7 @@ export const Header: React.FC<HeaderProps> = ({
             value={newWsName}
             onChange={(e) => setNewWsName(e.target.value)}
             required
-            placeholder="e.g. Core Engineering QA"
+            placeholder="e.g. Core Engineering Platform"
             autoFocus
           />
 

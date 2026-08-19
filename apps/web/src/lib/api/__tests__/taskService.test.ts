@@ -65,4 +65,96 @@ describe('taskService', () => {
     await expect(taskService.moveTask(WORKSPACE_ID, TASK_ID, { targetFolderId: CHILD_FOLDER_ID }))
       .rejects.toThrow('You are not allowed to move this task');
   });
+
+  it('fetches a single task by taskId', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { id: TASK_ID, title: 'Single Task' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await taskService.getTask(WORKSPACE_ID, TASK_ID);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/workspaces/${WORKSPACE_ID}/tasks/${TASK_ID}`),
+      expect.any(Object)
+    );
+    expect(result.id).toBe(TASK_ID);
+  });
+
+  it('deletes a task by taskId', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { success: true } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await taskService.deleteTask(WORKSPACE_ID, TASK_ID);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/workspaces/${WORKSPACE_ID}/tasks/${TASK_ID}`),
+      expect.objectContaining({ method: 'DELETE' })
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it('updates task status directly via status endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { id: TASK_ID, status: 'in_progress' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await taskService.updateTaskStatus(WORKSPACE_ID, TASK_ID, 'in_progress');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/workspaces/${WORKSPACE_ID}/tasks/${TASK_ID}/status`),
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'in_progress' }),
+      })
+    );
+    expect(result.status).toBe('in_progress');
+  });
+
+  it('lists subtasks for a parent task', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { tasks: [], total: 0, page: 1, limit: 50 } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await taskService.listSubtasks(WORKSPACE_ID, TASK_ID);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/workspaces/${WORKSPACE_ID}/tasks/${TASK_ID}/subtasks`),
+      expect.any(Object)
+    );
+  });
+
+  it('creates a subtask under a parent task', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { id: 'new-subtask-id', title: 'FE Implementation', deliveryArea: 'frontend' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await taskService.createSubtask(WORKSPACE_ID, TASK_ID, {
+      title: 'FE Implementation',
+      status: 'todo',
+      deliveryArea: 'frontend',
+      priority: 'high',
+      assigneeId: 'some-assignee',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/workspaces/${WORKSPACE_ID}/tasks/${TASK_ID}/subtasks`),
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"deliveryArea":"frontend"'),
+      })
+    );
+    expect(result.deliveryArea).toBe('frontend');
+  });
 });
+

@@ -5,7 +5,7 @@ import {
   AddWorkspaceMemberInput,
   AssignableWorkspaceRole,
   WorkspaceRole,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 export interface WorkspaceItem {
   id: string;

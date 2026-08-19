@@ -1,6 +1,6 @@
 import React from 'react';
 import { Users, UserPlus, Shield, Trash2, Key } from 'lucide-react';
-import { AssignableWorkspaceRole } from '@qa/contracts';
+import { AssignableWorkspaceRole } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { Button } from '../atoms/Button';
 import { Badge, BadgeProps } from '../atoms/Badge';
@@ -145,8 +145,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                         <option value="qa">QA Engineer (QA)</option>
                       </select>
                     ) : (
-                      <Badge variant={roleConfig.variant} size="sm">
-                        <Shield className="h-3 w-3 mr-1 inline" />
+                      <Badge variant={roleConfig.variant} size="sm" icon={<Shield className="h-3 w-3" />}>
                         {roleConfig.label}
                       </Badge>
                     )}
@@ -229,8 +228,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                           <option value="qa">QA Engineer (QA)</option>
                         </select>
                       ) : (
-                        <Badge variant={roleConfig.variant} size="sm">
-                          <Shield className="h-3 w-3 mr-1 inline" />
+                        <Badge variant={roleConfig.variant} size="sm" icon={<Shield className="h-3 w-3" />}>
                           {roleConfig.label}
                         </Badge>
                       )}

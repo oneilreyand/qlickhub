@@ -6,7 +6,7 @@ import { WorkFolderModel } from '../../../db/models/workFolder.js';
 import { WorkspaceModel } from '../../../db/models/workspace.js';
 import { WorkspaceMemberModel } from '../../../db/models/workspaceMember.js';
 import { UserModel } from '../../../db/models/user.js';
-import { CreateTaskSchema, TaskListQuerySchema } from '@qa/contracts';
+import { CreateTaskSchema, TaskListQuerySchema } from '@qlick/contracts';
 
 describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
   let owner: UserModel;
@@ -44,7 +44,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
       email: `st2-qa-${Date.now()}@example.com`,
       passwordHash: 'hashed_pw',
       name: 'QA Engineer',
-      role: 'qa_member',
+      role: 'qa',
     });
 
     workspace = await WorkspaceModel.create({
@@ -341,26 +341,6 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
     assert.strictEqual(foundParent.subtaskSummary.areas.frontend.completed, 1);
     assert.strictEqual(foundParent.subtaskSummary.areas.qa.total, 1);
     assert.strictEqual(foundParent.subtaskSummary.areas.qa.completed, 1);
-  });
-
-  test('Rejects subtask creation without required assigneeId', async () => {
-    await assert.rejects(
-      async () => {
-        await taskService.createTask(
-          poUser.id,
-          CreateTaskSchema.parse({
-            workspaceId: workspace.id,
-            parentTaskId: parentTask.id,
-            deliveryArea: 'frontend',
-            title: 'Subtask without Assignee',
-          })
-        );
-      },
-      (err: any) => {
-        assert.ok(String(err.message).includes('assigneeId is required for a subtask') || String(err.message).includes('Assignee is required'));
-        return true;
-      }
-    );
   });
 
   test('All workspace members can list subtasks of a parent task', async () => {

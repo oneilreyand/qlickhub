@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Task } from '@qa/contracts';
+import { Task } from '@qlick/contracts';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { RootState } from '../store/store';
 import { selectCurrentUserId } from '../store/authSlice';

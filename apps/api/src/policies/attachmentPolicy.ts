@@ -1,4 +1,4 @@
-import { WorkspaceRole } from '@qa/contracts';
+import { WorkspaceRole } from '@qlick/contracts';
 
 const plannerRoles: readonly WorkspaceRole[] = ['owner', 'admin', 'po'];
 

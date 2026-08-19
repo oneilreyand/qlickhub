@@ -39,6 +39,11 @@ import {
   RegisterFcmTokenSchema,
   UnregisterFcmTokenSchema,
   PushNotificationPayloadSchema,
+  InAppNotificationSchema,
+  ListNotificationsQuerySchema,
+  ListNotificationsResponseSchema,
+  UserSchema,
+  CompleteOnboardingResponseSchema,
 } from './index.js';
 
 describe('Contracts Validation Suite', () => {
@@ -233,7 +238,7 @@ describe('Contracts Validation Suite', () => {
       );
     });
 
-    test('validates subtask creation input rules (deliveryArea and assigneeId required for subtask, disallowed for parent)', () => {
+    test('validates subtask creation input rules (deliveryArea required for subtask, disallowed for parent)', () => {
       const subtaskInput = CreateTaskSchema.parse({
         workspaceId: validUuid,
         parentTaskId: validUuid,
@@ -252,16 +257,6 @@ describe('Contracts Validation Suite', () => {
           parentTaskId: validUuid,
           assigneeId: validUuid,
           title: 'Subtask without area',
-        })
-      );
-
-      // Subtask without assigneeId
-      assert.throws(() =>
-        CreateTaskSchema.parse({
-          workspaceId: validUuid,
-          parentTaskId: validUuid,
-          deliveryArea: 'frontend',
-          title: 'Subtask without assignee',
         })
       );
 
@@ -527,5 +522,81 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(payload.title, 'Tugas Baru Ditugaskan');
       assert.strictEqual(payload.data?.type, 'assignment');
     });
+
+    test('validates InAppNotificationSchema and ListNotificationsResponseSchema', () => {
+      const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+      const notif = InAppNotificationSchema.parse({
+        id: validUuid,
+        userId: validUuid,
+        workspaceId: validUuid,
+        taskId: validUuid,
+        actorId: validUuid,
+        actorName: 'Product Owner',
+        type: 'assignment',
+        title: 'Tugas Baru Ditugaskan',
+        message: 'PO menugaskan Anda pada tugas FE',
+        isRead: false,
+        createdAt: '2026-08-19T10:00:00.000Z',
+      });
+      assert.strictEqual(notif.title, 'Tugas Baru Ditugaskan');
+      assert.strictEqual(notif.isRead, false);
+      assert.strictEqual(notif.type, 'assignment');
+
+      const response = ListNotificationsResponseSchema.parse({
+        notifications: [notif],
+        unreadCount: 1,
+        totalCount: 1,
+      });
+      assert.strictEqual(response.unreadCount, 1);
+      assert.strictEqual(response.notifications.length, 1);
+    });
+
+    test('validates ListNotificationsQuerySchema transformations', () => {
+      const query = ListNotificationsQuerySchema.parse({
+        unreadOnly: 'true',
+        limit: '50',
+        offset: '10',
+      });
+      assert.strictEqual(query.unreadOnly, true);
+      assert.strictEqual(query.limit, 50);
+      assert.strictEqual(query.offset, 10);
+    });
+  });
+
+  describe('User & Onboarding Contracts', () => {
+    const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+
+    test('validates UserSchema with and without onboardingCompletedAt', () => {
+      const userWithoutOnboarding = UserSchema.parse({
+        id: validUuid,
+        email: 'dev@company.com',
+        name: 'Dev User',
+        role: 'dev',
+        createdAt: '2026-08-19T10:00:00.000Z',
+        updatedAt: '2026-08-19T10:00:00.000Z',
+      });
+      assert.strictEqual(userWithoutOnboarding.onboardingCompletedAt, undefined);
+
+      const userWithOnboarding = UserSchema.parse({
+        id: validUuid,
+        email: 'po@company.com',
+        name: 'PO User',
+        role: 'po',
+        onboardingCompletedAt: '2026-08-19T12:00:00.000Z',
+        createdAt: '2026-08-19T10:00:00.000Z',
+        updatedAt: '2026-08-19T12:00:00.000Z',
+      });
+      assert.strictEqual(userWithOnboarding.onboardingCompletedAt, '2026-08-19T12:00:00.000Z');
+    });
+
+    test('validates CompleteOnboardingResponseSchema', () => {
+      const res = CompleteOnboardingResponseSchema.parse({
+        success: true,
+        onboardingCompletedAt: '2026-08-19T12:30:00.000Z',
+      });
+      assert.strictEqual(res.success, true);
+      assert.strictEqual(res.onboardingCompletedAt, '2026-08-19T12:30:00.000Z');
+    });
   });
 });
+

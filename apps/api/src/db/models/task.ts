@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../sequelize.js';
-import { TaskStatus, TaskPriority, DeliveryArea } from '@qa/contracts';
+import { TaskStatus, TaskPriority, DeliveryArea } from '@qlick/contracts';
 
 export interface TaskAttributes {
   id: string;
@@ -53,6 +53,13 @@ export class TaskModel
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
   declare deletedAt: Date | null;
+
+  // Navigation properties (populated by eager loading)
+  declare subtasks?: TaskModel[];
+  declare parentTask?: TaskModel | null;
+  declare activities?: import('./taskActivity.js').TaskActivityModel[];
+  declare comments?: import('./taskComment.js').TaskCommentModel[];
+  declare attachments?: import('./taskAttachment.js').TaskAttachmentModel[];
 }
 
 TaskModel.init(
@@ -154,6 +161,17 @@ TaskModel.init(
   {
     sequelize,
     tableName: 'tasks',
+    hooks: {
+      beforeSave: (task: TaskModel) => {
+        if (task.changed('status')) {
+          if (task.status === 'done') {
+            task.completedAt = task.completedAt ?? new Date();
+          } else {
+            task.completedAt = null;
+          }
+        }
+      },
+    },
     timestamps: true,
     paranoid: true,
     underscored: true,
@@ -177,6 +195,14 @@ TaskModel.init(
       {
         name: 'idx_tasks_workspace_assignee',
         fields: ['workspace_id', 'assignee_id'],
+      },
+      {
+        name: 'idx_tasks_workspace_parent_created',
+        fields: ['workspace_id', 'parent_task_id', 'created_at'],
+      },
+      {
+        name: 'idx_tasks_workspace_folder_parent',
+        fields: ['workspace_id', 'folder_id', 'parent_task_id'],
       },
     ],
   }

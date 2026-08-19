@@ -1,5 +1,5 @@
 {
-  "name": "@qa/web",
+  "name": "@qlick/web",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@qlick/contracts": "*",
     "@reduxjs/toolkit": "^2.2.1",
     "clsx": "^2.1.0",
     "firebase": "^12.17.1",

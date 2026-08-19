@@ -1,13 +1,13 @@
-# QA Management System Context
+# Qlick Hub Context — Task Management & Collaboration Hub
 
-The QA Management System is a shared workspace for planning requirements, coordinating QA work, executing tests, and tracking defects within projects.
+Qlick Hub is a unified workspace and task management collaboration platform designed for cross-functional product and engineering teams. It enables Product Owners to plan initiatives, requirements, and sprint folder hierarchies, Developers (Frontend & Backend) to execute subtasks with real-time progress updates, and QA to verify acceptance criteria and test evidence, supported by Admin governance and team discussion threads.
 
 ## Language
 
 **Workspace**:
-A project a signed-in user may access, together with its project-scoped work and members. The browser route identifies the active Workspace.
+A project workspace a signed-in user may access, together with its workspace-scoped tasks, folders, and members. The browser route identifies the active Workspace.
 _Avoid_: tenant, board
 
 **Project member**:
-A user assigned a role within one Workspace. Project membership determines which project records the user may read or change.
+A user assigned a role (Owner, Admin, PO, Dev, QA) within one Workspace. Project membership determines permissions and task assignment scope.
 _Avoid_: collaborator, participant

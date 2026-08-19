@@ -4,6 +4,10 @@ import uiReducer, {
   enqueueApiResponse,
   enqueueSnackbar,
   setMobileSidebarOpen,
+  addInAppNotification,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  clearInAppNotifications,
 } from '../uiSlice';
 import workspaceReducer, { setActiveWorkspaceId } from '../workspaceSlice';
 
@@ -45,5 +49,38 @@ describe('workspace and UI state', () => {
 
     expect(state.notifications).toHaveLength(1);
     expect(state.notifications[0]).toMatchObject({ message: 'Task moved', type: 'success' });
+  });
+
+  it('starts with empty dynamic in-app notifications and manages read lifecycle', () => {
+    const initialState = uiReducer(undefined, { type: '@@INIT' });
+    expect(initialState.inAppNotifications).toEqual([]);
+    expect(initialState.unreadNotificationCount).toBe(0);
+
+    const withNotif = uiReducer(
+      initialState,
+      addInAppNotification('New Task Assigned', 'You are assigned to FE', 'assignment', 'task-1', 'PO Lead')
+    );
+    expect(withNotif.inAppNotifications).toHaveLength(1);
+    expect(withNotif.inAppNotifications[0].title).toBe('New Task Assigned');
+    expect(withNotif.inAppNotifications[0].isRead).toBe(false);
+    expect(withNotif.unreadNotificationCount).toBe(1);
+
+    const notifId = withNotif.inAppNotifications[0].id;
+    const markedRead = uiReducer(withNotif, markNotificationAsRead(notifId));
+    expect(markedRead.inAppNotifications[0].isRead).toBe(true);
+    expect(markedRead.unreadNotificationCount).toBe(0);
+
+    const withSecond = uiReducer(
+      markedRead,
+      addInAppNotification('Mention', 'Mentioned in chat', 'mention', 'task-2')
+    );
+    expect(withSecond.unreadNotificationCount).toBe(1);
+
+    const allRead = uiReducer(withSecond, markAllNotificationsAsRead());
+    expect(allRead.inAppNotifications.every((n) => n.isRead)).toBe(true);
+    expect(allRead.unreadNotificationCount).toBe(0);
+
+    const cleared = uiReducer(allRead, clearInAppNotifications());
+    expect(cleared.inAppNotifications).toHaveLength(0);
   });
 });

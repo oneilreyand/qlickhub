@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import type { Task, TaskListQuery } from '@qa/contracts';
+import type { Task, TaskListQuery } from '@qlick/contracts';
 import { taskService } from '../lib/api/taskService';
 
 type ReportQuery = Omit<Partial<Omit<TaskListQuery, 'workspaceId'>>, 'page' | 'limit'>;

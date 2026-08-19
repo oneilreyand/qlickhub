@@ -9,12 +9,13 @@ describe('WH-0 Route Inventory & Protection Audit', () => {
     { path: '/requirements', protected: true, component: 'MyTasksPage (legacy redirect alias)' },
     { path: '/tests', protected: true, component: 'WorkHubPage (legacy redirect alias)' },
     { path: '/reports', protected: true, component: 'ReportPage' },
+    { path: '/user-flows', protected: true, component: 'UserFlowPage' },
     { path: '/components', protected: true, component: 'ComponentGalleryPage (isolated design showcase)' },
   ];
 
   test('verifies all production routes are protected and have valid targets', () => {
     const protectedRoutes = routesInventory.filter((r) => r.protected);
-    expect(protectedRoutes).toHaveLength(7);
+    expect(protectedRoutes).toHaveLength(8);
 
     for (const route of protectedRoutes) {
       expect(route.component, `Route ${route.path} must have a valid component target`).toBeTruthy();

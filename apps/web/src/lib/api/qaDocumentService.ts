@@ -7,7 +7,7 @@ import {
   ProductBriefScopeItem,
   ProductBriefAcceptanceCriterion,
   ProductBriefStatus,
-} from '@qa/contracts';
+} from '@qlick/contracts';
 
 export const qaDocumentService = {
   async listWorkspaceDocuments(

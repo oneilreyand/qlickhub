@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
@@ -7,8 +7,14 @@ import { X } from 'lucide-react';
 import { GlobalSnackbarHost } from '../ui/molecules/GlobalSnackbarHost';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setMobileSidebarOpen } from '../../store/uiSlice';
+import {
+  selectCurrentUser,
+  selectShowOnboardingModal,
+  setShowOnboardingModal,
+} from '../../store/authSlice';
 import { IconButton } from '../ui/atoms/IconButton';
 import { SessionTimeoutModal } from '../auth/SessionTimeoutModal';
+import { RoleOnboardingModal } from '../ui/organisms/RoleOnboardingModal';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -18,8 +24,22 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const mobileOpen = useAppSelector((state) => state.ui.mobileSidebarOpen);
+  const currentUser = useAppSelector(selectCurrentUser);
+  const showOnboardingModal = useAppSelector(selectShowOnboardingModal);
 
-  const userEmail = localStorage.getItem('user_email') || 'qa.lead@company.com';
+  const userEmail = currentUser?.email || localStorage.getItem('user_email') || 'qa.lead@company.com';
+
+  // Trigger onboarding on first-time login if not yet completed and not dismissed in current browser session for this user
+  useEffect(() => {
+    if (currentUser && !currentUser.onboardingCompletedAt) {
+      const isDismissedForUser =
+        sessionStorage.getItem(`onboarding_dismissed_${currentUser.id}`) === 'true';
+
+      if (!isDismissedForUser) {
+        dispatch(setShowOnboardingModal(true));
+      }
+    }
+  }, [currentUser, dispatch]);
 
   const handleLogout = async () => {
     try {
@@ -74,10 +94,13 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
       </main>
       <GlobalSnackbarHost />
       <SessionTimeoutModal />
+      <RoleOnboardingModal
+        isOpen={showOnboardingModal}
+        onClose={() => dispatch(setShowOnboardingModal(false))}
+      />
     </div>
   );
 };
-
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => (
   <AppLayoutContent>{children}</AppLayoutContent>

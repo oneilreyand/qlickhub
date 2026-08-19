@@ -21,6 +21,12 @@ import { Avatar } from '../components/ui/atoms/Avatar';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { ProgressBar } from '../components/ui/atoms/ProgressBar';
 import { LoadingSpinner, LoadingOverlay } from '../components/ui/atoms/LoadingSpinner';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '../components/ui/atoms/Accordion';
 
 import { Tooltip } from '../components/ui/atoms/Tooltip';
 import { DateRangePicker, DateRange } from '../components/ui/molecules/DateRangePicker';
@@ -587,6 +593,52 @@ export const ComponentGalleryPage: React.FC = () => {
                 actionLabel="Simulate Return"
                 onAction={() => dispatch(enqueueSnackbar('Return action triggered', 'info'))}
               />
+            </div>
+          </Section>
+
+          <Section
+            category="Atoms & Molecules"
+            title="Accordion & Expandable Subtask Workspace"
+            description="Accessible WAI-ARIA collapsible panel system for hierarchical task breakdowns, in-place description editing, evidence file management, and per-subtask collaboration."
+          >
+            <div className="space-y-3">
+              <Accordion defaultValue={['demo-item-1']}>
+                <AccordionItem id="demo-item-1">
+                  <AccordionTrigger>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                        FE
+                      </span>
+                      <span className="font-semibold text-xs text-stone-900 dark:text-stone-100">
+                        Implement Interactive Subtask Accordion (Sample)
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+                      This expandable workspace renders inside the AccordionContent component, providing smooth animation, accessibility keyboard navigation, and embedded sub-panels.
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem id="demo-item-2">
+                  <AccordionTrigger>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        BE
+                      </span>
+                      <span className="font-semibold text-xs text-stone-900 dark:text-stone-100">
+                        Verify Subtask Persistence & Attachments (Sample)
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+                      Subtask attachments and discussion notes map directly to the existing workspace API endpoints.
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           </Section>
         </div>

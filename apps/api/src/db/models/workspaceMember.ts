@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../sequelize.js';
-import { WorkspaceRole } from '@qa/contracts';
+import { WorkspaceRole } from '@qlick/contracts';
 
 export interface WorkspaceMemberAttributes {
   id: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getToken, onMessage } from 'firebase/messaging';
-import { getMessagingInstance } from '../config/firebase';
+import { getMessagingInstance, firebaseConfig } from '../config/firebase';
 import { notificationService } from '../lib/api/notificationService';
 import { useAppDispatch } from '../store/hooks';
 import { addInAppNotification, enqueueSnackbar, NotificationType } from '../store/uiSlice';
@@ -32,6 +32,12 @@ export function useFcmNotifications() {
       const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       await navigator.serviceWorker.ready;
 
+      // Send Firebase config to service worker so it can init without hardcoded credentials
+      const sw = swRegistration.active || swRegistration.waiting || swRegistration.installing;
+      if (sw) {
+        sw.postMessage({ type: 'FIREBASE_CONFIG', config: firebaseConfig });
+      }
+
       // Get FCM token
       const token = await getToken(messagingInstance, {
         serviceWorkerRegistration: swRegistration,
@@ -49,6 +55,7 @@ export function useFcmNotifications() {
       setIsRegistering(false);
     }
   }, []);
+
 
   // Request browser permission and obtain FCM token
   const requestPermission = useCallback(async () => {

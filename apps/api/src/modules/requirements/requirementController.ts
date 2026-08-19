@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { requirementService } from './requirementService.js';
-import { CreateRequirementSchema, LinkRequirementSchema } from '@qa/contracts';
+import { CreateRequirementSchema, LinkRequirementSchema } from '@qlick/contracts';
 
 function handleError(res: Response, error: unknown) {
   const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
@@ -40,17 +40,6 @@ function handleError(res: Response, error: unknown) {
     code: 'INTERNAL_SERVER_ERROR',
   });
 }
-
-export const listWorkspaceRequirements = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { workspaceId } = req.params;
-    const actorId = req.user!.userId;
-    const requirements = await requirementService.listWorkspaceRequirements(workspaceId, actorId);
-    return res.status(200).json({ requirements });
-  } catch (error) {
-    return handleError(res, error);
-  }
-};
 
 export const createRequirement = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -93,12 +82,12 @@ export const linkRequirementToTask = async (req: AuthenticatedRequest, res: Resp
     let targetRequirementId = parsed.requirementId;
 
     if (!targetRequirementId) {
-      if (!parsed.code || !parsed.title) {
+      if (!parsed.title) {
         return res.status(400).json({
           type: 'https://api.qa-hub.com/errors/bad-request',
           title: 'Bad Request',
           status: 400,
-          detail: 'Either requirementId or both code and title must be provided.',
+          detail: 'Either requirementId or title must be provided to embed a reference link.',
           code: 'BAD_REQUEST',
         });
       }
