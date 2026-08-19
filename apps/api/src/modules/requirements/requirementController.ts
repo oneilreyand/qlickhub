@@ -90,11 +90,31 @@ export const linkRequirementToTask = async (req: AuthenticatedRequest, res: Resp
       workspaceId,
     });
 
+    let targetRequirementId = parsed.requirementId;
+
+    if (!targetRequirementId) {
+      if (!parsed.code || !parsed.title) {
+        return res.status(400).json({
+          type: 'https://api.qa-hub.com/errors/bad-request',
+          title: 'Bad Request',
+          status: 400,
+          detail: 'Either requirementId or both code and title must be provided.',
+          code: 'BAD_REQUEST',
+        });
+      }
+      const created = await requirementService.createRequirement(workspaceId, actorId, {
+        code: parsed.code,
+        title: parsed.title,
+        url: parsed.url,
+      });
+      targetRequirementId = created.id;
+    }
+
     const link = await requirementService.linkRequirementToTask(
       workspaceId,
       taskId,
       actorId,
-      parsed.requirementId
+      targetRequirementId
     );
     return res.status(201).json({ link });
   } catch (error) {

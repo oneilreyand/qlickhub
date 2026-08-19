@@ -9,6 +9,19 @@ export interface SnackbarNotification {
   statusCode?: number;
 }
 
+export type NotificationType = 'mention' | 'assignment' | 'status_change' | 'system';
+
+export interface InAppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  taskId?: string;
+  actorName?: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
 export interface ApiResponsePayload {
   message?: string;
   detail?: string;
@@ -27,13 +40,45 @@ interface AsyncOperation {
 interface UiState {
   error: string | null;
   notifications: SnackbarNotification[];
+  inAppNotifications: InAppNotification[];
   pendingOperations: AsyncOperation[];
   mobileSidebarOpen: boolean;
 }
 
+const defaultInAppNotifications: InAppNotification[] = [
+  {
+    id: 'notif-1',
+    type: 'mention',
+    title: 'New Mention in Discussion',
+    message: '@Team: "[API Contract]: Payload response schema for auth endpoints is ready."',
+    actorName: 'BE Lead',
+    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    isRead: false,
+  },
+  {
+    id: 'notif-2',
+    type: 'status_change',
+    title: 'Ready for QA Verification',
+    message: 'Task "Google OAuth SSO Integration" has been moved to In Review by Dev team.',
+    actorName: 'FE Dev',
+    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    isRead: false,
+  },
+  {
+    id: 'notif-3',
+    type: 'assignment',
+    title: 'New Subtask Assigned',
+    message: 'You have been assigned to "[QA] Test Case Specification & Execution Matrix".',
+    actorName: 'Product Owner',
+    createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+    isRead: true,
+  },
+];
+
 const initialState: UiState = {
   error: null,
   notifications: [],
+  inAppNotifications: defaultInAppNotifications,
   pendingOperations: [],
   mobileSidebarOpen: false,
 };
@@ -101,6 +146,43 @@ const uiSlice = createSlice({
     dismissSnackbar: (state, action: PayloadAction<string>) => {
       state.notifications = state.notifications.filter((notification) => notification.id !== action.payload);
     },
+    addInAppNotification: {
+      prepare: (
+        title: string,
+        message: string,
+        type: NotificationType = 'system',
+        taskId?: string,
+        actorName?: string
+      ) => ({
+        payload: {
+          id: createId(),
+          title,
+          message,
+          type,
+          taskId,
+          actorName,
+          createdAt: new Date().toISOString(),
+          isRead: false,
+        },
+      }),
+      reducer: (state, action: PayloadAction<InAppNotification>) => {
+        state.inAppNotifications.unshift(action.payload);
+      },
+    },
+    markNotificationAsRead: (state, action: PayloadAction<string>) => {
+      const notif = state.inAppNotifications.find((n) => n.id === action.payload);
+      if (notif) {
+        notif.isRead = true;
+      }
+    },
+    markAllNotificationsAsRead: (state) => {
+      state.inAppNotifications.forEach((n) => {
+        n.isRead = true;
+      });
+    },
+    clearInAppNotifications: (state) => {
+      state.inAppNotifications = [];
+    },
     reportError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
       state.notifications.push({ id: createId(), message: action.payload, type: 'error' });
@@ -148,6 +230,10 @@ export const {
   dismissSnackbar,
   enqueueSnackbar,
   enqueueApiResponse,
+  addInAppNotification,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  clearInAppNotifications,
   reportError,
   setMobileSidebarOpen,
 } = uiSlice.actions;

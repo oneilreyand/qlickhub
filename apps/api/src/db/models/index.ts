@@ -14,5 +14,7 @@ export * from './qaDocument.js';
 export * from './qaDocumentVersion.js';
 export * from './taskDocument.js';
 export * from './requirementTestCase.js';
+export * from './userFcmToken.js';
+export * from './taskCreationPermission.js';
 import './associations.js';
 

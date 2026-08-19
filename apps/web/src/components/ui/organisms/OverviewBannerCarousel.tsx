@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
 
-import taskAssignmentBanner from '../../../asset/ChatGPT Image Aug 13, 2026, 11_58_40 PM.png';
-import costComparisonBanner from '../../../asset/ChatGPT Image Aug 13, 2026, 11_58_45 PM.png';
+const TASK_ASSIGNMENT_BANNER_URL =
+  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020941/ChatGPT_Image_Aug_13_2026_11_58_40_PM.png';
+const COST_COMPARISON_BANNER_URL =
+  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020941/ChatGPT_Image_Aug_13_2026_11_58_45_PM.png';
 
 const BANNER_ROTATION_MS = 7000;
 
 const slides = [
   {
-    src: taskAssignmentBanner,
+    src: TASK_ASSIGNMENT_BANNER_URL,
     alt: 'Tugaskan tugas yang tepat ke orang yang tepat.',
     label: 'Task assignment overview',
   },
   {
-    src: costComparisonBanner,
+    src: COST_COMPARISON_BANNER_URL,
     alt: 'Perbandingan biaya tools manajemen tugas.',
     label: 'Cost comparison overview',
   },

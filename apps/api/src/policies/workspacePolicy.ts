@@ -92,6 +92,29 @@ export const requireWorkspaceMember = (allowedRoles?: WorkspaceRole[]) => {
 };
 
 /**
+ * Express middleware to enforce permission to create new workspaces.
+ * Only owner, admin, and leader roles ('admin', 'qa_lead', 'po') are authorized.
+ */
+export const requireWorkspaceCreationPermission = () => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const userRole = req.user?.role;
+    const allowedRoles: string[] = ['admin', 'qa_lead', 'po'];
+
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      return res.status(403).json({
+        type: 'https://api.qa-hub.com/errors/forbidden',
+        title: 'Forbidden',
+        status: 403,
+        detail: 'Only workspace owners, admins, and team leads are authorized to create new workspaces.',
+        code: 'FORBIDDEN',
+      });
+    }
+
+    return next();
+  };
+};
+
+/**
  * Middleware requiring owner or admin role in workspace.
  */
 export const requireWorkspaceAdmin = requireWorkspaceMember(['owner', 'admin']);

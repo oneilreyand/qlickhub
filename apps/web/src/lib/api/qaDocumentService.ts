@@ -89,7 +89,7 @@ export const qaDocumentService = {
       outScope: ProductBriefScopeItem[];
       acceptanceCriteria: ProductBriefAcceptanceCriterion[];
       ownerId?: string;
-      status: ProductBriefStatus;
+      status?: ProductBriefStatus;
     }
   ): Promise<ProductBrief> {
     const res = await apiClient<{ brief: ProductBrief }>(

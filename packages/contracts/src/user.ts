@@ -56,3 +56,15 @@ export const AdminResetPasswordRequestSchema = z.object({
 
 export type AdminResetPasswordRequest = z.infer<typeof AdminResetPasswordRequestSchema>;
 
+export const AuthSessionInfoSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid(),
+  userAgent: z.string().nullable().optional(),
+  ipAddress: z.string().nullable().optional(),
+  expiresAt: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  isCurrent: z.boolean().optional(),
+});
+
+export type AuthSessionInfo = z.infer<typeof AuthSessionInfoSchema>;

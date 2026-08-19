@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { authService } from '../../lib/api/authService';
+import { useAppDispatch } from '../../store/hooks';
+import { setSessionUser, clearAuth } from '../../store/authSlice';
 
 export interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,6 +10,7 @@ export interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const location = useLocation();
+  const dispatch = useAppDispatch();
   const [status, setStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking');
 
   useEffect(() => {
@@ -21,16 +24,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         localStorage.setItem('user_email', user.email);
         localStorage.setItem('user_name', user.name);
         localStorage.setItem('user_id', user.id);
+        dispatch(setSessionUser(user));
         setStatus('authenticated');
       })
       .catch(() => {
-        if (active) setStatus('unauthenticated');
+        if (active) {
+          dispatch(clearAuth());
+          setStatus('unauthenticated');
+        }
       });
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [dispatch]);
 
   if (status === 'checking') {
     return (

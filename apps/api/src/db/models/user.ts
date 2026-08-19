@@ -47,6 +47,7 @@ UserModel.init(
     passwordHash: {
       type: DataTypes.STRING(255),
       allowNull: true,
+      field: 'password_hash',
     },
     name: {
       type: DataTypes.STRING(100),
@@ -55,6 +56,7 @@ UserModel.init(
     avatarUrl: {
       type: DataTypes.STRING(255),
       allowNull: true,
+      field: 'avatar_url',
     },
     role: {
       type: DataTypes.ENUM('admin', 'qa_lead', 'qa_member', 'dev', 'po', 'viewer'),
@@ -64,10 +66,12 @@ UserModel.init(
     passwordResetToken: {
       type: DataTypes.STRING(255),
       allowNull: true,
+      field: 'password_reset_token',
     },
     passwordResetExpiresAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'password_reset_expires_at',
     },
   },
   {
@@ -75,5 +79,6 @@ UserModel.init(
     tableName: 'users',
     timestamps: true,
     paranoid: true,
+    underscored: true,
   }
 );

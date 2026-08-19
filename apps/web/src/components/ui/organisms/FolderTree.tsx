@@ -116,7 +116,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   };
 
   return (
-    <nav className="space-y-2" aria-label="Folder hierarchy tree">
+    <nav className="space-y-2 w-full min-w-0" aria-label="Folder hierarchy tree">
       {/* Header Controls */}
       <div className="flex items-center justify-between border-b border-stone-200 pb-2.5 dark:border-stone-800">
         <span className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
@@ -127,7 +127,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
             onClick={() => handleOpenCreateModal()}
             size="sm"
             variant="ghost"
-            className="h-7 text-[11px] px-2 text-stone-900 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800"
+            className="h-7 text-[11px] px-2 text-stone-900 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800 shrink-0"
             leftIcon={<Plus className="h-3.5 w-3.5" />}
           >
             New Folder
@@ -169,17 +169,17 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
           <button
             type="button"
             onClick={() => onSelectFolder(null)}
-            className={`flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-xs font-semibold transition-colors ${
+            className={`flex min-h-10 w-full min-w-0 items-center justify-between rounded-xl px-3 text-xs font-semibold transition-colors ${
               selectedFolderId === null
                 ? 'bg-[#22201F] text-white font-bold dark:bg-[#B1E743] dark:text-[#22201F]'
                 : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800/60'
             }`}
           >
-            <span className="flex items-center gap-2">
-              <FolderOpen className={`h-4 w-4 ${selectedFolderId === null ? 'text-[#B1E743] dark:text-[#22201F]' : 'text-stone-500'}`} />
-              <span>All Tasks</span>
+            <span className="flex min-w-0 items-center gap-2 truncate">
+              <FolderOpen className={`h-4 w-4 shrink-0 ${selectedFolderId === null ? 'text-[#B1E743] dark:text-[#22201F]' : 'text-stone-500'}`} />
+              <span className="truncate">All Tasks</span>
             </span>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null ? 'bg-stone-700 text-white dark:bg-stone-900 dark:text-stone-100' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null ? 'bg-stone-700 text-white dark:bg-stone-900 dark:text-stone-100' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}>
               {totalTasks}
             </span>
           </button>
@@ -198,45 +198,45 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                   variant="outline"
                   className="text-xs"
                 >
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Initiative
+                  Add Initiative
                 </Button>
               )}
             </div>
           ) : (
             /* Folder Tree List */
-            <div className="space-y-1">
+            <div className="space-y-1 w-full min-w-0">
               {folders.map((folder) => {
                 const isSelected = selectedFolderId === folder.id;
                 const isExpanded = !!expanded[folder.id];
                 const hasChildren = folder.children && folder.children.length > 0;
 
                 return (
-                  <div key={folder.id} className="space-y-1">
+                  <div key={folder.id} className="space-y-1 w-full min-w-0">
                     {/* Level 1 Folder Row */}
-                    <div className="group flex items-center justify-between rounded-xl px-1.5 hover:bg-stone-100 dark:hover:bg-stone-800/60">
+                    <div className="group flex items-center justify-between rounded-xl px-1.5 hover:bg-stone-100 dark:hover:bg-stone-800/60 w-full min-w-0 gap-1">
                       <button
                         type="button"
                         onClick={() => onSelectFolder(folder.id)}
-                        className={`flex min-h-10 flex-1 items-center gap-2 rounded-lg px-2 text-left text-xs font-medium transition-colors ${
+                        className={`flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-left text-xs font-medium transition-colors overflow-hidden ${
                           isSelected
                             ? 'bg-[#22201F] font-bold text-white dark:bg-[#B1E743] dark:text-[#22201F]'
                             : 'text-stone-700 dark:text-stone-300'
                         }`}
                       >
                         <Folder className={`h-4 w-4 shrink-0 ${isSelected ? 'text-[#B1E743] dark:text-[#22201F]' : 'text-amber-500'}`} />
-                        <span className="truncate">{folder.name}</span>
+                        <span className="truncate block min-w-0 flex-1">{folder.name}</span>
                       </button>
 
-                      <div className="flex items-center gap-0.5">
+                      <div className="flex items-center gap-0.5 shrink-0">
                         {canManageFolders && (
-                          <div className="opacity-0 group-hover:opacity-100 flex items-center transition-opacity">
+                          <div className="opacity-0 group-hover:opacity-100 flex items-center transition-opacity shrink-0">
                             {/* Add Subfolder Action */}
                             <IconButton
                               onClick={() => handleOpenCreateModal(folder.id)}
                               label={`Add subfolder to ${folder.name}`}
                               size="sm"
                               variant="ghost"
-                              className="h-7 w-7 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
+                              className="h-6 w-6 p-0.5 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 shrink-0"
                             >
                               <Plus className="h-3.5 w-3.5" />
                             </IconButton>
@@ -247,9 +247,9 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                               label={`Rename ${folder.name}`}
                               size="sm"
                               variant="ghost"
-                              className="h-7 w-7 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
+                              className="h-6 w-6 p-0.5 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 shrink-0"
                             >
-                              <Edit2 className="h-3.5 w-3.5" />
+                              <Edit2 className="h-3 w-3" />
                             </IconButton>
 
                             {/* Archive Action */}
@@ -258,9 +258,9 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                               label={`Archive ${folder.name}`}
                               size="sm"
                               variant="ghost"
-                              className="h-7 w-7 text-stone-400 hover:text-rose-600 dark:hover:text-rose-400"
+                              className="h-6 w-6 p-0.5 text-stone-400 hover:text-rose-600 dark:hover:text-rose-400 shrink-0"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3 w-3" />
                             </IconButton>
                           </div>
                         )}
@@ -273,7 +273,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                             aria-controls={`folder-children-${folder.id}`}
                             size="sm"
                             variant="ghost"
-                            className="h-7 w-7 text-stone-400"
+                            className="h-6 w-6 p-0.5 text-stone-400 shrink-0"
                           >
                             {isExpanded ? (
                               <ChevronDown className="h-3.5 w-3.5" />
@@ -289,35 +289,35 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                     {hasChildren && isExpanded && (
                       <div
                         id={`folder-children-${folder.id}`}
-                        className="ml-4 space-y-1 border-l-2 border-stone-100 pl-2 dark:border-stone-800"
+                        className="ml-2.5 space-y-1 border-l-2 border-stone-100 pl-2 dark:border-stone-800 min-w-0"
                       >
                         {folder.children!.map((subfolder) => {
                           const isSubSelected = selectedFolderId === subfolder.id;
                           return (
                             <div
                               key={subfolder.id}
-                              className="group/sub flex items-center justify-between rounded-lg px-1.5 hover:bg-stone-100 dark:hover:bg-stone-800/60"
+                              className="group/sub flex items-center justify-between rounded-lg px-1.5 hover:bg-stone-100 dark:hover:bg-stone-800/60 w-full min-w-0 gap-1"
                             >
                               <button
                                 type="button"
                                 onClick={() => onSelectFolder(subfolder.id)}
-                                className={`flex min-h-8 flex-1 items-center gap-2 rounded-md px-2 text-left text-xs transition-colors ${
+                                className={`flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left text-xs transition-colors overflow-hidden ${
                                   isSubSelected
                                     ? 'bg-[#22201F] font-semibold text-white dark:bg-[#B1E743] dark:text-[#22201F]'
                                     : 'text-stone-600 dark:text-stone-400'
                                 }`}
                               >
-                                <span className="truncate">{subfolder.name}</span>
+                                <span className="truncate block min-w-0 flex-1">{subfolder.name}</span>
                               </button>
 
                               {canManageFolders && (
-                                <div className="opacity-0 group-hover/sub:opacity-100 flex items-center transition-opacity">
+                                <div className="opacity-0 group-hover/sub:opacity-100 flex items-center transition-opacity shrink-0">
                                   <IconButton
                                     onClick={() => handleOpenRenameModal(subfolder)}
                                     label={`Rename ${subfolder.name}`}
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 text-stone-400 hover:text-stone-900"
+                                    className="h-5 w-5 p-0.5 text-stone-400 hover:text-stone-900 shrink-0"
                                   >
                                     <Edit2 className="h-3 w-3" />
                                   </IconButton>
@@ -326,7 +326,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                                     label={`Archive ${subfolder.name}`}
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 text-stone-400 hover:text-rose-600"
+                                    className="h-5 w-5 p-0.5 text-stone-400 hover:text-rose-600 shrink-0"
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </IconButton>

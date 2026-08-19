@@ -14,8 +14,13 @@ import { QaDocumentModel } from './qaDocument.js';
 import { QaDocumentVersionModel } from './qaDocumentVersion.js';
 import { TaskDocumentModel } from './taskDocument.js';
 import { RequirementTestCaseModel } from './requirementTestCase.js';
+import { UserFcmTokenModel } from './userFcmToken.js';
+import { TaskCreationPermissionModel } from './taskCreationPermission.js';
 
 export function setupAssociations() {
+  UserModel.hasMany(UserFcmTokenModel, { foreignKey: 'userId', as: 'fcmTokens', onDelete: 'CASCADE' });
+  UserFcmTokenModel.belongsTo(UserModel, { foreignKey: 'userId', as: 'user', onDelete: 'CASCADE' });
+
   UserModel.hasMany(AuthSessionModel, { foreignKey: 'userId', as: 'authSessions', onDelete: 'CASCADE' });
   AuthSessionModel.belongsTo(UserModel, { foreignKey: 'userId', as: 'user', onDelete: 'CASCADE' });
 
@@ -30,6 +35,16 @@ export function setupAssociations() {
 
   UserModel.belongsToMany(WorkspaceModel, { through: WorkspaceMemberModel, foreignKey: 'userId', otherKey: 'workspaceId', as: 'workspaces' });
   WorkspaceModel.belongsToMany(UserModel, { through: WorkspaceMemberModel, foreignKey: 'workspaceId', otherKey: 'userId', as: 'users' });
+
+  // Task Creation Permission Associations
+  WorkspaceModel.hasMany(TaskCreationPermissionModel, { foreignKey: 'workspaceId', as: 'taskCreationPermissions', onDelete: 'CASCADE' });
+  TaskCreationPermissionModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
+
+  UserModel.hasMany(TaskCreationPermissionModel, { foreignKey: 'userId', as: 'taskCreationPermissions', onDelete: 'CASCADE' });
+  TaskCreationPermissionModel.belongsTo(UserModel, { foreignKey: 'userId', as: 'user', onDelete: 'CASCADE' });
+
+  UserModel.hasMany(TaskCreationPermissionModel, { foreignKey: 'grantedBy', as: 'grantedTaskCreationPermissions', onDelete: 'CASCADE' });
+  TaskCreationPermissionModel.belongsTo(UserModel, { foreignKey: 'grantedBy', as: 'granter', onDelete: 'CASCADE' });
 
   // Workspace <-> WorkFolder
   WorkspaceModel.hasMany(WorkFolderModel, { foreignKey: 'workspaceId', as: 'folders', onDelete: 'CASCADE' });
@@ -55,6 +70,9 @@ export function setupAssociations() {
 
   UserModel.hasMany(TaskModel, { foreignKey: 'assigneeId', as: 'assignedTasks', onDelete: 'SET NULL' });
   TaskModel.belongsTo(UserModel, { foreignKey: 'assigneeId', as: 'assignee', onDelete: 'SET NULL' });
+
+  UserModel.hasMany(TaskModel, { foreignKey: 'reviewedBy', as: 'reviewedTasks', onDelete: 'SET NULL' });
+  TaskModel.belongsTo(UserModel, { foreignKey: 'reviewedBy', as: 'reviewer', onDelete: 'SET NULL' });
 
   // Self-referential Task (Parent / Subtasks)
   TaskModel.hasMany(TaskModel, { foreignKey: 'parentTaskId', as: 'subtasks', onDelete: 'RESTRICT' });
@@ -87,8 +105,8 @@ export function setupAssociations() {
   TaskCommentModel.hasMany(TaskCommentMentionModel, { foreignKey: 'commentId', as: 'mentions', onDelete: 'CASCADE' });
   TaskCommentMentionModel.belongsTo(TaskCommentModel, { foreignKey: 'commentId', as: 'comment', onDelete: 'CASCADE' });
 
-  UserModel.hasMany(TaskCommentMentionModel, { foreignKey: 'userId', as: 'commentMentions', onDelete: 'CASCADE' });
-  TaskCommentMentionModel.belongsTo(UserModel, { foreignKey: 'userId', as: 'user', onDelete: 'CASCADE' });
+  UserModel.hasMany(TaskCommentMentionModel, { foreignKey: 'userId', as: 'commentMentions', onDelete: 'RESTRICT' });
+  TaskCommentMentionModel.belongsTo(UserModel, { foreignKey: 'userId', as: 'user', onDelete: 'RESTRICT' });
 
   WorkspaceModel.hasMany(TaskCommentMentionModel, { foreignKey: 'workspaceId', as: 'commentMentions', onDelete: 'CASCADE' });
   TaskCommentMentionModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });

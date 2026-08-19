@@ -13,14 +13,18 @@ describe('Task policy', () => {
     }
   });
 
-  test('allows QA to create tasks based on workspace allowQaTaskCreation policy', () => {
-    assert.doesNotThrow(() => assertCanCreateTask('qa', qaUserId, null, null, false));
-    assert.doesNotThrow(() => assertCanCreateTask('qa', qaUserId, qaUserId, null, false));
+  test('restricts QA and Dev roles from creating tasks unless special permission granted', () => {
     assert.throws(
-      () => assertCanCreateTask('qa', qaUserId, anotherUserId, null, false),
-      /QA members may assign new tasks only to themselves/
+      () => assertCanCreateTask('qa', qaUserId, null, null, false),
+      /Only Product Owner, Admin, or Owner can create tasks/
     );
-    assert.doesNotThrow(() => assertCanCreateTask('qa', qaUserId, anotherUserId, null, true));
+    assert.throws(
+      () => assertCanCreateTask('dev', qaUserId, null, null, false),
+      /Only Product Owner, Admin, or Owner can create tasks/
+    );
+    // When special permission is true:
+    assert.doesNotThrow(() => assertCanCreateTask('dev', qaUserId, null, null, true));
+    assert.doesNotThrow(() => assertCanCreateTask('qa', qaUserId, null, null, true));
   });
 
   test('keeps QA read-only for parent tasks while allowing assigned subtask execution updates', () => {
@@ -28,20 +32,31 @@ describe('Task policy', () => {
       () => assertCanMutateTask('qa', qaUserId, { parentTaskId: null, assigneeId: qaUserId }, { title: 'Test' }),
       /Only Product Owner, Admin, or Owner may update parent tasks/
     );
-    assert.doesNotThrow(() => assertCanMutateTask('qa', qaUserId, { parentTaskId: qaUserId, assigneeId: qaUserId }, { status: 'done' }));
+    // Assignee moving from todo to in_progress -> Allowed
+    assert.doesNotThrow(() => assertCanMutateTask('qa', qaUserId, { parentTaskId: qaUserId, assigneeId: qaUserId, status: 'todo' }, { status: 'in_progress' }));
+    // Assignee moving from in_progress to in_review -> Allowed
+    assert.doesNotThrow(() => assertCanMutateTask('qa', qaUserId, { parentTaskId: qaUserId, assigneeId: qaUserId, status: 'in_progress' }, { status: 'in_review' }));
+    // Assignee self-approval (in_review to done) -> Rejected
+    assert.throws(
+      () => assertCanMutateTask('qa', qaUserId, { parentTaskId: qaUserId, assigneeId: qaUserId, status: 'in_review' }, { status: 'done' }),
+      /Self-approval is not allowed/
+    );
+    // Assignee editing planning fields -> Rejected
     assert.throws(
       () => assertCanMutateTask('qa', qaUserId, { parentTaskId: qaUserId, assigneeId: qaUserId }, { priority: 'high' }),
       /may update only their own subtask execution/
     );
   });
 
+  test('independent QA reviewer can approve or request changes on FE/BE subtask in review', () => {
+    // QA reviewing a FE subtask in_review -> Allowed done & changes_requested
+    assert.doesNotThrow(() => assertCanMutateTask('qa', qaUserId, { parentTaskId: 'parent-1', assigneeId: anotherUserId, status: 'in_review', deliveryArea: 'frontend' }, { status: 'done' }));
+    assert.doesNotThrow(() => assertCanMutateTask('qa', qaUserId, { parentTaskId: 'parent-1', assigneeId: anotherUserId, status: 'in_review', deliveryArea: 'frontend' }, { status: 'changes_requested' }));
+  });
+
   test('keeps parent task moves reserved for planner roles', () => {
     assert.throws(() => assertCanMoveTask('qa', false), /Only Product Owner, Admin, or Owner can move parent tasks/);
     assert.throws(() => assertCanMoveTask('dev', false), /Only Product Owner, Admin, or Owner can move parent tasks/);
     assert.doesNotThrow(() => assertCanMoveTask('po', false));
-  });
-
-  test('keeps Dev role restricted from parent task creation', () => {
-    assert.throws(() => assertCanCreateTask('dev', qaUserId, null), /cannot create parent tasks/);
   });
 });

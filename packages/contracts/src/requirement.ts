@@ -9,6 +9,7 @@ export const RequirementSchema = z.object({
   code: z.string().min(2).max(50).trim(),
   title: z.string().min(1).max(255).trim(),
   description: z.string().nullable().optional(),
+  url: z.string().url().nullable().optional(),
   status: RequirementStatusSchema.default('active'),
   createdBy: z.string().uuid(),
   createdAt: z.string(),
@@ -22,6 +23,7 @@ export const CreateRequirementSchema = z.object({
   code: z.string().min(2).max(50).trim(),
   title: z.string().min(1).max(255).trim(),
   description: z.string().nullable().optional(),
+  url: z.string().url().nullable().optional(),
 });
 
 export type CreateRequirementInput = z.infer<typeof CreateRequirementSchema>;
@@ -40,7 +42,10 @@ export type TaskRequirementLink = z.infer<typeof TaskRequirementLinkSchema>;
 
 export const LinkRequirementSchema = z.object({
   workspaceId: z.string().uuid(),
-  requirementId: z.string().uuid(),
+  requirementId: z.string().uuid().optional(),
+  code: z.string().min(2).max(50).trim().optional(),
+  title: z.string().min(1).max(255).trim().optional(),
+  url: z.string().url().nullable().optional(),
 });
 
 export type LinkRequirementInput = z.infer<typeof LinkRequirementSchema>;

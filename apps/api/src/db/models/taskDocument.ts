@@ -65,6 +65,7 @@ TaskDocumentModel.init(
   {
     sequelize,
     tableName: 'task_documents',
+    underscored: true,
     timestamps: true,
     updatedAt: false,
   }

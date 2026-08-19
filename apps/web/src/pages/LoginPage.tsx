@@ -5,12 +5,18 @@ import { Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Alert } from '../components/ui/atoms/Alert';
 import { Button } from '../components/ui/atoms/Button';
 import { Input } from '../components/ui/atoms/Input';
+import { useAppDispatch } from '../store/hooks';
+import { setSessionUser } from '../store/authSlice';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
-  const isSessionOverridden = searchParams.get('reason') === 'session_overridden';
+  const reason = searchParams.get('reason');
+  const isSessionOverridden = reason === 'session_overridden';
+  const isIdleTimeout = reason === 'idle_timeout';
+  const isSessionExpired = reason === 'session_expired';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,11 +32,11 @@ export const LoginPage: React.FC = () => {
       // Call Backend API POST /v1/auth/login
       const res = await authService.login({ email: email.trim(), password });
 
-      // Only non-sensitive profile data is stored for UI display. The access token stays HttpOnly.
       localStorage.setItem('user_role', res.user.role || 'qa_member');
       localStorage.setItem('user_email', res.user.email || email);
       localStorage.setItem('user_name', res.user.name || 'User');
       localStorage.setItem('user_id', res.user.id);
+      dispatch(setSessionUser(res.user));
 
       setIsLoading(false);
       const requestedPath = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
@@ -59,8 +65,20 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {isSessionOverridden && (
-          <Alert tone="warning" icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} title="Sesi Anda Telah Berakhir (Double Login)">
-            Akun ini baru saja di-login dari perangkat atau browser lain. Sesi sebelumnya otomatis dinonaktifkan untuk keamanan.
+          <Alert tone="warning" icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} title="Sesi Tergantikan">
+            Batas sesi bersamaan untuk akun ini telah tercapai atau login baru telah menggantikan sesi ini.
+          </Alert>
+        )}
+
+        {isIdleTimeout && (
+          <Alert tone="warning" icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} title="Sesi Habis Karena Tidak Aktif">
+            Anda telah keluar otomatis karena tidak ada aktivitas selama beberapa waktu. Silakan masuk kembali untuk melanjutkan.
+          </Alert>
+        )}
+
+        {isSessionExpired && (
+          <Alert tone="warning" icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} title="Sesi Berakhir">
+            Masa berlaku sesi login telah berakhir. Silakan masuk kembali.
           </Alert>
         )}
 

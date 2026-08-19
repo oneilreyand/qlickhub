@@ -7,6 +7,7 @@ export interface RequirementAttributes {
   code: string;
   title: string;
   description?: string | null;
+  url?: string | null;
   status: 'draft' | 'active' | 'deprecated';
   createdBy: string;
   createdAt?: Date;
@@ -14,7 +15,7 @@ export interface RequirementAttributes {
 }
 
 export interface RequirementCreationAttributes
-  extends Optional<RequirementAttributes, 'id' | 'description' | 'status' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<RequirementAttributes, 'id' | 'description' | 'url' | 'status' | 'createdAt' | 'updatedAt'> {}
 
 export class RequirementModel
   extends Model<RequirementAttributes, RequirementCreationAttributes>
@@ -25,6 +26,7 @@ export class RequirementModel
   declare code: string;
   declare title: string;
   declare description: string | null;
+  declare url: string | null;
   declare status: 'draft' | 'active' | 'deprecated';
   declare createdBy: string;
   declare readonly createdAt: Date;
@@ -55,6 +57,10 @@ RequirementModel.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -70,5 +76,6 @@ RequirementModel.init(
     sequelize,
     tableName: 'requirements',
     timestamps: true,
+    underscored: true,
   }
 );

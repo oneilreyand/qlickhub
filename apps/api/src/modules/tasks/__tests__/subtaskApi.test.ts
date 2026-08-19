@@ -161,6 +161,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
             parentTaskId: parentTask.id,
             deliveryArea: 'backend',
             title: 'Unpermitted Dev Subtask',
+            assigneeId: devUser.id,
           })
         );
       },
@@ -250,6 +251,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         parentTaskId: parent.id,
         deliveryArea: 'frontend',
         title: 'Subtask 1',
+        assigneeId: devUser.id,
       })
     );
 
@@ -260,6 +262,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         parentTaskId: parent.id,
         deliveryArea: 'backend',
         title: 'Subtask 2',
+        assigneeId: devUser.id,
       })
     );
 
@@ -291,6 +294,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         parentTaskId: parent.id,
         deliveryArea: 'frontend',
         title: 'FE 1',
+        assigneeId: devUser.id,
         status: 'done',
       })
     );
@@ -302,6 +306,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         parentTaskId: parent.id,
         deliveryArea: 'frontend',
         title: 'FE 2',
+        assigneeId: devUser.id,
         status: 'todo',
       })
     );
@@ -313,6 +318,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         parentTaskId: parent.id,
         deliveryArea: 'qa',
         title: 'QA 1',
+        assigneeId: qaUser.id,
         status: 'done',
       })
     );
@@ -337,11 +343,127 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
     assert.strictEqual(foundParent.subtaskSummary.areas.qa.completed, 1);
   });
 
+  test('Rejects subtask creation without required assigneeId', async () => {
+    await assert.rejects(
+      async () => {
+        await taskService.createTask(
+          poUser.id,
+          CreateTaskSchema.parse({
+            workspaceId: workspace.id,
+            parentTaskId: parentTask.id,
+            deliveryArea: 'frontend',
+            title: 'Subtask without Assignee',
+          })
+        );
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('assigneeId is required for a subtask') || String(err.message).includes('Assignee is required'));
+        return true;
+      }
+    );
+  });
+
   test('All workspace members can list subtasks of a parent task', async () => {
     const resAsDev = await taskService.listSubtasks(workspace.id, parentTask.id);
     const resAsQa = await taskService.listSubtasks(workspace.id, parentTask.id);
 
     assert.ok(resAsDev.tasks.length > 0);
     assert.strictEqual(resAsDev.total, resAsQa.total);
+  });
+
+  test('Strict Guard: Parent task cannot be completed when subtasks are incomplete', async () => {
+    const guardParent = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        title: 'Parent With Incomplete Subtask',
+        status: 'in_progress',
+      })
+    );
+
+    const subFE = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        parentTaskId: guardParent.id,
+        deliveryArea: 'frontend',
+        title: 'FE Subtask Incomplete',
+        assigneeId: devUser.id,
+        status: 'in_progress',
+      })
+    );
+
+    const subQA = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        parentTaskId: guardParent.id,
+        deliveryArea: 'qa',
+        title: 'QA Subtask Incomplete',
+        assigneeId: qaUser.id,
+        status: 'todo',
+      })
+    );
+
+    // Attempting to complete guardParent while subFE and subQA are incomplete -> MUST FAIL
+    await assert.rejects(
+      async () => {
+        await taskService.completeTask(poUser.id, workspace.id, guardParent.id, { status: 'done' });
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('Cannot complete task while subtasks are incomplete'));
+        return true;
+      }
+    );
+
+    // Also attempting to update status directly to 'done' -> MUST FAIL
+    await assert.rejects(
+      async () => {
+        await taskService.updateTask(poUser.id, workspace.id, guardParent.id, { status: 'done' });
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('Cannot complete task while subtasks are incomplete'));
+        return true;
+      }
+    );
+
+    // Move subtasks to in_review by assignees, then approve by PO
+    await taskService.updateTask(devUser.id, workspace.id, subFE.id, { status: 'in_review' });
+    await taskService.updateTask(poUser.id, workspace.id, subFE.id, { status: 'done' });
+    await taskService.updateTask(qaUser.id, workspace.id, subQA.id, { status: 'in_review' });
+    await taskService.updateTask(poUser.id, workspace.id, subQA.id, { status: 'done' });
+
+    // Now parent task can be completed successfully
+    const completedParent = await taskService.completeTask(poUser.id, workspace.id, guardParent.id, { status: 'done' });
+    assert.strictEqual(completedParent.status, 'done');
+    assert.ok(completedParent.completedAt);
+
+    // Reopening subtask automatically reopens the completed parent task
+    await taskService.updateTask(devUser.id, workspace.id, subFE.id, { status: 'in_progress' });
+    const reopenedParent = await TaskModel.findByPk(guardParent.id);
+    assert.strictEqual(reopenedParent?.status, 'in_progress');
+    assert.strictEqual(reopenedParent?.completedAt, null);
+
+    // Complete subtask again and complete parent task again
+    await taskService.updateTask(devUser.id, workspace.id, subFE.id, { status: 'in_review' });
+    await taskService.updateTask(poUser.id, workspace.id, subFE.id, { status: 'done' });
+    await taskService.updateTask(poUser.id, workspace.id, guardParent.id, { status: 'done' });
+
+    // Adding a new incomplete subtask under the completed parent task automatically reopens it
+    await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        parentTaskId: guardParent.id,
+        deliveryArea: 'backend',
+        title: 'Newly added BE subtask',
+        assigneeId: devUser.id,
+        status: 'todo',
+      })
+    );
+
+    const reopenedAgain = await TaskModel.findByPk(guardParent.id);
+    assert.strictEqual(reopenedAgain?.status, 'in_progress');
+    assert.strictEqual(reopenedAgain?.completedAt, null);
   });
 });

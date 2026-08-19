@@ -6,6 +6,7 @@ import {
   UpdateWorkspaceSchema,
   AddWorkspaceMemberSchema,
   UpdateMemberRoleSchema,
+  GrantTaskCreationPermissionSchema,
 } from '@qa/contracts';
 
 function handleError(res: Response, error: unknown) {
@@ -190,3 +191,53 @@ export const removeWorkspaceMember = async (req: AuthenticatedRequest, res: Resp
     return handleError(res, error);
   }
 };
+
+export const listTaskCreationPermissions = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+    const permissions = await workspaceService.listTaskCreationPermissions(workspaceId);
+    return res.status(200).json({ data: { permissions } });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const grantTaskCreationPermission = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+    const parseResult = GrantTaskCreationPermissionSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        type: 'https://api.qa-hub.com/errors/bad-request',
+        title: 'Validation Error',
+        status: 400,
+        detail: 'Invalid permission grant parameters.',
+        code: 'BAD_REQUEST',
+        errors: parseResult.error.errors.map((err) => ({
+          field: err.path.join('.') || 'body',
+          message: err.message,
+        })),
+      });
+    }
+
+    const permission = await workspaceService.grantTaskCreationPermission(
+      workspaceId,
+      req.user!.userId,
+      parseResult.data
+    );
+    return res.status(201).json({ data: permission });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const revokeTaskCreationPermission = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { workspaceId, targetUserId } = req.params;
+    await workspaceService.revokeTaskCreationPermission(workspaceId, targetUserId);
+    return res.status(200).json({ data: { success: true } });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+

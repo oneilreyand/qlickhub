@@ -3,12 +3,20 @@ import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { App } from './app/App';
 import { store } from './store/store';
+import { ThemeProvider } from './lib/theme/ThemeContext';
+import { ErrorBoundary } from './components/ui/organisms/ErrorBoundary';
 import './index.css';
+import "./config/firebase";
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <App />
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </Provider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
+

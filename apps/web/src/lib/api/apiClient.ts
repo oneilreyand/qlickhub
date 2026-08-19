@@ -13,7 +13,41 @@ const getRequestKey = (url: string, config: RequestInit) => {
   return `${url}::${JSON.stringify(headerEntries)}`;
 };
 
-async function sendRequest<T>(url: string, config: RequestInit, endpoint: string): Promise<T> {
+let refreshPromise: Promise<boolean> | null = null;
+
+async function attemptTokenRefresh(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      return response.ok;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+function handleAuthFailure(errorCode?: string) {
+  localStorage.removeItem('user_role');
+  localStorage.removeItem('user_email');
+  localStorage.removeItem('user_name');
+  localStorage.removeItem('user_id');
+  if (window.location.pathname !== '/login') {
+    const reason = errorCode === 'SESSION_OVERRIDDEN' ? '?reason=session_overridden' : '';
+    window.location.href = `/login${reason}`;
+  }
+}
+
+async function sendRequest<T>(url: string, config: RequestInit, endpoint: string, isRetry = false): Promise<T> {
   const response = await fetch(url, config);
 
   if (!response.ok) {
@@ -33,15 +67,16 @@ async function sendRequest<T>(url: string, config: RequestInit, endpoint: string
       // JSON parsing failed, use default message
     }
 
-    // Auto-logout when token is invalid or session is overridden by double login
-    if (response.status === 401 && !endpoint.includes('/auth/login')) {
-      localStorage.removeItem('user_role');
-      localStorage.removeItem('user_email');
-      localStorage.removeItem('user_name');
-      if (window.location.pathname !== '/login') {
-        const reason = errorCode === 'SESSION_OVERRIDDEN' ? '?reason=session_overridden' : '';
-        window.location.href = `/login${reason}`;
+    // Attempt automatic silent refresh if 401 occurs on ordinary endpoints
+    if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh') && !isRetry) {
+      const refreshed = await attemptTokenRefresh();
+      if (refreshed) {
+        // Retry original request with refreshed session cookie
+        return sendRequest<T>(url, config, endpoint, true);
       }
+      handleAuthFailure(errorCode);
+    } else if (response.status === 401 && !endpoint.includes('/auth/login')) {
+      handleAuthFailure(errorCode);
     }
 
     throw new Error(errorMessage);

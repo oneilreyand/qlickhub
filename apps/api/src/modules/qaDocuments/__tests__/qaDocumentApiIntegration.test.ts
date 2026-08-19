@@ -5,6 +5,7 @@ import {
   UserModel,
   WorkspaceModel,
   WorkspaceMemberModel,
+  WorkFolderModel,
   TaskModel,
   QaDocumentModel,
   QaDocumentVersionModel,
@@ -18,6 +19,7 @@ describe('QA Document API & Versioning Integration Tests', () => {
   let qaUser: UserModel;
   let workspace1: WorkspaceModel;
   let workspace2: WorkspaceModel;
+  let foreignFolder: WorkFolderModel;
   let task1: TaskModel;
   let doc1: QaDocumentModel;
   let docCrossWorkspace: QaDocumentModel;
@@ -74,6 +76,13 @@ describe('QA Document API & Versioning Integration Tests', () => {
       role: 'owner',
     });
 
+    foreignFolder = await WorkFolderModel.create({
+      workspaceId: workspace2.id,
+      name: 'Workspace 2 folder',
+      position: 0,
+      createdBy: userB.id,
+    });
+
     task1 = await TaskModel.create({
       workspaceId: workspace1.id,
       title: 'Task for Document Linking',
@@ -114,6 +123,58 @@ describe('QA Document API & Versioning Integration Tests', () => {
     assert.strictEqual(created.document.currentVersion, 1);
     assert.strictEqual(created.version.version, 1);
     assert.strictEqual(created.version.contentMarkdown.includes('E2E tests'), true);
+  });
+
+  test('Rejects creating a QA Document in a folder from another workspace', async () => {
+    const { qaDocumentService } = await import('../qaDocumentService.js');
+
+    await assert.rejects(
+      () => qaDocumentService.createDocument(workspace1.id, userA.id, {
+        folderId: foreignFolder.id,
+        title: 'Document with a foreign folder',
+        contentMarkdown: '# Invalid relationship',
+      }),
+      (error: Error) => error.message.includes('BAD_REQUEST')
+    );
+  });
+
+  test('Database rejects a QA Document with a folder from another workspace', async () => {
+    await assert.rejects(
+      () => QaDocumentModel.create({
+        workspaceId: workspace1.id,
+        folderId: foreignFolder.id,
+        title: 'Direct foreign folder relation',
+        docType: 'test_plan',
+        status: 'draft',
+        currentVersion: 1,
+        createdBy: userA.id,
+      }),
+      (error: Error) => error.name === 'SequelizeForeignKeyConstraintError'
+    );
+  });
+
+  test('Deleting a same-workspace folder preserves its QA Documents as unfiled', async () => {
+    const folder = await WorkFolderModel.create({
+      workspaceId: workspace1.id,
+      name: 'Document folder',
+      position: 0,
+      createdBy: userA.id,
+    });
+    const document = await QaDocumentModel.create({
+      workspaceId: workspace1.id,
+      folderId: folder.id,
+      title: 'Document with a valid folder',
+      docType: 'test_plan',
+      status: 'draft',
+      currentVersion: 1,
+      createdBy: userA.id,
+    });
+
+    await folder.destroy();
+    await document.reload();
+
+    assert.strictEqual(document.folderId, null);
+    await document.destroy();
   });
 
   test('Creates new document version (v2) without destroying v1 history', async () => {

@@ -26,6 +26,7 @@ function formatRequirement(r: RequirementModel | Record<string, any>): Requireme
     code: json.code,
     title: json.title,
     description: json.description || null,
+    url: json.url || null,
     status: json.status,
     createdBy: json.createdBy,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
@@ -94,6 +95,7 @@ export class RequirementService {
       code: input.code.trim().toUpperCase(),
       title: input.title.trim(),
       description: input.description?.trim() || null,
+      url: input.url?.trim() || null,
       status: 'active',
       createdBy: actorId,
     });

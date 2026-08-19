@@ -5,10 +5,11 @@ import {
   TaskActivityModel,
   WorkFolderModel,
   WorkspaceMemberModel,
-  WorkspaceModel,
   UserModel,
+  TaskCreationPermissionModel,
 } from '../../db/models/index.js';
-import { assertCanCreateTask, assertCanMutateTask, assertCanMoveTask } from '../../policies/taskPolicy.js';
+import { assertCanCreateTask, assertCanMutateTask, assertCanMoveTask, isPlanner } from '../../policies/taskPolicy.js';
+import { fcmService } from '../../services/fcmService.js';
 import {
   CreateTaskInput,
   UpdateTaskInput,
@@ -38,13 +39,51 @@ function formatTask(t: TaskModel): Task {
     priority: json.priority,
     assigneeId: json.assigneeId || null,
     reporterId: json.reporterId,
-    position: 0,
+    reviewedBy: json.reviewedBy || null,
+    reviewNotes: json.reviewNotes || null,
     startDate: json.startDate || null,
     dueDate: json.dueDate || null,
     completedAt: json.completedAt ? new Date(json.completedAt).toISOString() : null,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: json.updatedAt ? new Date(json.updatedAt).toISOString() : new Date().toISOString(),
   };
+}
+
+async function assertRoleMatchesDeliveryArea(
+  workspaceId: string,
+  assigneeId: string | null | undefined,
+  deliveryArea: DeliveryArea | null | undefined,
+  allowRoleMismatch: boolean | undefined,
+  transaction: Transaction
+): Promise<{ isMismatch: boolean; assigneeRole?: string }> {
+  if (!assigneeId || !deliveryArea) return { isMismatch: false };
+
+  const membership = await WorkspaceMemberModel.findOne({
+    where: { workspaceId, userId: assigneeId },
+    transaction,
+  });
+
+  if (!membership) return { isMismatch: false };
+
+  const targetRole = membership.role;
+  const isPlannerRole = ['owner', 'admin', 'po'].includes(targetRole);
+  const isFeOrBe = deliveryArea === 'frontend' || deliveryArea === 'backend';
+  const isQa = deliveryArea === 'qa';
+
+  let isMismatch = false;
+  if (isFeOrBe && targetRole !== 'dev' && !isPlannerRole) {
+    isMismatch = true;
+  } else if (isQa && targetRole !== 'qa' && !isPlannerRole) {
+    isMismatch = true;
+  }
+
+  if (isMismatch && !allowRoleMismatch) {
+    throw new Error(
+      `BAD_REQUEST: Assigned member has role "${targetRole}", which does not match subtask delivery area "${deliveryArea}". Set allowRoleMismatch to true to override.`
+    );
+  }
+
+  return { isMismatch, assigneeRole: targetRole };
 }
 
 async function attachSubtaskSummaries(workspaceId: string, parentTasks: Task[]): Promise<Task[]> {
@@ -219,11 +258,22 @@ export class TaskService {
       }
 
       if (query.includeDescendants) {
-        const children = await WorkFolderModel.findAll({
-          where: { workspaceId, parentFolderId: folder.id, archivedAt: null },
-          attributes: ['id'],
-        });
-        (where as any).folderId = { [Op.in]: [folder.id, ...children.map((child) => child.id)] };
+        const [results] = (await sequelize.query(
+          `WITH RECURSIVE folder_tree AS (
+            SELECT id FROM work_folders WHERE id = :folderId AND workspace_id = :workspaceId AND archived_at IS NULL
+            UNION ALL
+            SELECT wf.id FROM work_folders wf
+            JOIN folder_tree ft ON wf.parent_folder_id = ft.id
+            WHERE wf.workspace_id = :workspaceId AND wf.archived_at IS NULL
+          )
+          SELECT id FROM folder_tree;`,
+          {
+            replacements: { folderId: folder.id, workspaceId },
+          }
+        )) as Array<{ id: string }[]>;
+
+        const descendantIds = results.map((row: any) => row.id);
+        (where as any).folderId = { [Op.in]: descendantIds };
       } else {
         (where as any).folderId = folder.id;
       }
@@ -244,9 +294,14 @@ export class TaskService {
       (where as any).assigneeId = query.assigneeId;
     }
 
-    // Search query
+    // Search query: search across title, description, and id
     if (query.search && query.search.trim() !== '') {
-      (where as any).title = { [Op.iLike]: `%${query.search.trim()}%` };
+      const term = `%${query.search.trim()}%`;
+      (where as any)[Op.or] = [
+        { title: { [Op.iLike]: term } },
+        { description: { [Op.iLike]: term } },
+        sequelize.where(sequelize.cast(sequelize.col('TaskModel.id'), 'text'), { [Op.iLike]: term }),
+      ];
     }
 
     // Date filtering
@@ -318,11 +373,14 @@ export class TaskService {
       throw new Error('NOT_FOUND: Parent task not found in this workspace.');
     }
 
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    const safePage = Math.max(Number(page) || 1, 1);
+
     const query = TaskListQuerySchema.parse({
       workspaceId,
       parentTaskId,
-      page,
-      limit,
+      page: safePage,
+      limit: safeLimit,
     });
 
     return this.listTasks(workspaceId, query);
@@ -420,35 +478,58 @@ export class TaskService {
    * Creates a new task or subtask. Enforces active folder, policy rules, and records Activity audit event.
    */
   async createTask(actorId: string, input: CreateTaskInput): Promise<Task> {
-    return await sequelize.transaction(async (transaction) => {
+    const createdResult = await sequelize.transaction(async (transaction) => {
       const { workspaceId, folderId, parentTaskId, deliveryArea, title, description, status, priority, assigneeId, startDate, dueDate } = input;
       const membership = await getActorMembership(workspaceId, actorId, transaction);
-      const workspace = await WorkspaceModel.findByPk(workspaceId, { transaction });
+
+      let hasSpecialPermission = false;
+      if (!parentTaskId && !isPlanner(membership.role)) {
+        const perm = await TaskCreationPermissionModel.findOne({
+          where: {
+            workspaceId,
+            userId: actorId,
+            [Op.or]: [
+              { expiresAt: null },
+              { expiresAt: { [Op.gt]: new Date() } },
+            ],
+          },
+          transaction,
+        });
+        hasSpecialPermission = Boolean(perm);
+      }
+
       assertCanCreateTask(
         membership.role,
         actorId,
         assigneeId,
         parentTaskId,
-        workspace?.allowQaTaskCreation ?? true
+        hasSpecialPermission
       );
 
       let targetFolderId = folderId || null;
 
+      // Auto-assign to creator if assigneeId is not specified and creator is owner, admin, or po
+      let resolvedAssigneeId = assigneeId;
+      if (resolvedAssigneeId === undefined && (membership.role === 'owner' || membership.role === 'admin' || membership.role === 'po')) {
+        resolvedAssigneeId = actorId;
+      }
+
+      let parentTaskRecord: TaskModel | null = null;
       if (parentTaskId) {
-        const parentTask = await TaskModel.findOne({
+        parentTaskRecord = await TaskModel.findOne({
           where: { id: parentTaskId, workspaceId },
           transaction,
         });
 
-        if (!parentTask) {
+        if (!parentTaskRecord) {
           throw new Error('NOT_FOUND: Parent task not found in this workspace.');
         }
 
-        if (parentTask.parentTaskId) {
+        if (parentTaskRecord.parentTaskId) {
           throw new Error('BAD_REQUEST: Cannot create subtask under another subtask.');
         }
 
-        targetFolderId = parentTask.folderId;
+        targetFolderId = parentTaskRecord.folderId;
       }
 
       if (targetFolderId) {
@@ -466,7 +547,16 @@ export class TaskService {
         }
       }
 
-      await assertAssigneeBelongsToWorkspace(workspaceId, assigneeId, transaction);
+      await assertAssigneeBelongsToWorkspace(workspaceId, resolvedAssigneeId, transaction);
+
+      // Validate delivery area vs assignee role
+      const roleCheck = await assertRoleMatchesDeliveryArea(
+        workspaceId,
+        resolvedAssigneeId,
+        deliveryArea,
+        input.allowRoleMismatch,
+        transaction
+      );
 
       const completedAt = status === 'done' ? new Date() : null;
 
@@ -480,7 +570,7 @@ export class TaskService {
           description: description || null,
           status: status || 'todo',
           priority: priority || 'medium',
-          assigneeId: assigneeId || null,
+          assigneeId: resolvedAssigneeId || null,
           reporterId: actorId,
           startDate: startDate || null,
           dueDate: dueDate || null,
@@ -488,6 +578,21 @@ export class TaskService {
         },
         { transaction }
       );
+
+      // If parent task is already done, adding an incomplete subtask reopens the parent task
+      if (parentTaskRecord && parentTaskRecord.status === 'done' && status !== 'done' && status !== 'canceled') {
+        parentTaskRecord.status = 'in_progress';
+        parentTaskRecord.completedAt = null;
+        await parentTaskRecord.save({ transaction });
+        await logActivity(
+          workspaceId,
+          parentTaskRecord.id,
+          actorId,
+          'task.reopened',
+          { reason: `Incomplete subtask "${title}" added` },
+          transaction
+        );
+      }
 
       // Record Activity audit event
       const action = parentTaskId ? 'subtask.created' : 'task.created';
@@ -504,19 +609,47 @@ export class TaskService {
           status: status || 'todo',
           priority: priority || 'medium',
           assigneeId: assigneeId || null,
+          ...(roleCheck.isMismatch
+            ? { roleMismatchOverride: true, assigneeRole: roleCheck.assigneeRole, deliveryArea }
+            : {}),
         },
         transaction
       );
 
-      return formatTask(task);
+      return {
+        formatted: formatTask(task),
+        assigneeId: task.assigneeId,
+        title: task.title,
+        id: task.id,
+      };
     });
+
+    // Trigger 1: User di-assign task on creation
+    if (createdResult.assigneeId && createdResult.assigneeId !== actorId) {
+      UserModel.findByPk(actorId)
+        .then((actorUser) => {
+          const actorName = actorUser?.name || actorUser?.email || 'Workspace Member';
+          fcmService
+            .sendTaskAssignmentNotification({
+              assigneeId: createdResult.assigneeId!,
+              assignerName: actorName,
+              taskTitle: createdResult.title,
+              taskId: createdResult.id,
+              workspaceId: input.workspaceId,
+            })
+            .catch((err) => console.warn('Failed to dispatch FCM task assignment notification:', err));
+        })
+        .catch(() => {});
+    }
+
+    return createdResult.formatted;
   }
 
   /**
    * Updates task details. Enforces field-level policy and records Activity audit events.
    */
   async updateTask(actorId: string, workspaceId: string, taskId: string, input: UpdateTaskInput): Promise<Task> {
-    return await sequelize.transaction(async (transaction) => {
+    const updatedResult = await sequelize.transaction(async (transaction) => {
       const task = await TaskModel.findOne({
         where: { id: taskId, workspaceId },
         transaction,
@@ -527,7 +660,12 @@ export class TaskService {
       }
 
       const membership = await getActorMembership(workspaceId, actorId, transaction);
-      assertCanMutateTask(membership.role, actorId, task, input);
+      assertCanMutateTask(membership.role, actorId, {
+        parentTaskId: task.parentTaskId,
+        assigneeId: task.assigneeId,
+        status: task.status,
+        deliveryArea: task.deliveryArea,
+      }, input);
 
       if (input.parentTaskId !== undefined && input.parentTaskId !== task.parentTaskId) {
         throw new Error('BAD_REQUEST: A task parent cannot be changed after creation.');
@@ -588,8 +726,16 @@ export class TaskService {
         task.priority = input.priority;
       }
 
+      let roleCheckResult: { isMismatch: boolean; assigneeRole?: string } = { isMismatch: false };
       if (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) {
         await assertAssigneeBelongsToWorkspace(workspaceId, input.assigneeId, transaction);
+        roleCheckResult = await assertRoleMatchesDeliveryArea(
+          workspaceId,
+          input.assigneeId,
+          input.deliveryArea !== undefined ? input.deliveryArea : task.deliveryArea,
+          input.allowRoleMismatch,
+          transaction
+        );
         changes['assigneeId'] = { old: task.assigneeId, new: input.assigneeId };
         task.assigneeId = input.assigneeId;
       }
@@ -604,13 +750,96 @@ export class TaskService {
         task.dueDate = input.dueDate;
       }
 
+      if (input.reviewNotes !== undefined && input.reviewNotes !== task.reviewNotes) {
+        changes['reviewNotes'] = { old: task.reviewNotes, new: input.reviewNotes };
+        task.reviewNotes = input.reviewNotes;
+      }
+
       if (input.status !== undefined && input.status !== task.status) {
+        // Strict Guard: A parent task cannot be marked done if any subtask is incomplete
+        if (input.status === 'done' && !task.parentTaskId) {
+          const incompleteSubtasks = await TaskModel.findAll({
+            where: {
+              workspaceId,
+              parentTaskId: task.id,
+              status: { [Op.notIn]: ['done', 'canceled'] },
+            },
+            attributes: ['id', 'title', 'deliveryArea', 'status'],
+            transaction,
+          });
+
+          if (incompleteSubtasks.length > 0) {
+            const incompleteList = incompleteSubtasks
+              .map((st) => `"${st.title}" (${st.deliveryArea || 'subtask'}: ${st.status})`)
+              .join(', ');
+            throw new Error(
+              `BAD_REQUEST: Cannot complete task while subtasks are incomplete. Please complete all subtasks (FE, BE, QA) first: ${incompleteList}`
+            );
+          }
+        }
+
+        // Dependency Check: QA Subtask cannot be done until all sibling FE/BE subtasks are done
+        if (input.status === 'done' && task.parentTaskId && task.deliveryArea === 'qa') {
+          const incompleteFeBe = await TaskModel.findAll({
+            where: {
+              workspaceId,
+              parentTaskId: task.parentTaskId,
+              deliveryArea: { [Op.in]: ['frontend', 'backend'] },
+              status: { [Op.notIn]: ['done', 'canceled'] },
+            },
+            attributes: ['id', 'title', 'deliveryArea', 'status'],
+            transaction,
+          });
+
+          if (incompleteFeBe.length > 0) {
+            const incompleteList = incompleteFeBe
+              .map((st) => `"${st.title}" (${st.deliveryArea}: ${st.status})`)
+              .join(', ');
+            throw new Error(
+              `BAD_REQUEST: Cannot mark QA subtask as Done until all Frontend and Backend subtasks are completed: ${incompleteList}`
+            );
+          }
+        }
+
+        // Review notes validation on changes_requested
+        if (input.status === 'changes_requested') {
+          if (!input.reviewNotes && !task.reviewNotes) {
+            throw new Error('BAD_REQUEST: Review notes are required when requesting changes on a subtask.');
+          }
+          task.reviewedBy = actorId;
+          changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
+        } else if (input.status === 'done' && task.parentTaskId) {
+          task.reviewedBy = actorId;
+          changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
+        }
+
         changes['status'] = { old: task.status, new: input.status };
         task.status = input.status;
         if (input.status === 'done') {
           task.completedAt = new Date();
         } else {
           task.completedAt = null;
+        }
+
+        // If a subtask is reopened (status changed from done to an active status), reopen the parent task if it was marked done
+        if (task.parentTaskId && input.status !== 'done' && input.status !== 'canceled') {
+          const parentTask = await TaskModel.findOne({
+            where: { id: task.parentTaskId, workspaceId },
+            transaction,
+          });
+          if (parentTask && parentTask.status === 'done') {
+            parentTask.status = 'in_progress';
+            parentTask.completedAt = null;
+            await parentTask.save({ transaction });
+            await logActivity(
+              workspaceId,
+              parentTask.id,
+              actorId,
+              'task.reopened',
+              { reason: `Subtask "${task.title}" status changed to ${input.status}` },
+              transaction
+            );
+          }
         }
       }
 
@@ -633,13 +862,86 @@ export class TaskService {
           task.id,
           actorId,
           primaryAction,
-          { changes },
+          {
+            changes,
+            ...(roleCheckResult.isMismatch
+              ? { roleMismatchOverride: true, assigneeRole: roleCheckResult.assigneeRole, deliveryArea: task.deliveryArea }
+              : {}),
+            ...(input.status === 'changes_requested' || input.reviewNotes
+              ? { reviewNotes: input.reviewNotes || task.reviewNotes, reviewedBy: actorId }
+              : {}),
+          },
           transaction
         );
       }
 
-      return formatTask(task);
+      return {
+        formatted: formatTask(task),
+        changes,
+        title: task.title,
+        id: task.id,
+        assigneeId: task.assigneeId,
+        reporterId: task.reporterId,
+      };
     });
+
+    // Trigger 1: User di-assign task on update (new or changed assignee)
+    if (
+      updatedResult.changes.assigneeId &&
+      updatedResult.assigneeId &&
+      updatedResult.assigneeId !== actorId
+    ) {
+      UserModel.findByPk(actorId)
+        .then((actorUser) => {
+          const actorName = actorUser?.name || actorUser?.email || 'Workspace Member';
+          fcmService
+            .sendTaskAssignmentNotification({
+              assigneeId: updatedResult.assigneeId!,
+              assignerName: actorName,
+              taskTitle: updatedResult.title,
+              taskId: updatedResult.id,
+              workspaceId,
+            })
+            .catch((err) => console.warn('Failed to dispatch FCM task assignment notification:', err));
+        })
+        .catch(() => {});
+    }
+
+    // Trigger 2: User update status task -> notify assignee & reporter
+    if (updatedResult.changes.status) {
+      const recipientIds: string[] = [];
+      if (updatedResult.assigneeId && updatedResult.assigneeId !== actorId) {
+        recipientIds.push(updatedResult.assigneeId);
+      }
+      if (
+        updatedResult.reporterId &&
+        updatedResult.reporterId !== actorId &&
+        !recipientIds.includes(updatedResult.reporterId)
+      ) {
+        recipientIds.push(updatedResult.reporterId);
+      }
+
+      if (recipientIds.length > 0) {
+        UserModel.findByPk(actorId)
+          .then((actorUser) => {
+            const actorName = actorUser?.name || actorUser?.email || 'Workspace Member';
+            fcmService
+              .sendTaskStatusUpdateNotification({
+                recipientUserIds: recipientIds,
+                updaterName: actorName,
+                taskTitle: updatedResult.title,
+                taskId: updatedResult.id,
+                workspaceId,
+                oldStatus: String(updatedResult.changes.status.old),
+                newStatus: String(updatedResult.changes.status.new),
+              })
+              .catch((err) => console.warn('Failed to dispatch FCM task status notification:', err));
+          })
+          .catch(() => {});
+      }
+    }
+
+    return updatedResult.formatted;
   }
 
   /**
@@ -699,7 +1001,7 @@ export class TaskService {
    * Completes or cancels a task or subtask.
    */
   async completeTask(actorId: string, workspaceId: string, taskId: string, input: CompleteTaskInput): Promise<Task> {
-    return this.updateTask(actorId, workspaceId, taskId, { status: input.status });
+    return this.updateTask(actorId, workspaceId, taskId, { status: input.status, reviewNotes: input.reviewNotes });
   }
 }
 

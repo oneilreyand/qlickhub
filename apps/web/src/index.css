@@ -16,16 +16,26 @@
     --radius-card: 16px;
   }
 
+  html {
+    background-color: #FBFCF7;
+    color: #22201F;
+  }
+
+  html.dark {
+    background-color: #141413;
+    color: #FBFCF7;
+  }
+
   body {
     margin: 0;
     min-width: 320px;
     font-family: Inter, system-ui, sans-serif;
-    background: #FBFCF7;
+    background-color: #FBFCF7;
     color: #22201F;
   }
 
   .dark body {
-    background: #141413;
+    background-color: #141413;
     color: #FBFCF7;
   }
 }

@@ -86,3 +86,43 @@ export const WorkspaceMemberListResponseSchema = z.object({
 });
 
 export type WorkspaceMemberListResponse = z.infer<typeof WorkspaceMemberListResponseSchema>;
+
+export const TaskCreationPermissionSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  userId: z.string().uuid(),
+  grantedBy: z.string().uuid(),
+  expiresAt: z.string().nullable().optional(),
+  user: z
+    .object({
+      id: z.string().uuid(),
+      email: z.string().email(),
+      name: z.string(),
+      avatarUrl: z.string().nullable().optional(),
+    })
+    .optional(),
+  granter: z
+    .object({
+      id: z.string().uuid(),
+      email: z.string().email(),
+      name: z.string(),
+    })
+    .optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type TaskCreationPermission = z.infer<typeof TaskCreationPermissionSchema>;
+
+export const GrantTaskCreationPermissionSchema = z.object({
+  userId: z.string().uuid(),
+  expiresAt: z.string().nullable().optional(),
+});
+
+export type GrantTaskCreationPermissionInput = z.infer<typeof GrantTaskCreationPermissionSchema>;
+
+export const TaskCreationPermissionListResponseSchema = z.object({
+  permissions: z.array(TaskCreationPermissionSchema),
+});
+
+export type TaskCreationPermissionListResponse = z.infer<typeof TaskCreationPermissionListResponseSchema>;

@@ -14,6 +14,8 @@ export interface TaskAttributes {
   priority: TaskPriority;
   assigneeId?: string | null;
   reporterId: string;
+  reviewedBy?: string | null;
+  reviewNotes?: string | null;
   startDate?: string | null;
   dueDate?: string | null;
   completedAt?: Date | null;
@@ -25,7 +27,7 @@ export interface TaskAttributes {
 export interface TaskCreationAttributes
   extends Optional<
     TaskAttributes,
-    'id' | 'folderId' | 'parentTaskId' | 'deliveryArea' | 'description' | 'status' | 'priority' | 'assigneeId' | 'startDate' | 'dueDate' | 'completedAt' | 'createdAt' | 'updatedAt' | 'deletedAt'
+    'id' | 'folderId' | 'parentTaskId' | 'deliveryArea' | 'description' | 'status' | 'priority' | 'assigneeId' | 'reviewedBy' | 'reviewNotes' | 'startDate' | 'dueDate' | 'completedAt' | 'createdAt' | 'updatedAt' | 'deletedAt'
   > {}
 
 export class TaskModel
@@ -43,6 +45,8 @@ export class TaskModel
   declare priority: TaskPriority;
   declare assigneeId: string | null;
   declare reporterId: string;
+  declare reviewedBy: string | null;
+  declare reviewNotes: string | null;
   declare startDate: string | null;
   declare dueDate: string | null;
   declare completedAt: Date | null;
@@ -74,7 +78,7 @@ TaskModel.init(
       field: 'parent_task_id',
     },
     deliveryArea: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.ENUM('frontend', 'backend', 'qa'),
       allowNull: true,
       field: 'delivery_area',
     },
@@ -87,12 +91,12 @@ TaskModel.init(
       allowNull: true,
     },
     status: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.ENUM('todo', 'in_progress', 'in_review', 'changes_requested', 'done', 'canceled'),
       allowNull: false,
       defaultValue: 'todo',
     },
     priority: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.ENUM('low', 'medium', 'high', 'urgent'),
       allowNull: false,
       defaultValue: 'medium',
     },
@@ -105,6 +109,16 @@ TaskModel.init(
       type: DataTypes.UUID,
       allowNull: false,
       field: 'reporter_id',
+    },
+    reviewedBy: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'reviewed_by',
+    },
+    reviewNotes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'review_notes',
     },
     startDate: {
       type: DataTypes.DATEONLY,
@@ -143,5 +157,27 @@ TaskModel.init(
     timestamps: true,
     paranoid: true,
     underscored: true,
+    indexes: [
+      {
+        name: 'idx_tasks_workspace',
+        fields: ['workspace_id'],
+      },
+      {
+        name: 'idx_tasks_folder',
+        fields: ['folder_id'],
+      },
+      {
+        name: 'idx_tasks_workspace_status_priority',
+        fields: ['workspace_id', 'status', 'priority'],
+      },
+      {
+        name: 'idx_tasks_workspace_dates',
+        fields: ['workspace_id', 'due_date', 'start_date'],
+      },
+      {
+        name: 'idx_tasks_workspace_assignee',
+        fields: ['workspace_id', 'assignee_id'],
+      },
+    ],
   }
 );

@@ -5,6 +5,7 @@ import {
   TaskDocumentModel,
   TaskModel,
   TaskActivityModel,
+  WorkFolderModel,
   WorkspaceMemberModel,
   WorkspaceModel,
 } from '../../db/models/index.js';
@@ -171,6 +172,17 @@ export class QaDocumentService {
     await assertOwnerIsWorkspaceMember(workspaceId, ownerId);
 
     return await sequelize.transaction(async (transaction) => {
+      if (input.folderId) {
+        const folder = await WorkFolderModel.findOne({
+          where: { id: input.folderId, workspaceId },
+          transaction,
+        });
+
+        if (!folder) {
+          throw new Error('BAD_REQUEST: QA Document folder was not found in this workspace.');
+        }
+      }
+
       const doc = await QaDocumentModel.create(
         {
           workspaceId,

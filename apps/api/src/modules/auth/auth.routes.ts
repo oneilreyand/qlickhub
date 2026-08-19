@@ -272,8 +272,56 @@ authRouter.get('/session', authenticate, async (req: AuthenticatedRequest, res: 
   return res.status(200).json({ data: { user: toAuthenticatedUser(user) } });
 });
 
+// POST /v1/auth/refresh — extends active session & issues fresh cookie
+authRouter.post('/refresh', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  const user = await UserModel.findByPk(req.user!.userId);
+  if (!user) {
+    return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'User not found.' } });
+  }
+
+  const newExpiresAt = await sessionManager.touchSession(req.user!.sessionId!, req.user!.userId);
+  const token = signToken({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    sessionId: req.user!.sessionId,
+  });
+
+  res.cookie(accessTokenCookieName, token, accessCookieOptions);
+  return res.status(200).json({
+    data: {
+      user: toAuthenticatedUser(user),
+      expiresAt: newExpiresAt.toISOString(),
+    },
+  });
+});
+
+// GET /v1/auth/sessions — list active sessions for current user
+authRouter.get('/sessions', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  const sessions = await sessionManager.listActiveSessions(req.user!.userId, req.user!.sessionId);
+  return res.status(200).json({ data: { sessions } });
+});
+
+// DELETE /v1/auth/sessions-other — revoke all other sessions except current
+authRouter.delete('/sessions-other', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  const count = await sessionManager.revokeOtherSessions(req.user!.userId, req.user!.sessionId!);
+  return res.status(200).json({ data: { message: `Revoked ${count} other sessions successfully.` } });
+});
+
+// DELETE /v1/auth/sessions/:sessionId — revoke specific session
+authRouter.delete('/sessions/:sessionId', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  const { sessionId } = req.params;
+  const isCurrent = sessionId === req.user!.sessionId;
+  await sessionManager.revokeSession(sessionId, req.user!.userId);
+  if (isCurrent) {
+    res.clearCookie(accessTokenCookieName, accessCookieOptions);
+  }
+  return res.status(200).json({ data: { message: 'Session revoked successfully.', isCurrent } });
+});
+
 authRouter.post('/logout', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  await sessionManager.revokeSession(req.user!.sessionId!);
+  await sessionManager.revokeSession(req.user!.sessionId!, req.user!.userId);
   res.clearCookie(accessTokenCookieName, accessCookieOptions);
   return res.status(204).send();
 });
+

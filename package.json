@@ -15,7 +15,9 @@
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "dev:api": "npm --prefix apps/api run dev",
     "build:api": "npm --prefix apps/api run build",
-    "typecheck:api": "npm --prefix apps/api run typecheck"
+    "typecheck:api": "npm --prefix apps/api run typecheck",
+    "db:seed": "npm --prefix apps/api run db:seed:full",
+    "db:reset": "npm --prefix apps/api run db:reset:admin"
   },
   "dependencies": {
     "pg": "^8.23.0",

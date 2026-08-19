@@ -464,6 +464,65 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       );
       assert.strictEqual(exactFolderResult.tasks.some((task) => task.id === taskInChild.id), false);
     });
+
+    test('Includes deeply nested 3-level subfolder tasks (A -> B -> C) when querying A with includeDescendants', async () => {
+      const folderLevelB = await WorkFolderModel.create({
+        workspaceId: workspaceA.id,
+        parentFolderId: activeFolderA.id,
+        name: `Level B Folder ${Date.now()}`,
+        position: 1,
+        createdBy: user.id,
+      });
+
+      const folderLevelC = await WorkFolderModel.create({
+        workspaceId: workspaceA.id,
+        parentFolderId: folderLevelB.id,
+        name: `Level C Folder ${Date.now()}`,
+        position: 0,
+        createdBy: user.id,
+      });
+
+      const taskInLevelC = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          folderId: folderLevelC.id,
+          title: 'Deeply nested task in Level C',
+          description: 'Special unique description query target xyz987',
+        })
+      );
+
+      // Query from root Folder A with includeDescendants: true
+      const rootResult = await taskService.listTasks(
+        workspaceA.id,
+        TaskListQuerySchema.parse({
+          workspaceId: workspaceA.id,
+          folderId: activeFolderA.id,
+          includeDescendants: true,
+        })
+      );
+      assert.ok(rootResult.tasks.some((task) => task.id === taskInLevelC.id));
+
+      // Test multi-field search by description
+      const searchDescResult = await taskService.listTasks(
+        workspaceA.id,
+        TaskListQuerySchema.parse({
+          workspaceId: workspaceA.id,
+          search: 'xyz987',
+        })
+      );
+      assert.ok(searchDescResult.tasks.some((task) => task.id === taskInLevelC.id));
+
+      // Test multi-field search by partial ID
+      const searchIdResult = await taskService.listTasks(
+        workspaceA.id,
+        TaskListQuerySchema.parse({
+          workspaceId: workspaceA.id,
+          search: taskInLevelC.id.slice(0, 8),
+        })
+      );
+      assert.ok(searchIdResult.tasks.some((task) => task.id === taskInLevelC.id));
+    });
   });
 
   describe('6. Date Filtering (Presets & Ranges)', () => {
@@ -652,7 +711,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
               assigneeId: user.id,
             })
           ),
-        /QA members may assign new tasks only to themselves/
+        /Only Product Owner, Admin, or Owner can create tasks/
       );
 
       const unassignedTask = await taskService.createTask(
@@ -672,7 +731,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
             developerMember.id,
             CreateTaskSchema.parse({ workspaceId: workspaceA.id, title: 'Read-only member mutation' })
           ),
-        /cannot create parent tasks/
+        /Only Product Owner, Admin, or Owner can create tasks/
       );
     });
 

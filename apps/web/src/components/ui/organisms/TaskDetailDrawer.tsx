@@ -17,6 +17,11 @@ import {
   Folder,
   Calendar,
   Sparkles,
+  Code2,
+  Layers,
+  Bug,
+  TrendingUp,
+  ExternalLink,
 } from 'lucide-react';
 import type {
   Task,
@@ -30,14 +35,58 @@ import type {
   ProductBrief,
   ProductBriefScopeItem,
   ProductBriefAcceptanceCriterion,
-  ProductBriefStatus,
 } from '@qa/contracts';
+
+function getExternalLinkMeta(url?: string | null) {
+  if (!url) return null;
+  const lower = url.toLowerCase();
+  if (lower.includes('figma.com')) {
+    return {
+      label: 'Figma Prototype',
+      shortLabel: 'Figma',
+      badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-200/80',
+      icon: '🎨',
+    };
+  }
+  if (lower.includes('sheets.google.com') || lower.includes('docs.google.com/spreadsheets') || lower.includes('.xlsx') || lower.includes('.csv')) {
+    return {
+      label: 'Google Spreadsheet',
+      shortLabel: 'Spreadsheet',
+      badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-200/80',
+      icon: '📊',
+    };
+  }
+  if (lower.includes('docs.google.com/document') || lower.includes('notion.so') || lower.includes('confluence')) {
+    return {
+      label: 'Product Doc / PRD',
+      shortLabel: 'Document',
+      badgeClass: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-800 hover:bg-sky-200/80',
+      icon: '📄',
+    };
+  }
+  if (lower.includes('jira') || lower.includes('atlassian') || lower.includes('linear.app') || lower.includes('github.com')) {
+    return {
+      label: 'Issue / Spec',
+      shortLabel: 'Issue',
+      badgeClass: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-200/80',
+      icon: '📌',
+    };
+  }
+  return {
+    label: 'External Link',
+    shortLabel: 'Link',
+    badgeClass: 'bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-200/80',
+    icon: '🔗',
+  };
+}
 import { Drawer } from '../molecules/Drawer';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Input } from '../atoms/Input';
 import { Textarea } from '../atoms/Textarea';
 import { Select } from '../atoms/Select';
+import { FormattedText } from '../atoms/FormattedText';
+import { RichTextEditor } from '../molecules/RichTextEditor';
 import { Tabs, TabItem } from '../molecules/Tabs';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { Skeleton } from '../atoms/Skeleton';
@@ -46,12 +95,22 @@ import { IconButton } from '../atoms/IconButton';
 import { CreateSubtaskModal } from './CreateSubtaskModal';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateTask, moveTask, completeTask } from '../../../store/taskSlice';
-import { enqueueSnackbar } from '../../../store/uiSlice';
+import { enqueueSnackbar, addInAppNotification } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
+import { selectCurrentUserId } from '../../../store/authSlice';
 import { taskService } from '../../../lib/api/taskService';
 import { requirementService } from '../../../lib/api/requirementService';
 import { qaDocumentService } from '../../../lib/api/qaDocumentService';
 import { fetchMembers } from '../../../store/workspaceSlice';
+
+export const EMPTY_DISCUSSION_ILLUSTRATION_URL =
+  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024196/ChatGPT_Image_Aug_18_2026_10_33_27_AM.png';
+
+export const EMPTY_SUBTASKS_ILLUSTRATION_URL =
+  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024045/ChatGPT_Image_Aug_18_2026_10_32_51_AM.png';
+
+export const EMPTY_ACTIVITY_ILLUSTRATION_URL =
+  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024043/ChatGPT_Image_Aug_18_2026_10_33_31_AM.png';
 
 const PAGE_SIZE = 50;
 
@@ -126,6 +185,16 @@ function renderHumanActivityDescription(act: TaskActivity) {
             <span>to</span>
             <TaskStatusBadge state={newStatus} />
           </>
+        )}
+        {meta.reviewNotes && (
+          <span className="text-[11px] italic text-rose-600 dark:text-rose-400">
+            (Review notes: &ldquo;{meta.reviewNotes}&rdquo;)
+          </span>
+        )}
+        {meta.roleMismatchOverride && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-semibold">
+            Role Override ({meta.assigneeRole})
+          </span>
         )}
       </span>
     );
@@ -323,7 +392,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const { activeWorkspaceId, workspaces, members } = useAppSelector(
     (state: RootState) => state.workspace
   );
-  const currentUserId = localStorage.getItem('user_id');
+  const currentUserId = useAppSelector(selectCurrentUserId);
   const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
   const canPlan = Boolean(
     activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role)
@@ -349,7 +418,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [productBriefInScope, setProductBriefInScope] = useState<ProductBriefScopeItem[]>([]);
   const [productBriefOutScope, setProductBriefOutScope] = useState<ProductBriefScopeItem[]>([]);
   const [productBriefAcceptanceCriteria, setProductBriefAcceptanceCriteria] = useState<ProductBriefAcceptanceCriterion[]>([]);
-  const [productBriefStatus, setProductBriefStatus] = useState<ProductBriefStatus>('draft');
   const [productBriefOwnerId, setProductBriefOwnerId] = useState('');
 
   // Task Requirements & Links state
@@ -359,6 +427,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [selectedReqToLink, setSelectedReqToLink] = useState('');
   const [newReqCode, setNewReqCode] = useState('');
   const [newReqTitle, setNewReqTitle] = useState('');
+  const [newReqUrl, setNewReqUrl] = useState('');
   const [isCreatingReq, setIsCreatingReq] = useState(false);
 
   // Subtasks state
@@ -423,7 +492,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       setProductBriefInScope(brief?.currentVersion.inScope || []);
       setProductBriefOutScope(brief?.currentVersion.outScope || []);
       setProductBriefAcceptanceCriteria(brief?.currentVersion.acceptanceCriteria || []);
-      setProductBriefStatus(brief?.document.status || 'draft');
       setProductBriefOwnerId(brief?.document.ownerId || currentUserId || '');
     } catch (err) {
       setProductBriefError(errorMessage(err, 'Unable to load the Product Brief.'));
@@ -513,7 +581,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         outScope,
         acceptanceCriteria,
         ownerId: productBriefOwnerId || undefined,
-        status: productBriefStatus,
       });
       setProductBrief(brief);
       setProductBriefInScope(brief.currentVersion.inScope);
@@ -577,11 +644,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       const created = await requirementService.createRequirement(activeWorkspaceId, {
         code: newReqCode.trim(),
         title: newReqTitle.trim(),
+        url: newReqUrl.trim() || undefined,
       });
       await requirementService.linkRequirement(activeWorkspaceId, task.id, created.id);
       dispatch(enqueueSnackbar(`Requirement ${created.code} created and linked!`, 'success'));
       setNewReqCode('');
       setNewReqTitle('');
+      setNewReqUrl('');
       loadTaskRequirements();
       loadActivity(1);
     } catch (err) {
@@ -604,6 +673,73 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       setIsLoadingSubtasks(false);
     }
   };
+
+  const handleSubtaskStatusChange = async (subtaskId: string, newStatus: TaskStatus) => {
+    if (!activeWorkspaceId) return;
+    try {
+      let notes: string | undefined = undefined;
+      if (newStatus === 'changes_requested') {
+        const inputNotes = window.prompt('Please enter review notes explaining the required changes:');
+        if (!inputNotes || !inputNotes.trim()) {
+          dispatch(enqueueSnackbar('Review notes are required when requesting changes.', 'error'));
+          return;
+        }
+        notes = inputNotes.trim();
+      }
+
+      if (newStatus === 'done') {
+        await taskService.completeTask(activeWorkspaceId, subtaskId, { status: 'done' });
+      } else {
+        await taskService.updateTask(activeWorkspaceId, subtaskId, {
+          status: newStatus,
+          reviewNotes: notes,
+        });
+      }
+      if (newStatus === 'in_review') {
+        dispatch(
+          addInAppNotification(
+            'Subtask Ready for QA Review',
+            `A subtask in "${task?.title || 'Parent Task'}" was moved to In Review.`,
+            'status_change',
+            task?.id,
+            activeWorkspace?.role?.toUpperCase() || 'Dev'
+          )
+        );
+      } else if (newStatus === 'changes_requested') {
+        dispatch(
+          addInAppNotification(
+            'Changes Requested on Subtask',
+            `Reviewer requested changes on a subtask in "${task?.title || 'Parent Task'}".`,
+            'status_change',
+            task?.id,
+            activeWorkspace?.role?.toUpperCase() || 'QA'
+          )
+        );
+      }
+      dispatch(enqueueSnackbar('Subtask status updated', 'success'));
+      void loadSubtasks();
+      onDataChanged?.();
+    } catch (error) {
+      dispatch(enqueueSnackbar(errorMessage(error, 'Failed to update subtask status'), 'error'));
+    }
+  };
+
+  const subtaskMetrics = React.useMemo(() => {
+    const feTotal = subtasks.filter((s) => s.deliveryArea === 'frontend').length;
+    const feDone = subtasks.filter((s) => s.deliveryArea === 'frontend' && s.status === 'done').length;
+    const beTotal = subtasks.filter((s) => s.deliveryArea === 'backend').length;
+    const beDone = subtasks.filter((s) => s.deliveryArea === 'backend' && s.status === 'done').length;
+    const qaTotal = subtasks.filter((s) => s.deliveryArea === 'qa').length;
+    const qaDone = subtasks.filter((s) => s.deliveryArea === 'qa' && s.status === 'done').length;
+    const totalDone = subtasks.filter((s) => s.status === 'done').length;
+    return { feTotal, feDone, beTotal, beDone, qaTotal, qaDone, totalDone, total: subtasks.length };
+  }, [subtasks]);
+
+  const incompleteSubtasks = React.useMemo(
+    () => subtasks.filter((s) => s.status !== 'done' && s.status !== 'canceled'),
+    [subtasks]
+  );
+  const hasIncompleteSubtasks = Boolean(task && !task.parentTaskId && incompleteSubtasks.length > 0);
 
   const loadActivity = async (page = activityPage) => {
     if (!activeWorkspaceId || !task) return;
@@ -678,6 +814,16 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       return;
     }
 
+    if (status === 'done' && task.status !== 'done' && hasIncompleteSubtasks) {
+      dispatch(
+        enqueueSnackbar(
+          `Cannot mark task as Done: ${incompleteSubtasks.length} subtask(s) are still in progress. Please complete all subtasks (FE, BE, QA) first.`,
+          'error'
+        )
+      );
+      return;
+    }
+
     setIsSaving(true);
     try {
       if (canEditPlanning && folderId !== (task.folderId || null)) {
@@ -712,7 +858,46 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         })
       ).unwrap();
 
-      dispatch(enqueueSnackbar('Task updated successfully', 'success'));
+      // If user has edited Product Brief or is on prd tab, persist Product Brief version as well
+      if (
+        canPlan &&
+        productBriefTitle.trim() &&
+        (activeTab === 'prd' ||
+          productBriefContent !== (productBrief?.currentVersion?.contentMarkdown || ''))
+      ) {
+        const inScope = productBriefInScope
+          .filter((item) => item.text.trim())
+          .map((item, position) => ({
+            ...item,
+            text: item.text.trim(),
+            position,
+          }));
+        const outScope = productBriefOutScope
+          .filter((item) => item.text.trim())
+          .map((item, position) => ({
+            ...item,
+            text: item.text.trim(),
+            position,
+          }));
+        const acceptanceCriteria = productBriefAcceptanceCriteria
+          .filter((item) => item.text.trim())
+          .map((item, position) => ({
+            ...item,
+            text: item.text.trim(),
+            position,
+          }));
+
+        await qaDocumentService.upsertProductBrief(activeWorkspaceId, task.id, {
+          title: productBriefTitle.trim(),
+          contentMarkdown: productBriefContent,
+          inScope,
+          outScope,
+          acceptanceCriteria,
+          ownerId: productBriefOwnerId || undefined,
+        });
+      }
+
+      dispatch(enqueueSnackbar('Task & Specifications saved successfully', 'success'));
       onClose();
     } catch (err) {
       dispatch(
@@ -729,6 +914,17 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       dispatch(enqueueSnackbar('You do not have permission to update this task.', 'error'));
       return;
     }
+
+    if (task.status !== 'done' && hasIncompleteSubtasks) {
+      dispatch(
+        enqueueSnackbar(
+          `Cannot complete task: ${incompleteSubtasks.length} subtask(s) are still in progress. Please complete all subtasks (FE, BE, QA) first.`,
+          'error'
+        )
+      );
+      return;
+    }
+
     setIsSaving(true);
     try {
       if (task.status === 'done') {
@@ -769,6 +965,17 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         parentCommentId: replyParentId || undefined,
         mentionedUserIds,
       });
+      if (mentionedUserIds.length > 0) {
+        dispatch(
+          addInAppNotification(
+            `Mention in "${task.title}"`,
+            commentBody.trim(),
+            'mention',
+            task.id,
+            activeWorkspace?.role?.toUpperCase() || 'Member'
+          )
+        );
+      }
       setCommentBody('');
       setMentionedUserIds([]);
       setReplyParentId(null);
@@ -840,21 +1047,28 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         footer={
           <div className="flex items-center justify-between w-full">
             {canEditTask ? (
-              <Button
-                variant={task.status === 'done' ? 'outline' : 'primary'}
-                size="sm"
-                onClick={handleToggleComplete}
-                isLoading={isSaving}
-                leftIcon={
-                  task.status === 'done' ? (
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  ) : (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  )
-                }
-              >
-                {task.status === 'done' ? 'Reopen Task' : 'Complete Task'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={task.status === 'done' ? 'outline' : 'primary'}
+                  size="sm"
+                  onClick={handleToggleComplete}
+                  isLoading={isSaving}
+                  leftIcon={
+                    task.status === 'done' ? (
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    ) : (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    )
+                  }
+                >
+                  {task.status === 'done' ? 'Reopen Task' : 'Complete Task'}
+                </Button>
+                {hasIncompleteSubtasks && task.status !== 'done' && (
+                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 hidden sm:inline">
+                    ({incompleteSubtasks.length} subtask pending)
+                  </span>
+                )}
+              </div>
             ) : (
               <span />
             )}
@@ -888,15 +1102,86 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   You can update this assigned subtask's description and status only.
                 </Alert>
               )}
-              <Textarea
+              <RichTextEditor
                 id="task-description"
                 label="Task Overview & Description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
+                onChange={setDescription}
+                minRows={4}
                 disabled={!canEditTask}
-                placeholder="High-level task summary and objective..."
+                placeholder="High-level task summary, objective, and requirements with paragraphs, bullet points, headers..."
               />
+
+              {/* Delivery Progress & Multi-Role Readiness Banner */}
+              <Card className="p-4 space-y-3 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-[#22201F] dark:text-[#B1E743]" />
+                    <h4 className="text-xs font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider">
+                      Delivery & Multi-Role Readiness
+                    </h4>
+                  </div>
+                  <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
+                    {subtaskMetrics.total > 0 ? `${subtaskMetrics.totalDone}/${subtaskMetrics.total} Complete` : '0 items'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  {/* PRD Readiness */}
+                  <div
+                    onClick={() => setActiveTab('prd')}
+                    className="p-2.5 rounded-xl border border-stone-200 bg-stone-50/70 hover:bg-stone-100 dark:border-stone-800 dark:bg-stone-950/50 dark:hover:bg-stone-800/60 cursor-pointer transition-all"
+                  >
+                    <p className="text-[10px] font-bold text-stone-500 uppercase">PRD & Specs</p>
+                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1 mt-0.5">
+                      {productBrief ? (
+                        <span className="text-indigo-600 dark:text-indigo-400 font-bold">v{productBrief.currentVersion.version} Ready</span>
+                      ) : (
+                        <span className="text-stone-400">Draft</span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* FE Subtasks */}
+                  <div
+                    onClick={() => setActiveTab('subtasks')}
+                    className="p-2.5 rounded-xl border border-sky-200/80 bg-sky-50/50 hover:bg-sky-100/60 dark:border-sky-900/60 dark:bg-sky-950/20 dark:hover:bg-sky-950/40 cursor-pointer transition-all"
+                  >
+                    <p className="text-[10px] font-bold text-sky-700 dark:text-sky-300 uppercase flex items-center gap-1">
+                      <Code2 className="h-3 w-3" /> Frontend
+                    </p>
+                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
+                      {subtaskMetrics.feDone}/{subtaskMetrics.feTotal} Done
+                    </p>
+                  </div>
+
+                  {/* BE Subtasks */}
+                  <div
+                    onClick={() => setActiveTab('subtasks')}
+                    className="p-2.5 rounded-xl border border-amber-200/80 bg-amber-50/50 hover:bg-amber-100/60 dark:border-amber-900/60 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 cursor-pointer transition-all"
+                  >
+                    <p className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1">
+                      <Layers className="h-3 w-3" /> Backend
+                    </p>
+                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
+                      {subtaskMetrics.beDone}/{subtaskMetrics.beTotal} Done
+                    </p>
+                  </div>
+
+                  {/* QA Subtasks & Verification */}
+                  <div
+                    onClick={() => setActiveTab('subtasks')}
+                    className="p-2.5 rounded-xl border border-emerald-200/80 bg-emerald-50/50 hover:bg-emerald-100/60 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 cursor-pointer transition-all"
+                  >
+                    <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase flex items-center gap-1">
+                      <Bug className="h-3 w-3" /> QA Testing
+                    </p>
+                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
+                      {subtaskMetrics.qaDone}/{subtaskMetrics.qaTotal} Verified
+                    </p>
+                  </div>
+                </div>
+              </Card>
 
               <Card className="p-4 space-y-4 border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/60">
                 <div className="grid grid-cols-2 gap-3">
@@ -904,37 +1189,37 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     <label htmlFor="task-status" className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">
                       Status
                     </label>
-                    <select
+                    <Select
                       value={status}
                       id="task-status"
                       onChange={(e) => setStatus(e.target.value as TaskStatus)}
                       disabled={!canEditTask}
-                      className="w-full rounded-lg border border-stone-200 bg-white p-2 text-xs text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
+                      aria-label="Status"
                     >
                       <option value="todo">To Do</option>
                       <option value="in_progress">In Progress</option>
                       <option value="in_review">In Review</option>
                       <option value="done">Done</option>
                       <option value="canceled">Canceled</option>
-                    </select>
+                    </Select>
                   </div>
 
                   <div>
                     <label htmlFor="task-priority" className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">
                       Priority
                     </label>
-                    <select
+                    <Select
                       value={priority}
                       id="task-priority"
                       onChange={(e) => setPriority(e.target.value as TaskPriority)}
                       disabled={!canEditPlanning}
-                      className="w-full rounded-lg border border-stone-200 bg-white p-2 text-xs text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
+                      aria-label="Priority"
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
                       <option value="high">High</option>
                       <option value="urgent">Urgent</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
@@ -943,12 +1228,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     <label htmlFor="task-folder" className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">
                       Folder Location
                     </label>
-                    <select
+                    <Select
                       value={folderId || ''}
                       id="task-folder"
                       onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
                       disabled={!canEditPlanning}
-                      className="w-full rounded-lg border border-stone-200 bg-white p-2 text-xs text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
+                      aria-label="Folder Location"
                     >
                       <option value="">📁 Unfiled (Workspace Root)</option>
                       {flatFolders.map((f) => (
@@ -956,7 +1241,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           {'\u00A0'.repeat(f.depth * 4)}📂 {f.name}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 )}
 
@@ -1050,44 +1335,32 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                             placeholder="Specification brief title"
                           />
                           <Select
-                            id="product-brief-status"
-                            label="Specification status"
-                            value={productBriefStatus}
-                            onChange={(event) => setProductBriefStatus(event.target.value as ProductBriefStatus)}
+                            id="product-brief-owner"
+                            label="Specification owner"
+                            value={productBriefOwnerId}
+                            onChange={(event) => setProductBriefOwnerId(event.target.value)}
                             disabled={!canPlan}
                           >
-                            <option value="draft">Draft</option>
-                            <option value="in_review">In review</option>
-                            <option value="approved">Approved</option>
+                            {!productBriefOwnerId && <option value="">Select an owner</option>}
+                            {productBriefOwnerId && !members.some((member) => member.userId === productBriefOwnerId) && (
+                              <option value={productBriefOwnerId}>{productBriefOwnerId}</option>
+                            )}
+                            {members.map((member) => (
+                              <option key={member.userId} value={member.userId}>
+                                {member.user?.name || member.user?.email || member.userId}
+                              </option>
+                            ))}
                           </Select>
                         </div>
 
-                        <Select
-                          id="product-brief-owner"
-                          label="Specification owner"
-                          value={productBriefOwnerId}
-                          onChange={(event) => setProductBriefOwnerId(event.target.value)}
-                          disabled={!canPlan}
-                        >
-                          {!productBriefOwnerId && <option value="">Select an owner</option>}
-                          {productBriefOwnerId && !members.some((member) => member.userId === productBriefOwnerId) && (
-                            <option value={productBriefOwnerId}>{productBriefOwnerId}</option>
-                          )}
-                          {members.map((member) => (
-                            <option key={member.userId} value={member.userId}>
-                              {member.user?.name || member.user?.email || member.userId}
-                            </option>
-                          ))}
-                        </Select>
-
-                        <Textarea
+                        <RichTextEditor
                           id="product-brief-content"
                           label="Specification context & details"
-                          rows={16}
                           value={productBriefContent}
-                          onChange={(event) => setProductBriefContent(event.target.value)}
+                          onChange={setProductBriefContent}
                           disabled={!canPlan}
-                          placeholder="Explain the problem, intended user outcome, behaviour, decisions, and supporting links in Markdown."
+                          minRows={10}
+                          placeholder="Explain the problem, intended user outcome, behaviour, decisions, and supporting images or links in Markdown..."
                         />
 
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -1212,15 +1485,31 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         {taskRequirementLinks.map((link) => (
                           <div
                             key={link.id}
-                            className="flex items-center justify-between p-3 rounded-xl border border-stone-200 bg-white text-xs dark:border-stone-800 dark:bg-stone-900"
+                            className="flex items-center justify-between p-3 rounded-xl border border-stone-200 bg-white text-xs dark:border-stone-800 dark:bg-stone-900 gap-2"
                           >
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
                               <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200">
                                 {link.requirement?.code || 'REQ'}
                               </span>
                               <span className="font-semibold text-stone-900 dark:text-stone-100 truncate">
                                 {link.requirement?.title || 'Linked Requirement'}
                               </span>
+                              {link.requirement?.url && (() => {
+                                const meta = getExternalLinkMeta(link.requirement.url);
+                                return (
+                                  <a
+                                    href={link.requirement.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border transition-all ${meta?.badgeClass}`}
+                                    title={link.requirement.url}
+                                  >
+                                    <span>{meta?.icon}</span>
+                                    <span>{meta?.shortLabel}</span>
+                                    <ExternalLink className="h-3 w-3 ml-0.5 opacity-70" />
+                                  </a>
+                                );
+                              })()}
                             </div>
                             {canEditTask && (
                               <Button
@@ -1240,20 +1529,22 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     {canEditTask && (
                       <div className="pt-2 border-t border-stone-200 dark:border-stone-800 space-y-3">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <select
-                            value={selectedReqToLink}
-                            onChange={(e) => setSelectedReqToLink(e.target.value)}
-                            className="sm:col-span-2 w-full rounded-xl border border-stone-200 bg-white p-2 text-xs text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
-                          >
-                            <option value="">-- Select Workspace Requirement to Link --</option>
-                            {allRequirements
-                              .filter((r) => !taskRequirementLinks.some((l) => l.requirementId === r.id))
-                              .map((r) => (
-                                <option key={r.id} value={r.id}>
-                                  [{r.code}] {r.title}
-                                </option>
-                              ))}
-                          </select>
+                          <div className="sm:col-span-2">
+                            <Select
+                              value={selectedReqToLink}
+                              onChange={(e) => setSelectedReqToLink(e.target.value)}
+                              aria-label="Requirement to Link"
+                            >
+                              <option value="">-- Select Workspace Requirement to Link --</option>
+                              {allRequirements
+                                .filter((r) => !taskRequirementLinks.some((l) => l.requirementId === r.id))
+                                .map((r) => (
+                                  <option key={r.id} value={r.id}>
+                                    [{r.code}] {r.title} {r.url ? `(${r.url})` : ''}
+                                  </option>
+                                ))}
+                            </Select>
+                          </div>
                           <Button
                             size="sm"
                             variant="primary"
@@ -1269,28 +1560,39 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300 block mb-1.5">
                             Or Create & Link New Requirement:
                           </span>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <Input
-                              type="text"
-                              placeholder="Code (e.g. REQ-101)"
-                              value={newReqCode}
-                              onChange={(e) => setNewReqCode(e.target.value)}
-                            />
-                            <Input
-                              type="text"
-                              placeholder="Title (e.g. User Login API)"
-                              value={newReqTitle}
-                              onChange={(e) => setNewReqTitle(e.target.value)}
-                            />
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              isLoading={isCreatingReq}
-                              disabled={!newReqCode.trim() || !newReqTitle.trim()}
-                              onClick={handleCreateAndLinkRequirement}
-                            >
-                              Create & Link
-                            </Button>
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <Input
+                                type="text"
+                                placeholder="Code (e.g. REQ-101, FIGMA-01)"
+                                value={newReqCode}
+                                onChange={(e) => setNewReqCode(e.target.value)}
+                              />
+                              <Input
+                                type="text"
+                                placeholder="Title (e.g. Checkout Modal UI Specs)"
+                                value={newReqTitle}
+                                onChange={(e) => setNewReqTitle(e.target.value)}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Input
+                                type="url"
+                                placeholder="External Resource URL (e.g. Figma / Spreadsheet / Docs / Jira / API)"
+                                value={newReqUrl}
+                                onChange={(e) => setNewReqUrl(e.target.value)}
+                                className="flex-1"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                isLoading={isCreatingReq}
+                                disabled={!newReqCode.trim() || !newReqTitle.trim()}
+                                onClick={handleCreateAndLinkRequirement}
+                              >
+                                Create & Link
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1335,25 +1637,133 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   </div>
                 </Alert>
               ) : subtasks.length === 0 ? (
-                <div className="py-8 text-center text-xs text-stone-400 border border-dashed border-stone-200 dark:border-stone-800 rounded-xl">
-                  No subtasks created under this task.
+                <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
+                  <div className="flex justify-center">
+                    <img
+                      src={EMPTY_SUBTASKS_ILLUSTRATION_URL}
+                      alt="No subtasks created"
+                      className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
+                      loading="lazy"
+                    />
+                    <div className="hidden dark:flex items-center justify-center py-2">
+                      <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
+                        <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
+                        <ListTodo className="h-7 w-7 text-[#B1E743]" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium max-w-sm mx-auto leading-relaxed">
+                    No subtasks created under this task.
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {subtasks.map((st) => (
-                    <Card key={st.id} className="p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-                            {st.deliveryArea?.toUpperCase() || 'SUBTASK'}
-                          </span>
-                          <span className="font-bold text-xs text-stone-900 dark:text-stone-100">{st.title}</span>
+                <div className="space-y-2.5">
+                  {subtasks.map((st) => {
+                    const assignee = members.find((m) => m.userId === st.assigneeId);
+                    const isCompleted = st.status === 'done';
+
+                    return (
+                      <Card key={st.id} className="p-3.5 space-y-2.5 hover:border-stone-400 dark:hover:border-stone-600 transition-all">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {st.deliveryArea === 'frontend' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                                <Code2 className="h-3 w-3" /> FE
+                              </span>
+                            )}
+                            {st.deliveryArea === 'backend' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                <Layers className="h-3 w-3" /> BE
+                              </span>
+                            )}
+                            {st.deliveryArea === 'qa' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                <Bug className="h-3 w-3" /> QA
+                              </span>
+                            )}
+                            {!st.deliveryArea && (
+                              <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300">
+                                SUBTASK
+                              </span>
+                            )}
+
+                            <span className={`font-bold text-xs ${isCompleted ? 'line-through text-stone-400 dark:text-stone-500' : 'text-stone-900 dark:text-stone-100'}`}>
+                              {st.title}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                            <select
+                              value={st.status}
+                              onChange={(e) => void handleSubtaskStatusChange(st.id, e.target.value as TaskStatus)}
+                              className="h-7 rounded-lg border border-stone-200 bg-white px-2 text-[11px] font-bold text-stone-800 outline-none focus:ring-1 focus:ring-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+                              title="Update Subtask Status"
+                            >
+                              <option value="todo">To Do</option>
+                              <option value="in_progress">In Progress</option>
+                              <option value="in_review">In Review</option>
+                              <option value="changes_requested">Changes Requested</option>
+                              <option value="done">Done</option>
+                              <option value="canceled">Canceled</option>
+                            </select>
+
+                            <TaskStatusBadge state={st.status} />
+                          </div>
                         </div>
-                        <TaskStatusBadge state={st.status} />
-                      </div>
-                      {st.description && <p className="text-[11px] text-stone-500">{st.description}</p>}
-                    </Card>
-                  ))}
+
+                        {st.description && (
+                          <div className="text-xs text-stone-600 dark:text-stone-400">
+                            <FormattedText content={st.description} />
+                          </div>
+                        )}
+
+                        {st.reviewNotes && (
+                          <div className="text-xs p-2.5 rounded-xl bg-rose-50/80 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900/60 text-rose-900 dark:text-rose-200 space-y-1">
+                            <span className="font-bold flex items-center gap-1 text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-300">
+                              <AlertCircle className="h-3 w-3" /> Reviewer Notes:
+                            </span>
+                            <p className="text-xs leading-relaxed">{st.reviewNotes}</p>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-3 text-[11px] text-stone-500 dark:text-stone-400 pt-1 border-t border-stone-100 dark:border-stone-800/80 flex-wrap justify-between">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="inline-flex items-center gap-1">
+                              <User className="h-3.5 w-3.5 text-stone-400" />
+                              <span>
+                                Assignee:{' '}
+                                <strong className="text-stone-700 dark:text-stone-300 font-semibold">
+                                  {assignee?.user?.name || assignee?.user?.email || 'Unassigned'}
+                                </strong>
+                              </span>
+                            </span>
+
+                            {st.reviewedBy && (
+                              <span className="inline-flex items-center gap-1 text-stone-600 dark:text-stone-400">
+                                <span>Reviewed by:</span>
+                                <strong className="text-stone-700 dark:text-stone-300 font-semibold">
+                                  {members.find((m) => m.userId === st.reviewedBy)?.user?.name || 'Reviewer'}
+                                </strong>
+                              </span>
+                            )}
+
+                            {(st.startDate || st.dueDate) && (
+                              <span className="inline-flex items-center gap-1">
+                                <Calendar className="h-3.5 w-3.5 text-stone-400" />
+                                <span>{st.startDate || '—'} / <strong>{st.dueDate || '—'}</strong></span>
+                              </span>
+                            )}
+                          </div>
+
+                          {st.deliveryArea === 'qa' && (subtaskMetrics.feDone < subtaskMetrics.feTotal || subtaskMetrics.beDone < subtaskMetrics.beTotal) && (
+                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-900">
+                              Pending FE/BE
+                            </span>
+                          )}
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1391,14 +1801,29 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   </div>
                 </Alert>
               ) : activities.length === 0 ? (
-                <div className="py-12 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-xl">
-                  <History className="h-7 w-7 text-stone-300 mx-auto dark:text-stone-600 mb-2" />
-                  <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
-                    No activity recorded yet.
-                  </p>
-                  <p className="text-[11px] text-stone-400">
-                    Any status updates, assignments, or edits will appear here.
-                  </p>
+                <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
+                  <div className="flex justify-center">
+                    <img
+                      src={EMPTY_ACTIVITY_ILLUSTRATION_URL}
+                      alt="No activity recorded"
+                      className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
+                      loading="lazy"
+                    />
+                    <div className="hidden dark:flex items-center justify-center py-2">
+                      <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
+                        <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
+                        <History className="h-7 w-7 text-[#B1E743]" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-200 font-bold">
+                      No activity recorded yet
+                    </p>
+                    <p className="text-[11px] sm:text-xs text-stone-500 dark:text-stone-400 max-w-sm mx-auto leading-relaxed">
+                      Any status updates, assignments, or edits will appear here.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="relative pl-3 space-y-3 before:absolute before:left-6 before:top-3 before:bottom-3 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-800">
@@ -1475,46 +1900,90 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 Task Discussion Thread
               </span>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {replyParentId && (
-                  <div className="flex items-center justify-between text-xs bg-amber-50 dark:bg-amber-950/30 p-2 rounded-lg text-amber-800 dark:text-amber-300">
-                    <span>Replying to message...</span>
+                  <div className="flex items-center justify-between text-xs bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300">
+                    <span className="font-semibold">Replying to message...</span>
                     <Button variant="ghost" size="sm" onClick={() => setReplyParentId(null)}>
                       Cancel Reply
                     </Button>
                   </div>
                 )}
+
+                {/* Quick Tektokan Topic Starters */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  <span className="text-[10px] font-bold text-stone-400 uppercase">Quick Topic:</span>
+                  {[
+                    { label: 'PRD Query', tag: '[PRD Query]: ' },
+                    { label: 'API Contract', tag: '[API Contract]: ' },
+                    { label: 'Bug Blocker', tag: '[Bug Blocker]: ' },
+                    { label: 'Ready for Review', tag: '[Ready for Review]: ' },
+                  ].map((t) => (
+                    <button
+                      key={t.label}
+                      type="button"
+                      onClick={() => {
+                        if (!commentBody.includes(t.tag)) {
+                          setCommentBody(t.tag + commentBody);
+                        }
+                      }}
+                      className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700 transition-all"
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
                 <Textarea
                   id="comment-body"
                   label="Message"
                   value={commentBody}
                   onChange={(e) => setCommentBody(e.target.value)}
-                  placeholder="Write a message to your team..."
+                  placeholder="Write a message to your team (FE, BE, QA, PO)..."
                   rows={3}
                 />
-                <div>
-                  <label htmlFor="comment-mentions" className="mb-1 block text-xs font-semibold text-stone-600 dark:text-stone-300">
-                    Mention workspace members (optional)
-                  </label>
-                  <select
-                    id="comment-mentions"
-                    multiple
-                    value={mentionedUserIds}
-                    onChange={(event) =>
-                      setMentionedUserIds(
-                        Array.from(event.currentTarget.selectedOptions, (option) => option.value)
-                      )
-                    }
-                    className="w-full rounded-xl border border-stone-200 bg-white p-2 text-xs text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
-                  >
-                    {members.map((member) => (
-                      <option key={member.userId} value={member.userId}>
-                        {member.user?.name || member.user?.email || member.userId}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex justify-end">
+
+                {/* Mention Team Members as Interactive Chips */}
+                {members.length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-wider dark:text-stone-400">
+                      Mention Workspace Members (Optional)
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {members.map((member) => {
+                        const isSelected = mentionedUserIds.includes(member.userId);
+                        const name = member.user?.name || member.user?.email || member.userId.substring(0, 6);
+                        return (
+                          <button
+                            key={member.userId}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setMentionedUserIds(mentionedUserIds.filter((id) => id !== member.userId));
+                              } else {
+                                setMentionedUserIds([...mentionedUserIds, member.userId]);
+                              }
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                              isSelected
+                                ? 'bg-[#22201F] text-white shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+                                : 'bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700'
+                            }`}
+                          >
+                            <span>@{name}</span>
+                            <span className={`text-[9px] uppercase px-1 rounded font-bold ${
+                              isSelected ? 'bg-white/20 text-white dark:bg-black/20 dark:text-stone-900' : 'bg-black/10 text-stone-600 dark:bg-white/10 dark:text-stone-400'
+                            }`}>
+                              {member.role}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-1">
                   <Button
                     variant="primary"
                     size="sm"
@@ -1539,8 +2008,24 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   </div>
                 </Alert>
               ) : comments.length === 0 ? (
-                <div className="py-8 text-center text-xs text-stone-400 border border-dashed border-stone-200 dark:border-stone-800 rounded-xl">
-                  No messages in this discussion thread. Be the first to start the conversation!
+                <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
+                  <div className="flex justify-center">
+                    <img
+                      src={EMPTY_DISCUSSION_ILLUSTRATION_URL}
+                      alt="No discussion messages"
+                      className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
+                      loading="lazy"
+                    />
+                    <div className="hidden dark:flex items-center justify-center py-2">
+                      <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
+                        <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
+                        <MessageSquare className="h-7 w-7 text-[#B1E743]" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium max-w-sm mx-auto leading-relaxed">
+                    No messages in this discussion thread. Be the first to start the conversation!
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">

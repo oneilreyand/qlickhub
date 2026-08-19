@@ -1,26 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  RefreshCw,
-  Folder,
-  Layers,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Plus,
-  Calendar as CalendarIcon,
-} from 'lucide-react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FolderTreeNode, TaskDatePreset } from '@qa/contracts';
-import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
-import { Input } from '../atoms/Input';
-import { Select } from '../atoms/Select';
-import { DateRange, DateRangePicker } from '../molecules/DateRangePicker';
+import { DateRange } from '../molecules/DateRangePicker';
 import { Drawer } from '../molecules/Drawer';
 import { FolderTree } from './FolderTree';
 import { TaskCollection } from './TaskCollection';
+import { TaskTimelineView } from './TaskTimelineView';
 import { TaskDetailDrawer } from './TaskDetailDrawer';
 import { CreateTaskModal } from './CreateTaskModal';
+import { TaskHubHeader } from './taskHub/TaskHubHeader';
+import { TaskHubMetrics } from './taskHub/TaskHubMetrics';
+import { TaskHubDatePresetBar } from './taskHub/TaskHubDatePresetBar';
+import { TaskHubControlsBar } from './taskHub/TaskHubControlsBar';
+import { TaskHubErrorBanner } from './taskHub/TaskHubErrorBanner';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
@@ -35,6 +28,7 @@ import {
   fetchTasks,
   setSelectedTaskId,
 } from '../../../store/taskSlice';
+import { useDebounce } from '../../../lib/hooks/useDebounce';
 
 const statusFilters: { label: string; value: string }[] = [
   { label: 'ALL', value: 'ALL' },
@@ -53,57 +47,83 @@ const datePresetViews: { label: string; value: TaskDatePreset | 'all' }[] = [
   { label: 'Overdue', value: 'overdue' },
 ];
 
-function findFolderName(
+/**
+ * Recursively finds a folder node by ID within arbitrary nesting levels.
+ */
+function findFolderInTree(
   folders: FolderTreeNode[],
   folderId: string
-): string | undefined {
+): FolderTreeNode | null {
   for (const folder of folders) {
-    if (folder.id === folderId) return folder.name;
-    const childName = folder.children ? findFolderName(folder.children, folderId) : undefined;
-    if (childName) return childName;
+    if (folder.id === folderId) return folder;
+    if (folder.children && folder.children.length > 0) {
+      const found = findFolderInTree(folder.children, folderId);
+      if (found) return found;
+    }
   }
-  return undefined;
+  return null;
 }
 
 export const TaskHubDashboardTemplate: React.FC = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { activeWorkspaceId, workspaces } = useAppSelector((state: RootState) => state.workspace);
-  const { folders, isLoading: isFolderLoading, error: folderError, selectedFolderId } = useAppSelector(
-    (state: RootState) => state.folder
-  );
-  const { tasks, isLoading: isTaskLoading, error: taskError, selectedTaskId } = useAppSelector(
-    (state: RootState) => state.task
-  );
+  // Granular selectors to minimize unwanted re-renders
+  const activeWorkspaceId = useAppSelector((state: RootState) => state.workspace.activeWorkspaceId);
+  const workspaces = useAppSelector((state: RootState) => state.workspace.workspaces);
+  const folders = useAppSelector((state: RootState) => state.folder.folders);
+  const isFolderLoading = useAppSelector((state: RootState) => state.folder.isLoading);
+  const folderError = useAppSelector((state: RootState) => state.folder.error);
+  const selectedFolderId = useAppSelector((state: RootState) => state.folder.selectedFolderId);
+  const tasks = useAppSelector((state: RootState) => state.task.tasks);
+  const isTaskLoading = useAppSelector((state: RootState) => state.task.isLoading);
+  const taskError = useAppSelector((state: RootState) => state.task.error);
+  const selectedTaskId = useAppSelector((state: RootState) => state.task.selectedTaskId);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [datePresetView, setDatePresetView] = useState<TaskDatePreset | 'all'>('all');
   const [dateRange, setDateRange] = useState<DateRange>();
+  const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMobileFolderDrawerOpen, setIsMobileFolderDrawerOpen] = useState(false);
 
-  const activeWorkspace = workspaces.find((w: { id: string }) => w.id === activeWorkspaceId);
+  const activeWorkspace = useMemo(
+    () => workspaces.find((w: { id: string }) => w.id === activeWorkspaceId),
+    [workspaces, activeWorkspaceId]
+  );
+
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId) || null,
     [tasks, selectedTaskId]
   );
-  const selectedFolderIsParent = useMemo(
-    () => selectedFolderId !== null && folders.some((folder) => folder.id === selectedFolderId),
+
+  // Recursive check: finds the folder anywhere in the tree and checks if it has child folders
+  const selectedFolderNode = useMemo(
+    () => (selectedFolderId ? findFolderInTree(folders, selectedFolderId) : null),
     [folders, selectedFolderId]
   );
 
-  // Sync URL search parameter ?folderId=... & ?datePreset=...
+  const selectedFolderIsParent = useMemo(
+    () => Boolean(selectedFolderNode && selectedFolderNode.children && selectedFolderNode.children.length > 0),
+    [selectedFolderNode]
+  );
+
+  // Sync URL search parameter ?folderId=... & ?datePreset=... & ?view=...
   const urlFolderId = searchParams.get('folderId');
   const urlDatePreset = searchParams.get('datePreset') as TaskDatePreset | null;
+  const urlView = searchParams.get('view');
 
   useEffect(() => {
     dispatch(setSelectedFolderId(urlFolderId));
     if (urlDatePreset && ['today', 'this_week', 'this_month', 'overdue'].includes(urlDatePreset)) {
       setDatePresetView(urlDatePreset);
     }
-  }, [urlFolderId, urlDatePreset, dispatch]);
+    if (urlView === 'timeline' || urlView === 'table') {
+      setViewMode(urlView);
+    }
+  }, [urlFolderId, urlDatePreset, urlView, dispatch]);
 
   useEffect(() => {
     if (activeWorkspaceId) {
@@ -131,7 +151,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     }
   }, [activeWorkspaceId, selectedFolderId, selectedFolderIsParent, datePresetView, dateRange, dispatch]);
 
-  const loadWorkspaceData = async () => {
+  const loadWorkspaceData = useCallback(async () => {
     if (!activeWorkspaceId) return;
     try {
       await Promise.all([
@@ -159,7 +179,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         )
       );
     }
-  };
+  }, [activeWorkspaceId, selectedFolderId, selectedFolderIsParent, datePresetView, dateRange, dispatch]);
 
   const handleSelectFolder = (folderId: string | null) => {
     dispatch(setSelectedFolderId(folderId));
@@ -181,6 +201,17 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       newParams.set('datePreset', preset);
     } else {
       newParams.delete('datePreset');
+    }
+    setSearchParams(newParams);
+  };
+
+  const handleSelectViewMode = (mode: 'table' | 'timeline') => {
+    setViewMode(mode);
+    const newParams = new URLSearchParams(searchParams);
+    if (mode !== 'table') {
+      newParams.set('view', mode);
+    } else {
+      newParams.delete('view');
     }
     setSearchParams(newParams);
   };
@@ -223,264 +254,125 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const visibleTasks = useMemo(() => {
     return tasks.filter((task) => {
       const matchesSearch =
-        !searchQuery ||
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        !debouncedSearchQuery ||
+        task.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        task.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        Boolean(task.description && task.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
 
       const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
-  }, [tasks, searchQuery, statusFilter]);
+  }, [tasks, debouncedSearchQuery, statusFilter]);
 
   // Metrics calculation
   const totalTasksCount = tasks.length;
   const doneCount = tasks.filter((t) => t.status === 'done').length;
   const inReviewCount = tasks.filter((t) => t.status === 'in_review').length;
   const urgentCount = tasks.filter((t) => t.priority === 'urgent' || t.status === 'canceled').length;
-
   const donePercentage = totalTasksCount > 0 ? Math.round((doneCount / totalTasksCount) * 100) : 0;
 
-  const selectedFolderName = selectedFolderId
-    ? findFolderName(folders, selectedFolderId) || 'Filtered Folder'
-    : 'All Workspace Tasks';
+  const selectedFolderName = selectedFolderNode ? selectedFolderNode.name : 'All Workspace Tasks';
+
+  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || '').toLowerCase();
+  const canCreateTask = ['owner', 'admin', 'po'].includes(userRole);
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Top Header & Controls Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-[#22201F] tracking-tight dark:text-white">
-            Task Hub
-          </h1>
-          <p className="text-sm font-medium text-stone-500 mt-1 dark:text-stone-400">
-            QA-native delivery workspace for {activeWorkspace?.name || 'Workspace'}.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsCreateModalOpen(true)}
-            leftIcon={<Plus className="h-4 w-4" />}
-          >
-            Create Task
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void loadWorkspaceData()}
-            isLoading={isTaskLoading || isFolderLoading}
-            leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-          >
-            Refresh
-          </Button>
-        </div>
-      </div>
-
-      <div className="lg:hidden">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsMobileFolderDrawerOpen(true)}
-          leftIcon={<Folder className="h-4 w-4 text-amber-500" />}
-        >
-          Browse Folders
-        </Button>
-      </div>
+      {/* Top Header */}
+      <TaskHubHeader
+        workspaceName={activeWorkspace?.name || 'Workspace'}
+        canCreateTask={canCreateTask}
+        isRefreshing={isTaskLoading || isFolderLoading}
+        onCreateTask={() => setIsCreateModalOpen(true)}
+        onRefresh={() => void loadWorkspaceData()}
+        onOpenMobileFolders={() => setIsMobileFolderDrawerOpen(true)}
+      />
 
       {/* 4 Metric Widget Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Widget 1: Total Tasks */}
-        <div className="rounded-2xl bg-white p-4 border border-stone-200/70 shadow-xs hover:border-stone-300 transition-all dark:bg-[#1C1A19] dark:border-stone-800">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">Total Tasks</span>
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-              <Layers className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-stone-900 dark:text-white">{totalTasksCount}</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-              {folders.length} folders
-            </span>
-          </div>
-          <p className="text-[11px] text-stone-400 mt-1 truncate">Active workspace tasks</p>
-        </div>
+      <TaskHubMetrics
+        totalTasksCount={totalTasksCount}
+        foldersCount={folders.length}
+        doneCount={doneCount}
+        donePercentage={donePercentage}
+        inReviewCount={inReviewCount}
+        urgentCount={urgentCount}
+      />
 
-        {/* Widget 2: Done */}
-        <div className="rounded-2xl bg-white p-4 border border-stone-200/70 shadow-xs hover:border-stone-300 transition-all dark:bg-[#1C1A19] dark:border-stone-800">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">Done / Completed</span>
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-              <CheckCircle2 className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-stone-900 dark:text-white">{doneCount}</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
-              {donePercentage}%
-            </span>
-          </div>
-          <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-1 truncate">Completed tasks</p>
-        </div>
-
-        {/* Widget 3: In Review */}
-        <div className="rounded-2xl bg-white p-4 border border-stone-200/70 shadow-xs hover:border-stone-300 transition-all dark:bg-[#1C1A19] dark:border-stone-800">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">In Review</span>
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
-              <Clock className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-stone-900 dark:text-white">{inReviewCount}</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
-              Reviewing
-            </span>
-          </div>
-          <p className="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-1 truncate">Awaiting verification</p>
-        </div>
-
-        {/* Widget 4: Urgent / Canceled */}
-        <div className="rounded-2xl bg-white p-4 border border-stone-200/70 shadow-xs hover:border-stone-300 transition-all dark:bg-[#1C1A19] dark:border-stone-800">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">Urgent / Blocked</span>
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
-              <AlertTriangle className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-stone-900 dark:text-white">{urgentCount}</span>
-            <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                urgentCount > 0
-                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300'
-                  : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'
-              }`}
-            >
-              {urgentCount > 0 ? 'High Priority' : 'Normal'}
-            </span>
-          </div>
-          <p className="text-[11px] text-rose-600/80 dark:text-rose-400/80 mt-1 truncate">Critical items</p>
-        </div>
-      </div>
-
-      {/* Dynamic Date Filter Presets Bar (Smart Views - No Date Folders) */}
-      <div className="rounded-2xl border border-stone-200/80 bg-white p-3.5 dark:border-stone-800 dark:bg-[#1C1A19]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300">
-            <CalendarIcon className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-            <span>Smart Date Views:</span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {datePresetViews.map((v) => {
-              const isActive = datePresetView === v.value;
-              const isOverdue = v.value === 'overdue';
-              return (
-                <button
-                  key={v.value}
-                  type="button"
-                  onClick={() => handleSelectDatePreset(v.value)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                    isActive
-                      ? isOverdue
-                        ? 'bg-rose-600 text-white shadow-xs'
-                        : 'bg-stone-900 text-white dark:bg-[#B1E743] dark:text-[#22201F] shadow-xs'
-                      : isOverdue
-                      ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/50 dark:text-rose-300'
-                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700'
-                  }`}
-                >
-                  {v.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      {/* Dynamic Date Filter Presets Bar */}
+      <TaskHubDatePresetBar
+        datePresetView={datePresetView}
+        datePresetViews={datePresetViews}
+        onSelectDatePreset={handleSelectDatePreset}
+      />
 
       {/* 2-Column Workspace Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Folder Tree Sidebar */}
-        <div className="hidden lg:col-span-3 lg:sticky lg:top-24 lg:block lg:space-y-4">
-          <Card className="p-4 sm:p-5">
-            <FolderTree
-              folders={folders}
-              selectedFolderId={selectedFolderId}
-              totalTasks={tasks.length}
-              isLoading={isFolderLoading}
-              error={folderError}
-              userRole={activeWorkspace?.role}
-              onSelectFolder={handleSelectFolder}
-              onCreateFolder={handleCreateFolder}
-              onRenameFolder={handleRenameFolder}
-              onArchiveFolder={handleArchiveFolder}
-              onRetry={() => activeWorkspaceId && dispatch(fetchFolderTree(activeWorkspaceId))}
-            />
+        <div className="hidden lg:col-span-3 lg:sticky lg:top-24 lg:block lg:space-y-4 min-w-0">
+          <Card className="p-3.5 sm:p-4 overflow-hidden">
+            <div className="max-h-[calc(100vh-8.5rem)] overflow-y-auto overflow-x-hidden pr-0.5">
+              <FolderTree
+                folders={folders}
+                selectedFolderId={selectedFolderId}
+                totalTasks={tasks.length}
+                isLoading={isFolderLoading}
+                error={folderError}
+                userRole={activeWorkspace?.role}
+                onSelectFolder={handleSelectFolder}
+                onCreateFolder={handleCreateFolder}
+                onRenameFolder={handleRenameFolder}
+                onArchiveFolder={handleArchiveFolder}
+                onRetry={() => activeWorkspaceId && dispatch(fetchFolderTree(activeWorkspaceId))}
+              />
+            </div>
           </Card>
         </div>
 
-        {/* Right Column: Task Collection & Filters */}
-        <div className="lg:col-span-9 space-y-4">
+        {/* Right Column: Task Collection / Timeline & Filters */}
+        <div className="lg:col-span-9 space-y-4 min-w-0">
           <Card className="p-4 sm:p-6 space-y-4">
-            <div className="flex flex-col gap-3 border-b border-stone-200 pb-4 dark:border-stone-800 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-1 gap-2 items-center">
-                {/* Active Folder Indicator Badge */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800/80 text-xs font-semibold text-stone-800 dark:text-stone-200 shrink-0 border border-stone-200/80 dark:border-stone-700/80">
-                  <Folder className="h-4 w-4 text-amber-500" />
-                  <span>{selectedFolderName}</span>
-                </div>
-
-                <Input
-                  aria-label="Filter tasks"
-                  leftIcon={<span>⌕</span>}
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search tasks by ID or title..."
-                />
-              </div>
-
-              <div className="grid w-full grid-cols-[minmax(8.5rem,1fr)_9rem] items-end gap-2 sm:w-80">
-                <DateRangePicker
-                  value={dateRange}
-                  onChange={setDateRange}
-                  placeholder="Custom range"
-                  className="min-w-0 w-full [&>button]:w-full"
-                />
-                <Select
-                  id="task-status-filter"
-                  aria-label="Filter tasks by status"
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                  className="w-full"
-                >
-                  {statusFilters.map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.value === 'ALL' ? 'All statuses' : status.label}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
+            <TaskHubControlsBar
+              selectedFolderName={selectedFolderName}
+              visibleTasksCount={visibleTasks.length}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onSearchClear={() => setSearchQuery('')}
+              viewMode={viewMode}
+              onViewModeChange={handleSelectViewMode}
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              statusFilters={statusFilters}
+            />
 
             {taskError && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
-                {taskError}
-              </div>
+              <TaskHubErrorBanner
+                error={taskError}
+                onRetry={() => void loadWorkspaceData()}
+                isRetrying={isTaskLoading}
+              />
             )}
 
-            <TaskCollection
-              tasks={visibleTasks}
-              folders={folders}
-              isLoading={isTaskLoading}
-              selectedTaskId={selectedTaskId}
-              onSelect={(task) => dispatch(setSelectedTaskId(task.id))}
-            />
+            {viewMode === 'table' ? (
+              <TaskCollection
+                tasks={visibleTasks}
+                folders={folders}
+                isLoading={isTaskLoading}
+                error={taskError}
+                selectedTaskId={selectedTaskId}
+                onSelect={(task) => dispatch(setSelectedTaskId(task.id))}
+              />
+            ) : (
+              <TaskTimelineView
+                tasks={visibleTasks}
+                folders={folders}
+                isLoading={isTaskLoading}
+                selectedTaskId={selectedTaskId}
+                onSelect={(task) => dispatch(setSelectedTaskId(task.id))}
+              />
+            )}
           </Card>
         </div>
       </div>

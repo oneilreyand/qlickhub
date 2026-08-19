@@ -10,45 +10,19 @@ import {
 } from '../store/workspaceSlice';
 import { AssignableWorkspaceRole } from '@qa/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
-import { Card } from '../components/ui/atoms/Card';
-import { Button } from '../components/ui/atoms/Button';
-import { Input } from '../components/ui/atoms/Input';
-import { Badge, BadgeProps } from '../components/ui/atoms/Badge';
-import { Modal } from '../components/ui/molecules/Modal';
-import { Avatar } from '../components/ui/atoms/Avatar';
 import { authService } from '../lib/api/authService';
-import {
-  Building2,
-  Users,
-  Shield,
-  Trash2,
-  UserPlus,
-  Search,
-  Check,
-  Mail,
-  Key,
-  ShieldAlert,
-  ArrowLeft,
-  CheckSquare,
-  Square,
-  Settings,
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Textarea } from '../components/ui/atoms/Textarea';
-import { Skeleton } from '../components/ui/atoms/Skeleton';
+import { Building2 } from 'lucide-react';
 import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
-
-const roleLabels: Record<string, { label: string; variant: BadgeProps['variant'] }> = {
-  owner: { label: 'Owner', variant: 'passed' },
-  admin: { label: 'Admin', variant: 'info' },
-  po: { label: 'Product Owner', variant: 'review' },
-  dev: { label: 'Developer', variant: 'neutral' },
-  qa: { label: 'QA Engineer', variant: 'draft' },
-};
+import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
+import { WorkspaceGeneralSettingsForm } from '../components/ui/organisms/WorkspaceGeneralSettingsForm';
+import { WorkspaceTaskPolicyCard } from '../components/ui/organisms/WorkspaceTaskPolicyCard';
+import { WorkspaceMembersTable } from '../components/ui/organisms/WorkspaceMembersTable';
+import { InviteMemberModal } from '../components/ui/organisms/InviteMemberModal';
+import { AdminResetPasswordModal } from '../components/ui/organisms/AdminResetPasswordModal';
 
 export const WorkspaceSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { workspaces, activeWorkspaceId, members, isMembersLoading, isLoading, isInitialized } = useAppSelector((state) => state.workspace);
+  const { workspaces, activeWorkspaceId, members, isMembersLoading } = useAppSelector((state) => state.workspace);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
 
@@ -163,7 +137,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       ).unwrap();
       dispatch(
         enqueueSnackbar(
-          `Successfully assigned ${inviteEmail} to ${selectedWorkspaceIds.length || 1} workspace(s) as ${roleLabels[inviteRole].label}`,
+          `Successfully assigned ${inviteEmail} to ${selectedWorkspaceIds.length || 1} workspace(s) as ${inviteRole}`,
           'success'
         )
       );
@@ -229,22 +203,6 @@ export const WorkspaceSettingsPage: React.FC = () => {
     }
   };
 
-  const filteredMembers = members.filter((m) => {
-    const query = searchMember.toLowerCase();
-    const email = m.user?.email.toLowerCase() || '';
-    const name = m.user?.name.toLowerCase() || '';
-    return email.includes(query) || name.includes(query) || m.role.includes(query);
-  });
-
-  // While checking or loading workspaces on initial refresh, render smooth loading
-  if (!isInitialized || isLoading) {
-    return (
-      <div className="py-24 flex items-center justify-center">
-        <div className="h-8 w-8 rounded-full border-2 border-stone-300 border-t-stone-800 dark:border-stone-700 dark:border-t-[#B1E743] animate-spin" />
-      </div>
-    );
-  }
-
   // If no workspaces exist yet, render empty onboarding
   if (!activeWorkspace || workspaces.length === 0) {
     return <EmptyWorkspaceOnboarding />;
@@ -253,22 +211,11 @@ export const WorkspaceSettingsPage: React.FC = () => {
   // Access restriction guard for non-admins
   if (!canManageMembers) {
     return (
-      <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-6">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-900 shadow-sm">
-          <ShieldAlert className="h-8 w-8" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">Access Restricted</h2>
-          <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
-            Only workspace administrators or owners are authorized to manage workspace settings, members, and policies for <strong className="text-stone-800 dark:text-stone-200">{activeWorkspace.name}</strong>.
-          </p>
-        </div>
-        <div>
-          <Link to="/work">
-            <Button leftIcon={<ArrowLeft className="h-4 w-4" />}>Return to Work Hub</Button>
-          </Link>
-        </div>
-      </div>
+      <AccessRestricted
+        workspaceName={activeWorkspace.name}
+        actionHref="/work"
+        actionLabel="Return to Work Hub"
+      />
     );
   }
 
@@ -290,450 +237,70 @@ export const WorkspaceSettingsPage: React.FC = () => {
 
       {/* Grid: Details & Members */}
       <div className="grid gap-8 lg:grid-cols-12">
-        {/* Left Column: Workspace Profile Form */}
+        {/* Left Column: Workspace Profile Form & QA Policy */}
         <div className="lg:col-span-4 space-y-6">
-          <Card className="p-5 space-y-4">
-            <div className="flex items-center gap-2 border-b border-stone-100 pb-3 dark:border-stone-800">
-              <Settings className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-              <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">General Settings</h2>
-            </div>
+          <WorkspaceGeneralSettingsForm
+            workspaceName={workspaceName}
+            workspaceDesc={workspaceDesc}
+            onNameChange={setWorkspaceName}
+            onDescChange={setWorkspaceDesc}
+            onSubmit={handleSaveDetails}
+            isSaving={isSavingDetails}
+            canManage={canManageMembers}
+          />
 
-            <form onSubmit={handleSaveDetails} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                  Workspace Name
-                </label>
-                <Input
-                  type="text"
-                  value={workspaceName}
-                  onChange={(e) => setWorkspaceName(e.target.value)}
-                  disabled={!canManageMembers}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                  Description
-                </label>
-                <Textarea
-                  rows={3}
-                  value={workspaceDesc}
-                  onChange={(e) => setWorkspaceDesc(e.target.value)}
-                  disabled={!canManageMembers}
-                  placeholder="Optional brief workspace description..."
-                />
-              </div>
-
-              {canManageMembers && (
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                  className="w-full"
-                  isLoading={isSavingDetails}
-                  leftIcon={<Check className="h-4 w-4" />}
-                >
-                  Save Changes
-                </Button>
-              )}
-            </form>
-          </Card>
-
-          {/* QA Task Creation Policy Card */}
-          <Card id="task-policy" className="p-5 space-y-4">
-            <div className="flex items-center gap-2 border-b border-stone-100 pb-3 dark:border-stone-800">
-              <Shield className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-              <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">QA Task Creation Policy</h2>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold text-stone-900 dark:text-stone-100">
-                    Direct Task Creation for QA Members
-                  </p>
-                  <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 leading-relaxed">
-                    {allowQaTaskCreation
-                      ? 'Enabled (Default): QA members can create and assign parent tasks to any workspace member.'
-                      : 'Restricted: QA members can only assign new tasks to themselves or leave them unassigned.'}
-                  </p>
-                </div>
-
-                <label className="relative inline-flex cursor-pointer items-center shrink-0">
-                  <input
-                    type="checkbox"
-                    className="peer sr-only"
-                    checked={allowQaTaskCreation}
-                    disabled={!canManageMembers || isUpdatingPolicy}
-                    onChange={(e) => void handleToggleQaPolicy(e.target.checked)}
-                  />
-                  <div className="peer h-6 w-11 rounded-full bg-stone-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-stone-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#22201F] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-stone-700 dark:peer-checked:bg-[#B1E743] dark:peer-checked:after:bg-stone-900" />
-                </label>
-              </div>
-
-              {!canManageMembers && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 italic">
-                  Only Workspace Owner or Admin can modify task creation policy settings.
-                </p>
-              )}
-            </div>
-          </Card>
+          <WorkspaceTaskPolicyCard
+            allowQaTaskCreation={allowQaTaskCreation}
+            canManage={canManageMembers}
+            isUpdating={isUpdatingPolicy}
+            onToggle={(checked) => void handleToggleQaPolicy(checked)}
+          />
         </div>
 
         {/* Right Column: Member Management Table */}
         <div className="lg:col-span-8 space-y-6">
-          <Card className="p-5">
-            {/* Header & Invite CTA */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-stone-100 pb-4 dark:border-stone-800">
-              <div>
-                <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                  <Users className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-                  <span>Team Members</span>
-                  <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-300">
-                    {members.length}
-                  </span>
-                </h2>
-                <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
-                  Assigned workspace roles: <span className="font-semibold text-stone-700 dark:text-stone-300">Owner, Admin, PO, Dev, QA</span>.
-                </p>
-              </div>
-
-              {canManageMembers && (
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setShowInviteModal(true)}
-                  leftIcon={<UserPlus className="h-4 w-4" />}
-                >
-                  Invite Member
-                </Button>
-              )}
-            </div>
-
-            {/* Filter Input */}
-            <div className="mt-4 max-w-sm">
-              <Input
-                type="text"
-                value={searchMember}
-                onChange={(e) => setSearchMember(e.target.value)}
-                placeholder="Search member name, email, or role..."
-                leftIcon={<Search className="h-4 w-4 text-stone-400" />}
-              />
-            </div>
-
-            {/* Mobile Members List Cards (<640px) */}
-            <div className="mt-4 space-y-3 sm:hidden">
-              {isMembersLoading ? (
-                [1, 2, 3].map((i) => (
-                  <Card key={i} className="p-4 space-y-2">
-                    <Skeleton variant="text" className="h-4 w-1/3" />
-                    <Skeleton variant="text" className="h-4 w-2/3" />
-                  </Card>
-                ))
-              ) : filteredMembers.length > 0 ? (
-                filteredMembers.map((member) => {
-                  const u = member.user;
-                  const roleConfig = roleLabels[member.role] || roleLabels.dev;
-
-                  return (
-                    <Card key={member.id} className="p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <Avatar name={u?.name || u?.email || 'User'} size="md" />
-                          <div>
-                            <p className="font-semibold text-stone-900 dark:text-stone-100 text-xs">
-                              {u?.name || 'Workspace User'}
-                            </p>
-                            <p className="text-[11px] text-stone-400 dark:text-stone-500">{u?.email}</p>
-                          </div>
-                        </div>
-
-                        {canManageMembers && member.role !== 'owner' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveMember(member.userId, u?.email || 'this member')}
-                            aria-label="Remove member"
-                          >
-                            <Trash2 className="h-4 w-4 text-rose-500" />
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between border-t border-stone-100 pt-2 text-xs dark:border-stone-800">
-                        <span className="text-[11px] text-stone-400 dark:text-stone-500">
-                          Joined {new Date(member.joinedAt).toLocaleDateString()}
-                        </span>
-
-                        <div>
-                          {canManageMembers && member.role !== 'owner' ? (
-                            <select
-                              value={member.role}
-                              onChange={(e) => handleRoleChange(member.userId, e.target.value as AssignableWorkspaceRole)}
-                              className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-stone-800 outline-none focus:ring-2 focus:ring-[#22201F]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
-                            >
-                              <option value="admin">Admin</option>
-                              <option value="po">Product Owner (PO)</option>
-                              <option value="dev">Developer (Dev)</option>
-                              <option value="qa">QA Engineer (QA)</option>
-                            </select>
-                          ) : (
-                            <Badge variant={roleConfig.variant} size="sm">
-                              <Shield className="h-3 w-3 mr-1 inline" />
-                              {roleConfig.label}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })
-              ) : (
-                <div className="py-8 text-center text-xs text-stone-400">No team members found.</div>
-              )}
-            </div>
-
-            {/* Desktop & Tablet Members Table (≥640px) */}
-            <div className="mt-4 hidden sm:block overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-stone-200 bg-stone-50/50 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:border-stone-800 dark:bg-stone-800/40 dark:text-stone-400">
-                    <th className="py-3 px-3">User</th>
-                    <th className="py-3 px-3">Workspace Role</th>
-                    <th className="py-3 px-3">Joined Date</th>
-                    <th className="py-3 px-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
-                  {isMembersLoading ? (
-                    [1, 2, 3].map((i) => (
-                      <tr key={i}>
-                        <td className="py-3.5 px-3">
-                          <div className="flex items-center gap-2">
-                            <Skeleton variant="circular" className="h-7 w-7" />
-                            <div>
-                              <Skeleton variant="text" className="h-4 w-28" />
-                              <Skeleton variant="text" className="mt-1 h-3 w-36" />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-3">
-                          <Skeleton variant="text" className="h-6 w-16 rounded-full" />
-                        </td>
-                        <td className="py-3.5 px-3">
-                          <Skeleton variant="text" className="h-4 w-20" />
-                        </td>
-                        <td className="py-3.5 px-3 text-right">
-                          <Skeleton variant="text" className="ml-auto h-7 w-12 rounded-lg" />
-                        </td>
-                      </tr>
-                    ))
-                  ) : filteredMembers.length > 0 ? (
-                    filteredMembers.map((member) => {
-                      const u = member.user;
-                      const roleConfig = roleLabels[member.role] || roleLabels.dev;
-
-                      return (
-                        <tr key={member.id} className="hover:bg-stone-50/60 dark:hover:bg-stone-800/40">
-                          <td className="py-3.5 px-3">
-                            <div className="flex items-center gap-2.5">
-                              <Avatar name={u?.name || u?.email || 'User'} size="sm" />
-                              <div>
-                                <p className="font-semibold text-stone-900 dark:text-stone-100">
-                                  {u?.name || 'Workspace User'}
-                                </p>
-                                <p className="text-[11px] text-stone-400 dark:text-stone-500">
-                                  {u?.email}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="py-3.5 px-3">
-                            {canManageMembers && member.role !== 'owner' ? (
-                              <select
-                                value={member.role}
-                                onChange={(e) => handleRoleChange(member.userId, e.target.value as AssignableWorkspaceRole)}
-                                className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-stone-800 outline-none focus:ring-2 focus:ring-[#22201F]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
-                              >
-                                <option value="admin">Admin</option>
-                                <option value="po">Product Owner (PO)</option>
-                                <option value="dev">Developer (Dev)</option>
-                                <option value="qa">QA Engineer (QA)</option>
-                              </select>
-                            ) : (
-                              <Badge variant={roleConfig.variant} size="sm">
-                                <Shield className="h-3 w-3 mr-1 inline" />
-                                {roleConfig.label}
-                              </Badge>
-                            )}
-                          </td>
-
-                          <td className="py-3.5 px-3 text-stone-500 dark:text-stone-400 text-[11px]">
-                            {new Date(member.joinedAt).toLocaleDateString()}
-                          </td>
-
-                          <td className="py-3.5 px-3 text-right">
-                            {canManageMembers && member.role !== 'owner' && (
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setResetTargetUser({
-                                      id: member.userId,
-                                      name: u?.name || 'Workspace User',
-                                      email: u?.email || '',
-                                    });
-                                    setNewMemberPassword('');
-                                  }}
-                                  title="Reset Member Password"
-                                  aria-label="Reset Member Password"
-                                >
-                                  <Key className="h-4 w-4 text-amber-500" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoveMember(member.userId, u?.email || 'this member')}
-                                  title="Remove Member"
-                                  aria-label="Remove member"
-                                >
-                                  <Trash2 className="h-4 w-4 text-rose-500" />
-                                </Button>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="py-8 text-center text-stone-400">
-                        No team members match your search criteria.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          <WorkspaceMembersTable
+            members={members}
+            isLoading={isMembersLoading}
+            canManageMembers={canManageMembers}
+            searchQuery={searchMember}
+            onSearchChange={setSearchMember}
+            onInviteClick={() => setShowInviteModal(true)}
+            onRoleChange={handleRoleChange}
+            onRemoveMember={handleRemoveMember}
+            onResetPasswordClick={(user) => {
+              setResetTargetUser(user);
+              setNewMemberPassword('');
+            }}
+          />
         </div>
       </div>
 
-      {/* Invite Member Modal with Multi-Workspace Support */}
-      <Modal
+      {/* Invite Member Modal */}
+      <InviteMemberModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        title="Invite & Assign Team Member"
-        description="Grant workspace capabilities by email, role, and assign to one or multiple workspaces."
-        primaryActionLabel="Send Invitation"
-        secondaryActionLabel="Cancel"
-        onPrimaryAction={handleInviteMember}
-        isPrimaryLoading={isInviting}
-      >
-        <form onSubmit={handleInviteMember} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-              User Email Address
-            </label>
-            <Input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              required
-              placeholder="colleague@company.com"
-              leftIcon={<Mail className="h-4 w-4 text-stone-400" />}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-              Assign Workspace Role
-            </label>
-            <select
-              value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value as AssignableWorkspaceRole)}
-              className="w-full rounded-xl border border-stone-200 bg-white p-2.5 text-xs text-stone-800 shadow-2xs focus:border-stone-400 focus:outline-hidden dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
-            >
-              <option value="admin">Admin — Workspace Administrator</option>
-              <option value="po">PO — Product Owner</option>
-              <option value="dev">Dev — Developer</option>
-              <option value="qa">QA — QA Engineer</option>
-            </select>
-          </div>
-
-          {/* Multi-Workspace Assignment Checklist */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
-                Target Workspaces ({selectedWorkspaceIds.length}/{workspaces.length})
-              </label>
-              <button
-                type="button"
-                onClick={handleSelectAllWorkspaces}
-                className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
-              >
-                {selectedWorkspaceIds.length === workspaces.length ? 'Deselect All' : 'Select All'}
-              </button>
-            </div>
-            <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50">
-              {workspaces.map((ws) => {
-                const isSelected = selectedWorkspaceIds.includes(ws.id);
-                return (
-                  <button
-                    key={ws.id}
-                    type="button"
-                    onClick={() => handleToggleWorkspaceSelection(ws.id)}
-                    className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition-colors ${
-                      isSelected
-                        ? 'bg-indigo-50/80 text-indigo-900 font-semibold dark:bg-indigo-950/60 dark:text-indigo-200'
-                        : 'hover:bg-stone-100 text-stone-700 dark:hover:bg-stone-800 dark:text-stone-300'
-                    }`}
-                  >
-                    <span className="truncate">{ws.name}</span>
-                    {isSelected ? (
-                      <CheckSquare className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                    ) : (
-                      <Square className="h-4 w-4 text-stone-400 shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </form>
-      </Modal>
+        inviteEmail={inviteEmail}
+        inviteRole={inviteRole}
+        selectedWorkspaceIds={selectedWorkspaceIds}
+        workspaces={workspaces}
+        isInviting={isInviting}
+        onEmailChange={setInviteEmail}
+        onRoleChange={setInviteRole}
+        onToggleWorkspaceSelection={handleToggleWorkspaceSelection}
+        onSelectAllWorkspaces={handleSelectAllWorkspaces}
+        onSubmit={handleInviteMember}
+      />
 
       {/* Admin Reset Member Password Modal */}
-      <Modal
-        isOpen={Boolean(resetTargetUser)}
+      <AdminResetPasswordModal
+        targetUser={resetTargetUser}
         onClose={() => setResetTargetUser(null)}
-        title="Reset Member Password"
-        description={`Set a new temporary or permanent password for ${resetTargetUser?.name} (${resetTargetUser?.email}).`}
-        primaryActionLabel="Reset Password"
-        secondaryActionLabel="Cancel"
-        onPrimaryAction={handleAdminResetPassword}
-        isPrimaryLoading={isResettingPassword}
-      >
-        <form onSubmit={handleAdminResetPassword} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-              New Password for Member
-            </label>
-            <Input
-              type="password"
-              value={newMemberPassword}
-              onChange={(e) => setNewMemberPassword(e.target.value)}
-              required
-              placeholder="Minimum 6 characters"
-              leftIcon={<Key className="h-4 w-4 text-stone-400" />}
-            />
-          </div>
-        </form>
-      </Modal>
+        newPassword={newMemberPassword}
+        isResetting={isResettingPassword}
+        onPasswordChange={setNewMemberPassword}
+        onSubmit={handleAdminResetPassword}
+      />
     </div>
   );
 };

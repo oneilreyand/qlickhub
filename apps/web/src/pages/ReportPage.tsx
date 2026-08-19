@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TaskReportDashboard } from '../components/ui/organisms/TaskReportDashboard';
+import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
 import type { DateRange } from '../components/ui/molecules/DateRangePicker';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchTaskReport } from '../store/reportSlice';
@@ -28,6 +29,10 @@ export const ReportPage: React.FC = () => {
   useEffect(() => {
     loadReport();
   }, [loadReport]);
+
+  if (!isWorkspaceLoading && workspaces.length === 0) {
+    return <EmptyWorkspaceOnboarding />;
+  }
 
   const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
 

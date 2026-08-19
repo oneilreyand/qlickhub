@@ -107,6 +107,7 @@ TaskAttachmentModel.init(
   {
     sequelize,
     tableName: 'task_attachments',
+    underscored: true,
     timestamps: true,
   }
 );

@@ -75,6 +75,54 @@ export const authService = {
     return response.data;
   },
 
+  async refreshSession(): Promise<{ user: User; expiresAt: string }> {
+    const response = await apiClient<{ data: { user: User; expiresAt: string } }>('/auth/refresh', {
+      method: 'POST',
+    });
+    return response.data;
+  },
+
+  async listSessions(): Promise<Array<{
+    id: string;
+    userId: string;
+    userAgent: string | null;
+    ipAddress: string | null;
+    expiresAt: string;
+    createdAt: string;
+    updatedAt: string;
+    isCurrent?: boolean;
+  }>> {
+    const response = await apiClient<{
+      data: {
+        sessions: Array<{
+          id: string;
+          userId: string;
+          userAgent: string | null;
+          ipAddress: string | null;
+          expiresAt: string;
+          createdAt: string;
+          updatedAt: string;
+          isCurrent?: boolean;
+        }>;
+      };
+    }>('/auth/sessions');
+    return response.data.sessions;
+  },
+
+  async revokeSession(sessionId: string): Promise<{ message: string; isCurrent?: boolean }> {
+    const response = await apiClient<{ data: { message: string; isCurrent?: boolean } }>(`/auth/sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
+    return response.data;
+  },
+
+  async revokeOtherSessions(): Promise<{ message: string }> {
+    const response = await apiClient<{ data: { message: string } }>('/auth/sessions-other', {
+      method: 'DELETE',
+    });
+    return response.data;
+  },
+
   async logout() {
     try {
       await apiClient('/auth/logout', { method: 'POST' });
@@ -90,3 +138,4 @@ export const authService = {
     }
   },
 };
+

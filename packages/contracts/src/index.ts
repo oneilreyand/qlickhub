@@ -10,4 +10,5 @@ export * from './requirement.js';
 export * from './qaDocument.js';
 export * from './traceability.js';
 export * from './problemDetail.js';
+export * from './notification.js';
 

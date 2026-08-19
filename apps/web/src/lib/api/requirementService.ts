@@ -11,7 +11,7 @@ export const requirementService = {
 
   async createRequirement(
     workspaceId: string,
-    input: { code: string; title: string; description?: string }
+    input: { code: string; title: string; description?: string; url?: string }
   ): Promise<Requirement> {
     const res = await apiClient<{ requirement: Requirement }>(
       `/workspaces/${workspaceId}/requirements`,

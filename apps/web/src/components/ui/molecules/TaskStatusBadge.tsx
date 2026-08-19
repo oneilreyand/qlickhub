@@ -24,6 +24,10 @@ export const TaskStatusBadge: React.FC<{ state: TaskStatusInput; size?: 'sm' | '
       variant = 'review';
       label = 'In Review';
       break;
+    case 'changes_requested':
+      variant = 'blocked';
+      label = 'Changes Requested';
+      break;
     case 'in_progress':
       variant = 'info';
       label = 'In Progress';

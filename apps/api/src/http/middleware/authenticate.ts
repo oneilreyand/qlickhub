@@ -38,6 +38,12 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
     }
 
     req.user = payload;
+
+    // Asynchronously touch session if last updated more than 5 minutes ago (Sliding Session)
+    if (sessionCheck.session && Date.now() - new Date(sessionCheck.session.updatedAt).getTime() > 5 * 60 * 1000) {
+      sessionManager.touchSession(payload.sessionId, payload.userId).catch(() => {});
+    }
+
     return next();
   } catch (error) {
     return res.status(401).json({

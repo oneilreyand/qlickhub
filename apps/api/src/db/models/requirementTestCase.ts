@@ -79,6 +79,7 @@ RequirementTestCaseModel.init(
   {
     sequelize,
     tableName: 'requirement_test_cases',
+    underscored: true,
     timestamps: true,
   }
 );

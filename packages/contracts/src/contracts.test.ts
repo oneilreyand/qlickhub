@@ -36,6 +36,9 @@ import {
   UpdateWorkspaceSchema,
   AddWorkspaceMemberSchema,
   UpdateMemberRoleSchema,
+  RegisterFcmTokenSchema,
+  UnregisterFcmTokenSchema,
+  PushNotificationPayloadSchema,
 } from './index.js';
 
 describe('Contracts Validation Suite', () => {
@@ -230,22 +233,35 @@ describe('Contracts Validation Suite', () => {
       );
     });
 
-    test('validates subtask creation input rules (deliveryArea required for subtask, disallowed for parent)', () => {
+    test('validates subtask creation input rules (deliveryArea and assigneeId required for subtask, disallowed for parent)', () => {
       const subtaskInput = CreateTaskSchema.parse({
         workspaceId: validUuid,
         parentTaskId: validUuid,
         deliveryArea: 'frontend',
+        assigneeId: validUuid,
         title: 'Build FE login component',
       });
       assert.strictEqual(subtaskInput.parentTaskId, validUuid);
       assert.strictEqual(subtaskInput.deliveryArea, 'frontend');
+      assert.strictEqual(subtaskInput.assigneeId, validUuid);
 
       // Subtask without deliveryArea
       assert.throws(() =>
         CreateTaskSchema.parse({
           workspaceId: validUuid,
           parentTaskId: validUuid,
+          assigneeId: validUuid,
           title: 'Subtask without area',
+        })
+      );
+
+      // Subtask without assigneeId
+      assert.throws(() =>
+        CreateTaskSchema.parse({
+          workspaceId: validUuid,
+          parentTaskId: validUuid,
+          deliveryArea: 'frontend',
+          title: 'Subtask without assignee',
         })
       );
 
@@ -476,6 +492,40 @@ describe('Contracts Validation Suite', () => {
           status: 99,
         })
       );
+    });
+  });
+
+  describe('Notification & FCM Contracts', () => {
+    test('validates FCM token registration and unregistration schemas', () => {
+      const reg = RegisterFcmTokenSchema.parse({
+        token: 'fcm-device-token-12345',
+        deviceInfo: 'Chrome on MacOS',
+      });
+      assert.strictEqual(reg.token, 'fcm-device-token-12345');
+      assert.strictEqual(reg.deviceInfo, 'Chrome on MacOS');
+
+      const unreg = UnregisterFcmTokenSchema.parse({
+        token: 'fcm-device-token-12345',
+      });
+      assert.strictEqual(unreg.token, 'fcm-device-token-12345');
+    });
+
+    test('rejects empty FCM token', () => {
+      assert.throws(() => RegisterFcmTokenSchema.parse({ token: '' }));
+      assert.throws(() => UnregisterFcmTokenSchema.parse({ token: '   ' }));
+    });
+
+    test('validates push notification payload schema', () => {
+      const payload = PushNotificationPayloadSchema.parse({
+        title: 'Tugas Baru Ditugaskan',
+        body: 'Anda telah ditugaskan pada tugas baru.',
+        data: {
+          taskId: '123e4567-e89b-12d3-a456-426614174000',
+          type: 'assignment',
+        },
+      });
+      assert.strictEqual(payload.title, 'Tugas Baru Ditugaskan');
+      assert.strictEqual(payload.data?.type, 'assignment');
     });
   });
 });

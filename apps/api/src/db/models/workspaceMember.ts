@@ -34,10 +34,12 @@ WorkspaceMemberModel.init(
     workspaceId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: 'workspace_id',
     },
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: 'user_id',
     },
     role: {
       type: DataTypes.ENUM('owner', 'admin', 'po', 'dev', 'qa'),
@@ -48,11 +50,13 @@ WorkspaceMemberModel.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'joined_at',
     },
   },
   {
     sequelize,
     tableName: 'workspace_members',
     timestamps: true,
+    underscored: true,
   }
 );

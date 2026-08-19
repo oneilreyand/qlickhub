@@ -4,6 +4,7 @@ import { beforeEach, describe, test, expect, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { TaskDetailDrawer } from '../TaskDetailDrawer';
+import authReducer from '../../../../store/authSlice';
 import taskReducer from '../../../../store/taskSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
@@ -71,6 +72,7 @@ const mockTask: Task = {
 function renderWithRedux(ui: React.ReactElement, role?: 'owner' | 'admin' | 'po' | 'dev' | 'qa') {
   const store = configureStore({
     reducer: {
+      auth: authReducer,
       task: taskReducer,
       workspace: workspaceReducer,
       ui: uiReducer,
@@ -240,5 +242,72 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(await screen.findByText('Activity & Audit Trail')).toBeInTheDocument();
     expect(screen.getByText('Alex River')).toBeInTheDocument();
     expect(screen.getByText(/changed status/)).toBeInTheDocument();
+  });
+
+  test('renders empty discussion illustration when thread has no messages', async () => {
+    renderWithRedux(
+      <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />,
+      'qa'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Discussion/ }));
+
+    expect(
+      await screen.findByText(/No messages in this discussion thread. Be the first to start the conversation!/i)
+    ).toBeInTheDocument();
+
+    const img = screen.getByAltText('No discussion messages');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute(
+      'src',
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024196/ChatGPT_Image_Aug_18_2026_10_33_27_AM.png'
+    );
+  });
+
+  test('renders empty subtasks illustration when task has no subtasks', async () => {
+    renderWithRedux(
+      <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />,
+      'qa'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Subtasks/ }));
+
+    expect(
+      await screen.findByText(/No subtasks created under this task./i)
+    ).toBeInTheDocument();
+
+    const img = screen.getByAltText('No subtasks created');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute(
+      'src',
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024045/ChatGPT_Image_Aug_18_2026_10_32_51_AM.png'
+    );
+  });
+
+  test('renders empty activity illustration when task has no activities', async () => {
+    listTaskActivitiesMock.mockResolvedValueOnce({
+      activities: [],
+      total: 0,
+      page: 1,
+      limit: 50,
+    });
+
+    renderWithRedux(
+      <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />,
+      'qa'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Activity/ }));
+
+    expect(
+      await screen.findByText(/No activity recorded yet/i)
+    ).toBeInTheDocument();
+
+    const img = screen.getByAltText('No activity recorded');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute(
+      'src',
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024043/ChatGPT_Image_Aug_18_2026_10_33_31_AM.png'
+    );
   });
 });

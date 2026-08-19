@@ -14,6 +14,7 @@ import {
   TaskComment,
   TaskCommentListResponse,
 } from '@qa/contracts';
+import { fcmService } from '../../services/fcmService.js';
 
 async function getActorMembership(
   workspaceId: string,
@@ -186,7 +187,7 @@ export class TaskDiscussionService {
     taskId: string,
     input: CreateTaskCommentInput
   ): Promise<TaskComment> {
-    return await sequelize.transaction(async (transaction) => {
+    const commentResult = await sequelize.transaction(async (transaction) => {
       await getActorMembership(workspaceId, actorId, transaction);
 
       const task = await TaskModel.findOne({
@@ -198,6 +199,7 @@ export class TaskDiscussionService {
         throw new Error('NOT_FOUND: Task not found in this workspace.');
       }
 
+      let parentCommentAuthorId: string | null = null;
       if (input.parentCommentId) {
         const parentComment = await TaskCommentModel.findOne({
           where: { id: input.parentCommentId, workspaceId },
@@ -215,6 +217,8 @@ export class TaskDiscussionService {
         if (parentComment.parentCommentId) {
           throw new Error('BAD_REQUEST: Replies are limited to one level.');
         }
+
+        parentCommentAuthorId = parentComment.authorId;
       }
 
       const mentionedUserIds = input.mentionedUserIds || [];
@@ -277,8 +281,49 @@ export class TaskDiscussionService {
         transaction,
       });
 
-      return formatComment(createdComment!);
+      return {
+        formatted: formatComment(createdComment!),
+        taskTitle: task.title,
+        assigneeId: task.assigneeId,
+        reporterId: task.reporterId,
+        parentCommentAuthorId,
+        mentionedUserIds,
+        commentId: comment.id,
+      };
     });
+
+    // Trigger 3: Discussion update on task user is working on (assignee), created (reporter), mentioned, or replying to
+    const recipientIds = Array.from(
+      new Set(
+        [
+          commentResult.assigneeId,
+          commentResult.reporterId,
+          commentResult.parentCommentAuthorId,
+          ...commentResult.mentionedUserIds,
+        ].filter((id): id is string => Boolean(id && id !== actorId))
+      )
+    );
+
+    if (recipientIds.length > 0) {
+      UserModel.findByPk(actorId)
+        .then((actorUser) => {
+          const authorName = actorUser?.name || actorUser?.email || 'Workspace Member';
+          fcmService
+            .sendDiscussionUpdateNotification({
+              recipientUserIds: recipientIds,
+              authorName,
+              taskTitle: commentResult.taskTitle,
+              taskId,
+              workspaceId,
+              commentId: commentResult.commentId,
+              commentSnippet: input.body,
+            })
+            .catch((err) => console.warn('Failed to dispatch FCM discussion notification:', err));
+        })
+        .catch(() => {});
+    }
+
+    return commentResult.formatted;
   }
 
   /**

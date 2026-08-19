@@ -11,6 +11,7 @@ import { attachmentRoutes } from './modules/attachments/attachmentRoutes.js';
 import { requirementRoutes } from './modules/requirements/requirementRoutes.js';
 import { qaDocumentRoutes } from './modules/qaDocuments/qaDocumentRoutes.js';
 import { traceabilityRoutes } from './modules/traceability/traceabilityRoutes.js';
+import { notificationRoutes } from './modules/notifications/notificationRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
 
@@ -59,6 +60,7 @@ export const createApp = () => {
   app.use('/v1', requirementRoutes);
   app.use('/v1', qaDocumentRoutes);
   app.use('/v1', traceabilityRoutes);
+  app.use('/v1', notificationRoutes);
 
   // 404 Route Handler
   app.use((_req: Request, res: Response) => {

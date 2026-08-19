@@ -50,6 +50,7 @@ WorkspaceModel.init(
     ownerId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: 'owner_id',
     },
     allowQaTaskCreation: {
       type: DataTypes.BOOLEAN,
@@ -60,11 +61,13 @@ WorkspaceModel.init(
     archivedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'archived_at',
     },
   },
   {
     sequelize,
     tableName: 'workspaces',
     timestamps: true,
+    underscored: true,
   }
 );

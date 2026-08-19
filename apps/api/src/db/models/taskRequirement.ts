@@ -58,6 +58,7 @@ TaskRequirementModel.init(
   {
     sequelize,
     tableName: 'task_requirements',
+    underscored: true,
     timestamps: true,
     updatedAt: false,
   }

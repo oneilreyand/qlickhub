@@ -5,6 +5,7 @@ export const TaskStatusSchema = z.enum([
   'todo',
   'in_progress',
   'in_review',
+  'changes_requested',
   'done',
   'canceled',
 ]);
@@ -60,7 +61,9 @@ export const TaskSchema = z.object({
   priority: TaskPrioritySchema,
   assigneeId: z.string().uuid().nullable().optional(),
   reporterId: z.string().uuid(),
-  position: z.number().int().min(0).default(0),
+  reviewedBy: z.string().uuid().nullable().optional(),
+  reviewNotes: z.string().nullable().optional(),
+  position: z.number().int().min(0).optional(),
   startDate: DateStringSchema.nullable().optional(),
   dueDate: DateStringSchema.nullable().optional(),
   completedAt: z.string().nullable().optional(),
@@ -88,6 +91,7 @@ export const CreateTaskSchema = z
     startDate: DateStringSchema.nullable().optional(),
     dueDate: DateStringSchema.nullable().optional(),
     position: z.number().int().min(0).optional(),
+    allowRoleMismatch: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.parentTaskId && !data.deliveryArea) {
@@ -95,6 +99,14 @@ export const CreateTaskSchema = z
         code: z.ZodIssueCode.custom,
         message: 'deliveryArea is required for a subtask',
         path: ['deliveryArea'],
+      });
+    }
+
+    if (data.parentTaskId && !data.assigneeId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'assigneeId is required for a subtask',
+        path: ['assigneeId'],
       });
     }
 
@@ -133,6 +145,9 @@ export const UpdateTaskSchema = z
     startDate: DateStringSchema.nullable().optional(),
     dueDate: DateStringSchema.nullable().optional(),
     position: z.number().int().min(0).optional(),
+    reviewedBy: z.string().uuid().nullable().optional(),
+    reviewNotes: z.string().max(5000).nullable().optional(),
+    allowRoleMismatch: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.startDate && data.dueDate && data.startDate > data.dueDate) {
@@ -161,6 +176,7 @@ export type MoveTaskInput = z.infer<typeof MoveTaskSchema>;
  */
 export const CompleteTaskSchema = z.object({
   status: z.enum(['done', 'canceled']).default('done'),
+  reviewNotes: z.string().max(5000).optional(),
 });
 
 export type CompleteTaskInput = z.infer<typeof CompleteTaskSchema>;

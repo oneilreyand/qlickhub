@@ -30,11 +30,14 @@ import { Drawer } from '../components/ui/molecules/Drawer';
 import { Tabs } from '../components/ui/molecules/Tabs';
 import { DropdownMenu } from '../components/ui/molecules/DropdownMenu';
 import { EmptyState } from '../components/ui/molecules/EmptyState';
+import { SearchInput } from '../components/ui/molecules/SearchInput';
 
 import { StatCard } from '../components/ui/organisms/StatCard';
 import { DataTable } from '../components/ui/organisms/DataTable';
 import { FileDropzone } from '../components/ui/organisms/FileDropzone';
 import { BarChart, LineChart } from '../components/ui/organisms/Chart';
+import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
+import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   enqueueSnackbar,
@@ -70,6 +73,7 @@ export const ComponentGalleryPage: React.FC = () => {
   const [checkboxChecked, setCheckboxChecked] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isSimulatedLoading, setIsSimulatedLoading] = useState(false);
+  const [demoSearchQuery, setDemoSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     startDate: '2026-08-01',
     endDate: '2026-08-13',
@@ -260,6 +264,23 @@ export const ComponentGalleryPage: React.FC = () => {
       <div className="space-y-4 pt-4">
         <h2 className="text-xs font-bold uppercase tracking-wider text-stone-400">2. Molecules</h2>
         <div className="grid gap-6 md:grid-cols-2">
+          <Section category="Molecules" title="Search Input" description="Standardized search input with Lucide vector icon, clear button, shortcut badges, and dark mode support.">
+            <div className="space-y-3">
+              <SearchInput
+                value={demoSearchQuery}
+                onChange={(e) => setDemoSearchQuery(e.target.value)}
+                onClear={() => setDemoSearchQuery('')}
+                placeholder="Type something to see clear button..."
+                shortcut="⌘K"
+              />
+              <SearchInput
+                disabled
+                value="Disabled search input state"
+                placeholder="Disabled state..."
+              />
+            </div>
+          </Section>
+
           <Section category="Molecules" title="Date Range Picker" description="Range selection control with quick presets (Today, 7 days, 30 days) and custom date inputs.">
             <div>
               <DateRangePicker
@@ -537,6 +558,36 @@ export const ComponentGalleryPage: React.FC = () => {
 
           <Section category="Organisms" title="File Dropzone Attachment" description="Drag-and-drop file upload container with file list preview.">
             <FileDropzone maxFiles={3} />
+          </Section>
+
+          <Section
+            category="Organisms"
+            title="Error Boundary & 404 Fallback"
+            description="Production error boundary fallback view with high-res illustration, status alert, technical diagnostics, and recovery navigation."
+          >
+            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 dark:border-stone-800 dark:bg-stone-900/30">
+              <ErrorBoundaryFallback
+                title="Example Error Boundary Fallback"
+                description="This interactive preview demonstrates how runtime exceptions or 404 views are presented to the user."
+                error={new Error('Simulated runtime error: ChunkLoadError or rendering failure')}
+                resetErrorBoundary={() => dispatch(enqueueSnackbar('Reset error boundary simulated', 'info'))}
+                showHomeButton={false}
+              />
+            </div>
+          </Section>
+
+          <Section
+            category="Organisms"
+            title="Access Restricted (403 Permission Guard)"
+            description="Clear and accessible permission restriction screen with high-resolution illustration, context explanation, and return-to-hub CTA."
+          >
+            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 dark:border-stone-800 dark:bg-stone-900/30">
+              <AccessRestricted
+                workspaceName="Alpha Engineering QA"
+                actionLabel="Simulate Return"
+                onAction={() => dispatch(enqueueSnackbar('Return action triggered', 'info'))}
+              />
+            </div>
           </Section>
         </div>
       </div>

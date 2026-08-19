@@ -14,7 +14,7 @@ const envSchema = z.object({
   JWT_ACCESS_SECRET: z.string().min(32).optional(),
   JWT_ISSUER: z.string().min(1).default('qa-management-api'),
   JWT_AUDIENCE: z.string().min(1).default('qa-management-web'),
-  JWT_ACCESS_TTL_MINUTES: z.coerce.number().int().min(5).max(60).default(30),
+  JWT_ACCESS_TTL_MINUTES: z.coerce.number().int().min(5).max(1440).default(480),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),
   COOKIE_SAME_SITE: z.enum(['strict', 'lax', 'none']).default('lax'),
   DATABASE_SSL: z
@@ -24,6 +24,9 @@ const envSchema = z.object({
   ATTACHMENT_STORAGE_PROVIDER: z.enum(['local', 'google_drive']).optional(),
   GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().min(1).optional(),
   GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
+  FIREBASE_PROJECT_ID: z.string().min(1).default('ndeks-fcm'),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
+  FIREBASE_SERVICE_ACCOUNT_PATH: z.string().min(1).optional(),
 });
 
 const parseEnv = () => {

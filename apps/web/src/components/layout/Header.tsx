@@ -1,16 +1,52 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Bell, ChevronDown, LogOut, Menu, Moon, Sun, Shield, Building2, Plus, Check, RefreshCw, AlertCircle, Loader2, User as UserIcon } from 'lucide-react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Moon,
+  Sun,
+  Shield,
+  Building2,
+  Plus,
+  Check,
+  RefreshCw,
+  AlertCircle,
+  Loader2,
+  User as UserIcon,
+  MessageSquare,
+  CheckCheck,
+  Trash2,
+  ShieldCheck,
+  UserCheck,
+  Sparkles,
+  ExternalLink,
+  Laptop,
+} from 'lucide-react';
 import { useTheme } from '../../lib/theme/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchWorkspaces, setActiveWorkspaceId, createWorkspace } from '../../store/workspaceSlice';
-import { enqueueSnackbar } from '../../store/uiSlice';
+import {
+  selectCurrentUser,
+  selectCurrentUserRole,
+} from '../../store/authSlice';
+import {
+  enqueueSnackbar,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  clearInAppNotifications,
+  InAppNotification,
+} from '../../store/uiSlice';
+import { setSelectedTaskId } from '../../store/taskSlice';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { IconButton } from '../ui/atoms/IconButton';
 import { Input } from '../ui/atoms/Input';
 import { Textarea } from '../ui/atoms/Textarea';
 import { Modal } from '../ui/molecules/Modal';
 import { UserProfileModal } from '../ui/organisms/UserProfileModal';
+import { ActiveSessionsModal } from '../auth/ActiveSessionsModal';
 import { useDismissableLayer } from '../../hooks/useDismissableLayer';
+import { useFcmNotifications } from '../../hooks/useFcmNotifications';
 
 interface HeaderProps {
   onToggleMobileSidebar: () => void;
@@ -30,15 +66,28 @@ export const Header: React.FC<HeaderProps> = ({
   const currentTab = searchParams.get('tab') || 'overview';
 
   const { workspaces, activeWorkspaceId, isLoading, error } = useAppSelector((state) => state.workspace);
+  const inAppNotifications = useAppSelector((state) => state.ui.inAppNotifications || []);
+  const currentUser = useAppSelector(selectCurrentUser);
+  const currentUserRole = useAppSelector(selectCurrentUserRole);
+  const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'mentions'>('all');
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSessionsModal, setShowSessionsModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showWorkspaceMenu, setShowWorkspaceMenu] = useState(false);
   const [showCreateWsModal, setShowCreateWsModal] = useState(false);
   const [newWsName, setNewWsName] = useState('');
   const [newWsDesc, setNewWsDesc] = useState('');
   const [isCreatingWs, setIsCreatingWs] = useState(false);
+
+  const {
+    permission: fcmPermission,
+    isSupported: isFcmSupported,
+    requestPermission: requestFcmPermission,
+    sendTestNotification: sendTestFcmNotification,
+    isRegistering: isFcmRegistering,
+  } = useFcmNotifications();
 
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -47,8 +96,33 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
 
-  const userInitial = userEmail ? userEmail[0].toUpperCase() : 'U';
-  const userName = userEmail.split('@')[0].replace('.', ' ');
+  const effectiveEmail = currentUser?.email || userEmail;
+  const effectiveName = currentUser?.name || effectiveEmail.split('@')[0].replace('.', ' ');
+  const userInitial = effectiveEmail ? effectiveEmail[0].toUpperCase() : 'U';
+  const userName = effectiveName;
+  const canCreateWorkspace = ['admin', 'qa_lead', 'po'].includes(currentUserRole);
+
+  const unreadCount = useMemo(
+    () => inAppNotifications.filter((n) => !n.isRead).length,
+    [inAppNotifications]
+  );
+
+  const filteredNotifications = useMemo(() => {
+    return inAppNotifications.filter((n) => {
+      if (notifFilter === 'unread') return !n.isRead;
+      if (notifFilter === 'mentions') return n.type === 'mention';
+      return true;
+    });
+  }, [inAppNotifications, notifFilter]);
+
+  const handleNotificationClick = (notif: InAppNotification) => {
+    dispatch(markNotificationAsRead(notif.id));
+    if (notif.taskId) {
+      dispatch(setSelectedTaskId(notif.taskId));
+      navigate('/my-tasks');
+    }
+    setShowNotifications(false);
+  };
 
   useDismissableLayer(workspaceMenuRef, showWorkspaceMenu, () => setShowWorkspaceMenu(false));
   useDismissableLayer(notificationRef, showNotifications, () => setShowNotifications(false));
@@ -109,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Workspace Switcher Dropdown */}
-        <div className="relative hidden xl:block" ref={workspaceMenuRef}>
+        <div className="relative hidden md:block" ref={workspaceMenuRef}>
           <button
             type="button"
             onClick={() => setShowWorkspaceMenu(!showWorkspaceMenu)}
@@ -175,16 +249,18 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
 
-              <div className="border-t border-stone-100 pt-1 dark:border-stone-800">
-                <button
-                  type="button"
-                  onClick={handleOpenCreateModal}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-800"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create Workspace</span>
-                </button>
-              </div>
+              {canCreateWorkspace && (
+                <div className="border-t border-stone-100 pt-1 dark:border-stone-800">
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateModal}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-800"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Create Workspace</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -259,18 +335,8 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </nav>
 
-      {/* Right section: Search, Notifications & User profile */}
+      {/* Right section: Notifications & User profile */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Search Icon Pill Button */}
-        <button
-          type="button"
-          aria-label="Search"
-          className="grid h-10 w-10 place-items-center rounded-full border border-stone-200/90 bg-white text-stone-600 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </button>
 
         {/* Quick Theme Toggle Button */}
         <IconButton
@@ -290,18 +356,195 @@ export const Header: React.FC<HeaderProps> = ({
             className="relative grid h-10 w-10 place-items-center rounded-full border border-stone-200/90 bg-white text-stone-600 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300"
           >
             <Bell className="h-4 w-4" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#B1E743] ring-2 ring-white dark:ring-stone-900" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#B1E743] px-1 text-[10px] font-extrabold text-[#22201F] ring-2 ring-white dark:ring-stone-900">
+                {unreadCount}
+              </span>
+            )}
           </button>
 
           {/* Notifications Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-stone-200 bg-white p-4 shadow-xl ring-1 ring-stone-900/5 z-30 dark:border-stone-800 dark:bg-slate-900 dark:text-slate-100">
+            <div className="absolute right-0 mt-2 w-88 sm:w-96 rounded-2xl border border-stone-200 bg-white p-4 shadow-2xl ring-1 ring-stone-900/5 z-30 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100">
+              {/* Header Bar */}
               <div className="flex items-center justify-between border-b border-stone-100 pb-3 dark:border-stone-800">
-                <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">Notifications</h3>
-                <span className="rounded-full bg-[#B1E743] px-2 py-0.5 text-xs font-bold text-[#22201F]">1 New</span>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">Team Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-[#B1E743] px-2 py-0.5 text-[11px] font-extrabold text-[#22201F]">
+                      {unreadCount} New
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => dispatch(markAllNotificationsAsRead())}
+                      className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:hover:text-stone-200 dark:hover:bg-stone-800 text-[11px] font-semibold flex items-center gap-1"
+                      title="Mark all as read"
+                    >
+                      <CheckCheck className="h-3.5 w-3.5" />
+                      <span>Read all</span>
+                    </button>
+                  )}
+                  {inAppNotifications.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => dispatch(clearInAppNotifications())}
+                      className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-[11px]"
+                      title="Clear all notifications"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="mt-3 text-center py-6 text-xs text-stone-400 dark:text-stone-500">
-                No new notifications
+
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 pt-2 pb-1 border-b border-stone-100 dark:border-stone-800">
+                {[
+                  { id: 'all', label: `All (${inAppNotifications.length})` },
+                  { id: 'unread', label: `Unread (${unreadCount})` },
+                  { id: 'mentions', label: 'Mentions' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setNotifFilter(tab.id as typeof notifFilter)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                      notifFilter === tab.id
+                        ? 'bg-stone-900 text-white dark:bg-[#B1E743] dark:text-[#22201F]'
+                        : 'text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* FCM Push Notification Status / Prompt Banner */}
+              {isFcmSupported && fcmPermission !== 'granted' && (
+                <div className="my-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2 dark:bg-amber-950/40 dark:border-amber-800/60 dark:text-amber-200">
+                  <div className="flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span className="text-[11px] font-medium leading-tight">Aktifkan notifikasi FCM untuk update tugas real-time.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={requestFcmPermission}
+                    disabled={isFcmRegistering}
+                    className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] shrink-0 transition-colors dark:bg-amber-500 dark:text-stone-900"
+                  >
+                    {isFcmRegistering ? 'Memproses...' : 'Izinkan'}
+                  </button>
+                </div>
+              )}
+
+              {isFcmSupported && fcmPermission === 'granted' && (
+                <div className="flex items-center justify-between px-1 py-1.5 border-b border-stone-100 dark:border-stone-800 text-[10px]">
+                  <span className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    FCM Push Aktif
+                  </span>
+                  <button
+                    type="button"
+                    onClick={sendTestFcmNotification}
+                    className="text-[10px] text-stone-500 hover:text-stone-800 underline dark:text-stone-400 dark:hover:text-stone-200 font-medium"
+                  >
+                    Kirim Test Notif
+                  </button>
+                </div>
+              )}
+
+              {/* Notification List */}
+              <div className="mt-2 max-h-80 overflow-y-auto space-y-1.5 scrollbar-thin">
+                {filteredNotifications.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-stone-400 space-y-1">
+                    <Sparkles className="mx-auto h-6 w-6 text-stone-300 dark:text-stone-600" />
+                    <p className="font-semibold text-stone-600 dark:text-stone-300">All caught up!</p>
+                    <p className="text-[11px]">No notifications in this filter.</p>
+                  </div>
+                ) : (
+                  filteredNotifications.map((notif: InAppNotification) => {
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => handleNotificationClick(notif)}
+                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-2.5 ${
+                          !notif.isRead
+                            ? 'border-[#22201F]/30 bg-stone-50/90 dark:border-[#B1E743]/30 dark:bg-stone-800/80 shadow-xs'
+                            : 'border-transparent hover:border-stone-200 hover:bg-stone-50/50 dark:hover:border-stone-800 dark:hover:bg-stone-800/40 text-stone-600 dark:text-stone-400'
+                        }`}
+                      >
+                        {/* Type Icon */}
+                        <div className="mt-0.5 shrink-0">
+                          {notif.type === 'mention' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                              <MessageSquare className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'status_change' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                              <ShieldCheck className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'assignment' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                              <UserCheck className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'system' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                              <Bell className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">
+                              {notif.title}
+                            </p>
+                            <span className="text-[10px] text-stone-400 shrink-0">
+                              {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-stone-600 dark:text-stone-300 line-clamp-2 leading-relaxed">
+                            {notif.message}
+                          </p>
+                          {notif.actorName && (
+                            <p className="text-[10px] font-semibold text-stone-400 dark:text-stone-500">
+                              From: {notif.actorName}
+                            </p>
+                          )}
+                        </div>
+
+                        {!notif.isRead && (
+                          <span className="mt-1.5 h-2 w-2 rounded-full bg-[#B1E743] shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-3 pt-2.5 border-t border-stone-100 dark:border-stone-800 flex justify-between items-center text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate('/my-tasks');
+                    setShowNotifications(false);
+                  }}
+                  className="font-bold text-stone-700 hover:text-stone-950 dark:text-[#B1E743] dark:hover:text-[#B1E743]/80 flex items-center gap-1"
+                >
+                  <span>Open My Tasks</span>
+                  <ExternalLink className="h-3 w-3" />
+                </button>
+                <span className="text-stone-400">Collaborative Hub</span>
               </div>
             </div>
           )}
@@ -343,6 +586,18 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <UserIcon className="h-4 w-4 text-stone-400" />
                   <span>Account & Profile Settings</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    setShowSessionsModal(true);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                >
+                  <Laptop className="h-4 w-4 text-stone-400" />
+                  <span>Perangkat & Sesi Aktif</span>
                 </button>
 
                 {(activeWorkspace?.role === 'owner' || activeWorkspace?.role === 'admin' || activeWorkspace?.myRole === 'owner' || activeWorkspace?.myRole === 'admin') && (
@@ -393,11 +648,17 @@ export const Header: React.FC<HeaderProps> = ({
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
         currentUser={{
-          id: localStorage.getItem('user_id') || '',
-          email: userEmail,
-          name: localStorage.getItem('user_name') || userName,
-          role: localStorage.getItem('user_role') || 'dev',
+          id: currentUser?.id || '',
+          email: effectiveEmail,
+          name: effectiveName,
+          role: currentUser?.role || 'dev',
         }}
+      />
+
+      {/* Active Sessions & Devices Modal */}
+      <ActiveSessionsModal
+        isOpen={showSessionsModal}
+        onClose={() => setShowSessionsModal(false)}
       />
 
       {/* Modal Molecule: Create New Workspace */}

@@ -7,8 +7,8 @@ import { X } from 'lucide-react';
 import { GlobalSnackbarHost } from '../ui/molecules/GlobalSnackbarHost';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setMobileSidebarOpen } from '../../store/uiSlice';
-import { ThemeProvider } from '../../lib/theme/ThemeContext';
 import { IconButton } from '../ui/atoms/IconButton';
+import { SessionTimeoutModal } from '../auth/SessionTimeoutModal';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -73,13 +73,12 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
         {children}
       </main>
       <GlobalSnackbarHost />
+      <SessionTimeoutModal />
     </div>
   );
 };
 
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => (
-  <ThemeProvider>
-    <AppLayoutContent>{children}</AppLayoutContent>
-  </ThemeProvider>
+  <AppLayoutContent>{children}</AppLayoutContent>
 );

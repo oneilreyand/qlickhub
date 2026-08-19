@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './authSlice';
 import uiReducer from './uiSlice';
 import workspaceReducer from './workspaceSlice';
 import folderReducer from './folderSlice';
@@ -7,6 +8,7 @@ import reportReducer from './reportSlice';
 
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     ui: uiReducer,
     workspace: workspaceReducer,
     folder: folderReducer,

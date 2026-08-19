@@ -1,15 +1,17 @@
 import React from 'react';
-import { ChevronDown, ChevronRight, Search, Calendar, Folder } from 'lucide-react';
+import { ChevronDown, ChevronRight, Calendar, Folder } from 'lucide-react';
 import type { Task, FolderTreeNode, TaskStatus } from '@qa/contracts';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Skeleton } from '../atoms/Skeleton';
+import { stripMarkdown } from '../atoms/FormattedText';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 
 interface TaskCollectionProps {
   tasks: Task[];
   folders?: FolderTreeNode[];
   isLoading: boolean;
+  error?: string | null;
   selectedTaskId?: string | null;
   onSelect: (task: Task) => void;
 }
@@ -101,6 +103,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
   tasks,
   folders = [],
   isLoading,
+  error,
   selectedTaskId,
   onSelect,
 }) => {
@@ -256,7 +259,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                         </p>
                         {task.description && (
                           <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate max-w-sm mt-0.5">
-                            {task.description}
+                            {stripMarkdown(task.description)}
                           </p>
                         )}
                         {renderSubtaskSummary(task.subtaskSummary)}
@@ -318,15 +321,36 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                 })}
           </tbody>
         </table>
-        {!isLoading && tasks.length === 0 ? <Empty /> : null}
+        {!isLoading && !error && tasks.length === 0 ? <Empty /> : null}
       </div>
     </>
   );
 };
 
+export const EMPTY_TASKS_ILLUSTRATION_URL =
+  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787027457/ChatGPT_Image_Aug_18_2026_11_30_28_AM.png';
+
 const Empty = () => (
-  <div className="py-12 text-center text-sm text-stone-400">
-    <Search className="mx-auto mb-2 h-7 w-7 text-stone-400" />
-    No tasks found matching your filter criteria.
+  <div className="py-10 sm:py-12 px-4 text-center space-y-4">
+    <div className="flex justify-center">
+      <img
+        src={EMPTY_TASKS_ILLUSTRATION_URL}
+        alt="No Tasks in Task Hub Illustration"
+        className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.02] drop-shadow-xs"
+        loading="lazy"
+      />
+      <div className="hidden dark:flex items-center justify-center py-2">
+        <div className="relative grid h-20 w-20 place-items-center rounded-3xl bg-stone-900 border border-stone-800 shadow-inner">
+          <div className="absolute inset-0 rounded-3xl bg-[#B1E743]/10 blur-xl pointer-events-none" />
+          <Folder className="h-9 w-9 text-[#B1E743]" />
+        </div>
+      </div>
+    </div>
+    <div className="space-y-1">
+      <p className="text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100">No tasks found</p>
+      <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 max-w-sm mx-auto leading-relaxed">
+        There are no tasks matching your folder or filter criteria.
+      </p>
+    </div>
   </div>
 );

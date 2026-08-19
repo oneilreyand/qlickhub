@@ -89,6 +89,7 @@ QaDocumentModel.init(
   {
     sequelize,
     tableName: 'qa_documents',
+    underscored: true,
     timestamps: true,
   }
 );

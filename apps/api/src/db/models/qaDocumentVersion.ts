@@ -98,6 +98,7 @@ QaDocumentVersionModel.init(
   {
     sequelize,
     tableName: 'qa_document_versions',
+    underscored: true,
     timestamps: true,
     updatedAt: false,
   }

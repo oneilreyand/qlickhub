@@ -17,6 +17,7 @@ vi.mock('../../../lib/api/workspaceService', () => ({
   },
 }));
 
+import authReducer from '../../../store/authSlice';
 import folderReducer from '../../../store/folderSlice';
 import taskReducer from '../../../store/taskSlice';
 import uiReducer from '../../../store/uiSlice';
@@ -27,6 +28,7 @@ import { Header } from '../Header';
 function renderHeader(onToggleMobileSidebar: () => void) {
   const store = configureStore({
     reducer: {
+      auth: authReducer,
       ui: uiReducer,
       workspace: workspaceReducer,
       folder: folderReducer,
