@@ -11,6 +11,7 @@ import { requirementRoutes } from './modules/requirements/requirementRoutes.js';
 import { qaDocumentRoutes } from './modules/qaDocuments/qaDocumentRoutes.js';
 import { traceabilityRoutes } from './modules/traceability/traceabilityRoutes.js';
 import { notificationRoutes } from './modules/notifications/notificationRoutes.js';
+import { attachmentRoutes } from './modules/attachments/attachmentRoutes.js';
 import { realtimeRoutes } from './modules/realtime/realtimeRoutes.js';
 import { metaRoutes } from './modules/meta/metaRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
@@ -59,6 +60,7 @@ export const createApp = () => {
   app.use('/v1/workspaces/:workspaceId/tasks', taskRoutes);
   app.use('/v1', requirementRoutes);
   app.use('/v1', qaDocumentRoutes);
+  app.use('/v1', attachmentRoutes);
   app.use('/v1', traceabilityRoutes);
   app.use('/v1', notificationRoutes);
   app.use('/v1', realtimeRoutes);

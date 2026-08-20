@@ -4,6 +4,7 @@ import { WorkspaceModel } from './workspace.js';
 import { WorkspaceMemberModel } from './workspaceMember.js';
 import { WorkFolderModel } from './workFolder.js';
 import { TaskModel } from './task.js';
+import { TaskAttachmentModel } from './taskAttachment.js';
 import { TaskActivityModel } from './taskActivity.js';
 import { TaskCommentModel } from './taskComment.js';
 import { TaskCommentMentionModel } from './taskCommentMention.js';
@@ -77,6 +78,16 @@ export function setupAssociations() {
   // Self-referential Task (Parent / Subtasks)
   TaskModel.hasMany(TaskModel, { foreignKey: 'parentTaskId', as: 'subtasks', onDelete: 'RESTRICT' });
   TaskModel.belongsTo(TaskModel, { foreignKey: 'parentTaskId', as: 'parentTask', onDelete: 'RESTRICT' });
+
+  // Task Attachment Associations
+  TaskModel.hasMany(TaskAttachmentModel, { foreignKey: 'taskId', as: 'attachments', onDelete: 'CASCADE' });
+  TaskAttachmentModel.belongsTo(TaskModel, { foreignKey: 'taskId', as: 'task', onDelete: 'CASCADE' });
+
+  WorkspaceModel.hasMany(TaskAttachmentModel, { foreignKey: 'workspaceId', as: 'taskAttachments', onDelete: 'CASCADE' });
+  TaskAttachmentModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
+
+  UserModel.hasMany(TaskAttachmentModel, { foreignKey: 'uploaderId', as: 'uploadedTaskAttachments', onDelete: 'RESTRICT' });
+  TaskAttachmentModel.belongsTo(UserModel, { foreignKey: 'uploaderId', as: 'uploader', onDelete: 'RESTRICT' });
 
   // Task Activity Associations
   TaskModel.hasMany(TaskActivityModel, { foreignKey: 'taskId', as: 'activities', onDelete: 'CASCADE' });
