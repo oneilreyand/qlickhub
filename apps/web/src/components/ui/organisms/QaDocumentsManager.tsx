@@ -35,35 +35,29 @@ export interface QaDocumentsManagerProps {
   isDrawerMode?: boolean;
 }
 
-const docTypeMeta: Record<string, { label: string; icon: string; badgeClass: string }> = {
+const docTypeMeta: Record<string, { label: string; badgeClass: string }> = {
   test_plan: {
     label: 'Test Plan',
-    icon: '🧪',
     badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
   },
   test_strategy: {
     label: 'Test Strategy',
-    icon: '📋',
     badgeClass: 'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
   },
   product_brief: {
     label: 'Product Brief',
-    icon: '📑',
     badgeClass: 'bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] border border-[#B1E743]/40 dark:border-[#B1E743]/40',
   },
   release_report: {
     label: 'Release Report',
-    icon: '📊',
     badgeClass: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
   },
   qa_guide: {
     label: 'QA Guide',
-    icon: '📘',
     badgeClass: 'bg-teal-100 text-teal-800 dark:bg-teal-950/70 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
   },
   default: {
     label: 'QA Document',
-    icon: '📄',
     badgeClass: 'bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700',
   },
 };
@@ -291,11 +285,11 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               className="text-xs h-9 w-36"
             >
               <option value="all">All Types</option>
-              <option value="test_plan">🧪 Test Plan</option>
-              <option value="test_strategy">📋 Test Strategy</option>
-              <option value="product_brief">📑 Product Brief</option>
-              <option value="release_report">📊 Release Report</option>
-              <option value="qa_guide">📘 QA Guide</option>
+              <option value="test_plan">Test Plan</option>
+              <option value="test_strategy">Test Strategy</option>
+              <option value="product_brief">Product Brief</option>
+              <option value="release_report">Release Report</option>
+              <option value="qa_guide">QA Guide</option>
             </Select>
           </div>
 
@@ -346,7 +340,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-sm">{meta.icon}</span>
+                        <FileText className="h-3.5 w-3.5 text-stone-400 shrink-0" />
                         <span className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">
                           {doc.title}
                         </span>
@@ -393,9 +387,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-stone-100 dark:border-stone-800 gap-2">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">
-                      {docTypeMeta[selectedDocDetails.document.docType || '']?.icon || '📄'}
-                    </span>
+                    <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">
                       {selectedDocDetails.document.title}
                     </h4>
@@ -492,11 +484,11 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
                 value={newDocType}
                 onChange={(e) => setNewDocType(e.target.value)}
               >
-                <option value="test_plan">🧪 Test Plan</option>
-                <option value="test_strategy">📋 Test Strategy</option>
-                <option value="product_brief">📑 Product Brief</option>
-                <option value="release_report">📊 Release Report</option>
-                <option value="qa_guide">📘 QA Guide</option>
+                <option value="test_plan">Test Plan</option>
+                <option value="test_strategy">Test Strategy</option>
+                <option value="product_brief">Product Brief</option>
+                <option value="release_report">Release Report</option>
+                <option value="qa_guide">QA Guide</option>
               </Select>
             </div>
 

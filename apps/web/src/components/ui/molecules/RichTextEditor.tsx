@@ -557,7 +557,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* Status / Footer Bar */}
         <div className="flex items-center justify-between border-t border-stone-100 bg-stone-50/50 px-3 py-1 text-[10px] text-stone-400 dark:border-stone-800/60 dark:bg-stone-950/40 dark:text-stone-500 shrink-0">
           <span className="italic">
-            {isFullscreen ? 'Press Esc to exit Fullscreen' : 'Tip: Insert media links with 🖼️ (Image) or 🎥 (Video) toolbar buttons'}
+            {isFullscreen ? 'Press Esc to exit Fullscreen' : 'Tip: Insert media links with Image or Video toolbar buttons'}
           </span>
           <span className="font-mono">
             {wordCount} {wordCount === 1 ? 'word' : 'words'} · {charCount} chars
@@ -631,7 +631,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               </div>
 
               <p className="text-[11px] text-stone-400 italic text-center pt-1">
-                💡 Supports PNG, JPG, GIF, WebP, and SVG links with zoom lightbox preview.
+                Supports PNG, JPG, GIF, WebP, and SVG links with zoom lightbox preview.
               </p>
             </div>
           </div>
@@ -704,7 +704,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               </div>
 
               <p className="text-[11px] text-stone-400 italic text-center pt-1">
-                💡 Supports MP4, WebM direct videos, YouTube videos, and Loom recordings.
+                Supports MP4, WebM direct videos, YouTube videos, and Loom recordings.
               </p>
             </div>
           </div>

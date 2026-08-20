@@ -4,6 +4,7 @@ import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
+import { User } from 'lucide-react';
 import { RichTextEditor } from '../molecules/RichTextEditor';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { createTask } from '../../../store/taskSlice';
@@ -154,10 +155,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
               aria-label="Folder Location"
             >
-              <option value="">📁 Unfiled (Workspace Root)</option>
+              <option value="">Unfiled (Workspace Root)</option>
               {flatFolders.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {'\u00A0'.repeat(f.depth * 4)}📂 {f.name}
+                  {'\u00A0'.repeat(f.depth * 4)}{f.name}
                 </option>
               ))}
             </Select>
@@ -167,8 +168,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
               Created by (Reporter)
             </label>
-            <div className="flex items-center h-10 px-3 rounded-xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/50 text-xs font-semibold text-stone-700 dark:text-stone-300">
-              <span className="truncate">👤 {members.find((m) => m.userId === currentUserId)?.user?.name || 'You'} (PO/Reporter)</span>
+            <div className="flex items-center gap-1.5 h-10 px-3 rounded-xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/50 text-xs font-semibold text-stone-700 dark:text-stone-300">
+              <User className="h-3.5 w-3.5 text-stone-400 shrink-0" />
+              <span className="truncate">{members.find((m) => m.userId === currentUserId)?.user?.name || 'You'} (PO/Reporter)</span>
             </div>
             <p className="mt-1 text-[11px] text-stone-500 dark:text-stone-400">
               Execution assignees (FE, BE, QA) are assigned on Subtasks.

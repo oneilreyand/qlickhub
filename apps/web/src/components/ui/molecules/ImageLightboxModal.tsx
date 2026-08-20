@@ -93,7 +93,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
       >
         <div className="flex items-center gap-2 max-w-[60%]">
           <span className="px-3 py-1 rounded-lg bg-stone-900/90 text-stone-200 text-xs font-semibold truncate border border-stone-700/60 shadow-lg">
-            🖼️ {alt || 'Image Preview'}
+            {alt || 'Image Preview'}
           </span>
           <span className="px-2 py-0.5 rounded bg-stone-800 text-stone-400 text-[11px] font-mono border border-stone-700/50">
             {Math.round(scale * 100)}%

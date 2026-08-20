@@ -46,7 +46,6 @@ function getExternalLinkMeta(url?: string | null) {
       label: 'Figma Prototype',
       shortLabel: 'Figma',
       badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-200/80',
-      icon: '🎨',
     };
   }
   if (lower.includes('sheets.google.com') || lower.includes('docs.google.com/spreadsheets') || lower.includes('.xlsx') || lower.includes('.csv')) {
@@ -54,7 +53,6 @@ function getExternalLinkMeta(url?: string | null) {
       label: 'Google Spreadsheet',
       shortLabel: 'Spreadsheet',
       badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-200/80',
-      icon: '📊',
     };
   }
   if (lower.includes('docs.google.com/document') || lower.includes('notion.so') || lower.includes('confluence')) {
@@ -62,7 +60,6 @@ function getExternalLinkMeta(url?: string | null) {
       label: 'Product Doc / PRD',
       shortLabel: 'Document',
       badgeClass: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-800 hover:bg-sky-200/80',
-      icon: '📄',
     };
   }
   if (lower.includes('jira') || lower.includes('atlassian') || lower.includes('linear.app') || lower.includes('github.com')) {
@@ -70,14 +67,12 @@ function getExternalLinkMeta(url?: string | null) {
       label: 'Issue / Spec',
       shortLabel: 'Issue',
       badgeClass: 'bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] border-[#B1E743]/40 dark:border-[#B1E743]/40 hover:bg-[#B1E743]/30',
-      icon: '📌',
     };
   }
   return {
     label: 'External Link',
     shortLabel: 'Link',
     badgeClass: 'bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-200/80',
-    icon: '🔗',
   };
 }
 import { Drawer } from '../molecules/Drawer';
@@ -1492,10 +1487,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                       disabled={!canEditPlanning}
                       aria-label="Folder Location"
                     >
-                      <option value="">📁 Unfiled (Workspace Root)</option>
+                      <option value="">Unfiled (Workspace Root)</option>
                       {flatFolders.map((f) => (
                         <option key={f.id} value={f.id}>
-                          {'\u00A0'.repeat(f.depth * 4)}📂 {f.name}
+                          {'\u00A0'.repeat(f.depth * 4)}{f.name}
                         </option>
                       ))}
                     </Select>
@@ -1841,11 +1836,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
                       {(taskRequirementLinks || []).length === 0 ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/30">
-                          ⚠️ No Reference Links Attached
+                          <AlertTriangle className="h-3 w-3" />
+                          <span>No Reference Links Attached</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
-                          ✅ {(taskRequirementLinks || []).length} References Attached
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>{(taskRequirementLinks || []).length} References Attached</span>
                         </span>
                       )}
                     </div>
@@ -1881,7 +1878,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                   <span
                                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${meta.badgeClass}`}
                                   >
-                                    <span>{meta.icon}</span>
                                     <span>{meta.shortLabel}</span>
                                   </span>
                                 )}
@@ -1920,9 +1916,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     {/* Developer & QA guidance info */}
                     {!canPlan && (
                       <div className="flex items-center gap-2 p-2.5 rounded-lg bg-stone-100/70 dark:bg-stone-900/60 text-[11px] text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-800">
-                        <span className="text-sm">📌</span>
+                        <FileText className="h-3.5 w-3.5 text-stone-400 shrink-0" />
                         <span>
-                          Reference links are provided by the Product Owner (PO) for developer and QA specifications. Click <strong>Open Reference ↗</strong> to view external resources.
+                          Reference links are provided by the Product Owner (PO) for developer and QA specifications. Click <strong>Open Reference</strong> to view external resources.
                         </span>
                       </div>
                     )}
@@ -1931,8 +1927,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     {canPlan && (
                       <div className="pt-2.5 border-t border-stone-200 dark:border-stone-800 space-y-3">
                         <div>
-                          <span className="text-[11px] font-bold text-stone-800 dark:text-stone-200 block mb-1.5 flex items-center gap-1">
-                            <span>🔗 Embed New Requirement Reference (PO / Planner):</span>
+                          <span className="text-[11px] font-bold text-stone-800 dark:text-stone-200 block mb-1.5 flex items-center gap-1.5">
+                            <FileCode2 className="h-3.5 w-3.5 text-stone-400" />
+                            <span>Embed New Requirement Reference (PO / Planner):</span>
                           </span>
                           <div className="space-y-2">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -2030,14 +2027,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                               <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
                                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                                   {link.document?.docType === 'test_plan'
-                                    ? '🧪 Test Plan'
+                                    ? 'Test Plan'
                                     : link.document?.docType === 'test_strategy'
-                                    ? '📋 Test Strategy'
+                                    ? 'Test Strategy'
                                     : link.document?.docType === 'release_report'
-                                    ? '🚀 Release Report'
+                                    ? 'Release Report'
                                     : link.document?.docType === 'qa_guide'
-                                    ? '📖 QA Guide'
-                                    : '📄 QA Doc'}
+                                    ? 'QA Guide'
+                                    : 'QA Doc'}
                                 </span>
                                 <span className="font-bold text-stone-900 dark:text-stone-100 truncate">
                                   {link.document?.title || 'QA Document'}
@@ -2283,11 +2280,11 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               value={newQaDocType}
               onChange={(e) => setNewQaDocType(e.target.value)}
             >
-              <option value="test_plan">🧪 Test Plan</option>
-              <option value="test_strategy">📋 Test Strategy</option>
-              <option value="product_brief">📑 Product Brief</option>
-              <option value="release_report">📊 Release Report</option>
-              <option value="qa_guide">📘 QA Guide</option>
+              <option value="test_plan">Test Plan</option>
+              <option value="test_strategy">Test Strategy</option>
+              <option value="product_brief">Product Brief</option>
+              <option value="release_report">Release Report</option>
+              <option value="qa_guide">QA Guide</option>
             </Select>
           </div>
 

@@ -861,7 +861,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-stone-400 italic">
-              💡 Tips: Paste link gambar, screenshot, video (YouTube/Loom), Figma, Drive, atau web link untuk preview otomatis.
+              Tips: Paste link gambar, screenshot, video (YouTube/Loom), Figma, Drive, atau web link untuk preview otomatis.
             </span>
 
             <Button
