@@ -28,9 +28,9 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   };
 
   const variantStyles = {
-    brand: 'bg-[#B1E743] dark:bg-[#B1E743]',
-    emerald: 'bg-[#B1E743] dark:bg-[#B1E743]',
-    indigo: 'bg-[#22201F] dark:bg-stone-200',
+    brand: 'bg-indigo-600 dark:bg-indigo-500',
+    emerald: 'bg-emerald-500 dark:bg-emerald-400',
+    indigo: 'bg-indigo-600 dark:bg-indigo-500',
     amber: 'bg-amber-400 dark:bg-amber-400',
     rose: 'bg-rose-500 dark:bg-rose-400',
     neutral: 'bg-stone-400 dark:bg-stone-600',

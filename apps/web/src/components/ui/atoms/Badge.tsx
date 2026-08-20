@@ -23,7 +23,7 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   const variantStyles = {
-    passed: 'bg-[#B1E743]/20 text-[#22201F] border-[#B1E743]/50 dark:bg-[#B1E743]/20 dark:text-[#B1E743] dark:border-[#B1E743]/40',
+    passed: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800',
     review: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800',
     blocked: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800',
     draft: 'bg-stone-100 text-stone-700 border-stone-300 dark:bg-stone-800/90 dark:text-stone-300 dark:border-stone-700',

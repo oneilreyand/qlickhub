@@ -90,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
       {/* Top Header: Matched h-16 (64px) height with compact Shield icon */}
       <div className="shrink-0">
         <div className={`flex h-16 items-center border-b border-stone-100 dark:border-stone-800/80 ${isExpanded ? 'px-4 gap-2.5' : 'justify-center px-0'}`}>
-          <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#22201F] text-[#B1E743] dark:bg-[#B1E743] dark:text-[#22201F] shadow-xs">
+          <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-indigo-600 text-white dark:bg-indigo-500 dark:text-white shadow-xs">
             <ShieldCheck className="h-4 w-4" />
           </div>
           <div
@@ -99,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
             }`}
           >
             <span className="text-xs font-bold tracking-tight text-stone-900 dark:text-white">Qlick Hub</span>
-            <span className="text-[9px] font-semibold text-stone-500 dark:text-[#B1E743]">Work Hub v2.0</span>
+            <span className="text-[9px] font-semibold text-stone-500 dark:text-indigo-400">Work Hub v2.0</span>
           </div>
         </div>
       </div>
@@ -131,7 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
                 title={!isExpanded ? item.name : undefined}
                 className={`group relative flex min-h-[40px] items-center rounded-xl text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-[#22201F] text-white font-semibold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+                    ? 'bg-indigo-600 text-white font-semibold shadow-xs dark:bg-indigo-600 dark:text-white'
                     : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800/80 dark:hover:text-white'
                 } ${isExpanded ? 'px-3 gap-2.5 justify-start' : 'justify-center px-0'}`}
               >
@@ -140,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
                   <Icon
                     className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-105 ${
                       isActive
-                        ? 'text-white dark:text-[#22201F]'
+                        ? 'text-white'
                         : 'text-stone-400 group-hover:text-stone-800 dark:group-hover:text-white'
                     }`}
                   />
@@ -154,7 +154,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ml-2 shrink-0 ${
                           isActive
-                            ? 'bg-white/20 text-white dark:bg-[#22201F]/20 dark:text-[#22201F]'
+                            ? 'bg-white/20 text-white'
                             : 'bg-stone-100 text-stone-500 group-hover:bg-stone-200 group-hover:text-stone-800 dark:bg-stone-800 dark:text-stone-400 dark:group-hover:bg-stone-700 dark:group-hover:text-stone-200'
                         }`}
                       >

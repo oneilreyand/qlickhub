@@ -435,7 +435,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 size="sm"
                 onClick={() => setIsHandoffModalOpen(true)}
                 leftIcon={<Send className="h-4 w-4" />}
-                className="bg-[#22201F] hover:bg-stone-800 text-white dark:bg-[#B1E743] dark:hover:bg-[#a0d635] dark:text-[#22201F]"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:text-white"
               >
                 Handoff to QA
               </Button>
@@ -481,14 +481,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             <div
               className={`flex items-center gap-2 ${
                 subtask.status === 'todo'
-                  ? 'text-[#22201F] dark:text-[#B1E743] font-extrabold'
+                  ? 'text-indigo-600 dark:text-indigo-400 font-extrabold'
                   : 'text-stone-500'
               }`}
             >
               <div
                 className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-extrabold ${
                   subtask.status === 'todo'
-                    ? 'bg-[#22201F] text-white dark:bg-[#B1E743] dark:text-[#22201F]'
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500 dark:text-white'
                     : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
                 }`}
               >
@@ -502,14 +502,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             <div
               className={`flex items-center gap-2 ${
                 subtask.status === 'in_progress'
-                  ? 'text-[#22201F] dark:text-[#B1E743] font-extrabold'
+                  ? 'text-indigo-600 dark:text-indigo-400 font-extrabold'
                   : 'text-stone-500'
               }`}
             >
               <div
                 className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-extrabold ${
                   subtask.status === 'in_progress'
-                    ? 'bg-[#22201F] text-white dark:bg-[#B1E743] dark:text-[#22201F]'
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500 dark:text-white'
                     : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
                 }`}
               >
@@ -544,14 +544,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             <div
               className={`flex items-center gap-2 ${
                 subtask.status === 'done'
-                  ? 'text-[#22201F] dark:text-[#B1E743] font-extrabold'
+                  ? 'text-emerald-600 dark:text-emerald-400 font-extrabold'
                   : 'text-stone-500'
               }`}
             >
               <div
                 className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-extrabold ${
                   subtask.status === 'done'
-                    ? 'bg-[#22201F] text-white dark:bg-[#B1E743] dark:text-[#22201F]'
+                    ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-white'
                     : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
                 }`}
               >
@@ -617,7 +617,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200 dark:border-stone-800">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-[#22201F] dark:text-[#B1E743]" />
+                <TrendingUp className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
                   Schedule Timeline & Commitment Status
                 </h3>
@@ -640,7 +640,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                       <Calendar className="h-3 w-3 text-stone-400" />
                       <span>Start: {timelineStats.startDate}</span>
                     </span>
-                    <span className="text-stone-900 dark:text-[#B1E743] font-extrabold">
+                    <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">
                       {timelineStats.percent}% Elapsed
                     </span>
                     <span className="flex items-center gap-1">
@@ -654,12 +654,12 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                     max={100}
                     variant={
                       timelineStats.isCompleted
-                        ? 'brand'
+                        ? 'emerald'
                         : timelineStats.isOverdue
                         ? 'rose'
                         : timelineStats.remainingDays !== null && timelineStats.remainingDays <= 2
                         ? 'amber'
-                        : 'brand'
+                        : 'indigo'
                     }
                   />
                 </div>
@@ -677,11 +677,11 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   }`}
                 >
                   {timelineStats.isCompleted ? (
-                    <CheckCircle2 className="h-5 w-5 text-[#B1E743] shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
                   ) : timelineStats.isOverdue ? (
                     <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0" />
                   ) : (
-                    <Clock className="h-5 w-5 text-stone-700 dark:text-[#B1E743] shrink-0" />
+                    <Clock className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                   )}
 
                   <div>
@@ -722,7 +722,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               className="w-full p-4 flex items-center justify-between text-left bg-stone-50/60 dark:bg-stone-900/50 hover:bg-stone-100/60 dark:hover:bg-stone-900 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
+                <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 <div>
                   <span className="text-xs font-extrabold uppercase tracking-wider text-stone-900 dark:text-stone-100 block">
                     PO Product Brief & Specifications
@@ -758,7 +758,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <GitPullRequest className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
+                <GitPullRequest className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 <div>
                   <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
                     Dev Deliverables & Technical Implementation Notes
@@ -823,7 +823,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 onChange={(e) => setTechnicalNotes(e.target.value)}
                 rows={6}
                 placeholder="Write technical architecture, database migrations, endpoint signatures, or key developer decisions..."
-                className="w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:border-[#22201F] dark:focus:border-[#B1E743] outline-none font-mono leading-relaxed"
+                className="w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:border-indigo-600 dark:focus:border-indigo-500 outline-none font-mono leading-relaxed"
               />
             </div>
           </Card>
@@ -893,7 +893,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 onChange={(e) => setHandoffNotes(e.target.value)}
                 rows={3}
                 placeholder="E.g. Login with test-qa@qlick.io, navigate to /checkout, try new Stripe sandbox card..."
-                className="w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:border-[#22201F] dark:focus:border-[#B1E743] outline-none"
+                className="w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:border-indigo-600 dark:focus:border-indigo-500 outline-none"
               />
             </div>
           </div>

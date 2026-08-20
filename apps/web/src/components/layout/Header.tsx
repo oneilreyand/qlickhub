@@ -215,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Brand Logo Pill */}
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#B1E743] text-[#22201F] shadow-sm font-black text-lg">
+          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-600 text-white shadow-sm font-black text-lg">
             Q
           </div>
         </div>
@@ -226,7 +226,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={() => setShowWorkspaceMenu(!showWorkspaceMenu)}
             aria-label="Switch Workspace"
-            className="flex items-center gap-2 rounded-2xl border border-stone-200/80 bg-white px-3 py-1.5 min-h-[38px] text-xs font-semibold text-stone-800 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-[#22201F]/20 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
+            className="flex items-center gap-2 rounded-2xl border border-stone-200/80 bg-white px-3 py-1.5 min-h-[38px] text-xs font-semibold text-stone-800 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
           >
             <Building2 className="h-3.5 w-3.5 text-stone-500" />
             <span className="max-w-[120px] truncate">
@@ -244,7 +244,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="absolute left-0 mt-2 w-64 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl ring-1 ring-stone-900/5 z-30 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100">
               <div className="flex items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-400">
                 <span>Workspaces ({workspaces.length})</span>
-                {isLoading && <Loader2 className="h-3 w-3 animate-spin text-[#22201F]" />}
+                {isLoading && <Loader2 className="h-3 w-3 animate-spin text-indigo-600" />}
               </div>
 
               {error ? (
@@ -275,12 +275,12 @@ export const Header: React.FC<HeaderProps> = ({
                         }}
                         className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
                           isSelected
-                            ? 'bg-[#22201F] text-white font-semibold'
+                            ? 'bg-indigo-600 text-white font-semibold'
                             : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'
                         }`}
                       >
                         <span className="truncate">{ws.name}</span>
-                        {isSelected && <Check className="h-4 w-4 text-[#B1E743]" />}
+                        {isSelected && <Check className="h-4 w-4 text-white" />}
                       </button>
                     );
                   })}
@@ -310,7 +310,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => navigate('/work?tab=overview')}
           className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
             isOverviewActive
-              ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+              ? 'bg-indigo-600 text-white font-bold shadow-xs dark:bg-indigo-600 dark:text-white'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
           }`}
         >
@@ -321,7 +321,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => navigate('/work?tab=tasks')}
           className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
             isTasksActive
-              ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+              ? 'bg-indigo-600 text-white font-bold shadow-xs dark:bg-indigo-600 dark:text-white'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
           }`}
         >
@@ -332,7 +332,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => navigate('/my-tasks')}
           className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
             isMyTasksActive
-              ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+              ? 'bg-indigo-600 text-white font-bold shadow-xs dark:bg-indigo-600 dark:text-white'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
           }`}
         >
@@ -343,7 +343,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => navigate('/reports')}
           className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
             isReportsActive
-              ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+              ? 'bg-indigo-600 text-white font-bold shadow-xs dark:bg-indigo-600 dark:text-white'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
           }`}
         >
@@ -356,7 +356,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => navigate('/workspaces/settings')}
               className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 isSettingsActive
-                  ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+                  ? 'bg-indigo-600 text-white font-bold shadow-xs dark:bg-indigo-600 dark:text-white'
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
               }`}
             >
@@ -367,7 +367,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => navigate('/components')}
               className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 isComponentsActive
-                  ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+                  ? 'bg-indigo-600 text-white font-bold shadow-xs dark:bg-indigo-600 dark:text-white'
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
               }`}
             >
@@ -387,7 +387,7 @@ export const Header: React.FC<HeaderProps> = ({
           size="sm"
           className="rounded-full border border-stone-200/90 bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:text-white"
         >
-          <BookOpen className="h-4 w-4 text-indigo-600 dark:text-[#B1E743]" />
+          <BookOpen className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
         </IconButton>
 
         {/* Quick Theme Toggle Button */}
@@ -409,7 +409,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Bell className="h-4 w-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#B1E743] px-1 text-[10px] font-extrabold text-[#22201F] ring-2 ring-white dark:ring-stone-900">
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-extrabold text-white ring-2 ring-white dark:ring-stone-900">
                 {unreadCount}
               </span>
             )}
@@ -423,7 +423,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">Team Notifications</h3>
                   {unreadCount > 0 && (
-                    <span className="rounded-full bg-[#B1E743] px-2 py-0.5 text-[11px] font-extrabold text-[#22201F]">
+                    <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[11px] font-extrabold text-white">
                       {unreadCount} New
                     </span>
                   )}
@@ -468,7 +468,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => setNotifFilter(tab.id as typeof notifFilter)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 ${
                       notifFilter === tab.id
-                        ? 'bg-stone-900 text-white dark:bg-[#B1E743] dark:text-[#22201F]'
+                        ? 'bg-indigo-600 text-white dark:bg-indigo-600 dark:text-white'
                         : 'text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
                     }`}
                   >
@@ -532,7 +532,7 @@ export const Header: React.FC<HeaderProps> = ({
                         onClick={() => handleNotificationClick(notif)}
                         className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-2.5 ${
                           !notif.isRead
-                            ? 'border-[#22201F]/30 bg-stone-50/90 dark:border-[#B1E743]/30 dark:bg-stone-800/80 shadow-xs'
+                            ? 'border-indigo-200 bg-indigo-50/50 dark:border-indigo-900/50 dark:bg-indigo-950/30 shadow-xs'
                             : 'border-transparent hover:border-stone-200 hover:bg-stone-50/50 dark:hover:border-stone-800 dark:hover:bg-stone-800/40 text-stone-600 dark:text-stone-400'
                         }`}
                       >
@@ -586,7 +586,7 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
 
                         {!notif.isRead && (
-                          <span className="mt-1.5 h-2 w-2 rounded-full bg-[#B1E743] shrink-0" />
+                          <span className="mt-1.5 h-2 w-2 rounded-full bg-indigo-600 dark:bg-indigo-400 shrink-0" />
                         )}
                       </div>
                     );
@@ -602,7 +602,7 @@ export const Header: React.FC<HeaderProps> = ({
                     navigate('/my-tasks');
                     setShowNotifications(false);
                   }}
-                  className="font-bold text-stone-700 hover:text-stone-950 dark:text-[#B1E743] dark:hover:text-[#B1E743]/80 flex items-center gap-1"
+                  className="font-bold text-stone-700 hover:text-stone-950 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1"
                 >
                   <span>Open My Tasks</span>
                   <ExternalLink className="h-3 w-3" />
@@ -623,10 +623,10 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-2 p-0.5 rounded-full border border-stone-200/90 bg-white hover:bg-stone-100 focus:outline-none transition-all dark:border-stone-800 dark:bg-stone-900"
           >
             <div className="relative">
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-[#22201F] text-xs font-bold text-white shadow-xs">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs">
                 {userInitial}
               </div>
-              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#B1E743] ring-2 ring-white dark:ring-stone-900" />
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-stone-900" />
             </div>
           </button>
 
@@ -671,7 +671,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
                 >
-                  <BookOpen className="h-4 w-4 text-indigo-500 dark:text-[#B1E743]" />
+                  <BookOpen className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
                   <span>Panduan User Flow & Roles</span>
                 </button>
 

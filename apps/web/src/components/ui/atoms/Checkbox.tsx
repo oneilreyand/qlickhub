@@ -28,7 +28,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ label, checked, onChange, di
         <div
           className={`grid h-5 w-5 place-items-center rounded-md border transition-all ${
             checked
-              ? 'border-[#22201F] bg-[#22201F] text-white dark:border-[#B1E743] dark:bg-[#B1E743] dark:text-[#22201F]'
+              ? 'border-indigo-600 bg-indigo-600 text-white dark:border-indigo-500 dark:bg-indigo-500 dark:text-white'
               : 'border-stone-300 bg-white hover:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:hover:border-stone-600'
           }`}
         >
@@ -56,8 +56,8 @@ export const ToggleSwitch: React.FC<SwitchProps> = ({ checked, onChange, label, 
         aria-checked={checked}
         disabled={disabled}
         onClick={() => !disabled && onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#22201F]/20 ${
-          checked ? 'bg-[#22201F] dark:bg-[#B1E743]' : 'bg-stone-300 dark:bg-stone-700'
+        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600/20 ${
+          checked ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-stone-300 dark:bg-stone-700'
         }`}
       >
         <span
