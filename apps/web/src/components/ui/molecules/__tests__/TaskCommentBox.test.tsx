@@ -104,7 +104,7 @@ describe('TaskCommentBox Molecule Component', () => {
     const memberChip = screen.getByRole('button', { name: /@Bob Developer/i });
     fireEvent.click(memberChip);
 
-    expect(memberChip).toHaveClass('bg-[#22201F]');
+    expect(memberChip).toHaveClass('bg-[#B1E743]');
   });
 
   it('allows quick prompt for adding Image and Video links', () => {

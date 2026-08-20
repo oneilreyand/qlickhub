@@ -22,7 +22,7 @@ export const Snackbar: React.FC<SnackbarProps> = ({
   };
 
   return (
-    <div className="flex max-w-sm w-full items-center gap-3 rounded-2xl bg-[#22201F] px-4 py-3 text-xs text-white shadow-2xl ring-1 ring-white/10 dark:bg-[#1C1A19] dark:border dark:border-stone-800 animate-slideUp">
+    <div className="flex max-w-sm w-full items-center gap-3 rounded-2xl bg-[#141413] px-4 py-3 text-xs text-white shadow-2xl ring-1 ring-white/10 dark:bg-[#1C1A19] dark:border dark:border-stone-800 animate-slideUp">
       {typeIcons[type]}
       <span className="flex-1 font-medium leading-relaxed">{message}</span>
       {statusCode && (

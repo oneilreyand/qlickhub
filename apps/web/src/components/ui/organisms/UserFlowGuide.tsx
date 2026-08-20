@@ -516,7 +516,7 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
       {/* Role Comparison Matrix */}
       <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19]">
         <h2 className="text-lg font-bold text-stone-900 dark:text-white mb-4 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-indigo-600 dark:text-[#B1E743]" />
+          <ShieldCheck className="w-5 h-5 text-stone-900 dark:text-[#B1E743]" />
           Matriks Peran & Hak Akses (RBAC Matrix)
         </h2>
 
@@ -653,7 +653,7 @@ const UserFlowSection: React.FC<{
       <Card className="p-4 bg-stone-50/80 dark:bg-stone-900/60 border-stone-200/80 dark:border-stone-800">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 px-1">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-indigo-600 dark:text-[#B1E743]" />
+            <Users className="w-4 h-4 text-stone-900 dark:text-[#B1E743]" />
             <h3 className="text-xs font-bold text-stone-900 dark:text-white uppercase tracking-wider">
               Pilih Alur Kerja Berdasarkan Role (User Flow)
             </h3>

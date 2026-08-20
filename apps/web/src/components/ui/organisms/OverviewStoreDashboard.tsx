@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { OverviewBannerCarousel } from './OverviewBannerCarousel';
 import { AnimatedCounter } from '../atoms/AnimatedCounter';
+import { Button } from '../atoms/Button';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { RootState } from '../../../store/store';
 import { fetchTasks } from '../../../store/taskSlice';
@@ -175,14 +176,14 @@ export const OverviewStoreDashboard: React.FC = () => {
 
         <div className="flex items-center gap-3">
           {/* Quick Action: Open Task Hub */}
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={() => navigate('/work?tab=tasks')}
-            className="flex items-center gap-2 rounded-full bg-[#22201F] px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-stone-800 transition-all dark:bg-[#B1E743] dark:text-[#22201F]"
+            rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
+            className="rounded-full"
           >
-            <span>Open Task Hub</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </button>
+            Open Task Hub
+          </Button>
         </div>
       </div>
 
@@ -479,7 +480,7 @@ export const OverviewStoreDashboard: React.FC = () => {
                   >
                     {/* Floating Tooltip Pill */}
                     {isHovered && (
-                      <div className="absolute -top-24 z-20 flex flex-col items-start rounded-xl bg-[#22201F] px-3.5 py-2.5 text-[10px] font-semibold text-white shadow-xl min-w-[130px] border border-stone-700 animate-fadeIn">
+                      <div className="absolute -top-24 z-20 flex flex-col items-start rounded-xl bg-[#141413] px-3.5 py-2.5 text-[10px] font-semibold text-white shadow-xl min-w-[130px] border border-stone-700 animate-fadeIn">
                         <span className="text-stone-400 text-[9px] font-mono">{bar.period}</span>
                         <div className="mt-1 space-y-0.5">
                           <span className="flex items-center gap-1.5 text-stone-300">
@@ -517,7 +518,7 @@ export const OverviewStoreDashboard: React.FC = () => {
                       )}
                       {bar.inProgress > 0 && (
                         <div
-                          className="bg-[#22201F] dark:bg-stone-200 w-full"
+                          className="bg-stone-800 dark:bg-stone-200 w-full"
                           style={{ flex: bar.inProgress }}
                         />
                       )}
@@ -556,11 +557,11 @@ export const OverviewStoreDashboard: React.FC = () => {
           className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xs hover:border-[#B1E743] hover:ring-2 hover:ring-[#B1E743]/20 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-lime-50 text-[#22201F] dark:bg-lime-950/60 dark:text-[#B1E743]">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743]">
               <ClipboardList className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-emerald-600 dark:group-hover:text-[#B1E743] transition-colors flex items-center gap-1.5">
+              <h3 className="text-sm font-bold text-stone-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-[#B1E743] transition-colors flex items-center gap-1.5">
                 <span>Tugas Saya (My Tasks)</span>
                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                   {myPendingTasks.length} Aktif
@@ -587,7 +588,7 @@ export const OverviewStoreDashboard: React.FC = () => {
                 <Compass className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-stone-950 dark:group-hover:text-[#B1E743] transition-colors">
+                <h3 className="text-sm font-bold text-stone-900 dark:text-white group-hover:text-stone-950 dark:group-hover:text-[#B1E743] transition-colors">
                   Product Roadmap
                 </h3>
                 <p className="text-xs text-stone-500 dark:text-stone-400">
@@ -610,7 +611,7 @@ export const OverviewStoreDashboard: React.FC = () => {
                 <Code2 className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                <h3 className="text-sm font-bold text-stone-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                   Engineering Tasks
                 </h3>
                 <p className="text-xs text-stone-500 dark:text-stone-400">
@@ -633,7 +634,7 @@ export const OverviewStoreDashboard: React.FC = () => {
                 <FileBarChart className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                <h3 className="text-sm font-bold text-stone-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                   QA & Traceability
                 </h3>
                 <p className="text-xs text-stone-500 dark:text-stone-400">

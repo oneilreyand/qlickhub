@@ -171,15 +171,15 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
             onClick={() => onSelectFolder(null)}
             className={`flex min-h-10 w-full min-w-0 items-center justify-between rounded-xl px-3 text-xs font-semibold transition-colors ${
               selectedFolderId === null
-                ? 'bg-[#22201F] text-white font-bold dark:bg-[#B1E743] dark:text-[#22201F]'
+                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                 : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800/60'
             }`}
           >
             <span className="flex min-w-0 items-center gap-2 truncate">
-              <FolderOpen className={`h-4 w-4 shrink-0 ${selectedFolderId === null ? 'text-[#B1E743] dark:text-[#22201F]' : 'text-stone-500'}`} />
+              <FolderOpen className={`h-4 w-4 shrink-0 ${selectedFolderId === null ? 'text-[#141413] dark:text-[#141413]' : 'text-stone-500'}`} />
               <span className="truncate">All Tasks</span>
             </span>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null ? 'bg-stone-700 text-white dark:bg-stone-900 dark:text-stone-100' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null ? 'bg-[#141413] text-[#B1E743] dark:bg-[#141413] dark:text-[#B1E743]' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}>
               {totalTasks}
             </span>
           </button>
@@ -219,11 +219,11 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                         onClick={() => onSelectFolder(folder.id)}
                         className={`flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-left text-xs font-medium transition-colors overflow-hidden ${
                           isSelected
-                            ? 'bg-[#22201F] font-bold text-white dark:bg-[#B1E743] dark:text-[#22201F]'
+                            ? 'bg-[#B1E743] font-bold text-[#141413] shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                             : 'text-stone-700 dark:text-stone-300'
                         }`}
                       >
-                        <Folder className={`h-4 w-4 shrink-0 ${isSelected ? 'text-[#B1E743] dark:text-[#22201F]' : 'text-amber-500'}`} />
+                        <Folder className={`h-4 w-4 shrink-0 ${isSelected ? 'text-[#141413] dark:text-[#141413]' : 'text-amber-500'}`} />
                         <span className="truncate block min-w-0 flex-1">{folder.name}</span>
                       </button>
 
@@ -303,7 +303,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                                 onClick={() => onSelectFolder(subfolder.id)}
                                 className={`flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left text-xs transition-colors overflow-hidden ${
                                   isSubSelected
-                                    ? 'bg-[#22201F] font-semibold text-white dark:bg-[#B1E743] dark:text-[#22201F]'
+                                    ? 'bg-[#B1E743] font-semibold text-[#141413] shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                                     : 'text-stone-600 dark:text-stone-400'
                                 }`}
                               >

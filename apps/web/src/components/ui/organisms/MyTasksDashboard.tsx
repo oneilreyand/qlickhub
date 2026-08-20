@@ -206,7 +206,7 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
         </Card>
 
         <Card className="p-4 flex items-center gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#22201F] text-[#B1E743] dark:bg-[#B1E743] dark:text-[#22201F]">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]">
             <Clock className="h-5 w-5" />
           </div>
           <div>
@@ -262,7 +262,7 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                     isActive
-                      ? 'bg-[#22201F] text-white shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+                      ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                       : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
                   }`}
                 >
@@ -334,7 +334,7 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
                 key={task.id}
                 onClick={() => onSelectTask(task.id)}
                 className={`p-4 cursor-pointer transition-all hover:border-stone-400 dark:hover:border-stone-600 ${
-                  selectedTaskId === task.id ? 'border-[#22201F] bg-stone-50 dark:border-[#B1E743] dark:bg-stone-900' : ''
+                  selectedTaskId === task.id ? 'border-[#B1E743] bg-lime-50/20 ring-2 ring-[#B1E743]/30 dark:border-[#B1E743] dark:bg-stone-900/80 dark:ring-[#B1E743]/20' : ''
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

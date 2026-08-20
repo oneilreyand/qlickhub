@@ -33,7 +33,7 @@ export const Tabs: React.FC<TabsProps> = ({
               onClick={() => onChange(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 isActive
-                  ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+                  ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
               }`}
             >
@@ -44,7 +44,7 @@ export const Tabs: React.FC<TabsProps> = ({
                 <span
                   className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold ${
                     isActive
-                      ? 'bg-[#B1E743] text-[#22201F] dark:bg-[#22201F] dark:text-white'
+                      ? 'bg-[#141413] text-[#B1E743] dark:bg-[#141413] dark:text-[#B1E743]'
                       : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
                   }`}
                 >
@@ -71,7 +71,7 @@ export const Tabs: React.FC<TabsProps> = ({
               onClick={() => onChange(tab.id)}
               className={`flex min-h-[44px] items-center gap-2 border-b-2 py-3 px-1 text-xs font-semibold transition-all ${
                 isActive
-                  ? 'border-[#22201F] text-[#22201F] dark:border-[#B1E743] dark:text-[#B1E743]'
+                  ? 'border-[#B1E743] text-stone-900 font-bold dark:border-[#B1E743] dark:text-[#B1E743]'
                   : 'border-transparent text-stone-500 hover:border-stone-300 hover:text-stone-700 dark:text-stone-400 dark:hover:border-stone-700 dark:hover:text-stone-200'
               }`}
             >
@@ -83,7 +83,7 @@ export const Tabs: React.FC<TabsProps> = ({
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] ${
                     isActive
-                      ? 'bg-[#22201F] text-white font-bold dark:bg-[#B1E743] dark:text-[#22201F]'
+                      ? 'bg-[#B1E743] text-[#141413] font-bold dark:bg-[#B1E743] dark:text-[#141413]'
                       : 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400'
                   }`}
                 >

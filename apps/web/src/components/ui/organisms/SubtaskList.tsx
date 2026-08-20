@@ -155,7 +155,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                 onClick={() => setViewMode('accordion')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
                   viewMode === 'accordion'
-                    ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs'
+                    ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                     : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
                 }`}
                 title="View subtasks as expandable accordion cards"
@@ -169,7 +169,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                 onClick={() => setViewMode('timeline')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
                   viewMode === 'timeline'
-                    ? 'bg-[#22201F] text-white dark:bg-[#B1E743] dark:text-[#22201F] shadow-xs'
+                    ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                     : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
                 }`}
                 title="View cross-role timeline and overlap diagnostics"

@@ -117,7 +117,7 @@ function getDeliveryAreaBadge(area?: DeliveryArea | null) {
       );
     case 'qa':
       return (
-        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-[#B1E743]/20 text-[#22201F] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
           <Bug className="h-2.5 w-2.5" /> QA
         </span>
       );
@@ -463,11 +463,11 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     }
     switch (task.status) {
       case 'done':
-        return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs ring-1 ring-[#9ed434]/40';
+        return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
       case 'in_review':
         return 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs ring-1 ring-amber-600/40';
       case 'in_progress':
-        return 'bg-[#22201F] hover:bg-stone-800 text-white shadow-xs dark:bg-stone-700 dark:hover:bg-stone-600';
+        return 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs';
       case 'canceled':
         return 'bg-stone-400 hover:bg-stone-500 text-stone-900 line-through opacity-70';
       case 'todo':
@@ -483,7 +483,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       return 'bg-rose-500 hover:bg-rose-600 text-white shadow-xs ring-1 ring-rose-600/40';
     }
     if (health.status === 'completed') {
-      return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs ring-1 ring-[#9ed434]/40';
+      return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
     }
     if (health.status === 'at_risk') {
       return 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs ring-1 ring-amber-600/40';
@@ -492,11 +492,11 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       case 'frontend':
       case 'mobile':
       case 'fullstack':
-        return 'bg-[#22201F] hover:bg-stone-800 text-white shadow-xs dark:bg-stone-700';
+        return 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs';
       case 'backend':
         return 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs';
       case 'qa':
-        return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs';
+        return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
       default:
         return 'bg-stone-500 hover:bg-stone-600 text-white shadow-xs';
     }
@@ -562,7 +562,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               }}
               className={`px-3 py-1 text-xs font-bold rounded-lg transition-all capitalize ${
                 scale === s
-                  ? 'bg-stone-900 text-white dark:bg-[#B1E743] dark:text-[#22201F] shadow-xs'
+                  ? 'bg-[#B1E743] text-[#141413] shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                   : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 border border-stone-200/80 dark:border-stone-700/80'
               }`}
             >

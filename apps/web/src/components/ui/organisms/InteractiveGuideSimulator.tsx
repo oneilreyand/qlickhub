@@ -423,7 +423,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-[#B1E743]">
+              <span className="p-1.5 rounded-lg bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]">
                 <PlayCircle className="w-5 h-5" />
               </span>
               <h2 className="text-lg font-bold text-stone-900 dark:text-white">
@@ -689,7 +689,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigate(currentGuide.targetRoute)}
-                  className="font-bold text-indigo-600 dark:text-[#B1E743] hover:underline flex items-center gap-1"
+                  className="font-bold text-stone-900 dark:text-[#B1E743] hover:underline flex items-center gap-1"
                 >
                   <span>{currentGuide.targetRouteLabel}</span>
                   <ExternalLink className="w-3 h-3" />
@@ -730,7 +730,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                       {/* Folder Tree Header like real app */}
                       <div className="p-3.5 bg-stone-50 dark:bg-stone-900/80 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Folder className="w-4 h-4 text-indigo-500 dark:text-[#B1E743]" />
+                          <Folder className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
                           <span className="text-xs font-bold text-stone-900 dark:text-white uppercase tracking-wider">
                             Folders
                           </span>

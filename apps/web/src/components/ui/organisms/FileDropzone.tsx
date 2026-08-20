@@ -48,15 +48,15 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
         }}
         className={`flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
           isDragOver
-            ? 'border-[#22201F] bg-stone-100 dark:border-[#B1E743] dark:bg-stone-900'
+            ? 'border-[#B1E743] bg-lime-50/40 dark:border-[#B1E743] dark:bg-stone-900'
             : 'border-stone-300 bg-stone-50/50 hover:border-stone-400 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900/40 dark:hover:border-stone-700 dark:hover:bg-stone-900/60'
         }`}
       >
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-[#22201F] shadow-xs border border-stone-200 dark:border-stone-800 dark:bg-stone-800 dark:text-[#B1E743]">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#B1E743]/20 text-[#141413] shadow-xs border border-[#B1E743]/50 dark:border-stone-800 dark:bg-stone-800 dark:text-[#B1E743]">
           <UploadCloud className="h-5 w-5" />
         </div>
         <p className="mt-3 text-xs font-semibold text-stone-800 dark:text-stone-200">
-          <span className="text-[#22201F] hover:underline font-bold dark:text-[#B1E743]">Click to upload</span> or drag & drop files
+          <span className="text-stone-900 hover:underline font-bold dark:text-[#B1E743]">Click to upload</span> or drag & drop files
         </p>
         <p className="mt-1 text-[11px] text-stone-400 dark:text-stone-500">PDF, DOCX, PNG up to 10MB (max {maxFiles} files)</p>
         <input
@@ -77,7 +77,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
               className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-xs dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
             >
               <div className="flex items-center gap-2.5 truncate">
-                <File className="h-4 w-4 text-[#22201F] shrink-0 dark:text-[#B1E743]" />
+                <File className="h-4 w-4 text-stone-700 shrink-0 dark:text-[#B1E743]" />
                 <span className="font-semibold text-stone-800 truncate dark:text-stone-200">{file.name}</span>
                 <span className="text-[10px] text-stone-400 dark:text-stone-500">({(file.size / 1024).toFixed(1)} KB)</span>
               </div>

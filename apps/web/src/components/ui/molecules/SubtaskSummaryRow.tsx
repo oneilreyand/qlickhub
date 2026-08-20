@@ -80,7 +80,7 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
         );
       case 'qa':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-[#B1E743]/20 text-[#22201F] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
             <Bug className="h-3 w-3" /> QA
           </span>
         );
@@ -140,7 +140,7 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
           ) : commentCount > 0 ? (
 
             <span
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#B1E743]/20 text-[#22201F] dark:text-[#B1E743] border border-[#B1E743]/50"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50"
               title={`${commentCount} discussion comments`}
             >
               <MessageSquare className="h-3 w-3" />

@@ -96,9 +96,9 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-label="Pick date range"
-        className={`inline-flex min-h-[44px] items-center justify-between gap-2.5 rounded-xl border px-3.5 text-xs font-semibold shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-[#22201F]/20 ${
+        className={`inline-flex min-h-[44px] items-center justify-between gap-2.5 rounded-xl border px-3.5 text-xs font-semibold shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-[#B1E743]/30 ${
           internalRange
-            ? 'border-[#22201F] bg-[#22201F] text-white dark:border-[#B1E743] dark:bg-[#B1E743] dark:text-[#22201F]'
+            ? 'border-[#B1E743] bg-[#B1E743] text-[#141413] font-bold dark:border-[#B1E743] dark:bg-[#B1E743] dark:text-[#141413]'
             : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800'
         }`}
       >
@@ -173,7 +173,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                         endDate: prev?.endDate || e.target.value,
                       }))
                     }
-                    className="w-full rounded-xl border border-stone-200 bg-stone-50 p-2 text-xs text-stone-900 outline-none focus:border-[#22201F] dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100"
+                    className="w-full rounded-xl border border-stone-200 bg-stone-50 p-2 text-xs text-stone-900 outline-none focus:border-[#B1E743] dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100"
                   />
                 </div>
                 <div>
@@ -187,7 +187,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                         endDate: e.target.value,
                       }))
                     }
-                    className="w-full rounded-xl border border-stone-200 bg-stone-50 p-2 text-xs text-stone-900 outline-none focus:border-[#22201F] dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100"
+                    className="w-full rounded-xl border border-stone-200 bg-stone-50 p-2 text-xs text-stone-900 outline-none focus:border-[#B1E743] dark:border-stone-800 dark:bg-stone-950 dark:text-stone-100"
                   />
                 </div>
               </div>
@@ -205,7 +205,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 type="button"
                 onClick={handleApplyCustom}
                 disabled={!internalRange?.startDate || !internalRange?.endDate}
-                className="rounded-xl bg-[#22201F] px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-stone-800 disabled:opacity-40 transition-all dark:bg-[#B1E743] dark:text-[#22201F]"
+                className="rounded-xl bg-[#B1E743] px-3 py-1.5 text-xs font-bold text-[#141413] shadow-xs hover:bg-[#9ed434] active:bg-[#8cc026] disabled:opacity-40 transition-all dark:bg-[#B1E743] dark:text-[#141413]"
               >
                 Apply Range
               </button>

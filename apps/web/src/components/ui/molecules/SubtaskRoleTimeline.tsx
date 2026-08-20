@@ -170,7 +170,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
         );
       case 'qa':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[#B1E743]/20 text-[#22201F] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
             <Bug className="h-3 w-3" /> QA
           </span>
         );
@@ -188,7 +188,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
       return 'bg-rose-500 hover:bg-rose-600 text-white shadow-xs ring-1 ring-rose-600/50';
     }
     if (healthStatus === 'completed') {
-      return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs';
+      return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
     }
     if (healthStatus === 'at_risk') {
       return 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs ring-1 ring-amber-600/50';
@@ -197,11 +197,11 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
       case 'frontend':
       case 'mobile':
       case 'fullstack':
-        return 'bg-[#22201F] hover:bg-stone-800 text-white shadow-xs dark:bg-stone-700';
+        return 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs';
       case 'backend':
         return 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs';
       case 'qa':
-        return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs';
+        return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
       default:
         return 'bg-stone-600 hover:bg-stone-700 text-white shadow-xs';
     }

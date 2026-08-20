@@ -98,7 +98,7 @@ export const OnboardingWelcomeStep: React.FC<OnboardingWelcomeStepProps> = ({ us
       <Card className="p-5 sm:p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100 dark:border-stone-800/80">
           <div className="flex items-center gap-3.5">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#22201F] text-white dark:bg-[#B1E743] dark:text-[#22201F] font-bold text-lg shadow-sm shrink-0">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#B1E743] text-[#141413] font-bold text-lg shadow-sm shrink-0">
               {userInitial}
             </div>
             <div className="min-w-0">

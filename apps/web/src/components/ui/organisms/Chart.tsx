@@ -77,7 +77,7 @@ export const BarChart: React.FC<BarChartProps> = ({
             >
               {/* Tooltip */}
               {hoveredIdx === idx && (
-                <div className="absolute -top-12 z-30 rounded-xl bg-[#22201F] px-3 py-1.5 text-[11px] font-semibold text-white shadow-xl whitespace-nowrap animate-fade-in dark:bg-stone-800 dark:border dark:border-stone-700">
+                <div className="absolute -top-12 z-30 rounded-xl bg-[#141413] px-3 py-1.5 text-[11px] font-semibold text-white shadow-xl whitespace-nowrap animate-fade-in dark:bg-stone-800 dark:border dark:border-stone-700">
                   <span>{item.label}: </span>
                   <span className="text-[#B1E743]">{item.value} passed</span>
                   {item.secondaryValue !== undefined && (
@@ -101,7 +101,7 @@ export const BarChart: React.FC<BarChartProps> = ({
               </div>
 
               {/* Axis Label */}
-              <span className="mt-2 truncate text-[11px] font-semibold text-stone-500 group-hover:text-[#22201F] dark:text-stone-400 dark:group-hover:text-[#B1E743]">
+              <span className="mt-2 truncate text-[11px] font-semibold text-stone-500 group-hover:text-stone-900 dark:text-stone-400 dark:group-hover:text-[#B1E743]">
                 {item.label}
               </span>
             </div>
@@ -148,8 +148,8 @@ export const LineChart: React.FC<LineChartProps> = ({
             {title && <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">{title}</h3>}
             {subtitle && <p className="text-xs text-stone-500 dark:text-stone-400">{subtitle}</p>}
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#22201F] dark:text-[#B1E743]">
-            <span className="h-2 w-2 rounded-full bg-[#22201F] dark:bg-[#B1E743]" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-900 dark:text-[#B1E743]">
+            <span className="h-2 w-2 rounded-full bg-[#B1E743] dark:bg-[#B1E743]" />
             <span>{label}</span>
           </div>
         </div>
@@ -168,11 +168,11 @@ export const LineChart: React.FC<LineChartProps> = ({
           {/* Data Circles */}
           {points.map((p, idx) => (
             <g key={idx} className="group cursor-pointer">
-              <circle cx={p.x} cy={p.y} r="5" className="fill-[#22201F] stroke-white stroke-2 transition-transform group-hover:r-7 dark:fill-[#B1E743] dark:stroke-[#1C1A19]" />
+              <circle cx={p.x} cy={p.y} r="5" className="fill-[#B1E743] stroke-stone-900 dark:stroke-stone-100 stroke-2 transition-transform group-hover:r-7" />
               <text x={p.x} y={chartHeight - 10} textAnchor="middle" className="text-[10px] font-semibold fill-stone-500 dark:fill-stone-400">
                 {p.data.label}
               </text>
-              <text x={p.x} y={p.y - 12} textAnchor="middle" className="text-[10px] font-bold fill-[#22201F] opacity-0 group-hover:opacity-100 transition-opacity dark:fill-[#B1E743]">
+              <text x={p.x} y={p.y - 12} textAnchor="middle" className="text-[10px] font-bold fill-stone-900 opacity-0 group-hover:opacity-100 transition-opacity dark:fill-[#B1E743]">
                 {p.data.value}%
               </text>
             </g>

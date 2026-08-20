@@ -39,10 +39,10 @@ export const Tooltip: React.FC<TooltipProps> = ({
   };
 
   const arrowStyles = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-t-[#22201F] dark:border-t-stone-100 border-x-transparent border-b-transparent',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-[#22201F] dark:border-b-stone-100 border-x-transparent border-t-transparent',
-    left: 'left-full top-1/2 -translate-y-1/2 border-l-[#22201F] dark:border-l-stone-100 border-y-transparent border-r-transparent',
-    right: 'right-full top-1/2 -translate-y-1/2 border-r-[#22201F] dark:border-r-stone-100 border-y-transparent border-l-transparent',
+    top: 'top-full left-1/2 -translate-x-1/2 border-t-[#141413] dark:border-t-stone-100 border-x-transparent border-b-transparent',
+    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-[#141413] dark:border-b-stone-100 border-x-transparent border-t-transparent',
+    left: 'left-full top-1/2 -translate-y-1/2 border-l-[#141413] dark:border-l-stone-100 border-y-transparent border-r-transparent',
+    right: 'right-full top-1/2 -translate-y-1/2 border-r-[#141413] dark:border-r-stone-100 border-y-transparent border-l-transparent',
   };
 
   return (
@@ -57,7 +57,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       {isVisible && (
         <div
           role="tooltip"
-          className={`aria-hidden:hidden absolute z-50 whitespace-nowrap rounded-lg bg-[#22201F] px-2.5 py-1.5 text-xs font-semibold text-white shadow-xl transition-all animate-in fade-in zoom-in-95 dark:bg-stone-100 dark:text-[#22201F] ${positionStyles[position]} ${className}`}
+          className={`aria-hidden:hidden absolute z-50 whitespace-nowrap rounded-lg bg-[#141413] px-2.5 py-1.5 text-xs font-semibold text-white shadow-xl transition-all animate-in fade-in zoom-in-95 dark:bg-stone-100 dark:text-[#141413] ${positionStyles[position]} ${className}`}
         >
           {content}
           <div

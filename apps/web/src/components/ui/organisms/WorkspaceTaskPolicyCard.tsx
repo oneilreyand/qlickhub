@@ -1,6 +1,7 @@
 import React from 'react';
 import { Shield } from 'lucide-react';
 import { Card } from '../atoms/Card';
+import { ToggleSwitch } from '../atoms/Checkbox';
 
 export interface WorkspaceTaskPolicyCardProps {
   allowQaTaskCreation: boolean;
@@ -35,16 +36,11 @@ export const WorkspaceTaskPolicyCard: React.FC<WorkspaceTaskPolicyCardProps> = (
             </p>
           </div>
 
-          <label className="relative inline-flex cursor-pointer items-center shrink-0">
-            <input
-              type="checkbox"
-              className="peer sr-only"
-              checked={allowQaTaskCreation}
-              disabled={!canManage || isUpdating}
-              onChange={(e) => onToggle(e.target.checked)}
-            />
-            <div className="peer h-6 w-11 rounded-full bg-stone-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-stone-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#22201F] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-stone-700 dark:peer-checked:bg-[#B1E743] dark:peer-checked:after:bg-stone-900" />
-          </label>
+          <ToggleSwitch
+            checked={allowQaTaskCreation}
+            disabled={!canManage || isUpdating}
+            onChange={onToggle}
+          />
         </div>
 
         {!canManage && (

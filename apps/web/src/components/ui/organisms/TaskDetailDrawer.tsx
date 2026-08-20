@@ -15,7 +15,6 @@ import {
   User,
   Folder,
   Calendar,
-  Sparkles,
   Code2,
   Layers,
   Bug,
@@ -160,7 +159,7 @@ function getActivityIcon(action: string) {
   if (action.includes('subtask')) return <ListTodo className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
   if (action.includes('requirement') || action.includes('brief') || action.includes('spec')) return <FileText className="h-3.5 w-3.5 text-emerald-500" />;
   if (action.includes('comment')) return <MessageSquare className="h-3.5 w-3.5 text-blue-500" />;
-  return <Sparkles className="h-3.5 w-3.5 text-stone-400" />;
+  return <History className="h-3.5 w-3.5 text-stone-400" />;
 }
 
 function renderHumanActivityDescription(act: TaskActivity) {

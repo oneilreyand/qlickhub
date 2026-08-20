@@ -137,10 +137,10 @@ describe('TaskTimelineView', () => {
     const monthBtn = screen.getByRole('button', { name: /^month$/i });
 
     fireEvent.click(dayBtn);
-    expect(dayBtn.className).toContain('bg-stone-900');
+    expect(dayBtn.className).toContain('bg-[#B1E743]');
 
     fireEvent.click(monthBtn);
-    expect(monthBtn.className).toContain('bg-stone-900');
+    expect(monthBtn.className).toContain('bg-[#B1E743]');
   });
 
   it('triggers onSelect when clicking a task bar or label', () => {

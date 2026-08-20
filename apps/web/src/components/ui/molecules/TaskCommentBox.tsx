@@ -243,7 +243,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
               {defaultTitle}
             </h3>
             {totalCommentsCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#B1E743] text-[#22201F] shadow-xs">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#B1E743] text-[#141413] shadow-xs">
                 {totalCommentsCount}
               </span>
             )}
@@ -319,7 +319,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                               })}
                             </span>
                             <span>•</span>
-                            <span className="px-1.5 py-0.2 rounded-xs text-[9px] font-extrabold bg-[#B1E743] text-[#22201F]">
+                            <span className="px-1.5 py-0.2 rounded-xs text-[9px] font-extrabold bg-[#B1E743] text-[#141413]">
                               Anda ({authorRole})
                             </span>
                           </>
@@ -350,7 +350,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                       <div
                         className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs transition-all ${
                           isMe
-                            ? 'bg-[#B1E743] text-[#22201F] rounded-tr-xs dark:bg-[#B1E743] dark:text-[#22201F] font-medium border border-[#9ed336]'
+                            ? 'bg-[#B1E743] text-[#141413] rounded-tr-xs dark:bg-[#B1E743] dark:text-[#141413] font-medium border border-[#9ed336]'
                             : 'bg-white dark:bg-[#1C1A19] border border-stone-200/80 dark:border-stone-800 text-stone-900 dark:text-stone-100 rounded-tl-xs'
                         }`}
                       >
@@ -476,7 +476,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                       })}
                                     </span>
                                     <span>•</span>
-                                    <span className="px-1 py-0.2 rounded-xs text-[8px] font-extrabold bg-[#B1E743] text-[#22201F]">
+                                    <span className="px-1 py-0.2 rounded-xs text-[8px] font-extrabold bg-[#B1E743] text-[#141413]">
                                       Anda
                                     </span>
                                   </>
@@ -502,7 +502,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                               <div
                                 className={`p-2.5 rounded-xl text-xs leading-relaxed shadow-2xs ${
                                   isReplyMe
-                                    ? 'bg-[#B1E743] text-[#22201F] rounded-tr-xs dark:bg-[#B1E743] dark:text-[#22201F] font-medium border border-[#9ed336]'
+                                    ? 'bg-[#B1E743] text-[#141413] rounded-tr-xs dark:bg-[#B1E743] dark:text-[#141413] font-medium border border-[#9ed336]'
                                     : 'bg-white dark:bg-[#1C1A19] border border-stone-200/80 dark:border-stone-800 text-stone-900 dark:text-stone-100 rounded-tl-xs'
                                 }`}
                               >
@@ -774,7 +774,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                     }}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
                       isSelected
-                        ? 'bg-[#22201F] text-white shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+                        ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                         : 'bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700'
                     }`}
                   >
@@ -782,7 +782,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                     <span
                       className={`text-[9px] uppercase px-1 rounded font-bold ${
                         isSelected
-                          ? 'bg-white/20 text-white dark:bg-black/20 dark:text-stone-900'
+                          ? 'bg-[#141413]/15 text-[#141413] dark:bg-[#141413]/20 dark:text-[#141413]'
                           : 'bg-black/10 text-stone-600 dark:bg-white/10 dark:text-stone-400'
                       }`}
                     >
@@ -941,7 +941,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                       <Avatar name={authorName} size="sm" className="h-5 w-5 text-[10px]" />
                       <span className="font-bold text-stone-900 dark:text-stone-100 truncate">{authorName}</span>
                       {isMe ? (
-                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-[#B1E743] text-[#22201F] shadow-xs">
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-[#B1E743] text-[#141413] shadow-xs">
                           Anda ({authorRole})
                         </span>
                       ) : (
@@ -979,7 +979,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                             setEditingCommentId(comment.id);
                             setEditingCommentText(comment.body);
                           }}
-                          className="h-5 w-5 text-stone-400 hover:text-[#22201F] dark:hover:text-[#B1E743]"
+                          className="h-5 w-5 text-stone-400 hover:text-stone-900 dark:hover:text-[#B1E743]"
                         >
                           <Edit2 className="h-3 w-3" />
                         </IconButton>
@@ -1102,7 +1102,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                 {replyAuthorName}
                               </span>
                               {isReplyMe ? (
-                                <span className="text-[8px] font-extrabold px-1 py-0.2 rounded bg-[#B1E743] text-[#22201F]">
+                                <span className="text-[8px] font-extrabold px-1 py-0.2 rounded bg-[#B1E743] text-[#141413]">
                                   Anda
                                 </span>
                               ) : (
@@ -1138,7 +1138,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                     setEditingCommentId(reply.id);
                                     setEditingCommentText(reply.body);
                                   }}
-                                  className="h-4 w-4 text-stone-400 hover:text-[#22201F] dark:hover:text-[#B1E743]"
+                                  className="h-4 w-4 text-stone-400 hover:text-stone-900 dark:hover:text-[#B1E743]"
                                 >
                                   <Edit2 className="h-2.5 w-2.5" />
                                 </IconButton>
