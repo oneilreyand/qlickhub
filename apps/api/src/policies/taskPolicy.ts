@@ -61,7 +61,7 @@ export function assertCanAccessTask(
 
 /**
  * Applies the Work Hub task policy to field-level mutations on parent tasks and subtasks.
- * Enforces separation of duties (no self-approval for assignees on subtasks).
+ * Enforces strict transition maps, planning field protection, and separation of duties.
  */
 export function assertCanMutateTask(
   role: WorkspaceRole,
@@ -75,13 +75,14 @@ export function assertCanMutateTask(
   input: UpdateTaskInput
 ): void {
   const isSubtask = Boolean(currentTask.parentTaskId);
+  const currentStatus = currentTask.status || 'todo';
 
   // Planners (Product Owner, Admin, Owner) have full management rights across tasks & subtasks
   if (isPlanner(role)) {
-    if (isSubtask && input.status !== undefined) {
+    if (isSubtask && input.status !== undefined && input.status !== currentStatus) {
       // Prevent self-approval even for planners if they are the assignee, unless owner
       if (
-        currentTask.status === 'in_review' &&
+        currentStatus === 'in_review' &&
         input.status === 'done' &&
         currentTask.assigneeId === actorId &&
         role !== 'owner'
@@ -100,53 +101,97 @@ export function assertCanMutateTask(
     if (currentTask.assigneeId !== actorId) {
       throw new Error('FORBIDDEN: Developers can only update subtasks assigned to them.');
     }
-    // Check forbidden field changes for developers
+
+    // Check forbidden planning field changes for developers
     if (
       input.title !== undefined ||
       input.assigneeId !== undefined ||
       input.priority !== undefined ||
       input.deliveryArea !== undefined ||
       input.folderId !== undefined ||
-      input.parentTaskId !== undefined
+      input.parentTaskId !== undefined ||
+      input.startDate !== undefined ||
+      input.dueDate !== undefined
     ) {
-      throw new Error('FORBIDDEN: Developers cannot modify subtask title, assignment, priority, delivery area, or folder.');
+      throw new Error('FORBIDDEN: Developers cannot modify subtask planning fields (title, assignee, priority, delivery area, folder, or schedule dates).');
     }
-    // Developers cannot mark their own subtask as 'done' (must go through QA / PO verification)
-    if (input.status === 'done') {
-      throw new Error('FORBIDDEN: Developers cannot mark subtasks as Done directly. Please submit for QA review instead.');
+
+    // Status transition map validation for developer
+    if (input.status !== undefined && input.status !== currentStatus) {
+      if (input.status === 'done') {
+        throw new Error('FORBIDDEN: Developers cannot mark subtasks as Done directly. Please submit for QA review instead.');
+      }
+
+      const validDevTransitions: Record<string, TaskStatus[]> = {
+        todo: ['in_progress'],
+        in_progress: ['in_review'],
+        changes_requested: ['in_progress'],
+      };
+
+      const allowedTargets = validDevTransitions[currentStatus] || [];
+      if (!allowedTargets.includes(input.status)) {
+        throw new Error(`FORBIDDEN: Invalid status transition for developer from "${currentStatus}" to "${input.status}".`);
+      }
     }
-    // Allowed statuses for developers: 'todo', 'in_progress', 'in_review'
-    if (input.status !== undefined && !['todo', 'in_progress', 'in_review'].includes(input.status)) {
-      throw new Error(`FORBIDDEN: Developers cannot set subtask status to "${input.status}".`);
-    }
+
     return;
   }
 
-  // QA role (Quality Assurance executor)
+  // QA role (Quality Assurance executor & reviewer)
   if (role === 'qa') {
     if (!isSubtask) {
       throw new Error('FORBIDDEN: QA members cannot modify parent tasks.');
     }
-    const isAssigned = currentTask.assigneeId === actorId || currentTask.deliveryArea === 'qa';
-    const isReadyForQa = currentTask.status === 'in_review' || currentTask.status === 'in_progress';
-    if (!isAssigned && !isReadyForQa) {
-      throw new Error('FORBIDDEN: QA can only review subtasks that are Ready for QA or assigned to QA.');
-    }
-    // Check forbidden field changes for QA
+
+    // Check forbidden planning field changes for QA
     if (
       input.title !== undefined ||
       input.assigneeId !== undefined ||
       input.priority !== undefined ||
       input.deliveryArea !== undefined ||
       input.folderId !== undefined ||
-      input.parentTaskId !== undefined
+      input.parentTaskId !== undefined ||
+      input.startDate !== undefined ||
+      input.dueDate !== undefined
     ) {
-      throw new Error('FORBIDDEN: QA members cannot modify subtask title, assignment, priority, delivery area, or folder.');
+      throw new Error('FORBIDDEN: QA members cannot modify subtask planning fields (title, assignee, priority, delivery area, folder, or schedule dates).');
     }
-    // Allowed statuses for QA: 'in_progress', 'changes_requested', 'done'
-    if (input.status !== undefined && !['in_progress', 'changes_requested', 'done'].includes(input.status)) {
-      throw new Error(`FORBIDDEN: QA members cannot set subtask status to "${input.status}".`);
+
+    const isAssignedQaExecutor = currentTask.deliveryArea === 'qa' && currentTask.assigneeId === actorId;
+    const isReviewingInReviewSubtask = currentStatus === 'in_review';
+
+    if (currentTask.deliveryArea === 'qa' && currentTask.assigneeId !== actorId && !isReviewingInReviewSubtask) {
+      throw new Error('FORBIDDEN: QA members cannot execute QA subtasks assigned to other members.');
     }
+
+    if (!isAssignedQaExecutor && !isReviewingInReviewSubtask) {
+      throw new Error('FORBIDDEN: QA members can only review subtasks in review or execute QA subtasks assigned to them.');
+    }
+
+    // Transition map for QA
+    if (input.status !== undefined && input.status !== currentStatus) {
+      if (isReviewingInReviewSubtask) {
+        // QA reviewing subtask in review (from any delivery area)
+        if (!['changes_requested', 'done'].includes(input.status)) {
+          throw new Error(`FORBIDDEN: QA reviewers can only transition subtasks in review to "changes_requested" or "done".`);
+        }
+        if (input.status === 'changes_requested' && (!input.reviewNotes || !input.reviewNotes.trim())) {
+          throw new Error('BAD_REQUEST: Review notes are required when requesting changes.');
+        }
+      } else if (isAssignedQaExecutor) {
+        // QA executing own QA subtask
+        const validQaExecutionTransitions: Record<string, TaskStatus[]> = {
+          todo: ['in_progress', 'done'],
+          in_progress: ['done'],
+          changes_requested: ['in_progress'],
+        };
+        const allowedTargets = validQaExecutionTransitions[currentStatus] || [];
+        if (!allowedTargets.includes(input.status)) {
+          throw new Error(`FORBIDDEN: Invalid status transition for QA executor from "${currentStatus}" to "${input.status}".`);
+        }
+      }
+    }
+
     return;
   }
 
@@ -166,4 +211,3 @@ export function assertCanMoveTask(role: WorkspaceRole, isSubtask: boolean): void
 
   throw new Error('FORBIDDEN: Only Product Owner, Admin, or Owner can move parent tasks.');
 }
-

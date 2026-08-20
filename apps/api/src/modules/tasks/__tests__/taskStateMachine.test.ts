@@ -216,4 +216,43 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
     assert.strictEqual(approved.status, 'done');
     assert.strictEqual(approved.reviewedBy, qaUser.id);
   });
+
+  test('Transition Map Guards: Dev cannot jump todo -> in_review, QA unassigned cannot execute in_progress subtask', async () => {
+    const subtask = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        parentTaskId: parentTask.id,
+        deliveryArea: 'frontend',
+        title: 'FE Guarded Task',
+        assigneeId: feDev.id,
+        status: 'todo',
+      })
+    );
+
+    // Dev attempting invalid transition todo -> in_review must fail
+    await assert.rejects(
+      async () => {
+        await taskService.updateTask(feDev.id, workspace.id, subtask.id, { status: 'in_review' });
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('Invalid status transition for developer'));
+        return true;
+      }
+    );
+
+    // Dev moves to in_progress
+    await taskService.updateTask(feDev.id, workspace.id, subtask.id, { status: 'in_progress' });
+
+    // QA unassigned attempting to mark in_progress subtask done directly must fail
+    await assert.rejects(
+      async () => {
+        await taskService.updateTask(qaUser.id, workspace.id, subtask.id, { status: 'done' });
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('FORBIDDEN'));
+        return true;
+      }
+    );
+  });
 });
