@@ -1,7 +1,7 @@
 import React from 'react';
 
 export interface BadgeProps {
-  variant?: 'passed' | 'review' | 'blocked' | 'draft' | 'info' | 'neutral';
+  variant?: 'passed' | 'brand' | 'review' | 'blocked' | 'draft' | 'info' | 'neutral';
   size?: 'sm' | 'md';
   children: React.ReactNode;
   icon?: React.ReactNode;
@@ -23,6 +23,7 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   const variantStyles = {
+    brand: 'bg-[#B1E743]/20 text-[#141413] border-[#B1E743]/50 dark:bg-[#B1E743]/20 dark:text-[#B1E743] dark:border-[#B1E743]/40',
     passed: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800',
     review: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800',
     blocked: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800',

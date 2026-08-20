@@ -67,7 +67,7 @@ describe('Header', () => {
     const reportButton = screen.getByRole('button', { name: 'Report' });
     await user.click(reportButton);
 
-    expect(reportButton).toHaveClass('bg-[#22201F]');
+    expect(reportButton).toHaveClass('bg-[#B1E743]');
   });
 
   it('highlights the My Tasks button as active when on /my-tasks', () => {
@@ -92,7 +92,7 @@ describe('Header', () => {
     );
 
     const myTasksButton = screen.getByRole('button', { name: 'My Tasks' });
-    expect(myTasksButton).toHaveClass('bg-[#22201F]');
+    expect(myTasksButton).toHaveClass('bg-[#B1E743]');
   });
 
   it('hides Workspace Settings and UI System buttons for dev and qa roles', () => {

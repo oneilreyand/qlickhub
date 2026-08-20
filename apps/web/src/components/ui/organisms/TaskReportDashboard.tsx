@@ -73,7 +73,7 @@ const deliveryAreaConfig: Record<
     colorClass: 'text-stone-800 dark:text-stone-200',
     bgClass: 'bg-stone-50/80 dark:bg-stone-900/60',
     borderClass: 'border-stone-200/80 dark:border-stone-800',
-    barVariant: 'indigo',
+    barVariant: 'brand',
   },
   backend: {
     label: 'Backend API & Database',
@@ -91,7 +91,7 @@ const deliveryAreaConfig: Record<
     colorClass: 'text-stone-800 dark:text-stone-200',
     bgClass: 'bg-stone-50/80 dark:bg-stone-900/60',
     borderClass: 'border-stone-200/80 dark:border-stone-800',
-    barVariant: 'indigo',
+    barVariant: 'brand',
   },
   fullstack: {
     label: 'Fullstack Engineering',
@@ -100,7 +100,7 @@ const deliveryAreaConfig: Record<
     colorClass: 'text-stone-800 dark:text-stone-200',
     bgClass: 'bg-stone-50/80 dark:bg-stone-900/60',
     borderClass: 'border-stone-200/80 dark:border-stone-800',
-    barVariant: 'indigo',
+    barVariant: 'brand',
   },
   qa: {
     label: 'QA Verification & Quality Gates',
@@ -588,7 +588,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                           case 'changes_requested':
                             return 'rose';
                           case 'in_progress':
-                            return 'indigo';
+                            return 'brand';
                           case 'todo':
                           case 'canceled':
                           default:
@@ -882,7 +882,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                                 <span>Done</span>
                                 <span className="font-bold">{rate}%</span>
                               </div>
-                              <ProgressBar value={member.completed} max={member.totalAssigned} showPercentage={false} variant="indigo" />
+                              <ProgressBar value={member.completed} max={member.totalAssigned} showPercentage={false} variant="brand" />
                             </div>
                             <div className="flex items-center gap-3 text-xs font-semibold text-stone-700 dark:text-stone-300">
                               <span className="px-2 py-1 rounded bg-stone-100 dark:bg-stone-800">

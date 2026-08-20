@@ -110,7 +110,7 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-900 via-[#1C1A19] to-stone-900 p-6 sm:p-8 text-white shadow-xl border border-stone-800">
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-[#B1E743]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 -mb-12 w-48 h-48 bg-[#B1E743]/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -151,7 +151,7 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
               variant="outline"
               size="sm"
               onClick={() => navigate('/my-tasks')}
-              leftIcon={<CheckSquare className="w-4 h-4 text-indigo-400" />}
+              leftIcon={<CheckSquare className="w-4 h-4 text-[#B1E743]" />}
               className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
             >
               Buka My Tasks
@@ -171,7 +171,7 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
               onClick={() => setActiveSection(tab.key)}
               className={`flex items-center justify-between p-3.5 rounded-xl transition-all text-left ${
                 isActive
-                  ? 'bg-white dark:bg-[#22201F] text-stone-900 dark:text-white shadow-md border border-stone-200/60 dark:border-stone-700/80 ring-2 ring-indigo-500/20 dark:ring-[#B1E743]/20'
+                  ? 'bg-white dark:bg-[#22201F] text-stone-900 dark:text-white shadow-md border border-stone-200/60 dark:border-stone-700/80 ring-2 ring-[#B1E743]/30 dark:ring-[#B1E743]/20'
                   : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-white/60 dark:hover:bg-stone-800/50'
               }`}
             >
@@ -179,7 +179,7 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
                 <div
                   className={`p-2.5 rounded-xl shrink-0 ${
                     isActive
-                      ? 'bg-indigo-100 text-indigo-700 dark:bg-stone-800 dark:text-[#B1E743]'
+                      ? 'bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]'
                       : 'bg-stone-200/70 text-stone-500 dark:bg-stone-800/80 dark:text-stone-400'
                   }`}
                 >
@@ -203,7 +203,7 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ml-2 ${
                     isActive
-                      ? 'bg-indigo-50 text-indigo-700 dark:bg-stone-800 dark:text-[#B1E743] border border-indigo-200/50 dark:border-stone-700'
+                      ? 'bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743] border border-[#B1E743]/40 dark:border-stone-700'
                       : 'bg-stone-200 text-stone-600 dark:bg-stone-800 dark:text-stone-400'
                   }`}
                 >
@@ -244,7 +244,7 @@ const HowToUseSection: React.FC<{
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-100 dark:border-stone-800">
           <div>
             <h2 className="text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
-              <Compass className="w-5 h-5 text-indigo-600 dark:text-[#B1E743]" />
+              <Compass className="w-5 h-5 text-[#141413] dark:text-[#B1E743]" />
               Struktur & Menu Utama Aplikasi
             </h2>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
@@ -259,7 +259,7 @@ const HowToUseSection: React.FC<{
           <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 flex flex-col justify-between space-y-3">
             <div>
               <div className="flex items-center gap-2.5 mb-2">
-                <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400">
+                <div className="p-2 rounded-lg bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]">
                   <Layers className="w-4 h-4" />
                 </div>
                 <h3 className="font-bold text-sm text-stone-900 dark:text-white">1. Work Hub</h3>
@@ -336,7 +336,7 @@ const HowToUseSection: React.FC<{
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-5 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-2.5">
           <div className="flex items-center gap-2 text-stone-900 dark:text-white font-bold text-sm">
-            <MessageSquare className="w-4 h-4 text-indigo-500" />
+            <MessageSquare className="w-4 h-4 text-[#141413] dark:text-[#B1E743]" />
             <span>Discussion & Mention</span>
           </div>
           <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
@@ -400,7 +400,7 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-100 dark:border-stone-800">
           <div>
             <h2 className="text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-600 dark:text-[#B1E743]" />
+              <Sparkles className="w-5 h-5 text-stone-900 dark:text-[#B1E743]" />
               Siklus Lengkap Kolaborasi Tim (End-to-End Lifecycle)
             </h2>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
@@ -434,7 +434,7 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
           {/* Step 2: Perencanaan */}
           <div className="flex flex-col p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/60 dark:border-stone-800 relative">
             <div className="flex items-center justify-between mb-3">
-              <span className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-bold text-xs flex items-center justify-center">
+              <span className="w-7 h-7 rounded-lg bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743] font-bold text-xs flex items-center justify-center">
                 2
               </span>
               <Badge variant="review" size="sm">PO</Badge>
@@ -445,7 +445,7 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
             </p>
             <button
               onClick={() => onSelectRole('po')}
-              className="mt-auto text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline pt-2 border-t border-stone-200/40 dark:border-stone-800"
+              className="mt-auto text-xs font-bold text-stone-900 dark:text-[#B1E743] flex items-center gap-1 hover:underline pt-2 border-t border-stone-200/40 dark:border-stone-800"
             >
               Lihat detail PO <ArrowRight className="w-3 h-3" />
             </button>
@@ -674,7 +674,7 @@ const UserFlowSection: React.FC<{
                 onClick={() => onSelectRole(tab.key)}
                 className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
                   isSelected
-                    ? 'bg-white dark:bg-[#22201F] border-indigo-500 dark:border-[#B1E743] shadow-md ring-2 ring-indigo-500/20 dark:ring-[#B1E743]/20'
+                    ? 'bg-white dark:bg-[#22201F] border-[#B1E743] shadow-md ring-2 ring-[#B1E743]/30 dark:ring-[#B1E743]/20'
                     : 'bg-white/70 dark:bg-stone-900/40 border-stone-200/80 dark:border-stone-800 hover:bg-white dark:hover:bg-stone-800/80 text-stone-600 dark:text-stone-300'
                 }`}
               >
@@ -682,7 +682,7 @@ const UserFlowSection: React.FC<{
                   <div
                     className={`p-2 rounded-lg shrink-0 ${
                       isSelected
-                        ? 'bg-indigo-100 text-indigo-700 dark:bg-stone-800 dark:text-[#B1E743]'
+                        ? 'bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]'
                         : 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400'
                     }`}
                   >
@@ -697,7 +697,7 @@ const UserFlowSection: React.FC<{
                     </p>
                   </div>
                 </div>
-                {isSelected && <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-[#B1E743] shrink-0 ml-1" />}
+                {isSelected && <CheckCircle2 className="w-4 h-4 text-stone-900 dark:text-[#B1E743] shrink-0 ml-1" />}
               </button>
             );
           })}
@@ -794,7 +794,7 @@ const PoFlowSection: React.FC = () => {
       <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19]">
         <div className="flex items-center justify-between pb-4 border-b border-stone-100 dark:border-stone-800 mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400">
+            <div className="p-2.5 rounded-xl bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]">
               <Layers className="w-6 h-6" />
             </div>
             <div>
@@ -815,7 +815,7 @@ const PoFlowSection: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
               <div className="flex items-center gap-2">
-                <FolderPlus className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <FolderPlus className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
                 <h4 className="font-semibold text-sm text-stone-900 dark:text-white">1. Buat Folder Sprint</h4>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">
@@ -825,7 +825,7 @@ const PoFlowSection: React.FC = () => {
 
             <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <FileText className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
                 <h4 className="font-semibold text-sm text-stone-900 dark:text-white">2. Buat Parent Task</h4>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">
@@ -835,7 +835,7 @@ const PoFlowSection: React.FC = () => {
 
             <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
               <div className="flex items-center gap-2">
-                <GitCommit className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <GitCommit className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
                 <h4 className="font-semibold text-sm text-stone-900 dark:text-white">3. Pecah Subtask (FE/BE/QA)</h4>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">
@@ -855,11 +855,11 @@ const PoFlowSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-6 p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/60 flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+        <div className="mt-6 p-4 rounded-xl bg-[#B1E743]/10 dark:bg-[#B1E743]/10 border border-[#B1E743]/30 dark:border-[#B1E743]/20 flex items-start gap-3">
+          <Sparkles className="w-5 h-5 text-stone-900 dark:text-[#B1E743] shrink-0 mt-0.5" />
           <div className="space-y-1 text-xs">
-            <span className="font-bold text-indigo-900 dark:text-indigo-200">Prinsip Explicit Parent Completion:</span>
-            <p className="text-indigo-800 dark:text-indigo-300">
+            <span className="font-bold text-[#141413] dark:text-[#B1E743]">Prinsip Explicit Parent Completion:</span>
+            <p className="text-stone-700 dark:text-stone-300">
               Sistem tidak akan menyelesaikan parent task secara otomatis saat subtask selesai. Penutupan parent task adalah keputusan sadar Product Owner setelah memastikan hasil pengerjaan sesuai dengan kriteria penerimaan produk.
             </p>
           </div>

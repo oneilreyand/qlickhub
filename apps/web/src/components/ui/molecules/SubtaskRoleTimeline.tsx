@@ -271,7 +271,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
       <div className="rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-stone-900 p-3 sm:p-4 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider flex items-center gap-1.5">
-            <Clock className="h-4 w-4 text-indigo-500" />
+            <Clock className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
             <span>Inter-Role Handoff Pipeline</span>
           </span>
           <span className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
@@ -303,7 +303,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                 {/* Header: Icon, Role Name, Health Badge */}
                 <div className="flex items-start justify-between gap-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    {stage.role === 'po' && <FileCode2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />}
+                    {stage.role === 'po' && <FileCode2 className="h-4 w-4 text-stone-700 dark:text-[#B1E743] shrink-0" />}
                     {stage.role === 'backend' && <Layers className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />}
                     {stage.role === 'frontend' && <Code2 className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />}
                     {stage.role === 'qa' && <Bug className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}

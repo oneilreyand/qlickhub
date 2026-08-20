@@ -70,7 +70,7 @@ function getExternalLinkMeta(url?: string | null) {
     return {
       label: 'Issue / Spec',
       shortLabel: 'Issue',
-      badgeClass: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-200/80',
+      badgeClass: 'bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] border-[#B1E743]/40 dark:border-[#B1E743]/40 hover:bg-[#B1E743]/30',
       icon: '📌',
     };
   }
@@ -152,12 +152,12 @@ function formatRelativeTime(dateStr: string): string {
 
 function getActivityIcon(action: string) {
   if (action.includes('completed')) return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
-  if (action.includes('status')) return <Clock className="h-3.5 w-3.5 text-indigo-500" />;
+  if (action.includes('status')) return <Clock className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
   if (action.includes('priority')) return <AlertCircle className="h-3.5 w-3.5 text-amber-500" />;
   if (action.includes('assignee')) return <User className="h-3.5 w-3.5 text-blue-500" />;
   if (action.includes('date') || action.includes('schedule')) return <Calendar className="h-3.5 w-3.5 text-purple-500" />;
   if (action.includes('moved') || action.includes('folder')) return <Folder className="h-3.5 w-3.5 text-amber-500" />;
-  if (action.includes('subtask')) return <ListTodo className="h-3.5 w-3.5 text-indigo-500" />;
+  if (action.includes('subtask')) return <ListTodo className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
   if (action.includes('requirement') || action.includes('brief') || action.includes('spec')) return <FileText className="h-3.5 w-3.5 text-emerald-500" />;
   if (action.includes('comment')) return <MessageSquare className="h-3.5 w-3.5 text-blue-500" />;
   return <Sparkles className="h-3.5 w-3.5 text-stone-400" />;
@@ -323,7 +323,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
       <span className="text-stone-700 dark:text-stone-300">
         created subtask <span className="font-semibold text-stone-900 dark:text-stone-100">"{meta.title || act.taskTitle || 'Subtask'}"</span>
         {meta.deliveryArea && (
-          <span className="ml-1 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase">
+          <span className="ml-1 px-1.5 py-0.5 rounded bg-[#B1E743]/20 dark:bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] text-[10px] font-bold uppercase">
             {meta.deliveryArea}
           </span>
         )}
@@ -1393,7 +1393,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     <p className="text-[10px] font-bold text-stone-500 uppercase">PRD & Specs</p>
                     <p className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1 mt-0.5">
                       {productBrief ? (
-                        <span className="text-indigo-600 dark:text-indigo-400 font-bold">v{productBrief.currentVersion.version} Ready</span>
+                        <span className="text-stone-900 dark:text-[#B1E743] font-bold">v{productBrief.currentVersion.version} Ready</span>
                       ) : (
                         <span className="text-stone-400">Draft</span>
                       )}
@@ -1553,7 +1553,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
                 <div className="space-y-4">
                   {/* Persisted Specification Brief */}
-                  <div className="space-y-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900/70 dark:bg-indigo-950/20">
+                  <div className="space-y-4 rounded-xl border border-[#B1E743]/30 bg-[#B1E743]/5 p-4 dark:border-[#B1E743]/20 dark:bg-[#B1E743]/5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">Specification Brief</h4>
@@ -1561,7 +1561,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           The versioned specification source of truth. Use scope for commitments; create Subtasks for execution work.
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-lg bg-indigo-100 px-2 py-1 text-[11px] font-bold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200">
+                      <span className="shrink-0 rounded-lg bg-[#B1E743]/20 px-2 py-1 text-[11px] font-bold text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743]">
                         {productBrief ? `v${productBrief.currentVersion.version}` : 'New draft'}
                       </span>
                     </div>
@@ -1816,7 +1816,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
 
                         {canPlan && (
-                          <div className="flex justify-end border-t border-indigo-100 pt-3 dark:border-indigo-900/60">
+                          <div className="flex justify-end border-t border-stone-200 dark:border-stone-800 pt-3">
                             <Button
                               size="sm"
                               variant="primary"
@@ -1836,7 +1836,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-3 dark:border-stone-800 dark:bg-stone-950/40">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                        <FileText className="h-4 w-4 text-indigo-500 shrink-0" />
+                        <FileText className="h-4 w-4 text-stone-700 dark:text-[#B1E743] shrink-0" />
                         <span>Requirement & Reference Links ({(taskRequirementLinks || []).length})</span>
                       </span>
 
@@ -1894,7 +1894,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                     href={link.requirement.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 transition-colors"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-[#B1E743]/20 text-[#141413] hover:bg-[#B1E743]/30 border border-[#B1E743]/40 dark:bg-[#B1E743]/20 dark:text-[#B1E743] dark:border-[#B1E743]/40 transition-colors"
                                     title={link.requirement.url}
                                   >
                                     <span>Open Reference</span>

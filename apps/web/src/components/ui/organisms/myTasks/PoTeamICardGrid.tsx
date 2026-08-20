@@ -216,7 +216,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                 </span>
               )}
               <span className="inline-flex items-center gap-1">
-                <TrendingUp className="h-3.5 w-3.5 text-indigo-500" />
+                <TrendingUp className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />
                 <span>Overall Delivery: <strong>{progressPercent}%</strong></span>
               </span>
             </div>
@@ -251,7 +251,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
           <ProgressBar
             value={completedSubtasks}
             max={totalSubtasks || 1}
-            variant={progressPercent === 100 ? 'emerald' : 'indigo'}
+            variant={progressPercent === 100 ? 'emerald' : 'brand'}
             label={`Execution Progress: ${completedSubtasks}/${totalSubtasks} Subtasks Completed`}
           />
         </div>

@@ -63,7 +63,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               onClick={onToggleExpand}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all border ${
                 isExpanded
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 shadow-xs'
+                  ? 'bg-[#B1E743]/20 dark:bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border-[#B1E743]/40 dark:border-[#B1E743]/40 shadow-xs'
                   : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200/70 dark:hover:bg-stone-700 border-stone-200/80 dark:border-stone-700/80'
               }`}
               title={isExpanded ? 'Collapse timeline to normal width' : 'Expand timeline to full width (hide sidebar)'}
@@ -71,7 +71,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
             >
               {isExpanded ? (
                 <>
-                  <Minimize2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <Minimize2 className="h-3.5 w-3.5 text-[#141413] dark:text-[#B1E743]" />
                   <span className="hidden sm:inline">Normal Width</span>
                 </>
               ) : (

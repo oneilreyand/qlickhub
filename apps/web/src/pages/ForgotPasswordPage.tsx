@@ -32,8 +32,8 @@ export const ForgotPasswordPage: React.FC = () => {
   return (
     <div className="min-h-screen w-screen bg-[#FBFCF7] flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden">
       {/* Background Glows */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-indigo-200/40 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/3 w-80 h-80 rounded-full bg-teal-100/50 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-[#B1E743]/20 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/3 w-80 h-80 rounded-full bg-[#B1E743]/10 blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md bg-white p-8 rounded-[24px] border border-stone-200/80 shadow-xl shadow-stone-200/60 space-y-6 relative z-10">
         {/* Header */}
@@ -74,7 +74,7 @@ export const ForgotPasswordPage: React.FC = () => {
               placeholder="Enter your registered email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-indigo-600 focus:!ring-indigo-500/20 !placeholder-stone-400"
+              className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400"
               required
             />
 

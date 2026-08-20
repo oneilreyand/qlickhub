@@ -153,7 +153,7 @@ export const OverviewStoreDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-            <Workflow className="h-4 w-4 text-indigo-500 dark:text-[#B1E743]" />
+            <Workflow className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
             <span>Workspace Delivery Hub</span>
           </div>
           <h1 className="text-3xl font-extrabold text-[#22201F] tracking-tight dark:text-white mt-1">
@@ -167,7 +167,7 @@ export const OverviewStoreDashboard: React.FC = () => {
               </span>
             </p>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-0.5 text-xs font-semibold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-              <Calendar className="h-3.5 w-3.5 text-indigo-500 dark:text-[#B1E743]" />
+              <Calendar className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />
               <span>Bulan {monthName} ({formattedDateRange})</span>
             </span>
           </div>
@@ -580,14 +580,14 @@ export const OverviewStoreDashboard: React.FC = () => {
         {(isPO || isOwnerOrAdmin) && (
           <div
             onClick={() => navigate('/work?tab=tasks')}
-            className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-indigo-300 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
+            className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-[#B1E743]/60 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743]">
                 <Compass className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                <h3 className="text-sm font-bold text-[#22201F] dark:text-white group-hover:text-stone-950 dark:group-hover:text-[#B1E743] transition-colors">
                   Product Roadmap
                 </h3>
                 <p className="text-xs text-stone-500 dark:text-stone-400">

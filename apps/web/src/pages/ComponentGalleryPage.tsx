@@ -62,7 +62,7 @@ const Section: React.FC<{ category: string; title: string; description: string; 
 }) => (
   <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xs transition-all hover:shadow-md sm:p-6 space-y-4 dark:border-stone-800/80 dark:bg-[#1C1A19] dark:text-stone-100">
     <div>
-      <span className="text-[11px] font-bold uppercase tracking-wider text-[#22201F] bg-[#B1E743] px-2 py-0.5 rounded-full dark:bg-[#B1E743] dark:text-[#22201F]">{category}</span>
+      <span className="text-[11px] font-bold uppercase tracking-wider text-[#141413] bg-[#B1E743] px-2 py-0.5 rounded-full dark:bg-[#B1E743] dark:text-[#141413]">{category}</span>
       <h2 className="text-lg font-bold text-stone-900 mt-2 dark:text-stone-100">{title}</h2>
       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{description}</p>
     </div>
@@ -135,13 +135,13 @@ export const ComponentGalleryPage: React.FC = () => {
     <div className="space-y-8 max-w-7xl mx-auto pb-12 animate-fadeIn">
       {/* Header */}
       <div className="border-b border-stone-200/80 pb-6 dark:border-stone-800">
-        <div className="flex items-center gap-2 text-xs font-bold text-[#22201F] dark:text-[#B1E743]">
-          <div className="grid h-6 w-6 place-items-center rounded-lg bg-[#B1E743] text-[#22201F] font-black">Q</div>
+        <div className="flex items-center gap-2 text-xs font-bold text-[#141413] dark:text-[#B1E743]">
+          <div className="grid h-6 w-6 place-items-center rounded-lg bg-[#B1E743] text-[#141413] font-black">Q</div>
           <span>Atomic Design System</span>
         </div>
         <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">Component Gallery</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-500 dark:text-stone-400">
-          Exhaustive UI library aligned with the new global design palette (Lime Accent <code className="bg-stone-100 px-1 py-0.5 rounded text-[#22201F] font-semibold dark:bg-stone-800 dark:text-[#B1E743]">#B1E743</code>, Charcoal Dark <code className="bg-stone-100 px-1 py-0.5 rounded text-[#22201F] font-semibold dark:bg-stone-800 dark:text-[#B1E743]">#22201F</code>, and Stone Neutrals).
+          Exhaustive UI library aligned with the new global design palette (Lime Primary <code className="bg-stone-100 px-1 py-0.5 rounded text-[#141413] font-semibold dark:bg-stone-800 dark:text-[#B1E743]">#B1E743</code>, Charcoal Dark <code className="bg-stone-100 px-1 py-0.5 rounded text-[#141413] font-semibold dark:bg-stone-800 dark:text-[#B1E743]">#141413</code>, and Stone Neutrals).
         </p>
       </div>
 

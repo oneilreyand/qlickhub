@@ -49,7 +49,7 @@ const docTypeMeta: Record<string, { label: string; icon: string; badgeClass: str
   product_brief: {
     label: 'Product Brief',
     icon: '📑',
-    badgeClass: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800',
+    badgeClass: 'bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] border border-[#B1E743]/40 dark:border-[#B1E743]/40',
   },
   release_report: {
     label: 'Release Report',

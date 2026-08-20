@@ -136,7 +136,7 @@ export const AccordionTrigger: React.FC<AccordionTriggerProps> = ({
       aria-controls={`accordion-content-${id}`}
       disabled={disabled}
       onClick={handleClick}
-      className={`flex w-full items-center justify-between gap-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 p-3.5 ${
+      className={`flex w-full items-center justify-between gap-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B1E743]/50 p-3.5 ${
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
       } ${className}`}
     >

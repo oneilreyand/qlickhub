@@ -71,7 +71,7 @@ The task detail must show useful empty states: “No requirement linked”, “N
 
 ## 5. Design system and accessibility
 
-- Preserve Inter, indigo `#6366F1`, emerald `#10B981`, amber `#F59E0B`, neutral `#64748B`, sidebar navy `#0B1C30`, 16px cards, and accessible dark mode.
+- Preserve Inter, primary brand lime `#B1E743` (with `#141413` charcoal contrast text for WCAG AAA compliance), emerald `#10B981`, amber `#F59E0B`, neutral `#64748B`, sidebar navy `#0B1C30`, 16px cards, and accessible dark mode.
 - Use the existing shared Button, Badge, Tabs, Drawer, Modal, Skeleton, Snackbar, and FileDropzone components. Extend them only when a real Work Hub interaction needs it.
 - Status must be conveyed by label and icon as well as colour. Maintain keyboard focus, `aria-expanded` for the tree, labelled icon buttons, and a minimum 44px tap target on touch controls.
 - On tablet/mobile, the tree becomes a slide-over, the task list fills the page, and task detail becomes a route/page rather than a cramped three-column layout.

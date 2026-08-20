@@ -136,7 +136,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
       <div
         key={key}
         onClick={() => handleImageClick(src, alt || 'Image Preview')}
-        className="group relative my-2 overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-900/5 dark:bg-stone-900/60 max-w-xl cursor-pointer transition-all hover:shadow-md hover:border-indigo-400 dark:hover:border-indigo-500"
+        className="group relative my-2 overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-900/5 dark:bg-stone-900/60 max-w-xl cursor-pointer transition-all hover:shadow-md hover:border-stone-400 dark:hover:border-stone-600"
       >
         <img
           src={src}
@@ -182,7 +182,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
       >
         <div className="p-2 bg-stone-900 flex items-center justify-between text-xs text-stone-300 border-b border-stone-800">
           <div className="flex items-center gap-1.5 font-bold">
-            <VideoIcon className="h-3.5 w-3.5 text-indigo-400" />
+            <VideoIcon className="h-3.5 w-3.5 text-stone-400" />
             <span>{title || 'Video Attachment'}</span>
           </div>
           <a
@@ -394,16 +394,16 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
       return (
         <div
           key={key}
-          className="my-2 flex items-center justify-between p-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/50 dark:bg-indigo-950/30 max-w-md shadow-xs transition-all hover:shadow-sm"
+          className="my-2 flex items-center justify-between p-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/40 max-w-md shadow-xs transition-all hover:shadow-sm"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+            <div className="p-2 rounded-lg bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
               <Layers className="h-4 w-4" />
             </div>
             <div className="min-w-0">
               <div className="font-bold text-xs text-stone-900 dark:text-stone-100 truncate flex items-center gap-1.5">
                 <span>Figma Design</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-extrabold uppercase">
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#B1E743]/20 dark:bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] font-extrabold uppercase">
                   UI/UX
                 </span>
               </div>
@@ -416,7 +416,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
             href={trimmed}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 ml-2 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] flex items-center gap-1 transition-colors shadow-xs"
+            className="shrink-0 ml-2 px-2.5 py-1 rounded-lg bg-[#B1E743] hover:bg-[#9ed434] text-[#141413] font-bold text-[10px] flex items-center gap-1 transition-colors shadow-xs"
           >
             <span>Buka Figma</span>
             <ExternalLink className="h-2.5 w-2.5" />
@@ -535,7 +535,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-900 dark:text-stone-100 font-mono text-[11px] font-bold border border-stone-200 dark:border-stone-700 transition-colors mx-0.5 align-middle"
             >
-              <GitPullRequest className="h-3 w-3 text-indigo-500 shrink-0" />
+              <GitPullRequest className="h-3 w-3 text-stone-700 dark:text-[#B1E743] shrink-0" />
               <span>{repo} #{prNum}</span>
               <ExternalLink className="h-2.5 w-2.5 text-stone-400 shrink-0" />
             </a>
@@ -568,7 +568,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
             href={part}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 underline font-medium inline-flex items-center gap-0.5"
+            className="text-stone-900 hover:text-stone-950 dark:text-[#B1E743] underline font-medium inline-flex items-center gap-0.5"
           >
             <span>{part.length > 40 ? part.slice(0, 37) + '...' : part}</span>
             <ExternalLink className="h-2.5 w-2.5 inline shrink-0" />
@@ -590,7 +590,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
         return (
           <span
             key={`mention-${index}`}
-            className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1 py-0.2 rounded"
+            className="font-bold text-[#141413] dark:text-[#B1E743] bg-[#B1E743]/20 dark:bg-[#B1E743]/20 px-1 py-0.2 rounded"
           >
             {part}
           </span>
@@ -624,7 +624,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
             href={linkMatch[2]}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 underline font-medium inline-flex items-center gap-0.5"
+            className="text-stone-900 hover:text-stone-950 dark:text-[#B1E743] underline font-medium inline-flex items-center gap-0.5"
           >
             <span>{linkMatch[1]}</span>
             <ExternalLink className="h-2.5 w-2.5 inline shrink-0" />
@@ -823,8 +823,8 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
         icon = <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />;
         label = 'Tip';
       } else if (type === 'IMPORTANT') {
-        bgClass = 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200';
-        icon = <CheckCircle2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />;
+        bgClass = 'bg-[#B1E743]/10 dark:bg-[#B1E743]/10 border-[#B1E743]/40 dark:border-[#B1E743]/40 text-[#141413] dark:text-[#B1E743]';
+        icon = <CheckCircle2 className="h-4 w-4 text-[#141413] dark:text-[#B1E743] shrink-0 mt-0.5" />;
         label = 'Important';
       } else if (type === 'WARNING' || type === 'CAUTION') {
         bgClass = 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200';
@@ -888,7 +888,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
     const isObjHeader = /^(?:###\s+|##\s+|\*\*)?(Objective|Tujuan|Background Context|Scope|Ruang Lingkup)[:*]*\s*$/i.test(trimmedLine);
     if (isObjHeader) {
       elements.push(
-        <div key={`sec-obj-${i}`} className="mt-4 mb-1.5 flex items-center gap-1.5 text-xs font-extrabold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider pb-1 border-b border-indigo-200 dark:border-indigo-900/50">
+        <div key={`sec-obj-${i}`} className="mt-4 mb-1.5 flex items-center gap-1.5 text-xs font-extrabold text-stone-900 dark:text-[#B1E743] uppercase tracking-wider pb-1 border-b border-stone-200 dark:border-stone-800">
           <Target className="h-3.5 w-3.5" />
           <span>Objective & Context</span>
         </div>

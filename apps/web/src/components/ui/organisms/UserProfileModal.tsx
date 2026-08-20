@@ -118,7 +118,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             onClick={() => setActiveTab('profile')}
             className={`pb-3 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${
               activeTab === 'profile'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
+                ? 'border-[#B1E743] text-stone-900 dark:text-[#B1E743] dark:border-[#B1E743]'
                 : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
             }`}
           >
@@ -130,7 +130,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             onClick={() => setActiveTab('password')}
             className={`pb-3 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${
               activeTab === 'password'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
+                ? 'border-[#B1E743] text-stone-900 dark:text-[#B1E743] dark:border-[#B1E743]'
                 : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
             }`}
           >

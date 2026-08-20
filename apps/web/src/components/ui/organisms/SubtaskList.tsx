@@ -139,7 +139,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-              <ListTodo className="h-4 w-4 text-indigo-500" />
+              <ListTodo className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
               <span>Direct Subtasks ({subtasks.length})</span>
             </span>
             <span className="text-[11px] font-semibold text-stone-500 dark:text-stone-400">

@@ -21,7 +21,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   const variantStyles = {
-    brand: 'border-indigo-600 border-t-transparent dark:border-indigo-500 dark:border-t-transparent',
+    brand: 'border-[#B1E743] border-t-transparent dark:border-[#B1E743] dark:border-t-transparent',
     white: 'border-white border-t-transparent',
     stone: 'border-stone-400 border-t-transparent dark:border-stone-500 dark:border-t-transparent',
   };

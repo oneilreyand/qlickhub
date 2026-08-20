@@ -610,7 +610,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
             size="sm"
             onClick={() => void handleToggleExpandAll()}
             aria-label="Expand or collapse all subtask streams"
-            leftIcon={<ChevronsUpDown className="h-3.5 w-3.5 text-indigo-500" />}
+            leftIcon={<ChevronsUpDown className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />}
             title="Toggle expand/collapse all role subtasks in timeline"
           >
             <span className="hidden sm:inline">
@@ -717,7 +717,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                   title={isTaskExpanded ? 'Collapse subtasks' : 'Expand role subtasks'}
                                 >
                                   <ChevronRight
-                                    className={`h-3.5 w-3.5 transition-transform ${isTaskExpanded ? 'rotate-90 text-indigo-600 dark:text-indigo-400' : ''}`}
+                                    className={`h-3.5 w-3.5 transition-transform ${isTaskExpanded ? 'rotate-90 text-stone-900 dark:text-[#B1E743]' : ''}`}
                                   />
                                 </button>
                               )}
@@ -732,7 +732,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                 <div className="flex items-center gap-1.5 text-[10px] text-stone-400 mt-0.5">
                                   <span className="font-mono">{task.id.slice(0, 8)}</span>
                                   {task.subtaskSummary && task.subtaskSummary.total > 0 && (
-                                    <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                                    <span className="text-stone-900 dark:text-[#B1E743] font-semibold">
                                       • {task.subtaskSummary.completed}/{task.subtaskSummary.total} subtasks
                                     </span>
                                   )}

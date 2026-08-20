@@ -86,7 +86,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
             <button
               type="button"
               onClick={onSelectAllWorkspaces}
-              className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+              className="text-[11px] font-medium text-stone-900 hover:underline dark:text-[#B1E743]"
             >
               {selectedWorkspaceIds.length === workspaces.length ? 'Deselect All' : 'Select All'}
             </button>
@@ -101,13 +101,13 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                   onClick={() => onToggleWorkspaceSelection(ws.id)}
                   className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition-colors ${
                     isSelected
-                      ? 'bg-indigo-50/80 text-indigo-900 font-semibold dark:bg-indigo-950/60 dark:text-indigo-200'
+                      ? 'bg-[#B1E743]/20 text-[#141413] font-semibold dark:bg-[#B1E743]/20 dark:text-[#B1E743]'
                       : 'hover:bg-stone-100 text-stone-700 dark:hover:bg-stone-800 dark:text-stone-300'
                   }`}
                 >
                   <span className="truncate">{ws.name}</span>
                   {isSelected ? (
-                    <CheckSquare className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <CheckSquare className="h-4 w-4 text-[#141413] dark:text-[#B1E743] shrink-0" />
                   ) : (
                     <Square className="h-4 w-4 text-stone-400 shrink-0" />
                   )}

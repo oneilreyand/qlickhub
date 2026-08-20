@@ -122,7 +122,7 @@ export const LoginPage: React.FC = () => {
       {/* RIGHT COLUMN: Form Login (Responsive for All Screens) */}
       <div className="flex-1 flex flex-col justify-center items-center p-4 sm:p-8 lg:p-12 relative z-10 overflow-y-auto min-h-screen">
         {/* Ambient Glows */}
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full bg-indigo-200/30 dark:bg-indigo-900/15 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full bg-[#B1E743]/10 dark:bg-[#B1E743]/5 blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/3 w-80 h-80 rounded-full bg-[#B1E743]/20 dark:bg-[#B1E743]/5 blur-3xl pointer-events-none" />
 
         {/* Mobile-Only Hero Banner (Shown only on small screens < lg) */}

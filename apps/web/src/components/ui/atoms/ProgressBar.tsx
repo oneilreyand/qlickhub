@@ -5,7 +5,7 @@ export interface ProgressBarProps {
   max?: number;
   label?: string;
   showPercentage?: boolean;
-  variant?: 'brand' | 'indigo' | 'emerald' | 'amber' | 'rose' | 'neutral';
+  variant?: 'brand' | 'primary' | 'indigo' | 'emerald' | 'amber' | 'rose' | 'neutral';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -28,9 +28,10 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   };
 
   const variantStyles = {
-    brand: 'bg-indigo-600 dark:bg-indigo-500',
+    brand: 'bg-[#B1E743] dark:bg-[#B1E743]',
+    primary: 'bg-[#B1E743] dark:bg-[#B1E743]',
     emerald: 'bg-emerald-500 dark:bg-emerald-400',
-    indigo: 'bg-indigo-600 dark:bg-indigo-500',
+    indigo: 'bg-[#B1E743] dark:bg-[#B1E743]',
     amber: 'bg-amber-400 dark:bg-amber-400',
     rose: 'bg-rose-500 dark:bg-rose-400',
     neutral: 'bg-stone-400 dark:bg-stone-600',

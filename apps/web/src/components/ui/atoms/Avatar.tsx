@@ -28,7 +28,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   };
 
   const statusColor = {
-    online: 'bg-emerald-500',
+    online: 'bg-[#B1E743]',
     offline: 'bg-stone-400',
     busy: 'bg-rose-500',
   };
@@ -36,7 +36,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   return (
     <div className="relative inline-block">
       <div
-        className={`grid place-items-center rounded-xl bg-indigo-600 font-bold text-white shadow-xs dark:bg-indigo-600 dark:text-white ${sizeStyles[size]} ${className}`}
+        className={`grid place-items-center rounded-xl bg-[#B1E743] font-bold text-[#141413] shadow-xs dark:bg-[#B1E743] dark:text-[#141413] ${sizeStyles[size]} ${className}`}
       >
         {getInitials(name)}
       </div>

@@ -72,10 +72,10 @@ export const TaskScheduleHealthBadge: React.FC<TaskScheduleHealthBadgeProps> = (
     case 'on_track':
       return (
         <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0 shadow-xs ${className}`}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] border border-[#B1E743]/40 dark:border-[#B1E743]/40 shrink-0 shadow-xs ${className}`}
           title={tooltipContent || 'Task is on track according to the planned schedule'}
         >
-          <Clock className="h-3 w-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+          <Clock className="h-3 w-3 text-stone-700 dark:text-[#B1E743] shrink-0" />
           {!compact && <span>{rolePrefix}{label || 'On Track'}</span>}
         </span>
       );

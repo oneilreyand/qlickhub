@@ -157,10 +157,10 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
         </Card>
 
         <Card className="p-4 bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800">
-          <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+          <p className="text-xs font-bold text-stone-900 dark:text-[#B1E743] uppercase tracking-wider">
             QA Pass Rate
           </p>
-          <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+          <p className="text-2xl font-black text-stone-900 dark:text-[#B1E743] mt-1">
             {summary.passRatePercent}%
           </p>
           <p className="text-[11px] text-stone-400 mt-0.5">Passed test ratio</p>
@@ -172,7 +172,7 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
         <div className="flex items-center justify-between border-b border-stone-100 pb-4 dark:border-stone-800">
           <div>
             <h2 className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-              <Layers className="h-5 w-5 text-indigo-500" />
+              <Layers className="h-5 w-5 text-stone-700 dark:text-[#B1E743]" />
               Requirements Traceability Matrix
             </h2>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">

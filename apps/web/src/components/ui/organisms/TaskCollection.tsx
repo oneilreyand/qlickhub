@@ -86,7 +86,7 @@ function renderSubtaskSummary(summary?: Task['subtaskSummary']) {
         </span>
       )}
       {summary.areas.backend.total > 0 && (
-        <span className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 px-1.5 py-0.5 rounded font-mono">
+        <span className="bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] px-1.5 py-0.5 rounded font-mono font-bold">
           BE {summary.areas.backend.completed}/{summary.areas.backend.total}
         </span>
       )}

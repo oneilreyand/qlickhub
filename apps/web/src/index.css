@@ -6,7 +6,9 @@
 
 @layer base {
   :root {
-    --color-brand: #6366F1;
+    --color-brand: #B1E743;
+    --color-primary: #B1E743;
+    --color-primary-foreground: #141413;
     --color-brand-dark: #0B1C30;
     --color-bg-cream: #FBFCF7;
     --color-success: #10B981;
@@ -113,7 +115,7 @@
 
 @layer components {
   .glass-card { @apply rounded-[16px] bg-white border border-stone-200/70 shadow-xs dark:bg-[#1C1A19] dark:border-stone-800; }
-  .glass-input { @apply rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100; }
-  .pill-nav-active { @apply bg-indigo-600 text-white shadow-xs font-semibold dark:bg-indigo-500 dark:text-white; }
+  .glass-input { @apply rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100; }
+  .pill-nav-active { @apply bg-[#B1E743] text-[#141413] shadow-xs font-bold dark:bg-[#B1E743] dark:text-[#141413]; }
   .pill-nav-inactive { @apply text-stone-600 hover:text-stone-900 hover:bg-stone-200/50 font-medium dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800/50; }
 }

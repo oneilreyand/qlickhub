@@ -319,8 +319,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
             <div className="h-0.5 flex-1 mx-2 bg-stone-200 dark:bg-stone-800" />
 
-            <div className={`flex items-center gap-2 ${subtask.status === 'in_progress' || subtask.status === 'in_review' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-stone-500'}`}>
-              <div className={`grid h-6 w-6 place-items-center rounded-full text-[11px] ${subtask.status === 'in_progress' || subtask.status === 'in_review' ? 'bg-indigo-600 text-white' : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'}`}>
+            <div className={`flex items-center gap-2 ${subtask.status === 'in_progress' || subtask.status === 'in_review' ? 'text-stone-900 dark:text-[#B1E743] font-extrabold' : 'text-stone-500'}`}>
+              <div className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold ${subtask.status === 'in_progress' || subtask.status === 'in_review' ? 'bg-[#B1E743] text-[#141413]' : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'}`}>
                 2
               </div>
               <span>Testing</span>
@@ -383,7 +383,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         <ProgressBar
           value={passedScenarios}
           max={totalScenarios || 1}
-          variant={passedPercent === 100 ? 'emerald' : 'indigo'}
+          variant={passedPercent === 100 ? 'emerald' : 'brand'}
           label={`Verification Coverage: ${passedScenarios}/${totalScenarios} Scenarios Passed (${passedPercent}%)`}
         />
 

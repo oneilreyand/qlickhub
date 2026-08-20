@@ -26,7 +26,7 @@ When documents conflict, use this priority: explicit user instruction → securi
 - Treat PostgreSQL through Sequelize as the default. Use parameterized raw SQL only for `pgvector`, indexes, analytics, or PostgreSQL-specific needs.
 - Enforce authorization in backend policy/services. UI visibility is not authorization.
 - Never expose `DATABASE_URL`, JWT secrets, Google Drive service-account credentials, or AI keys to the browser.
-- Keep the Stitch design contract intact: Inter, indigo `#6366F1`, emerald `#10B981`, amber `#F59E0B`, neutral `#64748B`, sidebar navy `#0B1C30`, 16px cards, and accessible dark mode.
+- Keep the Stitch design contract intact: Inter, primary brand lime `#B1E743` (with `#141413` charcoal contrast text for WCAG AAA compliance), emerald `#10B981`, amber `#F59E0B`, neutral `#64748B`, sidebar navy `#0B1C30`, 16px cards, and accessible dark mode.
 
 ## Data and test evidence
 

@@ -54,11 +54,10 @@ describe('QaTestingDesk Organism', () => {
     expect(screen.getByText('Interactive Test Execution Checklist')).toBeInTheDocument();
     expect(screen.getByText('Log Defect / Changes')).toBeInTheDocument();
     expect(screen.getByText('Approve Sign-off')).toBeInTheDocument();
-
-    expect(screen.getByText(/Verify UI components match Figma design specs/i)).toBeInTheDocument();
+    expect(screen.getByText('No formal test cases linked yet')).toBeInTheDocument();
   });
 
-  it('allows checking off test scenarios to Pass status', () => {
+  it('allows adding test scenarios and checking off to Pass status', () => {
     const store = createTestStore();
     render(
       <Provider store={store}>
@@ -70,6 +69,12 @@ describe('QaTestingDesk Organism', () => {
         />
       </Provider>
     );
+
+    const input = screen.getByPlaceholderText('Add custom test scenario / edge-case...');
+    fireEvent.change(input, { target: { value: 'Verify checkout payment modal' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByText('Verify checkout payment modal')).toBeInTheDocument();
 
     const passButtons = screen.getAllByRole('button', { name: 'Pass' });
     fireEvent.click(passButtons[0]);

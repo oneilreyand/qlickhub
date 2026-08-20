@@ -65,7 +65,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
           <Button
             size="sm"
             variant="ghost"
-            className="h-6 px-2 text-[11px] text-stone-600 hover:text-indigo-600 dark:text-stone-400 dark:hover:text-indigo-400"
+            className="h-6 px-2 text-[11px] text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-[#B1E743]"
             leftIcon={<Edit2 className="h-3 w-3" />}
             onClick={handleStartEditing}
           >
@@ -167,7 +167,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
               }
               className="text-[10px] px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium transition-colors flex items-center gap-1"
             >
-              <ImageIcon className="h-3 w-3 text-indigo-500" />
+              <ImageIcon className="h-3 w-3 text-stone-500" />
               <span>+ Image Link</span>
             </button>
             <button

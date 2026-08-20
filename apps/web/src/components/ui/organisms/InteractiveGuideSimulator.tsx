@@ -498,7 +498,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                 onClick={() => setRoleFilter(filter.key as FilterRole)}
                 className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                   isSelected
-                    ? 'bg-indigo-600 dark:bg-[#B1E743] text-white dark:text-[#1C1A19] shadow-xs'
+                    ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                     : 'bg-stone-100 dark:bg-stone-800/60 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800'
                 }`}
               >
@@ -522,7 +522,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
               onClick={() => handleSelectGuide(guide.id)}
               className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
                 isSelected
-                  ? 'bg-white dark:bg-[#22201F] border-indigo-500 dark:border-[#B1E743] shadow-md ring-2 ring-indigo-500/20 dark:ring-[#B1E743]/20'
+                  ? 'bg-white dark:bg-[#22201F] border-[#B1E743] shadow-md ring-2 ring-[#B1E743]/30 dark:ring-[#B1E743]/20'
                   : 'bg-white/60 dark:bg-stone-900/40 border-stone-200/80 dark:border-stone-800 hover:bg-white dark:hover:bg-stone-800/80'
               }`}
             >
@@ -531,7 +531,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                   <div
                     className={`p-2 rounded-lg ${
                       isSelected
-                        ? 'bg-indigo-100 text-indigo-700 dark:bg-stone-800 dark:text-[#B1E743]'
+                        ? 'bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]'
                         : 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400'
                     }`}
                   >
@@ -552,16 +552,16 @@ export const InteractiveGuideSimulator: React.FC = () => {
 
               <div className="mt-3 pt-2 border-t border-stone-100 dark:border-stone-800/60 flex items-center justify-between text-[11px] text-stone-400">
                 <span>{guide.steps.length} Langkah</span>
-                {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 dark:text-[#B1E743]" />}
+                {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-stone-900 dark:text-[#B1E743]" />}
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* VIEW MODE 1: INTERACTIVE SIMULATOR (STEP-BY-STEP LIVE PREVIEW) */}
-      {viewMode === 'simulator' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Main Interactive Guide & Simulator Stage Area */}
+      {currentGuide && currentStep && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column (5 Cols): Step Navigator, Instructions & Context */}
           <div className="lg:col-span-5 space-y-4">
             <Card className="p-5 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-5">
@@ -569,7 +569,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
               <div className="space-y-1.5 pb-4 border-b border-stone-100 dark:border-stone-800">
                 <div className="flex items-center justify-between">
                   <Badge variant="review">{currentGuide.roleBadge}</Badge>
-                  <span className="text-xs font-bold text-indigo-600 dark:text-[#B1E743]">
+                  <span className="text-xs font-bold text-stone-900 dark:text-[#B1E743]">
                     Langkah {activeStepIndex + 1} dari {totalSteps}
                   </span>
                 </div>
@@ -585,7 +585,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
               <div className="space-y-2">
                 <div className="w-full bg-stone-100 dark:bg-stone-800 h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-indigo-600 dark:bg-[#B1E743] h-full transition-all duration-300 rounded-full"
+                    className="bg-[#B1E743] dark:bg-[#B1E743] h-full transition-all duration-300 rounded-full"
                     style={{ width: `${((activeStepIndex + 1) / totalSteps) * 100}%` }}
                   />
                 </div>
@@ -597,16 +597,16 @@ export const InteractiveGuideSimulator: React.FC = () => {
                       onClick={() => setActiveStepIndex(idx)}
                       className={`flex items-center gap-1 text-[11px] font-semibold transition-all ${
                         activeStepIndex === idx
-                          ? 'text-indigo-600 dark:text-[#B1E743] font-bold'
+                          ? 'text-stone-900 dark:text-[#B1E743] font-bold'
                           : activeStepIndex > idx
                           ? 'text-stone-800 dark:text-stone-200'
                           : 'text-stone-400 dark:text-stone-600'
                       }`}
                     >
                       <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                           activeStepIndex === idx
-                            ? 'bg-indigo-600 dark:bg-[#B1E743] text-white dark:text-[#1C1A19]'
+                            ? 'bg-[#B1E743] text-[#141413] dark:bg-[#B1E743] dark:text-[#141413]'
                             : activeStepIndex > idx
                             ? 'bg-stone-200 dark:bg-stone-700 text-stone-800 dark:text-stone-200'
                             : 'bg-stone-100 dark:bg-stone-800 text-stone-400'
@@ -621,9 +621,9 @@ export const InteractiveGuideSimulator: React.FC = () => {
               </div>
 
               {/* Current Step Instruction Box */}
-              <div className="p-4 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-2.5">
+              <div className="p-4 rounded-xl bg-[#B1E743]/10 dark:bg-[#B1E743]/10 border border-[#B1E743]/30 dark:border-[#B1E743]/20 space-y-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-md bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                  <span className="w-6 h-6 rounded-md bg-[#B1E743] text-[#141413] font-bold text-xs flex items-center justify-center">
                     {activeStepIndex + 1}
                   </span>
                   <h4 className="text-sm font-bold text-stone-900 dark:text-white">
@@ -634,7 +634,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                   {currentStep.instruction}
                 </p>
                 {currentStep.tip && (
-                  <div className="flex items-start gap-2 pt-2 border-t border-indigo-200/50 dark:border-indigo-900/40 text-[11px] text-indigo-900 dark:text-indigo-300">
+                  <div className="flex items-start gap-2 pt-2 border-t border-[#B1E743]/30 dark:border-[#B1E743]/20 text-[11px] text-stone-900 dark:text-[#B1E743]">
                     <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                     <span>{currentStep.tip}</span>
                   </div>
@@ -761,7 +761,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                             <div
                               className={`flex items-center justify-between p-2.5 rounded-lg text-xs font-medium border transition-all ${
                                 idx === simFolders.length - 1 && simFolders.length > 2
-                                  ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 ring-1 ring-indigo-400'
+                                  ? 'bg-[#B1E743]/20 dark:bg-[#B1E743]/20 border-[#B1E743] text-[#141413] dark:text-[#B1E743] ring-1 ring-[#B1E743]'
                                   : 'bg-stone-50/70 dark:bg-stone-900/50 border-stone-200/60 dark:border-stone-800 text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800'
                               }`}
                             >
@@ -796,8 +796,8 @@ export const InteractiveGuideSimulator: React.FC = () => {
 
                       {/* Add Folder Live Form Drawer / Modal Preview */}
                       {simShowFolderModal && (
-                        <div className="p-3.5 bg-indigo-50/80 dark:bg-indigo-950/50 border-t border-indigo-200 dark:border-indigo-800 space-y-2.5 animate-fadeIn">
-                          <div className="flex items-center justify-between text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                        <div className="p-3.5 bg-[#B1E743]/10 dark:bg-[#B1E743]/10 border-t border-[#B1E743]/30 space-y-2.5 animate-fadeIn">
+                          <div className="flex items-center justify-between text-xs font-bold text-[#141413] dark:text-[#B1E743]">
                             <span>Buat Folder Sprint Baru:</span>
                             <span className="text-[10px] text-stone-500">Maks. 2 Level</span>
                           </div>
@@ -807,7 +807,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                               value={simFolderInput}
                               onChange={(e) => setSimFolderInput(e.target.value)}
                               placeholder="Ketik nama folder..."
-                              className="w-full text-xs px-3 py-2 rounded-lg border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              className="w-full text-xs px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B1E743]"
                             />
                             <Button
                               size="sm"
@@ -835,7 +835,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                       {/* Modal Header */}
                       <div className="p-4 bg-stone-50 dark:bg-stone-900/80 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-indigo-600 dark:text-[#B1E743]" />
+                          <FileText className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
                           <h4 className="text-xs font-bold text-stone-900 dark:text-white uppercase tracking-wider">
                             Create New Task (Fitur Utama)
                           </h4>
@@ -853,7 +853,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                             type="text"
                             value={simTaskTitle}
                             onChange={(e) => setSimTaskTitle(e.target.value)}
-                            className="w-full text-xs px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full text-xs px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-white focus:ring-2 focus:ring-[#B1E743] outline-none"
                           />
                         </div>
 
@@ -896,7 +896,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                               type="text"
                               value={simTaskReqUrl}
                               onChange={(e) => setSimTaskReqUrl(e.target.value)}
-                              className="w-full text-xs pl-3 pr-7 py-2 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none truncate"
+                              className="w-full text-xs pl-3 pr-7 py-2 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-white focus:ring-2 focus:ring-[#B1E743] outline-none truncate"
                             />
                             <ExternalLink className="w-3.5 h-3.5 text-stone-400 absolute right-2.5 top-2.5 pointer-events-none" />
                           </div>
@@ -929,7 +929,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                             className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-stone-800 border border-stone-200/60 dark:border-stone-700 text-xs"
                           >
                             <div className="flex items-center gap-2 min-w-0">
-                              <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <FileText className="w-3.5 h-3.5 text-stone-700 dark:text-[#B1E743] shrink-0" />
                               <span className="font-semibold text-stone-900 dark:text-white truncate">{t.title}</span>
                             </div>
                             <span
@@ -969,7 +969,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                         {/* Navigation Drawer Tabs */}
                         <div className="flex items-center gap-4 pt-2 border-t border-stone-200/60 dark:border-stone-800 text-xs font-semibold">
                           <span className="text-stone-400">Overview</span>
-                          <span className="text-indigo-600 dark:text-[#B1E743] border-b-2 border-indigo-600 dark:border-[#B1E743] pb-1">
+                          <span className="text-stone-900 dark:text-[#B1E743] border-b-2 border-[#B1E743] pb-1">
                             Subtasks ({simSubtasks.length})
                           </span>
                           <span className="text-stone-400">Discussion</span>
@@ -984,7 +984,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                           <span className="font-semibold text-stone-700 dark:text-stone-300">
                             Deliverable Progress:
                           </span>
-                          <span className="font-bold text-indigo-600 dark:text-[#B1E743]">
+                          <span className="font-bold text-stone-900 dark:text-[#B1E743]">
                             FE {simSubtasks.filter((s) => s.area === 'FE' && s.status === 'done').length}/
                             {simSubtasks.filter((s) => s.area === 'FE').length} · BE{' '}
                             {simSubtasks.filter((s) => s.area === 'BE' && s.status === 'done').length}/
@@ -1100,7 +1100,7 @@ export const InteractiveGuideSimulator: React.FC = () => {
                                   onClick={() => handleDevStatusChange(st.key as any)}
                                   className={`py-2 px-1 rounded-lg text-[11px] font-bold border transition-all text-center ${
                                     simDevStatus === st.key && st.key !== 'done'
-                                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                      ? 'bg-[#B1E743] text-[#141413] font-bold border-[#B1E743] shadow-sm'
                                       : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
                                   }`}
                                 >
@@ -1327,12 +1327,12 @@ export const InteractiveGuideSimulator: React.FC = () => {
               return (
                 <Card
                   key={guide.id}
-                  className="p-5 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] flex flex-col justify-between space-y-4 hover:border-indigo-300 dark:hover:border-stone-700 transition-all"
+                  className="p-5 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] flex flex-col justify-between space-y-4 hover:border-stone-400 dark:hover:border-stone-700 transition-all"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-md bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-md bg-[#B1E743] text-[#141413] font-bold text-xs flex items-center justify-center">
                           {idx + 1}
                         </span>
                         <div className="p-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300">
