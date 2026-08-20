@@ -8,8 +8,6 @@ import {
   ListTodo,
   FileText,
   Trash2,
-  Edit2,
-  Send,
   FileCode2,
   Clock,
   AlertCircle,
@@ -24,8 +22,9 @@ import {
   TrendingUp,
   ExternalLink,
   Lock,
-  Volume2,
 } from 'lucide-react';
+
+
 import type {
   Task,
   TaskStatus,
@@ -87,10 +86,11 @@ import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Input } from '../atoms/Input';
-import { Textarea } from '../atoms/Textarea';
 import { Select } from '../atoms/Select';
 import { RichTextEditor } from '../molecules/RichTextEditor';
+import { TaskCommentBox } from '../molecules/TaskCommentBox';
 import { Tabs, TabItem } from '../molecules/Tabs';
+
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { TaskScheduleHealthBadge } from '../molecules/TaskScheduleHealthBadge';
 import { calculateRoleOverlapAndBottlenecks } from '../../../lib/utils/scheduleHealth';
@@ -108,8 +108,10 @@ import { taskService } from '../../../lib/api/taskService';
 import { requirementService } from '../../../lib/api/requirementService';
 import { qaDocumentService } from '../../../lib/api/qaDocumentService';
 import { fetchMembers } from '../../../store/workspaceSlice';
+import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
 
 export const EMPTY_DISCUSSION_ILLUSTRATION_URL =
+
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024196/ChatGPT_Image_Aug_18_2026_10_33_27_AM.png';
 
 export const EMPTY_SUBTASKS_ILLUSTRATION_URL =
@@ -464,14 +466,111 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [commentsPage, setCommentsPage] = useState(1);
   const [commentsTotal, setCommentsTotal] = useState(0);
-  const [commentBody, setCommentBody] = useState('');
-  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
-  const [replyParentId, setReplyParentId] = useState<string | null>(null);
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editingCommentBody, setEditingCommentBody] = useState('');
-  const [isPostingComment, setIsPostingComment] = useState(false);
+  const [hasUnreadDiscussion, setHasUnreadDiscussion] = useState(false);
+  const [unreadDiscussionCount, setUnreadDiscussionCount] = useState(0);
+  const [unreadSubtaskCommentMap, setUnreadSubtaskCommentMap] = useState<Record<string, number>>({});
 
   const prevTaskIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setUnreadSubtaskCommentMap({});
+  }, [task?.id]);
+
+  // Connect realtime SSE event listener for task & subtask discussions
+  useRealtimeEvents({
+    workspaceId: activeWorkspaceId || undefined,
+    enableToast: false, // In-app toasts are handled globally in Header
+    onCommentCreated: (payload) => {
+      if (!task) return;
+
+      const isFromOtherUser = !currentUserId || payload.authorId !== currentUserId;
+
+      // 1. Comment belongs to the parent task
+      if (payload.taskId === task.id) {
+        setComments((prevComments) => {
+          if (!payload.comment.parentCommentId) {
+            const exists = prevComments.some((c) => c.id === payload.comment.id);
+            if (exists) return prevComments;
+            return [payload.comment, ...prevComments];
+          }
+
+          return prevComments.map((parent) => {
+            if (parent.id === payload.comment.parentCommentId) {
+              const replies = parent.replies || [];
+              const exists = replies.some((r) => r.id === payload.comment.id);
+              if (exists) return parent;
+              return {
+                ...parent,
+                replies: [...replies, payload.comment],
+              };
+            }
+            return parent;
+          });
+        });
+
+        setCommentsTotal((prev) => prev + 1);
+
+        // If user is not currently viewing discussion tab, display prominent unread badge
+        if (isFromOtherUser && activeTab !== 'discussion') {
+          setHasUnreadDiscussion(true);
+          setUnreadDiscussionCount((prev) => prev + 1);
+        }
+        return;
+      }
+
+      // 2. Comment belongs to a subtask under this task
+      const isSubtaskOfThisTask = subtasks.some((s) => s.id === payload.taskId);
+      if (isSubtaskOfThisTask && isFromOtherUser) {
+        setUnreadSubtaskCommentMap((prev) => ({
+          ...prev,
+          [payload.taskId]: (prev[payload.taskId] || 0) + 1,
+        }));
+      }
+    },
+    onCommentUpdated: (payload) => {
+      if (!task || payload.taskId !== task.id) return;
+      setComments((prevComments) =>
+        prevComments.map((comment) => {
+          if (comment.id === payload.comment.id) {
+            return { ...comment, ...payload.comment, body: payload.comment.body, editedAt: payload.comment.editedAt };
+          }
+          if (comment.replies) {
+            return {
+              ...comment,
+              replies: comment.replies.map((reply) =>
+                reply.id === payload.comment.id
+                  ? { ...reply, ...payload.comment, body: payload.comment.body, editedAt: payload.comment.editedAt }
+                  : reply
+              ),
+            };
+          }
+          return comment;
+        })
+      );
+    },
+
+    onCommentDeleted: (payload) => {
+      if (!task || payload.taskId !== task.id) return;
+      setComments((prevComments) =>
+        prevComments.map((comment) => {
+          if (comment.id === payload.commentId) {
+            return { ...comment, body: '[This comment has been deleted]', deletedAt: new Date().toISOString() };
+          }
+          if (comment.replies) {
+            return {
+              ...comment,
+              replies: comment.replies.map((reply) =>
+                reply.id === payload.commentId
+                  ? { ...reply, body: '[This comment has been deleted]', deletedAt: new Date().toISOString() }
+                  : reply
+              ),
+            };
+          }
+          return comment;
+        })
+      );
+    },
+  });
 
   useEffect(() => {
     if (task) {
@@ -489,10 +588,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         setActiveTab('overview');
         setActivityPage(1);
         setCommentsPage(1);
-        setCommentBody('');
-        setMentionedUserIds([]);
-        setReplyParentId(null);
-        setEditingCommentId(null);
+        setHasUnreadDiscussion(false);
+        setUnreadDiscussionCount(0);
 
         setSubtasks([]);
         setSubtasksError(null);
@@ -512,6 +609,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   }, [task?.id, activeWorkspaceId, dispatch]);
 
+
   const loadProductBrief = async () => {
     if (!activeWorkspaceId || !task) return;
     setIsLoadingProductBrief(true);
@@ -524,7 +622,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       setProductBriefInScope(brief?.currentVersion.inScope || []);
       setProductBriefOutScope(brief?.currentVersion.outScope || []);
       setProductBriefAcceptanceCriteria(brief?.currentVersion.acceptanceCriteria || []);
-      setProductBriefOwnerId(brief?.document.ownerId || currentUserId || '');
+      setProductBriefOwnerId(brief?.document.ownerId || task.reporterId || currentUserId || '');
     } catch (err) {
       setProductBriefError(errorMessage(err, 'Unable to load the Product Brief.'));
     } finally {
@@ -743,66 +841,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
-  const handleSubtaskStatusChange = async (subtaskId: string, newStatus: TaskStatus) => {
-    if (!activeWorkspaceId) return;
-    const subtaskIndex = subtasks.findIndex(s => s.id === subtaskId);
-    if (subtaskIndex === -1) return;
-    
-    const previousSubtask = subtasks[subtaskIndex];
-    const previousSubtasks = [...subtasks];
-
-    try {
-      let notes: string | undefined = undefined;
-      if (newStatus === 'changes_requested') {
-        const inputNotes = window.prompt('Please enter review notes explaining the required changes:');
-        if (!inputNotes || !inputNotes.trim()) {
-          dispatch(enqueueSnackbar('Review notes are required when requesting changes.', 'error'));
-          return;
-        }
-        notes = inputNotes.trim();
-      }
-
-      const updatedSubtasks = [...subtasks];
-      updatedSubtasks[subtaskIndex] = { ...previousSubtask, status: newStatus };
-      setSubtasks(updatedSubtasks);
-
-      if (newStatus === 'done') {
-        await taskService.completeTask(activeWorkspaceId, subtaskId, { status: 'done' });
-      } else {
-        await taskService.updateTask(activeWorkspaceId, subtaskId, {
-          status: newStatus,
-          reviewNotes: notes,
-        });
-      }
-      if (newStatus === 'in_review') {
-        dispatch(
-          addInAppNotification(
-            'Subtask Ready for QA Review',
-            `A subtask in "${task?.title || 'Parent Task'}" was moved to In Review.`,
-            'status_change',
-            task?.id,
-            activeWorkspace?.role?.toUpperCase() || 'Dev'
-          )
-        );
-      } else if (newStatus === 'changes_requested') {
-        dispatch(
-          addInAppNotification(
-            'Changes Requested on Subtask',
-            `Reviewer requested changes on a subtask in "${task?.title || 'Parent Task'}".`,
-            'status_change',
-            task?.id,
-            activeWorkspace?.role?.toUpperCase() || 'QA'
-          )
-        );
-      }
-      dispatch(enqueueSnackbar('Subtask status updated', 'success'));
-      onDataChanged?.();
-    } catch (error) {
-      setSubtasks(previousSubtasks);
-      dispatch(enqueueSnackbar(errorMessage(error, 'Failed to update subtask status'), 'error'));
-    }
-  };
-
   const subtaskMetrics = React.useMemo(() => {
     const feTotal = subtasks.filter((s) => s.deliveryArea === 'frontend').length;
     const feDone = subtasks.filter((s) => s.deliveryArea === 'frontend' && s.status === 'done').length;
@@ -823,6 +861,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     () => subtasks.filter((s) => s.status !== 'done' && s.status !== 'canceled'),
     [subtasks]
   );
+  const totalUnreadSubtasksCount = React.useMemo(() => {
+    return Object.values(unreadSubtaskCommentMap).reduce((sum, count) => sum + count, 0);
+  }, [unreadSubtaskCommentMap]);
+
   const hasIncompleteSubtasks = Boolean(task && !task.parentTaskId && incompleteSubtasks.length > 0);
 
   const loadActivity = async (page = activityPage, append = false) => {
@@ -879,8 +921,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const canManageComments = Boolean(
     activeWorkspace && ['owner', 'admin'].includes(activeWorkspace.role)
   );
-  const canManageComment = (comment: TaskComment) =>
-    !comment.deletedAt && (comment.authorId === currentUserId || canManageComments);
 
   const flattenFolders = (items: FolderTreeNode[], depth = 0): { id: string; name: string; depth: number }[] => {
     let result: { id: string; name: string; depth: number }[] = [];
@@ -1061,40 +1101,57 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
-  const handlePostComment = async () => {
-    if (!activeWorkspaceId || !task || !commentBody.trim()) return;
-    setIsPostingComment(true);
+  const handlePostComment = async (
+    body: string,
+    parentCommentId?: string | null,
+    targetMentionedUserIds: string[] = []
+  ) => {
+    if (!activeWorkspaceId || !task || !body.trim()) return;
     try {
-      await taskService.createTaskComment(activeWorkspaceId, task.id, {
-        body: commentBody.trim(),
-        parentCommentId: replyParentId || undefined,
-        mentionedUserIds,
+      const created = await taskService.createTaskComment(activeWorkspaceId, task.id, {
+        body: body.trim(),
+        parentCommentId: parentCommentId || undefined,
+        mentionedUserIds: targetMentionedUserIds,
       });
-      if (mentionedUserIds.length > 0) {
+
+      // Deduplicate into comments state if SSE hasn't inserted it yet
+      setComments((prevComments) => {
+        if (!created.parentCommentId) {
+          const exists = prevComments.some((c) => c.id === created.id);
+          if (exists) return prevComments;
+          return [created, ...prevComments];
+        }
+        return prevComments.map((parent) => {
+          if (parent.id === created.parentCommentId) {
+            const replies = parent.replies || [];
+            const exists = replies.some((r) => r.id === created.id);
+            if (exists) return parent;
+            return { ...parent, replies: [...replies, created] };
+          }
+          return parent;
+        });
+      });
+
+      if (targetMentionedUserIds.length > 0) {
         dispatch(
           addInAppNotification(
             `Mention in "${task.title}"`,
-            commentBody.trim(),
+            body.trim(),
             'mention',
             task.id,
             activeWorkspace?.role?.toUpperCase() || 'Member'
           )
         );
       }
-      setCommentBody('');
-      setMentionedUserIds([]);
-      setReplyParentId(null);
       dispatch(enqueueSnackbar('Message posted to discussion', 'success'));
-      loadComments();
     } catch (err) {
       dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to post message', 'error'));
-    } finally {
-      setIsPostingComment(false);
+      throw err;
     }
   };
 
-  const handleUpdateComment = async (commentId: string) => {
-    if (!activeWorkspaceId || !task || !editingCommentBody.trim()) return;
+  const handleUpdateComment = async (commentId: string, body: string) => {
+    if (!activeWorkspaceId || !task || !body.trim()) return;
     const comment = comments
       .flatMap((item) => [item, ...(item.replies || [])])
       .find((item) => item.id === commentId);
@@ -1102,18 +1159,36 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       dispatch(enqueueSnackbar('You can only edit your own messages.', 'error'));
       return;
     }
+    const newBody = body.trim();
     try {
-      await taskService.updateTaskComment(activeWorkspaceId, task.id, commentId, {
-        body: editingCommentBody.trim(),
+      const updated = await taskService.updateTaskComment(activeWorkspaceId, task.id, commentId, {
+        body: newBody,
       });
-      setEditingCommentId(null);
-      setEditingCommentBody('');
+      setComments((prevComments) =>
+        prevComments.map((c) => {
+          if (c.id === commentId) {
+            return { ...c, ...updated, body: newBody, editedAt: updated.editedAt || new Date().toISOString() };
+          }
+          if (c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map((r) =>
+                r.id === commentId
+                  ? { ...r, ...updated, body: newBody, editedAt: updated.editedAt || new Date().toISOString() }
+                  : r
+              ),
+            };
+          }
+          return c;
+        })
+      );
       dispatch(enqueueSnackbar('Message updated', 'success'));
-      loadComments();
     } catch (err) {
       dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update message', 'error'));
+      throw err;
     }
   };
+
 
   const handleDeleteComment = async (commentId: string) => {
     if (!activeWorkspaceId || !task) return;
@@ -1133,12 +1208,47 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    if (tabId === 'discussion') {
+      setHasUnreadDiscussion(false);
+      setUnreadDiscussionCount(0);
+    }
+  };
+
   const detailTabs: TabItem[] = [
     { id: 'overview', label: 'Overview', icon: <FileText className="h-3.5 w-3.5" /> },
     { id: 'prd', label: 'Specs & Requirements', icon: <FileCode2 className="h-3.5 w-3.5" /> },
-    { id: 'subtasks', label: `Subtasks (${subtasks.length})`, icon: <ListTodo className="h-3.5 w-3.5" /> },
+    {
+      id: 'subtasks',
+      label: `Subtasks (${subtasks.length})`,
+      icon: <ListTodo className="h-3.5 w-3.5" />,
+      badge: totalUnreadSubtasksCount > 0 ? (
+        <span
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
+          title={`${totalUnreadSubtasksCount} pesan baru di subtasks`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />
+          +{totalUnreadSubtasksCount} Baru
+        </span>
+      ) : undefined,
+    },
     { id: 'activity', label: `Activity (${activityTotal})`, icon: <History className="h-3.5 w-3.5" /> },
-    { id: 'discussion', label: `Discussion (${commentsTotal})`, icon: <MessageSquare className="h-3.5 w-3.5" /> },
+    {
+      id: 'discussion',
+      label: `Discussion (${commentsTotal})`,
+      badge: hasUnreadDiscussion ? (
+        <span
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
+          title={`${unreadDiscussionCount} pesan diskusi baru masuk`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />
+          +{unreadDiscussionCount} Baru
+        </span>
+      ) : undefined,
+
+      icon: <MessageSquare className="h-3.5 w-3.5" />,
+    },
   ];
 
   return (
@@ -1147,6 +1257,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         isOpen={Boolean(task)}
         onClose={onClose}
         width="4xl"
+        defaultFullScreen={true}
+        allowFullScreen={true}
         title={task.title}
         subtitle={`Task ID: ${task.id.substring(0, 8)} • Created ${new Date(task.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}${task.deliveryArea ? ` • Delivery Area: ${task.deliveryArea.toUpperCase()}` : ''}`}
         footer={
@@ -1198,7 +1310,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         }
       >
         <div className="space-y-4">
-          <Tabs tabs={detailTabs} activeTabId={activeTab} onChange={setActiveTab} variant="pills" />
+          <Tabs tabs={detailTabs} activeTabId={activeTab} onChange={handleTabChange} variant="pills" />
+
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
@@ -1551,77 +1664,156 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           placeholder="Explain the problem, intended user outcome, behaviour, decisions, and supporting images or links in Markdown..."
                         />
 
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                          <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                        {/* Scope & Acceptance Criteria Section - Full width stacked rows with paragraph inputs */}
+                        <div className="space-y-4">
+                          {/* In Scope */}
+                          <div className="space-y-3 rounded-xl border border-[#B1E743]/40 bg-[#B1E743]/5 p-4 dark:border-[#B1E743]/30 dark:bg-[#B1E743]/10">
                             <div>
-                              <h5 className="text-xs font-bold text-emerald-900 dark:text-emerald-100">In Scope</h5>
-                              <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Deliverables and commitments included in this task.</p>
+                              <h5 className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-[#B1E743]" />
+                                In Scope
+                              </h5>
+                              <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5">
+                                Deliverables and commitments included in this task.
+                              </p>
                             </div>
-                            {productBriefInScope.map((item) => (
-                              <div key={item.id} className="flex gap-2">
-                                <Input
-                                  aria-label="In Scope item"
-                                  value={item.text}
-                                  onChange={(event) => updateScopeItem('in', item.id, event.target.value)}
-                                  disabled={!canPlan}
-                                  placeholder="Example: Preview design images"
-                                />
-                                {canPlan && <IconButton label="Remove In Scope item" size="sm" variant="ghost" onClick={() => removeScopeItem('in', item.id)}><Trash2 className="h-4 w-4 text-rose-500" /></IconButton>}
-                              </div>
-                            ))}
-                            {canPlan && <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => addScopeItem('in')}>Add In Scope</Button>}
+                            <div className="space-y-2.5">
+                              {productBriefInScope.map((item) => (
+                                <div key={item.id} className="flex items-start gap-2">
+                                  <textarea
+                                    aria-label="In Scope item"
+                                    value={item.text}
+                                    onChange={(event) => updateScopeItem('in', item.id, event.target.value)}
+                                    disabled={!canPlan}
+                                    rows={2}
+                                    placeholder="Tuliskan deliverable / spesifikasi in scope secara rinci (bisa paragraf panjang)..."
+                                    className="w-full rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-900 shadow-xs outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 disabled:opacity-60 resize-y"
+                                  />
+                                  {canPlan && (
+                                    <IconButton
+                                      label="Remove In Scope item"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => removeScopeItem('in', item.id)}
+                                      className="mt-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </IconButton>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            {canPlan && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                leftIcon={<Plus className="h-3.5 w-3.5" />}
+                                onClick={() => addScopeItem('in')}
+                              >
+                                Add In Scope
+                              </Button>
+                            )}
                           </div>
 
-                          <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+                          {/* Out of Scope */}
+                          <div className="space-y-3 rounded-xl border border-stone-200/80 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-900/30">
                             <div>
-                              <h5 className="text-xs font-bold text-amber-900 dark:text-amber-100">Out of Scope</h5>
-                              <p className="text-[11px] text-amber-700 dark:text-amber-300">Explicit exclusions for this task.</p>
+                              <h5 className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-stone-400" />
+                                Out of Scope
+                              </h5>
+                              <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                                Explicit exclusions and boundaries for this task.
+                              </p>
                             </div>
-                            {productBriefOutScope.map((item) => (
-                              <div key={item.id} className="flex gap-2">
-                                <Input
-                                  aria-label="Out of Scope item"
-                                  value={item.text}
-                                  onChange={(event) => updateScopeItem('out', item.id, event.target.value)}
-                                  disabled={!canPlan}
-                                  placeholder="Example: Direct video upload"
-                                />
-                                {canPlan && <IconButton label="Remove Out of Scope item" size="sm" variant="ghost" onClick={() => removeScopeItem('out', item.id)}><Trash2 className="h-4 w-4 text-rose-500" /></IconButton>}
-                              </div>
-                            ))}
-                            {canPlan && <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => addScopeItem('out')}>Add Out of Scope</Button>}
+                            <div className="space-y-2.5">
+                              {productBriefOutScope.map((item) => (
+                                <div key={item.id} className="flex items-start gap-2">
+                                  <textarea
+                                    aria-label="Out of Scope item"
+                                    value={item.text}
+                                    onChange={(event) => updateScopeItem('out', item.id, event.target.value)}
+                                    disabled={!canPlan}
+                                    rows={2}
+                                    placeholder="Tuliskan batasan / hal yang out of scope secara rinci (bisa paragraf panjang)..."
+                                    className="w-full rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-900 shadow-xs outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 disabled:opacity-60 resize-y"
+                                  />
+                                  {canPlan && (
+                                    <IconButton
+                                      label="Remove Out of Scope item"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => removeScopeItem('out', item.id)}
+                                      className="mt-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </IconButton>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            {canPlan && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                leftIcon={<Plus className="h-3.5 w-3.5" />}
+                                onClick={() => addScopeItem('out')}
+                              >
+                                Add Out of Scope
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Acceptance Criteria */}
+                          <div className="space-y-3 rounded-xl border border-stone-200/80 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-900/30">
+                            <div>
+                              <h5 className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                                Acceptance Criteria
+                              </h5>
+                              <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                                Observable delivery targets and acceptance criteria for completion.
+                              </p>
+                            </div>
+                            <div className="space-y-2.5">
+                              {productBriefAcceptanceCriteria.map((criterion) => (
+                                <div key={criterion.id} className="flex items-start gap-2">
+                                  <textarea
+                                    aria-label="Acceptance criterion"
+                                    value={criterion.text}
+                                    onChange={(event) => updateAcceptanceCriterion(criterion.id, event.target.value)}
+                                    disabled={!canPlan}
+                                    rows={2}
+                                    placeholder="Tuliskan kriteria penerimaan (Acceptance Criteria) secara lengkap dalam bentuk paragraf atau spesifikasi teknis..."
+                                    className="w-full rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-900 shadow-xs outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 disabled:opacity-60 resize-y"
+                                  />
+                                  {canPlan && (
+                                    <IconButton
+                                      label="Remove acceptance criterion"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => removeAcceptanceCriterion(criterion.id)}
+                                      className="mt-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </IconButton>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            {canPlan && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                leftIcon={<Plus className="h-3.5 w-3.5" />}
+                                onClick={addAcceptanceCriterion}
+                              >
+                                Add Acceptance Criterion
+                              </Button>
+                            )}
                           </div>
                         </div>
 
-                        <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/20">
-                          <div>
-                            <h5 className="text-xs font-bold text-indigo-900 dark:text-indigo-100">Acceptance Criteria</h5>
-                            <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
-                              Observable delivery targets and acceptance criteria for completion.
-                            </p>
-                          </div>
-                          {productBriefAcceptanceCriteria.map((criterion) => (
-                            <div key={criterion.id} className="flex gap-2">
-                              <Input
-                                aria-label="Acceptance criterion"
-                                value={criterion.text}
-                                onChange={(event) => updateAcceptanceCriterion(criterion.id, event.target.value)}
-                                disabled={!canPlan}
-                                placeholder="Example: User can review selected payment method before confirming."
-                              />
-                              {canPlan && (
-                                <IconButton label="Remove acceptance criterion" size="sm" variant="ghost" onClick={() => removeAcceptanceCriterion(criterion.id)}>
-                                  <Trash2 className="h-4 w-4 text-rose-500" />
-                                </IconButton>
-                              )}
-                            </div>
-                          ))}
-                          {canPlan && (
-                            <Button size="sm" variant="outline" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={addAcceptanceCriterion}>
-                              Add Acceptance Criterion
-                            </Button>
-                          )}
-                        </div>
 
                         {canPlan && (
                           <div className="flex justify-end border-t border-indigo-100 pt-3 dark:border-indigo-900/60">
@@ -1893,13 +2085,20 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               error={subtasksError}
               canPlan={canPlan && !task.parentTaskId}
               canMutate={Boolean(activeWorkspace && ['owner', 'admin', 'po', 'dev', 'qa'].includes(activeWorkspace.role))}
+              unreadCommentMap={unreadSubtaskCommentMap}
+              onClearSubtaskUnread={(subtaskId) => {
+                setUnreadSubtaskCommentMap((prev) => {
+                  const updated = { ...prev };
+                  delete updated[subtaskId];
+                  return updated;
+                });
+              }}
               onOpenCreateModal={() => setIsSubtaskModalOpen(true)}
               onRetry={() => void loadSubtasks()}
               onSubtaskUpdated={(updated) => {
                 setSubtasks((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
                 onDataChanged?.();
               }}
-              onStatusChange={(subtaskId, newStatus) => void handleSubtaskStatusChange(subtaskId, newStatus)}
             />
           )}
 
@@ -2024,316 +2223,24 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
           {/* TAB 4: DISCUSSION */}
           {activeTab === 'discussion' && (
-            <div className="space-y-4">
-              <span className="text-xs font-bold text-stone-900 dark:text-stone-100 block">
-                Task Discussion Thread
-              </span>
-
-              <div className="space-y-3">
-                {replyParentId && (
-                  <div className="flex items-center justify-between text-xs bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300">
-                    <span className="font-semibold">Replying to message...</span>
-                    <Button variant="ghost" size="sm" onClick={() => setReplyParentId(null)}>
-                      Cancel Reply
-                    </Button>
-                  </div>
-                )}
-
-                {/* Quick Tektokan Topic Starters */}
-                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                  <span className="text-[10px] font-bold text-stone-400 uppercase">Quick Topic:</span>
-                  {[
-                    { label: 'PRD Query', tag: '[PRD Query]: ' },
-                    { label: 'API Contract', tag: '[API Contract]: ' },
-                    { label: 'Bug Blocker', tag: '[Bug Blocker]: ' },
-                    { label: 'Ready for Review', tag: '[Ready for Review]: ' },
-                  ].map((t) => (
-                    <button
-                      key={t.label}
-                      type="button"
-                      onClick={() => {
-                        if (!commentBody.includes(t.tag)) {
-                          setCommentBody(t.tag + commentBody);
-                        }
-                      }}
-                      className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700 transition-all"
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-
-                <Textarea
-                  id="comment-body"
-                  label="Message"
-                  value={commentBody}
-                  onChange={(e) => setCommentBody(e.target.value)}
-                  placeholder="Write a message to your team (FE, BE, QA, PO)..."
-                  rows={3}
-                />
-
-                {/* Mention Team Members as Interactive Chips */}
-                {members.length > 0 && (
-                  <div className="space-y-1.5">
-                    <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-wider dark:text-stone-400">
-                      Mention Members / Broadcast (Optional)
-                    </label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {/* @channel broadcast chip */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!commentBody.includes('@channel')) {
-                            setCommentBody((prev) => (prev ? `@channel ${prev}` : '@channel '));
-                          }
-                        }}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
-                          commentBody.includes('@channel')
-                            ? 'bg-amber-500 text-white shadow-xs dark:bg-amber-400 dark:text-stone-950 ring-2 ring-amber-500/30'
-                            : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/60'
-                        }`}
-                        title="Broadcast ke semua orang di task ini (Reporter, Assignee, Subtask Assignees, Komentator)"
-                      >
-                        <Volume2 className="h-3 w-3" />
-                        <span>@channel</span>
-                        <span className="text-[9px] uppercase px-1 rounded font-extrabold bg-amber-500/20">
-                          Semua di task
-                        </span>
-                      </button>
-
-                      {members.map((member) => {
-                        const isSelected = mentionedUserIds.includes(member.userId);
-                        const name = member.user?.name || member.user?.email || member.userId.substring(0, 6);
-                        return (
-                          <button
-                            key={member.userId}
-                            type="button"
-                            onClick={() => {
-                              if (isSelected) {
-                                setMentionedUserIds(mentionedUserIds.filter((id) => id !== member.userId));
-                              } else {
-                                setMentionedUserIds([...mentionedUserIds, member.userId]);
-                              }
-                            }}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                              isSelected
-                                ? 'bg-[#22201F] text-white shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
-                                : 'bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700'
-                            }`}
-                          >
-                            <span>@{name}</span>
-                            <span className={`text-[9px] uppercase px-1 rounded font-bold ${
-                              isSelected ? 'bg-white/20 text-white dark:bg-black/20 dark:text-stone-900' : 'bg-black/10 text-stone-600 dark:bg-white/10 dark:text-stone-400'
-                            }`}>
-                              {member.role}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end pt-1">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handlePostComment}
-                    isLoading={isPostingComment}
-                    rightIcon={<Send className="h-3.5 w-3.5" />}
-                  >
-                    Post Message
-                  </Button>
-                </div>
-              </div>
-
-              {isLoadingComments ? (
-                <Skeleton variant="text" className="h-20 w-full" />
-              ) : commentsError ? (
-                <Alert tone="error" title="Discussion unavailable">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>{commentsError}</span>
-                    <Button variant="outline" size="sm" onClick={() => void loadComments()}>
-                      Retry
-                    </Button>
-                  </div>
-                </Alert>
-              ) : comments.length === 0 ? (
-                <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
-                  <div className="flex justify-center">
-                    <img
-                      src={EMPTY_DISCUSSION_ILLUSTRATION_URL}
-                      alt="No discussion messages"
-                      className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
-                      loading="lazy"
-                    />
-                    <div className="hidden dark:flex items-center justify-center py-2">
-                      <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
-                        <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
-                        <MessageSquare className="h-7 w-7 text-[#B1E743]" />
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium max-w-sm mx-auto leading-relaxed">
-                    No messages in this discussion thread. Be the first to start the conversation!
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {comments.map((c) => (
-                    <Card key={c.id} className="p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-stone-900 dark:text-stone-100">{c.authorName}</span>
-                        <div className="flex items-center gap-1 text-[10px] text-stone-400">
-                          <span>{new Date(c.createdAt).toLocaleTimeString()}</span>
-                          {canManageComment(c) && (
-                            <>
-                              <IconButton
-                                label="Edit message"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setEditingCommentId(c.id);
-                                  setEditingCommentBody(c.body);
-                                }}
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </IconButton>
-                              <IconButton
-                                label="Delete message"
-                                size="sm"
-                                variant="danger"
-                                onClick={() => handleDeleteComment(c.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </IconButton>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {editingCommentId === c.id ? (
-                        <div className="space-y-2">
-                          <Input value={editingCommentBody} onChange={(e) => setEditingCommentBody(e.target.value)} />
-                          <div className="flex gap-2 justify-end">
-                            <Button size="sm" variant="outline" onClick={() => setEditingCommentId(null)}>
-                              Cancel
-                            </Button>
-                            <Button size="sm" variant="primary" onClick={() => handleUpdateComment(c.id)}>
-                              Save
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className={`text-xs ${c.deletedAt ? 'italic text-stone-400' : 'text-stone-800 dark:text-stone-200'}`}>
-                          {c.body}
-                        </p>
-                      )}
-
-                      {/* Mentions */}
-                      {c.mentions && c.mentions.length > 0 && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400 font-medium">
-                          <span>Mentions:</span>
-                          {c.mentions.map((m) => (
-                            <span key={m.userId} className="bg-amber-100 dark:bg-amber-950/60 px-1 rounded">
-                              @{m.userName}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Replies */}
-                      {c.replies && c.replies.length > 0 && (
-                        <div className="pl-3 border-l-2 border-stone-200 dark:border-stone-800 space-y-2 pt-2">
-                          {c.replies.map((r) => (
-                            <div key={r.id} className="text-xs space-y-1">
-                              <div className="flex justify-between items-center">
-                                <span className="font-semibold text-stone-700 dark:text-stone-300">{r.authorName}</span>
-                                <div className="flex items-center gap-1 text-[10px] text-stone-400">
-                                  <span>{new Date(r.createdAt).toLocaleTimeString()}</span>
-                                  {canManageComment(r) && (
-                                    <>
-                                      <IconButton
-                                        label="Edit reply"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => {
-                                          setEditingCommentId(r.id);
-                                          setEditingCommentBody(r.body);
-                                        }}
-                                      >
-                                        <Edit2 className="h-3 w-3" />
-                                      </IconButton>
-                                      <IconButton
-                                        label="Delete reply"
-                                        size="sm"
-                                        variant="danger"
-                                        onClick={() => handleDeleteComment(r.id)}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </IconButton>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                              {editingCommentId === r.id ? (
-                                <div className="space-y-2">
-                                  <Input
-                                    id={`reply-${r.id}`}
-                                    aria-label="Edit reply"
-                                    value={editingCommentBody}
-                                    onChange={(event) => setEditingCommentBody(event.target.value)}
-                                  />
-                                  <div className="flex gap-2 justify-end">
-                                    <Button size="sm" variant="outline" onClick={() => setEditingCommentId(null)}>
-                                      Cancel
-                                    </Button>
-                                    <Button size="sm" variant="primary" onClick={() => handleUpdateComment(r.id)}>
-                                      Save
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className={r.deletedAt ? 'italic text-stone-400' : 'text-stone-700 dark:text-stone-300'}>{r.body}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {!c.deletedAt && !c.parentCommentId && (
-                        <div className="pt-1 flex justify-end">
-                          <button
-                            onClick={() => setReplyParentId(c.id)}
-                            className="text-[11px] font-bold text-amber-600 hover:underline"
-                          >
-                            Reply
-                          </button>
-                        </div>
-                      )}
-                    </Card>
-                  ))}
-                </div>
-              )}
-              {!commentsError && commentsTotal > comments.length && (
-                <div className="flex flex-col items-center gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    isLoading={isLoadingComments}
-                    onClick={() => void loadComments(commentsPage + 1, true)}
-                  >
-                    Load older messages ({commentsTotal - comments.length} remaining)
-                  </Button>
-                </div>
-              )}
-              {!commentsError && commentsTotal > PAGE_SIZE && comments.length === commentsTotal && (
-                <p className="text-center text-[11px] text-stone-400 pt-1">
-                  All {commentsTotal} messages loaded.
-                </p>
-              )}
-            </div>
+            <TaskCommentBox
+              comments={comments}
+              currentUserId={currentUserId || undefined}
+              members={members}
+              title="Task Discussion Thread"
+              showMentionChips={true}
+              canManageComments={canManageComments}
+              emptyIllustrationUrl={EMPTY_DISCUSSION_ILLUSTRATION_URL}
+              isLoading={isLoadingComments}
+              error={commentsError || undefined}
+              onRetry={() => void loadComments()}
+              hasMore={!commentsError && commentsTotal > comments.length}
+              onLoadMore={() => void loadComments(commentsPage + 1, true)}
+              isLoadingMore={isLoadingComments && comments.length > 0}
+              onPostComment={handlePostComment}
+              onUpdateComment={handleUpdateComment}
+              onDeleteComment={handleDeleteComment}
+            />
           )}
         </div>
       </Drawer>

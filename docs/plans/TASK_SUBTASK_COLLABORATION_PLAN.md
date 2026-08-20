@@ -2,6 +2,7 @@
 
 **Status:** approved product scope — ready for phased delivery  
 **Created:** 2026-08-13  
+**Architecture Decision Record:** [`docs/adr/ADR-001-CORE-DOMAIN-AND-COLLABORATION-DECISIONS.md`](file:///Users/mac/Documents/GitHub/QAREPORT/docs/adr/ADR-001-CORE-DOMAIN-AND-COLLABORATION-DECISIONS.md)  
 **Supersedes:** the hierarchy decision in `QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md` only to add one direct subtask level.
 
 ## 1. Outcome

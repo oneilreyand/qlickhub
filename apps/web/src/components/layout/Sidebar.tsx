@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Component, ShieldCheck, Layers, Building2, FileBarChart, CheckSquare, BookOpen } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
+import { selectCurrentUserRole } from '../../store/authSlice';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -54,17 +55,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const [isHovered, setIsHovered] = useState(false);
   const location = useLocation();
   const { workspaces, activeWorkspaceId } = useAppSelector((state) => state.workspace);
+  const currentUserRole = useAppSelector(selectCurrentUserRole);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
-  const userRole = activeWorkspace?.role || activeWorkspace?.myRole;
-  const canManageSettings = userRole === 'owner' || userRole === 'admin';
+  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || currentUserRole || '').toLowerCase();
+  const canAccessSettingsAndUI = ['owner', 'admin', 'po'].includes(userRole);
 
   // Mobile drawers always render expanded navigation.
   const isExpanded = isHovered || Boolean(onCloseMobile);
 
   const visibleNavItems = navItems.filter((item) => {
-    if (item.path === '/workspaces/settings') {
-      return canManageSettings;
+    if (item.path === '/workspaces/settings' || item.path === '/components') {
+      return canAccessSettingsAndUI;
     }
     return true;
   });

@@ -107,7 +107,7 @@ describe('Task Activity Audit Trail Integration Tests (ST3)', () => {
     subtaskFE = (await TaskModel.findByPk(subtaskCreated.id))!;
 
     // 3. Update subtask execution status -> logs subtask.status_updated
-    await taskService.updateTask(userB.id, workspace.id, subtaskFE.id, {
+    await taskService.updateTask(userA.id, workspace.id, subtaskFE.id, {
       status: 'in_progress',
       description: 'Audit log in progress',
     });

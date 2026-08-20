@@ -3,6 +3,8 @@ import {
   Code2,
   Layers,
   Bug,
+  Smartphone,
+  Cpu,
   FileCode2,
   Clock,
   AlertTriangle,
@@ -10,7 +12,7 @@ import {
   CheckCircle2,
   User,
 } from 'lucide-react';
-import type { Task, TaskStatus, ProductBrief, DeliveryArea } from '@qlick/contracts';
+import type { Task, ProductBrief, DeliveryArea } from '@qlick/contracts';
 import {
   calculateRoleOverlapAndBottlenecks,
   calculateSubtaskScheduleHealth,
@@ -25,7 +27,6 @@ export interface SubtaskRoleTimelineProps {
   members?: Array<{ userId: string; role: string; user?: { name?: string; email?: string } }>;
   canMutate?: boolean;
   onSubtaskUpdated?: (updated: Task) => void;
-  onStatusChange?: (subtaskId: string, newStatus: TaskStatus) => void;
 }
 
 function formatShortDate(dateStr?: string | null): string {
@@ -41,7 +42,9 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
   productBrief = null,
   members = [],
 }) => {
-  const [activeRoleFilter, setActiveRoleFilter] = useState<'all' | 'po' | 'backend' | 'frontend' | 'qa'>('all');
+  const [activeRoleFilter, setActiveRoleFilter] = useState<
+    'all' | 'po' | 'backend' | 'frontend' | 'mobile' | 'fullstack' | 'qa'
+  >('all');
 
   const today = useMemo(() => new Date(), []);
   const todayStr = useMemo(() => normalizeDateStr(today), [today]);
@@ -143,7 +146,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     switch (area) {
       case 'frontend':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
             <Code2 className="h-3 w-3" /> FE
           </span>
         );
@@ -153,9 +156,21 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
             <Layers className="h-3 w-3" /> BE
           </span>
         );
+      case 'mobile':
+        return (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Smartphone className="h-3 w-3" /> MOB
+          </span>
+        );
+      case 'fullstack':
+        return (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Cpu className="h-3 w-3" /> FS
+          </span>
+        );
       case 'qa':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[#B1E743]/20 text-[#22201F] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
             <Bug className="h-3 w-3" /> QA
           </span>
         );
@@ -173,22 +188,25 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
       return 'bg-rose-500 hover:bg-rose-600 text-white shadow-xs ring-1 ring-rose-600/50';
     }
     if (healthStatus === 'completed') {
-      return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs ring-1 ring-emerald-700/50';
+      return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs';
     }
     if (healthStatus === 'at_risk') {
       return 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs ring-1 ring-amber-600/50';
     }
     switch (area) {
       case 'frontend':
-        return 'bg-sky-600 hover:bg-sky-700 text-white shadow-xs';
+      case 'mobile':
+      case 'fullstack':
+        return 'bg-[#22201F] hover:bg-stone-800 text-white shadow-xs dark:bg-stone-700';
       case 'backend':
         return 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs';
       case 'qa':
-        return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
+        return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs';
       default:
         return 'bg-stone-600 hover:bg-stone-700 text-white shadow-xs';
     }
   };
+
 
   const filteredSubtasks = useMemo(() => {
     if (activeRoleFilter === 'all') return subtasks;
@@ -350,12 +368,14 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
 
       {/* 3. Role Filter Switcher Bar */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800/70 p-1 rounded-xl">
+        <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800/70 p-1 rounded-xl flex-wrap">
           {[
-            { id: 'all', label: `All Roles (${subtasks.length})` },
-            { id: 'backend', label: `BE (${analysis.stages.backend.subtasks.length})`, icon: <Layers className="h-3 w-3" /> },
-            { id: 'frontend', label: `FE (${analysis.stages.frontend.subtasks.length})`, icon: <Code2 className="h-3 w-3" /> },
-            { id: 'qa', label: `QA (${analysis.stages.qa.subtasks.length})`, icon: <Bug className="h-3 w-3" /> },
+            { id: 'all', label: `All (${subtasks.length})` },
+            { id: 'backend', label: `BE (${subtasks.filter((s) => s.deliveryArea === 'backend').length})`, icon: <Layers className="h-3 w-3" /> },
+            { id: 'frontend', label: `FE (${subtasks.filter((s) => s.deliveryArea === 'frontend').length})`, icon: <Code2 className="h-3 w-3" /> },
+            { id: 'mobile', label: `MOB (${subtasks.filter((s) => s.deliveryArea === 'mobile').length})`, icon: <Smartphone className="h-3 w-3" /> },
+            { id: 'fullstack', label: `FS (${subtasks.filter((s) => s.deliveryArea === 'fullstack').length})`, icon: <Cpu className="h-3 w-3" /> },
+            { id: 'qa', label: `QA (${subtasks.filter((s) => s.deliveryArea === 'qa').length})`, icon: <Bug className="h-3 w-3" /> },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -373,11 +393,13 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
           ))}
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] font-medium text-stone-500 dark:text-stone-400">
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Backend</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-sky-500" /> Frontend</span>
+        <div className="flex items-center gap-3 text-[11px] font-medium text-stone-500 dark:text-stone-400 flex-wrap">
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> BE</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-sky-500" /> FE</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-purple-500" /> MOB</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-cyan-500" /> FS</span>
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> QA</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Delayed</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Late</span>
         </div>
       </div>
 

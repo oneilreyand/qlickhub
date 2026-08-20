@@ -58,6 +58,7 @@ export const taskService = {
       if (query.includeDescendants !== undefined) params.includeDescendants = String(query.includeDescendants);
       if (query.unfiledOnly !== undefined) params.unfiledOnly = String(query.unfiledOnly);
       if (query.rootOnly !== undefined) params.rootOnly = String(query.rootOnly);
+      if (query.myTasksOnly !== undefined) params.myTasksOnly = String(query.myTasksOnly);
       if (query.parentTaskId) params.parentTaskId = query.parentTaskId;
       if (query.includeSubtaskSummary !== undefined) params.includeSubtaskSummary = String(query.includeSubtaskSummary);
       if (query.status) {

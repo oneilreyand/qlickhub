@@ -5,7 +5,7 @@ export interface ProgressBarProps {
   max?: number;
   label?: string;
   showPercentage?: boolean;
-  variant?: 'indigo' | 'emerald' | 'amber' | 'rose';
+  variant?: 'brand' | 'indigo' | 'emerald' | 'amber' | 'rose' | 'neutral';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -15,7 +15,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   max = 100,
   label,
   showPercentage = true,
-  variant = 'indigo',
+  variant = 'brand',
   size = 'md',
   className = '',
 }) => {
@@ -28,10 +28,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   };
 
   const variantStyles = {
-    indigo: 'bg-[#B1E743] dark:bg-[#B1E743]',
-    emerald: 'bg-emerald-500 dark:bg-emerald-400',
-    amber: 'bg-amber-500 dark:bg-amber-400',
+    brand: 'bg-[#B1E743] dark:bg-[#B1E743]',
+    emerald: 'bg-[#B1E743] dark:bg-[#B1E743]',
+    indigo: 'bg-[#22201F] dark:bg-stone-200',
+    amber: 'bg-amber-400 dark:bg-amber-400',
     rose: 'bg-rose-500 dark:bg-rose-400',
+    neutral: 'bg-stone-400 dark:bg-stone-600',
   };
 
   return (
@@ -44,7 +46,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       )}
       <div className={`w-full overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800 ${sizeStyles[size]}`}>
         <div
-          className={`h-full rounded-full transition-all duration-500 ease-out ${variantStyles[variant]}`}
+          className={`h-full rounded-full transition-all duration-500 ease-out ${variantStyles[variant] || variantStyles.brand}`}
           style={{ width: `${percentage}%` }}
           role="progressbar"
           aria-valuenow={value}

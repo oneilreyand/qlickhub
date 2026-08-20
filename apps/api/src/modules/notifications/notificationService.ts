@@ -7,6 +7,7 @@ import {
 } from '@qlick/contracts';
 import { NotificationModel, UserModel, TaskModel } from '../../db/models/index.js';
 import { fcmService } from '../../services/fcmService.js';
+import { realtimeEventBus } from '../../services/realtimeEventBus.js';
 
 export interface CreateNotificationParams {
   userId: string;
@@ -80,7 +81,16 @@ export class NotificationService {
       include: [{ model: UserModel, as: 'actor', attributes: ['id', 'name', 'email'] }],
     });
 
-    return formatNotification(fetched || record);
+    const formatted = formatNotification(fetched || record);
+
+    // Realtime SSE event dispatch to targeted user
+    try {
+      realtimeEventBus.emitToUser(workspaceId, userId, 'notification:new', formatted);
+    } catch (err) {
+      console.warn('⚠️ Failed to dispatch realtime notification event:', err);
+    }
+
+    return formatted;
   }
 
   /**
@@ -144,13 +154,24 @@ export class NotificationService {
     const fetched = await NotificationModel.findAll({
       where: { id: { [Op.in]: ids } },
       include: [{ model: UserModel, as: 'actor', attributes: ['id', 'name', 'email'] }],
-      order: [['createdAt', 'DESC']],
     });
 
-    return fetched.map(formatNotification);
+    const formattedList = fetched.map(formatNotification);
+
+    // Realtime SSE event dispatch to targeted users
+    try {
+      for (const notif of formattedList) {
+        realtimeEventBus.emitToUser(notif.workspaceId, notif.userId, 'notification:new', notif);
+      }
+    } catch (err) {
+      console.warn('⚠️ Failed to dispatch bulk realtime notification events:', err);
+    }
+
+    return formattedList;
   }
 
   /**
+
    * Lists user notifications with optional workspace and unread filtering, plus unread count.
    */
   async listUserNotifications(

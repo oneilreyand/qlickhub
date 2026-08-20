@@ -9,7 +9,7 @@ import {
   Clock,
   LayoutList,
 } from 'lucide-react';
-import type { Task, TaskStatus, DeliveryArea, ProductBrief } from '@qlick/contracts';
+import type { Task, DeliveryArea, ProductBrief } from '@qlick/contracts';
 import { Accordion } from '../atoms/Accordion';
 import { SubtaskAccordionItem } from './SubtaskAccordionItem';
 import { SubtaskRoleTimeline } from '../molecules/SubtaskRoleTimeline';
@@ -33,10 +33,11 @@ export interface SubtaskListProps {
   error?: string | null;
   canPlan?: boolean;
   canMutate?: boolean;
+  unreadCommentMap?: Record<string, number>;
+  onClearSubtaskUnread?: (subtaskId: string) => void;
   onOpenCreateModal?: () => void;
   onRetry?: () => void;
   onSubtaskUpdated?: (updated: Task) => void;
-  onStatusChange?: (subtaskId: string, newStatus: TaskStatus) => void;
 }
 
 export const SubtaskList: React.FC<SubtaskListProps> = ({
@@ -50,10 +51,11 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
   error = null,
   canPlan = false,
   canMutate = true,
+  unreadCommentMap,
+  onClearSubtaskUnread,
   onOpenCreateModal,
   onRetry,
   onSubtaskUpdated,
-  onStatusChange,
 }) => {
   const [viewMode, setViewMode] = useState<'accordion' | 'timeline'>('accordion');
   const [selectedArea, setSelectedArea] = useState<DeliveryArea | 'all'>('all');
@@ -254,7 +256,6 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
           members={members}
           canMutate={canMutate}
           onSubtaskUpdated={onSubtaskUpdated}
-          onStatusChange={onStatusChange}
         />
       ) : (
         <>
@@ -371,8 +372,9 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                   currentUserId={currentUserId}
                   members={members}
                   canMutate={canMutate}
+                  initialUnreadCount={unreadCommentMap?.[st.id] || 0}
+                  onClearUnread={() => onClearSubtaskUnread?.(st.id)}
                   onSubtaskUpdated={onSubtaskUpdated}
-                  onStatusChange={onStatusChange}
                 />
               ))}
             </Accordion>

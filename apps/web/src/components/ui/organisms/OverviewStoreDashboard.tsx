@@ -194,10 +194,10 @@ export const OverviewStoreDashboard: React.FC = () => {
         {/* Card 1: Total Tasks Bulan Ini */}
         <div className="rounded-[24px] bg-white p-6 border border-stone-200/80 shadow-xs space-y-3 dark:bg-[#1C1A19] dark:border-stone-800">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
               Total Tugas
             </span>
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
               <ListTodo className="h-4 w-4" />
             </div>
           </div>
@@ -205,7 +205,7 @@ export const OverviewStoreDashboard: React.FC = () => {
             <span className="text-3xl font-extrabold text-[#22201F] dark:text-white">
               <AnimatedCounter value={totalTasks} />
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
               {todoTasks} To Do
             </span>
           </div>
@@ -217,10 +217,10 @@ export const OverviewStoreDashboard: React.FC = () => {
         {/* Card 2: In Progress WIP */}
         <div className="rounded-[24px] bg-white p-6 border border-stone-200/80 shadow-xs space-y-3 dark:bg-[#1C1A19] dark:border-stone-800">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
               Sedang Dikerjakan
             </span>
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-stone-100 text-[#22201F] dark:bg-stone-800 dark:text-[#B1E743]">
               <Code2 className="h-4 w-4" />
             </div>
           </div>
@@ -228,7 +228,7 @@ export const OverviewStoreDashboard: React.FC = () => {
             <span className="text-3xl font-extrabold text-[#22201F] dark:text-white">
               <AnimatedCounter value={inProgressTasks} />
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
               {inProgressRate}% Beban Kerja
             </span>
           </div>
@@ -236,6 +236,7 @@ export const OverviewStoreDashboard: React.FC = () => {
             Tugas dalam tahap implementasi aktif
           </p>
         </div>
+
 
         {/* Card 3: QA & In Review */}
         <div className="rounded-[24px] bg-white p-6 border border-stone-200/80 shadow-xs space-y-3 dark:bg-[#1C1A19] dark:border-stone-800">
@@ -350,7 +351,7 @@ export const OverviewStoreDashboard: React.FC = () => {
             <div className="space-y-2 pt-3 border-t border-stone-100 dark:border-stone-800 text-xs">
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-indigo-500" /> To Do
+                  <span className="h-2 w-2 rounded-full bg-stone-300 dark:bg-stone-600" /> To Do
                 </span>
                 <span className="font-bold text-stone-900 dark:text-stone-200">
                   {todoTasks} ({todoRate}%)
@@ -358,7 +359,7 @@ export const OverviewStoreDashboard: React.FC = () => {
               </div>
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> In Progress
+                  <span className="h-2 w-2 rounded-full bg-[#22201F] dark:bg-stone-300" /> In Progress
                 </span>
                 <span className="font-bold text-stone-900 dark:text-stone-200">
                   {inProgressTasks} ({inProgressRate}%)
@@ -366,7 +367,7 @@ export const OverviewStoreDashboard: React.FC = () => {
               </div>
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-amber-500" /> Review / QA
+                  <span className="h-2 w-2 rounded-full bg-amber-400" /> Review / QA
                 </span>
                 <span className="font-bold text-stone-900 dark:text-stone-200">
                   {inReviewTasks} ({inReviewRate}%)
@@ -434,10 +435,10 @@ export const OverviewStoreDashboard: React.FC = () => {
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-stone-500 dark:text-stone-400">
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-indigo-500" /> To Do
+                <span className="h-2.5 w-2.5 rounded-full bg-stone-300 dark:bg-stone-600" /> To Do
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> In Progress
+                <span className="h-2.5 w-2.5 rounded-full bg-[#22201F] dark:bg-stone-300" /> In Progress
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> In Review
@@ -481,11 +482,11 @@ export const OverviewStoreDashboard: React.FC = () => {
                       <div className="absolute -top-24 z-20 flex flex-col items-start rounded-xl bg-[#22201F] px-3.5 py-2.5 text-[10px] font-semibold text-white shadow-xl min-w-[130px] border border-stone-700 animate-fadeIn">
                         <span className="text-stone-400 text-[9px] font-mono">{bar.period}</span>
                         <div className="mt-1 space-y-0.5">
-                          <span className="flex items-center gap-1.5 text-indigo-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" /> {bar.todo} To Do
+                          <span className="flex items-center gap-1.5 text-stone-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-stone-400" /> {bar.todo} To Do
                           </span>
-                          <span className="flex items-center gap-1.5 text-emerald-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> {bar.inProgress} In Progress
+                          <span className="flex items-center gap-1.5 text-stone-200">
+                            <span className="h-1.5 w-1.5 rounded-full bg-stone-300" /> {bar.inProgress} In Progress
                           </span>
                           <span className="flex items-center gap-1.5 text-amber-300">
                             <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {bar.inReview} In Review
@@ -516,13 +517,13 @@ export const OverviewStoreDashboard: React.FC = () => {
                       )}
                       {bar.inProgress > 0 && (
                         <div
-                          className="bg-emerald-500 w-full"
+                          className="bg-[#22201F] dark:bg-stone-200 w-full"
                           style={{ flex: bar.inProgress }}
                         />
                       )}
                       {bar.todo > 0 && (
                         <div
-                          className="bg-indigo-500 w-full"
+                          className="bg-stone-300 dark:bg-stone-600 w-full"
                           style={{ flex: bar.todo }}
                         />
                       )}
@@ -530,6 +531,7 @@ export const OverviewStoreDashboard: React.FC = () => {
                         <div className="bg-stone-200 dark:bg-stone-800 w-full h-full" />
                       )}
                     </div>
+
 
                     <span className="text-[11px] font-bold text-stone-500 mt-2 dark:text-stone-400">
                       {bar.label}

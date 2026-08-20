@@ -14,6 +14,7 @@ import {
   Minus,
   Link as LinkIcon,
   Image as ImageIcon,
+  Video as VideoIcon,
   Eye,
   Edit3,
   Maximize2,
@@ -52,12 +53,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   defaultTab = 'preview',
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>(defaultTab);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [imageAltInput, setImageAltInput] = useState('');
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [videoUrlInput, setVideoUrlInput] = useState('');
+  const [videoTitleInput, setVideoTitleInput] = useState('');
 
   // Auto-expand textarea height dynamically when not in fullscreen
   const adjustTextareaHeight = useCallback(() => {
@@ -87,74 +90,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [isFullscreen]);
 
-  // Insert image file as Data URL
-  const insertImageFile = useCallback((file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
-      const dataUrl = loadEvent.target?.result as string;
-      if (dataUrl) {
-        const altText = file.name.replace(/\.[^/.]+$/, '') || 'Attached Image';
-        const imageMarkdown = `\n![${altText}](${dataUrl})\n`;
-        const textarea = textareaRef.current;
-        if (textarea) {
-          const start = textarea.selectionStart;
-          const end = textarea.selectionEnd;
-          const newValue = value.substring(0, start) + imageMarkdown + value.substring(end);
-          onChange(newValue);
-          setTimeout(() => {
-            textarea.focus();
-            textarea.setSelectionRange(start + imageMarkdown.length, start + imageMarkdown.length);
-            adjustTextareaHeight();
-          }, 0);
-        } else {
-          onChange(value + imageMarkdown);
-        }
-      }
-    };
-    reader.readAsDataURL(file);
-  }, [value, onChange, adjustTextareaHeight]);
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files[0]) {
-      insertImageFile(files[0]);
-    }
-    // reset file input
-    if (e.target) {
-      e.target.value = '';
-    }
-    setIsImageModalOpen(false);
-  };
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith('image/')) {
-        const file = items[i].getAsFile();
-        if (file) {
-          e.preventDefault();
-          insertImageFile(file);
-          return;
-        }
-      }
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
-    const files = e.dataTransfer?.files;
-    if (files && files.length > 0) {
-      for (let i = 0; i < files.length; i++) {
-        if (files[i].type.startsWith('image/')) {
-          e.preventDefault();
-          insertImageFile(files[i]);
-          return;
-        }
-      }
-    }
-  };
-
   const handleInsertUrlImage = () => {
     if (!imageUrlInput.trim()) return;
     const alt = imageAltInput.trim() || 'Image';
@@ -171,6 +106,24 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setImageUrlInput('');
     setImageAltInput('');
     setIsImageModalOpen(false);
+  };
+
+  const handleInsertUrlVideo = () => {
+    if (!videoUrlInput.trim()) return;
+    const title = videoTitleInput.trim() || 'Video Attachment';
+    const videoMarkdown = `\n![${title}](${videoUrlInput.trim()})\n`;
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newValue = value.substring(0, start) + videoMarkdown + value.substring(end);
+      onChange(newValue);
+    } else {
+      onChange(value + videoMarkdown);
+    }
+    setVideoUrlInput('');
+    setVideoTitleInput('');
+    setIsVideoModalOpen(false);
   };
 
   // Insert or wrap text at the current cursor position
@@ -501,10 +454,19 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => setIsImageModalOpen(true)}
-              title="Insert Image (Upload, URL, or Paste)"
+              title="Insert Image Link (PNG, JPG, WebP, etc.)"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <ImageIcon className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              disabled={disabled || activeTab === 'preview'}
+              onClick={() => setIsVideoModalOpen(true)}
+              title="Insert Video Link (MP4, YouTube, or Loom)"
+              className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
+            >
+              <VideoIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
@@ -516,15 +478,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <Minus className="h-3.5 w-3.5" />
             </button>
           </div>
-
-          {/* Hidden File Input for Image Upload */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileInputChange}
-          />
 
           {/* Right Group: Mode Switcher & Fullscreen Maximize */}
           <div className="flex items-center gap-1.5">
@@ -576,9 +529,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
             disabled={disabled}
             placeholder={placeholder}
             required={required}
@@ -607,7 +557,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* Status / Footer Bar */}
         <div className="flex items-center justify-between border-t border-stone-100 bg-stone-50/50 px-3 py-1 text-[10px] text-stone-400 dark:border-stone-800/60 dark:bg-stone-950/40 dark:text-stone-500 shrink-0">
           <span className="italic">
-            {isFullscreen ? 'Press Esc to exit Fullscreen' : 'Tip: Paste screenshots (Ctrl+V) or click 🖼️ to add images'}
+            {isFullscreen ? 'Press Esc to exit Fullscreen' : 'Tip: Insert media links with 🖼️ (Image) or 🎥 (Video) toolbar buttons'}
           </span>
           <span className="font-mono">
             {wordCount} {wordCount === 1 ? 'word' : 'words'} · {charCount} chars
@@ -615,7 +565,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </div>
       </div>
 
-      {/* Insert Image Modal */}
+      {/* Insert Image Link Modal */}
       {isImageModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -626,7 +576,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
               <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
                 <ImageIcon className="h-4 w-4 text-brand-600" />
-                <span>Insert Image</span>
+                <span>Insert Image Link</span>
               </h3>
               <button
                 type="button"
@@ -638,34 +588,24 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             </div>
 
             <div className="space-y-3">
-              {/* Option A: Upload from device */}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-stone-300 hover:border-brand-500 hover:bg-brand-50/50 dark:border-stone-700 dark:hover:border-brand-500 dark:hover:bg-brand-950/20 text-xs font-semibold text-stone-700 dark:text-stone-300 transition-all cursor-pointer"
-              >
-                <ImageIcon className="h-4 w-4 text-brand-600" />
-                <span>Choose Image from Device (JPG, PNG, WebP)</span>
-              </button>
-
-              <div className="flex items-center gap-2 my-2">
-                <div className="flex-1 h-px bg-stone-200 dark:bg-stone-800" />
-                <span className="text-[10px] font-bold uppercase text-stone-400">Or enter URL</span>
-                <div className="flex-1 h-px bg-stone-200 dark:bg-stone-800" />
-              </div>
-
-              {/* Option B: Enter image URL */}
               <div className="space-y-2">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                  Image URL <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="url"
-                  placeholder="https://example.com/image.png"
+                  placeholder="https://example.com/screenshot.png"
                   value={imageUrlInput}
                   onChange={(e) => setImageUrlInput(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 outline-none focus:border-brand-500"
+                  autoFocus
                 />
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 pt-1">
+                  Image Description / Caption (Optional)
+                </label>
                 <input
                   type="text"
-                  placeholder="Image Description / Alt text (optional)"
+                  placeholder="e.g. Reproduction Screenshot or UI Mockup"
                   value={imageAltInput}
                   onChange={(e) => setImageAltInput(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 outline-none focus:border-brand-500"
@@ -686,12 +626,85 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   onClick={handleInsertUrlImage}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-900 text-white hover:bg-stone-800 dark:bg-brand-500 dark:text-stone-900 dark:hover:bg-brand-400 disabled:opacity-40"
                 >
-                  Insert Image URL
+                  Insert Image Link
                 </button>
               </div>
 
               <p className="text-[11px] text-stone-400 italic text-center pt-1">
-                💡 Tip: You can also paste screenshots directly with <kbd className="font-mono font-semibold">Ctrl+V</kbd> / <kbd className="font-mono font-semibold">Cmd+V</kbd> in the editor.
+                💡 Supports PNG, JPG, GIF, WebP, and SVG links with zoom lightbox preview.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Insert Video Link Modal */}
+      {isVideoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs"
+            onClick={() => setIsVideoModalOpen(false)}
+          />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-stone-200 dark:bg-stone-900 dark:border-stone-800 p-5 space-y-4 z-10 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
+              <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                <VideoIcon className="h-4 w-4 text-red-500" />
+                <span>Insert Video Link</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsVideoModalOpen(false)}
+                className="p-1 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                  Video URL / Embed Link <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/demo.mp4 or YouTube / Loom link"
+                  value={videoUrlInput}
+                  onChange={(e) => setVideoUrlInput(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 outline-none focus:border-brand-500"
+                  autoFocus
+                />
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 pt-1">
+                  Video Title / Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bug Reproduction Demo or Walkthrough"
+                  value={videoTitleInput}
+                  onChange={(e) => setVideoTitleInput(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 outline-none focus:border-brand-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsVideoModalOpen(false)}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 dark:border-stone-800 dark:text-stone-300 dark:hover:bg-stone-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!videoUrlInput.trim()}
+                  onClick={handleInsertUrlVideo}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-900 text-white hover:bg-stone-800 dark:bg-brand-500 dark:text-stone-900 dark:hover:bg-brand-400 disabled:opacity-40"
+                >
+                  Insert Video Link
+                </button>
+              </div>
+
+              <p className="text-[11px] text-stone-400 italic text-center pt-1">
+                💡 Supports MP4, WebM direct videos, YouTube videos, and Loom recordings.
               </p>
             </div>
           </div>

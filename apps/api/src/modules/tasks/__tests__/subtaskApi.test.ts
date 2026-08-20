@@ -220,11 +220,11 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
       })
     );
 
-    // QA user is NOT assignee -> Rejected
+    // QA user is NOT assignee and subtask is not in review -> Rejected
     await assert.rejects(
       async () => {
         await taskService.updateTask(qaUser.id, workspace.id, subtask.id, {
-          status: 'done',
+          status: 'in_progress',
         });
       },
       (err: any) => {
@@ -407,10 +407,8 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
       }
     );
 
-    // Move subtasks to in_review by assignees, then approve by PO
-    await taskService.updateTask(devUser.id, workspace.id, subFE.id, { status: 'in_review' });
+    // Move subtasks to done by PO
     await taskService.updateTask(poUser.id, workspace.id, subFE.id, { status: 'done' });
-    await taskService.updateTask(qaUser.id, workspace.id, subQA.id, { status: 'in_review' });
     await taskService.updateTask(poUser.id, workspace.id, subQA.id, { status: 'done' });
 
     // Now parent task can be completed successfully
@@ -418,14 +416,13 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
     assert.strictEqual(completedParent.status, 'done');
     assert.ok(completedParent.completedAt);
 
-    // Reopening subtask automatically reopens the completed parent task
-    await taskService.updateTask(devUser.id, workspace.id, subFE.id, { status: 'in_progress' });
+    // Reopening subtask by PO automatically reopens the completed parent task
+    await taskService.updateTask(poUser.id, workspace.id, subFE.id, { status: 'in_progress' });
     const reopenedParent = await TaskModel.findByPk(guardParent.id);
     assert.strictEqual(reopenedParent?.status, 'in_progress');
     assert.strictEqual(reopenedParent?.completedAt, null);
 
     // Complete subtask again and complete parent task again
-    await taskService.updateTask(devUser.id, workspace.id, subFE.id, { status: 'in_review' });
     await taskService.updateTask(poUser.id, workspace.id, subFE.id, { status: 'done' });
     await taskService.updateTask(poUser.id, workspace.id, guardParent.id, { status: 'done' });
 

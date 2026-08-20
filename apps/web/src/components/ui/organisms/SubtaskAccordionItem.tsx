@@ -1,26 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import {
   FileText,
-  Paperclip,
   MessageSquare,
   Settings,
   AlertCircle,
 } from 'lucide-react';
-import type { Task, TaskStatus, TaskPriority, TaskAttachment, TaskComment, DeliveryArea } from '@qlick/contracts';
+import type { Task, TaskPriority, TaskComment, DeliveryArea } from '@qlick/contracts';
 import { AccordionItem, AccordionTrigger, AccordionContent, useAccordion } from '../atoms/Accordion';
 import { SubtaskSummaryRow } from '../molecules/SubtaskSummaryRow';
 import { SubtaskDescriptionEditor } from '../molecules/SubtaskDescriptionEditor';
-import { SubtaskAttachmentsBox } from '../molecules/SubtaskAttachmentsBox';
 import { SubtaskCommentBox } from '../molecules/SubtaskCommentBox';
 import { Tabs, TabItem } from '../molecules/Tabs';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
 import { Input } from '../atoms/Input';
 import { LoadingSpinner } from '../atoms/LoadingSpinner';
-import { attachmentService } from '../../../lib/api/attachmentService';
 import { taskService } from '../../../lib/api/taskService';
 import { useAppDispatch } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
+import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
 
 export interface SubtaskAccordionItemProps {
   subtask: Task;
@@ -28,8 +26,9 @@ export interface SubtaskAccordionItemProps {
   currentUserId?: string;
   members?: Array<{ userId: string; role: string; user?: { name?: string; email?: string } }>;
   canMutate?: boolean;
+  initialUnreadCount?: number;
+  onClearUnread?: () => void;
   onSubtaskUpdated?: (updated: Task) => void;
-  onStatusChange?: (subtaskId: string, newStatus: TaskStatus) => void;
 }
 
 export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
@@ -38,19 +37,109 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   currentUserId,
   members = [],
   canMutate = true,
+  initialUnreadCount = 0,
+  onClearUnread,
   onSubtaskUpdated,
-  onStatusChange,
 }) => {
   const dispatch = useAppDispatch();
   const accordionContext = useAccordion();
   const isItemExpanded = accordionContext?.expandedItems.includes(subtask.id) || false;
-  const [activeTab, setActiveTab] = useState<'description' | 'attachments' | 'discussion' | 'settings'>('description');
+  const [activeTab, setActiveTab] = useState<'description' | 'discussion' | 'settings'>('description');
 
-  // Subtask local data
-  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const currentUserRole = members.find((m) => m.userId === currentUserId)?.role;
+  const isPlanner = Boolean(currentUserRole && ['owner', 'admin', 'po'].includes(currentUserRole));
+
+  // Subtask local comments data
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [hasUnreadComment, setHasUnreadComment] = useState(initialUnreadCount > 0);
+  const [unreadCommentCount, setUnreadCommentCount] = useState(initialUnreadCount);
+
+  useEffect(() => {
+    if (initialUnreadCount > 0) {
+      setHasUnreadComment(true);
+      setUnreadCommentCount(initialUnreadCount);
+    }
+  }, [initialUnreadCount]);
+
+  // Connect realtime SSE event listener for subtask discussions
+  useRealtimeEvents({
+    workspaceId,
+    enableToast: false,
+    onCommentCreated: (payload) => {
+      if (payload.taskId !== subtask.id) return;
+      setComments((prev) => {
+        if (!payload.comment.parentCommentId) {
+          const exists = prev.some((c) => c.id === payload.comment.id);
+          if (exists) return prev;
+          return [...prev, payload.comment];
+        }
+
+        // If comment is a thread reply, nest under parent comment
+        let matchedParent = false;
+        const updated = prev.map((parent) => {
+          if (parent.id === payload.comment.parentCommentId) {
+            matchedParent = true;
+            const replies = parent.replies || [];
+            const exists = replies.some((r) => r.id === payload.comment.id);
+            if (exists) return parent;
+            return {
+              ...parent,
+              replies: [...replies, payload.comment],
+            };
+          }
+          return parent;
+        });
+
+        if (!matchedParent) {
+          const exists = prev.some((c) => c.id === payload.comment.id);
+          if (exists) return prev;
+          return [...prev, payload.comment];
+        }
+
+        return updated;
+      });
+      const isFromOtherUser = !currentUserId || payload.authorId !== currentUserId;
+      if (isFromOtherUser && (!isItemExpanded || activeTab !== 'discussion')) {
+        setHasUnreadComment(true);
+        setUnreadCommentCount((prev) => prev + 1);
+      }
+    },
+    onCommentUpdated: (payload) => {
+      if (payload.taskId !== subtask.id) return;
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c.id === payload.comment.id) {
+            return { ...c, ...payload.comment, body: payload.comment.body, editedAt: payload.comment.editedAt };
+          }
+          if (c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map((r) =>
+                r.id === payload.comment.id
+                  ? { ...r, ...payload.comment, body: payload.comment.body, editedAt: payload.comment.editedAt }
+                  : r
+              ),
+            };
+          }
+          return c;
+        })
+      );
+    },
+    onCommentDeleted: (payload) => {
+      if (payload.taskId !== subtask.id) return;
+      setComments((prev) =>
+        prev
+          .filter((c) => c.id !== payload.commentId)
+          .map((c) => ({
+            ...c,
+            replies: c.replies ? c.replies.filter((r) => r.id !== payload.commentId) : [],
+          }))
+      );
+    },
+  });
+
 
   // Settings / Meta local states
   const [priority, setPriority] = useState<TaskPriority>(subtask.priority);
@@ -78,25 +167,21 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
     const area = deliveryArea || subtask.deliveryArea;
     if (!area) return members;
     return members.filter((m) => {
-      const isPlanner = ['owner', 'admin', 'po'].includes(m.role);
-      if (isPlanner) return true;
+      const planner = ['owner', 'admin', 'po'].includes(m.role);
+      if (planner) return true;
       if (area === 'frontend' || area === 'backend') return m.role === 'dev';
       if (area === 'qa') return m.role === 'qa';
       return true;
     });
   }, [members, deliveryArea, subtask.deliveryArea]);
 
-  // Load attachments and comments for this subtask
+  // Load comments for this subtask
   const loadSubtaskData = async () => {
     if (isLoadingData) return;
     setIsLoadingData(true);
     setLoadError(null);
     try {
-      const [atts, commsRes] = await Promise.all([
-        attachmentService.listAttachments(workspaceId, subtask.id),
-        taskService.listTaskComments(workspaceId, subtask.id),
-      ]);
-      setAttachments(atts || []);
+      const commsRes = await taskService.listTaskComments(workspaceId, subtask.id);
       setComments(commsRes.comments || []);
       setHasLoadedData(true);
     } catch (err) {
@@ -113,11 +198,6 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
     }
   }, [isItemExpanded, hasLoadedData, isLoadingData]);
 
-  const handleAccordionOpen = () => {
-    if (!hasLoadedData) {
-      void loadSubtaskData();
-    }
-  };
 
   const handleSaveDescription = async (newDescription: string) => {
     try {
@@ -132,16 +212,6 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
     }
   };
 
-  const handleAttachmentUploaded = (newAtt: TaskAttachment) => {
-    setAttachments((prev) => [newAtt, ...prev]);
-    dispatch(enqueueSnackbar('Attachment uploaded to subtask', 'success'));
-  };
-
-  const handleAttachmentDeleted = (attId: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== attId));
-    dispatch(enqueueSnackbar('Attachment removed', 'success'));
-  };
-
   const handlePostComment = async (body: string, parentCommentId?: string | null) => {
     try {
       const newComment = await taskService.createTaskComment(workspaceId, subtask.id, {
@@ -149,13 +219,46 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
         mentionedUserIds: [],
         parentCommentId: parentCommentId || undefined,
       });
-      setComments((prev) => [...prev, newComment]);
+      setComments((prev) => {
+        const exists = prev.some((c) => c.id === newComment.id);
+        if (exists) return prev;
+        return [...prev, newComment];
+      });
       dispatch(enqueueSnackbar('Note added to subtask', 'success'));
     } catch (err) {
       dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to post note', 'error'));
       throw err;
     }
   };
+
+  const handleUpdateComment = async (commentId: string, body: string) => {
+    try {
+      const updated = await taskService.updateTaskComment(workspaceId, subtask.id, commentId, { body });
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c.id === commentId) {
+            return { ...c, ...updated, body, editedAt: updated.editedAt || new Date().toISOString() };
+          }
+          if (c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map((r) =>
+                r.id === commentId
+                  ? { ...r, ...updated, body, editedAt: updated.editedAt || new Date().toISOString() }
+                  : r
+              ),
+            };
+          }
+          return c;
+        })
+      );
+      dispatch(enqueueSnackbar('Comment updated', 'success'));
+    } catch (err) {
+      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update comment', 'error'));
+      throw err;
+    }
+  };
+
 
   const handleDeleteComment = async (commentId: string) => {
     try {
@@ -167,6 +270,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       throw err;
     }
   };
+
 
   const handleSaveMeta = async () => {
     if (startDate && dueDate && startDate > dueDate) {
@@ -192,6 +296,36 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
     }
   };
 
+  const handleAccordionOpen = () => {
+    if (!hasLoadedData) {
+      void loadSubtaskData();
+    }
+    if (activeTab === 'discussion') {
+      setHasUnreadComment(false);
+      setUnreadCommentCount(0);
+      onClearUnread?.();
+    }
+  };
+
+  const handleTabChange = (t: string) => {
+    setActiveTab(t as any);
+    if (t === 'discussion') {
+      setHasUnreadComment(false);
+      setUnreadCommentCount(0);
+      onClearUnread?.();
+    }
+  };
+
+  const totalCommentsCount = React.useMemo(() => {
+    let count = comments.length;
+    for (const c of comments) {
+      if (c.replies && c.replies.length > 0) {
+        count += c.replies.length;
+      }
+    }
+    return count;
+  }, [comments]);
+
   const tabs: TabItem[] = [
     {
       id: 'description',
@@ -199,16 +333,19 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       icon: <FileText className="h-3.5 w-3.5" />,
     },
     {
-      id: 'attachments',
-      label: 'Evidence & Files',
-      icon: <Paperclip className="h-3.5 w-3.5" />,
-      count: attachments.length > 0 ? attachments.length : undefined,
-    },
-    {
       id: 'discussion',
       label: 'Discussion',
       icon: <MessageSquare className="h-3.5 w-3.5" />,
-      count: comments.length > 0 ? comments.length : undefined,
+      count: totalCommentsCount > 0 ? totalCommentsCount : undefined,
+      badge: hasUnreadComment ? (
+        <span
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
+          title={`${unreadCommentCount} pesan diskusi baru masuk`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />
+          +{unreadCommentCount} Baru
+        </span>
+      ) : undefined,
     },
     {
       id: 'settings',
@@ -223,12 +360,11 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
         <SubtaskSummaryRow
           subtask={subtask}
           assigneeName={assigneeName}
-          commentCount={comments.length}
-          attachmentCount={attachments.length}
+          commentCount={totalCommentsCount}
+          hasUnreadComment={hasUnreadComment}
+          unreadCommentCount={unreadCommentCount}
           currentUserId={currentUserId}
-          currentUserRole={members.find((m) => m.userId === currentUserId)?.role}
-          onStatusChange={onStatusChange}
-          canMutate={canMutate}
+          currentUserRole={currentUserRole}
         />
       </AccordionTrigger>
 
@@ -259,45 +395,36 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
               <Tabs
                 tabs={tabs}
                 activeTabId={activeTab}
-                onChange={(t) => setActiveTab(t as any)}
+                onChange={handleTabChange}
                 variant="underline"
               />
             </div>
 
-            {/* Tab 1: Description & Technical Guidance */}
+
+            {/* Tab 1: Description & Technical Guidance (Editable only by PO/Admin/Owner) */}
             {activeTab === 'description' && (
               <SubtaskDescriptionEditor
                 description={subtask.description}
                 onSave={handleSaveDescription}
-                canEdit={canMutate}
+                canEdit={canMutate && isPlanner}
                 deliveryArea={subtask.deliveryArea}
               />
             )}
 
-            {/* Tab 2: Evidence & Images */}
-            {activeTab === 'attachments' && (
-              <SubtaskAttachmentsBox
-                workspaceId={workspaceId}
-                subtaskId={subtask.id}
-                attachments={attachments}
-                onAttachmentUploaded={handleAttachmentUploaded}
-                onAttachmentDeleted={handleAttachmentDeleted}
-                canUpload={canMutate}
-              />
-            )}
-
-            {/* Tab 3: Discussion & Chat */}
+            {/* Tab 2: Discussion & Rich Media Chat */}
             {activeTab === 'discussion' && (
               <SubtaskCommentBox
                 comments={comments}
                 currentUserId={currentUserId}
                 members={members}
                 onPostComment={handlePostComment}
+                onUpdateComment={handleUpdateComment}
                 onDeleteComment={handleDeleteComment}
               />
             )}
 
-            {/* Tab 4: Settings & Metadata */}
+
+            {/* Tab 3: Settings & Metadata (Editable only by PO/Admin/Owner) */}
             {activeTab === 'settings' && (
               <div className="space-y-3 p-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -308,11 +435,13 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     <Select
                       value={deliveryArea}
                       onChange={(e) => setDeliveryArea(e.target.value as DeliveryArea | '')}
-                      disabled={!canMutate}
+                      disabled={!canMutate || !isPlanner}
                     >
                       <option value="">None</option>
                       <option value="frontend">Frontend</option>
                       <option value="backend">Backend</option>
+                      <option value="mobile">Mobile</option>
+                      <option value="fullstack">Fullstack</option>
                       <option value="qa">QA</option>
                     </Select>
                   </div>
@@ -324,7 +453,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     <Select
                       value={assigneeId}
                       onChange={(e) => setAssigneeId(e.target.value)}
-                      disabled={!canMutate}
+                      disabled={!canMutate || !isPlanner}
                     >
                       <option value="">Unassigned</option>
                       {filteredMembers.map((m) => (
@@ -342,7 +471,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     <Select
                       value={priority}
                       onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                      disabled={!canMutate}
+                      disabled={!canMutate || !isPlanner}
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
@@ -359,7 +488,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      disabled={!canMutate}
+                      disabled={!canMutate || !isPlanner}
                     />
                   </div>
 
@@ -371,7 +500,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                       type="date"
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
-                      disabled={!canMutate}
+                      disabled={!canMutate || !isPlanner}
                     />
                   </div>
                 </div>
@@ -385,11 +514,11 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     value={reviewNotes}
                     onChange={(e) => setReviewNotes(e.target.value)}
                     placeholder="e.g. Please add error handling for 422 before marking done"
-                    disabled={!canMutate}
+                    disabled={!canMutate || !isPlanner}
                   />
                 </div>
 
-                {canMutate && (
+                {canMutate && isPlanner && (
                   <div className="flex justify-end pt-1">
                     <Button
                       size="sm"

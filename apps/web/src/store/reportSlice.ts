@@ -28,6 +28,8 @@ export const fetchTaskReport = createAsyncThunk(
   async ({ workspaceId, query }: { workspaceId: string; query?: ReportQuery }) => {
     const firstPage = await taskService.listTasks(workspaceId, {
       ...query,
+      includeSubtasks: true,
+      includeSubtaskSummary: true,
       page: 1,
       limit: 100,
     });
@@ -41,6 +43,8 @@ export const fetchTaskReport = createAsyncThunk(
       Array.from({ length: totalPages - 1 }, (_, index) =>
         taskService.listTasks(workspaceId, {
           ...query,
+          includeSubtasks: true,
+          includeSubtaskSummary: true,
           page: index + 2,
           limit: firstPage.limit,
         })

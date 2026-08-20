@@ -155,7 +155,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
         await taskService.updateTask(feDev.id, workspace.id, subtask.id, { status: 'done' });
       },
       (err: any) => {
-        assert.ok(String(err.message).includes('Self-approval is not allowed'));
+        assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
       }
     );

@@ -5,11 +5,12 @@ import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorksp
 import type { DateRange } from '../components/ui/molecules/DateRangePicker';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchTaskReport } from '../store/reportSlice';
+import { fetchMembers } from '../store/workspaceSlice';
 
 export const ReportPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { activeWorkspaceId, workspaces, isLoading: isWorkspaceLoading } = useAppSelector((state) => state.workspace);
+  const { activeWorkspaceId, workspaces, members, isLoading: isWorkspaceLoading } = useAppSelector((state) => state.workspace);
   const { tasks, total, isLoading, error } = useAppSelector((state) => state.report);
   const [dateRange, setDateRange] = useState<DateRange>();
 
@@ -24,6 +25,7 @@ export const ReportPage: React.FC = () => {
         },
       })
     );
+    void dispatch(fetchMembers(activeWorkspaceId));
   }, [activeWorkspaceId, dateRange?.endDate, dateRange?.startDate, dispatch]);
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export const ReportPage: React.FC = () => {
       userRole={activeWorkspace?.role}
       tasks={tasks}
       total={total}
+      members={members}
       isLoading={isLoading || (isWorkspaceLoading && !activeWorkspaceId)}
       error={error}
       dateRange={dateRange}

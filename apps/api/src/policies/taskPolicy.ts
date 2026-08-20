@@ -76,7 +76,7 @@ export function assertCanMutateTask(
 ): void {
   const isSubtask = Boolean(currentTask.parentTaskId);
 
-  // Planners can mutate parent tasks and subtask planning fields
+  // Planners (Product Owner, Admin, Owner) have full management rights across tasks & subtasks
   if (isPlanner(role)) {
     if (isSubtask && input.status !== undefined) {
       // Prevent self-approval even for planners if they are the assignee, unless owner
@@ -92,75 +92,65 @@ export function assertCanMutateTask(
     return;
   }
 
-  if (!isSubtask) {
-    throw new Error('FORBIDDEN: Only Product Owner, Admin, or Owner may update parent tasks.');
-  }
-
-  // Subtask non-planner mutation rules
-  const planningFieldsRequested =
-    input.title !== undefined ||
-    input.deliveryArea !== undefined ||
-    input.assigneeId !== undefined ||
-    input.priority !== undefined ||
-    input.startDate !== undefined ||
-    input.dueDate !== undefined ||
-    input.folderId !== undefined ||
-    input.parentTaskId !== undefined;
-
-  if (planningFieldsRequested) {
-    throw new Error('FORBIDDEN: Assigned Dev or QA members may update only their own subtask execution status and description.');
-  }
-
-  const isAssignee = currentTask.assigneeId && currentTask.assigneeId === actorId;
-
-  // Case 1: Assigned member updating execution
-  if (isAssignee) {
-    if (input.status !== undefined && input.status !== currentTask.status) {
-      const fromStatus = currentTask.status || 'todo';
-      const toStatus = input.status;
-
-      // Assignee cannot approve own work
-      if (toStatus === 'done') {
-        throw new Error('FORBIDDEN: Self-approval is not allowed. An independent reviewer or planner must review and approve this subtask.');
-      }
-
-      // Assignee cannot request changes on own review
-      if (toStatus === 'changes_requested') {
-        throw new Error('FORBIDDEN: Assignees cannot request changes on their own subtask review.');
-      }
-
-      // Valid assignee transitions:
-      // todo -> in_progress
-      // in_progress -> in_review
-      // changes_requested -> in_progress
-      // done -> in_progress (reopen if needed)
-      const validAssigneeTransitions: Record<string, string[]> = {
-        todo: ['in_progress', 'in_review'],
-        in_progress: ['in_review', 'todo'],
-        changes_requested: ['in_progress'],
-        done: ['in_progress'],
-        canceled: ['in_progress'],
-      };
-
-      const allowedTargets = validAssigneeTransitions[fromStatus] || [];
-      if (!allowedTargets.includes(toStatus)) {
-        throw new Error(`FORBIDDEN: Invalid subtask transition from ${fromStatus} to ${toStatus} for assignee.`);
-      }
+  // Developer role (FE / BE / Mobile / Fullstack executor)
+  if (role === 'dev') {
+    if (!isSubtask) {
+      throw new Error('FORBIDDEN: Developers cannot modify parent tasks. Only assigned subtasks can be updated.');
+    }
+    if (currentTask.assigneeId !== actorId) {
+      throw new Error('FORBIDDEN: Developers can only update subtasks assigned to them.');
+    }
+    // Check forbidden field changes for developers
+    if (
+      input.title !== undefined ||
+      input.assigneeId !== undefined ||
+      input.priority !== undefined ||
+      input.deliveryArea !== undefined ||
+      input.folderId !== undefined ||
+      input.parentTaskId !== undefined
+    ) {
+      throw new Error('FORBIDDEN: Developers cannot modify subtask title, assignment, priority, delivery area, or folder.');
+    }
+    // Developers cannot mark their own subtask as 'done' (must go through QA / PO verification)
+    if (input.status === 'done') {
+      throw new Error('FORBIDDEN: Developers cannot mark subtasks as Done directly. Please submit for QA review instead.');
+    }
+    // Allowed statuses for developers: 'todo', 'in_progress', 'in_review'
+    if (input.status !== undefined && !['todo', 'in_progress', 'in_review'].includes(input.status)) {
+      throw new Error(`FORBIDDEN: Developers cannot set subtask status to "${input.status}".`);
     }
     return;
   }
 
-  // Case 2: Independent Reviewer (e.g. QA reviewing FE or BE subtask)
-  if (
-    role === 'qa' &&
-    currentTask.status === 'in_review' &&
-    (input.status === 'done' || input.status === 'changes_requested') &&
-    currentTask.deliveryArea !== 'qa'
-  ) {
+  // QA role (Quality Assurance executor)
+  if (role === 'qa') {
+    if (!isSubtask) {
+      throw new Error('FORBIDDEN: QA members cannot modify parent tasks.');
+    }
+    const isAssigned = currentTask.assigneeId === actorId || currentTask.deliveryArea === 'qa';
+    const isReadyForQa = currentTask.status === 'in_review' || currentTask.status === 'in_progress';
+    if (!isAssigned && !isReadyForQa) {
+      throw new Error('FORBIDDEN: QA can only review subtasks that are Ready for QA or assigned to QA.');
+    }
+    // Check forbidden field changes for QA
+    if (
+      input.title !== undefined ||
+      input.assigneeId !== undefined ||
+      input.priority !== undefined ||
+      input.deliveryArea !== undefined ||
+      input.folderId !== undefined ||
+      input.parentTaskId !== undefined
+    ) {
+      throw new Error('FORBIDDEN: QA members cannot modify subtask title, assignment, priority, delivery area, or folder.');
+    }
+    // Allowed statuses for QA: 'in_progress', 'changes_requested', 'done'
+    if (input.status !== undefined && !['in_progress', 'changes_requested', 'done'].includes(input.status)) {
+      throw new Error(`FORBIDDEN: QA members cannot set subtask status to "${input.status}".`);
+    }
     return;
   }
 
-  throw new Error('FORBIDDEN: Only Product Owner, Admin, Owner, the assigned member, or an authorized reviewer may update this subtask.');
+  throw new Error('FORBIDDEN: Only Product Owner, Admin, or Owner may update task details.');
 }
 
 /**

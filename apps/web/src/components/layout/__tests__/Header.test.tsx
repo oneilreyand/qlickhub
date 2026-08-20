@@ -94,4 +94,90 @@ describe('Header', () => {
     const myTasksButton = screen.getByRole('button', { name: 'My Tasks' });
     expect(myTasksButton).toHaveClass('bg-[#22201F]');
   });
+
+  it('hides Workspace Settings and UI System buttons for dev and qa roles', () => {
+    const store = configureStore({
+      reducer: {
+        auth: authReducer,
+        ui: uiReducer,
+        workspace: workspaceReducer,
+        folder: folderReducer,
+        task: taskReducer,
+      },
+      preloadedState: {
+        auth: {
+          currentUser: { id: 'u1', name: 'Dev User', email: 'dev@example.com', role: 'dev', onboardingCompletedAt: '2026-08-01' },
+          isAuthenticated: true,
+          showOnboardingModal: false,
+          status: 'succeeded' as const,
+          error: null,
+        },
+        workspace: {
+          workspaces: [{ id: 'w1', name: 'Dev Workspace', slug: 'dev-ws', ownerId: 'other', allowQaTaskCreation: true, createdAt: '', updatedAt: '', role: 'dev' as const }],
+          activeWorkspaceId: 'w1',
+          members: [],
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: true,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/work']}>
+            <Header onToggleMobileSidebar={vi.fn()} />
+          </MemoryRouter>
+        </ThemeProvider>
+      </Provider>
+    );
+
+    expect(screen.queryByRole('button', { name: 'Workspace Settings' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'UI System' })).toBeNull();
+  });
+
+  it('shows Workspace Settings and UI System buttons for owner, admin, and po roles', () => {
+    const store = configureStore({
+      reducer: {
+        auth: authReducer,
+        ui: uiReducer,
+        workspace: workspaceReducer,
+        folder: folderReducer,
+        task: taskReducer,
+      },
+      preloadedState: {
+        auth: {
+          currentUser: { id: 'u2', name: 'PO User', email: 'po@example.com', role: 'po', onboardingCompletedAt: '2026-08-01' },
+          isAuthenticated: true,
+          showOnboardingModal: false,
+          status: 'succeeded' as const,
+          error: null,
+        },
+        workspace: {
+          workspaces: [{ id: 'w2', name: 'PO Workspace', slug: 'po-ws', ownerId: 'other', allowQaTaskCreation: true, createdAt: '', updatedAt: '', role: 'po' as const }],
+          activeWorkspaceId: 'w2',
+          members: [],
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: true,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/work']}>
+            <Header onToggleMobileSidebar={vi.fn()} />
+          </MemoryRouter>
+        </ThemeProvider>
+      </Provider>
+    );
+
+    expect(screen.getByRole('button', { name: 'Workspace Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'UI System' })).toBeInTheDocument();
+  });
 });

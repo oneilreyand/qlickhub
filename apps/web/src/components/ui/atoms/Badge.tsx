@@ -23,11 +23,11 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   const variantStyles = {
-    passed: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800',
-    review: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/80 dark:text-purple-300 dark:border-purple-800',
+    passed: 'bg-[#B1E743]/20 text-[#22201F] border-[#B1E743]/50 dark:bg-[#B1E743]/20 dark:text-[#B1E743] dark:border-[#B1E743]/40',
+    review: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800',
     blocked: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800',
-    draft: 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800/90 dark:text-slate-200 dark:border-slate-700',
-    info: 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/80 dark:text-sky-300 dark:border-sky-800',
+    draft: 'bg-stone-100 text-stone-700 border-stone-300 dark:bg-stone-800/90 dark:text-stone-300 dark:border-stone-700',
+    info: 'bg-stone-100 text-stone-800 border-stone-300 dark:bg-stone-800/80 dark:text-stone-200 dark:border-stone-700',
     neutral: 'bg-stone-100 text-stone-700 border-stone-300 dark:bg-stone-800/80 dark:text-stone-300 dark:border-stone-700',
   };
 

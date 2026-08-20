@@ -69,11 +69,11 @@ async function assertRoleMatchesDeliveryArea(
 
   const targetRole = membership.role;
   const isPlannerRole = ['owner', 'admin', 'po'].includes(targetRole);
-  const isFeOrBe = deliveryArea === 'frontend' || deliveryArea === 'backend';
+  const isDevArea = deliveryArea === 'frontend' || deliveryArea === 'backend' || deliveryArea === 'mobile' || deliveryArea === 'fullstack';
   const isQa = deliveryArea === 'qa';
 
   let isMismatch = false;
-  if (isFeOrBe && targetRole !== 'dev' && !isPlannerRole) {
+  if (isDevArea && targetRole !== 'dev' && !isPlannerRole) {
     isMismatch = true;
   } else if (isQa && targetRole !== 'qa' && !isPlannerRole) {
     isMismatch = true;
@@ -109,6 +109,8 @@ async function attachSubtaskSummaries(workspaceId: string, parentTasks: Task[]):
       areas: {
         frontend: { total: 0, completed: 0 },
         backend: { total: 0, completed: 0 },
+        mobile: { total: 0, completed: 0 },
+        fullstack: { total: 0, completed: 0 },
         qa: { total: 0, completed: 0 },
       },
     });
@@ -245,8 +247,21 @@ export class TaskService {
 
     const where: WhereOptions<TaskModel> = { workspaceId };
 
-    // Role-based task scoping for Dev and QA (non-planners)
-    if (actorId && (actorRole === 'dev' || actorRole === 'qa')) {
+    // My Tasks specific scoping (PO sees their created/assigned parent tasks; Dev & QA see their assigned subtasks)
+    if (query.myTasksOnly && actorId) {
+      if (actorRole === 'owner' || actorRole === 'admin' || actorRole === 'po') {
+        (where as any)[Op.or] = [
+          { reporterId: actorId },
+          { assigneeId: actorId },
+        ];
+        if (!query.parentTaskId) {
+          (where as any).parentTaskId = null;
+        }
+      } else {
+        (where as any).assigneeId = actorId;
+      }
+    } else if (actorId && (actorRole === 'dev' || actorRole === 'qa')) {
+      // Role-based task scoping for Dev and QA (non-planners) in general queries
       if (query.rootOnly) {
         // In Root-only (Task Hub), executors only see Parent Tasks where:
         // 1. They have at least one assigned subtask, OR
@@ -275,7 +290,7 @@ export class TaskService {
     }
 
     // Root-only vs parentTaskId vs default
-    if (query.rootOnly) {
+    if (query.rootOnly && !query.myTasksOnly) {
       (where as any).parentTaskId = null;
     } else if (query.parentTaskId) {
       (where as any).parentTaskId = query.parentTaskId;

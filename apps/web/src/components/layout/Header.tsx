@@ -44,7 +44,9 @@ import {
 } from '../../store/uiSlice';
 import { setSelectedTaskId } from '../../store/taskSlice';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useRealtimeEvents } from '../../hooks/useRealtimeEvents';
 import { IconButton } from '../ui/atoms/IconButton';
+
 import { Input } from '../ui/atoms/Input';
 import { Textarea } from '../ui/atoms/Textarea';
 import { Modal } from '../ui/molecules/Modal';
@@ -139,6 +141,10 @@ export const Header: React.FC<HeaderProps> = ({
     dispatch(fetchWorkspaces());
   }, [dispatch]);
 
+  // Connect SSE realtime event stream for notifications and mentions across active workspace
+  useRealtimeEvents({ workspaceId: activeWorkspaceId || undefined });
+
+
   useEffect(() => {
     if (activeWorkspaceId) {
       dispatch(fetchInAppNotifications({ workspaceId: activeWorkspaceId }));
@@ -147,9 +153,21 @@ export const Header: React.FC<HeaderProps> = ({
       dispatch(fetchInAppNotifications({}));
       dispatch(checkApproachingDeadlinesThunk(undefined));
     }
+
+    // Periodic fallback sync every 15s to guarantee fresh notification counts
+    const interval = setInterval(() => {
+      if (activeWorkspaceId) {
+        dispatch(fetchInAppNotifications({ workspaceId: activeWorkspaceId }));
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, [dispatch, activeWorkspaceId]);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
+  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || currentUserRole || '').toLowerCase();
+  const canAccessSettingsAndUI = ['owner', 'admin', 'po'].includes(userRole);
+  const canManageTaskPolicy = ['owner', 'admin'].includes(userRole);
 
   const handleOpenCreateModal = () => {
     setShowWorkspaceMenu(false);
@@ -332,27 +350,31 @@ export const Header: React.FC<HeaderProps> = ({
           Report
         </button>
 
-        <button
-          onClick={() => navigate('/workspaces/settings')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-            isSettingsActive
-              ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-          }`}
-        >
-          Workspace Settings
-        </button>
+        {canAccessSettingsAndUI && (
+          <>
+            <button
+              onClick={() => navigate('/workspaces/settings')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                isSettingsActive
+                  ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+              }`}
+            >
+              Workspace Settings
+            </button>
 
-        <button
-          onClick={() => navigate('/components')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-            isComponentsActive
-              ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-          }`}
-        >
-          UI System
-        </button>
+            <button
+              onClick={() => navigate('/components')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                isComponentsActive
+                  ? 'bg-[#22201F] text-white font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#22201F]'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+              }`}
+            >
+              UI System
+            </button>
+          </>
+        )}
       </nav>
 
       {/* Right section: Notifications & User profile */}
@@ -665,31 +687,31 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>Mulai Ulang Onboarding</span>
                 </button>
 
-                {(activeWorkspace?.role === 'owner' || activeWorkspace?.role === 'admin' || activeWorkspace?.myRole === 'owner' || activeWorkspace?.myRole === 'admin') && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        navigate('/workspaces/settings');
-                      }}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                    >
-                      <Building2 className="h-4 w-4 text-stone-400" />
-                      <span>Workspace Settings</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        navigate('/workspaces/settings#task-policy');
-                      }}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                    >
-                      <Shield className="h-4 w-4 text-stone-400" />
-                      <span>Task Creation Policy</span>
-                    </button>
-                  </>
+                {canAccessSettingsAndUI && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      navigate('/workspaces/settings');
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                  >
+                    <Building2 className="h-4 w-4 text-stone-400" />
+                    <span>Workspace Settings</span>
+                  </button>
+                )}
+                {canManageTaskPolicy && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      navigate('/workspaces/settings#task-policy');
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                  >
+                    <Shield className="h-4 w-4 text-stone-400" />
+                    <span>Task Creation Policy</span>
+                  </button>
                 )}
               </div>
 

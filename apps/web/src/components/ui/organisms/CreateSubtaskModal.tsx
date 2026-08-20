@@ -5,7 +5,7 @@ import { Input } from '../atoms/Input';
 import { Textarea } from '../atoms/Textarea';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
-import { Code2, Layers, Bug, Sparkles } from 'lucide-react';
+import { Code2, Layers, Smartphone, Cpu, Bug } from 'lucide-react';
 import { taskService } from '../../../lib/api/taskService';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
@@ -15,31 +15,15 @@ import { fetchMembers } from '../../../store/workspaceSlice';
 interface CreateSubtaskModalProps {
   parentTask: Task | null;
   isOpen: boolean;
+  initialDeliveryArea?: DeliveryArea;
   onClose: () => void;
   onCreated: () => void;
 }
 
-const PRESET_TEMPLATES: Record<DeliveryArea, string[]> = {
-  frontend: [
-    '[FE] UI Components & Form Validation',
-    '[FE] Responsive Layout & Theme Styling',
-    '[FE] API Integration & Error State Handling',
-  ],
-  backend: [
-    '[BE] API Routes & Input Validation',
-    '[BE] Database Migration & Model Layer',
-    '[BE] Business Logic & Authorization Policy',
-  ],
-  qa: [
-    '[QA] Test Case Specification & Matrix',
-    '[QA] End-to-End & Integration Testing',
-    '[QA] Regression Testing & Sign-off',
-  ],
-};
-
 export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
   parentTask,
   isOpen,
+  initialDeliveryArea,
   onClose,
   onCreated,
 }) => {
@@ -54,7 +38,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [deliveryArea, setDeliveryArea] = useState<DeliveryArea>('frontend');
+  const [deliveryArea, setDeliveryArea] = useState<DeliveryArea>(initialDeliveryArea || 'frontend');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [assigneeId, setAssigneeId] = useState<string>('');
   const [startDate, setStartDate] = useState('');
@@ -67,7 +51,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
     if (isOpen && !prevIsOpenRef.current) {
       setTitle('');
       setDescription('');
-      setDeliveryArea('frontend');
+      setDeliveryArea(initialDeliveryArea || 'frontend');
       setPriority('medium');
       setAssigneeId('');
       setStartDate('');
@@ -77,14 +61,19 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       }
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, activeWorkspaceId, canPlan, dispatch]);
+  }, [isOpen, initialDeliveryArea, activeWorkspaceId, canPlan, dispatch]);
 
   // Filter members strictly based on delivery area
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
       const isPlannerRole = ['owner', 'admin', 'po'].includes(m.role);
       if (isPlannerRole) return true;
-      if (deliveryArea === 'frontend' || deliveryArea === 'backend') {
+      if (
+        deliveryArea === 'frontend' ||
+        deliveryArea === 'backend' ||
+        deliveryArea === 'mobile' ||
+        deliveryArea === 'fullstack'
+      ) {
         return m.role === 'dev';
       }
       if (deliveryArea === 'qa') {
@@ -155,7 +144,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={`Plan Subtask — ${parentTask.title}`}
-      size="md"
+      size="2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Delivery Area Segmented Cards */}
@@ -163,12 +152,12 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
           <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1.5">
             Delivery Area & Responsibility *
           </label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
             {/* Frontend Card */}
             <button
               type="button"
               onClick={() => setDeliveryArea('frontend')}
-              className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+              className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col gap-1 ${
                 deliveryArea === 'frontend'
                   ? 'border-sky-500 bg-sky-50/80 dark:bg-sky-950/40 text-sky-950 dark:text-sky-200 ring-2 ring-sky-500/20'
                   : 'border-stone-200 bg-white hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60 text-stone-600 dark:text-stone-400'
@@ -178,14 +167,14 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
                 <Code2 className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />
                 <span>Frontend</span>
               </div>
-              <span className="text-[10px] text-stone-500 dark:text-stone-400">UI, UX & State</span>
+              <span className="text-[10px] text-stone-500 dark:text-stone-400">Web UI & State</span>
             </button>
 
             {/* Backend Card */}
             <button
               type="button"
               onClick={() => setDeliveryArea('backend')}
-              className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+              className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col gap-1 ${
                 deliveryArea === 'backend'
                   ? 'border-amber-500 bg-amber-50/80 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 ring-2 ring-amber-500/20'
                   : 'border-stone-200 bg-white hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60 text-stone-600 dark:text-stone-400'
@@ -195,14 +184,48 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
                 <Layers className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>Backend</span>
               </div>
-              <span className="text-[10px] text-stone-500 dark:text-stone-400">API & Data Layer</span>
+              <span className="text-[10px] text-stone-500 dark:text-stone-400">API & Database</span>
+            </button>
+
+            {/* Mobile Card */}
+            <button
+              type="button"
+              onClick={() => setDeliveryArea('mobile')}
+              className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                deliveryArea === 'mobile'
+                  ? 'border-purple-500 bg-purple-50/80 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 ring-2 ring-purple-500/20'
+                  : 'border-stone-200 bg-white hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60 text-stone-600 dark:text-stone-400'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 font-bold text-xs">
+                <Smartphone className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                <span>Mobile</span>
+              </div>
+              <span className="text-[10px] text-stone-500 dark:text-stone-400">iOS / Android</span>
+            </button>
+
+            {/* Fullstack Card */}
+            <button
+              type="button"
+              onClick={() => setDeliveryArea('fullstack')}
+              className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                deliveryArea === 'fullstack'
+                  ? 'border-cyan-500 bg-cyan-50/80 dark:bg-cyan-950/40 text-cyan-950 dark:text-cyan-200 ring-2 ring-cyan-500/20'
+                  : 'border-stone-200 bg-white hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60 text-stone-600 dark:text-stone-400'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 font-bold text-xs">
+                <Cpu className="h-4 w-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                <span>Fullstack</span>
+              </div>
+              <span className="text-[10px] text-stone-500 dark:text-stone-400">End-to-End</span>
             </button>
 
             {/* QA Card */}
             <button
               type="button"
               onClick={() => setDeliveryArea('qa')}
-              className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+              className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col gap-1 col-span-2 sm:col-span-1 md:col-span-1 ${
                 deliveryArea === 'qa'
                   ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-200 ring-2 ring-emerald-500/20'
                   : 'border-stone-200 bg-white hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60 text-stone-600 dark:text-stone-400'
@@ -212,28 +235,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
                 <Bug className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>QA Testing</span>
               </div>
-              <span className="text-[10px] text-stone-500 dark:text-stone-400">Test & Quality Gate</span>
+              <span className="text-[10px] text-stone-500 dark:text-stone-400">Quality Gate</span>
             </button>
-          </div>
-        </div>
-
-        {/* Quick Title Presets */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-1 text-[11px] font-semibold text-stone-500 dark:text-stone-400">
-            <Sparkles className="h-3 w-3 text-amber-500" />
-            <span>Quick Suggestions:</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {PRESET_TEMPLATES[deliveryArea].map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setTitle(preset)}
-                className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 transition-all text-left"
-              >
-                {preset}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -268,7 +271,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         </div>
 
         {/* Assignee and Priority Grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label htmlFor="subtask-assignee" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
               Assignee ({deliveryArea.toUpperCase()} Team) <span className="text-rose-500">*</span>
@@ -313,7 +316,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         </div>
 
         {/* Start Date and Due Date Grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label htmlFor="subtask-start-date" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
               Start Date (Optional)
@@ -340,11 +343,11 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex justify-end gap-2 pt-3 border-t border-stone-100 dark:border-stone-800">
-          <Button variant="outline" size="sm" type="button" onClick={onClose}>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-stone-100 dark:border-stone-800">
+          <Button variant="outline" size="sm" type="button" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button variant="primary" size="sm" type="submit" isLoading={isSubmitting}>
+          <Button variant="primary" size="sm" type="submit" isLoading={isSubmitting} className="w-full sm:w-auto">
             Create Subtask
           </Button>
         </div>

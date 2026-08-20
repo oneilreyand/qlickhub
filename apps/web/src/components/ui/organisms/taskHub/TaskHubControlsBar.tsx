@@ -1,5 +1,5 @@
 import React from 'react';
-import { Folder, Table as TableIcon, CalendarRange } from 'lucide-react';
+import { Folder, Table as TableIcon, CalendarRange, Maximize2, Minimize2 } from 'lucide-react';
 import { AnimatedCounter } from '../../atoms/AnimatedCounter';
 import { SearchInput } from '../../molecules/SearchInput';
 import { DateRange, DateRangePicker } from '../../molecules/DateRangePicker';
@@ -18,6 +18,8 @@ interface TaskHubControlsBarProps {
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
   statusFilters: { label: string; value: string }[];
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
@@ -33,6 +35,8 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
   statusFilter,
   onStatusFilterChange,
   statusFilters,
+  isExpanded = false,
+  onToggleExpand,
 }) => {
   return (
     <div className="space-y-4">
@@ -53,6 +57,32 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
         </div>
 
         <div className="flex items-center gap-2 text-xs font-semibold text-stone-500 dark:text-stone-400 shrink-0">
+          {viewMode === 'timeline' && onToggleExpand && (
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all border ${
+                isExpanded
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 shadow-xs'
+                  : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200/70 dark:hover:bg-stone-700 border-stone-200/80 dark:border-stone-700/80'
+              }`}
+              title={isExpanded ? 'Collapse timeline to normal width' : 'Expand timeline to full width (hide sidebar)'}
+              aria-label={isExpanded ? 'Normal width timeline' : 'Expand full width timeline'}
+            >
+              {isExpanded ? (
+                <>
+                  <Minimize2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span className="hidden sm:inline">Normal Width</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="h-3.5 w-3.5 text-stone-600 dark:text-stone-400" />
+                  <span className="hidden sm:inline">Full Width</span>
+                </>
+              )}
+            </button>
+          )}
+
           <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-[11px]">
             <AnimatedCounter
               value={visibleTasksCount}
@@ -129,3 +159,4 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
     </div>
   );
 };
+

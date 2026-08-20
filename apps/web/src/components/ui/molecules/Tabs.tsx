@@ -4,6 +4,7 @@ export interface TabItem {
   id: string;
   label: string;
   count?: number;
+  badge?: React.ReactNode;
   icon?: React.ReactNode;
 }
 
@@ -38,6 +39,7 @@ export const Tabs: React.FC<TabsProps> = ({
             >
               {tab.icon}
               <span>{tab.label}</span>
+              {tab.badge}
               {tab.count !== undefined && (
                 <span
                   className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold ${
@@ -55,6 +57,7 @@ export const Tabs: React.FC<TabsProps> = ({
       </div>
     );
   }
+
 
   return (
     <div className="border-b border-stone-200 dark:border-stone-800">
@@ -74,7 +77,9 @@ export const Tabs: React.FC<TabsProps> = ({
             >
               {tab.icon}
               <span>{tab.label}</span>
+              {tab.badge}
               {tab.count !== undefined && (
+
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] ${
                     isActive

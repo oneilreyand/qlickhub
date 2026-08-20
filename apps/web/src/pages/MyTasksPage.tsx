@@ -10,7 +10,7 @@ import {
   setSelectedTaskId,
 } from '../store/taskSlice';
 import { enqueueSnackbar } from '../store/uiSlice';
-import { TaskDetailDrawer } from '../components/ui/organisms/TaskDetailDrawer';
+import { MyTaskDetailWorkspaceDrawer } from '../components/ui/organisms/myTasks/MyTaskDetailWorkspaceDrawer';
 import { CreateTaskModal } from '../components/ui/organisms/CreateTaskModal';
 import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
 import { MyTasksDashboard } from '../components/ui/organisms/MyTasksDashboard';
@@ -30,18 +30,22 @@ export const MyTasksPage: React.FC = () => {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  useEffect(() => {
+  const reloadTasks = () => {
     if (activeWorkspaceId) {
       dispatch(
         fetchTasks({
           workspaceId: activeWorkspaceId,
           query: {
-            assigneeId: currentUserId || undefined,
+            myTasksOnly: true,
             includeSubtaskSummary: true,
           },
         })
       );
     }
+  };
+
+  useEffect(() => {
+    reloadTasks();
   }, [activeWorkspaceId, currentUserId, dispatch]);
 
   const selectedTask = useMemo(
@@ -81,24 +85,13 @@ export const MyTasksPage: React.FC = () => {
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
       />
 
-      {/* Task Detail Drawer */}
-      <TaskDetailDrawer
+      {/* Role-tailored Collaborative Workspace Drawer */}
+      <MyTaskDetailWorkspaceDrawer
         task={selectedTask}
-        folders={folders}
+        userRole={userRole}
+        isOpen={Boolean(selectedTaskId && selectedTask)}
         onClose={() => dispatch(setSelectedTaskId(null))}
-        onDataChanged={() => {
-          if (activeWorkspaceId) {
-            dispatch(
-              fetchTasks({
-                workspaceId: activeWorkspaceId,
-                query: {
-                  assigneeId: currentUserId || undefined,
-                  includeSubtaskSummary: true,
-                },
-              })
-            );
-          }
-        }}
+        onDataChanged={reloadTasks}
       />
 
       {/* Create Task Modal */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   ZoomIn,
@@ -33,6 +34,17 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
     }
   }, [isOpen, src]);
 
+  // Lock body scroll when modal is active
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   // Handle keyboard shortcuts (ESC to close, + / - to zoom)
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -66,12 +78,12 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   };
   const handleRotate = () => setRotation((prev) => (prev + 90) % 360);
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={alt}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-950/85 backdrop-blur-md transition-opacity duration-200 animate-fadeIn"
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-stone-950/90 backdrop-blur-md transition-opacity duration-200 animate-fadeIn"
       onClick={onClose}
     >
       {/* Header Toolbar */}
@@ -173,4 +185,9 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(modalContent, document.body);
+  }
+  return modalContent;
 };

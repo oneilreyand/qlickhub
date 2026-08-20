@@ -24,6 +24,8 @@ export type TaskPriority = z.infer<typeof TaskPrioritySchema>;
 export const DeliveryAreaSchema = z.enum([
   'frontend',
   'backend',
+  'mobile',
+  'fullstack',
   'qa',
 ]);
 
@@ -40,6 +42,8 @@ export const SubtaskSummarySchema = z.object({
   areas: z.object({
     frontend: SubtaskAreaSummarySchema,
     backend: SubtaskAreaSummarySchema,
+    mobile: SubtaskAreaSummarySchema,
+    fullstack: SubtaskAreaSummarySchema,
     qa: SubtaskAreaSummarySchema,
   }),
 });
@@ -198,6 +202,7 @@ export const TaskListQuerySchema = z
     parentTaskId: z.string().uuid().optional(),
     deliveryArea: DeliveryAreaSchema.optional(),
     rootOnly: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
+    myTasksOnly: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
     includeSubtasks: z.coerce.boolean().optional().default(false),
     includeSubtaskSummary: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
     includeDescendants: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),

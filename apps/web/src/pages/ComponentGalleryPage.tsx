@@ -45,6 +45,7 @@ import { BarChart, LineChart } from '../components/ui/organisms/Chart';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectCurrentUserRole } from '../store/authSlice';
 import {
   enqueueSnackbar,
   enqueueApiResponse,
@@ -86,6 +87,24 @@ export const ComponentGalleryPage: React.FC = () => {
   });
   const dispatch = useAppDispatch();
   const isGlobalActionPending = useAppSelector((state) => state.ui.pendingOperations.length > 0);
+  const currentUserRole = useAppSelector(selectCurrentUserRole);
+  const { workspaces, activeWorkspaceId } = useAppSelector((state) => state.workspace);
+
+  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
+  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || currentUserRole || '').toLowerCase();
+  const canAccessUI = ['owner', 'admin', 'po'].includes(userRole);
+
+  if (!canAccessUI) {
+    return (
+      <AccessRestricted
+        workspaceName={activeWorkspace?.name}
+        title="UI System Access Restricted"
+        description="Hanya Workspace Owner, Admin, dan Product Owner (PO) yang dapat mengakses UI System & Component Gallery."
+        actionHref="/work"
+        actionLabel="Return to Work Hub"
+      />
+    );
+  }
 
   const sampleTableData = [
     { id: 'TASK-101', title: 'Implement OAuth2 login flow', req: 'REQ-01', status: 'Passed', owner: 'John Doe' },
@@ -165,12 +184,13 @@ export const ComponentGalleryPage: React.FC = () => {
 
           <Section category="Atoms" title="Progress Bars" description="Animated progress indicators with status color variants and percentage labels.">
             <div className="space-y-4 max-w-md">
-              <ProgressBar value={85} label="Test Suite Coverage" variant="indigo" size="md" />
-              <ProgressBar value={100} label="Sprint Requirement Pass Rate" variant="emerald" size="sm" />
+              <ProgressBar value={85} label="Test Suite Coverage" variant="brand" size="md" />
+              <ProgressBar value={100} label="Sprint Requirement Pass Rate" variant="brand" size="sm" />
               <ProgressBar value={45} label="Pending Reviews" variant="amber" size="md" />
               <ProgressBar value={20} label="Critical Defect Resolution" variant="rose" size="lg" />
             </div>
           </Section>
+
 
           <Section category="Atoms" title="Loading Indicators & Overlays" description="Circular spinners, pulsing dot loaders, and full-panel loading overlays.">
             <div className="space-y-4">

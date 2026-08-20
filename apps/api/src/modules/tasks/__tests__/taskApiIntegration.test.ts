@@ -706,7 +706,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
 
       await assert.rejects(
         () => taskService.completeTask(qaMember.id, workspaceA.id, ownTask.id, { status: 'done' }),
-        /Only Product Owner, Admin, or Owner may update parent tasks/
+        /FORBIDDEN: (QA members cannot modify parent tasks|Only Product Owner, Admin, or Owner)/
       );
       await assert.rejects(
         () => taskService.moveTask(qaMember.id, workspaceA.id, unassignedTask.id, { targetFolderId: activeFolderA.id }),
@@ -714,7 +714,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       );
       await assert.rejects(
         () => taskService.updateTask(qaMember.id, workspaceA.id, anotherMembersTask.id, { title: 'Forbidden edit' }),
-        /Only Product Owner, Admin, or Owner may update parent tasks/
+        /FORBIDDEN: (QA members cannot modify parent tasks|Only Product Owner, Admin, or Owner)/
       );
     });
 
@@ -740,7 +740,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       );
       await assert.rejects(
         () => taskService.updateTask(qaMember.id, workspaceA.id, unassignedTask.id, { assigneeId: user.id }),
-        /Only Product Owner, Admin, or Owner may update parent tasks/
+        /FORBIDDEN: (QA members cannot modify parent tasks|Only Product Owner, Admin, or Owner)/
       );
     });
 

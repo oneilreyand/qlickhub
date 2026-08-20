@@ -327,7 +327,7 @@ export class QaDocumentService {
       throw new Error('NOT_FOUND: Task not found in this workspace.');
     }
 
-    const ownerId = input.ownerId || actorId;
+    const ownerId = input.ownerId || task.reporterId || actorId;
     await assertOwnerIsWorkspaceMember(workspaceId, ownerId);
     const inScope = normalizeScopeItems(input.inScope);
     const outScope = normalizeScopeItems(input.outScope);

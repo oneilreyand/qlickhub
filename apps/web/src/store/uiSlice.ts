@@ -209,7 +209,17 @@ const uiSlice = createSlice({
         state.unreadNotificationCount += 1;
       },
     },
+    receiveRealtimeNotification: (state, action: PayloadAction<InAppNotification>) => {
+      const exists = state.inAppNotifications.some((n) => n.id === action.payload.id);
+      if (!exists) {
+        state.inAppNotifications.unshift(action.payload);
+        if (!action.payload.isRead) {
+          state.unreadNotificationCount += 1;
+        }
+      }
+    },
     markNotificationAsRead: (state, action: PayloadAction<string>) => {
+
       const notif = state.inAppNotifications.find((n) => n.id === action.payload);
       if (notif && !notif.isRead) {
         notif.isRead = true;
@@ -312,6 +322,7 @@ export const {
   enqueueSnackbar,
   enqueueApiResponse,
   addInAppNotification,
+  receiveRealtimeNotification,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   clearInAppNotifications,
@@ -320,3 +331,4 @@ export const {
 } = uiSlice.actions;
 
 export default uiSlice.reducer;
+

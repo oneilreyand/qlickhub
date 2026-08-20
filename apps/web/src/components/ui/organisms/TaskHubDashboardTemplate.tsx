@@ -86,6 +86,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const [datePresetView, setDatePresetView] = useState<TaskDatePreset | 'all'>('all');
   const [dateRange, setDateRange] = useState<DateRange>();
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
+  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMobileFolderDrawerOpen, setIsMobileFolderDrawerOpen] = useState(false);
 
@@ -309,28 +310,34 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       {/* 2-Column Workspace Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Folder Tree Sidebar */}
-        <div className="hidden lg:col-span-3 lg:sticky lg:top-24 lg:block lg:space-y-4 min-w-0">
-          <Card className="p-3.5 sm:p-4 overflow-hidden">
-            <div className="max-h-[calc(100vh-8.5rem)] overflow-y-auto overflow-x-hidden pr-0.5">
-              <FolderTree
-                folders={folders}
-                selectedFolderId={selectedFolderId}
-                totalTasks={tasks.length}
-                isLoading={isFolderLoading}
-                error={folderError}
-                userRole={activeWorkspace?.role}
-                onSelectFolder={handleSelectFolder}
-                onCreateFolder={handleCreateFolder}
-                onRenameFolder={handleRenameFolder}
-                onArchiveFolder={handleArchiveFolder}
-                onRetry={() => activeWorkspaceId && dispatch(fetchFolderTree(activeWorkspaceId))}
-              />
-            </div>
-          </Card>
-        </div>
+        {!(viewMode === 'timeline' && isTimelineExpanded) && (
+          <div className="hidden lg:col-span-3 lg:sticky lg:top-24 lg:block lg:space-y-4 min-w-0 transition-all duration-300">
+            <Card className="p-3.5 sm:p-4 overflow-hidden">
+              <div className="max-h-[calc(100vh-8.5rem)] overflow-y-auto overflow-x-hidden pr-0.5">
+                <FolderTree
+                  folders={folders}
+                  selectedFolderId={selectedFolderId}
+                  totalTasks={tasks.length}
+                  isLoading={isFolderLoading}
+                  error={folderError}
+                  userRole={activeWorkspace?.role}
+                  onSelectFolder={handleSelectFolder}
+                  onCreateFolder={handleCreateFolder}
+                  onRenameFolder={handleRenameFolder}
+                  onArchiveFolder={handleArchiveFolder}
+                  onRetry={() => activeWorkspaceId && dispatch(fetchFolderTree(activeWorkspaceId))}
+                />
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* Right Column: Task Collection / Timeline & Filters */}
-        <div className="lg:col-span-9 space-y-4 min-w-0">
+        <div
+          className={`${
+            viewMode === 'timeline' && isTimelineExpanded ? 'lg:col-span-12' : 'lg:col-span-9'
+          } space-y-4 min-w-0 transition-all duration-300`}
+        >
           <Card className="p-4 sm:p-6 space-y-4">
             <TaskHubControlsBar
               selectedFolderName={selectedFolderName}
@@ -345,6 +352,8 @@ export const TaskHubDashboardTemplate: React.FC = () => {
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
               statusFilters={statusFilters}
+              isExpanded={isTimelineExpanded}
+              onToggleExpand={() => setIsTimelineExpanded((prev) => !prev)}
             />
 
             {taskError && (
@@ -371,6 +380,8 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 isLoading={isTaskLoading}
                 selectedTaskId={selectedTaskId}
                 onSelect={(task) => dispatch(setSelectedTaskId(task.id))}
+                isExpanded={isTimelineExpanded}
+                onToggleExpand={() => setIsTimelineExpanded((prev) => !prev)}
               />
             )}
           </Card>

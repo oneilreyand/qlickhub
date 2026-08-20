@@ -3,14 +3,15 @@ import {
   Code2,
   Layers,
   Bug,
+  Smartphone,
+  Cpu,
   MessageSquare,
-  Paperclip,
   FileText,
   Calendar,
   AlertCircle,
   User,
 } from 'lucide-react';
-import type { Task, TaskStatus, DeliveryArea } from '@qlick/contracts';
+import type { Task, DeliveryArea } from '@qlick/contracts';
 import { TaskStatusBadge } from './TaskStatusBadge';
 import { TaskScheduleHealthBadge } from './TaskScheduleHealthBadge';
 import { Avatar } from '../atoms/Avatar';
@@ -20,87 +21,20 @@ export interface SubtaskSummaryRowProps {
   subtask: Task;
   assigneeName?: string;
   commentCount?: number;
-  attachmentCount?: number;
+  hasUnreadComment?: boolean;
+  unreadCommentCount?: number;
   currentUserId?: string;
   currentUserRole?: string;
-  onStatusChange?: (subtaskId: string, newStatus: TaskStatus) => void;
-  canMutate?: boolean;
-}
-
-interface StatusOption {
-  value: TaskStatus;
-  label: string;
-}
-
-const ALL_STATUS_OPTIONS: StatusOption[] = [
-  { value: 'todo', label: 'To Do' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'in_review', label: 'In Review' },
-  { value: 'changes_requested', label: 'Changes Requested' },
-  { value: 'done', label: 'Done' },
-  { value: 'canceled', label: 'Canceled' },
-];
-
-export function getAllowedSubtaskStatuses(
-  subtask: Task,
-  currentUserId?: string,
-  currentUserRole?: string
-): StatusOption[] {
-  const isPlanner = Boolean(currentUserRole && ['owner', 'admin', 'po'].includes(currentUserRole));
-  const isAssignee = Boolean(currentUserId && subtask.assigneeId === currentUserId);
-  const isQaReviewer = currentUserRole === 'qa' && subtask.deliveryArea !== 'qa';
-
-  // Planner: full management (excluding self-approval if assigned, unless owner)
-  if (isPlanner) {
-    if (subtask.status === 'in_review' && isAssignee && currentUserRole !== 'owner') {
-      return ALL_STATUS_OPTIONS.filter((opt) => opt.value !== 'done');
-    }
-    return ALL_STATUS_OPTIONS;
-  }
-
-  // Assigned Member (Executor)
-  if (isAssignee) {
-    const current = subtask.status || 'todo';
-    let allowedValues: TaskStatus[] = [current];
-
-    if (current === 'todo') {
-      allowedValues = ['todo', 'in_progress', 'in_review'];
-    } else if (current === 'in_progress') {
-      allowedValues = ['in_progress', 'in_review', 'todo'];
-    } else if (current === 'changes_requested') {
-      allowedValues = ['changes_requested', 'in_progress'];
-    } else if (current === 'done') {
-      allowedValues = ['done', 'in_progress'];
-    } else if (current === 'canceled') {
-      allowedValues = ['canceled', 'in_progress'];
-    } else if (current === 'in_review') {
-      allowedValues = ['in_review', 'in_progress'];
-    }
-
-    return ALL_STATUS_OPTIONS.filter((opt) => allowedValues.includes(opt.value));
-  }
-
-  // Independent QA Reviewer reviewing FE/BE subtask in review
-  if (isQaReviewer && subtask.status === 'in_review') {
-    return ALL_STATUS_OPTIONS.filter((opt) =>
-      ['in_review', 'done', 'changes_requested'].includes(opt.value)
-    );
-  }
-
-  // Fallback: show only current status
-  return ALL_STATUS_OPTIONS.filter((opt) => opt.value === subtask.status);
 }
 
 export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
   subtask,
   assigneeName,
   commentCount = 0,
-  attachmentCount = 0,
-  currentUserId,
-  currentUserRole,
-  onStatusChange,
-  canMutate = true,
+  hasUnreadComment = false,
+  unreadCommentCount = 0,
 }) => {
+
   const isCompleted = subtask.status === 'done';
   const isChangesRequested = subtask.status === 'changes_requested';
   const hasDescription = Boolean(subtask.description && subtask.description.trim().length > 0);
@@ -108,11 +42,6 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
   const scheduleHealth = React.useMemo(() => {
     return calculateSubtaskScheduleHealth(subtask);
   }, [subtask]);
-
-  const allowedStatusOptions = React.useMemo(() => {
-    if (!currentUserId && !currentUserRole) return ALL_STATUS_OPTIONS;
-    return getAllowedSubtaskStatuses(subtask, currentUserId, currentUserRole);
-  }, [subtask, currentUserId, currentUserRole]);
 
   const dateRangeDisplay = React.useMemo(() => {
     if (subtask.startDate && subtask.dueDate) {
@@ -127,7 +56,7 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
     switch (area) {
       case 'frontend':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
             <Code2 className="h-3 w-3" /> FE
           </span>
         );
@@ -137,9 +66,21 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
             <Layers className="h-3 w-3" /> BE
           </span>
         );
+      case 'mobile':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Smartphone className="h-3 w-3" /> MOB
+          </span>
+        );
+      case 'fullstack':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Cpu className="h-3 w-3" /> FS
+          </span>
+        );
       case 'qa':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-[#B1E743]/20 text-[#22201F] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
             <Bug className="h-3 w-3" /> QA
           </span>
         );
@@ -151,6 +92,7 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
         );
     }
   };
+
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -186,25 +128,28 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
             </span>
           )}
 
-          {commentCount > 0 && (
+          {hasUnreadComment ? (
             <span
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800"
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
+              title={`${unreadCommentCount} pesan baru di subtask ini`}
+            >
+              <MessageSquare className="h-3 w-3" />
+              <span>{commentCount}</span>
+              <span className="text-[9px] font-extrabold uppercase">• +{unreadCommentCount} Baru</span>
+            </span>
+          ) : commentCount > 0 ? (
+
+            <span
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#B1E743]/20 text-[#22201F] dark:text-[#B1E743] border border-[#B1E743]/50"
               title={`${commentCount} discussion comments`}
             >
               <MessageSquare className="h-3 w-3" />
               <span>{commentCount}</span>
             </span>
-          )}
 
-          {attachmentCount > 0 && (
-            <span
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700"
-              title={`${attachmentCount} attachments/evidence`}
-            >
-              <Paperclip className="h-3 w-3 text-stone-400" />
-              <span>{attachmentCount}</span>
-            </span>
-          )}
+
+          ) : null}
+
 
           {isChangesRequested && (
             <span
@@ -232,7 +177,7 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
         </div>
       </div>
 
-      {/* Right side: Assignee & Quick Status dropdown */}
+      {/* Right side: Assignee & Static Status Badge */}
       <div
         className="flex items-center gap-2 shrink-0 self-end sm:self-center"
         onClick={(e) => e.stopPropagation()}
@@ -252,23 +197,8 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
           </span>
         </div>
 
-        {/* Quick Status Selector */}
-        {canMutate && onStatusChange && allowedStatusOptions.length > 1 ? (
-          <select
-            value={subtask.status}
-            onChange={(e) => onStatusChange(subtask.id, e.target.value as TaskStatus)}
-            className="h-7 rounded-lg border border-stone-200 bg-white px-2 text-[11px] font-bold text-stone-800 outline-none focus:ring-1 focus:ring-indigo-400 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
-            title="Change Subtask Status"
-          >
-            {allowedStatusOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <TaskStatusBadge state={subtask.status} />
-        )}
+        {/* Static Status Badge (Read-Only) */}
+        <TaskStatusBadge state={subtask.status} />
       </div>
     </div>
   );

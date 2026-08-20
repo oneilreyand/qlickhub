@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { beforeEach, describe, test, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { beforeEach, afterEach, describe, test, expect, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { TaskDetailDrawer } from '../TaskDetailDrawer';
@@ -8,7 +8,36 @@ import authReducer from '../../../../store/authSlice';
 import taskReducer from '../../../../store/taskSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
+import { realtimeManager } from '../../../../hooks/useRealtimeEvents';
 import type { Task } from '@qlick/contracts';
+
+class MockEventSource {
+  static instances: MockEventSource[] = [];
+  listeners: Record<string, ((event: any) => void)[]> = {};
+  url: string;
+  options: any;
+
+  constructor(url: string, options: any) {
+    this.url = url;
+    this.options = options;
+    MockEventSource.instances.push(this);
+  }
+
+  addEventListener(event: string, callback: (event: any) => void) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(callback);
+  }
+
+  emit(event: string, data: any) {
+    if (this.listeners[event]) {
+      this.listeners[event].forEach((cb) => cb({ data: JSON.stringify({ data }) }));
+    }
+  }
+
+  close() {
+    this.listeners = {};
+  }
+}
 
 const {
   getProductBriefMock,
@@ -18,6 +47,7 @@ const {
   createRequirementMock,
   linkRequirementMock,
   unlinkRequirementMock,
+  listSubtasksMock,
 } = vi.hoisted(() => ({
   getProductBriefMock: vi.fn(),
   upsertProductBriefMock: vi.fn(),
@@ -26,6 +56,7 @@ const {
   createRequirementMock: vi.fn(),
   linkRequirementMock: vi.fn(),
   unlinkRequirementMock: vi.fn(),
+  listSubtasksMock: vi.fn().mockResolvedValue({ tasks: [], total: 0, page: 1, limit: 50 }),
 }));
 
 vi.mock('../../../../lib/api/requirementService', () => ({
@@ -54,7 +85,7 @@ vi.mock('../../../../lib/api/taskService', () => ({
     listTaskActivity: listTaskActivitiesMock,
     listTaskActivities: listTaskActivitiesMock,
     listTaskComments: vi.fn().mockResolvedValue({ comments: [], total: 0, page: 1, limit: 50 }),
-    listSubtasks: vi.fn().mockResolvedValue({ tasks: [], total: 0, page: 1, limit: 50 }),
+    listSubtasks: listSubtasksMock,
     updateTask: vi.fn(),
     moveTask: vi.fn(),
     completeTask: vi.fn(),
@@ -85,6 +116,8 @@ const mockTask: Task = {
     areas: {
       frontend: { total: 1, completed: 1 },
       backend: { total: 1, completed: 0 },
+      mobile: { total: 0, completed: 0 },
+      fullstack: { total: 0, completed: 0 },
       qa: { total: 0, completed: 0 },
     },
   },
@@ -153,7 +186,14 @@ describe('TaskDetailDrawer UI Component', () => {
     },
   };
 
+  let originalEventSource: any;
+
   beforeEach(() => {
+    realtimeManager.disconnect();
+    MockEventSource.instances = [];
+    originalEventSource = (global as any).EventSource;
+    (global as any).EventSource = MockEventSource;
+
     getProductBriefMock.mockResolvedValue(productBrief);
     upsertProductBriefMock.mockResolvedValue(productBrief);
     listTaskRequirementLinksMock.mockResolvedValue([]);
@@ -515,5 +555,72 @@ describe('TaskDetailDrawer UI Component', () => {
     // Active tab and draft comment must NOT be lost
     expect(screen.getByText('Task Discussion Thread')).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Write a message to your team/i)).toHaveValue('My in-progress draft comment');
+  });
+
+  afterEach(() => {
+    realtimeManager.disconnect();
+    (global as any).EventSource = originalEventSource;
+  });
+
+  test('displays unread discussion badge on Subtasks tab when a message arrives on a subtask', async () => {
+    const mockSubtask = {
+      id: 'sub-fe-99',
+      workspaceId: mockTask.workspaceId,
+      parentTaskId: mockTask.id,
+      deliveryArea: 'frontend' as const,
+      title: 'Subtask Frontend 99',
+      description: 'Implement frontend UI',
+      status: 'in_progress' as const,
+      priority: 'high' as const,
+      assigneeId: 'user-fe',
+      reporterId: 'user-1',
+      startDate: null,
+      dueDate: null,
+      completedAt: null,
+      createdAt: '2026-08-14T00:00:00.000Z',
+      updatedAt: '2026-08-14T00:00:00.000Z',
+    };
+
+    listSubtasksMock.mockResolvedValue({
+      tasks: [mockSubtask],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+
+    renderWithRedux(
+      <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />
+    );
+
+    // Wait for subtasks to load and Subtasks (1) tab to appear
+    expect(await screen.findByText(/Subtasks \(1\)/i)).toBeInTheDocument();
+
+    // Initial state: Subtasks tab has no unread badge
+    expect(screen.queryByText(/\+1 Baru/i)).not.toBeInTheDocument();
+
+    // Verify SSE was established
+    expect(MockEventSource.instances.length).toBe(1);
+
+    // Another user posts a comment on the subtask
+    const subtaskCommentPayload = {
+      taskId: 'sub-fe-99',
+      comment: {
+        id: 'comm-sub-99',
+        taskId: 'sub-fe-99',
+        authorId: 'user-qa',
+        body: 'Mohon update styling button nya ya.',
+        createdAt: new Date().toISOString(),
+      },
+      authorId: 'user-qa',
+      mentionedUserIds: [],
+    };
+
+    // Simulate incoming SSE event
+    act(() => {
+      MockEventSource.instances[0].emit('discussion:comment_created', subtaskCommentPayload);
+    });
+
+    // Subtasks tab must now display the animated unread badge: "+1 Baru"
+    expect(await screen.findByText(/\+1 Baru/i)).toBeInTheDocument();
   });
 });

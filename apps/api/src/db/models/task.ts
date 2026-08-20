@@ -59,7 +59,6 @@ export class TaskModel
   declare parentTask?: TaskModel | null;
   declare activities?: import('./taskActivity.js').TaskActivityModel[];
   declare comments?: import('./taskComment.js').TaskCommentModel[];
-  declare attachments?: import('./taskAttachment.js').TaskAttachmentModel[];
 }
 
 TaskModel.init(
@@ -85,7 +84,7 @@ TaskModel.init(
       field: 'parent_task_id',
     },
     deliveryArea: {
-      type: DataTypes.ENUM('frontend', 'backend', 'qa'),
+      type: DataTypes.ENUM('frontend', 'backend', 'mobile', 'fullstack', 'qa'),
       allowNull: true,
       field: 'delivery_area',
     },

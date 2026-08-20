@@ -15,6 +15,8 @@ import {
   TaskCommentListResponse,
 } from '@qlick/contracts';
 import { fcmService } from '../../services/fcmService.js';
+import { realtimeEventBus } from '../../services/realtimeEventBus.js';
+
 
 async function getActorMembership(
   workspaceId: string,
@@ -359,30 +361,42 @@ export class TaskDiscussionService {
       new Set(baseRecipients.filter((id): id is string => Boolean(id && id !== actorId)))
     );
 
-    if (recipientIds.length > 0) {
-      UserModel.findByPk(actorId)
-        .then((actorUser) => {
-          const authorName = actorUser?.name || actorUser?.email || 'Workspace Member';
-          fcmService
-            .sendDiscussionUpdateNotification({
-              recipientUserIds: recipientIds,
-              authorName,
-              authorId: actorId,
-              taskTitle: commentResult.taskTitle,
-              taskId,
-              workspaceId,
-              commentId: commentResult.commentId,
-              commentSnippet: input.body,
-              isChannel: commentResult.isChannelMention,
-            })
-            .catch((err) => console.warn('Failed to dispatch FCM discussion notification:', err));
-        })
-        .catch(() => {});
+      if (recipientIds.length > 0) {
+        UserModel.findByPk(actorId)
+          .then((actorUser) => {
+            const authorName = actorUser?.name || actorUser?.email || 'Workspace Member';
+            fcmService
+              .sendDiscussionUpdateNotification({
+                recipientUserIds: recipientIds,
+                authorName,
+                authorId: actorId,
+                taskTitle: commentResult.taskTitle,
+                taskId,
+                workspaceId,
+                commentId: commentResult.commentId,
+                commentSnippet: input.body,
+                isChannel: commentResult.isChannelMention,
+              })
+              .catch((err) => console.warn('Failed to dispatch FCM discussion notification:', err));
+          })
+          .catch(() => {});
+      }
+
+      // Realtime SSE event dispatch to workspace
+      try {
+        realtimeEventBus.emitToWorkspace(workspaceId, 'discussion:comment_created', {
+          taskId,
+          comment: commentResult.formatted,
+          authorId: actorId,
+          mentionedUserIds: commentResult.mentionedUserIds,
+          isChannel: commentResult.isChannelMention,
+        });
+      } catch (err) {
+        console.warn('⚠️ Failed to dispatch realtime discussion comment creation event:', err);
+      }
+
+      return commentResult.formatted;
     }
-
-
-    return commentResult.formatted;
-  }
 
   /**
    * Updates an existing comment message body (author or owner/admin moderation).
@@ -394,7 +408,7 @@ export class TaskDiscussionService {
     commentId: string,
     input: UpdateTaskCommentInput
   ): Promise<TaskComment> {
-    return await sequelize.transaction(async (transaction) => {
+    const updated = await sequelize.transaction(async (transaction) => {
       const membership = await getActorMembership(workspaceId, actorId, transaction);
 
       const comment = await TaskCommentModel.findOne({
@@ -442,6 +456,17 @@ export class TaskDiscussionService {
 
       return formatComment(comment);
     });
+
+    try {
+      realtimeEventBus.emitToWorkspace(workspaceId, 'discussion:comment_updated', {
+        taskId,
+        comment: updated,
+      });
+    } catch (err) {
+      console.warn('⚠️ Failed to dispatch realtime discussion update event:', err);
+    }
+
+    return updated;
   }
 
   /**
@@ -453,7 +478,7 @@ export class TaskDiscussionService {
     taskId: string,
     commentId: string
   ): Promise<TaskComment> {
-    return await sequelize.transaction(async (transaction) => {
+    const deleted = await sequelize.transaction(async (transaction) => {
       const membership = await getActorMembership(workspaceId, actorId, transaction);
 
       const comment = await TaskCommentModel.findOne({
@@ -500,7 +525,19 @@ export class TaskDiscussionService {
       }
       return formatted;
     });
+
+    try {
+      realtimeEventBus.emitToWorkspace(workspaceId, 'discussion:comment_deleted', {
+        taskId,
+        commentId,
+      });
+    } catch (err) {
+      console.warn('⚠️ Failed to dispatch realtime discussion delete event:', err);
+    }
+
+    return deleted;
   }
 }
 
 export const taskDiscussionService = new TaskDiscussionService();
+

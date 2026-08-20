@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Maximize2, Minimize2 } from 'lucide-react';
 import { IconButton } from '../atoms/IconButton';
 
 export interface DrawerProps {
@@ -10,6 +10,11 @@ export interface DrawerProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   width?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | 'full';
+  allowFullScreen?: boolean;
+  defaultFullScreen?: boolean;
+  isFullScreen?: boolean;
+  onToggleFullScreen?: (fullScreen: boolean) => void;
+  headerActions?: React.ReactNode;
 }
 
 export const Drawer: React.FC<DrawerProps> = ({
@@ -20,12 +25,55 @@ export const Drawer: React.FC<DrawerProps> = ({
   children,
   footer,
   width = 'md',
+  allowFullScreen = true,
+  defaultFullScreen = false,
+  isFullScreen: controlledFullScreen,
+  onToggleFullScreen,
+  headerActions,
 }) => {
+  const [internalFullScreen, setInternalFullScreen] = useState(defaultFullScreen);
+  const isFullScreen = controlledFullScreen !== undefined ? controlledFullScreen : internalFullScreen;
+
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isClosing, setIsClosing] = useState(false);
+
+  // Sync / Reset full page state and handle animated mount/unmount
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
+      setInternalFullScreen(defaultFullScreen);
+    } else if (shouldRender) {
+      setIsClosing(true);
+      timer = setTimeout(() => {
+        setShouldRender(false);
+        setIsClosing(false);
+      }, 250);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isOpen, defaultFullScreen, shouldRender]);
+
+  const handleInitiateClose = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    onClose();
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (isFullScreen) {
+          setInternalFullScreen(false);
+          onToggleFullScreen?.(false);
+        } else {
+          handleInitiateClose();
+        }
+      }
     };
-    if (isOpen) {
+    if (shouldRender) {
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
     }
@@ -33,9 +81,15 @@ export const Drawer: React.FC<DrawerProps> = ({
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [shouldRender, isFullScreen, isClosing, onClose, onToggleFullScreen]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
+
+  const handleToggleFullScreen = () => {
+    const nextState = !isFullScreen;
+    setInternalFullScreen(nextState);
+    onToggleFullScreen?.(nextState);
+  };
 
   const widthStyles = {
     sm: 'max-w-sm',
@@ -52,35 +106,88 @@ export const Drawer: React.FC<DrawerProps> = ({
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-[#22201F]/40 backdrop-blur-xs transition-opacity dark:bg-black/70"
-        onClick={onClose}
+        className={`fixed inset-0 bg-[#22201F]/40 backdrop-blur-xs transition-opacity duration-250 ease-in-out dark:bg-black/70 ${
+          isClosing ? 'animate-fadeOut' : 'animate-fadeIn'
+        } ${isFullScreen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        onClick={handleInitiateClose}
         aria-hidden="true"
       />
 
-      <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
-        <div className={`w-screen ${widthStyles[width]} bg-white shadow-2xl flex flex-col justify-between z-10 dark:bg-[#1C1A19] dark:border-l dark:border-stone-800 dark:text-stone-100`}>
+      {/* Container anchored to the right edge with justify-end so it extends strictly from right to left */}
+      <div
+        className={`fixed inset-y-0 right-0 flex justify-end max-w-full pointer-events-none transition-[padding] duration-300 ease-in-out ${
+          isFullScreen ? 'pl-0' : 'pl-10'
+        }`}
+      >
+        <div
+          className={`pointer-events-auto origin-right w-screen ${
+            isFullScreen ? 'max-w-full' : widthStyles[width]
+          } bg-white shadow-2xl flex flex-col justify-between z-10 ${
+            isClosing ? 'animate-slideOutRight' : 'animate-slideInRight'
+          } transition-[max-width] duration-300 ease-in-out dark:bg-[#1C1A19] dark:border-l dark:border-stone-800 dark:text-stone-100`}
+        >
           {/* Drawer Header */}
-          <div className="flex items-center justify-between border-b border-stone-200/80 px-6 py-4 dark:border-stone-800">
-            <div>
-              <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">{title}</h3>
-              {subtitle && <p className="text-xs text-stone-500 mt-0.5 dark:text-stone-400">{subtitle}</p>}
+          <div className="flex items-center justify-between border-b border-stone-200/80 px-6 py-4 dark:border-stone-800 shrink-0">
+            <div className="min-w-0 pr-4">
+              <h3 className="text-base font-bold text-stone-900 dark:text-stone-100 truncate">
+                {title}
+              </h3>
+              {subtitle && (
+                <p className="text-xs text-stone-500 mt-0.5 dark:text-stone-400 truncate">
+                  {subtitle}
+                </p>
+              )}
             </div>
-            <IconButton
-              onClick={onClose}
-              label="Close drawer"
-              size="sm"
-              variant="ghost"
-              className="dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
-            >
-              <X className="h-5 w-5" />
-            </IconButton>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {headerActions}
+
+              {/* Fullscreen Expand / Restore Toggle Button */}
+              {allowFullScreen && (
+                <IconButton
+                  onClick={handleToggleFullScreen}
+                  label={isFullScreen ? 'Restore normal view' : 'Expand to full page'}
+                  size="sm"
+                  variant="ghost"
+                  className="text-stone-500 hover:text-[#22201F] dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-[#B1E743]"
+                >
+                  {isFullScreen ? (
+                    <Minimize2 className="h-4 w-4" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4" />
+                  )}
+                </IconButton>
+              )}
+
+              <IconButton
+                onClick={handleInitiateClose}
+                label="Close drawer"
+                size="sm"
+                variant="ghost"
+                className="text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+              >
+                <X className="h-5 w-5" />
+              </IconButton>
+            </div>
           </div>
 
           {/* Drawer Content */}
-          <div className="flex-1 overflow-y-auto p-6 text-sm text-stone-600 dark:text-stone-300">{children}</div>
+          <div
+            className={`flex-1 overflow-y-auto p-6 text-sm text-stone-600 dark:text-stone-300 transition-all duration-300 ${
+              isFullScreen ? 'max-w-7xl mx-auto w-full' : ''
+            }`}
+          >
+            {children}
+          </div>
 
           {/* Drawer Footer */}
-          {footer && <div className="border-t border-stone-200/80 p-4 bg-stone-50 dark:border-stone-800 dark:bg-[#141413]/60">{footer}</div>}
+          {footer && (
+            <div className="border-t border-stone-200/80 p-4 bg-stone-50 dark:border-stone-800 dark:bg-[#141413]/60 shrink-0 transition-all duration-300">
+              <div className={isFullScreen ? 'max-w-7xl mx-auto w-full' : ''}>
+                {footer}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

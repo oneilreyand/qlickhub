@@ -7,7 +7,6 @@ import { TaskModel } from './task.js';
 import { TaskActivityModel } from './taskActivity.js';
 import { TaskCommentModel } from './taskComment.js';
 import { TaskCommentMentionModel } from './taskCommentMention.js';
-import { TaskAttachmentModel } from './taskAttachment.js';
 import { RequirementModel } from './requirement.js';
 import { TaskRequirementModel } from './taskRequirement.js';
 import { QaDocumentModel } from './qaDocument.js';
@@ -111,16 +110,6 @@ export function setupAssociations() {
 
   WorkspaceModel.hasMany(TaskCommentMentionModel, { foreignKey: 'workspaceId', as: 'commentMentions', onDelete: 'CASCADE' });
   TaskCommentMentionModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
-
-  // Task Attachment Associations
-  TaskModel.hasMany(TaskAttachmentModel, { foreignKey: 'taskId', as: 'attachments', onDelete: 'CASCADE' });
-  TaskAttachmentModel.belongsTo(TaskModel, { foreignKey: 'taskId', as: 'task', onDelete: 'CASCADE' });
-
-  WorkspaceModel.hasMany(TaskAttachmentModel, { foreignKey: 'workspaceId', as: 'taskAttachments', onDelete: 'CASCADE' });
-  TaskAttachmentModel.belongsTo(WorkspaceModel, { foreignKey: 'workspaceId', as: 'workspace', onDelete: 'CASCADE' });
-
-  UserModel.hasMany(TaskAttachmentModel, { foreignKey: 'uploaderId', as: 'uploadedAttachments', onDelete: 'RESTRICT' });
-  TaskAttachmentModel.belongsTo(UserModel, { foreignKey: 'uploaderId', as: 'uploader', onDelete: 'RESTRICT' });
 
   // Requirement & Task Requirement Link Associations
   WorkspaceModel.hasMany(RequirementModel, { foreignKey: 'workspaceId', as: 'requirements', onDelete: 'CASCADE' });

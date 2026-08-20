@@ -7,7 +7,6 @@ export * from './task.js';
 export * from './taskActivity.js';
 export * from './taskComment.js';
 export * from './taskCommentMention.js';
-export * from './taskAttachment.js';
 export * from './requirement.js';
 export * from './taskRequirement.js';
 export * from './qaDocument.js';

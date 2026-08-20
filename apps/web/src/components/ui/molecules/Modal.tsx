@@ -14,7 +14,7 @@ export interface ModalProps {
   onPrimaryAction?: () => void;
   secondaryActionLabel?: string;
   isPrimaryLoading?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -45,10 +45,14 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  const sizeStyles = {
+  const sizeStyles: Record<string, string> = {
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-xl',
+    xl: 'max-w-2xl',
+    '2xl': 'max-w-3xl',
+    '3xl': 'max-w-4xl',
+    '4xl': 'max-w-5xl',
   };
 
   return createPortal(
@@ -65,12 +69,12 @@ export const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={`relative w-full ${sizeStyles[size]} rounded-[24px] bg-white p-6 shadow-2xl ring-1 ring-stone-900/5 transition-all z-10 dark:bg-[#1C1A19] dark:border dark:border-stone-800 dark:text-stone-100`}
+        className={`relative w-full ${sizeStyles[size]} max-h-[90vh] flex flex-col rounded-[20px] sm:rounded-[24px] bg-white p-4 sm:p-6 shadow-2xl ring-1 ring-stone-900/5 transition-all z-10 dark:bg-[#1C1A19] dark:border dark:border-stone-800 dark:text-stone-100`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4 dark:border-stone-800">
+        <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-3 sm:pb-4 dark:border-stone-800 shrink-0">
           <div>
-            <h3 id="modal-title" className="text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100">
+            <h3 id="modal-title" className="text-base sm:text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100">
               {title}
             </h3>
             {description && <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{description}</p>}
@@ -80,25 +84,25 @@ export const Modal: React.FC<ModalProps> = ({
             label="Close modal"
             size="sm"
             variant="ghost"
-            className="dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+            className="dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200 shrink-0"
           >
             <X className="h-5 w-5" />
           </IconButton>
         </div>
 
         {/* Content Body */}
-        <div className="py-4 text-sm text-stone-600 dark:text-stone-300">{children}</div>
+        <div className="py-3 sm:py-4 text-sm text-stone-600 dark:text-stone-300 overflow-y-auto flex-1">{children}</div>
 
         {/* Footer Actions */}
         {(primaryActionLabel || secondaryActionLabel) && (
-          <div className="flex items-center justify-end gap-3 border-t border-stone-100 pt-4 dark:border-stone-800">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 border-t border-stone-100 pt-3 sm:pt-4 dark:border-stone-800 shrink-0">
             {secondaryActionLabel && (
-              <Button variant="outline" size="sm" onClick={onClose}>
+              <Button variant="outline" size="sm" onClick={onClose} className="w-full sm:w-auto">
                 {secondaryActionLabel}
               </Button>
             )}
             {primaryActionLabel && (
-              <Button variant="primary" size="sm" isLoading={isPrimaryLoading} onClick={onPrimaryAction}>
+              <Button variant="primary" size="sm" isLoading={isPrimaryLoading} onClick={onPrimaryAction} className="w-full sm:w-auto">
                 {primaryActionLabel}
               </Button>
             )}

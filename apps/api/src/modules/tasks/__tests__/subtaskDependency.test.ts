@@ -162,8 +162,8 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
     // QA can be in_progress early to prepare test suites
     assert.strictEqual(qaSubtask.status, 'in_progress');
 
-    // QA assignee submits QA subtask to in_review
-    await taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, { status: 'in_review' });
+    // PO submits QA subtask to in_review
+    await taskService.updateTask(poUser.id, workspace.id, qaSubtask.id, { status: 'in_review' });
 
     // PO attempts to approve QA subtask as done while FE and BE are still in_progress -> MUST FAIL
     await assert.rejects(
@@ -177,10 +177,7 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
     );
 
     // FE and BE complete their work and PO approves them
-    await taskService.updateTask(feDev.id, workspace.id, feSubtask.id, { status: 'in_review' });
     await taskService.updateTask(poUser.id, workspace.id, feSubtask.id, { status: 'done' });
-
-    await taskService.updateTask(beDev.id, workspace.id, beSubtask.id, { status: 'in_review' });
     await taskService.updateTask(poUser.id, workspace.id, beSubtask.id, { status: 'done' });
 
     // Now PO can approve QA subtask as done

@@ -112,4 +112,54 @@ describe('RichTextEditor Molecule', () => {
     const boldButton = screen.getByTitle('Bold (Ctrl+B)');
     expect(boldButton).toBeDisabled();
   });
+
+  it('inserts image link via Image Link modal', () => {
+    const handleChange = vi.fn();
+    render(
+      <RichTextEditor
+        label="Task Description"
+        value=""
+        onChange={handleChange}
+        defaultTab="write"
+      />
+    );
+
+    const imageBtn = screen.getByTitle(/Insert Image Link/i);
+    fireEvent.click(imageBtn);
+
+    expect(screen.getAllByText('Insert Image Link').length).toBeGreaterThan(0);
+
+    const urlInput = screen.getByPlaceholderText('https://example.com/screenshot.png');
+    fireEvent.change(urlInput, { target: { value: 'https://example.com/ui-preview.png' } });
+
+    const insertBtn = screen.getByRole('button', { name: 'Insert Image Link' });
+    fireEvent.click(insertBtn);
+
+    expect(handleChange).toHaveBeenCalledWith(expect.stringContaining('https://example.com/ui-preview.png'));
+  });
+
+  it('inserts video link via Video Link modal', () => {
+    const handleChange = vi.fn();
+    render(
+      <RichTextEditor
+        label="Task Description"
+        value=""
+        onChange={handleChange}
+        defaultTab="write"
+      />
+    );
+
+    const videoBtn = screen.getByTitle(/Insert Video Link/i);
+    fireEvent.click(videoBtn);
+
+    expect(screen.getAllByText('Insert Video Link').length).toBeGreaterThan(0);
+
+    const urlInput = screen.getByPlaceholderText(/demo\.mp4 or YouTube/i);
+    fireEvent.change(urlInput, { target: { value: 'https://cdn.example.com/demo.mp4' } });
+
+    const insertBtn = screen.getByRole('button', { name: 'Insert Video Link' });
+    fireEvent.click(insertBtn);
+
+    expect(handleChange).toHaveBeenCalledWith(expect.stringContaining('https://cdn.example.com/demo.mp4'));
+  });
 });

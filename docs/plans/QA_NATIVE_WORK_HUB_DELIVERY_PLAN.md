@@ -2,6 +2,7 @@
 
 **Status:** ready for agent execution  
 **Created:** 2026-08-12  
+**Architecture Decision Record:** [`docs/adr/ADR-001-CORE-DOMAIN-AND-COLLABORATION-DECISIONS.md`](file:///Users/mac/Documents/GitHub/QAREPORT/docs/adr/ADR-001-CORE-DOMAIN-AND-COLLABORATION-DECISIONS.md)  
 **Scope:** evolve the existing QA Management System into a folder-based delivery workspace with requirement, document, and QA traceability.
 
 ## 1. Outcome

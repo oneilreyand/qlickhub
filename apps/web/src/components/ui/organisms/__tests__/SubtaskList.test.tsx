@@ -1,7 +1,7 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { SubtaskList } from '../SubtaskList';
@@ -10,14 +10,37 @@ import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
 import type { Task } from '@qlick/contracts';
 
-vi.mock('../../../../lib/api/attachmentService', () => ({
-  attachmentService: {
-    listAttachments: vi.fn().mockResolvedValue([]),
-    uploadAttachment: vi.fn(),
-    deleteAttachment: vi.fn(),
-    getDownloadUrl: vi.fn().mockReturnValue('http://localhost:4000/v1/download/test'),
-  },
-}));
+
+import { realtimeManager } from '../../../../hooks/useRealtimeEvents';
+
+// Mock EventSource for realtime tests
+class MockEventSource {
+  static instances: MockEventSource[] = [];
+  listeners: Record<string, ((event: any) => void)[]> = {};
+  url: string;
+  options: any;
+
+  constructor(url: string, options: any) {
+    this.url = url;
+    this.options = options;
+    MockEventSource.instances.push(this);
+  }
+
+  addEventListener(event: string, callback: (event: any) => void) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(callback);
+  }
+
+  emit(event: string, data: any) {
+    if (this.listeners[event]) {
+      this.listeners[event].forEach((cb) => cb({ data: JSON.stringify({ data }) }));
+    }
+  }
+
+  close() {
+    this.listeners = {};
+  }
+}
 
 vi.mock('../../../../lib/api/taskService', () => ({
   taskService: {
@@ -101,6 +124,20 @@ function renderWithStore(ui: React.ReactElement) {
 }
 
 describe('SubtaskList Organism Component', () => {
+  let originalEventSource: any;
+
+  beforeEach(() => {
+    realtimeManager.disconnect();
+    MockEventSource.instances = [];
+    originalEventSource = (global as any).EventSource;
+    (global as any).EventSource = MockEventSource;
+  });
+
+  afterEach(() => {
+    realtimeManager.disconnect();
+    (global as any).EventSource = originalEventSource;
+  });
+
   it('renders subtask metrics header and summary counts', () => {
     renderWithStore(
       <SubtaskList
@@ -180,10 +217,48 @@ describe('SubtaskList Organism Component', () => {
     }
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
 
-    // Inner tabs should now be rendered
+    // Inner tabs should now be rendered (Description, Discussion, Details)
     expect(await screen.findByRole('button', { name: /^description$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^evidence & files/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^discussion/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^details$/i })).toBeInTheDocument();
+  });
+
+  it('displays real-time unread discussion badge on subtask row when message arrives from another member', async () => {
+    renderWithStore(
+      <SubtaskList
+        subtasks={mockSubtasks}
+        workspaceId="ws-1"
+        currentUserId="user-fe"
+        members={mockMembers}
+      />
+    );
+
+    // Initial state: no unread badge
+    expect(screen.queryByText(/Baru/i)).not.toBeInTheDocument();
+
+    // Verify SSE was established
+    expect(MockEventSource.instances.length).toBe(1);
+
+    // Another user ('user-qa') posts a comment on 'sub-fe-1'
+    const newCommentPayload = {
+      taskId: 'sub-fe-1',
+      comment: {
+        id: 'comm-live-1',
+        taskId: 'sub-fe-1',
+        authorId: 'user-qa',
+        body: 'Halo Mas Budi, mohon cek API endpoint response nya ya.',
+        createdAt: new Date().toISOString(),
+      },
+      authorId: 'user-qa',
+      mentionedUserIds: [],
+    };
+
+    // Simulate incoming SSE event
+    act(() => {
+      MockEventSource.instances[0].emit('discussion:comment_created', newCommentPayload);
+    });
+
+    // The subtask row should now display the animated unread badge: "+1 Baru"
+    expect(await screen.findByText(/\+1 Baru/i)).toBeInTheDocument();
   });
 });

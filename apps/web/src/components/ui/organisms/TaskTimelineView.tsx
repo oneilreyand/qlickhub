@@ -11,6 +11,9 @@ import {
   Code2,
   Layers,
   Bug,
+  Maximize2,
+  Minimize2,
+  ChevronsUpDown,
 } from 'lucide-react';
 import type { Task, FolderTreeNode, DeliveryArea } from '@qlick/contracts';
 import { Button } from '../atoms/Button';
@@ -32,7 +35,10 @@ interface TaskTimelineViewProps {
   isLoading: boolean;
   selectedTaskId?: string | null;
   onSelect: (task: Task) => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
+
 
 function parseDate(dateStr?: string | null): Date | null {
   if (!dateStr) return null;
@@ -99,7 +105,7 @@ function getDeliveryAreaBadge(area?: DeliveryArea | null) {
   switch (area) {
     case 'frontend':
       return (
-        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0">
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
           <Code2 className="h-2.5 w-2.5" /> FE
         </span>
       );
@@ -111,7 +117,7 @@ function getDeliveryAreaBadge(area?: DeliveryArea | null) {
       );
     case 'qa':
       return (
-        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-[#B1E743]/20 text-[#22201F] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
           <Bug className="h-2.5 w-2.5" /> QA
         </span>
       );
@@ -124,12 +130,15 @@ function getDeliveryAreaBadge(area?: DeliveryArea | null) {
   }
 }
 
+
 export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
   tasks,
   folders = [],
   isLoading,
   selectedTaskId,
   onSelect,
+  isExpanded = false,
+  onToggleExpand,
 }) => {
   const [scale, setScale] = useState<TimeScale>('week');
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -175,6 +184,61 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       }
     }
   };
+
+  const handleToggleExpandAll = async () => {
+    const tasksWithSubtasks = scheduledTasks.filter(
+      (t) => t.subtaskSummary && t.subtaskSummary.total > 0
+    );
+    const areAllTasksExpanded =
+      tasksWithSubtasks.length > 0 &&
+      tasksWithSubtasks.every((t) => expandedTaskIds.has(t.id));
+
+    if (areAllTasksExpanded) {
+      // Collapse all tasks
+      setExpandedTaskIds(new Set());
+    } else {
+      // Expand all folders
+      setCollapsedFolders(new Set());
+      // Expand all tasks with subtasks
+      const nextExpanded = new Set(tasksWithSubtasks.map((t) => t.id));
+      setExpandedTaskIds(nextExpanded);
+
+      // Fetch subtasks for any tasks not yet loaded
+      const toFetch = tasksWithSubtasks.filter((t) => !taskSubtasksMap.has(t.id));
+      if (toFetch.length > 0) {
+        setLoadingSubtasksMap((prev) => {
+          const next = new Map(prev);
+          for (const t of toFetch) next.set(t.id, true);
+          return next;
+        });
+        try {
+          const results = await Promise.all(
+            toFetch.map(async (t) => {
+              const res = await taskService.listSubtasks(t.workspaceId, t.id);
+              const subList = res?.tasks || (Array.isArray(res) ? res : []);
+              return { id: t.id, subtasks: subList };
+            })
+          );
+          setTaskSubtasksMap((prev) => {
+            const next = new Map(prev);
+            for (const r of results) {
+              next.set(r.id, r.subtasks);
+            }
+            return next;
+          });
+        } catch (err) {
+          console.error('Failed to load subtasks during Expand All', err);
+        } finally {
+          setLoadingSubtasksMap((prev) => {
+            const next = new Map(prev);
+            for (const t of toFetch) next.delete(t.id);
+            return next;
+          });
+        }
+      }
+    }
+  };
+
 
   // Separate tasks with dates vs unscheduled tasks
   const { scheduledTasks, unscheduledTasks } = useMemo(() => {
@@ -399,16 +463,16 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     }
     switch (task.status) {
       case 'done':
-        return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs ring-1 ring-emerald-700/40';
+        return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs ring-1 ring-[#9ed434]/40';
       case 'in_review':
         return 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs ring-1 ring-amber-600/40';
       case 'in_progress':
-        return 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs ring-1 ring-indigo-700/40';
+        return 'bg-[#22201F] hover:bg-stone-800 text-white shadow-xs dark:bg-stone-700 dark:hover:bg-stone-600';
       case 'canceled':
         return 'bg-stone-400 hover:bg-stone-500 text-stone-900 line-through opacity-70';
       case 'todo':
       default:
-        return 'bg-stone-600 hover:bg-stone-700 text-white shadow-xs dark:bg-stone-700 dark:hover:bg-stone-600';
+        return 'bg-stone-500 hover:bg-stone-600 text-white shadow-xs dark:bg-stone-700 dark:hover:bg-stone-600';
     }
   };
 
@@ -419,22 +483,25 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       return 'bg-rose-500 hover:bg-rose-600 text-white shadow-xs ring-1 ring-rose-600/40';
     }
     if (health.status === 'completed') {
-      return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs ring-1 ring-emerald-700/40';
+      return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs ring-1 ring-[#9ed434]/40';
     }
     if (health.status === 'at_risk') {
       return 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs ring-1 ring-amber-600/40';
     }
     switch (st.deliveryArea) {
       case 'frontend':
-        return 'bg-sky-600 hover:bg-sky-700 text-white shadow-xs';
+      case 'mobile':
+      case 'fullstack':
+        return 'bg-[#22201F] hover:bg-stone-800 text-white shadow-xs dark:bg-stone-700';
       case 'backend':
         return 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs';
       case 'qa':
-        return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
+        return 'bg-[#B1E743] hover:bg-[#9ed434] text-[#22201F] shadow-xs';
       default:
         return 'bg-stone-500 hover:bg-stone-600 text-white shadow-xs';
     }
   };
+
 
   if (isLoading) {
     return (
@@ -483,7 +550,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       {/* Timeline Controls Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-stone-50/70 dark:bg-stone-900/60 p-3 rounded-2xl border border-stone-200/80 dark:border-stone-800">
         {/* Scale Zoom Switcher */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs font-bold text-stone-500 dark:text-stone-400 mr-1">Time Scale:</span>
           {(['day', 'week', 'month'] as TimeScale[]).map((s) => (
             <button
@@ -504,34 +571,82 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
           ))}
         </div>
 
-        {/* Date Window Navigation */}
-        <div className="flex items-center gap-2">
+        {/* Date Window Navigation & Full Width / Expand All Controls */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDateOffset((prev) => prev - 1)}
+              aria-label="Previous time frame"
+              leftIcon={<ChevronLeft className="h-3.5 w-3.5" />}
+            >
+              Prev
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDateOffset(0)}
+              aria-label="Jump to Today"
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDateOffset((prev) => prev + 1)}
+              aria-label="Next time frame"
+              rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
+            >
+              Next
+            </Button>
+          </div>
+
+          <div className="h-4 w-px bg-stone-200 dark:bg-stone-700 hidden sm:block" />
+
+          {/* Expand/Collapse All Subtasks Button */}
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setDateOffset((prev) => prev - 1)}
-            aria-label="Previous time frame"
-            leftIcon={<ChevronLeft className="h-3.5 w-3.5" />}
+            onClick={() => void handleToggleExpandAll()}
+            aria-label="Expand or collapse all subtask streams"
+            leftIcon={<ChevronsUpDown className="h-3.5 w-3.5 text-indigo-500" />}
+            title="Toggle expand/collapse all role subtasks in timeline"
           >
-            Prev
+            <span className="hidden sm:inline">
+              {expandedTaskIds.size > 0 ? 'Collapse Subtasks' : 'Expand All Subtasks'}
+            </span>
+            <span className="sm:hidden">
+              {expandedTaskIds.size > 0 ? 'Collapse' : 'Expand'}
+            </span>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setDateOffset(0)}
-            aria-label="Jump to Today"
-          >
-            Today
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setDateOffset((prev) => prev + 1)}
-            aria-label="Next time frame"
-            rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
-          >
-            Next
-          </Button>
+
+          {/* Full Width Mode Button */}
+          {onToggleExpand && (
+            <Button
+              variant={isExpanded ? 'primary' : 'outline'}
+              size="sm"
+              onClick={onToggleExpand}
+              aria-label={isExpanded ? 'Exit full width timeline' : 'Expand full width timeline'}
+              leftIcon={
+                isExpanded ? (
+                  <Minimize2 className="h-3.5 w-3.5" />
+                ) : (
+                  <Maximize2 className="h-3.5 w-3.5" />
+                )
+              }
+              title={
+                isExpanded
+                  ? 'Collapse timeline to standard width'
+                  : 'Expand timeline to full width (hide folders sidebar)'
+              }
+            >
+              <span className="hidden sm:inline">
+                {isExpanded ? 'Standard Width' : 'Full Width'}
+              </span>
+              <span className="sm:hidden">{isExpanded ? 'Standard' : 'Full'}</span>
+            </Button>
+          )}
         </div>
       </div>
 

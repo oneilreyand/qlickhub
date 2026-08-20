@@ -10,6 +10,7 @@ import {
 } from '../store/workspaceSlice';
 import { AssignableWorkspaceRole } from '@qlick/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
+import { selectCurrentUserRole } from '../store/authSlice';
 import { authService } from '../lib/api/authService';
 import { Building2 } from 'lucide-react';
 import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
@@ -23,6 +24,7 @@ import { AdminResetPasswordModal } from '../components/ui/organisms/AdminResetPa
 export const WorkspaceSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { workspaces, activeWorkspaceId, members, isMembersLoading } = useAppSelector((state) => state.workspace);
+  const currentUserRole = useAppSelector(selectCurrentUserRole);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
 
@@ -58,7 +60,8 @@ export const WorkspaceSettingsPage: React.FC = () => {
     }
   }, [activeWorkspace?.id, dispatch]);
 
-  const userRole = activeWorkspace?.role || activeWorkspace?.myRole;
+  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || currentUserRole || '').toLowerCase();
+  const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
   const canManageMembers = userRole === 'owner' || userRole === 'admin';
 
   const handleToggleQaPolicy = async (newValue: boolean) => {
@@ -208,11 +211,13 @@ export const WorkspaceSettingsPage: React.FC = () => {
     return <EmptyWorkspaceOnboarding />;
   }
 
-  // Access restriction guard for non-admins
-  if (!canManageMembers) {
+  // Access restriction guard for users other than owner, admin, po
+  if (!canAccessSettings) {
     return (
       <AccessRestricted
         workspaceName={activeWorkspace.name}
+        title="Workspace Settings Access Restricted"
+        description={`Hanya Workspace Owner, Admin, dan Product Owner (PO) yang dapat mengakses Workspace Settings untuk "${activeWorkspace.name}".`}
         actionHref="/work"
         actionLabel="Return to Work Hub"
       />

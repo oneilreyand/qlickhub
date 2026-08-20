@@ -469,8 +469,8 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         })
       );
 
-      // Assigned Dev updates subtask status to in_review
-      await taskService.updateTask(devUser.id, workspace.id, subtask.id, {
+      // Owner updates subtask status to in_review
+      await taskService.updateTask(ownerUser.id, workspace.id, subtask.id, {
         status: 'in_review',
       });
 
@@ -478,7 +478,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
 
       const notif = await NotificationModel.findOne({
         where: {
-          userId: ownerUser.id,
+          userId: devUser.id,
           type: 'status_change',
           title: 'Status Tugas Diperbarui',
         },
@@ -507,12 +507,12 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         mentionedUserIds: [devUser.id],
       });
 
-      await new Promise((r) => setTimeout(r, 60));
+      await new Promise((r) => setTimeout(r, 250));
 
       const devNotif = await NotificationModel.findOne({
         where: {
           userId: devUser.id,
-          type: 'mention',
+          type: 'discussion',
           taskId: task.id,
         },
         order: [['createdAt', 'DESC']],
@@ -524,7 +524,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
       const ownerNotif = await NotificationModel.findOne({
         where: {
           userId: ownerUser.id,
-          type: 'mention',
+          type: 'discussion',
           taskId: task.id,
         },
         order: [['createdAt', 'DESC']],

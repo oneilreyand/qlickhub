@@ -46,6 +46,8 @@ const mockTasks: Task[] = [
       areas: {
         frontend: { total: 2, completed: 1 },
         backend: { total: 1, completed: 0 },
+        mobile: { total: 0, completed: 0 },
+        fullstack: { total: 0, completed: 0 },
         qa: { total: 0, completed: 0 },
       },
     },
@@ -191,4 +193,42 @@ describe('TaskTimelineView', () => {
       })
     );
   });
+
+  it('triggers onToggleExpand when Full Width button is clicked', () => {
+    const handleToggleExpand = vi.fn();
+    render(
+      <TaskTimelineView
+        tasks={mockTasks}
+        folders={mockFolders}
+        isLoading={false}
+        onSelect={vi.fn()}
+        isExpanded={false}
+        onToggleExpand={handleToggleExpand}
+      />
+    );
+
+    const fullWidthBtn = screen.getByRole('button', { name: /expand full width timeline/i });
+    expect(fullWidthBtn).toBeInTheDocument();
+    fireEvent.click(fullWidthBtn);
+    expect(handleToggleExpand).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles expand all subtasks when Expand All Subtasks button is clicked', async () => {
+    render(
+      <TaskTimelineView
+        tasks={mockTasks}
+        folders={mockFolders}
+        isLoading={false}
+        onSelect={vi.fn()}
+      />
+    );
+
+    const expandAllBtn = screen.getByRole('button', { name: /expand or collapse all subtask streams/i });
+    expect(expandAllBtn).toBeInTheDocument();
+    expect(screen.getByText('Expand All Subtasks')).toBeInTheDocument();
+
+    fireEvent.click(expandAllBtn);
+    expect(screen.getByText('Collapse Subtasks')).toBeInTheDocument();
+  });
 });
+

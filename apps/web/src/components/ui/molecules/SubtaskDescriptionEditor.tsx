@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { Edit2, Check, X, Sparkles, FileText } from 'lucide-react';
+import {
+  Edit2,
+  Check,
+  X,
+  Sparkles,
+  FileText,
+  Image as ImageIcon,
+  Video as VideoIcon,
+} from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { FormattedText } from '../atoms/FormattedText';
 import { Textarea } from '../atoms/Textarea';
@@ -111,6 +119,32 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
                 + BE Route Specs
               </button>
             )}
+            {deliveryArea === 'mobile' && (
+              <button
+                type="button"
+                onClick={() =>
+                  insertTemplate(
+                    `### Mobile Specifications\n- Target Platform: iOS 17+ / Android 14+\n- Permissions: Camera / Biometrics / Notifications\n- Network: Offline-first queue with auto-sync`
+                  )
+                }
+                className="text-[10px] px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-medium transition-colors"
+              >
+                + Mobile Specs
+              </button>
+            )}
+            {deliveryArea === 'fullstack' && (
+              <button
+                type="button"
+                onClick={() =>
+                  insertTemplate(
+                    `### Fullstack Implementation Specs\n- [ ] 1. Backend Route & DB Migration\n- [ ] 2. Contracts schema & validation\n- [ ] 3. Frontend UI Component & Redux Integration\n- [ ] 4. E2E verification`
+                  )
+                }
+                className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 font-medium transition-colors"
+              >
+                + Fullstack Flow
+              </button>
+            )}
             {deliveryArea === 'qa' && (
               <button
                 type="button"
@@ -124,6 +158,30 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
                 + QA Scope
               </button>
             )}
+            <button
+              type="button"
+              onClick={() =>
+                insertTemplate(
+                  `![Screenshot / Image Attachment](https://example.com/screenshot.png)`
+                )
+              }
+              className="text-[10px] px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium transition-colors flex items-center gap-1"
+            >
+              <ImageIcon className="h-3 w-3 text-indigo-500" />
+              <span>+ Image Link</span>
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                insertTemplate(
+                  `https://cdn.example.com/demo.mp4`
+                )
+              }
+              className="text-[10px] px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium transition-colors flex items-center gap-1"
+            >
+              <VideoIcon className="h-3 w-3 text-red-500" />
+              <span>+ Video Link</span>
+            </button>
           </div>
 
           <Textarea
