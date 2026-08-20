@@ -1,9 +1,20 @@
 # ADR-001: Core Domain, RBAC, Traceability, and Evidence Storage Decisions
 
-- **Status:** Approved / Active
+- **Status:** Proposed / Awaiting Owner Approval
 - **Date:** 2026-08-21
 - **Authors:** AGY / Antigravity Agent
 - **Supersedes/Reconciles:** `docs/plans/QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md`, `docs/plans/TASK_SUBTASK_COLLABORATION_PLAN.md`, Migration 48 conflict.
+
+---
+
+## Open Decisions Requiring Owner Confirmation
+
+The following proposals are submitted for explicit owner approval before Phase 1 feature implementation:
+
+1. **Task Creation Delegations**: Whether `task_creation_permissions` may be granted to Developer roles only, or also to QA members when special task creation needs arise.
+2. **QA Test Case Linking**: Whether QA members may link Test Cases directly to Requirements and Tasks across workspaces where they are members.
+3. **Subtask Lifecycle Transition Matrix**: Confirmation of the mandatory `todo -> in_progress -> in_review -> changes_requested/done` state machine and prevention of unassigned QA execution.
+4. **Attachment & Evidence Storage Final Direction**: Confirmation of permanent retention of `task_attachments` with authenticated workspace-scoped storage proxy vs alternative evidence retention plans.
 
 ---
 
