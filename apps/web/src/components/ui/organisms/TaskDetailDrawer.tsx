@@ -2286,8 +2286,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             >
               <option value="test_plan">🧪 Test Plan</option>
               <option value="test_strategy">📋 Test Strategy</option>
-              <option value="test_cases">🔍 Test Scenarios</option>
-              <option value="qa_signoff">✅ QA Sign-off</option>
+              <option value="product_brief">📑 Product Brief</option>
+              <option value="release_report">📊 Release Report</option>
+              <option value="qa_guide">📘 QA Guide</option>
             </Select>
           </div>
 

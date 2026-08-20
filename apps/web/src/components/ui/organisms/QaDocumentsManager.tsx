@@ -46,15 +46,20 @@ const docTypeMeta: Record<string, { label: string; icon: string; badgeClass: str
     icon: '📋',
     badgeClass: 'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
   },
-  test_cases: {
-    label: 'Test Scenarios',
-    icon: '🔍',
-    badgeClass: 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200 dark:border-sky-800',
+  product_brief: {
+    label: 'Product Brief',
+    icon: '📑',
+    badgeClass: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800',
   },
-  qa_signoff: {
-    label: 'QA Sign-Off',
-    icon: '✅',
+  release_report: {
+    label: 'Release Report',
+    icon: '📊',
     badgeClass: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
+  },
+  qa_guide: {
+    label: 'QA Guide',
+    icon: '📘',
+    badgeClass: 'bg-teal-100 text-teal-800 dark:bg-teal-950/70 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
   },
   default: {
     label: 'QA Document',
@@ -288,8 +293,9 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               <option value="all">All Types</option>
               <option value="test_plan">🧪 Test Plan</option>
               <option value="test_strategy">📋 Test Strategy</option>
-              <option value="test_cases">🔍 Scenarios</option>
-              <option value="qa_signoff">✅ QA Sign-off</option>
+              <option value="product_brief">📑 Product Brief</option>
+              <option value="release_report">📊 Release Report</option>
+              <option value="qa_guide">📘 QA Guide</option>
             </Select>
           </div>
 
@@ -488,8 +494,9 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               >
                 <option value="test_plan">🧪 Test Plan</option>
                 <option value="test_strategy">📋 Test Strategy</option>
-                <option value="test_cases">🔍 Test Scenarios</option>
-                <option value="qa_signoff">✅ QA Sign-off</option>
+                <option value="product_brief">📑 Product Brief</option>
+                <option value="release_report">📊 Release Report</option>
+                <option value="qa_guide">📘 QA Guide</option>
               </Select>
             </div>
 

@@ -60,13 +60,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [comments, setComments] = useState<TaskComment[]>([]);
 
-  // Test Checklist state
-  const [scenarios, setScenarios] = useState<QaTestScenario[]>([
-    { id: '1', title: 'Verify UI components match Figma design specs & dark mode', status: 'pending' },
-    { id: '2', title: 'Verify core functional workflow & API integration', status: 'pending' },
-    { id: '3', title: 'Validate edge cases, invalid inputs & error handling', status: 'pending' },
-    { id: '4', title: 'Verify responsive layout on desktop, tablet, and mobile', status: 'pending' },
-  ]);
+  // Test Checklist state (persisted test cases from backend)
+  const [scenarios, setScenarios] = useState<QaTestScenario[]>([]);
   const [newScenarioTitle, setNewScenarioTitle] = useState('');
 
   // Bug Report Modal state
@@ -183,7 +178,9 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const handleApproveSignOff = async () => {
     try {
       setIsSubmittingSignOff(true);
-      const signOffText = `✅ **[QA SIGN-OFF CERTIFICATION]**: Verified & Passed (${passedScenarios}/${totalScenarios} test scenarios passed).\n${signOffRemarks.trim() ? `\nRemarks: ${signOffRemarks.trim()}` : ''}`;
+      const signOffText = totalScenarios > 0
+        ? `✅ **[QA SIGN-OFF CERTIFICATION]**: Verified & Passed (${passedScenarios}/${totalScenarios} test scenarios passed).\n${signOffRemarks.trim() ? `\nRemarks: ${signOffRemarks.trim()}` : ''}`
+        : `✅ **[QA SIGN-OFF CERTIFICATION]**: Verified & Approved by QA.\n${signOffRemarks.trim() ? `\nRemarks: ${signOffRemarks.trim()}` : ''}`;
 
       await dispatch(
         completeTask({
@@ -392,71 +389,83 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
         {/* Test Scenarios List */}
         <div className="space-y-2 pt-2">
-          {scenarios.map((scen) => {
-            return (
-              <div
-                key={scen.id}
-                className="p-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all hover:border-stone-300 dark:hover:border-stone-700"
-              >
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className="mt-0.5">
-                    {scen.status === 'passed' && <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />}
-                    {scen.status === 'failed' && <XCircle className="h-4 w-4 text-rose-500 shrink-0" />}
-                    {scen.status === 'blocked' && <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />}
-                    {scen.status === 'pending' && <Clock className="h-4 w-4 text-stone-300 dark:text-stone-600 shrink-0" />}
+          {scenarios.length === 0 ? (
+            <div className="p-4 rounded-xl border border-dashed border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/40 text-center space-y-1">
+              <CheckSquare className="h-6 w-6 text-stone-300 dark:text-stone-600 mx-auto" />
+              <p className="text-xs font-semibold text-stone-600 dark:text-stone-400">
+                No formal test cases linked yet
+              </p>
+              <p className="text-[11px] text-stone-400 dark:text-stone-500">
+                Persisted test case repository and automated execution runs will be introduced in Phase 3/4. You may add ad-hoc manual verification items below.
+              </p>
+            </div>
+          ) : (
+            scenarios.map((scen) => {
+              return (
+                <div
+                  key={scen.id}
+                  className="p-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all hover:border-stone-300 dark:hover:border-stone-700"
+                >
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="mt-0.5">
+                      {scen.status === 'passed' && <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />}
+                      {scen.status === 'failed' && <XCircle className="h-4 w-4 text-rose-500 shrink-0" />}
+                      {scen.status === 'blocked' && <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />}
+                      {scen.status === 'pending' && <Clock className="h-4 w-4 text-stone-300 dark:text-stone-600 shrink-0" />}
+                    </div>
+                    <span className={`text-xs sm:text-sm font-semibold break-words ${scen.status === 'passed' ? 'text-stone-800 dark:text-stone-200' : scen.status === 'failed' ? 'text-rose-700 dark:text-rose-300' : 'text-stone-700 dark:text-stone-300'}`}>
+                      {scen.title}
+                    </span>
                   </div>
-                  <span className={`text-xs sm:text-sm font-semibold break-words ${scen.status === 'passed' ? 'text-stone-800 dark:text-stone-200' : scen.status === 'failed' ? 'text-rose-700 dark:text-rose-300' : 'text-stone-700 dark:text-stone-300'}`}>
-                    {scen.title}
-                  </span>
-                </div>
 
-                {/* Status Toggle Buttons */}
-                <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleScenarioStatus(scen.id, 'passed')}
-                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
-                      scen.status === 'passed'
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-stone-100 text-stone-600 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-emerald-950 dark:hover:text-emerald-300'
-                    }`}
-                  >
-                    Pass
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleScenarioStatus(scen.id, 'failed')}
-                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
-                      scen.status === 'failed'
-                        ? 'bg-rose-600 text-white shadow-xs'
-                        : 'bg-stone-100 text-stone-600 hover:bg-rose-100 hover:text-rose-800 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-rose-950 dark:hover:text-rose-300'
-                    }`}
-                  >
-                    Fail
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleScenarioStatus(scen.id, 'blocked')}
-                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
-                      scen.status === 'blocked'
-                        ? 'bg-amber-600 text-white shadow-xs'
-                        : 'bg-stone-100 text-stone-600 hover:bg-amber-100 hover:text-amber-800 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-amber-950 dark:hover:text-amber-300'
-                    }`}
-                  >
-                    Block
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteScenario(scen.id)}
-                    className="p-1 text-stone-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors ml-1"
-                    title="Delete scenario"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  {/* Status Toggle Buttons */}
+                  <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleScenarioStatus(scen.id, 'passed')}
+                      className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                        scen.status === 'passed'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-stone-100 text-stone-600 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-emerald-950 dark:hover:text-emerald-300'
+                      }`}
+                    >
+                      Pass
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleScenarioStatus(scen.id, 'failed')}
+                      className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                        scen.status === 'failed'
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : 'bg-stone-100 text-stone-600 hover:bg-rose-100 hover:text-rose-800 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-rose-950 dark:hover:text-rose-300'
+                      }`}
+                    >
+                      Fail
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleScenarioStatus(scen.id, 'blocked')}
+                      className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                        scen.status === 'blocked'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'bg-stone-100 text-stone-600 hover:bg-amber-100 hover:text-amber-800 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-amber-950 dark:hover:text-amber-300'
+                      }`}
+                    >
+                      Block
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteScenario(scen.id)}
+                      className="p-1 text-stone-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors ml-1"
+                      title="Delete scenario"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         {/* Add Scenario Form */}

@@ -374,6 +374,20 @@ describe('Contracts Validation Suite', () => {
       });
       assert.strictEqual(doc.currentVersion, 1);
 
+      // Explicitly check QaDocType enum contracts
+      assert.throws(() => CreateQaDocumentSchema.parse({
+        workspaceId: validUuid,
+        title: 'Test Cases Doc',
+        docType: 'test_cases',
+        contentMarkdown: '# Cases',
+      }));
+      assert.throws(() => CreateQaDocumentSchema.parse({
+        workspaceId: validUuid,
+        title: 'Signoff Doc',
+        docType: 'qa_signoff',
+        contentMarkdown: '# Signoff',
+      }));
+
       const ver = QaDocumentVersionSchema.parse({
         id: validUuid,
         workspaceId: validUuid,
