@@ -3,6 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Task, FolderTreeNode } from '@qlick/contracts';
 import { TaskTimelineView } from '../TaskTimelineView';
 
+vi.mock('../../../../lib/api/taskService', () => ({
+  taskService: {
+    listSubtasks: vi.fn().mockResolvedValue({ tasks: [] }),
+  },
+}));
+
 const mockFolders: FolderTreeNode[] = [
   {
     id: 'f-1',
@@ -231,4 +237,3 @@ describe('TaskTimelineView', () => {
     expect(screen.getByText('Collapse Subtasks')).toBeInTheDocument();
   });
 });
-

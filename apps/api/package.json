@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:test": "NODE_ENV=test sequelize-cli db:migrate --env test",
+    "db:verify:clean-migrations": "NODE_ENV=test node scripts/verifyCleanMigrations.cjs",
+    "db:verify:attachment-recovery": "NODE_ENV=test node scripts/verifyAttachmentRecovery.cjs",
     "db:seed:full": "tsx scripts/seedFullTestData.ts",
     "db:reset:admin": "tsx scripts/resetAndSeedAdmin.ts",
     "db:clear:non-users": "tsx scripts/clearAllExceptUsers.ts",

@@ -194,7 +194,12 @@ describe("LIVE E2E DEMONSTRATION SCENARIO (1 PO, 1 DEV, 1 QA)", () => {
     assert.strictEqual(appFE.status, "done");
     assert.strictEqual(appFE.reviewedBy, qaUser.id);
 
-    // Sekarang subtask QA dapat diselesaikan oleh QA
+    // Sekarang QA menjalankan lifecycle eksekusi yang valid sebelum menyelesaikan subtask.
+    const startedQA = await taskService.updateTask(qaUser.id, workspace.id, subtaskQA.id, {
+      status: "in_progress",
+    });
+    assert.strictEqual(startedQA.status, "in_progress");
+
     const appQA = await taskService.updateTask(qaUser.id, workspace.id, subtaskQA.id, { status: "done" });
     console.log(`   ✅ Subtask QA berhasil diverifikasi: ${appQA.status.toUpperCase()}`);
     assert.strictEqual(appQA.status, "done");

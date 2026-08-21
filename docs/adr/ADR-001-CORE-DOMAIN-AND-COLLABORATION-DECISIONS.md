@@ -96,7 +96,8 @@ Allows high-level progress tracking at the Requirement/Story level for leadershi
 
 ### Decision:
 - **Retention of `task_attachments`**:
-  - Migration 48 (`20260819000048-drop-task-attachments.cjs`) is **CANCELED / DEPRECATED** and will **NOT** be executed.
+  - Migration 48 (`20260819000048-drop-task-attachments.cjs`) is **CANCELED / DEPRECATED** and retained as a no-op for migration-history compatibility.
+  - Additive migration 49 (`20260821000049-recover-task-attachments.cjs`) repairs environments that already recorded the old migration 48; changing migration 48 itself would not rerun it.
   - The `task_attachments` table is retained and will be extended for secure Workspace-scoped attachment metadata.
 - **Secure File Storage Model**:
   - Binary files and test evidence are stored through an authenticated server-side storage connector (e.g. Google Drive API / Cloud Storage).
@@ -119,7 +120,7 @@ Complies with SAIF security guidelines and enterprise data loss prevention polic
 | **Admin** | Yes | Yes | Yes | Yes (Independent) | Yes | Yes |
 | **PO** | Yes | Yes | Yes | Yes (Independent) | Yes | Yes |
 | **Dev (FE/BE/Mob/FS)** | With Permission | No | Assigned Only (`in_review`) | No | Read-Only | Read-Only |
-| **QA** | With Permission | No | QA Area Only | Yes (`done`/`changes_req`) | Read-Only | Yes |
+| **QA** | Pending Owner decision | No | QA Area Only | Yes (`done`/`changes_req`) | Read-Only | Pending Owner decision |
 
 ---
 

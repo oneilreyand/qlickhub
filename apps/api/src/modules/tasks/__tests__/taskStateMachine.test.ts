@@ -134,6 +134,26 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
     assert.strictEqual(inReview.status, 'in_review');
   });
 
+  test('PostgreSQL persists and returns Mobile and Fullstack subtasks', async () => {
+    for (const deliveryArea of ['mobile', 'fullstack'] as const) {
+      const created = await taskService.createTask(
+        poUser.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspace.id,
+          parentTaskId: parentTask.id,
+          deliveryArea,
+          title: `${deliveryArea} delivery persistence`,
+          assigneeId: feDev.id,
+          status: 'todo',
+        })
+      );
+
+      const persisted = await taskService.getTask(workspace.id, created.id, poUser.id, 'po');
+      assert.strictEqual(persisted.deliveryArea, deliveryArea);
+      assert.strictEqual(persisted.parentTaskId, parentTask.id);
+    }
+  });
+
   test('P0 Gate: Assignee cannot self-approve subtask (in_review -> done rejected)', async () => {
     const subtask = await taskService.createTask(
       poUser.id,
@@ -253,6 +273,25 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
       }
+    );
+  });
+
+  test('Assigned QA executor cannot skip directly from todo to done', async () => {
+    const qaSubtask = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        parentTaskId: parentTask.id,
+        deliveryArea: 'qa',
+        title: 'QA lifecycle guard',
+        assigneeId: qaUser.id,
+        status: 'todo',
+      })
+    );
+
+    await assert.rejects(
+      () => taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, { status: 'done' }),
+      /Invalid status transition for QA executor from "todo" to "done"/
     );
   });
 });

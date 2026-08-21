@@ -181,7 +181,7 @@ export function assertCanMutateTask(
       } else if (isAssignedQaExecutor) {
         // QA executing own QA subtask
         const validQaExecutionTransitions: Record<string, TaskStatus[]> = {
-          todo: ['in_progress', 'done'],
+          todo: ['in_progress'],
           in_progress: ['done'],
           changes_requested: ['in_progress'],
         };

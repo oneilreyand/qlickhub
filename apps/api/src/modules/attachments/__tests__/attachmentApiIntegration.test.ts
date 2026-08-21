@@ -1,181 +1,227 @@
 import assert from 'node:assert';
-import { test, describe, before, after } from 'node:test';
-import { sequelize } from '../../../db/sequelize.js';
+import { after, before, describe, test } from 'node:test';
+import { Server } from 'node:http';
+import { createApp } from '../../../app.js';
 import {
-  UserModel,
-  WorkspaceModel,
-  WorkspaceMemberModel,
-  TaskModel,
-  TaskAttachmentModel,
   TaskActivityModel,
+  TaskAttachmentModel,
+  TaskModel,
+  UserModel,
+  WorkspaceMemberModel,
+  WorkspaceModel,
 } from '../../../db/models/index.js';
+import { accessTokenCookieName, signToken } from '../../auth/jwt.js';
+import { sessionManager } from '../../auth/sessionManager.js';
+import { storageService } from '../../../services/storageService.js';
 
-describe('Attachment API & Evidence Storage Integration Tests', () => {
-  let userA: UserModel;
-  let userB: UserModel;
-  let workspace1: WorkspaceModel;
-  let workspace2: WorkspaceModel;
-  let task1: TaskModel;
+describe('Attachment HTTP API & Evidence Storage Integration Tests', () => {
+  let appServer: Server;
+  let baseUrl: string;
+  let owner: UserModel;
+  let outsider: UserModel;
+  let workspace: WorkspaceModel;
+  let otherWorkspace: WorkspaceModel;
+  let task: TaskModel;
+  let ownerCookie: string;
+  let outsiderCookie: string;
+  let attachmentId: string;
 
   before(async () => {
-    await sequelize.authenticate();
-
-    // Create test users
-    userA = await UserModel.create({
-      email: `owner_${Date.now()}@example.com`,
-      passwordHash: 'hashed_pw',
-      name: 'Owner User',
+    const app = createApp();
+    await new Promise<void>((resolve) => {
+      appServer = app.listen(0, () => {
+        const address = appServer.address();
+        if (typeof address === 'object' && address) {
+          baseUrl = `http://localhost:${address.port}/v1`;
+        }
+        resolve();
+      });
     });
 
-    userB = await UserModel.create({
-      email: `other_${Date.now()}@example.com`,
-      passwordHash: 'hashed_pw',
-      name: 'Other Workspace User',
+    const timestamp = Date.now();
+    owner = await UserModel.create({
+      email: `attachment-owner-${timestamp}@example.com`,
+      passwordHash: 'integration-test-password-hash',
+      name: 'Attachment Owner',
+      role: 'admin',
+    });
+    outsider = await UserModel.create({
+      email: `attachment-outsider-${timestamp}@example.com`,
+      passwordHash: 'integration-test-password-hash',
+      name: 'Other Workspace Owner',
+      role: 'admin',
     });
 
-    // Create workspaces
-    workspace1 = await WorkspaceModel.create({
-      name: 'Workspace One',
-      slug: `workspace-one-${Date.now()}`,
-      ownerId: userA.id,
+    workspace = await WorkspaceModel.create({
+      name: 'Attachment API Workspace',
+      slug: `attachment-api-${timestamp}`,
+      ownerId: owner.id,
+    });
+    otherWorkspace = await WorkspaceModel.create({
+      name: 'Other Attachment Workspace',
+      slug: `attachment-other-${timestamp}`,
+      ownerId: outsider.id,
     });
 
-    workspace2 = await WorkspaceModel.create({
-      name: 'Workspace Two',
-      slug: `workspace-two-${Date.now()}`,
-      ownerId: userB.id,
-    });
-
-    // Membership
     await WorkspaceMemberModel.create({
-      workspaceId: workspace1.id,
-      userId: userA.id,
+      workspaceId: workspace.id,
+      userId: owner.id,
+      role: 'owner',
+    });
+    await WorkspaceMemberModel.create({
+      workspaceId: otherWorkspace.id,
+      userId: outsider.id,
       role: 'owner',
     });
 
-    await WorkspaceMemberModel.create({
-      workspaceId: workspace2.id,
-      userId: userB.id,
-      role: 'owner',
-    });
-
-    // Task
-    task1 = await TaskModel.create({
-      workspaceId: workspace1.id,
-      title: 'Task with Evidence',
+    task = await TaskModel.create({
+      workspaceId: workspace.id,
+      title: 'Task with persisted evidence',
       status: 'todo',
       priority: 'medium',
-      reporterId: userA.id,
+      reporterId: owner.id,
     });
+
+    const ownerSessionId = await sessionManager.createSession(
+      owner.id,
+      'AttachmentIntegrationTest',
+      '127.0.0.1'
+    );
+    ownerCookie = `${accessTokenCookieName}=${signToken({
+      userId: owner.id,
+      email: owner.email,
+      role: owner.role,
+      sessionId: ownerSessionId,
+    })}`;
+
+    const outsiderSessionId = await sessionManager.createSession(
+      outsider.id,
+      'AttachmentIntegrationTest',
+      '127.0.0.1'
+    );
+    outsiderCookie = `${accessTokenCookieName}=${signToken({
+      userId: outsider.id,
+      email: outsider.email,
+      role: outsider.role,
+      sessionId: outsiderSessionId,
+    })}`;
   });
 
   after(async () => {
-    // Cleanup test data
-    if (task1) await TaskAttachmentModel.destroy({ where: { taskId: task1.id } });
-    if (task1) await TaskActivityModel.destroy({ where: { taskId: task1.id } });
-    if (task1) await TaskModel.destroy({ where: { id: task1.id } });
-    if (workspace1) await WorkspaceModel.destroy({ where: { id: workspace1.id } });
-    if (workspace2) await WorkspaceModel.destroy({ where: { id: workspace2.id } });
-    if (userA) await UserModel.destroy({ where: { id: userA.id } });
-    if (userB) await UserModel.destroy({ where: { id: userB.id } });
+    if (appServer) {
+      await new Promise<void>((resolve) => appServer.close(() => resolve()));
+    }
+
+    const remainingAttachments = await TaskAttachmentModel.findAll({
+      where: { taskId: task.id },
+    });
+    for (const attachment of remainingAttachments) {
+      await storageService.deleteFile({
+        provider: attachment.storageProvider,
+        storageRef: attachment.storageRef,
+        providerFileId: attachment.providerFileId,
+      });
+    }
+
+    await TaskAttachmentModel.destroy({ where: { taskId: task.id } });
+    await TaskActivityModel.destroy({ where: { taskId: task.id } });
+    await TaskModel.destroy({ where: { id: task.id }, force: true });
+    await WorkspaceModel.destroy({
+      where: { id: [workspace.id, otherWorkspace.id] },
+      force: true,
+    });
+    await UserModel.destroy({ where: { id: [owner.id, outsider.id] }, force: true });
   });
 
-  test('Upload attachment directly creates record, saves file, and logs TaskActivity in transaction', async () => {
-    const fileContent = Buffer.from('FAKE_SCREENSHOT_BINARY_DATA');
+  test('rejects unauthenticated attachment reads at the HTTP boundary', async () => {
+    const response = await fetch(
+      `${baseUrl}/workspaces/${workspace.id}/tasks/${task.id}/attachments`
+    );
 
-    // Simulate upload via service directly for test consistency
-    const { attachmentService } = await import('../attachmentService.js');
-    const attachment = await attachmentService.uploadAttachment(
-      workspace1.id,
-      task1.id,
-      userA.id,
+    assert.strictEqual(response.status, 401);
+  });
+
+  test('uploads, persists, lists, and audits evidence through authenticated HTTP routes', async () => {
+    const fileContent = Buffer.from('PNG integration evidence bytes');
+    const uploadResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace.id}/tasks/${task.id}/attachments`,
       {
-        buffer: fileContent,
-        originalname: 'test_evidence.png',
-        mimetype: 'image/png',
-        size: fileContent.length,
-        category: 'product_media',
-        caption: 'Checkout confirmation reference',
+        method: 'POST',
+        headers: {
+          Cookie: ownerCookie,
+          'Content-Type': 'image/png',
+          'x-file-name': encodeURIComponent('checkout-evidence.png'),
+          'x-attachment-category': 'qa_evidence',
+          'x-attachment-caption': encodeURIComponent('Checkout confirmation'),
+        },
+        body: fileContent,
       }
     );
 
-    assert.strictEqual(attachment.fileName, 'test_evidence.png');
-    assert.strictEqual(attachment.mimeType, 'image/png');
-    assert.strictEqual(attachment.workspaceId, workspace1.id);
-    assert.strictEqual(attachment.taskId, task1.id);
-    assert.strictEqual(attachment.category, 'product_media');
-    assert.strictEqual(attachment.caption, 'Checkout confirmation reference');
-    assert.strictEqual(attachment.storageProvider, 'local');
+    assert.strictEqual(uploadResponse.status, 201);
+    const uploadBody = (await uploadResponse.json()) as {
+      attachment: { id: string; fileName: string; category: string };
+    };
+    attachmentId = uploadBody.attachment.id;
+    assert.strictEqual(uploadBody.attachment.fileName, 'checkout-evidence.png');
+    assert.strictEqual(uploadBody.attachment.category, 'qa_evidence');
 
-    // Verify TaskActivity audit log created
-    const activity = await TaskActivityModel.findOne({
-      where: { taskId: task1.id, action: 'attachment_created' },
-    });
-    assert.ok(activity);
-    assert.strictEqual(activity.actorId, userA.id);
-  });
-
-  test('List attachments returns persisted files for workspace members', async () => {
-    const { attachmentService } = await import('../attachmentService.js');
-    const list = await attachmentService.listTaskAttachments(workspace1.id, task1.id, userA.id);
-
-    assert.ok(list.length >= 1);
-    assert.strictEqual(list[0].fileName, 'test_evidence.png');
-  });
-
-  test('Rejects cross-workspace access to task attachments', async () => {
-    const { attachmentService } = await import('../attachmentService.js');
-    await assert.rejects(
-      async () => {
-        await attachmentService.listTaskAttachments(workspace1.id, task1.id, userB.id);
-      },
-      (err: Error) => err.message.includes('FORBIDDEN')
+    const listResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace.id}/tasks/${task.id}/attachments`,
+      { headers: { Cookie: ownerCookie } }
     );
+    assert.strictEqual(listResponse.status, 200);
+    const listBody = (await listResponse.json()) as {
+      attachments: Array<{ id: string; fileName: string }>;
+    };
+    assert.ok(listBody.attachments.some((item) => item.id === attachmentId));
+
+    const activityResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace.id}/tasks/${task.id}/activity`,
+      { headers: { Cookie: ownerCookie } }
+    );
+    assert.strictEqual(activityResponse.status, 200);
+    const activityBody = (await activityResponse.json()) as {
+      data: { activities: Array<{ action: string }> };
+    };
+    const activity = activityBody.data.activities;
+    assert.ok(activity.some((item) => item.action === 'attachment_created'));
   });
 
-  test('Download attachment streams stored evidence file', async () => {
-    const { attachmentService } = await import('../attachmentService.js');
-    const list = await attachmentService.listTaskAttachments(workspace1.id, task1.id, userA.id);
-    const attachmentId = list[0].id;
-
-    const download = await attachmentService.getAttachmentForDownload(
-      workspace1.id,
-      task1.id,
-      attachmentId,
-      userA.id
+  test('blocks cross-workspace attachment access through middleware', async () => {
+    const response = await fetch(
+      `${baseUrl}/workspaces/${workspace.id}/tasks/${task.id}/attachments`,
+      { headers: { Cookie: outsiderCookie } }
     );
 
-    assert.strictEqual(download.attachment.fileName, 'test_evidence.png');
-    const chunks: Buffer[] = [];
-    for await (const chunk of download.stream) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-    const streamedContent = Buffer.concat(chunks);
-    assert.deepStrictEqual(streamedContent, Buffer.from('FAKE_SCREENSHOT_BINARY_DATA'));
+    assert.strictEqual(response.status, 403);
   });
 
-  test('Delete attachment removes file record and logs attachment_deleted TaskActivity', async () => {
-    const { attachmentService } = await import('../attachmentService.js');
-    const list = await attachmentService.listTaskAttachments(workspace1.id, task1.id, userA.id);
-    const attachmentId = list[0].id;
-
-    const res = await attachmentService.deleteAttachment(
-      workspace1.id,
-      task1.id,
-      attachmentId,
-      userA.id
+  test('streams and deletes persisted evidence through authenticated HTTP routes', async () => {
+    const downloadResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace.id}/tasks/${task.id}/attachments/${attachmentId}/download`,
+      { headers: { Cookie: ownerCookie } }
     );
-    assert.strictEqual(res.success, true);
+    assert.strictEqual(downloadResponse.status, 200);
+    assert.strictEqual(downloadResponse.headers.get('content-type'), 'image/png');
+    assert.deepStrictEqual(
+      Buffer.from(await downloadResponse.arrayBuffer()),
+      Buffer.from('PNG integration evidence bytes')
+    );
 
-    // Verify deletion in DB
-    const count = await TaskAttachmentModel.count({ where: { id: attachmentId } });
-    assert.strictEqual(count, 0);
+    const deleteResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace.id}/tasks/${task.id}/attachments/${attachmentId}`,
+      { method: 'DELETE', headers: { Cookie: ownerCookie } }
+    );
+    assert.strictEqual(deleteResponse.status, 200);
 
-    // Verify activity event logged
-    const activity = await TaskActivityModel.findOne({
-      where: { taskId: task1.id, action: 'attachment_deleted' },
-    });
-    assert.ok(activity);
-    assert.strictEqual(activity.actorId, userA.id);
+    const listResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace.id}/tasks/${task.id}/attachments`,
+      { headers: { Cookie: ownerCookie } }
+    );
+    const listBody = (await listResponse.json()) as {
+      attachments: Array<{ id: string }>;
+    };
+    assert.ok(!listBody.attachments.some((item) => item.id === attachmentId));
   });
 });

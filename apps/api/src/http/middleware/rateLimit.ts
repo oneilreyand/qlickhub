@@ -1,7 +1,6 @@
-import { rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import type { RequestHandler } from 'express';
 import { env } from '../../config/env.js';
-import type { IncomingMessage } from 'node:http';
 
 const rateLimitMessage = {
   code: 'RATE_LIMITED',
@@ -38,14 +37,13 @@ export const notificationRateLimiter = rateLimit({
   skip: () => env.NODE_ENV === 'test',
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  keyGenerator: (req: IncomingMessage) => {
+  keyGenerator: (req) => {
     // Use authenticated userId for per-user rate limiting; fallback to IP
-    const user = (req as any).user;
-    return user?.userId || (req as any).ip || 'unknown';
+    const user = (req as typeof req & { user?: { userId?: string } }).user;
+    return user?.userId || ipKeyGenerator(req.ip || 'unknown');
   },
   message: {
     code: 'RATE_LIMITED',
     message: 'Too many requests to this endpoint. Please wait before trying again.',
   },
 }) as unknown as RequestHandler;
-

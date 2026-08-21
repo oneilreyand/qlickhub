@@ -177,6 +177,10 @@ describe('Task policy', () => {
     assert.doesNotThrow(
       () => assertCanMutateTask('qa', qaUserId, { parentTaskId: 'parent-1', assigneeId: qaUserId, status: 'in_progress', deliveryArea: 'qa' }, { status: 'done' })
     );
+    assert.throws(
+      () => assertCanMutateTask('qa', qaUserId, { parentTaskId: 'parent-1', assigneeId: qaUserId, status: 'todo', deliveryArea: 'qa' }, { status: 'done' }),
+      /Invalid status transition for QA executor from "todo" to "done"/
+    );
 
     // Case 4: QA unassigned CANNOT complete a subtask in in_progress
     assert.throws(
