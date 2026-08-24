@@ -6,6 +6,9 @@ export type WorkspaceRole = z.infer<typeof WorkspaceRoleSchema>;
 export const AssignableWorkspaceRoleSchema = z.enum(['admin', 'po', 'dev', 'qa']);
 export type AssignableWorkspaceRole = z.infer<typeof AssignableWorkspaceRoleSchema>;
 
+export const DeveloperSpecialtySchema = z.enum(['frontend', 'backend', 'mobile', 'fullstack']);
+export type DeveloperSpecialty = z.infer<typeof DeveloperSpecialtySchema>;
+
 export const WorkspaceSchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1, 'Workspace name is required').max(100),
@@ -32,6 +35,7 @@ export const WorkspaceMemberSchema = z.object({
   workspaceId: z.string().uuid(),
   userId: z.string().uuid(),
   role: WorkspaceRoleSchema,
+  specialties: z.array(DeveloperSpecialtySchema).default([]),
   user: z
     .object({
       id: z.string().uuid(),
@@ -61,17 +65,53 @@ export const UpdateWorkspaceSchema = z.object({
 
 export type UpdateWorkspaceInput = z.infer<typeof UpdateWorkspaceSchema>;
 
-export const AddWorkspaceMemberSchema = z.object({
-  email: z.string().email(),
-  role: AssignableWorkspaceRoleSchema.default('dev'),
-  workspaceIds: z.array(z.string().uuid()).optional(),
-});
+export const AddWorkspaceMemberSchema = z
+  .object({
+    email: z.string().email(),
+    role: AssignableWorkspaceRoleSchema.default('dev'),
+    specialties: z.array(DeveloperSpecialtySchema).max(4).default([]),
+    workspaceIds: z.array(z.string().uuid()).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === 'dev' && data.specialties.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one Developer specialty is required',
+        path: ['specialties'],
+      });
+    }
+    if (data.role !== 'dev' && data.specialties.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Developer specialties are allowed only for the dev role',
+        path: ['specialties'],
+      });
+    }
+  });
 
 export type AddWorkspaceMemberInput = z.infer<typeof AddWorkspaceMemberSchema>;
 
-export const UpdateMemberRoleSchema = z.object({
-  role: AssignableWorkspaceRoleSchema,
-});
+export const UpdateMemberRoleSchema = z
+  .object({
+    role: AssignableWorkspaceRoleSchema,
+    specialties: z.array(DeveloperSpecialtySchema).max(4).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === 'dev' && (!data.specialties || data.specialties.length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one Developer specialty is required',
+        path: ['specialties'],
+      });
+    }
+    if (data.role !== 'dev' && data.specialties && data.specialties.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Developer specialties are allowed only for the dev role',
+        path: ['specialties'],
+      });
+    }
+  });
 
 export type UpdateMemberRoleInput = z.infer<typeof UpdateMemberRoleSchema>;
 
@@ -125,4 +165,6 @@ export const TaskCreationPermissionListResponseSchema = z.object({
   permissions: z.array(TaskCreationPermissionSchema),
 });
 
-export type TaskCreationPermissionListResponse = z.infer<typeof TaskCreationPermissionListResponseSchema>;
+export type TaskCreationPermissionListResponse = z.infer<
+  typeof TaskCreationPermissionListResponseSchema
+>;

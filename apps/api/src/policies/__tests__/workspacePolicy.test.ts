@@ -1,6 +1,10 @@
 import assert from 'node:assert';
 import { test, describe } from 'node:test';
-import { hasWorkspaceRole, isWorkspaceAdminOrOwner } from '../workspacePolicy.js';
+import {
+  canCreateWorkspace,
+  hasWorkspaceRole,
+  isWorkspaceAdminOrOwner,
+} from '../workspacePolicy.js';
 
 describe('Workspace Policy Unit Tests', () => {
   test('isWorkspaceAdminOrOwner identifies owner and admin correctly', () => {
@@ -18,11 +22,11 @@ describe('Workspace Policy Unit Tests', () => {
   });
 
   test('workspace creation allows owner, admin, and po but blocks qa and dev', () => {
-    const creationAllowedRoles: any[] = ['owner', 'admin', 'po'];
-    assert.strictEqual(hasWorkspaceRole('owner', creationAllowedRoles), true);
-    assert.strictEqual(hasWorkspaceRole('admin', creationAllowedRoles), true);
-    assert.strictEqual(hasWorkspaceRole('po', creationAllowedRoles), true);
-    assert.strictEqual(hasWorkspaceRole('qa', creationAllowedRoles), false);
-    assert.strictEqual(hasWorkspaceRole('dev', creationAllowedRoles), false);
+    assert.strictEqual(canCreateWorkspace('owner'), true);
+    assert.strictEqual(canCreateWorkspace('admin'), true);
+    assert.strictEqual(canCreateWorkspace('po'), true);
+    assert.strictEqual(canCreateWorkspace('qa'), false);
+    assert.strictEqual(canCreateWorkspace('dev'), false);
+    assert.strictEqual(canCreateWorkspace('viewer'), false);
   });
 });

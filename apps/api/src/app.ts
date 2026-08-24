@@ -10,10 +10,14 @@ import { taskRoutes } from './modules/tasks/taskRoutes.js';
 import { requirementRoutes } from './modules/requirements/requirementRoutes.js';
 import { qaDocumentRoutes } from './modules/qaDocuments/qaDocumentRoutes.js';
 import { traceabilityRoutes } from './modules/traceability/traceabilityRoutes.js';
+import { testManagementRoutes } from './modules/testManagement/testManagementRoutes.js';
+import { bugRoutes } from './modules/bugs/bugRoutes.js';
+import { releaseDecisionRoutes } from './modules/releaseDecisions/releaseDecisionRoutes.js';
 import { notificationRoutes } from './modules/notifications/notificationRoutes.js';
 import { attachmentRoutes } from './modules/attachments/attachmentRoutes.js';
 import { realtimeRoutes } from './modules/realtime/realtimeRoutes.js';
 import { metaRoutes } from './modules/meta/metaRoutes.js';
+import { workQueueRoutes } from './modules/workQueue/workQueueRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
 
@@ -54,6 +58,7 @@ export const createApp = () => {
   // Authentication, Workspace, Folder & Task APIs
   app.use('/v1', apiRateLimiter);
   app.use('/v1/auth', authRouter);
+  app.use('/v1', workQueueRoutes);
   app.use('/v1/workspaces', workspaceRoutes);
   app.use('/v1/workspaces/:workspaceId/folders', folderRoutes);
   app.use('/v1/projects/:projectId/folders', folderRoutes);
@@ -61,11 +66,14 @@ export const createApp = () => {
   app.use('/v1', requirementRoutes);
   app.use('/v1', qaDocumentRoutes);
   app.use('/v1', attachmentRoutes);
+  app.use('/v1', testManagementRoutes);
   app.use('/v1', traceabilityRoutes);
+  app.use('/v1', bugRoutes);
+
+  app.use('/v1', releaseDecisionRoutes);
   app.use('/v1', notificationRoutes);
   app.use('/v1', realtimeRoutes);
   app.use('/v1', metaRoutes);
-
 
   // 404 Route Handler
   app.use((_req: Request, res: Response) => {

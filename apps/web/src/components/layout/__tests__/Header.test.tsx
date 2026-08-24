@@ -47,6 +47,63 @@ function renderHeader(onToggleMobileSidebar: () => void) {
   );
 }
 
+function renderHeaderForRole(role: 'owner' | 'admin' | 'po' | 'dev' | 'qa') {
+  const store = configureStore({
+    reducer: {
+      auth: authReducer,
+      ui: uiReducer,
+      workspace: workspaceReducer,
+      folder: folderReducer,
+      task: taskReducer,
+    },
+    preloadedState: {
+      auth: {
+        currentUser: {
+          id: `user-${role}`,
+          name: `${role} User`,
+          email: `${role}@example.com`,
+          role,
+          onboardingCompletedAt: '2026-08-01',
+        },
+        isAuthenticated: true,
+        showOnboardingModal: false,
+        status: 'succeeded' as const,
+        error: null,
+      },
+      workspace: {
+        workspaces: [
+          {
+            id: `workspace-${role}`,
+            name: `${role} Workspace`,
+            slug: `${role}-workspace`,
+            ownerId: 'owner-user',
+            allowQaTaskCreation: true,
+            createdAt: '',
+            updatedAt: '',
+            role,
+          },
+        ],
+        activeWorkspaceId: `workspace-${role}`,
+        members: [],
+        isLoading: false,
+        isMembersLoading: false,
+        isInitialized: true,
+        error: null,
+      },
+    },
+  });
+
+  return render(
+    <Provider store={store}>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/work']}>
+          <Header onToggleMobileSidebar={vi.fn()} />
+        </MemoryRouter>
+      </ThemeProvider>
+    </Provider>,
+  );
+}
+
 describe('Header', () => {
   it('opens responsive navigation from the mobile menu control', async () => {
     const user = userEvent.setup();
@@ -88,7 +145,7 @@ describe('Header', () => {
             <Header onToggleMobileSidebar={vi.fn()} />
           </MemoryRouter>
         </ThemeProvider>
-      </Provider>
+      </Provider>,
     );
 
     const myTasksButton = screen.getByRole('button', { name: 'My Tasks' });
@@ -106,14 +163,31 @@ describe('Header', () => {
       },
       preloadedState: {
         auth: {
-          currentUser: { id: 'u1', name: 'Dev User', email: 'dev@example.com', role: 'dev', onboardingCompletedAt: '2026-08-01' },
+          currentUser: {
+            id: 'u1',
+            name: 'Dev User',
+            email: 'dev@example.com',
+            role: 'dev',
+            onboardingCompletedAt: '2026-08-01',
+          },
           isAuthenticated: true,
           showOnboardingModal: false,
           status: 'succeeded' as const,
           error: null,
         },
         workspace: {
-          workspaces: [{ id: 'w1', name: 'Dev Workspace', slug: 'dev-ws', ownerId: 'other', allowQaTaskCreation: true, createdAt: '', updatedAt: '', role: 'dev' as const }],
+          workspaces: [
+            {
+              id: 'w1',
+              name: 'Dev Workspace',
+              slug: 'dev-ws',
+              ownerId: 'other',
+              allowQaTaskCreation: true,
+              createdAt: '',
+              updatedAt: '',
+              role: 'dev' as const,
+            },
+          ],
           activeWorkspaceId: 'w1',
           members: [],
           isLoading: false,
@@ -131,7 +205,7 @@ describe('Header', () => {
             <Header onToggleMobileSidebar={vi.fn()} />
           </MemoryRouter>
         </ThemeProvider>
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.queryByRole('button', { name: 'Workspace Settings' })).toBeNull();
@@ -149,14 +223,31 @@ describe('Header', () => {
       },
       preloadedState: {
         auth: {
-          currentUser: { id: 'u2', name: 'PO User', email: 'po@example.com', role: 'po', onboardingCompletedAt: '2026-08-01' },
+          currentUser: {
+            id: 'u2',
+            name: 'PO User',
+            email: 'po@example.com',
+            role: 'po',
+            onboardingCompletedAt: '2026-08-01',
+          },
           isAuthenticated: true,
           showOnboardingModal: false,
           status: 'succeeded' as const,
           error: null,
         },
         workspace: {
-          workspaces: [{ id: 'w2', name: 'PO Workspace', slug: 'po-ws', ownerId: 'other', allowQaTaskCreation: true, createdAt: '', updatedAt: '', role: 'po' as const }],
+          workspaces: [
+            {
+              id: 'w2',
+              name: 'PO Workspace',
+              slug: 'po-ws',
+              ownerId: 'other',
+              allowQaTaskCreation: true,
+              createdAt: '',
+              updatedAt: '',
+              role: 'po' as const,
+            },
+          ],
           activeWorkspaceId: 'w2',
           members: [],
           isLoading: false,
@@ -174,10 +265,19 @@ describe('Header', () => {
             <Header onToggleMobileSidebar={vi.fn()} />
           </MemoryRouter>
         </ThemeProvider>
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.getByRole('button', { name: 'Workspace Settings' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'UI System' })).toBeInTheDocument();
+  });
+
+  it('does not offer workspace creation to QA', async () => {
+    const user = userEvent.setup();
+    renderHeaderForRole('qa');
+
+    await user.click(screen.getByRole('button', { name: /switch workspace/i }));
+
+    expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
   });
 });

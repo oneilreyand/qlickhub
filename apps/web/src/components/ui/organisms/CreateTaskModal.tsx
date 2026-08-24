@@ -16,6 +16,7 @@ import { selectCurrentUserId } from '../../../store/authSlice';
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreated?: () => void;
   folders: FolderTreeNode[];
   defaultFolderId?: string | null;
 }
@@ -23,6 +24,7 @@ interface CreateTaskModalProps {
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen,
   onClose,
+  onCreated,
   folders,
   defaultFolderId,
 }) => {
@@ -50,7 +52,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     prevIsOpenRef.current = isOpen;
   }, [defaultFolderId, isOpen, activeWorkspaceId, dispatch]);
 
-  const flattenFolders = (items: FolderTreeNode[], depth = 0): { id: string; name: string; depth: number }[] => {
+  const flattenFolders = (
+    items: FolderTreeNode[],
+    depth = 0,
+  ): { id: string; name: string; depth: number }[] => {
     let result: { id: string; name: string; depth: number }[] = [];
     for (const item of items) {
       result.push({ id: item.id, name: item.name, depth });
@@ -93,7 +98,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             dueDate: dueDate || undefined,
           },
           query: folderId ? { folderId } : {},
-        })
+        }),
       ).unwrap();
 
       dispatch(enqueueSnackbar('Parent Task created successfully', 'success'));
@@ -101,10 +106,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       setDescription('');
       setStartDate('');
       setDueDate('');
+      onCreated?.();
       onClose();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create task', 'error')
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create task', 'error'),
       );
     } finally {
       setIsSubmitting(false);
@@ -158,7 +164,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <option value="">Unfiled (Workspace Root)</option>
               {flatFolders.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {'\u00A0'.repeat(f.depth * 4)}{f.name}
+                  {'\u00A0'.repeat(f.depth * 4)}
+                  {f.name}
                 </option>
               ))}
             </Select>
@@ -170,10 +177,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             </label>
             <div className="flex items-center gap-1.5 h-10 px-3 rounded-xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/50 text-xs font-semibold text-stone-700 dark:text-stone-300">
               <User className="h-3.5 w-3.5 text-stone-400 shrink-0" />
-              <span className="truncate">{members.find((m) => m.userId === currentUserId)?.user?.name || 'You'} (PO/Reporter)</span>
+              <span className="truncate">
+                {members.find((m) => m.userId === currentUserId)?.user?.name || 'You'} (PO/Reporter)
+              </span>
             </div>
             <p className="mt-1 text-[11px] text-stone-500 dark:text-stone-400">
-              Execution assignees (FE, BE, QA) are assigned on Subtasks.
+              Execution assignees (Frontend, Backend, Mobile, Fullstack, and QA) are assigned on
+              Subtasks.
             </p>
           </div>
         </div>
@@ -213,21 +223,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
                 Start Date
               </label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div>
               <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
                 Due Date
               </label>
-              <Input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
+              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
           </div>
         </div>

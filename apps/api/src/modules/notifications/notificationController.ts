@@ -9,7 +9,6 @@ import {
 import { notificationService } from './notificationService.js';
 import { fcmService } from '../../services/fcmService.js';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
-import { WorkspaceMemberModel } from '../../db/models/workspaceMember.js';
 
 function formatProblemDetails(err: unknown, res: Response): Response {
   if (err instanceof ZodError) {
@@ -196,53 +195,14 @@ export class NotificationController {
   }
 
   /**
-   * POST /v1/notifications/test
-   * Dispatches test notification to FCM AND persists in-app notification in DB.
-   */
-  async testNotification(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const userId = req.user!.userId;
-
-      // Find user's first active workspace to attach notification to
-      const membership = await WorkspaceMemberModel.findOne({
-        where: { userId },
-        order: [['createdAt', 'ASC']],
-      });
-
-      if (membership) {
-        await notificationService.createNotification({
-          userId,
-          workspaceId: membership.workspaceId,
-          type: 'system',
-          title: '🔔 Test Notifikasi Qlick Hub',
-          message: 'Koneksi Firebase Cloud Messaging & In-App Notification aktif dan siap menerima notifikasi real-time.',
-          sendFcm: true,
-        });
-      } else {
-        // Just send FCM directly if no workspace
-        await fcmService.sendToUser(userId, {
-          title: '🔔 Test Notifikasi Qlick Hub',
-          body: 'Koneksi Firebase Cloud Messaging aktif dan siap menerima notifikasi real-time.',
-          data: {
-            type: 'system',
-          },
-        });
-      }
-
-      return res.status(200).json({ data: { success: true, message: 'Test notification dispatched.' } });
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  /**
    * POST /v1/notifications/check-deadlines
    * Scans for approaching deadlines and dispatches notifications.
    */
   async checkDeadlines(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const workspaceId = (req.query.workspaceId as string) || req.body?.workspaceId;
-      const result = await notificationService.checkAndDispatchApproachingDeadlineNotifications(workspaceId);
+      const result =
+        await notificationService.checkAndDispatchApproachingDeadlineNotifications(workspaceId);
       return res.status(200).json({ data: result });
     } catch (err) {
       return next(err);

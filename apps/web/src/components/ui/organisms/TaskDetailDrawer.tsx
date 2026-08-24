@@ -17,12 +17,13 @@ import {
   Calendar,
   Code2,
   Layers,
+  Smartphone,
+  Cpu,
   Bug,
   TrendingUp,
-  ExternalLink,
   Lock,
+  Route,
 } from 'lucide-react';
-
 
 import type {
   Task,
@@ -31,50 +32,12 @@ import type {
   FolderTreeNode,
   TaskActivity,
   TaskComment,
-  TaskRequirementLink,
   TaskDocumentLink,
   ProductBrief,
   ProductBriefScopeItem,
   ProductBriefAcceptanceCriterion,
 } from '@qlick/contracts';
 
-function getExternalLinkMeta(url?: string | null) {
-  if (!url) return null;
-  const lower = url.toLowerCase();
-  if (lower.includes('figma.com')) {
-    return {
-      label: 'Figma Prototype',
-      shortLabel: 'Figma',
-      badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-200/80',
-    };
-  }
-  if (lower.includes('sheets.google.com') || lower.includes('docs.google.com/spreadsheets') || lower.includes('.xlsx') || lower.includes('.csv')) {
-    return {
-      label: 'Google Spreadsheet',
-      shortLabel: 'Spreadsheet',
-      badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-200/80',
-    };
-  }
-  if (lower.includes('docs.google.com/document') || lower.includes('notion.so') || lower.includes('confluence')) {
-    return {
-      label: 'Product Doc / PRD',
-      shortLabel: 'Document',
-      badgeClass: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-800 hover:bg-sky-200/80',
-    };
-  }
-  if (lower.includes('jira') || lower.includes('atlassian') || lower.includes('linear.app') || lower.includes('github.com')) {
-    return {
-      label: 'Issue / Spec',
-      shortLabel: 'Issue',
-      badgeClass: 'bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] border-[#B1E743]/40 dark:border-[#B1E743]/40 hover:bg-[#B1E743]/30',
-    };
-  }
-  return {
-    label: 'External Link',
-    shortLabel: 'Link',
-    badgeClass: 'bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-200/80',
-  };
-}
 import { Drawer } from '../molecules/Drawer';
 import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
@@ -84,6 +47,8 @@ import { Select } from '../atoms/Select';
 import { RichTextEditor } from '../molecules/RichTextEditor';
 import { TaskCommentBox } from '../molecules/TaskCommentBox';
 import { Tabs, TabItem } from '../molecules/Tabs';
+import { ReleaseReadinessSignal } from '../molecules/ReleaseReadinessSignal';
+import { TaskHierarchyBreadcrumb } from '../molecules/TaskHierarchyBreadcrumb';
 
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { TaskScheduleHealthBadge } from '../molecules/TaskScheduleHealthBadge';
@@ -93,19 +58,21 @@ import { Alert } from '../atoms/Alert';
 import { IconButton } from '../atoms/IconButton';
 import { CreateSubtaskModal } from './CreateSubtaskModal';
 import { SubtaskList } from './SubtaskList';
+import { RequirementManager } from './RequirementManager';
+import { TaskDeliveryTracePanel } from './TaskDeliveryTracePanel';
+import { BugExperiencePanel } from './BugExperiencePanel';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateTask, moveTask, completeTask } from '../../../store/taskSlice';
 import { enqueueSnackbar, addInAppNotification } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
 import { selectCurrentUserId } from '../../../store/authSlice';
 import { taskService } from '../../../lib/api/taskService';
-import { requirementService } from '../../../lib/api/requirementService';
 import { qaDocumentService } from '../../../lib/api/qaDocumentService';
 import { fetchMembers } from '../../../store/workspaceSlice';
 import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
+import type { ReleaseReadinessViewState } from '../../../lib/hooks/useReleaseReadinessMap';
 
 export const EMPTY_DISCUSSION_ILLUSTRATION_URL =
-
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024196/ChatGPT_Image_Aug_18_2026_10_33_27_AM.png';
 
 export const EMPTY_SUBTASKS_ILLUSTRATION_URL =
@@ -145,14 +112,24 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 function getActivityIcon(action: string) {
-  if (action.includes('completed')) return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
-  if (action.includes('status')) return <Clock className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
+  if (action === 'qa.sign_off.created')
+    return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
+  if (action === 'release.decision.created')
+    return <FileText className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
+  if (action.includes('completed'))
+    return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
+  if (action.includes('status'))
+    return <Clock className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
   if (action.includes('priority')) return <AlertCircle className="h-3.5 w-3.5 text-amber-500" />;
   if (action.includes('assignee')) return <User className="h-3.5 w-3.5 text-blue-500" />;
-  if (action.includes('date') || action.includes('schedule')) return <Calendar className="h-3.5 w-3.5 text-purple-500" />;
-  if (action.includes('moved') || action.includes('folder')) return <Folder className="h-3.5 w-3.5 text-amber-500" />;
-  if (action.includes('subtask')) return <ListTodo className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
-  if (action.includes('requirement') || action.includes('brief') || action.includes('spec')) return <FileText className="h-3.5 w-3.5 text-emerald-500" />;
+  if (action.includes('date') || action.includes('schedule'))
+    return <Calendar className="h-3.5 w-3.5 text-purple-500" />;
+  if (action.includes('moved') || action.includes('folder'))
+    return <Folder className="h-3.5 w-3.5 text-amber-500" />;
+  if (action.includes('subtask'))
+    return <ListTodo className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
+  if (action.includes('requirement') || action.includes('brief') || action.includes('spec'))
+    return <FileText className="h-3.5 w-3.5 text-emerald-500" />;
   if (action.includes('comment')) return <MessageSquare className="h-3.5 w-3.5 text-blue-500" />;
   return <History className="h-3.5 w-3.5 text-stone-400" />;
 }
@@ -161,6 +138,45 @@ function renderHumanActivityDescription(act: TaskActivity) {
   const meta = (act.metadataJson || {}) as Record<string, any>;
   const action = act.action;
   const changes = meta.changes || {};
+
+  if (action === 'qa.sign_off.created') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        recorded QA Sign-off as{' '}
+        <span
+          className={
+            meta.decision === 'approved'
+              ? 'font-semibold text-emerald-600 dark:text-emerald-400'
+              : 'font-semibold text-rose-600 dark:text-rose-400'
+          }
+        >
+          {meta.decision === 'approved' ? 'Approved' : 'Rejected'}
+        </span>
+      </span>
+    );
+  }
+
+  if (action === 'release.decision.created') {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1 text-stone-700 dark:text-stone-300">
+        <span>recorded Release Decision as</span>
+        <span
+          className={
+            meta.decision === 'approved'
+              ? 'font-semibold text-emerald-600 dark:text-emerald-400'
+              : 'font-semibold text-rose-600 dark:text-rose-400'
+          }
+        >
+          {meta.decision === 'approved' ? 'Approved' : 'Rejected'}
+        </span>
+        {meta.isOverride && (
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+            QA override
+          </span>
+        )}
+      </span>
+    );
+  }
 
   // Status changes (task or subtask)
   if (
@@ -219,13 +235,17 @@ function renderHumanActivityDescription(act: TaskActivity) {
         {oldP && (
           <>
             <span>from</span>
-            <span className="font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">{oldP}</span>
+            <span className="font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
+              {oldP}
+            </span>
           </>
         )}
         {newP && (
           <>
             <span>to</span>
-            <span className="font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{newP}</span>
+            <span className="font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              {newP}
+            </span>
           </>
         )}
       </span>
@@ -239,12 +259,18 @@ function renderHumanActivityDescription(act: TaskActivity) {
     Boolean(changes.assigneeId)
   ) {
     const newAssignee = meta.newAssigneeName || meta.assigneeName;
-    if (changes.assigneeId?.new === null || (!newAssignee && changes.assigneeId && !changes.assigneeId.new)) {
+    if (
+      changes.assigneeId?.new === null ||
+      (!newAssignee && changes.assigneeId && !changes.assigneeId.new)
+    ) {
       return <span className="text-stone-700 dark:text-stone-300">unassigned this task</span>;
     }
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        assigned task to <span className="font-semibold text-stone-900 dark:text-stone-100">{newAssignee || 'team member'}</span>
+        assigned task to{' '}
+        <span className="font-semibold text-stone-900 dark:text-stone-100">
+          {newAssignee || 'team member'}
+        </span>
       </span>
     );
   }
@@ -263,7 +289,8 @@ function renderHumanActivityDescription(act: TaskActivity) {
     if (oldDue && newDue) {
       return (
         <span className="text-stone-700 dark:text-stone-300">
-          changed due date from <span className="font-semibold text-stone-900 dark:text-stone-100">{oldDue}</span> to{' '}
+          changed due date from{' '}
+          <span className="font-semibold text-stone-900 dark:text-stone-100">{oldDue}</span> to{' '}
           <span className="font-semibold text-stone-900 dark:text-stone-100">{newDue}</span>
         </span>
       );
@@ -271,7 +298,8 @@ function renderHumanActivityDescription(act: TaskActivity) {
     if (newDue) {
       return (
         <span className="text-stone-700 dark:text-stone-300">
-          set due date to <span className="font-semibold text-stone-900 dark:text-stone-100">{newDue}</span>
+          set due date to{' '}
+          <span className="font-semibold text-stone-900 dark:text-stone-100">{newDue}</span>
         </span>
       );
     }
@@ -283,7 +311,8 @@ function renderHumanActivityDescription(act: TaskActivity) {
     const newTitle = changes.title?.new ?? meta.title;
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        renamed to <span className="font-semibold text-stone-900 dark:text-stone-100">"{newTitle}"</span>
+        renamed to{' '}
+        <span className="font-semibold text-stone-900 dark:text-stone-100">"{newTitle}"</span>
       </span>
     );
   }
@@ -315,7 +344,10 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action === 'subtask.created' || action === 'subtask_created') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        created subtask <span className="font-semibold text-stone-900 dark:text-stone-100">"{meta.title || act.taskTitle || 'Subtask'}"</span>
+        created subtask{' '}
+        <span className="font-semibold text-stone-900 dark:text-stone-100">
+          "{meta.title || act.taskTitle || 'Subtask'}"
+        </span>
         {meta.deliveryArea && (
           <span className="ml-1 px-1.5 py-0.5 rounded bg-[#B1E743]/20 dark:bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] text-[10px] font-bold uppercase">
             {meta.deliveryArea}
@@ -329,7 +361,8 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action.includes('completed')) {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        marked as <span className="font-semibold text-emerald-600 dark:text-emerald-400">Completed</span>
+        marked as{' '}
+        <span className="font-semibold text-emerald-600 dark:text-emerald-400">Completed</span>
       </span>
     );
   }
@@ -344,7 +377,8 @@ function renderHumanActivityDescription(act: TaskActivity) {
     const folderName = meta.targetFolderName || meta.newFolderName || 'another folder';
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        moved to folder <span className="font-semibold text-stone-900 dark:text-stone-100">{folderName}</span>
+        moved to folder{' '}
+        <span className="font-semibold text-stone-900 dark:text-stone-100">{folderName}</span>
       </span>
     );
   }
@@ -353,7 +387,10 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action === 'requirement.linked' || action === 'requirement_linked') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        linked requirement <span className="font-semibold text-stone-900 dark:text-stone-100">[{meta.code || 'REQ'}] {meta.title || ''}</span>
+        linked requirement{' '}
+        <span className="font-semibold text-stone-900 dark:text-stone-100">
+          [{meta.code || 'REQ'}] {meta.title || ''}
+        </span>
       </span>
     );
   }
@@ -372,32 +409,47 @@ function renderHumanActivityDescription(act: TaskActivity) {
 
   // Comments
   if (action.includes('comment')) {
-    return <span className="text-stone-700 dark:text-stone-300">posted a comment in discussion</span>;
+    return (
+      <span className="text-stone-700 dark:text-stone-300">posted a comment in discussion</span>
+    );
   }
 
+  return (
+    <span className="text-stone-700 dark:text-stone-300">
+      recorded {action.replace(/\./g, ' ')}
+    </span>
+  );
 }
 
 interface TaskDetailDrawerProps {
   task: Task | null;
   folders: FolderTreeNode[];
+  parentTask?: Task | null;
+  isParentTaskLoading?: boolean;
+  releaseReadinessState?: ReleaseReadinessViewState;
   onClose: () => void;
+  onNavigateToTask?: (taskId: string) => void;
   onDataChanged?: () => void;
 }
 
 export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   task,
   folders,
+  parentTask,
+  isParentTaskLoading,
+  releaseReadinessState,
   onClose,
+  onNavigateToTask,
   onDataChanged,
 }) => {
   const dispatch = useAppDispatch();
   const { activeWorkspaceId, workspaces, members } = useAppSelector(
-    (state: RootState) => state.workspace
+    (state: RootState) => state.workspace,
   );
   const currentUserId = useAppSelector(selectCurrentUserId);
   const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
   const canPlan = Boolean(
-    activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role)
+    activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role),
   );
   const userWorkspaceRole = (activeWorkspace?.role || '').toLowerCase();
   const canManageQaDocs = ['owner', 'admin', 'qa'].includes(userWorkspaceRole);
@@ -411,6 +463,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
 
   // Persisted Product Brief state
   const [productBrief, setProductBrief] = useState<ProductBrief | null>(null);
@@ -421,16 +475,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [productBriefContent, setProductBriefContent] = useState('');
   const [productBriefInScope, setProductBriefInScope] = useState<ProductBriefScopeItem[]>([]);
   const [productBriefOutScope, setProductBriefOutScope] = useState<ProductBriefScopeItem[]>([]);
-  const [productBriefAcceptanceCriteria, setProductBriefAcceptanceCriteria] = useState<ProductBriefAcceptanceCriterion[]>([]);
+  const [productBriefAcceptanceCriteria, setProductBriefAcceptanceCriteria] = useState<
+    ProductBriefAcceptanceCriterion[]
+  >([]);
   const [productBriefOwnerId, setProductBriefOwnerId] = useState('');
-
-  // Task Requirements & Links state
-  const [taskRequirementLinks, setTaskRequirementLinks] = useState<TaskRequirementLink[]>([]);
-  const [isLoadingRequirements, setIsLoadingRequirements] = useState(false);
-  const [newReqCode, setNewReqCode] = useState('');
-  const [newReqTitle, setNewReqTitle] = useState('');
-  const [newReqUrl, setNewReqUrl] = useState('');
-  const [isCreatingReq, setIsCreatingReq] = useState(false);
 
   // Task QA Documents & Test Plans state
   const [taskQaDocLinks, setTaskQaDocLinks] = useState<TaskDocumentLink[]>([]);
@@ -462,7 +510,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [commentsTotal, setCommentsTotal] = useState(0);
   const [hasUnreadDiscussion, setHasUnreadDiscussion] = useState(false);
   const [unreadDiscussionCount, setUnreadDiscussionCount] = useState(0);
-  const [unreadSubtaskCommentMap, setUnreadSubtaskCommentMap] = useState<Record<string, number>>({});
+  const [unreadSubtaskCommentMap, setUnreadSubtaskCommentMap] = useState<Record<string, number>>(
+    {},
+  );
 
   const prevTaskIdRef = useRef<string | null>(null);
 
@@ -526,20 +576,30 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       setComments((prevComments) =>
         prevComments.map((comment) => {
           if (comment.id === payload.comment.id) {
-            return { ...comment, ...payload.comment, body: payload.comment.body, editedAt: payload.comment.editedAt };
+            return {
+              ...comment,
+              ...payload.comment,
+              body: payload.comment.body,
+              editedAt: payload.comment.editedAt,
+            };
           }
           if (comment.replies) {
             return {
               ...comment,
               replies: comment.replies.map((reply) =>
                 reply.id === payload.comment.id
-                  ? { ...reply, ...payload.comment, body: payload.comment.body, editedAt: payload.comment.editedAt }
-                  : reply
+                  ? {
+                      ...reply,
+                      ...payload.comment,
+                      body: payload.comment.body,
+                      editedAt: payload.comment.editedAt,
+                    }
+                  : reply,
               ),
             };
           }
           return comment;
-        })
+        }),
       );
     },
 
@@ -548,20 +608,28 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       setComments((prevComments) =>
         prevComments.map((comment) => {
           if (comment.id === payload.commentId) {
-            return { ...comment, body: '[This comment has been deleted]', deletedAt: new Date().toISOString() };
+            return {
+              ...comment,
+              body: '[This comment has been deleted]',
+              deletedAt: new Date().toISOString(),
+            };
           }
           if (comment.replies) {
             return {
               ...comment,
               replies: comment.replies.map((reply) =>
                 reply.id === payload.commentId
-                  ? { ...reply, body: '[This comment has been deleted]', deletedAt: new Date().toISOString() }
-                  : reply
+                  ? {
+                      ...reply,
+                      body: '[This comment has been deleted]',
+                      deletedAt: new Date().toISOString(),
+                    }
+                  : reply,
               ),
             };
           }
           return comment;
-        })
+        }),
       );
     },
   });
@@ -593,7 +661,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           loadActivity(1);
           loadComments(1);
           loadProductBrief();
-          loadTaskRequirements();
           loadTaskQaDocs();
           dispatch(fetchMembers(activeWorkspaceId));
         }
@@ -602,7 +669,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       prevTaskIdRef.current = null;
     }
   }, [task?.id, activeWorkspaceId, dispatch]);
-
 
   const loadProductBrief = async () => {
     if (!activeWorkspaceId || !task) return;
@@ -666,28 +732,32 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const updateAcceptanceCriterion = (id: string, text: string) => {
     setProductBriefAcceptanceCriteria((items) =>
-      items.map((item) => (item.id === id ? { ...item, text } : item))
+      items.map((item) => (item.id === id ? { ...item, text } : item)),
     );
   };
 
   const removeAcceptanceCriterion = (id: string) => {
     setProductBriefAcceptanceCriteria((items) =>
-      items.filter((item) => item.id !== id).map((item, position) => ({ ...item, position }))
+      items.filter((item) => item.id !== id).map((item, position) => ({ ...item, position })),
     );
   };
 
   const handleSaveProductBrief = async () => {
     if (!activeWorkspaceId || !task || !productBriefTitle.trim()) return;
-    const inScope = productBriefInScope.filter((item) => item.text.trim()).map((item, position) => ({
-      ...item,
-      text: item.text.trim(),
-      position,
-    }));
-    const outScope = productBriefOutScope.filter((item) => item.text.trim()).map((item, position) => ({
-      ...item,
-      text: item.text.trim(),
-      position,
-    }));
+    const inScope = productBriefInScope
+      .filter((item) => item.text.trim())
+      .map((item, position) => ({
+        ...item,
+        text: item.text.trim(),
+        position,
+      }));
+    const outScope = productBriefOutScope
+      .filter((item) => item.text.trim())
+      .map((item, position) => ({
+        ...item,
+        text: item.text.trim(),
+        position,
+      }));
     const acceptanceCriteria = productBriefAcceptanceCriteria
       .filter((item) => item.text.trim())
       .map((item, position) => ({
@@ -710,60 +780,17 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       setProductBriefInScope(brief.currentVersion.inScope);
       setProductBriefOutScope(brief.currentVersion.outScope);
       setProductBriefAcceptanceCriteria(brief.currentVersion.acceptanceCriteria);
-      dispatch(enqueueSnackbar(`Product Brief saved as version ${brief.currentVersion.version}.`, 'success'));
+      dispatch(
+        enqueueSnackbar(
+          `Product Brief saved as version ${brief.currentVersion.version}.`,
+          'success',
+        ),
+      );
       loadActivity(1);
     } catch (err) {
       dispatch(enqueueSnackbar(errorMessage(err, 'Failed to save Product Brief'), 'error'));
     } finally {
       setIsSavingProductBrief(false);
-    }
-  };
-
-  const loadTaskRequirements = async () => {
-    if (!activeWorkspaceId || !task) return;
-    setIsLoadingRequirements(true);
-    try {
-      const links = await requirementService.listTaskRequirementLinks(activeWorkspaceId, task.id);
-      setTaskRequirementLinks(Array.isArray(links) ? links : []);
-    } catch {
-      setTaskRequirementLinks([]);
-    } finally {
-      setIsLoadingRequirements(false);
-    }
-  };
-
-  const handleUnlinkRequirement = async (reqId: string) => {
-    if (!activeWorkspaceId || !task) return;
-    try {
-      await requirementService.unlinkRequirement(activeWorkspaceId, task.id, reqId);
-      dispatch(enqueueSnackbar('Requirement unlinked from task', 'info'));
-      loadTaskRequirements();
-      loadActivity(1);
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to unlink requirement'), 'error'));
-    }
-  };
-
-  const handleCreateAndLinkRequirement = async () => {
-    if (!activeWorkspaceId || !task || !newReqTitle.trim() || !newReqUrl.trim()) return;
-    setIsCreatingReq(true);
-    try {
-      const created = await requirementService.createRequirement(activeWorkspaceId, {
-        code: newReqCode.trim() || undefined,
-        title: newReqTitle.trim(),
-        url: newReqUrl.trim() || undefined,
-      });
-      await requirementService.linkRequirement(activeWorkspaceId, task.id, created.id);
-      dispatch(enqueueSnackbar(`Reference link "${created.title}" embedded successfully!`, 'success'));
-      setNewReqCode('');
-      setNewReqTitle('');
-      setNewReqUrl('');
-      loadTaskRequirements();
-      loadActivity(1);
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to embed reference link'), 'error'));
-    } finally {
-      setIsCreatingReq(false);
     }
   };
 
@@ -808,14 +835,18 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         folderId: task.folderId || null,
       });
       await qaDocumentService.linkDocument(activeWorkspaceId, task.id, docResult.document.id);
-      dispatch(enqueueSnackbar(`QA Document "${docResult.document.title}" created and linked!`, 'success'));
+      dispatch(
+        enqueueSnackbar(`QA Document "${docResult.document.title}" created and linked!`, 'success'),
+      );
       setIsCreateQaDocModalOpen(false);
       setNewQaDocTitle('');
       setNewQaDocContent('');
       loadTaskQaDocs();
       loadActivity(1);
     } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to create and link QA document'), 'error'));
+      dispatch(
+        enqueueSnackbar(errorMessage(err, 'Failed to create and link QA document'), 'error'),
+      );
     } finally {
       setIsSubmittingQaDoc(false);
     }
@@ -837,13 +868,38 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const subtaskMetrics = React.useMemo(() => {
     const feTotal = subtasks.filter((s) => s.deliveryArea === 'frontend').length;
-    const feDone = subtasks.filter((s) => s.deliveryArea === 'frontend' && s.status === 'done').length;
+    const feDone = subtasks.filter(
+      (s) => s.deliveryArea === 'frontend' && s.status === 'done',
+    ).length;
     const beTotal = subtasks.filter((s) => s.deliveryArea === 'backend').length;
-    const beDone = subtasks.filter((s) => s.deliveryArea === 'backend' && s.status === 'done').length;
+    const beDone = subtasks.filter(
+      (s) => s.deliveryArea === 'backend' && s.status === 'done',
+    ).length;
+    const mobileTotal = subtasks.filter((s) => s.deliveryArea === 'mobile').length;
+    const mobileDone = subtasks.filter(
+      (s) => s.deliveryArea === 'mobile' && s.status === 'done',
+    ).length;
+    const fullstackTotal = subtasks.filter((s) => s.deliveryArea === 'fullstack').length;
+    const fullstackDone = subtasks.filter(
+      (s) => s.deliveryArea === 'fullstack' && s.status === 'done',
+    ).length;
     const qaTotal = subtasks.filter((s) => s.deliveryArea === 'qa').length;
     const qaDone = subtasks.filter((s) => s.deliveryArea === 'qa' && s.status === 'done').length;
     const totalDone = subtasks.filter((s) => s.status === 'done').length;
-    return { feTotal, feDone, beTotal, beDone, qaTotal, qaDone, totalDone, total: subtasks.length };
+    return {
+      feTotal,
+      feDone,
+      beTotal,
+      beDone,
+      mobileTotal,
+      mobileDone,
+      fullstackTotal,
+      fullstackDone,
+      qaTotal,
+      qaDone,
+      totalDone,
+      total: subtasks.length,
+    };
   }, [subtasks]);
 
   const scheduleOverlapAnalysis = React.useMemo(() => {
@@ -853,13 +909,15 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const incompleteSubtasks = React.useMemo(
     () => subtasks.filter((s) => s.status !== 'done' && s.status !== 'canceled'),
-    [subtasks]
+    [subtasks],
   );
   const totalUnreadSubtasksCount = React.useMemo(() => {
     return Object.values(unreadSubtaskCommentMap).reduce((sum, count) => sum + count, 0);
   }, [unreadSubtaskCommentMap]);
 
-  const hasIncompleteSubtasks = Boolean(task && !task.parentTaskId && incompleteSubtasks.length > 0);
+  const hasIncompleteSubtasks = Boolean(
+    task && !task.parentTaskId && incompleteSubtasks.length > 0,
+  );
 
   const loadActivity = async (page = activityPage, append = false) => {
     if (!activeWorkspaceId || !task) return;
@@ -905,18 +963,23 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const isSubtask = Boolean(task.parentTaskId);
   const isAssignedExecutor = Boolean(
-    isSubtask && task.assigneeId && task.assigneeId === currentUserId
+    isSubtask && task.assigneeId && task.assigneeId === currentUserId,
   );
   const canEditTask = canPlan || isAssignedExecutor;
   const canCompleteThisTask = isSubtask
-    ? Boolean(canPlan || (activeWorkspace && activeWorkspace.role === 'qa' && task.deliveryArea !== 'qa'))
+    ? Boolean(
+        canPlan || (activeWorkspace && activeWorkspace.role === 'qa' && task.deliveryArea !== 'qa'),
+      )
     : canPlan;
   const canEditPlanning = canPlan;
   const canManageComments = Boolean(
-    activeWorkspace && ['owner', 'admin'].includes(activeWorkspace.role)
+    activeWorkspace && ['owner', 'admin'].includes(activeWorkspace.role),
   );
 
-  const flattenFolders = (items: FolderTreeNode[], depth = 0): { id: string; name: string; depth: number }[] => {
+  const flattenFolders = (
+    items: FolderTreeNode[],
+    depth = 0,
+  ): { id: string; name: string; depth: number }[] => {
     let result: { id: string; name: string; depth: number }[] = [];
     for (const item of items) {
       result.push({ id: item.id, name: item.name, depth });
@@ -947,9 +1010,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     if (status === 'done' && task.status !== 'done' && hasIncompleteSubtasks) {
       dispatch(
         enqueueSnackbar(
-          `Cannot mark task as Done: ${incompleteSubtasks.length} subtask(s) are still in progress. Please complete all subtasks (FE, BE, QA) first.`,
-          'error'
-        )
+          `Cannot mark task as Done: ${incompleteSubtasks.length} subtask(s) are still in progress. Please complete all delivery-area subtasks first.`,
+          'error',
+        ),
       );
       return;
     }
@@ -962,7 +1025,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             workspaceId: activeWorkspaceId,
             taskId: task.id,
             input: { targetFolderId: folderId },
-          })
+          }),
         ).unwrap();
       }
 
@@ -985,7 +1048,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           workspaceId: activeWorkspaceId,
           taskId: task.id,
           input,
-        })
+        }),
       ).unwrap();
 
       // If user has edited Product Brief or is on prd tab, persist Product Brief version as well
@@ -1032,7 +1095,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       onClose();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update task', 'error')
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update task', 'error'),
       );
     } finally {
       setIsSaving(false);
@@ -1047,8 +1110,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           isSubtask
             ? 'Only Product Owner or authorized QA reviewers may approve subtasks.'
             : 'Only Product Owner, Admin, or Owner may complete parent tasks.',
-          'error'
-        )
+          'error',
+        ),
       );
       return;
     }
@@ -1056,9 +1119,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     if (task.status !== 'done' && hasIncompleteSubtasks) {
       dispatch(
         enqueueSnackbar(
-          `Cannot complete task: ${incompleteSubtasks.length} subtask(s) are still in progress. Please complete all subtasks (FE, BE, QA) first.`,
-          'error'
-        )
+          `Cannot complete task: ${incompleteSubtasks.length} subtask(s) are still in progress. Please complete all delivery-area subtasks first.`,
+          'error',
+        ),
       );
       return;
     }
@@ -1071,7 +1134,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             workspaceId: activeWorkspaceId,
             taskId: task.id,
             input: { status: 'in_progress' },
-          })
+          }),
         ).unwrap();
         dispatch(enqueueSnackbar('Task reopened as In Progress', 'success'));
       } else {
@@ -1080,7 +1143,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             workspaceId: activeWorkspaceId,
             taskId: task.id,
             input: { status: 'done' },
-          })
+          }),
         ).unwrap();
         dispatch(enqueueSnackbar('Task marked as Done', 'success'));
       }
@@ -1088,7 +1151,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       onClose();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to toggle task completion', 'error')
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Failed to toggle task completion',
+          'error',
+        ),
       );
     } finally {
       setIsSaving(false);
@@ -1098,7 +1164,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const handlePostComment = async (
     body: string,
     parentCommentId?: string | null,
-    targetMentionedUserIds: string[] = []
+    targetMentionedUserIds: string[] = [],
   ) => {
     if (!activeWorkspaceId || !task || !body.trim()) return;
     try {
@@ -1133,13 +1199,15 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             body.trim(),
             'mention',
             task.id,
-            activeWorkspace?.role?.toUpperCase() || 'Member'
-          )
+            activeWorkspace?.role?.toUpperCase() || 'Member',
+          ),
         );
       }
       dispatch(enqueueSnackbar('Message posted to discussion', 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to post message', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to post message', 'error'),
+      );
       throw err;
     }
   };
@@ -1161,28 +1229,39 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       setComments((prevComments) =>
         prevComments.map((c) => {
           if (c.id === commentId) {
-            return { ...c, ...updated, body: newBody, editedAt: updated.editedAt || new Date().toISOString() };
+            return {
+              ...c,
+              ...updated,
+              body: newBody,
+              editedAt: updated.editedAt || new Date().toISOString(),
+            };
           }
           if (c.replies) {
             return {
               ...c,
               replies: c.replies.map((r) =>
                 r.id === commentId
-                  ? { ...r, ...updated, body: newBody, editedAt: updated.editedAt || new Date().toISOString() }
-                  : r
+                  ? {
+                      ...r,
+                      ...updated,
+                      body: newBody,
+                      editedAt: updated.editedAt || new Date().toISOString(),
+                    }
+                  : r,
               ),
             };
           }
           return c;
-        })
+        }),
       );
       dispatch(enqueueSnackbar('Message updated', 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update message', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update message', 'error'),
+      );
       throw err;
     }
   };
-
 
   const handleDeleteComment = async (commentId: string) => {
     if (!activeWorkspaceId || !task) return;
@@ -1198,7 +1277,33 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       dispatch(enqueueSnackbar('Message soft-deleted', 'success'));
       loadComments();
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete message', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete message', 'error'),
+      );
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!activeWorkspaceId || !task || !canPlan || isDeletingTask) return;
+
+    setIsDeletingTask(true);
+    try {
+      await taskService.deleteTask(activeWorkspaceId, task.id);
+      setIsDeleteConfirmationOpen(false);
+      dispatch(
+        enqueueSnackbar(
+          `${task.parentTaskId ? 'Subtask' : 'Task'} "${task.title}" deleted.`,
+          'success',
+        ),
+      );
+      onClose();
+      onDataChanged?.();
+    } catch (err) {
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete task', 'error'),
+      );
+    } finally {
+      setIsDeletingTask(false);
     }
   };
 
@@ -1213,21 +1318,28 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const detailTabs: TabItem[] = [
     { id: 'overview', label: 'Overview', icon: <FileText className="h-3.5 w-3.5" /> },
     { id: 'prd', label: 'Specs & Requirements', icon: <FileCode2 className="h-3.5 w-3.5" /> },
+    { id: 'trace', label: 'Delivery Trace', icon: <Route className="h-3.5 w-3.5" /> },
+    { id: 'bugs', label: 'Bugs', icon: <Bug className="h-3.5 w-3.5" /> },
     {
       id: 'subtasks',
       label: `Subtasks (${subtasks.length})`,
       icon: <ListTodo className="h-3.5 w-3.5" />,
-      badge: totalUnreadSubtasksCount > 0 ? (
-        <span
-          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
-          title={`${totalUnreadSubtasksCount} pesan baru di subtasks`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />
-          +{totalUnreadSubtasksCount} Baru
-        </span>
-      ) : undefined,
+      badge:
+        totalUnreadSubtasksCount > 0 ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
+            title={`${totalUnreadSubtasksCount} pesan baru di subtasks`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />+{totalUnreadSubtasksCount}{' '}
+            Baru
+          </span>
+        ) : undefined,
     },
-    { id: 'activity', label: `Activity (${activityTotal})`, icon: <History className="h-3.5 w-3.5" /> },
+    {
+      id: 'activity',
+      label: `Activity (${activityTotal})`,
+      icon: <History className="h-3.5 w-3.5" />,
+    },
     {
       id: 'discussion',
       label: `Discussion (${commentsTotal})`,
@@ -1236,8 +1348,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
           title={`${unreadDiscussionCount} pesan diskusi baru masuk`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />
-          +{unreadDiscussionCount} Baru
+          <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />+{unreadDiscussionCount} Baru
         </span>
       ) : undefined,
 
@@ -1255,42 +1366,61 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         allowFullScreen={true}
         title={task.title}
         subtitle={`Task ID: ${task.id.substring(0, 8)} • Created ${new Date(task.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}${task.deliveryArea ? ` • Delivery Area: ${task.deliveryArea.toUpperCase()}` : ''}`}
+        toolbar={
+          <Tabs
+            tabs={detailTabs}
+            activeTabId={activeTab}
+            onChange={handleTabChange}
+            variant="pills"
+          />
+        }
         footer={
-          <div className="flex items-center justify-between w-full">
-            {canCompleteThisTask ? (
-              <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              {canCompleteThisTask && (
+                <>
+                  <Button
+                    variant={task.status === 'done' ? 'outline' : 'primary'}
+                    size="sm"
+                    onClick={handleToggleComplete}
+                    isLoading={isSaving}
+                    leftIcon={
+                      task.status === 'done' ? (
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      )
+                    }
+                  >
+                    {task.status === 'done'
+                      ? isSubtask
+                        ? 'Reopen Subtask'
+                        : 'Reopen Task'
+                      : isSubtask
+                        ? 'Approve Subtask (Done)'
+                        : 'Complete Task'}
+                  </Button>
+                  {hasIncompleteSubtasks && task.status !== 'done' && (
+                    <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 hidden sm:inline">
+                      ({incompleteSubtasks.length} subtask pending)
+                    </span>
+                  )}
+                </>
+              )}
+              {canPlan && (
                 <Button
-                  variant={task.status === 'done' ? 'outline' : 'primary'}
+                  variant="destructive"
                   size="sm"
-                  onClick={handleToggleComplete}
-                  isLoading={isSaving}
-                  leftIcon={
-                    task.status === 'done' ? (
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    ) : (
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    )
-                  }
+                  onClick={() => setIsDeleteConfirmationOpen(true)}
+                  disabled={isSaving || isDeletingTask}
+                  leftIcon={<Trash2 className="h-3.5 w-3.5" />}
                 >
-                  {task.status === 'done'
-                    ? isSubtask
-                      ? 'Reopen Subtask'
-                      : 'Reopen Task'
-                    : isSubtask
-                    ? 'Approve Subtask (Done)'
-                    : 'Complete Task'}
+                  {isSubtask ? 'Delete Subtask' : 'Delete Task'}
                 </Button>
-                {hasIncompleteSubtasks && task.status !== 'done' && (
-                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 hidden sm:inline">
-                    ({incompleteSubtasks.length} subtask pending)
-                  </span>
-                )}
-              </div>
-            ) : (
-              <span />
-            )}
+              )}
+            </div>
 
-            <div className="flex gap-2">
+            <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={onClose}>
                 Cancel
               </Button>
@@ -1304,8 +1434,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         }
       >
         <div className="space-y-4">
-          <Tabs tabs={detailTabs} activeTabId={activeTab} onChange={handleTabChange} variant="pills" />
-
+          <TaskHierarchyBreadcrumb
+            task={task}
+            parentTask={parentTask}
+            isParentTaskLoading={isParentTaskLoading}
+            onNavigateToTask={onNavigateToTask}
+          />
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
@@ -1319,6 +1453,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 <Alert tone="info" title="Execution access">
                   You can update this assigned subtask's description and status only.
                 </Alert>
+              )}
+              {releaseReadinessState && (
+                <Card className="space-y-2 border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-950/40">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                    Release Readiness
+                  </p>
+                  <ReleaseReadinessSignal state={releaseReadinessState} showReason />
+                </Card>
               )}
               <RichTextEditor
                 id="task-description"
@@ -1347,38 +1489,44 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           scheduleOverlapAnalysis.overallHealth === 'delayed'
                             ? `${scheduleOverlapAnalysis.primaryBottleneck.title} (${scheduleOverlapAnalysis.primaryBottleneck.overlapDays}d)`
                             : scheduleOverlapAnalysis.overallHealth === 'at_risk'
-                            ? scheduleOverlapAnalysis.primaryBottleneck.title
-                            : 'Schedule On Track'
+                              ? scheduleOverlapAnalysis.primaryBottleneck.title
+                              : 'Schedule On Track'
                         }
                       />
                     )}
                     <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
-                      {subtaskMetrics.total > 0 ? `${subtaskMetrics.totalDone}/${subtaskMetrics.total} Complete` : '0 items'}
+                      {subtaskMetrics.total > 0
+                        ? `${subtaskMetrics.totalDone}/${subtaskMetrics.total} Complete`
+                        : '0 items'}
                     </span>
                   </div>
                 </div>
 
                 {/* Overlap / Bottleneck Root Cause Notice if not on track */}
-                {scheduleOverlapAnalysis && scheduleOverlapAnalysis.primaryBottleneck.role !== 'none' && (
-                  <div
-                    onClick={() => setActiveTab('subtasks')}
-                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs cursor-pointer transition-all ${
-                      scheduleOverlapAnalysis.primaryBottleneck.severity === 'delayed'
-                        ? 'bg-rose-50 border-rose-200 text-rose-900 dark:bg-rose-950/40 dark:border-rose-900/60 dark:text-rose-200'
-                        : 'bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/40 dark:border-amber-900/60 dark:text-amber-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <AlertTriangle className="h-4 w-4 shrink-0 opacity-80" />
-                      <span className="font-medium truncate">
-                        <strong>{scheduleOverlapAnalysis.primaryBottleneck.title}:</strong> {scheduleOverlapAnalysis.primaryBottleneck.description}
+                {scheduleOverlapAnalysis &&
+                  scheduleOverlapAnalysis.primaryBottleneck.role !== 'none' && (
+                    <div
+                      onClick={() => setActiveTab('subtasks')}
+                      className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs cursor-pointer transition-all ${
+                        scheduleOverlapAnalysis.primaryBottleneck.severity === 'delayed'
+                          ? 'bg-rose-50 border-rose-200 text-rose-900 dark:bg-rose-950/40 dark:border-rose-900/60 dark:text-rose-200'
+                          : 'bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/40 dark:border-amber-900/60 dark:text-amber-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <AlertTriangle className="h-4 w-4 shrink-0 opacity-80" />
+                        <span className="font-medium truncate">
+                          <strong>{scheduleOverlapAnalysis.primaryBottleneck.title}:</strong>{' '}
+                          {scheduleOverlapAnalysis.primaryBottleneck.description}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold underline shrink-0">
+                        View Timeline ➔
                       </span>
                     </div>
-                    <span className="text-[10px] font-bold underline shrink-0">View Timeline ➔</span>
-                  </div>
-                )}
+                  )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 pt-1">
                   {/* PRD Readiness */}
                   <div
                     onClick={() => setActiveTab('prd')}
@@ -1387,7 +1535,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     <p className="text-[10px] font-bold text-stone-500 uppercase">PRD & Specs</p>
                     <p className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1 mt-0.5">
                       {productBrief ? (
-                        <span className="text-stone-900 dark:text-[#B1E743] font-bold">v{productBrief.currentVersion.version} Ready</span>
+                        <span className="text-stone-900 dark:text-[#B1E743] font-bold">
+                          v{productBrief.currentVersion.version} Ready
+                        </span>
                       ) : (
                         <span className="text-stone-400">Draft</span>
                       )}
@@ -1420,6 +1570,31 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     </p>
                   </div>
 
+                  {/* Mobile Subtasks */}
+                  <div
+                    onClick={() => setActiveTab('subtasks')}
+                    className="p-2.5 rounded-xl border border-stone-200/80 bg-stone-50/50 hover:bg-stone-100/60 dark:border-stone-800 dark:bg-stone-900/20 dark:hover:bg-stone-900/40 cursor-pointer transition-all"
+                  >
+                    <p className="text-[10px] font-bold text-stone-700 dark:text-stone-300 uppercase flex items-center gap-1">
+                      <Smartphone className="h-3 w-3" /> Mobile
+                    </p>
+                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
+                      {subtaskMetrics.mobileDone}/{subtaskMetrics.mobileTotal} Done
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => setActiveTab('subtasks')}
+                    className="p-2.5 rounded-xl border border-[#B1E743]/40 bg-[#B1E743]/10 hover:bg-[#B1E743]/20 cursor-pointer transition-all"
+                  >
+                    <p className="text-[10px] font-bold text-[#141413] dark:text-[#B1E743] uppercase flex items-center gap-1">
+                      <Cpu className="h-3 w-3" /> Fullstack
+                    </p>
+                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
+                      {subtaskMetrics.fullstackDone}/{subtaskMetrics.fullstackTotal} Done
+                    </p>
+                  </div>
+
                   {/* QA Subtasks & Verification */}
                   <div
                     onClick={() => setActiveTab('subtasks')}
@@ -1438,7 +1613,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               <Card className="p-4 space-y-4 border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/60">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="task-status" className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">
+                    <label
+                      htmlFor="task-status"
+                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
+                    >
                       Status
                     </label>
                     <Select
@@ -1457,7 +1635,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="task-priority" className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">
+                    <label
+                      htmlFor="task-priority"
+                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
+                    >
                       Priority
                     </label>
                     <Select
@@ -1477,7 +1658,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
                 {!task.parentTaskId && (
                   <div>
-                    <label htmlFor="task-folder" className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">
+                    <label
+                      htmlFor="task-folder"
+                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
+                    >
                       Folder Location
                     </label>
                     <Select
@@ -1490,7 +1674,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                       <option value="">Unfiled (Workspace Root)</option>
                       {flatFolders.map((f) => (
                         <option key={f.id} value={f.id}>
-                          {'\u00A0'.repeat(f.depth * 4)}{f.name}
+                          {'\u00A0'.repeat(f.depth * 4)}
+                          {f.name}
                         </option>
                       ))}
                     </Select>
@@ -1499,7 +1684,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="task-start-date" className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">
+                    <label
+                      htmlFor="task-start-date"
+                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
+                    >
                       Start Date
                     </label>
                     <Input
@@ -1511,7 +1699,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     />
                   </div>
                   <div>
-                    <label htmlFor="task-due-date" className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">
+                    <label
+                      htmlFor="task-due-date"
+                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
+                    >
                       Due Date
                     </label>
                     <Input
@@ -1539,7 +1730,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         Specifications & Requirements
                       </h3>
                       <p className="text-xs text-stone-500 dark:text-stone-400">
-                        Define task specifications, scope, acceptance criteria, and requirement links.
+                        Define task specifications, scope, acceptance criteria, and requirement
+                        links.
                       </p>
                     </div>
                   </div>
@@ -1550,9 +1742,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   <div className="space-y-4 rounded-xl border border-[#B1E743]/30 bg-[#B1E743]/5 p-4 dark:border-[#B1E743]/20 dark:bg-[#B1E743]/5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">Specification Brief</h4>
+                        <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                          Specification Brief
+                        </h4>
                         <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                          The versioned specification source of truth. Use scope for commitments; create Subtasks for execution work.
+                          The versioned specification source of truth. Use scope for commitments;
+                          create Subtasks for execution work.
                         </p>
                       </div>
                       <span className="shrink-0 rounded-lg bg-[#B1E743]/20 px-2 py-1 text-[11px] font-bold text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743]">
@@ -1561,19 +1756,29 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     </div>
 
                     {isLoadingProductBrief ? (
-                      <div className="space-y-3"><Skeleton className="h-10 w-full rounded-xl" /><Skeleton className="h-44 w-full rounded-xl" /></div>
+                      <div className="space-y-3">
+                        <Skeleton className="h-10 w-full rounded-xl" />
+                        <Skeleton className="h-44 w-full rounded-xl" />
+                      </div>
                     ) : productBriefError ? (
                       <Alert tone="error" title="Specification Brief unavailable">
                         <div className="flex items-center justify-between gap-3">
                           <span>{productBriefError}</span>
-                          <Button size="sm" variant="outline" onClick={() => void loadProductBrief()}>Retry</Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void loadProductBrief()}
+                          >
+                            Retry
+                          </Button>
                         </div>
                       </Alert>
                     ) : (
                       <>
                         {!canPlan && (
                           <Alert tone="info" title="Read-only Specification Brief">
-                            Only a Product Owner, Admin, or Owner can update Specification Brief content and scope.
+                            Only a Product Owner, Admin, or Owner can update Specification Brief
+                            content and scope.
                           </Alert>
                         )}
 
@@ -1608,13 +1813,18 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                 members.find((member) => member.userId === productBriefOwnerId) ||
                                 members.find(
                                   (member) =>
-                                    member.userId === (productBrief?.document.ownerId || task?.reporterId || currentUserId)
+                                    member.userId ===
+                                    (productBrief?.document.ownerId ||
+                                      task?.reporterId ||
+                                      currentUserId),
                                 );
                               const specOwnerName =
                                 specOwnerMember?.user?.name ||
                                 specOwnerMember?.user?.email ||
                                 (productBriefOwnerId ? productBriefOwnerId : 'Product Owner');
-                              const specOwnerRole = specOwnerMember?.role ? specOwnerMember.role.toUpperCase() : 'PO';
+                              const specOwnerRole = specOwnerMember?.role
+                                ? specOwnerMember.role.toUpperCase()
+                                : 'PO';
 
                               return (
                                 <div
@@ -1625,9 +1835,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                     <div className="w-6 h-6 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0">
                                       <User className="h-3.5 w-3.5" />
                                     </div>
-                                    <span className="font-semibold truncate">
-                                      {specOwnerName}
-                                    </span>
+                                    <span className="font-semibold truncate">{specOwnerName}</span>
                                     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 shrink-0">
                                       {specOwnerRole === 'OWNER' ? 'OWNER' : 'PO'}
                                     </span>
@@ -1643,7 +1851,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                               );
                             })()}
                             <p className="mt-1 text-[10px] text-stone-400 dark:text-stone-500">
-                              Akun PO / Creator pembuat spesifikasi ini terkunci secara permanen dan tidak dapat diubah.
+                              Akun PO / Creator pembuat spesifikasi ini terkunci secara permanen dan
+                              tidak dapat diubah.
                             </p>
                           </div>
                         </div>
@@ -1677,7 +1886,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                   <textarea
                                     aria-label="In Scope item"
                                     value={item.text}
-                                    onChange={(event) => updateScopeItem('in', item.id, event.target.value)}
+                                    onChange={(event) =>
+                                      updateScopeItem('in', item.id, event.target.value)
+                                    }
                                     disabled={!canPlan}
                                     rows={2}
                                     placeholder="Tuliskan deliverable / spesifikasi in scope secara rinci (bisa paragraf panjang)..."
@@ -1726,7 +1937,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                   <textarea
                                     aria-label="Out of Scope item"
                                     value={item.text}
-                                    onChange={(event) => updateScopeItem('out', item.id, event.target.value)}
+                                    onChange={(event) =>
+                                      updateScopeItem('out', item.id, event.target.value)
+                                    }
                                     disabled={!canPlan}
                                     rows={2}
                                     placeholder="Tuliskan batasan / hal yang out of scope secara rinci (bisa paragraf panjang)..."
@@ -1775,7 +1988,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                   <textarea
                                     aria-label="Acceptance criterion"
                                     value={criterion.text}
-                                    onChange={(event) => updateAcceptanceCriterion(criterion.id, event.target.value)}
+                                    onChange={(event) =>
+                                      updateAcceptanceCriterion(criterion.id, event.target.value)
+                                    }
                                     disabled={!canPlan}
                                     rows={2}
                                     placeholder="Tuliskan kriteria penerimaan (Acceptance Criteria) secara lengkap dalam bentuk paragraf atau spesifikasi teknis..."
@@ -1808,7 +2023,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           </div>
                         </div>
 
-
                         {canPlan && (
                           <div className="flex justify-end border-t border-stone-200 dark:border-stone-800 pt-3">
                             <Button
@@ -1826,152 +2040,16 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     )}
                   </div>
 
-                  {/* Requirement & Reference Links Section */}
+                  {/* Requirement & Specifications Management Section */}
                   <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-3 dark:border-stone-800 dark:bg-stone-950/40">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                        <FileText className="h-4 w-4 text-stone-700 dark:text-[#B1E743] shrink-0" />
-                        <span>Requirement & Reference Links ({(taskRequirementLinks || []).length})</span>
-                      </span>
-
-                      {(taskRequirementLinks || []).length === 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/30">
-                          <AlertTriangle className="h-3 w-3" />
-                          <span>No Reference Links Attached</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
-                          <CheckCircle2 className="h-3 w-3" />
-                          <span>{(taskRequirementLinks || []).length} References Attached</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Linked List */}
-                    {isLoadingRequirements ? (
-                      <div className="space-y-2">
-                        <Skeleton className="h-10 w-full rounded-xl" />
-                      </div>
-                    ) : (taskRequirementLinks || []).length === 0 ? (
-                      <p className="text-xs text-stone-500 italic py-1">
-                        {canPlan
-                          ? 'No reference links attached yet. As Product Owner, embed a Figma prototype, Google Spreadsheet, or PRD URL below for Developer and QA guidance.'
-                          : 'No external reference links attached by the Product Owner for this task.'}
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {taskRequirementLinks.map((link) => {
-                          const meta = getExternalLinkMeta(link.requirement?.url);
-                          return (
-                            <div
-                              key={link.id}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-stone-200 bg-white text-xs dark:border-stone-800 dark:bg-stone-900 gap-2.5 shadow-sm"
-                            >
-                              <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                                <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200">
-                                  {link.requirement?.code || 'REF'}
-                                </span>
-                                <span className="font-semibold text-stone-900 dark:text-stone-100 break-words whitespace-normal leading-relaxed">
-                                  {link.requirement?.title || 'Requirement Reference'}
-                                </span>
-                                {link.requirement?.url && meta && (
-                                  <span
-                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${meta.badgeClass}`}
-                                  >
-                                    <span>{meta.shortLabel}</span>
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                                {link.requirement?.url ? (
-                                  <a
-                                    href={link.requirement.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-[#B1E743]/20 text-[#141413] hover:bg-[#B1E743]/30 border border-[#B1E743]/40 dark:bg-[#B1E743]/20 dark:text-[#B1E743] dark:border-[#B1E743]/40 transition-colors"
-                                    title={link.requirement.url}
-                                  >
-                                    <span>Open Reference</span>
-                                    <ExternalLink className="h-3 w-3 opacity-75" />
-                                  </a>
-                                ) : null}
-                                {canPlan && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-stone-600 hover:text-rose-600 hover:border-rose-300 dark:text-stone-400 dark:hover:text-rose-400"
-                                    onClick={() => handleUnlinkRequirement(link.requirementId)}
-                                  >
-                                    Unlink
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Developer & QA guidance info */}
-                    {!canPlan && (
-                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-stone-100/70 dark:bg-stone-900/60 text-[11px] text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-800">
-                        <FileText className="h-3.5 w-3.5 text-stone-400 shrink-0" />
-                        <span>
-                          Reference links are provided by the Product Owner (PO) for developer and QA specifications. Click <strong>Open Reference</strong> to view external resources.
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Embed New Reference Form (PO / Planner only) */}
-                    {canPlan && (
-                      <div className="pt-2.5 border-t border-stone-200 dark:border-stone-800 space-y-3">
-                        <div>
-                          <span className="text-[11px] font-bold text-stone-800 dark:text-stone-200 block mb-1.5 flex items-center gap-1.5">
-                            <FileCode2 className="h-3.5 w-3.5 text-stone-400" />
-                            <span>Embed New Requirement Reference (PO / Planner):</span>
-                          </span>
-                          <div className="space-y-2">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                              <div className="sm:col-span-2">
-                                <Input
-                                  type="url"
-                                  placeholder="Reference URL (e.g. Figma / Spreadsheet / PRD / Jira URL)"
-                                  value={newReqUrl}
-                                  onChange={(e) => setNewReqUrl(e.target.value)}
-                                />
-                              </div>
-                              <div>
-                                <Input
-                                  type="text"
-                                  placeholder="Code (optional)"
-                                  value={newReqCode}
-                                  onChange={(e) => setNewReqCode(e.target.value)}
-                                />
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Input
-                                type="text"
-                                placeholder="Reference Title (e.g. Checkout Modal UI Specs / Price Rules Sheet)"
-                                value={newReqTitle}
-                                onChange={(e) => setNewReqTitle(e.target.value)}
-                                className="flex-1"
-                              />
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                isLoading={isCreatingReq}
-                                disabled={!newReqTitle.trim() || !newReqUrl.trim()}
-                                onClick={handleCreateAndLinkRequirement}
-                              >
-                                Embed Reference
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <RequirementManager
+                      workspaceId={activeWorkspaceId || ''}
+                      taskId={task.id}
+                      userRole={(activeWorkspace?.role || 'dev') as any}
+                      onRequirementChanged={() => {
+                        loadActivity(1);
+                      }}
+                    />
                   </div>
 
                   {/* QA Documents & Test Plans Section */}
@@ -1980,7 +2058,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                       <div>
                         <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
                           <Bug className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>QA Test Plans & Verification Docs ({(taskQaDocLinks || []).length})</span>
+                          <span>
+                            QA Test Plans & Verification Docs ({(taskQaDocLinks || []).length})
+                          </span>
                         </span>
                         <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
                           {canManageQaDocs
@@ -2016,9 +2096,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     ) : (
                       <div className="space-y-2">
                         {taskQaDocLinks.map((link) => {
-                          const versionNum = typeof link.document?.currentVersion === 'number'
-                            ? link.document.currentVersion
-                            : (link.document?.currentVersion as any)?.version || 1;
+                          const versionNum =
+                            typeof link.document?.currentVersion === 'number'
+                              ? link.document.currentVersion
+                              : (link.document?.currentVersion as any)?.version || 1;
                           return (
                             <div
                               key={link.id}
@@ -2029,12 +2110,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                   {link.document?.docType === 'test_plan'
                                     ? 'Test Plan'
                                     : link.document?.docType === 'test_strategy'
-                                    ? 'Test Strategy'
-                                    : link.document?.docType === 'release_report'
-                                    ? 'Release Report'
-                                    : link.document?.docType === 'qa_guide'
-                                    ? 'QA Guide'
-                                    : 'QA Doc'}
+                                      ? 'Test Strategy'
+                                      : link.document?.docType === 'release_report'
+                                        ? 'Release Report'
+                                        : link.document?.docType === 'qa_guide'
+                                          ? 'QA Guide'
+                                          : 'QA Doc'}
                                 </span>
                                 <span className="font-bold text-stone-900 dark:text-stone-100 truncate">
                                   {link.document?.title || 'QA Document'}
@@ -2062,13 +2143,29 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                       </div>
                     )}
                   </div>
-
                 </div>
               </Card>
             </div>
           )}
 
-          {/* TAB 3: SUBTASKS */}
+          {/* TAB 3: DELIVERY TRACE */}
+          {activeTab === 'trace' && (
+            <TaskDeliveryTracePanel
+              workspaceId={activeWorkspaceId || task.workspaceId}
+              taskId={task.id}
+            />
+          )}
+
+          {activeTab === 'bugs' && (
+            <BugExperiencePanel
+              workspaceId={activeWorkspaceId || task.workspaceId}
+              userRole={userWorkspaceRole}
+              mode="feature"
+              featureTaskId={task.parentTaskId || task.id}
+            />
+          )}
+
+          {/* SUBTASKS */}
           {activeTab === 'subtasks' && (
             <SubtaskList
               subtasks={subtasks}
@@ -2080,7 +2177,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               isLoading={isLoadingSubtasks}
               error={subtasksError}
               canPlan={canPlan && !task.parentTaskId}
-              canMutate={Boolean(activeWorkspace && ['owner', 'admin', 'po', 'dev', 'qa'].includes(activeWorkspace.role))}
+              canMutate={Boolean(
+                activeWorkspace &&
+                ['owner', 'admin', 'po', 'dev', 'qa'].includes(activeWorkspace.role),
+              )}
               unreadCommentMap={unreadSubtaskCommentMap}
               onClearSubtaskUnread={(subtaskId) => {
                 setUnreadSubtaskCommentMap((prev) => {
@@ -2095,10 +2195,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 setSubtasks((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
                 onDataChanged?.();
               }}
+              onSubtaskDeleted={(subtaskId) => {
+                setSubtasks((prev) => prev.filter((item) => item.id !== subtaskId));
+                onDataChanged?.();
+              }}
             />
           )}
 
-          {/* TAB 4: ACTIVITY AUDIT */}
+          {/* TAB 5: ACTIVITY AUDIT */}
           {activeTab === 'activity' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -2209,11 +2313,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   </Button>
                 </div>
               )}
-              {!activityError && activityTotal > PAGE_SIZE && activities.length === activityTotal && (
-                <p className="text-center text-[11px] text-stone-400 pt-1">
-                  All {activityTotal} activity events loaded.
-                </p>
-              )}
+              {!activityError &&
+                activityTotal > PAGE_SIZE &&
+                activities.length === activityTotal && (
+                  <p className="text-center text-[11px] text-stone-400 pt-1">
+                    All {activityTotal} activity events loaded.
+                  </p>
+                )}
             </div>
           )}
 
@@ -2251,6 +2357,56 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         }}
       />
 
+      <Modal
+        isOpen={canPlan && isDeleteConfirmationOpen}
+        onClose={() => {
+          if (!isDeletingTask) setIsDeleteConfirmationOpen(false);
+        }}
+        title={isSubtask ? 'Delete subtask?' : 'Delete task?'}
+        description={
+          isSubtask
+            ? 'This action removes the subtask from active Feature views.'
+            : 'This action removes the task from active Task Hub views.'
+        }
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Alert
+            tone="warning"
+            title={
+              isSubtask ? 'This subtask will be soft-deleted' : 'This task will be soft-deleted'
+            }
+          >
+            {task.subtaskSummary?.total
+              ? `${task.subtaskSummary.total} direct subtask${task.subtaskSummary.total === 1 ? '' : 's'} will also be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion.`
+              : `${isSubtask ? 'The subtask' : 'The task'} will be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion.`}
+          </Alert>
+          <p className="text-xs leading-5 text-stone-600 dark:text-stone-300">
+            Delete{' '}
+            <span className="font-bold text-stone-900 dark:text-stone-100">{task.title}</span>?
+          </p>
+          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteConfirmationOpen(false)}
+              disabled={isDeletingTask}
+            >
+              {isSubtask ? 'Keep Subtask' : 'Keep Task'}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void handleDeleteTask()}
+              isLoading={isDeletingTask}
+              leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+            >
+              {isSubtask ? 'Delete Subtask' : 'Delete Task'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Create & Link QA Document Modal */}
       <Modal
         isOpen={isCreateQaDocModalOpen}
@@ -2276,10 +2432,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
               Document Type *
             </label>
-            <Select
-              value={newQaDocType}
-              onChange={(e) => setNewQaDocType(e.target.value)}
-            >
+            <Select value={newQaDocType} onChange={(e) => setNewQaDocType(e.target.value)}>
               <option value="test_plan">Test Plan</option>
               <option value="test_strategy">Test Strategy</option>
               <option value="product_brief">Product Brief</option>

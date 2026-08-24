@@ -7,6 +7,7 @@ import {
   AddWorkspaceMemberSchema,
   UpdateMemberRoleSchema,
   GrantTaskCreationPermissionSchema,
+  WorkspaceActivityQuerySchema,
 } from '@qlick/contracts';
 
 function handleError(res: Response, error: unknown) {
@@ -150,7 +151,11 @@ export const addWorkspaceMember = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    const member = await workspaceService.addWorkspaceMember(workspaceId, parseResult.data, req.user?.userId);
+    const member = await workspaceService.addWorkspaceMember(
+      workspaceId,
+      parseResult.data,
+      req.user?.userId,
+    );
     return res.status(201).json({ data: member });
   } catch (error) {
     return handleError(res, error);
@@ -175,7 +180,12 @@ export const updateMemberRole = async (req: AuthenticatedRequest, res: Response)
       });
     }
 
-    const updated = await workspaceService.updateMemberRole(workspaceId, memberUserId, parseResult.data.role);
+    const updated = await workspaceService.updateMemberRole(
+      workspaceId,
+      memberUserId,
+      parseResult.data,
+      req.user!.userId,
+    );
     return res.status(200).json({ data: updated });
   } catch (error) {
     return handleError(res, error);
@@ -185,7 +195,7 @@ export const updateMemberRole = async (req: AuthenticatedRequest, res: Response)
 export const removeWorkspaceMember = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { workspaceId, memberUserId } = req.params;
-    await workspaceService.removeWorkspaceMember(workspaceId, memberUserId);
+    await workspaceService.removeWorkspaceMember(workspaceId, memberUserId, req.user!.userId);
     return res.status(200).json({ data: { success: true } });
   } catch (error) {
     return handleError(res, error);
@@ -223,7 +233,7 @@ export const grantTaskCreationPermission = async (req: AuthenticatedRequest, res
     const permission = await workspaceService.grantTaskCreationPermission(
       workspaceId,
       req.user!.userId,
-      parseResult.data
+      parseResult.data,
     );
     return res.status(201).json({ data: permission });
   } catch (error) {
@@ -241,3 +251,26 @@ export const revokeTaskCreationPermission = async (req: AuthenticatedRequest, re
   }
 };
 
+export const getWorkspaceActivities = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+    const parseResult = WorkspaceActivityQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        type: 'https://api.qa-hub.com/errors/bad-request',
+        title: 'Validation Error',
+        status: 400,
+        detail: parseResult.error.errors[0]?.message || 'Invalid query parameters',
+        code: 'VALIDATION_ERROR',
+      });
+    }
+    const activities = await workspaceService.listWorkspaceActivities(
+      workspaceId,
+      parseResult.data,
+      req.user!.userId,
+    );
+    return res.status(200).json({ data: activities });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};

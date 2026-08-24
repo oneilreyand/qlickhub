@@ -30,54 +30,35 @@ describe('FormattedText Atom', () => {
     expect(plain).toBe('Heading Bold and Italic with code item Bullet point');
   });
 
-  it('renders zoomable image preview with click-to-enlarge matching discussion style', () => {
+  it('renders zoomable image preview for explicit markdown image syntax', () => {
     render(
-      <FormattedText content="Screenshot evidence:\nhttps://example.com/assets/screenshot.png" />
+      <FormattedText content="Screenshot evidence:\n![Evidence](https://example.com/assets/screenshot.png)" />,
     );
 
-    const img = screen.getByAltText('Image Attachment');
+    const img = screen.getByAltText('Evidence');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', 'https://example.com/assets/screenshot.png');
     expect(screen.getByText(/memperbesar|enlarge/i)).toBeInTheDocument();
   });
 
-  it('renders Pinterest pin preview and open pin button', () => {
+  it('renders explicit markdown links as clickable anchor tags', () => {
     render(
-      <FormattedText content="Pinterest Reference:\nhttps://www.pinterest.com/pin/594404850814223726/" />
+      <FormattedText content="Please check the [Specification Document](https://example.com/docs/spec) for details" />,
     );
 
-    expect(screen.getByRole('link', { name: /Buka Pin/i })).toBeInTheDocument();
-    expect(screen.getByTitle('Pinterest Pin Widget')).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: /Specification Document/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://example.com/docs/spec');
+    expect(link).toHaveAttribute('target', '_blank');
   });
 
-  it('renders Google Drive preview with thumbnail and open drive button', () => {
-    render(
-      <FormattedText content="Drive Spec:\nhttps://drive.google.com/file/d/1X-example-id/view?usp=sharing" />
-    );
+  it('keeps plain URLs as normal text without converting to links or cards', () => {
+    render(<FormattedText content="Raw link: https://example.com/plain-url is just plain text" />);
 
-    expect(screen.getByText('DRIVE PREVIEW')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Buka Drive/i })).toBeInTheDocument();
-  });
-
-  it('renders HTML5 video player for direct video URLs', () => {
-    const { container } = render(
-      <FormattedText content="Recorded reproduction demo:\nhttps://cdn.example.com/bugs/bug-demo.mp4" />
-    );
-
-    const videoEl = container.querySelector('video');
-    expect(videoEl).toBeInTheDocument();
-    expect(videoEl).toHaveAttribute('src', 'https://cdn.example.com/bugs/bug-demo.mp4');
-    expect(videoEl).toHaveAttribute('controls');
-  });
-
-  it('renders YouTube embedded player iframe', () => {
-    const { container } = render(
-      <FormattedText content="Feature walkthrough:\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ" />
-    );
-
-    const iframeEl = container.querySelector('iframe');
-    expect(iframeEl).toBeInTheDocument();
-    expect(iframeEl).toHaveAttribute('src', 'https://www.youtube.com/embed/dQw4w9WgXcQ');
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(
+      screen.getByText(/Raw link: https:\/\/example\.com\/plain-url is just plain text/),
+    ).toBeInTheDocument();
   });
 
   it('renders GitHub Alert callout boxes (Note, Important, Tip, Warning)', () => {
@@ -89,7 +70,9 @@ describe('FormattedText Atom', () => {
     render(<FormattedText content={text} />);
 
     expect(screen.getByText('Important')).toBeInTheDocument();
-    expect(screen.getByText(/Must pass all payment gateway integration test cases/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Must pass all payment gateway integration test cases/i),
+    ).toBeInTheDocument();
     expect(screen.getByText('Warning')).toBeInTheDocument();
     expect(screen.getByText(/Do not expose API secrets in client bundle/i)).toBeInTheDocument();
   });
@@ -107,13 +90,5 @@ Acceptance Criteria:
     expect(screen.getByText('Acceptance Criteria')).toBeInTheDocument();
     expect(screen.getByText('User can select payment method')).toBeInTheDocument();
     expect(screen.getByText('Shows confirmation toast on success')).toBeInTheDocument();
-  });
-
-  it('renders smart interactive chip for GitHub PR and Issue links', () => {
-    const text = 'Review PR: https://github.com/qlick-org/qlick-hub/pull/245 and Issue https://github.com/qlick-org/qlick-hub/issues/100';
-    render(<FormattedText content={text} />);
-
-    expect(screen.getByText('qlick-hub #245')).toBeInTheDocument();
-    expect(screen.getByText('qlick-hub #100')).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { test, describe } from 'node:test';
 import { CreateWorkspaceSchema, UpdateWorkspaceSchema } from '@qlick/contracts';
+import { canCreateWorkspace } from '../../../policies/workspacePolicy.js';
 
 describe('Workspace API Authorization & Validation Tests', () => {
   describe('Input Contract Validation', () => {
@@ -49,15 +50,13 @@ describe('Workspace API Authorization & Validation Tests', () => {
       assert.strictEqual(allowedRoles.includes('qa'), false);
     });
 
-    test('Only owner, admin, po, and qa roles can create workspaces', () => {
-      const allowedCreationRoles = ['owner', 'admin', 'po', 'qa'];
-
-      assert.strictEqual(allowedCreationRoles.includes('owner'), true);
-      assert.strictEqual(allowedCreationRoles.includes('admin'), true);
-      assert.strictEqual(allowedCreationRoles.includes('po'), true);
-      assert.strictEqual(allowedCreationRoles.includes('qa'), true);
-      assert.strictEqual(allowedCreationRoles.includes('dev'), false);
-      assert.strictEqual(allowedCreationRoles.includes('viewer'), false);
+    test('Only owner, admin, and po roles can create workspaces', () => {
+      assert.strictEqual(canCreateWorkspace('owner'), true);
+      assert.strictEqual(canCreateWorkspace('admin'), true);
+      assert.strictEqual(canCreateWorkspace('po'), true);
+      assert.strictEqual(canCreateWorkspace('qa'), false);
+      assert.strictEqual(canCreateWorkspace('dev'), false);
+      assert.strictEqual(canCreateWorkspace('viewer'), false);
     });
   });
 });

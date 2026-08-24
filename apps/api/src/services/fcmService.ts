@@ -8,7 +8,6 @@ import { PushNotificationPayload } from '@qlick/contracts';
 // at module load time (notificationService → fcmService → notificationService).
 import type { NotificationService } from '../modules/notifications/notificationService.js';
 
-
 let firebaseApp: App | null = null;
 
 function initializeFirebaseAdmin(): App | null {
@@ -55,7 +54,10 @@ function initializeFirebaseAdmin(): App | null {
     console.log(`ℹ️ Firebase Admin SDK initialized with project ID: ${env.FIREBASE_PROJECT_ID}`);
     return firebaseApp;
   } catch (error) {
-    console.warn('⚠️ Firebase Admin SDK initialization warning:', error instanceof Error ? error.message : error);
+    console.warn(
+      '⚠️ Firebase Admin SDK initialization warning:',
+      error instanceof Error ? error.message : error,
+    );
     return null;
   }
 }
@@ -68,7 +70,11 @@ export class FcmService {
   /**
    * Registers or updates an FCM token for a user.
    */
-  async registerToken(userId: string, token: string, deviceInfo?: string): Promise<{ success: boolean; message: string }> {
+  async registerToken(
+    userId: string,
+    token: string,
+    deviceInfo?: string,
+  ): Promise<{ success: boolean; message: string }> {
     const trimmedToken = token.trim();
     if (!trimmedToken) {
       throw new Error('BAD_REQUEST: FCM Token cannot be empty.');
@@ -97,7 +103,10 @@ export class FcmService {
   /**
    * Unregisters an FCM token when a user logs out or turns off notifications.
    */
-  async unregisterToken(userId: string, token: string): Promise<{ success: boolean; message: string }> {
+  async unregisterToken(
+    userId: string,
+    token: string,
+  ): Promise<{ success: boolean; message: string }> {
     const trimmedToken = token.trim();
     const deletedCount = await UserFcmTokenModel.destroy({
       where: { userId, token: trimmedToken },
@@ -133,7 +142,10 @@ export class FcmService {
 
       if (tokensRecords.length === 0) {
         if (env.NODE_ENV !== 'production') {
-          console.log(`[FCM Notification Simulated] To users ${distinctUserIds.join(', ')} (no active device tokens):`, payload);
+          console.log(
+            `[FCM Notification Simulated] To users ${distinctUserIds.join(', ')} (no active device tokens):`,
+            payload,
+          );
         }
         return;
       }
@@ -156,7 +168,9 @@ export class FcmService {
             badge: '/favicon.svg',
           },
           fcmOptions: {
-            link: payload.data?.taskId ? `/work?tab=tasks&taskId=${payload.data.taskId}` : '/my-tasks',
+            link: payload.data?.taskId
+              ? `/work?tab=tasks&taskId=${payload.data.taskId}`
+              : '/my-tasks',
           },
         },
       };
@@ -187,7 +201,10 @@ export class FcmService {
         });
       }
     } catch (error) {
-      console.warn('⚠️ Error sending FCM multicast message:', error instanceof Error ? error.message : error);
+      console.warn(
+        '⚠️ Error sending FCM multicast message:',
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 
@@ -209,7 +226,8 @@ export class FcmService {
 
     // 1. Persist via NotificationService (single source of truth for notifications table)
     try {
-      const { notificationService } = await import('../modules/notifications/notificationService.js');
+      const { notificationService } =
+        await import('../modules/notifications/notificationService.js');
       await notificationService.createNotification({
         userId: assigneeId,
         workspaceId,
@@ -246,7 +264,16 @@ export class FcmService {
     oldStatus: string;
     newStatus: string;
   }): Promise<void> {
-    const { recipientUserIds, updaterName, updaterId, taskTitle, taskId, workspaceId, oldStatus, newStatus } = params;
+    const {
+      recipientUserIds,
+      updaterName,
+      updaterId,
+      taskTitle,
+      taskId,
+      workspaceId,
+      oldStatus,
+      newStatus,
+    } = params;
     // FIX: use regex so all underscores are replaced (e.g. "in_review_qa" → "IN REVIEW QA")
     const formattedStatus = newStatus.replace(/_/g, ' ').toUpperCase();
     const title = 'Status Tugas Diperbarui';
@@ -254,7 +281,8 @@ export class FcmService {
 
     // 1. Persist via NotificationService
     try {
-      const { notificationService } = await import('../modules/notifications/notificationService.js');
+      const { notificationService } =
+        await import('../modules/notifications/notificationService.js');
       await notificationService.createBulkNotifications(
         recipientUserIds.map((userId) => ({
           userId,
@@ -265,7 +293,7 @@ export class FcmService {
           title,
           message,
         })),
-        false // sendFcm handled below
+        false, // sendFcm handled below
       );
     } catch (err) {
       console.warn('⚠️ Failed to save in-app status update notification in DB:', err);
@@ -294,16 +322,30 @@ export class FcmService {
     commentSnippet: string;
     isChannel?: boolean;
   }): Promise<void> {
-    const { recipientUserIds, authorName, authorId, taskTitle, taskId, workspaceId, commentId, commentSnippet, isChannel } = params;
-    const snippet = commentSnippet.length > 80 ? `${commentSnippet.slice(0, 77)}...` : commentSnippet;
+    const {
+      recipientUserIds,
+      authorName,
+      authorId,
+      taskTitle,
+      taskId,
+      workspaceId,
+      commentId,
+      commentSnippet,
+      isChannel,
+    } = params;
+    const snippet =
+      commentSnippet.length > 80 ? `${commentSnippet.slice(0, 77)}...` : commentSnippet;
 
     const notifTitle = isChannel ? `📢 @channel: ${taskTitle}` : `Update Diskusi: ${taskTitle}`;
-    const notifBody = isChannel ? `${authorName} me-mention @channel: "${snippet}"` : `${authorName}: "${snippet}"`;
+    const notifBody = isChannel
+      ? `${authorName} me-mention @channel: "${snippet}"`
+      : `${authorName}: "${snippet}"`;
     const notifType = isChannel ? 'mention' : 'discussion';
 
     // 1. Persist via NotificationService
     try {
-      const { notificationService } = await import('../modules/notifications/notificationService.js');
+      const { notificationService } =
+        await import('../modules/notifications/notificationService.js');
       await notificationService.createBulkNotifications(
         recipientUserIds.map((userId) => ({
           userId,
@@ -314,7 +356,7 @@ export class FcmService {
           title: notifTitle,
           message: notifBody,
         })),
-        false // sendFcm handled below
+        false, // sendFcm handled below
       );
     } catch (err) {
       console.warn('⚠️ Failed to save in-app discussion notification in DB:', err);
@@ -345,7 +387,8 @@ export class FcmService {
 
     // 1. Persist via NotificationService (no actorId for system-generated deadline alerts)
     try {
-      const { notificationService } = await import('../modules/notifications/notificationService.js');
+      const { notificationService } =
+        await import('../modules/notifications/notificationService.js');
       await notificationService.createBulkNotifications(
         recipientUserIds.map((userId) => ({
           userId,
@@ -356,7 +399,7 @@ export class FcmService {
           title: notifTitle,
           message: notifBody,
         })),
-        false // sendFcm handled below
+        false, // sendFcm handled below
       );
     } catch (err) {
       console.warn('⚠️ Failed to save in-app deadline notification in DB:', err);
@@ -369,9 +412,252 @@ export class FcmService {
       data: { type: 'deadline', taskId, workspaceId },
     });
   }
+
+  /**
+   * Helper: Trigger 5 — Bug Lifecycle Notification
+   */
+  async sendBugNotification(params: {
+    recipientUserIds: string[];
+    actorName: string;
+    actorId: string;
+    bugTitle: string;
+    bugId: string;
+    taskId?: string | null;
+    workspaceId: string;
+    action: 'created' | 'status_change' | 'critical';
+    details?: string;
+  }): Promise<void> {
+    const {
+      recipientUserIds,
+      actorName,
+      actorId,
+      bugTitle,
+      bugId,
+      taskId,
+      workspaceId,
+      action,
+      details,
+    } = params;
+    let notifTitle = 'Laporan Bug Baru';
+    let notifBody = `${actorName} melaporkan bug baru: "${bugTitle}"`;
+    let notifType: 'bug_created' | 'bug_status_change' | 'bug_critical' = 'bug_created';
+
+    if (action === 'status_change') {
+      notifTitle = 'Status Bug Diperbarui';
+      notifBody = `${actorName} memperbarui status bug "${bugTitle}"${details ? ` menjadi ${details}` : ''}`;
+      notifType = 'bug_status_change';
+    } else if (action === 'critical') {
+      notifTitle = '🚨 Bug Kritis Terdeteksi';
+      notifBody = `Bug "${bugTitle}" ditandai sebagai SEVERITY CRITICAL oleh ${actorName}`;
+      notifType = 'bug_critical';
+    }
+
+    try {
+      const { notificationService } =
+        await import('../modules/notifications/notificationService.js');
+      await notificationService.createBulkNotifications(
+        recipientUserIds.map((userId) => ({
+          userId,
+          workspaceId,
+          taskId: taskId || null,
+          actorId,
+          type: notifType,
+          title: notifTitle,
+          message: notifBody,
+        })),
+        false,
+      );
+    } catch (err) {
+      console.warn('⚠️ Failed to save in-app bug notification in DB:', err);
+    }
+
+    await this.sendToUsers(recipientUserIds, {
+      title: notifTitle,
+      body: notifBody,
+      data: { type: notifType, bugId, taskId: taskId || '', workspaceId },
+    });
+  }
+
+  /**
+   * Helper: Trigger 6 — QA Sign-Off Notification
+   */
+  async sendQaSignOffNotification(params: {
+    recipientUserIds: string[];
+    qaName: string;
+    qaId: string;
+    taskTitle: string;
+    taskId: string;
+    workspaceId: string;
+  }): Promise<void> {
+    const { recipientUserIds, qaName, qaId, taskTitle, taskId, workspaceId } = params;
+    const title = '✅ QA Sign-Off Selesai';
+    const message = `${qaName} telah menyetujui QA sign-off untuk tugas: "${taskTitle}"`;
+
+    try {
+      const { notificationService } =
+        await import('../modules/notifications/notificationService.js');
+      await notificationService.createBulkNotifications(
+        recipientUserIds.map((userId) => ({
+          userId,
+          workspaceId,
+          taskId: taskId || null,
+          actorId: qaId,
+          type: 'qa_signoff' as const,
+          title,
+          message,
+        })),
+        false,
+      );
+    } catch (err) {
+      console.warn('⚠️ Failed to save in-app QA sign-off notification in DB:', err);
+    }
+
+    await this.sendToUsers(recipientUserIds, {
+      title,
+      body: message,
+      data: { type: 'qa_signoff', taskId, workspaceId },
+    });
+  }
+
+  /**
+   * Helper: Trigger 7 — Release Decision Notification
+   */
+  async sendReleaseDecisionNotification(params: {
+    recipientUserIds: string[];
+    poName: string;
+    poId: string;
+    taskTitle: string;
+    taskId: string;
+    workspaceId: string;
+    decision: string;
+    reason?: string;
+  }): Promise<void> {
+    const { recipientUserIds, poName, poId, taskTitle, taskId, workspaceId, decision } = params;
+    const formattedDecision = decision.replace(/_/g, ' ').toUpperCase();
+    const title = `Keputusan Rilis: ${formattedDecision}`;
+    const message = `${poName} menetapkan keputusan rilis "${formattedDecision}" untuk tugas: "${taskTitle}"`;
+
+    try {
+      const { notificationService } =
+        await import('../modules/notifications/notificationService.js');
+      await notificationService.createBulkNotifications(
+        recipientUserIds.map((userId) => ({
+          userId,
+          workspaceId,
+          taskId: taskId || null,
+          actorId: poId,
+          type: 'release_decision' as const,
+          title,
+          message,
+        })),
+        false,
+      );
+    } catch (err) {
+      console.warn('⚠️ Failed to save in-app release decision notification in DB:', err);
+    }
+
+    await this.sendToUsers(recipientUserIds, {
+      title,
+      body: message,
+      data: { type: 'release_decision', taskId, workspaceId, decision },
+    });
+  }
+
+  /**
+   * Helper: Trigger 8 — Test Failure / Blocker Notification
+   */
+  async sendTestFailureNotification(params: {
+    recipientUserIds: string[];
+    testerName: string;
+    testerId: string;
+    testCaseTitle: string;
+    taskTitle: string;
+    taskId: string;
+    workspaceId: string;
+    status: 'failed' | 'blocked';
+  }): Promise<void> {
+    const {
+      recipientUserIds,
+      testerName,
+      testerId,
+      testCaseTitle,
+      taskTitle,
+      taskId,
+      workspaceId,
+      status,
+    } = params;
+    const title = `⚠️ Uji QA ${status.toUpperCase()}`;
+    const message = `${testerName} mencatat hasil ${status.toUpperCase()} pada "${testCaseTitle}" untuk tugas: "${taskTitle}"`;
+
+    try {
+      const { notificationService } =
+        await import('../modules/notifications/notificationService.js');
+      await notificationService.createBulkNotifications(
+        recipientUserIds.map((userId) => ({
+          userId,
+          workspaceId,
+          taskId: taskId || null,
+          actorId: testerId,
+          type: 'test_failed' as const,
+          title,
+          message,
+        })),
+        false,
+      );
+    } catch (err) {
+      console.warn('⚠️ Failed to save in-app test failure notification in DB:', err);
+    }
+
+    await this.sendToUsers(recipientUserIds, {
+      title,
+      body: message,
+      data: { type: 'test_failed', taskId, workspaceId, status },
+    });
+  }
+
+  /**
+   * Helper: Trigger 9 — Workspace Membership Notification
+   */
+  async sendWorkspaceMembershipNotification(params: {
+    userId: string;
+    actorName: string;
+    actorId: string;
+    workspaceName: string;
+    workspaceId: string;
+    action: 'added' | 'role_updated';
+    newRole?: string;
+  }): Promise<void> {
+    const { userId, actorName, actorId, workspaceName, workspaceId, action, newRole } = params;
+    const title = action === 'added' ? 'Bergabung ke Workspace' : 'Peran Workspace Diperbarui';
+    const message =
+      action === 'added'
+        ? `${actorName} menambahkan Anda ke workspace "${workspaceName}"`
+        : `${actorName} memperbarui peran Anda menjadi ${newRole ? newRole.toUpperCase() : ''} di workspace "${workspaceName}"`;
+
+    try {
+      const { notificationService } =
+        await import('../modules/notifications/notificationService.js');
+      await notificationService.createNotification({
+        userId,
+        workspaceId,
+        actorId,
+        type: 'workspace_membership',
+        title,
+        message,
+        sendFcm: false,
+      });
+    } catch (err) {
+      console.warn('⚠️ Failed to save in-app workspace membership notification in DB:', err);
+    }
+
+    await this.sendToUser(userId, {
+      title,
+      body: message,
+      data: { type: 'workspace_membership', workspaceId },
+    });
+  }
 }
 
 export const fcmService = new FcmService();
 // Export type to allow type-only imports elsewhere
 export type { NotificationService };
-

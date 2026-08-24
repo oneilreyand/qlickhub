@@ -105,7 +105,7 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
         title: 'Checkout & Payment Feature',
         status: 'in_progress',
         priority: 'urgent',
-      })
+      }),
     );
 
     parentTask = (await TaskModel.findByPk(createdParent.id))!;
@@ -132,7 +132,7 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
         title: 'Payment UI View',
         assigneeId: feDev.id,
         status: 'in_progress',
-      })
+      }),
     );
 
     const beSubtask = await taskService.createTask(
@@ -144,7 +144,7 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
         title: 'Payment Gateway API',
         assigneeId: beDev.id,
         status: 'in_progress',
-      })
+      }),
     );
 
     const qaSubtask = await taskService.createTask(
@@ -156,7 +156,7 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
         title: 'Payment E2E Automation',
         assigneeId: qaUser.id,
         status: 'in_progress',
-      })
+      }),
     );
 
     // QA can be in_progress early to prepare test suites
@@ -171,9 +171,13 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
         await taskService.updateTask(poUser.id, workspace.id, qaSubtask.id, { status: 'done' });
       },
       (err: any) => {
-        assert.ok(String(err.message).includes('Cannot mark QA subtask as Done until all Frontend and Backend subtasks are completed'));
+        assert.ok(
+          String(err.message).includes(
+            'Cannot mark QA subtask as Done until all development subtasks are completed',
+          ),
+        );
         return true;
-      }
+      },
     );
 
     // FE and BE complete their work and PO approves them
@@ -181,7 +185,9 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
     await taskService.updateTask(poUser.id, workspace.id, beSubtask.id, { status: 'done' });
 
     // Now PO can approve QA subtask as done
-    const approvedQa = await taskService.updateTask(poUser.id, workspace.id, qaSubtask.id, { status: 'done' });
+    const approvedQa = await taskService.updateTask(poUser.id, workspace.id, qaSubtask.id, {
+      status: 'done',
+    });
     assert.strictEqual(approvedQa.status, 'done');
   });
 
@@ -197,18 +203,40 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
             deliveryArea: 'backend',
             title: 'Backend assigned to QA mismatch',
             assigneeId: qaUser.id,
-          })
+          }),
         );
       },
       (err: any) => {
-        assert.ok(String(err.message).includes('does not match subtask delivery area'));
+        assert.ok(String(err.message).includes('do not match subtask delivery area'));
         return true;
-      }
+      },
     );
 
-    // Providing allowRoleMismatch: true -> Succeeded
+    // PO cannot use an assignment mismatch override.
+    await assert.rejects(
+      async () => {
+        await taskService.createTask(
+          poUser.id,
+          CreateTaskSchema.parse({
+            workspaceId: workspace.id,
+            parentTaskId: parentTask.id,
+            deliveryArea: 'backend',
+            title: 'PO attempts mismatch override',
+            assigneeId: qaUser.id,
+            allowRoleMismatch: true,
+            roleMismatchReason: 'Temporary coverage is required for this delivery window.',
+          }),
+        );
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('Only the Workspace Owner'));
+        return true;
+      },
+    );
+
+    // Workspace Owner can override with an auditable reason.
     const overriddenTask = await taskService.createTask(
-      poUser.id,
+      owner.id,
       CreateTaskSchema.parse({
         workspaceId: workspace.id,
         parentTaskId: parentTask.id,
@@ -216,7 +244,8 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
         title: 'Backend assigned to QA with override',
         assigneeId: qaUser.id,
         allowRoleMismatch: true,
-      })
+        roleMismatchReason: 'Temporary coverage is required for this delivery window.',
+      }),
     );
 
     assert.strictEqual(overriddenTask.assigneeId, qaUser.id);

@@ -52,6 +52,21 @@ export const getTraceabilitySummary = async (req: AuthenticatedRequest, res: Res
   }
 };
 
+export const getParentTaskDeliveryTrace = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { workspaceId, taskId } = req.params;
+    const actorId = req.user!.userId;
+    const deliveryTrace = await traceabilityService.getParentTaskDeliveryTrace(
+      workspaceId,
+      taskId,
+      actorId,
+    );
+    return res.status(200).json(deliveryTrace);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
 export const listRequirementTestCases = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { workspaceId, requirementId } = req.params;
@@ -59,7 +74,7 @@ export const listRequirementTestCases = async (req: AuthenticatedRequest, res: R
     const testCases = await traceabilityService.listRequirementTestCases(
       workspaceId,
       requirementId,
-      actorId
+      actorId,
     );
     return res.status(200).json({ testCases });
   } catch (error) {
@@ -81,7 +96,7 @@ export const createRequirementTestCase = async (req: AuthenticatedRequest, res: 
     const testCase = await traceabilityService.createRequirementTestCase(
       workspaceId,
       actorId,
-      parsed
+      parsed,
     );
     return res.status(201).json({ testCase });
   } catch (error) {
@@ -100,7 +115,7 @@ export const updateTestCaseStatus = async (req: AuthenticatedRequest, res: Respo
       testCaseId,
       actorId,
       status,
-      executionDetails
+      executionDetails,
     );
     return res.status(200).json({ testCase });
   } catch (error) {

@@ -43,7 +43,14 @@ export const fetchTasks = createAsyncThunk(
     query?: Partial<Omit<TaskListQuery, 'workspaceId'>>;
   }) => {
     return await taskService.listTasks(workspaceId, query);
-  }
+  },
+);
+
+export const fetchTaskById = createAsyncThunk(
+  'task/fetchTaskById',
+  async ({ workspaceId, taskId }: { workspaceId: string; taskId: string }) => {
+    return await taskService.getTask(workspaceId, taskId);
+  },
 );
 
 export const createTask = createAsyncThunk(
@@ -58,12 +65,12 @@ export const createTask = createAsyncThunk(
       input: Omit<CreateTaskInput, 'workspaceId'>;
       query?: Partial<Omit<TaskListQuery, 'workspaceId'>>;
     },
-    { dispatch }
+    { dispatch },
   ) => {
     const task = await taskService.createTask(workspaceId, input);
     dispatch(fetchTasks({ workspaceId, query }));
     return task;
-  }
+  },
 );
 
 export const updateTask = createAsyncThunk(
@@ -78,7 +85,7 @@ export const updateTask = createAsyncThunk(
     input: UpdateTaskInput;
   }) => {
     return await taskService.updateTask(workspaceId, taskId, input);
-  }
+  },
 );
 
 export const moveTask = createAsyncThunk(
@@ -95,12 +102,12 @@ export const moveTask = createAsyncThunk(
       input: MoveTaskInput;
       query?: Partial<Omit<TaskListQuery, 'workspaceId'>>;
     },
-    { dispatch }
+    { dispatch },
   ) => {
     const task = await taskService.moveTask(workspaceId, taskId, input);
     dispatch(fetchTasks({ workspaceId, query }));
     return task;
-  }
+  },
 );
 
 export const completeTask = createAsyncThunk(
@@ -115,7 +122,7 @@ export const completeTask = createAsyncThunk(
     input: CompleteTaskInput;
   }) => {
     return await taskService.completeTask(workspaceId, taskId, input);
-  }
+  },
 );
 
 const taskSlice = createSlice({
@@ -125,10 +132,7 @@ const taskSlice = createSlice({
     setSelectedTaskId: (state, action: PayloadAction<string | null>) => {
       state.selectedTaskId = action.payload;
     },
-    setQueryFilter: (
-      state,
-      action: PayloadAction<Partial<Omit<TaskListQuery, 'workspaceId'>>>
-    ) => {
+    setQueryFilter: (state, action: PayloadAction<Partial<Omit<TaskListQuery, 'workspaceId'>>>) => {
       state.queryFilter = { ...state.queryFilter, ...action.payload };
     },
     clearTaskError: (state) => {
@@ -152,6 +156,12 @@ const taskSlice = createSlice({
       .addCase(fetchTasks.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || 'Failed to fetch tasks';
+      })
+      // fetchTaskById
+      .addCase(fetchTaskById.fulfilled, (state, action) => {
+        const index = state.tasks.findIndex((task) => task.id === action.payload.id);
+        if (index === -1) state.tasks.push(action.payload);
+        else state.tasks[index] = action.payload;
       })
       // createTask
       .addCase(createTask.pending, (state) => {

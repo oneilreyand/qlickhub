@@ -1,6 +1,7 @@
 import { sequelize } from '../../db/sequelize.js';
 import {
   RequirementModel,
+  AcceptanceCriterionModel,
   TaskRequirementModel,
   TaskModel,
   TaskActivityModel,
@@ -9,11 +10,17 @@ import {
 import {
   assertCanReadRequirements,
   assertCanCreateRequirement,
+  assertCanUpdateRequirement,
   assertCanLinkRequirement,
 } from '../../policies/requirementPolicy.js';
 import {
   Requirement,
   CreateRequirementInput,
+  UpdateRequirementInput,
+  RequirementDetailResponse,
+  AcceptanceCriterion,
+  CreateAcceptanceCriterionInput,
+  UpdateAcceptanceCriterionInput,
   TaskRequirementLink,
 } from '@qlick/contracts';
 
@@ -26,6 +33,25 @@ function formatRequirement(r: RequirementModel | Record<string, any>): Requireme
     title: json.title,
     description: json.description || null,
     url: json.url || null,
+    status: json.status,
+    createdBy: json.createdBy,
+    createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: json.updatedAt ? new Date(json.updatedAt).toISOString() : new Date().toISOString(),
+  };
+}
+
+function formatAcceptanceCriterion(
+  criterion: AcceptanceCriterionModel | Record<string, any>,
+): AcceptanceCriterion {
+  const json =
+    typeof (criterion as any).toJSON === 'function' ? (criterion as any).toJSON() : criterion;
+  return {
+    id: json.id,
+    workspaceId: json.workspaceId,
+    requirementId: json.requirementId,
+    sequence: json.sequence,
+    code: `AC-${json.sequence}`,
+    text: json.text,
     status: json.status,
     createdBy: json.createdBy,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
@@ -46,7 +72,6 @@ function formatLink(l: TaskRequirementModel): TaskRequirementLink {
     requirement: reqObj ? formatRequirement(reqObj) : undefined,
   };
 }
-
 
 async function getActorMembership(workspaceId: string, actorId: string) {
   const member = await WorkspaceMemberModel.findOne({
@@ -91,10 +116,223 @@ function generateAutoRequirementCode(url?: string | null): string {
 }
 
 export class RequirementService {
+  async listWorkspaceRequirements(workspaceId: string, actorId: string): Promise<Requirement[]> {
+    const member = await getActorMembership(workspaceId, actorId);
+    assertCanReadRequirements(member.role);
+
+    const requirements = await RequirementModel.findAll({
+      where: { workspaceId },
+      order: [['code', 'ASC']],
+    });
+
+    return requirements.map(formatRequirement);
+  }
+
+  async getRequirementDetail(
+    workspaceId: string,
+    requirementId: string,
+    actorId: string,
+  ): Promise<RequirementDetailResponse> {
+    const member = await getActorMembership(workspaceId, actorId);
+    assertCanReadRequirements(member.role);
+
+    const requirement = await RequirementModel.findOne({
+      where: { id: requirementId, workspaceId },
+    });
+
+    if (!requirement) {
+      throw new Error('NOT_FOUND: Requirement not found in this workspace.');
+    }
+
+    const links = await TaskRequirementModel.findAll({
+      where: { workspaceId, requirementId },
+      include: [{ model: TaskModel, as: 'task' }],
+      order: [['createdAt', 'ASC']],
+    });
+
+    const acceptanceCriteria = await AcceptanceCriterionModel.findAll({
+      where: { workspaceId, requirementId },
+      order: [['sequence', 'ASC']],
+    });
+
+    const linkedTasks = links.map((l: any) => {
+      const task = l.task;
+      return {
+        taskId: l.taskId,
+        title: task?.title || '',
+        status: task?.status || 'todo',
+        deliveryArea: task?.deliveryArea || null,
+      };
+    });
+
+    return {
+      requirement: formatRequirement(requirement),
+      linkedTasks,
+      acceptanceCriteria: acceptanceCriteria.map(formatAcceptanceCriterion),
+    };
+  }
+
+  async listAcceptanceCriteria(
+    workspaceId: string,
+    requirementId: string,
+    actorId: string,
+  ): Promise<AcceptanceCriterion[]> {
+    const member = await getActorMembership(workspaceId, actorId);
+    assertCanReadRequirements(member.role);
+
+    const requirement = await RequirementModel.findOne({
+      where: { id: requirementId, workspaceId },
+    });
+    if (!requirement) {
+      throw new Error('NOT_FOUND: Requirement not found in this workspace.');
+    }
+
+    const acceptanceCriteria = await AcceptanceCriterionModel.findAll({
+      where: { workspaceId, requirementId },
+      order: [['sequence', 'ASC']],
+    });
+    return acceptanceCriteria.map(formatAcceptanceCriterion);
+  }
+
+  async createAcceptanceCriterion(
+    workspaceId: string,
+    requirementId: string,
+    actorId: string,
+    input: Omit<CreateAcceptanceCriterionInput, 'workspaceId' | 'requirementId'>,
+  ): Promise<AcceptanceCriterion> {
+    const member = await getActorMembership(workspaceId, actorId);
+    assertCanUpdateRequirement(member.role);
+
+    return sequelize.transaction(async (transaction) => {
+      const requirement = await RequirementModel.findOne({
+        where: { id: requirementId, workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!requirement) {
+        throw new Error('NOT_FOUND: Requirement not found in this workspace.');
+      }
+
+      const currentMaximum = await AcceptanceCriterionModel.max('sequence', {
+        where: { workspaceId, requirementId },
+        transaction,
+      });
+      const sequence = input.sequence ?? Number(currentMaximum || 0) + 1;
+      const existingSequence = await AcceptanceCriterionModel.findOne({
+        where: { workspaceId, requirementId, sequence },
+        transaction,
+      });
+      if (existingSequence) {
+        throw new Error(`BAD_REQUEST: AC-${sequence} already exists for this Requirement.`);
+      }
+
+      const criterion = await AcceptanceCriterionModel.create(
+        {
+          workspaceId,
+          requirementId,
+          sequence,
+          text: input.text.trim(),
+          status: 'active',
+          createdBy: actorId,
+        },
+        { transaction },
+      );
+
+      const taskLinks = await TaskRequirementModel.findAll({
+        where: { workspaceId, requirementId },
+        transaction,
+      });
+      if (taskLinks.length > 0) {
+        await TaskActivityModel.bulkCreate(
+          taskLinks.map((link) => ({
+            workspaceId,
+            taskId: link.taskId,
+            actorId,
+            action: 'acceptance_criterion_created',
+            metadataJson: {
+              requirementId,
+              acceptanceCriterionId: criterion.id,
+              sequence,
+              code: `AC-${sequence}`,
+            },
+          })),
+          { transaction },
+        );
+      }
+
+      return formatAcceptanceCriterion(criterion);
+    });
+  }
+
+  async updateAcceptanceCriterion(
+    workspaceId: string,
+    requirementId: string,
+    criterionId: string,
+    actorId: string,
+    input: UpdateAcceptanceCriterionInput,
+  ): Promise<AcceptanceCriterion> {
+    const member = await getActorMembership(workspaceId, actorId);
+    assertCanUpdateRequirement(member.role);
+
+    return sequelize.transaction(async (transaction) => {
+      const criterion = await AcceptanceCriterionModel.findOne({
+        where: {
+          id: criterionId,
+          workspaceId,
+          requirementId,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!criterion) {
+        throw new Error('NOT_FOUND: Acceptance Criterion not found for this Requirement.');
+      }
+
+      if (input.sequence !== undefined && input.sequence !== criterion.sequence) {
+        const existingSequence = await AcceptanceCriterionModel.findOne({
+          where: { workspaceId, requirementId, sequence: input.sequence },
+          transaction,
+        });
+        if (existingSequence) {
+          throw new Error(`BAD_REQUEST: AC-${input.sequence} already exists for this Requirement.`);
+        }
+        criterion.sequence = input.sequence;
+      }
+      if (input.text !== undefined) criterion.text = input.text.trim();
+      if (input.status !== undefined) criterion.status = input.status;
+      await criterion.save({ transaction });
+
+      const taskLinks = await TaskRequirementModel.findAll({
+        where: { workspaceId, requirementId },
+        transaction,
+      });
+      if (taskLinks.length > 0) {
+        await TaskActivityModel.bulkCreate(
+          taskLinks.map((link) => ({
+            workspaceId,
+            taskId: link.taskId,
+            actorId,
+            action: 'acceptance_criterion_updated',
+            metadataJson: {
+              requirementId,
+              acceptanceCriterionId: criterion.id,
+              sequence: criterion.sequence,
+              code: `AC-${criterion.sequence}`,
+              status: criterion.status,
+            },
+          })),
+          { transaction },
+        );
+      }
+
+      return formatAcceptanceCriterion(criterion);
+    });
+  }
+
   async createRequirement(
     workspaceId: string,
     actorId: string,
-    input: Omit<CreateRequirementInput, 'workspaceId'>
+    input: Omit<CreateRequirementInput, 'workspaceId'>,
   ): Promise<Requirement> {
     const member = await getActorMembership(workspaceId, actorId);
     assertCanCreateRequirement(member.role);
@@ -122,7 +360,9 @@ export class RequirementService {
         where: { workspaceId, code: finalCode },
       });
       if (existingCode) {
-        throw new Error(`BAD_REQUEST: A requirement with code "${finalCode}" already exists in this workspace.`);
+        throw new Error(
+          `BAD_REQUEST: A requirement with code "${finalCode}" already exists in this workspace.`,
+        );
       }
     }
 
@@ -139,10 +379,62 @@ export class RequirementService {
     return formatRequirement(requirement);
   }
 
+  async updateRequirement(
+    workspaceId: string,
+    requirementId: string,
+    actorId: string,
+    input: UpdateRequirementInput,
+  ): Promise<Requirement> {
+    const member = await getActorMembership(workspaceId, actorId);
+    assertCanUpdateRequirement(member.role);
+
+    const requirement = await RequirementModel.findOne({
+      where: { id: requirementId, workspaceId },
+    });
+
+    if (!requirement) {
+      throw new Error('NOT_FOUND: Requirement not found in this workspace.');
+    }
+
+    if (input.code !== undefined) {
+      const normalizedCode = input.code.trim().toUpperCase();
+      if (normalizedCode !== requirement.code) {
+        const existingCode = await RequirementModel.findOne({
+          where: { workspaceId, code: normalizedCode },
+        });
+        if (existingCode && existingCode.id !== requirement.id) {
+          throw new Error(
+            `BAD_REQUEST: A requirement with code "${normalizedCode}" already exists in this workspace.`,
+          );
+        }
+        requirement.code = normalizedCode;
+      }
+    }
+
+    if (input.title !== undefined) {
+      requirement.title = input.title.trim();
+    }
+
+    if (input.description !== undefined) {
+      requirement.description = input.description ? input.description.trim() : null;
+    }
+
+    if (input.url !== undefined) {
+      requirement.url = input.url ? input.url.trim() : null;
+    }
+
+    if (input.status !== undefined) {
+      requirement.status = input.status;
+    }
+
+    await requirement.save();
+    return formatRequirement(requirement);
+  }
+
   async listTaskRequirementLinks(
     workspaceId: string,
     taskId: string,
-    actorId: string
+    actorId: string,
   ): Promise<TaskRequirementLink[]> {
     const member = await getActorMembership(workspaceId, actorId);
     assertCanReadRequirements(member.role);
@@ -167,7 +459,7 @@ export class RequirementService {
     workspaceId: string,
     taskId: string,
     actorId: string,
-    requirementId: string
+    requirementId: string,
   ): Promise<TaskRequirementLink> {
     const member = await getActorMembership(workspaceId, actorId);
     assertCanLinkRequirement(member.role);
@@ -202,7 +494,7 @@ export class RequirementService {
           requirementId,
           linkedBy: actorId,
         },
-        { transaction }
+        { transaction },
       );
 
       // Record Activity audit log in transaction
@@ -219,7 +511,7 @@ export class RequirementService {
             url: requirement.url || null,
           },
         },
-        { transaction }
+        { transaction },
       );
 
       const loaded = await TaskRequirementModel.findByPk(link.id, {
@@ -235,7 +527,7 @@ export class RequirementService {
     workspaceId: string,
     taskId: string,
     actorId: string,
-    requirementId: string
+    requirementId: string,
   ): Promise<{ success: boolean }> {
     const member = await getActorMembership(workspaceId, actorId);
     assertCanLinkRequirement(member.role);
@@ -273,7 +565,7 @@ export class RequirementService {
             url: link.requirement?.url || null,
           },
         },
-        { transaction }
+        { transaction },
       );
     });
 
@@ -282,4 +574,3 @@ export class RequirementService {
 }
 
 export const requirementService = new RequirementService();
-

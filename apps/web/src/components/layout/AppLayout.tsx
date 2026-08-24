@@ -27,7 +27,8 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
   const currentUser = useAppSelector(selectCurrentUser);
   const showOnboardingModal = useAppSelector(selectShowOnboardingModal);
 
-  const userEmail = currentUser?.email || localStorage.getItem('user_email') || 'qa.lead@company.com';
+  const userEmail =
+    currentUser?.email || localStorage.getItem('user_email') || 'qa.lead@company.com';
 
   // Trigger onboarding on first-time login if not yet completed and not dismissed in current browser session for this user
   useEffect(() => {
@@ -89,7 +90,7 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 max-w-full w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="mx-auto w-full min-w-0 max-w-full flex-1 px-4 py-4 sm:px-8 sm:py-6 lg:py-8">
         {children}
       </main>
       <GlobalSnackbarHost />

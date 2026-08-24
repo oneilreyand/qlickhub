@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Building2,
-  Plus,
-  CheckCircle2,
-  Lock,
-  RefreshCw,
-} from 'lucide-react';
+import { Building2, Plus, CheckCircle2, Lock, RefreshCw } from 'lucide-react';
 import { Card } from '../../atoms/Card';
 import { Badge } from '../../atoms/Badge';
 import { Button } from '../../atoms/Button';
@@ -15,6 +9,7 @@ import { Modal } from '../../molecules/Modal';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { createWorkspace, fetchWorkspaces } from '../../../../store/workspaceSlice';
 import { enqueueSnackbar } from '../../../../store/uiSlice';
+import { canCreateWorkspace } from '../../../../lib/permissions/workspacePermissions';
 
 interface OnboardingWorkspaceStepProps {
   role: string;
@@ -23,9 +18,7 @@ interface OnboardingWorkspaceStepProps {
 export const OnboardingWorkspaceStep: React.FC<OnboardingWorkspaceStepProps> = ({ role }) => {
   const dispatch = useAppDispatch();
   const normalizedRole = role.toLowerCase();
-  const isOwnerOrAdmin = normalizedRole === 'owner' || normalizedRole === 'admin';
-  const isPo = normalizedRole === 'po';
-  const canCreate = isOwnerOrAdmin || isPo || normalizedRole === 'qa';
+  const canCreate = canCreateWorkspace(normalizedRole);
 
   const { workspaces, activeWorkspaceId, isLoading } = useAppSelector((state) => state.workspace);
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
@@ -56,7 +49,7 @@ export const OnboardingWorkspaceStep: React.FC<OnboardingWorkspaceStepProps> = (
         createWorkspace({
           name: name.trim(),
           description: description.trim() || undefined,
-        })
+        }),
       ).unwrap();
       dispatch(enqueueSnackbar(`Workspace "${name.trim()}" berhasil dibuat!`, 'success'));
       setName('');
@@ -79,7 +72,8 @@ export const OnboardingWorkspaceStep: React.FC<OnboardingWorkspaceStepProps> = (
           </h3>
         </div>
         <p className="text-xs text-stone-500 dark:text-stone-400">
-          Semua inisiatif rilis, folder sprint, dan kolaborasi subtask diorganisasikan di dalam Workspace tim.
+          Semua inisiatif rilis, folder sprint, dan kolaborasi subtask diorganisasikan di dalam
+          Workspace tim.
         </p>
       </div>
 
@@ -96,10 +90,13 @@ export const OnboardingWorkspaceStep: React.FC<OnboardingWorkspaceStepProps> = (
                   <h4 className="font-bold text-sm sm:text-base text-stone-900 dark:text-white">
                     {activeWorkspace.name}
                   </h4>
-                  <Badge variant="passed" size="sm">Aktif</Badge>
+                  <Badge variant="passed" size="sm">
+                    Aktif
+                  </Badge>
                 </div>
                 <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-                  {activeWorkspace.description || 'Ruang kerja tim utama untuk pengembangan & rilis QA.'}
+                  {activeWorkspace.description ||
+                    'Ruang kerja tim utama untuk pengembangan & rilis QA.'}
                 </p>
               </div>
             </div>
@@ -175,7 +172,9 @@ export const OnboardingWorkspaceStep: React.FC<OnboardingWorkspaceStepProps> = (
 
           <div className="space-y-1.5 max-w-md mx-auto">
             <h4 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white">
-              {canCreate ? 'Buat Workspace Tim Pertama Anda' : 'Belum Ada Workspace yang Ditugaskan'}
+              {canCreate
+                ? 'Buat Workspace Tim Pertama Anda'
+                : 'Belum Ada Workspace yang Ditugaskan'}
             </h4>
             <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
               {canCreate

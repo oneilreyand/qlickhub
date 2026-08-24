@@ -10,18 +10,26 @@ export interface WorkspaceMemberAttributes {
   joinedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
-export interface WorkspaceMemberCreationAttributes extends Optional<WorkspaceMemberAttributes, 'id' | 'role' | 'joinedAt'> {}
+export interface WorkspaceMemberCreationAttributes extends Optional<
+  WorkspaceMemberAttributes,
+  'id' | 'role' | 'joinedAt' | 'deletedAt'
+> {}
 
-export class WorkspaceMemberModel extends Model<WorkspaceMemberAttributes, WorkspaceMemberCreationAttributes> implements WorkspaceMemberAttributes {
+export class WorkspaceMemberModel
+  extends Model<WorkspaceMemberAttributes, WorkspaceMemberCreationAttributes>
+  implements WorkspaceMemberAttributes
+{
   declare id: string;
   declare workspaceId: string;
   declare userId: string;
   declare role: WorkspaceRole;
-  declare readonly joinedAt: Date;
+  declare joinedAt: Date;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
+  declare deletedAt: Date | null;
 }
 
 WorkspaceMemberModel.init(
@@ -52,11 +60,17 @@ WorkspaceMemberModel.init(
       defaultValue: DataTypes.NOW,
       field: 'joined_at',
     },
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'deleted_at',
+    },
   },
   {
     sequelize,
     tableName: 'workspace_members',
     timestamps: true,
+    paranoid: true,
     underscored: true,
-  }
+  },
 );

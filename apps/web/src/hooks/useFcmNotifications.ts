@@ -18,7 +18,11 @@ export function useFcmNotifications() {
 
   // Initialize and register token if permission was already granted
   const registerToken = useCallback(async () => {
-    if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
+    if (
+      typeof window === 'undefined' ||
+      !('Notification' in window) ||
+      !('serviceWorker' in navigator)
+    ) {
       return;
     }
 
@@ -56,7 +60,6 @@ export function useFcmNotifications() {
     }
   }, []);
 
-
   // Request browser permission and obtain FCM token
   const requestPermission = useCallback(async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -70,7 +73,9 @@ export function useFcmNotifications() {
 
       if (result === 'granted') {
         await registerToken();
-        dispatch(enqueueSnackbar('Notifikasi Firebase Cloud Messaging berhasil diaktifkan!', 'success'));
+        dispatch(
+          enqueueSnackbar('Notifikasi Firebase Cloud Messaging berhasil diaktifkan!', 'success'),
+        );
         return true;
       } else if (result === 'denied') {
         dispatch(enqueueSnackbar('Izin notifikasi ditolak oleh browser.', 'warning'));
@@ -82,16 +87,6 @@ export function useFcmNotifications() {
       return false;
     }
   }, [dispatch, registerToken]);
-
-  // Send a test push notification
-  const sendTestNotification = useCallback(async () => {
-    try {
-      await notificationService.sendTestNotification();
-      dispatch(enqueueSnackbar('Test notifikasi FCM telah dikirim ke perangkat Anda.', 'info'));
-    } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Gagal mengirim test notifikasi.', 'error'));
-    }
-  }, [dispatch]);
 
   // Initial check & auto-register if already granted
   useEffect(() => {
@@ -114,7 +109,8 @@ export function useFcmNotifications() {
 
       unsubscribe = onMessage(messagingInstance, (payload) => {
         const title = payload.notification?.title || payload.data?.title || 'Notifikasi Baru';
-        const message = payload.notification?.body || payload.data?.body || 'Ada pembaruan pada workspace Anda.';
+        const message =
+          payload.notification?.body || payload.data?.body || 'Ada pembaruan pada workspace Anda.';
         const typeRaw = payload.data?.type || 'system';
         const taskId = payload.data?.taskId;
 
@@ -142,6 +138,5 @@ export function useFcmNotifications() {
     fcmToken,
     isRegistering,
     requestPermission,
-    sendTestNotification,
   };
 }

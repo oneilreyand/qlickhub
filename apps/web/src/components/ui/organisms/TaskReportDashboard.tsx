@@ -28,18 +28,24 @@ import { Avatar } from '../atoms/Avatar';
 import { DateRange, DateRangePicker } from '../molecules/DateRangePicker';
 import { EmptyState } from '../molecules/EmptyState';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
+import { ReleaseReadinessSignal } from '../molecules/ReleaseReadinessSignal';
 import { BarChart } from './Chart';
 import { StatCard } from './StatCard';
 import { QaTraceabilityMatrix } from './QaTraceabilityMatrix';
 import { QaDocumentsManager } from './QaDocumentsManager';
-import { calculateSubtaskScheduleHealth, ScheduleHealthStatus } from '../../../lib/utils/scheduleHealth';
+import {
+  calculateSubtaskScheduleHealth,
+  ScheduleHealthStatus,
+} from '../../../lib/utils/scheduleHealth';
 import type { WorkspaceMemberItem } from '../../../lib/api/workspaceService';
+import type { ReleaseReadinessStateMap } from '../../../lib/hooks/useReleaseReadinessMap';
 
 interface TaskReportDashboardProps {
   workspaceId?: string;
   workspaceName?: string;
   userRole?: string;
   tasks: Task[];
+  releaseReadinessStateByFeatureId?: ReleaseReadinessStateMap;
   total: number;
   members?: WorkspaceMemberItem[];
   isLoading: boolean;
@@ -51,7 +57,14 @@ interface TaskReportDashboardProps {
   requiresWorkspace?: boolean;
 }
 
-const statusOrder: TaskStatus[] = ['todo', 'in_progress', 'in_review', 'changes_requested', 'done', 'canceled'];
+const statusOrder: TaskStatus[] = [
+  'todo',
+  'in_progress',
+  'in_review',
+  'changes_requested',
+  'done',
+  'canceled',
+];
 
 const priorityOrder: Task['priority'][] = ['urgent', 'high', 'medium', 'low'];
 
@@ -64,7 +77,15 @@ const priorityLabels: Record<Task['priority'], string> = {
 
 const deliveryAreaConfig: Record<
   DeliveryArea,
-  { label: string; shortLabel: string; icon: React.ComponentType<{ className?: string }>; colorClass: string; bgClass: string; borderClass: string; barVariant: 'brand' | 'indigo' | 'amber' | 'emerald' | 'rose' | 'neutral' }
+  {
+    label: string;
+    shortLabel: string;
+    icon: React.ComponentType<{ className?: string }>;
+    colorClass: string;
+    bgClass: string;
+    borderClass: string;
+    barVariant: 'brand' | 'indigo' | 'amber' | 'emerald' | 'rose' | 'neutral';
+  }
 > = {
   frontend: {
     label: 'Frontend UI & Client',
@@ -113,7 +134,6 @@ const deliveryAreaConfig: Record<
   },
 };
 
-
 function getTodayKey(): string {
   const date = new Date();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -130,6 +150,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
   workspaceName,
   userRole = 'qa',
   tasks,
+  releaseReadinessStateByFeatureId,
   total,
   members = [],
   isLoading,
@@ -140,17 +161,23 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
   onOpenWorkHub,
   requiresWorkspace = false,
 }) => {
-  const [activeReportTab, setActiveReportTab] = useState<'overview' | 'workstreams' | 'bottlenecks' | 'qa'>('overview');
+  const [activeReportTab, setActiveReportTab] = useState<
+    'overview' | 'workstreams' | 'bottlenecks' | 'qa'
+  >('overview');
   const [qaSubTab, setQaSubTab] = useState<'traceability' | 'docs'>('traceability');
 
   // Map member names by ID for lookup
   const memberMap = useMemo(() => {
-    const map = new Map<string, { name: string; email: string; role: string; avatarUrl?: string }>();
+    const map = new Map<
+      string,
+      { name: string; email: string; role: string; specialties: string[]; avatarUrl?: string }
+    >();
     for (const m of members) {
       map.set(m.userId, {
         name: m.user?.name || m.user?.email || 'Team Member',
         email: m.user?.email || '',
         role: m.role || 'member',
+        specialties: m.specialties || [],
         avatarUrl: m.user?.avatarUrl || undefined,
       });
     }
@@ -171,9 +198,12 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
     const totalAllItems = tasks.length + allSubtasks.length;
 
     // Status breakdown for tasks
-    const byStatus = Object.fromEntries(statusOrder.map((status) => [status, 0])) as Record<TaskStatus, number>;
+    const byStatus = Object.fromEntries(statusOrder.map((status) => [status, 0])) as Record<
+      TaskStatus,
+      number
+    >;
     const byPriority = Object.fromEntries(
-      priorityOrder.map((priority) => [priority, { closed: 0, open: 0 }])
+      priorityOrder.map((priority) => [priority, { closed: 0, open: 0 }]),
     ) as Record<Task['priority'], { closed: number; open: number }>;
 
     for (const task of tasks) {
@@ -199,7 +229,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
           todo: 0,
           subtasks: [] as Task[],
         },
-      ])
+      ]),
     ) as Record<
       DeliveryArea,
       {
@@ -240,6 +270,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
         name: string;
         email: string;
         role: string;
+        specialties: string[];
         totalAssigned: number;
         completed: number;
         inProgress: number;
@@ -254,6 +285,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
         name: m.user?.name || m.user?.email || 'Team Member',
         email: m.user?.email || '',
         role: m.role || 'member',
+        specialties: m.specialties || [],
         totalAssigned: 0,
         completed: 0,
         inProgress: 0,
@@ -271,6 +303,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
             name: memberMap.get(item.assigneeId)?.name || 'Assignee',
             email: memberMap.get(item.assigneeId)?.email || '',
             role: memberMap.get(item.assigneeId)?.role || 'member',
+            specialties: memberMap.get(item.assigneeId)?.specialties || [],
             totalAssigned: 0,
             completed: 0,
             inProgress: 0,
@@ -284,7 +317,12 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
         } else if (item.status === 'in_progress') {
           entry.inProgress += 1;
         }
-        if (item.status !== 'done' && item.status !== 'canceled' && item.dueDate && item.dueDate < today) {
+        if (
+          item.status !== 'done' &&
+          item.status !== 'canceled' &&
+          item.dueDate &&
+          item.dueDate < today
+        ) {
           entry.overdue += 1;
         }
       }
@@ -295,7 +333,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
       .sort((a, b) => b.totalAssigned - a.totalAssigned);
 
     // Schedule health analysis
-    let healthCounts: Record<ScheduleHealthStatus, number> = {
+    const healthCounts: Record<ScheduleHealthStatus, number> = {
       completed: 0,
       on_track: 0,
       at_risk: 0,
@@ -313,11 +351,16 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
     const completedSubtasks = allSubtasks.filter((s) => s.status === 'done').length;
     const totalCompleted = completedTasks + completedSubtasks;
     const completionRate = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
-    const overallDeliveryRate = totalAllItems ? Math.round((totalCompleted / totalAllItems) * 100) : 0;
+    const overallDeliveryRate = totalAllItems
+      ? Math.round((totalCompleted / totalAllItems) * 100)
+      : 0;
 
     // Review flow across all roles
-    const inReviewCount = byStatus.in_review + allSubtasks.filter((s) => s.status === 'in_review').length;
-    const changesRequestedCount = byStatus.changes_requested + allSubtasks.filter((s) => s.status === 'changes_requested').length;
+    const inReviewCount =
+      byStatus.in_review + allSubtasks.filter((s) => s.status === 'in_review').length;
+    const changesRequestedCount =
+      byStatus.changes_requested +
+      allSubtasks.filter((s) => s.status === 'changes_requested').length;
 
     // Attention tasks (Overdue & Due today across tasks and subtasks)
     const openTasks = tasks.filter((t) => t.status !== 'done' && t.status !== 'canceled');
@@ -376,7 +419,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
   const isInitialLoading = isLoading && tasks.length === 0;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-12 animate-fadeIn">
+    <div className="w-full space-y-6 pb-12 animate-fadeIn">
       {/* Header Banner */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -525,7 +568,11 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
       ) : (
         <>
           {error ? (
-            <Alert tone="warning" icon={<AlertTriangle className="h-4 w-4" />} title="Last refresh did not finish">
+            <Alert
+              tone="warning"
+              icon={<AlertTriangle className="h-4 w-4" />}
+              title="Last refresh did not finish"
+            >
               {error} The report below uses the data loaded previously.
             </Alert>
           ) : null}
@@ -533,6 +580,46 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
           {/* TAB 1: EXECUTIVE DELIVERY & SDLC OVERVIEW */}
           {activeReportTab === 'overview' && (
             <div className="space-y-6">
+              {releaseReadinessStateByFeatureId && (
+                <Card className="space-y-4 p-5 sm:p-6" data-testid="report-release-readiness">
+                  <div className="flex flex-col gap-1 border-b border-stone-100 pb-4 dark:border-stone-800 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                        Feature Release Readiness
+                      </h2>
+                      <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                        Current backend-evaluated gates for every Feature in this report.
+                      </p>
+                    </div>
+                    <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
+                      {tasks.length} Feature(s)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                    {tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex flex-col gap-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3.5 dark:border-stone-800 dark:bg-stone-950/40 sm:flex-row sm:items-start sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <span className="font-mono text-[10px] font-bold text-stone-400">
+                            {task.id.substring(0, 8)}
+                          </span>
+                          <p className="truncate text-xs font-bold text-stone-900 dark:text-stone-100">
+                            {task.title}
+                          </p>
+                        </div>
+                        <ReleaseReadinessSignal
+                          state={releaseReadinessStateByFeatureId[task.id]}
+                          showReason
+                          className="shrink-0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
               {/* Stat Cards Grid */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
@@ -555,7 +642,12 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 />
                 <StatCard
                   title="Needs Attention"
-                  value={report.overdueTasks.length + report.dueTodayTasks.length + report.overdueSubtasks.length + report.dueTodaySubtasks.length}
+                  value={
+                    report.overdueTasks.length +
+                    report.dueTodayTasks.length +
+                    report.overdueSubtasks.length +
+                    report.dueTodaySubtasks.length
+                  }
                   description={`${report.overdueTasks.length + report.overdueSubtasks.length} overdue · ${report.dueTodayTasks.length + report.dueTodaySubtasks.length} due today`}
                   icon={<AlertTriangle className="h-5 w-5" />}
                 />
@@ -567,7 +659,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 <Card className="p-5 sm:p-6 xl:col-span-2">
                   <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-4 dark:border-stone-800">
                     <div>
-                      <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">Delivery Health</h2>
+                      <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                        Delivery Health
+                      </h2>
                       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                         Task lifecycle distribution across the workspace.
                       </p>
@@ -579,7 +673,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
 
                   <div className="mt-5 space-y-4">
                     {statusOrder.map((status) => {
-                      const getStatusVariant = (s: TaskStatus): 'brand' | 'indigo' | 'amber' | 'emerald' | 'rose' | 'neutral' => {
+                      const getStatusVariant = (
+                        s: TaskStatus,
+                      ): 'brand' | 'indigo' | 'amber' | 'emerald' | 'rose' | 'neutral' => {
                         switch (s) {
                           case 'done':
                             return 'brand';
@@ -613,16 +709,18 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                       );
                     })}
                   </div>
-
                 </Card>
 
                 {/* Cross-Functional Delivery Areas Breakdown */}
                 <Card className="p-5 sm:p-6 xl:col-span-3">
                   <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-4 dark:border-stone-800">
                     <div>
-                      <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">Cross-Functional Delivery Areas</h2>
+                      <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                        Cross-Functional Delivery Areas
+                      </h2>
                       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                        Subtask volume and completion across Frontend, Backend, Mobile, Fullstack, and QA.
+                        Subtask volume and completion across Frontend, Backend, Mobile, Fullstack,
+                        and QA.
                       </p>
                     </div>
                     <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
@@ -635,7 +733,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                       const config = deliveryAreaConfig[area];
                       const Icon = config.icon;
                       const areaStats = report.byArea[area];
-                      const areaRate = areaStats.total ? Math.round((areaStats.completed / areaStats.total) * 100) : 0;
+                      const areaRate = areaStats.total
+                        ? Math.round((areaStats.completed / areaStats.total) * 100)
+                        : 0;
 
                       return (
                         <div
@@ -644,7 +744,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <div className={`p-1.5 rounded-lg bg-white/80 dark:bg-stone-900/80 shadow-2xs ${config.colorClass}`}>
+                              <div
+                                className={`p-1.5 rounded-lg bg-white/80 dark:bg-stone-900/80 shadow-2xs ${config.colorClass}`}
+                              >
                                 <Icon className="h-4 w-4" />
                               </div>
                               <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
@@ -697,7 +799,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
               <Card className="overflow-hidden">
                 <div className="flex flex-col gap-3 border-b border-stone-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-stone-800">
                   <div>
-                    <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">Cross-Functional Attention Queue</h2>
+                    <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                      Cross-Functional Attention Queue
+                    </h2>
                     <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                       Open tasks and subtasks that are overdue or due today across all workstreams.
                     </p>
@@ -723,7 +827,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                             <div className="flex flex-wrap items-center gap-2">
                               <TaskStatusBadge state={item.status} />
                               {item.isSubtask && areaCfg && (
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${areaCfg.bgClass} ${areaCfg.colorClass} border ${areaCfg.borderClass}`}>
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${areaCfg.bgClass} ${areaCfg.colorClass} border ${areaCfg.borderClass}`}
+                                >
                                   {areaCfg.shortLabel}
                                 </span>
                               )}
@@ -743,11 +849,17 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                           <div className="flex shrink-0 items-center gap-2 text-xs font-semibold">
                             <span
                               className={`inline-flex items-center gap-1.5 ${
-                                isOverdue ? 'text-rose-600 dark:text-rose-300' : 'text-amber-700 dark:text-amber-300'
+                                isOverdue
+                                  ? 'text-rose-600 dark:text-rose-300'
+                                  : 'text-amber-700 dark:text-amber-300'
                               }`}
                             >
                               <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-                              <span>{isOverdue ? `Overdue · ${item.dueDate}` : `Due today · ${item.dueDate}`}</span>
+                              <span>
+                                {isOverdue
+                                  ? `Overdue · ${item.dueDate}`
+                                  : `Due today · ${item.dueDate}`}
+                              </span>
                             </span>
                             <span className="rounded-full bg-stone-100 px-2 py-1 text-[11px] text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                               {priorityLabels[item.priority]}
@@ -760,9 +872,12 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-2 p-10 text-center">
                     <CheckCircle2 className="h-7 w-7 text-emerald-500 dark:text-emerald-400" />
-                    <p className="text-sm font-bold text-stone-900 dark:text-stone-100">Nothing needs attention right now</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                      Nothing needs attention right now
+                    </p>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
-                      There are no open tasks or subtasks overdue or due today in this reporting scope.
+                      There are no open tasks or subtasks overdue or due today in this reporting
+                      scope.
                     </p>
                   </div>
                 )}
@@ -786,37 +901,58 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                       <div>
                         <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">
                           <div className="flex items-center gap-2.5">
-                            <div className={`p-2 rounded-xl ${config.bgClass} ${config.colorClass} border ${config.borderClass}`}>
+                            <div
+                              className={`p-2 rounded-xl ${config.bgClass} ${config.colorClass} border ${config.borderClass}`}
+                            >
                               <Icon className="h-5 w-5" />
                             </div>
                             <div>
-                              <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">{config.label}</h3>
-                              <p className="text-[11px] text-stone-400 font-mono">{stats.total} total deliverables</p>
+                              <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                                {config.label}
+                              </h3>
+                              <p className="text-[11px] text-stone-400 font-mono">
+                                {stats.total} total deliverables
+                              </p>
                             </div>
                           </div>
-                          <span className="text-sm font-extrabold text-stone-900 dark:text-stone-100">{rate}%</span>
+                          <span className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                            {rate}%
+                          </span>
                         </div>
 
                         <div className="mt-4 space-y-3">
                           <div>
                             <div className="flex justify-between text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1.5">
                               <span>Progress</span>
-                              <span>{stats.completed} of {stats.total} Done</span>
+                              <span>
+                                {stats.completed} of {stats.total} Done
+                              </span>
                             </div>
-                            <ProgressBar value={stats.completed} max={stats.total || 1} showPercentage={false} variant={config.barVariant} />
+                            <ProgressBar
+                              value={stats.completed}
+                              max={stats.total || 1}
+                              showPercentage={false}
+                              variant={config.barVariant}
+                            />
                           </div>
 
                           <div className="grid grid-cols-3 gap-2 pt-2 text-center">
                             <div className="p-2 rounded-xl bg-stone-50 dark:bg-stone-900/60">
-                              <span className="block text-xs font-bold text-stone-800 dark:text-stone-200">{stats.inProgress}</span>
+                              <span className="block text-xs font-bold text-stone-800 dark:text-stone-200">
+                                {stats.inProgress}
+                              </span>
                               <span className="block text-[10px] text-stone-400">In Progress</span>
                             </div>
                             <div className="p-2 rounded-xl bg-stone-50 dark:bg-stone-900/60">
-                              <span className="block text-xs font-bold text-amber-600 dark:text-amber-400">{stats.inReview + stats.changesRequested}</span>
+                              <span className="block text-xs font-bold text-amber-600 dark:text-amber-400">
+                                {stats.inReview + stats.changesRequested}
+                              </span>
                               <span className="block text-[10px] text-stone-400">Review</span>
                             </div>
                             <div className="p-2 rounded-xl bg-stone-50 dark:bg-stone-900/60">
-                              <span className="block text-xs font-bold text-stone-600 dark:text-stone-400">{stats.todo}</span>
+                              <span className="block text-xs font-bold text-stone-600 dark:text-stone-400">
+                                {stats.todo}
+                              </span>
                               <span className="block text-[10px] text-stone-400">To Do</span>
                             </div>
                           </div>
@@ -825,18 +961,27 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
 
                       {stats.subtasks.length > 0 ? (
                         <div className="mt-4 pt-3 border-t border-stone-100 dark:border-stone-800">
-                          <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-2">Active Items</p>
+                          <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-2">
+                            Active Items
+                          </p>
                           <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                             {stats.subtasks.slice(0, 3).map((st) => (
-                              <div key={st.id} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-stone-50/70 dark:bg-stone-900/40">
-                                <span className="truncate max-w-[180px] font-medium text-stone-800 dark:text-stone-200">{st.title}</span>
+                              <div
+                                key={st.id}
+                                className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-stone-50/70 dark:bg-stone-900/40"
+                              >
+                                <span className="truncate max-w-[180px] font-medium text-stone-800 dark:text-stone-200">
+                                  {st.title}
+                                </span>
                                 <TaskStatusBadge state={st.status} />
                               </div>
                             ))}
                           </div>
                         </div>
                       ) : (
-                        <p className="mt-4 pt-3 text-[11px] text-stone-400 italic">No subtasks recorded for this delivery area.</p>
+                        <p className="mt-4 pt-3 text-[11px] text-stone-400 italic">
+                          No subtasks recorded for this delivery area.
+                        </p>
                       )}
                     </Card>
                   );
@@ -847,7 +992,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
               <Card className="p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-4 dark:border-stone-800">
                   <div>
-                    <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">Team Workload & Allocation</h2>
+                    <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                      Team Workload & Allocation
+                    </h2>
                     <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                       Task and subtask assignments distributed across workspace team members.
                     </p>
@@ -860,18 +1007,39 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 {report.memberWorkloads.length > 0 ? (
                   <div className="mt-4 divide-y divide-stone-100 dark:divide-stone-800">
                     {report.memberWorkloads.map((member) => {
-                      const rate = member.totalAssigned ? Math.round((member.completed / member.totalAssigned) * 100) : 0;
+                      const rate = member.totalAssigned
+                        ? Math.round((member.completed / member.totalAssigned) * 100)
+                        : 0;
                       return (
-                        <div key={member.userId} className="flex flex-col sm:flex-row sm:items-center justify-between py-3.5 gap-3">
+                        <div
+                          key={member.userId}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between py-3.5 gap-3"
+                        >
                           <div className="flex items-center gap-3">
                             <Avatar name={member.name} size="md" />
                             <div>
                               <div className="flex items-center gap-2">
-                                <p className="text-sm font-bold text-stone-900 dark:text-stone-100">{member.name}</p>
+                                <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                                  {member.name}
+                                </p>
                                 <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                                   {member.role}
                                 </span>
+                                {member.role === 'dev' &&
+                                  member.specialties.map((specialty) => (
+                                    <span
+                                      key={specialty}
+                                      className="px-2 py-0.5 rounded text-[10px] font-bold capitalize bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743]"
+                                    >
+                                      {specialty}
+                                    </span>
+                                  ))}
                               </div>
+                              {member.role === 'dev' && member.specialties.length === 0 && (
+                                <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                                  Unclassified Developer
+                                </p>
+                              )}
                               <p className="text-xs text-stone-400">{member.email}</p>
                             </div>
                           </div>
@@ -882,7 +1050,12 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                                 <span>Done</span>
                                 <span className="font-bold">{rate}%</span>
                               </div>
-                              <ProgressBar value={member.completed} max={member.totalAssigned} showPercentage={false} variant="brand" />
+                              <ProgressBar
+                                value={member.completed}
+                                max={member.totalAssigned}
+                                showPercentage={false}
+                                variant="brand"
+                              />
                             </div>
                             <div className="flex items-center gap-3 text-xs font-semibold text-stone-700 dark:text-stone-300">
                               <span className="px-2 py-1 rounded bg-stone-100 dark:bg-stone-800">
@@ -903,7 +1076,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                     })}
                   </div>
                 ) : (
-                  <p className="mt-4 text-xs text-stone-400 italic">No assigned work recorded for workspace members.</p>
+                  <p className="mt-4 text-xs text-stone-400 italic">
+                    No assigned work recorded for workspace members.
+                  </p>
                 )}
               </Card>
             </div>
@@ -919,7 +1094,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                     <TrendingUp className="h-5 w-5 text-[#B1E743]" />
                     <h2 className="text-base font-bold">End-to-End SDLC Handoff Pipeline</h2>
                   </div>
-                  <span className="text-xs text-stone-400 font-medium">Cross-Role Stage Velocity</span>
+                  <span className="text-xs text-stone-400 font-medium">
+                    Cross-Role Stage Velocity
+                  </span>
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -930,9 +1107,10 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                   </div>
                   <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
                     <span className="text-[10px] uppercase font-bold text-amber-400">Stage 2</span>
-                    <h4 className="text-sm font-bold mt-1">Backend API & DB</h4>
+                    <h4 className="text-sm font-bold mt-1">Backend & Fullstack</h4>
                     <p className="text-xs text-stone-300 mt-1">
-                      {report.byArea.backend.completed}/{report.byArea.backend.total} Subtasks Done
+                      {report.byArea.backend.completed + report.byArea.fullstack.completed}/
+                      {report.byArea.backend.total + report.byArea.fullstack.total} Subtasks Done
                     </p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
@@ -944,7 +1122,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                     </p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
-                    <span className="text-[10px] uppercase font-bold text-emerald-400">Stage 4</span>
+                    <span className="text-[10px] uppercase font-bold text-emerald-400">
+                      Stage 4
+                    </span>
                     <h4 className="text-sm font-bold mt-1">QA Verification</h4>
                     <p className="text-xs text-stone-300 mt-1">
                       {report.byArea.qa.completed}/{report.byArea.qa.total} Tests Passed
@@ -956,28 +1136,54 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
               {/* Schedule Health Overview */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
                 <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/20">
-                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Completed</span>
-                  <p className="text-2xl font-extrabold text-emerald-950 dark:text-emerald-100 mt-1">{report.healthCounts.completed}</p>
-                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-1">Workstreams fully closed</p>
+                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                    Completed
+                  </span>
+                  <p className="text-2xl font-extrabold text-emerald-950 dark:text-emerald-100 mt-1">
+                    {report.healthCounts.completed}
+                  </p>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-1">
+                    Workstreams fully closed
+                  </p>
                 </div>
                 <div className="p-4 rounded-2xl border border-sky-200 bg-sky-50 dark:border-sky-900/50 dark:bg-sky-950/20">
-                  <span className="text-xs font-bold text-sky-800 dark:text-sky-300 uppercase tracking-wider">On Track</span>
-                  <p className="text-2xl font-extrabold text-sky-950 dark:text-sky-100 mt-1">{report.healthCounts.on_track}</p>
-                  <p className="text-[11px] text-sky-700 dark:text-sky-400 mt-1">Within scheduled window</p>
+                  <span className="text-xs font-bold text-sky-800 dark:text-sky-300 uppercase tracking-wider">
+                    On Track
+                  </span>
+                  <p className="text-2xl font-extrabold text-sky-950 dark:text-sky-100 mt-1">
+                    {report.healthCounts.on_track}
+                  </p>
+                  <p className="text-[11px] text-sky-700 dark:text-sky-400 mt-1">
+                    Within scheduled window
+                  </p>
                 </div>
                 <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20">
-                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">At Risk</span>
-                  <p className="text-2xl font-extrabold text-amber-950 dark:text-amber-100 mt-1">{report.healthCounts.at_risk}</p>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">Due soon or changes requested</p>
+                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
+                    At Risk
+                  </span>
+                  <p className="text-2xl font-extrabold text-amber-950 dark:text-amber-100 mt-1">
+                    {report.healthCounts.at_risk}
+                  </p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                    Due soon or changes requested
+                  </p>
                 </div>
                 <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50 dark:border-rose-900/50 dark:bg-rose-950/20">
-                  <span className="text-xs font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">Delayed</span>
-                  <p className="text-2xl font-extrabold text-rose-950 dark:text-rose-100 mt-1">{report.healthCounts.delayed}</p>
+                  <span className="text-xs font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">
+                    Delayed
+                  </span>
+                  <p className="text-2xl font-extrabold text-rose-950 dark:text-rose-100 mt-1">
+                    {report.healthCounts.delayed}
+                  </p>
                   <p className="text-[11px] text-rose-700 dark:text-rose-400 mt-1">Past due date</p>
                 </div>
                 <div className="p-4 rounded-2xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/30">
-                  <span className="text-xs font-bold text-stone-600 dark:text-stone-400 uppercase tracking-wider">Unscheduled</span>
-                  <p className="text-2xl font-extrabold text-stone-900 dark:text-stone-100 mt-1">{report.healthCounts.unscheduled}</p>
+                  <span className="text-xs font-bold text-stone-600 dark:text-stone-400 uppercase tracking-wider">
+                    Unscheduled
+                  </span>
+                  <p className="text-2xl font-extrabold text-stone-900 dark:text-stone-100 mt-1">
+                    {report.healthCounts.unscheduled}
+                  </p>
                   <p className="text-[11px] text-stone-500 mt-1">Missing target dates</p>
                 </div>
               </div>
@@ -986,7 +1192,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
               <Card className="overflow-hidden">
                 <div className="flex flex-col gap-3 border-b border-stone-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-stone-800">
                   <div>
-                    <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">Schedule Slippage & Risk Diagnosis</h2>
+                    <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                      Schedule Slippage & Risk Diagnosis
+                    </h2>
                     <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                       Workstream items requiring timeline intervention or role realignment.
                     </p>
@@ -1000,11 +1208,16 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                       const areaCfg = area ? deliveryAreaConfig[area] : null;
 
                       return (
-                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 px-6 gap-3">
+                        <div
+                          key={item.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 px-6 gap-3"
+                        >
                           <div>
                             <div className="flex items-center gap-2">
                               {areaCfg ? (
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${areaCfg.bgClass} ${areaCfg.colorClass} border ${areaCfg.borderClass}`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${areaCfg.bgClass} ${areaCfg.colorClass} border ${areaCfg.borderClass}`}
+                                >
                                   {areaCfg.shortLabel}
                                 </span>
                               ) : (
@@ -1012,10 +1225,14 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                                   Parent Task
                                 </span>
                               )}
-                              <span className="text-xs font-mono font-bold text-stone-400">{item.id.slice(0, 8)}</span>
+                              <span className="text-xs font-mono font-bold text-stone-400">
+                                {item.id.slice(0, 8)}
+                              </span>
                               <TaskStatusBadge state={item.status} />
                             </div>
-                            <p className="text-sm font-bold text-stone-900 dark:text-stone-100 mt-1">{item.title}</p>
+                            <p className="text-sm font-bold text-stone-900 dark:text-stone-100 mt-1">
+                              {item.title}
+                            </p>
                           </div>
 
                           <div className="flex items-center gap-3">
@@ -1031,8 +1248,12 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-2 p-10 text-center">
                     <CheckCircle2 className="h-7 w-7 text-emerald-500 dark:text-emerald-400" />
-                    <p className="text-sm font-bold text-stone-900 dark:text-stone-100">Zero Schedule Slippage</p>
-                    <p className="text-xs text-stone-500 dark:text-stone-400">All planned workstreams and subtasks are operating within schedule.</p>
+                    <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                      Zero Schedule Slippage
+                    </p>
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                      All planned workstreams and subtasks are operating within schedule.
+                    </p>
                   </div>
                 )}
               </Card>

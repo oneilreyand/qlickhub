@@ -12,22 +12,11 @@ export const TaskStatusSchema = z.enum([
 
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
-export const TaskPrioritySchema = z.enum([
-  'low',
-  'medium',
-  'high',
-  'urgent',
-]);
+export const TaskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 
 export type TaskPriority = z.infer<typeof TaskPrioritySchema>;
 
-export const DeliveryAreaSchema = z.enum([
-  'frontend',
-  'backend',
-  'mobile',
-  'fullstack',
-  'qa',
-]);
+export const DeliveryAreaSchema = z.enum(['frontend', 'backend', 'mobile', 'fullstack', 'qa']);
 
 export type DeliveryArea = z.infer<typeof DeliveryAreaSchema>;
 
@@ -102,6 +91,7 @@ export const CreateTaskSchema = z
     dueDate: DateStringSchema.nullable().optional(),
     position: z.number().int().min(0).optional(),
     allowRoleMismatch: z.boolean().optional(),
+    roleMismatchReason: z.string().trim().min(10).max(500).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.parentTaskId && !data.deliveryArea) {
@@ -117,6 +107,14 @@ export const CreateTaskSchema = z
         code: z.ZodIssueCode.custom,
         message: 'deliveryArea is allowed only for subtasks',
         path: ['deliveryArea'],
+      });
+    }
+
+    if (data.allowRoleMismatch && !data.roleMismatchReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'roleMismatchReason is required when allowRoleMismatch is true',
+        path: ['roleMismatchReason'],
       });
     }
 
@@ -150,6 +148,7 @@ export const UpdateTaskSchema = z
     reviewedBy: z.string().uuid().nullable().optional(),
     reviewNotes: z.string().max(5000).nullable().optional(),
     allowRoleMismatch: z.boolean().optional(),
+    roleMismatchReason: z.string().trim().min(10).max(500).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.startDate && data.dueDate && data.startDate > data.dueDate) {
@@ -157,6 +156,14 @@ export const UpdateTaskSchema = z
         code: z.ZodIssueCode.custom,
         message: 'startDate cannot be after dueDate',
         path: ['dueDate'],
+      });
+    }
+
+    if (data.allowRoleMismatch && !data.roleMismatchReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'roleMismatchReason is required when allowRoleMismatch is true',
+        path: ['roleMismatchReason'],
       });
     }
   });
@@ -201,11 +208,23 @@ export const TaskListQuerySchema = z
     folderId: z.string().uuid().optional(),
     parentTaskId: z.string().uuid().optional(),
     deliveryArea: DeliveryAreaSchema.optional(),
-    rootOnly: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
-    myTasksOnly: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
+    rootOnly: z
+      .preprocess((val) => val === 'true' || val === true, z.boolean())
+      .optional()
+      .default(false),
+    myTasksOnly: z
+      .preprocess((val) => val === 'true' || val === true, z.boolean())
+      .optional()
+      .default(false),
     includeSubtasks: z.coerce.boolean().optional().default(false),
-    includeSubtaskSummary: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
-    includeDescendants: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(false),
+    includeSubtaskSummary: z
+      .preprocess((val) => val === 'true' || val === true, z.boolean())
+      .optional()
+      .default(false),
+    includeDescendants: z
+      .preprocess((val) => val === 'true' || val === true, z.boolean())
+      .optional()
+      .default(false),
     unfiledOnly: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),
     status: z.union([TaskStatusSchema, z.array(TaskStatusSchema)]).optional(),
     priority: z.union([TaskPrioritySchema, z.array(TaskPrioritySchema)]).optional(),
@@ -214,8 +233,14 @@ export const TaskListQuerySchema = z
     startDate: DateStringSchema.optional(),
     endDate: DateStringSchema.optional(),
     search: z.string().max(100).optional(),
-    page: z.preprocess((val) => (val ? Number(val) : 1), z.number().int().min(1)).optional().default(1),
-    limit: z.preprocess((val) => (val ? Number(val) : 50), z.number().int().min(1).max(100)).optional().default(50),
+    page: z
+      .preprocess((val) => (val ? Number(val) : 1), z.number().int().min(1))
+      .optional()
+      .default(1),
+    limit: z
+      .preprocess((val) => (val ? Number(val) : 50), z.number().int().min(1).max(100))
+      .optional()
+      .default(50),
   })
   .superRefine((data, ctx) => {
     if (data.datePreset && (data.startDate || data.endDate)) {

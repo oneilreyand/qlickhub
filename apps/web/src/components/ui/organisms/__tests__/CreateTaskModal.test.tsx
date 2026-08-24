@@ -39,20 +39,22 @@ describe('CreateTaskModal Organism', () => {
 
     render(
       <Provider store={store}>
-        <CreateTaskModal
-          isOpen={true}
-          onClose={vi.fn()}
-          folders={mockFolders}
-        />
-      </Provider>
+        <CreateTaskModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
     );
 
     expect(screen.getByText('Create New Task')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('e.g. Implement user authorization middleware')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('e.g. Implement user authorization middleware'),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Description/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Folder Location')).toBeInTheDocument();
     expect(screen.getByText('Created by (Reporter)')).toBeInTheDocument();
-    expect(screen.getByText(/Execution assignees \(FE, BE, QA\) are assigned on Subtasks\./i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Execution assignees \(Frontend, Backend, Mobile, Fullstack, and QA\) are assigned on Subtasks\./i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Unassigned')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Priority')).toBeInTheDocument();
     expect(screen.getByText('To Do (Default for new tasks)')).toBeInTheDocument();
@@ -76,12 +78,8 @@ describe('CreateTaskModal Organism', () => {
 
     const { rerender } = render(
       <Provider store={store}>
-        <CreateTaskModal
-          isOpen={true}
-          onClose={vi.fn()}
-          folders={mockFolders}
-        />
-      </Provider>
+        <CreateTaskModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
     );
 
     // Type in fields
@@ -97,12 +95,8 @@ describe('CreateTaskModal Organism', () => {
     // Re-render modal while still open
     rerender(
       <Provider store={store}>
-        <CreateTaskModal
-          isOpen={true}
-          onClose={vi.fn()}
-          folders={mockFolders}
-        />
-      </Provider>
+        <CreateTaskModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
     );
 
     expect(titleInput).toHaveValue('My Typed Title');

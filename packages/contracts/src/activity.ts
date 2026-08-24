@@ -30,9 +30,18 @@ export type CreateTaskActivityInput = z.infer<typeof CreateTaskActivitySchema>;
 export const TaskActivityQuerySchema = z.object({
   workspaceId: z.string().uuid().optional(),
   taskId: z.string().uuid().optional(),
-  aggregateSubtasks: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional().default(true),
-  page: z.preprocess((val) => (val ? Number(val) : 1), z.number().int().min(1)).optional().default(1),
-  limit: z.preprocess((val) => (val ? Number(val) : 50), z.number().int().min(1).max(100)).optional().default(50),
+  aggregateSubtasks: z
+    .preprocess((val) => val === 'true' || val === true, z.boolean())
+    .optional()
+    .default(true),
+  page: z
+    .preprocess((val) => (val ? Number(val) : 1), z.number().int().min(1))
+    .optional()
+    .default(1),
+  limit: z
+    .preprocess((val) => (val ? Number(val) : 50), z.number().int().min(1).max(100))
+    .optional()
+    .default(50),
 });
 
 export type TaskActivityQuery = z.infer<typeof TaskActivityQuerySchema>;
@@ -45,3 +54,56 @@ export const TaskActivityListResponseSchema = z.object({
 });
 
 export type TaskActivityListResponse = z.infer<typeof TaskActivityListResponseSchema>;
+
+export const WorkspaceActivityEntityTypeSchema = z.enum([
+  'task',
+  'bug',
+  'test_case',
+  'folder',
+  'workspace_membership',
+  'qa_document',
+  'release_decision',
+]);
+
+export type WorkspaceActivityEntityType = z.infer<typeof WorkspaceActivityEntityTypeSchema>;
+
+export const WorkspaceActivityItemSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  entityType: WorkspaceActivityEntityTypeSchema,
+  entityId: z.string(),
+  entityTitle: z.string().nullable().optional(),
+  actorId: z.string().uuid().nullable().optional(),
+  actorName: z.string().nullable().optional(),
+  action: z.string().min(1).max(100),
+  metadataJson: z.record(z.unknown()).nullable().optional(),
+  createdAt: z.string(),
+});
+
+export type WorkspaceActivityItem = z.infer<typeof WorkspaceActivityItemSchema>;
+
+export const WorkspaceActivityQuerySchema = z.object({
+  entityType: WorkspaceActivityEntityTypeSchema.optional(),
+  actorId: z.string().uuid().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  page: z
+    .preprocess((val) => (val ? Number(val) : 1), z.number().int().min(1))
+    .optional()
+    .default(1),
+  limit: z
+    .preprocess((val) => (val ? Number(val) : 50), z.number().int().min(1).max(100))
+    .optional()
+    .default(50),
+});
+
+export type WorkspaceActivityQuery = z.infer<typeof WorkspaceActivityQuerySchema>;
+
+export const WorkspaceActivityListResponseSchema = z.object({
+  activities: z.array(WorkspaceActivityItemSchema),
+  total: z.number().int().min(0),
+  page: z.number().int().min(1),
+  limit: z.number().int().min(1),
+});
+
+export type WorkspaceActivityListResponse = z.infer<typeof WorkspaceActivityListResponseSchema>;

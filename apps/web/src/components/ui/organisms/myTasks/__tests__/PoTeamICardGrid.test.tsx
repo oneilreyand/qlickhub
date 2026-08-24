@@ -9,6 +9,21 @@ import workspaceReducer from '../../../../../store/workspaceSlice';
 import uiReducer from '../../../../../store/uiSlice';
 import type { Task } from '@qlick/contracts';
 
+const releaseServiceMocks = vi.hoisted(() => ({
+  listFeatureReleaseRecords: vi.fn().mockResolvedValue({
+    workspaceId: 'ws-1',
+    featureTaskId: 't-parent-1',
+    qaSignOffs: [],
+    releaseDecisions: [],
+  }),
+  createQaSignOff: vi.fn(),
+  createReleaseDecision: vi.fn(),
+}));
+
+vi.mock('../../../../../lib/api/releaseDecisionService', () => ({
+  releaseDecisionService: releaseServiceMocks,
+}));
+
 const createTestStore = () => {
   return configureStore({
     reducer: {
@@ -130,7 +145,7 @@ describe('PoTeamICardGrid Organism', () => {
           currentUserId="u-1"
           onDataChanged={vi.fn()}
         />
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.getByText('PO Management Cockpit')).toBeInTheDocument();
@@ -142,6 +157,8 @@ describe('PoTeamICardGrid Organism', () => {
     expect(screen.getByText('Build Login Form UI')).toBeInTheDocument();
     expect(screen.getByText('JWT Auth Endpoint')).toBeInTheDocument();
     expect(screen.getByText('Smoke Test Login & Edge Cases')).toBeInTheDocument();
+    expect(await screen.findByText('No Release Decision recorded')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'PO Sign-off & Done' })).not.toBeInTheDocument();
   });
 
   it('opens subtask drill-down modal on subtask click', async () => {
@@ -154,8 +171,10 @@ describe('PoTeamICardGrid Organism', () => {
           currentUserId="u-1"
           onDataChanged={vi.fn()}
         />
-      </Provider>
+      </Provider>,
     );
+
+    await screen.findByText('No Release Decision recorded');
 
     const feSubtaskCard = screen.getByText('Build Login Form UI');
     fireEvent.click(feSubtaskCard);

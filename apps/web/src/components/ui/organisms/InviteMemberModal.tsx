@@ -1,6 +1,6 @@
 import React from 'react';
 import { Mail, CheckSquare, Square } from 'lucide-react';
-import { AssignableWorkspaceRole } from '@qlick/contracts';
+import { AssignableWorkspaceRole, DeveloperSpecialty } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
 import { Select } from '../atoms/Select';
@@ -11,11 +11,13 @@ export interface InviteMemberModalProps {
   onClose: () => void;
   inviteEmail: string;
   inviteRole: AssignableWorkspaceRole;
+  inviteSpecialties: DeveloperSpecialty[];
   selectedWorkspaceIds: string[];
   workspaces: WorkspaceItem[];
   isInviting: boolean;
   onEmailChange: (email: string) => void;
   onRoleChange: (role: AssignableWorkspaceRole) => void;
+  onToggleSpecialty: (specialty: DeveloperSpecialty) => void;
   onToggleWorkspaceSelection: (workspaceId: string) => void;
   onSelectAllWorkspaces: () => void;
   onSubmit: (e?: React.FormEvent) => void;
@@ -26,11 +28,13 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   onClose,
   inviteEmail,
   inviteRole,
+  inviteSpecialties,
   selectedWorkspaceIds,
   workspaces,
   isInviting,
   onEmailChange,
   onRoleChange,
+  onToggleSpecialty,
   onToggleWorkspaceSelection,
   onSelectAllWorkspaces,
   onSubmit,
@@ -76,6 +80,44 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
             <option value="qa">QA — QA Engineer</option>
           </Select>
         </div>
+
+        {inviteRole === 'dev' && (
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+              Developer specialties <span className="text-rose-500">*</span>
+            </legend>
+            <p className="text-[11px] leading-4 text-stone-500 dark:text-stone-400">
+              Select every delivery area this member may be assigned to.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {(['frontend', 'backend', 'mobile', 'fullstack'] as DeveloperSpecialty[]).map(
+                (specialty) => {
+                  const selected = inviteSpecialties.includes(specialty);
+                  return (
+                    <button
+                      key={specialty}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => onToggleSpecialty(specialty)}
+                      className={`min-h-11 rounded-xl border px-3 text-xs font-bold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B1E743] ${
+                        selected
+                          ? 'border-[#B1E743] bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743]'
+                          : 'border-stone-200 bg-white text-stone-600 hover:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
+                      }`}
+                    >
+                      {specialty}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+            {inviteSpecialties.length === 0 && (
+              <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                At least one specialty is required for a Developer.
+              </p>
+            )}
+          </fieldset>
+        )}
 
         {/* Multi-Workspace Assignment Checklist */}
         <div>

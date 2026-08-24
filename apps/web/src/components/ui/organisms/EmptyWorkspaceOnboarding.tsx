@@ -8,6 +8,7 @@ import { Modal } from '../molecules/Modal';
 import { useAppDispatch } from '../../../store/hooks';
 import { createWorkspace, fetchWorkspaces } from '../../../store/workspaceSlice';
 import { enqueueSnackbar } from '../../../store/uiSlice';
+import { canCreateWorkspace } from '../../../lib/permissions/workspacePermissions';
 
 export const CREATE_WORKSPACE_ILLUSTRATION_URL =
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020941/create_workspace.png';
@@ -21,7 +22,7 @@ export const EmptyWorkspaceOnboarding: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const userRole = (localStorage.getItem('user_role') || '').toLowerCase();
-  const canCreate = ['owner', 'admin', 'po', 'qa'].includes(userRole);
+  const canCreate = canCreateWorkspace(userRole);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -43,7 +44,7 @@ export const EmptyWorkspaceOnboarding: React.FC = () => {
         createWorkspace({
           name: name.trim(),
           description: description.trim() || undefined,
-        })
+        }),
       ).unwrap();
       dispatch(enqueueSnackbar(`Workspace "${name.trim()}" created successfully!`, 'success'));
       setName('');

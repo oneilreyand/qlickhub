@@ -21,17 +21,24 @@ export const Tabs: React.FC<TabsProps> = ({
   onChange,
   variant = 'underline',
 }) => {
+  const activeTabRef = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => {
+    activeTabRef.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [activeTabId]);
+
   if (variant === 'pills') {
     return (
-      <div className="inline-flex items-center gap-1 bg-white/80 dark:bg-stone-900/80 p-1.5 rounded-full border border-stone-200/80 dark:border-stone-800 shadow-xs">
+      <div className="flex w-full max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-stone-200/80 bg-white/80 p-1.5 shadow-xs dark:border-stone-800 dark:bg-stone-900/80 sm:inline-flex sm:w-auto sm:rounded-full">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
           return (
             <button
+              ref={isActive ? activeTabRef : undefined}
               key={tab.id}
               type="button"
               onClick={() => onChange(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              className={`flex min-h-[44px] shrink-0 items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 isActive
                   ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
@@ -58,7 +65,6 @@ export const Tabs: React.FC<TabsProps> = ({
     );
   }
 
-
   return (
     <div className="border-b border-stone-200 dark:border-stone-800">
       <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
@@ -79,7 +85,6 @@ export const Tabs: React.FC<TabsProps> = ({
               <span>{tab.label}</span>
               {tab.badge}
               {tab.count !== undefined && (
-
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] ${
                     isActive

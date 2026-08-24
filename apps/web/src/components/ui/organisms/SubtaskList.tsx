@@ -8,8 +8,10 @@ import {
   ListTodo,
   Clock,
   LayoutList,
+  Smartphone,
+  Cpu,
 } from 'lucide-react';
-import type { Task, DeliveryArea, ProductBrief } from '@qlick/contracts';
+import type { Task, DeliveryArea, ProductBrief, DeveloperSpecialty } from '@qlick/contracts';
 import { Accordion } from '../atoms/Accordion';
 import { SubtaskAccordionItem } from './SubtaskAccordionItem';
 import { SubtaskRoleTimeline } from '../molecules/SubtaskRoleTimeline';
@@ -28,7 +30,12 @@ export interface SubtaskListProps {
   parentTask?: Task | null;
   productBrief?: ProductBrief | null;
   currentUserId?: string;
-  members?: Array<{ userId: string; role: string; user?: { name?: string; email?: string } }>;
+  members?: Array<{
+    userId: string;
+    role: string;
+    specialties?: DeveloperSpecialty[];
+    user?: { name?: string; email?: string };
+  }>;
   isLoading?: boolean;
   error?: string | null;
   canPlan?: boolean;
@@ -38,6 +45,7 @@ export interface SubtaskListProps {
   onOpenCreateModal?: () => void;
   onRetry?: () => void;
   onSubtaskUpdated?: (updated: Task) => void;
+  onSubtaskDeleted?: (subtaskId: string) => void;
 }
 
 export const SubtaskList: React.FC<SubtaskListProps> = ({
@@ -56,6 +64,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
   onOpenCreateModal,
   onRetry,
   onSubtaskUpdated,
+  onSubtaskDeleted,
 }) => {
   const [viewMode, setViewMode] = useState<'accordion' | 'timeline'>('accordion');
   const [selectedArea, setSelectedArea] = useState<DeliveryArea | 'all'>('all');
@@ -72,17 +81,45 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
     const completed = subtasks.filter((s) => s.status === 'done').length;
 
     const feTotal = subtasks.filter((s) => s.deliveryArea === 'frontend').length;
-    const feDone = subtasks.filter((s) => s.deliveryArea === 'frontend' && s.status === 'done').length;
+    const feDone = subtasks.filter(
+      (s) => s.deliveryArea === 'frontend' && s.status === 'done',
+    ).length;
 
     const beTotal = subtasks.filter((s) => s.deliveryArea === 'backend').length;
-    const beDone = subtasks.filter((s) => s.deliveryArea === 'backend' && s.status === 'done').length;
+    const beDone = subtasks.filter(
+      (s) => s.deliveryArea === 'backend' && s.status === 'done',
+    ).length;
+
+    const mobileTotal = subtasks.filter((s) => s.deliveryArea === 'mobile').length;
+    const mobileDone = subtasks.filter(
+      (s) => s.deliveryArea === 'mobile' && s.status === 'done',
+    ).length;
+
+    const fullstackTotal = subtasks.filter((s) => s.deliveryArea === 'fullstack').length;
+    const fullstackDone = subtasks.filter(
+      (s) => s.deliveryArea === 'fullstack' && s.status === 'done',
+    ).length;
 
     const qaTotal = subtasks.filter((s) => s.deliveryArea === 'qa').length;
     const qaDone = subtasks.filter((s) => s.deliveryArea === 'qa' && s.status === 'done').length;
 
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    return { total, completed, feTotal, feDone, beTotal, beDone, qaTotal, qaDone, percent };
+    return {
+      total,
+      completed,
+      feTotal,
+      feDone,
+      beTotal,
+      beDone,
+      mobileTotal,
+      mobileDone,
+      fullstackTotal,
+      fullstackDone,
+      qaTotal,
+      qaDone,
+      percent,
+    };
   }, [subtasks]);
 
   // Filtered Subtasks
@@ -211,7 +248,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
         <ProgressBar value={metrics.percent} max={100} size="sm" />
 
         {/* Delivery Area Cards Summary */}
-        <div className="grid grid-cols-3 gap-2 pt-1">
+        <div className="grid grid-cols-2 gap-2 pt-1 sm:grid-cols-5">
           {/* Frontend */}
           <div className="flex items-center justify-between p-2 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-900/60 text-xs">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -234,6 +271,30 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
             </span>
           </div>
 
+          {/* Mobile */}
+          <div className="flex items-center justify-between p-2 rounded-xl bg-stone-50/70 dark:bg-stone-900/30 border border-stone-200/80 dark:border-stone-800 text-xs">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Smartphone className="h-3.5 w-3.5 text-stone-600 dark:text-stone-400 shrink-0" />
+              <span className="font-bold text-stone-900 dark:text-stone-200 truncate">Mobile</span>
+            </div>
+            <span className="font-mono text-[11px] font-bold text-stone-700 dark:text-stone-300">
+              {metrics.mobileDone}/{metrics.mobileTotal}
+            </span>
+          </div>
+
+          {/* Fullstack */}
+          <div className="flex items-center justify-between p-2 rounded-xl bg-[#B1E743]/10 border border-[#B1E743]/40 text-xs">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Cpu className="h-3.5 w-3.5 text-[#141413] dark:text-[#B1E743] shrink-0" />
+              <span className="font-bold text-[#141413] dark:text-[#B1E743] truncate">
+                Fullstack
+              </span>
+            </div>
+            <span className="font-mono text-[11px] font-bold text-[#141413] dark:text-[#B1E743]">
+              {metrics.fullstackDone}/{metrics.fullstackTotal}
+            </span>
+          </div>
+
           {/* QA */}
           <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/60 text-xs">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -250,7 +311,16 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
       {/* 2. RENDER SELECTED VIEW */}
       {viewMode === 'timeline' ? (
         <SubtaskRoleTimeline
-          parentTask={parentTask || ({ id: 'fallback', title: 'Task', startDate: null, dueDate: null, status: 'todo' } as Task)}
+          parentTask={
+            parentTask ||
+            ({
+              id: 'fallback',
+              title: 'Task',
+              startDate: null,
+              dueDate: null,
+              status: 'todo',
+            } as Task)
+          }
           subtasks={subtasks}
           productBrief={productBrief}
           members={members}
@@ -263,7 +333,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
           {subtasks.length > 0 && (
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
               {/* Area Filter Buttons */}
-              <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800/60 p-1 rounded-xl">
+              <div className="flex flex-wrap items-center gap-1 bg-stone-100 dark:bg-stone-800/60 p-1 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setSelectedArea('all')}
@@ -296,6 +366,28 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                   }`}
                 >
                   <Layers className="h-3 w-3" /> BE ({metrics.beTotal})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedArea('mobile')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                    selectedArea === 'mobile'
+                      ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs'
+                      : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
+                  }`}
+                >
+                  <Smartphone className="h-3 w-3" /> MOB ({metrics.mobileTotal})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedArea('fullstack')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                    selectedArea === 'fullstack'
+                      ? 'bg-[#B1E743]/30 text-[#141413] dark:text-[#B1E743] shadow-xs'
+                      : 'text-stone-600 dark:text-stone-400 hover:text-[#141413] dark:hover:text-[#B1E743]'
+                  }`}
+                >
+                  <Cpu className="h-3 w-3" /> FS ({metrics.fullstackTotal})
                 </button>
                 <button
                   type="button"
@@ -359,11 +451,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
               No subtasks match the selected area or search query.
             </div>
           ) : (
-            <Accordion
-              value={expandedIds}
-              onValueChange={setExpandedIds}
-              allowMultiple={true}
-            >
+            <Accordion value={expandedIds} onValueChange={setExpandedIds} allowMultiple={true}>
               {filteredSubtasks.map((st) => (
                 <SubtaskAccordionItem
                   key={st.id}
@@ -372,9 +460,11 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                   currentUserId={currentUserId}
                   members={members}
                   canMutate={canMutate}
+                  canPlan={canPlan}
                   initialUnreadCount={unreadCommentMap?.[st.id] || 0}
                   onClearUnread={() => onClearSubtaskUnread?.(st.id)}
                   onSubtaskUpdated={onSubtaskUpdated}
+                  onSubtaskDeleted={onSubtaskDeleted}
                 />
               ))}
             </Accordion>

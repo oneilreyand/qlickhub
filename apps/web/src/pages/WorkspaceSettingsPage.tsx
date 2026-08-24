@@ -8,7 +8,7 @@ import {
   updateMemberRole,
   removeMember,
 } from '../store/workspaceSlice';
-import { AssignableWorkspaceRole } from '@qlick/contracts';
+import { AssignableWorkspaceRole, DeveloperSpecialty } from '@qlick/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { selectCurrentUserRole } from '../store/authSlice';
 import { authService } from '../lib/api/authService';
@@ -23,7 +23,9 @@ import { AdminResetPasswordModal } from '../components/ui/organisms/AdminResetPa
 
 export const WorkspaceSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { workspaces, activeWorkspaceId, members, isMembersLoading } = useAppSelector((state) => state.workspace);
+  const { workspaces, activeWorkspaceId, members, isMembersLoading } = useAppSelector(
+    (state) => state.workspace,
+  );
   const currentUserRole = useAppSelector(selectCurrentUserRole);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
@@ -38,11 +40,16 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<AssignableWorkspaceRole>('dev');
+  const [inviteSpecialties, setInviteSpecialties] = useState<DeveloperSpecialty[]>([]);
   const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<string[]>([]);
   const [isInviting, setIsInviting] = useState(false);
 
   // Admin Reset Member Password State
-  const [resetTargetUser, setResetTargetUser] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [resetTargetUser, setResetTargetUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
   const [newMemberPassword, setNewMemberPassword] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
@@ -60,7 +67,12 @@ export const WorkspaceSettingsPage: React.FC = () => {
     }
   }, [activeWorkspace?.id, dispatch]);
 
-  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || currentUserRole || '').toLowerCase();
+  const userRole = (
+    activeWorkspace?.role ||
+    activeWorkspace?.myRole ||
+    currentUserRole ||
+    ''
+  ).toLowerCase();
   const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
   const canManageMembers = userRole === 'owner' || userRole === 'admin';
 
@@ -72,7 +84,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
         updateWorkspace({
           workspaceId: activeWorkspace.id,
           input: { allowQaTaskCreation: newValue },
-        })
+        }),
       ).unwrap();
       setAllowQaTaskCreation(newValue);
       dispatch(
@@ -80,11 +92,13 @@ export const WorkspaceSettingsPage: React.FC = () => {
           newValue
             ? 'QA Task Creation Policy updated: Direct creation & assignment enabled.'
             : 'QA Task Creation Policy updated: Restricted to self-assignment.',
-          'success'
-        )
+          'success',
+        ),
       );
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update policy', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update policy', 'error'),
+      );
     } finally {
       setIsUpdatingPolicy(false);
     }
@@ -99,11 +113,13 @@ export const WorkspaceSettingsPage: React.FC = () => {
         updateWorkspace({
           workspaceId: activeWorkspace.id,
           input: { name: workspaceName, description: workspaceDesc },
-        })
+        }),
       ).unwrap();
       dispatch(enqueueSnackbar('Workspace details updated successfully', 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update workspace', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update workspace', 'error'),
+      );
     } finally {
       setIsSavingDetails(false);
     }
@@ -111,7 +127,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
 
   const handleToggleWorkspaceSelection = (wsId: string) => {
     setSelectedWorkspaceIds((prev) =>
-      prev.includes(wsId) ? prev.filter((id) => id !== wsId) : [...prev, wsId]
+      prev.includes(wsId) ? prev.filter((id) => id !== wsId) : [...prev, wsId],
     );
   };
 
@@ -126,6 +142,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const handleInviteMember = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!activeWorkspace || !inviteEmail) return;
+    if (inviteRole === 'dev' && inviteSpecialties.length === 0) {
+      dispatch(enqueueSnackbar('Select at least one Developer specialty.', 'error'));
+      return;
+    }
     setIsInviting(true);
     try {
       await dispatch(
@@ -134,20 +154,25 @@ export const WorkspaceSettingsPage: React.FC = () => {
           input: {
             email: inviteEmail,
             role: inviteRole,
-            workspaceIds: selectedWorkspaceIds.length > 0 ? selectedWorkspaceIds : [activeWorkspace.id],
+            specialties: inviteRole === 'dev' ? inviteSpecialties : [],
+            workspaceIds:
+              selectedWorkspaceIds.length > 0 ? selectedWorkspaceIds : [activeWorkspace.id],
           },
-        })
+        }),
       ).unwrap();
       dispatch(
         enqueueSnackbar(
           `Successfully assigned ${inviteEmail} to ${selectedWorkspaceIds.length || 1} workspace(s) as ${inviteRole}`,
-          'success'
-        )
+          'success',
+        ),
       );
       setInviteEmail('');
+      setInviteSpecialties([]);
       setShowInviteModal(false);
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to add member', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to add member', 'error'),
+      );
     } finally {
       setIsInviting(false);
     }
@@ -175,34 +200,46 @@ export const WorkspaceSettingsPage: React.FC = () => {
     }
   };
 
-  const handleRoleChange = async (memberUserId: string, newRole: AssignableWorkspaceRole) => {
+  const handleMemberUpdate = async (
+    memberUserId: string,
+    newRole: AssignableWorkspaceRole,
+    specialties?: DeveloperSpecialty[],
+  ) => {
     if (!activeWorkspace) return;
     try {
       await dispatch(
         updateMemberRole({
           workspaceId: activeWorkspace.id,
           memberUserId,
-          role: newRole,
-        })
+          input: { role: newRole, specialties: newRole === 'dev' ? specialties : [] },
+        }),
       ).unwrap();
-      dispatch(enqueueSnackbar('Member role updated successfully', 'success'));
+      dispatch(enqueueSnackbar('Member role and specialties updated successfully', 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update role', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update member', 'error'),
+      );
     }
   };
 
   const handleRemoveMember = async (memberUserId: string, memberEmail: string) => {
-    if (!activeWorkspace || !window.confirm(`Are you sure you want to remove ${memberEmail} from this workspace?`)) return;
+    if (
+      !activeWorkspace ||
+      !window.confirm(`Are you sure you want to remove ${memberEmail} from this workspace?`)
+    )
+      return;
     try {
       await dispatch(
         removeMember({
           workspaceId: activeWorkspace.id,
           memberUserId,
-        })
+        }),
       ).unwrap();
       dispatch(enqueueSnackbar(`Removed ${memberEmail} from workspace`, 'info'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to remove member', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to remove member', 'error'),
+      );
     }
   };
 
@@ -225,7 +262,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12 animate-fadeIn">
+    <div className="w-full space-y-8 pb-12 animate-fadeIn">
       {/* Page Header */}
       <div className="border-b border-stone-200 pb-5 dark:border-stone-800">
         <div className="flex items-center gap-2 text-xs font-semibold text-stone-700 dark:text-[#B1E743]">
@@ -268,10 +305,21 @@ export const WorkspaceSettingsPage: React.FC = () => {
             members={members}
             isLoading={isMembersLoading}
             canManageMembers={canManageMembers}
+            managerRole={canManageMembers ? (userRole as 'owner' | 'admin') : null}
             searchQuery={searchMember}
             onSearchChange={setSearchMember}
             onInviteClick={() => setShowInviteModal(true)}
-            onRoleChange={handleRoleChange}
+            onRoleChange={(memberUserId, role) => {
+              const member = members.find((item) => item.userId === memberUserId);
+              void handleMemberUpdate(
+                memberUserId,
+                role,
+                role === 'dev' ? member?.specialties || [] : [],
+              );
+            }}
+            onSpecialtiesChange={(memberUserId, specialties) => {
+              void handleMemberUpdate(memberUserId, 'dev', specialties);
+            }}
             onRemoveMember={handleRemoveMember}
             onResetPasswordClick={(user) => {
               setResetTargetUser(user);
@@ -287,11 +335,22 @@ export const WorkspaceSettingsPage: React.FC = () => {
         onClose={() => setShowInviteModal(false)}
         inviteEmail={inviteEmail}
         inviteRole={inviteRole}
+        inviteSpecialties={inviteSpecialties}
         selectedWorkspaceIds={selectedWorkspaceIds}
         workspaces={workspaces}
         isInviting={isInviting}
         onEmailChange={setInviteEmail}
-        onRoleChange={setInviteRole}
+        onRoleChange={(role) => {
+          setInviteRole(role);
+          if (role !== 'dev') setInviteSpecialties([]);
+        }}
+        onToggleSpecialty={(specialty) => {
+          setInviteSpecialties((current) =>
+            current.includes(specialty)
+              ? current.filter((item) => item !== specialty)
+              : [...current, specialty],
+          );
+        }}
         onToggleWorkspaceSelection={handleToggleWorkspaceSelection}
         onSelectAllWorkspaces={handleSelectAllWorkspaces}
         onSubmit={handleInviteMember}

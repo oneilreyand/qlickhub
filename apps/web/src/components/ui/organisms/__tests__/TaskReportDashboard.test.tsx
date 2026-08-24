@@ -3,6 +3,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Task } from '@qlick/contracts';
 import { TaskReportDashboard } from '../TaskReportDashboard';
+import {
+  createReleaseReadinessViewState,
+  releaseReadinessFixtureIds,
+} from '../../../../test/releaseReadinessFixture';
 
 const taskDefaults = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -31,7 +35,7 @@ function renderDashboard(tasks: Task[], onOpenWorkHub = vi.fn()) {
       onDateRangeChange={vi.fn()}
       onRefresh={vi.fn()}
       onOpenWorkHub={onOpenWorkHub}
-    />
+    />,
   );
   return onOpenWorkHub;
 }
@@ -44,6 +48,32 @@ describe('TaskReportDashboard', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('reports the same backend Feature readiness label and reason used by task surfaces', () => {
+    const task = createTask({
+      id: releaseReadinessFixtureIds.feature,
+      title: 'Checkout Feature',
+    });
+    render(
+      <TaskReportDashboard
+        workspaceName="Release Delivery"
+        tasks={[task]}
+        releaseReadinessStateByFeatureId={{
+          [task.id]: createReleaseReadinessViewState(),
+        }}
+        total={1}
+        isLoading={false}
+        error={null}
+        onDateRangeChange={vi.fn()}
+        onRefresh={vi.fn()}
+        onOpenWorkHub={vi.fn()}
+      />,
+    );
+
+    const readinessPanel = screen.getByTestId('report-release-readiness');
+    expect(readinessPanel).toHaveTextContent('Not release ready · 1 failed');
+    expect(readinessPanel).toHaveTextContent('1/2 development subtasks are complete.');
   });
 
   it('derives delivery metrics, cross-functional delivery areas, and attention queue from persisted tasks', () => {
@@ -94,7 +124,11 @@ describe('TaskReportDashboard', () => {
           }),
         ],
       }),
-      createTask({ id: '11111111-1111-4111-8111-111111111115', status: 'todo', priority: 'medium' }),
+      createTask({
+        id: '11111111-1111-4111-8111-111111111115',
+        status: 'todo',
+        priority: 'medium',
+      }),
     ]);
 
     expect(screen.getByRole('heading', { name: 'Delivery & SDLC Report' })).toBeInTheDocument();
@@ -135,6 +169,51 @@ describe('TaskReportDashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: /Bottlenecks & Schedule Health/i }));
     expect(screen.getByText('End-to-End SDLC Handoff Pipeline')).toBeInTheDocument();
     expect(screen.getByText('Schedule Slippage & Risk Diagnosis')).toBeInTheDocument();
+  });
+
+  it('shows Developer specialties beside persisted team workload', () => {
+    const developerId = '44444444-4444-4444-8444-444444444444';
+    render(
+      <TaskReportDashboard
+        workspaceName="Release Delivery"
+        tasks={[
+          createTask({
+            subtasks: [
+              createTask({
+                id: 'sub-mobile-1',
+                parentTaskId: taskDefaults.id,
+                deliveryArea: 'mobile',
+                assigneeId: developerId,
+                status: 'in_progress',
+                title: 'Build native checkout',
+              }),
+            ],
+          }),
+        ]}
+        members={[
+          {
+            id: 'membership-dev',
+            workspaceId: taskDefaults.workspaceId,
+            userId: developerId,
+            role: 'dev',
+            specialties: ['mobile', 'fullstack'],
+            joinedAt: '2026-08-01T00:00:00.000Z',
+            user: { id: developerId, name: 'Mobile Developer', email: 'mobile@example.com' },
+          },
+        ]}
+        total={1}
+        isLoading={false}
+        error={null}
+        onDateRangeChange={vi.fn()}
+        onRefresh={vi.fn()}
+        onOpenWorkHub={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Roles & Workstreams/i }));
+    expect(screen.getByText('Mobile Developer')).toBeInTheDocument();
+    expect(screen.getByText('mobile', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByText('fullstack', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('shows an empty report and sends the user to Work Hub to create tasks', () => {

@@ -1,33 +1,36 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  ShieldCheck,
-  Code2,
-  Bug,
-} from 'lucide-react';
-import type { Task } from '@qlick/contracts';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { ShieldCheck, Code2, Bug } from 'lucide-react';
+import type { ParentTaskDeliveryTrace, Task } from '@qlick/contracts';
 import { Drawer } from '../../molecules/Drawer';
+import { Tabs, type TabItem } from '../../molecules/Tabs';
 import { PoTeamICardGrid } from './PoTeamICardGrid';
 import { DevWorkingDesk } from './DevWorkingDesk';
 import { QaTestingDesk } from './QaTestingDesk';
-import { taskService } from '../../../../lib/api/taskService';
+import { MyTaskFeatureContext } from './MyTaskFeatureContext';
+import { traceabilityService } from '../../../../lib/api/traceabilityService';
 import { useAppSelector } from '../../../../store/hooks';
 import { RootState } from '../../../../store/store';
 import { selectCurrentUserId } from '../../../../store/authSlice';
+import type { ReleaseReadinessViewState } from '../../../../lib/hooks/useReleaseReadinessMap';
 
 export interface MyTaskDetailWorkspaceDrawerProps {
   task: Task | null;
   userRole?: string;
   isOpen: boolean;
+  releaseReadinessState?: ReleaseReadinessViewState;
   onClose: () => void;
   onDataChanged: () => void;
+  onOpenFeature?: (featureTaskId: string) => void;
 }
 
 export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerProps> = ({
   task,
   userRole = 'dev',
   isOpen,
+  releaseReadinessState,
   onClose,
   onDataChanged,
+  onOpenFeature,
 }) => {
   const { activeWorkspaceId } = useAppSelector((state: RootState) => state.workspace);
   const currentUserId = useAppSelector(selectCurrentUserId);
@@ -35,10 +38,15 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   const [parentTask, setParentTask] = useState<Task | null>(null);
   const [activeViewMode, setActiveViewMode] = useState<'po' | 'dev' | 'qa'>('po');
   const [activeSubtaskForExecution, setActiveSubtaskForExecution] = useState<Task | null>(null);
+  const [deliveryTrace, setDeliveryTrace] = useState<ParentTaskDeliveryTrace | null>(null);
+  const [isLoadingFeatureContext, setIsLoadingFeatureContext] = useState(true);
+  const [featureContextError, setFeatureContextError] = useState<string | null>(null);
+  const [featureContextPermissionDenied, setFeatureContextPermissionDenied] = useState(false);
+  const featureContextRequestIdRef = useRef(0);
 
   const isPlanner = useMemo(
     () => ['owner', 'admin', 'po'].includes(userRole.toLowerCase()),
-    [userRole]
+    [userRole],
   );
 
   // Determine initial view mode based on task and user role
@@ -66,32 +74,114 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
     }
   }, [task, userRole, isPlanner]);
 
-  // Load parent task if the selected item is a subtask
-  useEffect(() => {
-    if (!task || !task.parentTaskId || !activeWorkspaceId) {
+  const contextTask =
+    activeSubtaskForExecution && task && activeSubtaskForExecution.parentTaskId === task.id
+      ? activeSubtaskForExecution
+      : task;
+
+  const loadFeatureContext = useCallback(async () => {
+    if (!contextTask?.parentTaskId || !activeWorkspaceId) {
       setParentTask(null);
+      setDeliveryTrace(null);
+      setFeatureContextError(null);
+      setFeatureContextPermissionDenied(false);
+      setIsLoadingFeatureContext(false);
       return;
     }
 
-    let isMounted = true;
-    taskService
-      .getTask(activeWorkspaceId, task.parentTaskId)
-      .then((res) => {
-        if (isMounted) setParentTask(res);
-      })
-      .catch(() => {
-        if (isMounted) setParentTask(null);
-      });
+    const requestId = ++featureContextRequestIdRef.current;
+    setIsLoadingFeatureContext(true);
+    setFeatureContextError(null);
+    setFeatureContextPermissionDenied(false);
+    setDeliveryTrace(null);
+    setParentTask(null);
+
+    try {
+      const trace = await traceabilityService.getParentTaskDeliveryTrace(
+        activeWorkspaceId,
+        contextTask.id,
+      );
+      if (requestId !== featureContextRequestIdRef.current) return;
+      setDeliveryTrace(trace);
+      setParentTask(trace.featureTask);
+    } catch (error) {
+      if (requestId !== featureContextRequestIdRef.current) return;
+      const status = (error as { status?: number }).status;
+      setParentTask(null);
+      setFeatureContextPermissionDenied(status === 403);
+      setFeatureContextError(
+        status === 403
+          ? null
+          : error instanceof Error
+            ? error.message
+            : 'Unable to load persisted Feature context.',
+      );
+    } finally {
+      if (requestId === featureContextRequestIdRef.current) {
+        setIsLoadingFeatureContext(false);
+      }
+    }
+  }, [activeWorkspaceId, contextTask?.id, contextTask?.parentTaskId]);
+
+  useEffect(() => {
+    void loadFeatureContext();
 
     return () => {
-      isMounted = false;
+      featureContextRequestIdRef.current += 1;
     };
-  }, [task, activeWorkspaceId]);
+  }, [loadFeatureContext]);
 
   if (!task) return null;
 
   const isSubtask = Boolean(task.parentTaskId);
   const executionTask = activeSubtaskForExecution || task;
+  const roleTabs: TabItem[] = [
+    { id: 'po', label: 'PO Cockpit & iCards', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
+    { id: 'dev', label: 'Dev Working Desk', icon: <Code2 className="h-3.5 w-3.5" /> },
+    { id: 'qa', label: 'QA Testing Desk', icon: <Bug className="h-3.5 w-3.5" /> },
+  ];
+
+  const handleRoleTabChange = (viewMode: string) => {
+    const nextViewMode = viewMode as 'po' | 'dev' | 'qa';
+    setActiveViewMode(nextViewMode);
+    if (nextViewMode === 'po') setActiveSubtaskForExecution(null);
+  };
+
+  const roleToolbar = isPlanner ? (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <Tabs
+          tabs={roleTabs}
+          activeTabId={activeViewMode}
+          onChange={handleRoleTabChange}
+          variant="pills"
+        />
+      </div>
+      <span className="hidden shrink-0 px-2 text-xs font-bold capitalize text-stone-700 dark:text-stone-300 sm:inline">
+        Role: {userRole}
+      </span>
+    </div>
+  ) : activeViewMode === 'dev' ? (
+    <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
+      <Code2 className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+      <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
+        Developer Working Desk
+      </span>
+      <span className="hidden shrink-0 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[10px] font-extrabold text-sky-800 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-300 sm:inline-flex">
+        Executor Workspace
+      </span>
+    </div>
+  ) : (
+    <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
+      <Bug className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+      <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
+        QA Testing & Quality Desk
+      </span>
+      <span className="hidden shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 sm:inline-flex">
+        QA Verification
+      </span>
+    </div>
+  );
 
   return (
     <Drawer
@@ -102,85 +192,25 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
       width="4xl"
       defaultFullScreen={true}
       allowFullScreen={true}
+      preserveAppHeader={true}
+      toolbar={roleToolbar}
     >
       <div className="space-y-6 pb-12">
-        {/* Role View Switcher & Persona Navigation Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 rounded-2xl bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
-          {isPlanner ? (
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-              {/* PO View Tab */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveViewMode('po');
-                  setActiveSubtaskForExecution(null);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-                  activeViewMode === 'po'
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-800'
-                }`}
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span>PO Cockpit & iCards</span>
-              </button>
-
-              {/* Dev View Tab */}
-              <button
-                type="button"
-                onClick={() => setActiveViewMode('dev')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-                  activeViewMode === 'dev'
-                    ? 'bg-sky-600 text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-800'
-                }`}
-              >
-                <Code2 className="h-3.5 w-3.5" />
-                <span>Dev Working Desk</span>
-              </button>
-
-              {/* QA View Tab */}
-              <button
-                type="button"
-                onClick={() => setActiveViewMode('qa')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-                  activeViewMode === 'qa'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-800'
-                }`}
-              >
-                <Bug className="h-3.5 w-3.5" />
-                <span>QA Testing Desk</span>
-              </button>
-            </div>
-          ) : activeViewMode === 'dev' ? (
-            <div className="flex items-center gap-2 px-2 py-1">
-              <Code2 className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-              <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                Developer Working Desk
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 font-extrabold border border-sky-200 dark:border-sky-800">
-                Executor Workspace
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-2 py-1">
-              <Bug className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                QA Testing & Quality Desk
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 font-extrabold border border-emerald-200 dark:border-emerald-800">
-                QA Verification
-              </span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 px-2 shrink-0">
-            <span className="capitalize font-bold text-stone-700 dark:text-stone-300">
-              Role: {userRole}
-            </span>
-          </div>
-        </div>
+        {contextTask?.parentTaskId && (
+          <MyTaskFeatureContext
+            task={contextTask}
+            trace={deliveryTrace}
+            isLoading={
+              isLoadingFeatureContext ||
+              (!deliveryTrace && !featureContextError && !featureContextPermissionDenied)
+            }
+            error={featureContextError}
+            permissionDenied={featureContextPermissionDenied}
+            releaseReadinessState={releaseReadinessState}
+            onOpenFeature={onOpenFeature}
+            onRetry={() => void loadFeatureContext()}
+          />
+        )}
 
         {/* Dynamic Workspace View Mode */}
         {activeViewMode === 'po' && activeWorkspaceId && (
@@ -188,6 +218,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
             task={isSubtask && parentTask ? parentTask : task}
             workspaceId={activeWorkspaceId}
             currentUserId={currentUserId || undefined}
+            userRole={userRole}
             onDataChanged={onDataChanged}
             onOpenDevView={(subtaskItem) => {
               setActiveSubtaskForExecution(subtaskItem);
@@ -217,6 +248,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
             parentTask={parentTask || (isSubtask ? null : task)}
             workspaceId={activeWorkspaceId}
             currentUserId={currentUserId || undefined}
+            userRole={userRole}
             onDataChanged={onDataChanged}
             onBackToOverview={() => setActiveViewMode('po')}
           />

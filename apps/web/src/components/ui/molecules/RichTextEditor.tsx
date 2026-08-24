@@ -146,7 +146,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       const newCursorPos = start + prefix.length + selectedText.length;
       textarea.setSelectionRange(
         selectedText ? newCursorPos : start + prefix.length,
-        selectedText ? newCursorPos : start + prefix.length
+        selectedText ? newCursorPos : start + prefix.length,
       );
       adjustTextareaHeight();
     }, 0);
@@ -266,10 +266,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }
         e.preventDefault();
         const nextNumPrefix = `${num + 1}. `;
-        const newValue = value.substring(0, cursor) + '\n' + nextNumPrefix + value.substring(cursor);
+        const newValue =
+          value.substring(0, cursor) + '\n' + nextNumPrefix + value.substring(cursor);
         onChange(newValue);
         setTimeout(() => {
-          textarea.setSelectionRange(cursor + nextNumPrefix.length + 1, cursor + nextNumPrefix.length + 1);
+          textarea.setSelectionRange(
+            cursor + nextNumPrefix.length + 1,
+            cursor + nextNumPrefix.length + 1,
+          );
           adjustTextareaHeight();
         }, 0);
         return;
@@ -304,7 +308,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       {isFullscreen && (
         <div
           onClick={() => setIsFullscreen(false)}
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity"
+          className="fixed inset-x-0 bottom-0 top-20 z-50 bg-black/60 backdrop-blur-xs transition-opacity"
         />
       )}
 
@@ -324,10 +328,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       <div
         className={`rounded-xl border transition-all overflow-hidden bg-white dark:bg-stone-900 ${
           isFullscreen
-            ? 'fixed inset-4 sm:inset-10 z-50 flex flex-col shadow-2xl border-stone-300 dark:border-stone-700'
+            ? 'fixed inset-x-4 bottom-4 top-24 sm:inset-x-10 sm:bottom-10 sm:top-28 z-50 flex flex-col shadow-2xl border-stone-300 dark:border-stone-700'
             : error
-            ? 'border-rose-500 ring-1 ring-rose-500/20'
-            : 'border-stone-200 focus-within:border-stone-400 focus-within:ring-2 focus-within:ring-stone-400/10 dark:border-stone-800 dark:focus-within:border-stone-700'
+              ? 'border-rose-500 ring-1 ring-rose-500/20'
+              : 'border-stone-200 focus-within:border-stone-400 focus-within:ring-2 focus-within:ring-stone-400/10 dark:border-stone-800 dark:focus-within:border-stone-700'
         }`}
       >
         {/* Formatting Toolbar */}
@@ -516,13 +520,23 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Expand Fullscreen / Focus Mode'}
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 transition-colors"
             >
-              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              {isFullscreen ? (
+                <Minimize2 className="h-3.5 w-3.5" />
+              ) : (
+                <Maximize2 className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
         </div>
 
         {/* Content Area */}
-        <div className={activeTab === 'write' ? `p-2.5 ${isFullscreen ? 'flex-1 overflow-y-auto' : ''}` : 'hidden'}>
+        <div
+          className={
+            activeTab === 'write'
+              ? `p-2.5 ${isFullscreen ? 'flex-1 overflow-y-auto' : ''}`
+              : 'hidden'
+          }
+        >
           <textarea
             id={id}
             ref={textareaRef}
@@ -557,7 +571,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* Status / Footer Bar */}
         <div className="flex items-center justify-between border-t border-stone-100 bg-stone-50/50 px-3 py-1 text-[10px] text-stone-400 dark:border-stone-800/60 dark:bg-stone-950/40 dark:text-stone-500 shrink-0">
           <span className="italic">
-            {isFullscreen ? 'Press Esc to exit Fullscreen' : 'Tip: Insert media links with Image or Video toolbar buttons'}
+            {isFullscreen
+              ? 'Press Esc to exit Fullscreen'
+              : 'Tip: Insert media links with Image or Video toolbar buttons'}
           </span>
           <span className="font-mono">
             {wordCount} {wordCount === 1 ? 'word' : 'words'} · {charCount} chars
@@ -712,7 +728,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       )}
 
       {error && <p className="text-xs text-rose-500 mt-1">{error}</p>}
-      {helperText && !error && <p className="text-[11px] text-stone-500 dark:text-stone-400">{helperText}</p>}
+      {helperText && !error && (
+        <p className="text-[11px] text-stone-500 dark:text-stone-400">{helperText}</p>
+      )}
     </div>
   );
 };

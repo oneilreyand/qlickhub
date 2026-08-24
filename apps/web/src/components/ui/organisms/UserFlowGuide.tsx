@@ -46,7 +46,12 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
   const currentRole = useAppSelector(selectCurrentUserRole);
 
   const getInitialRole = (): RoleKey => {
-    if (initialRole === 'owner_admin' || initialRole === 'po' || initialRole === 'dev' || initialRole === 'qa') {
+    if (
+      initialRole === 'owner_admin' ||
+      initialRole === 'po' ||
+      initialRole === 'dev' ||
+      initialRole === 'qa'
+    ) {
       return initialRole;
     }
     if (currentRole === 'owner' || currentRole === 'admin') return 'owner_admin';
@@ -60,7 +65,13 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
     if (initialSection) return initialSection;
     if (initialRole === 'how_to_use' || initialRole === 'panduan') return 'panduan';
     if (initialRole === 'overview') return 'overview';
-    if (initialRole === 'user_flow' || initialRole === 'owner_admin' || initialRole === 'po' || initialRole === 'dev' || initialRole === 'qa') {
+    if (
+      initialRole === 'user_flow' ||
+      initialRole === 'owner_admin' ||
+      initialRole === 'po' ||
+      initialRole === 'dev' ||
+      initialRole === 'qa'
+    ) {
       return 'user_flow';
     }
     return 'panduan';
@@ -107,7 +118,7 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="w-full space-y-6 pb-12">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-900 via-[#1C1A19] to-stone-900 p-6 sm:p-8 text-white shadow-xl border border-stone-800">
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-[#B1E743]/10 rounded-full blur-3xl pointer-events-none" />
@@ -123,7 +134,10 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
               User Flow & Cara Penggunaan Aplikasi
             </h1>
             <p className="text-sm text-stone-300 max-w-2xl leading-relaxed">
-              Panduan terintegrasi Qlick Hub yang dibagi menjadi 3 bagian: <strong>Panduan Aplikasi</strong> (Tutorial praktis), <strong>E2E Overview</strong> (Siklus kolaborasi & RBAC), dan <strong>User Flow</strong> (Alur kerja spesifik per role tim).
+              Panduan terintegrasi Qlick Hub yang dibagi menjadi 3 bagian:{' '}
+              <strong>Panduan Aplikasi</strong> (Tutorial praktis), <strong>E2E Overview</strong>{' '}
+              (Siklus kolaborasi & RBAC), dan <strong>User Flow</strong> (Alur kerja spesifik per
+              role tim).
             </p>
           </div>
 
@@ -190,9 +204,7 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
                     <span className="text-xs font-bold text-stone-400 dark:text-stone-500">
                       0{idx + 1}
                     </span>
-                    <span className="text-sm font-bold truncate">
-                      {tab.label}
-                    </span>
+                    <span className="text-sm font-bold truncate">{tab.label}</span>
                   </div>
                   <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate mt-0.5">
                     {tab.description}
@@ -265,10 +277,17 @@ const HowToUseSection: React.FC<{
                 <h3 className="font-bold text-sm text-stone-900 dark:text-white">1. Work Hub</h3>
               </div>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-                Pusat pengorganisasian tugas tim. Menyajikan folder sprint, daftar parent task dikelompokkan status, serta drawer detail subtask, requirement, dan diskusi.
+                Pusat pengorganisasian tugas tim. Menyajikan folder sprint, daftar parent task
+                dikelompokkan status, serta drawer detail subtask, requirement, dan diskusi.
               </p>
             </div>
-            <Button size="sm" variant="outline" rightIcon={<ArrowRight className="w-3.5 h-3.5" />} onClick={() => navigate('/work')} className="w-full text-xs">
+            <Button
+              size="sm"
+              variant="outline"
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              onClick={() => navigate('/work')}
+              className="w-full text-xs"
+            >
               Buka Work Hub
             </Button>
           </div>
@@ -283,10 +302,17 @@ const HowToUseSection: React.FC<{
                 <h3 className="font-bold text-sm text-stone-900 dark:text-white">2. My Tasks</h3>
               </div>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-                Ruang kerja personal. Menampilkan subtask yang ditugaskan khusus untuk Anda, filter tanggal/status, dan tempat memperbarui status kerja secara cepat.
+                Ruang kerja personal. Menampilkan subtask yang ditugaskan khusus untuk Anda, filter
+                tanggal/status, dan tempat memperbarui status kerja secara cepat.
               </p>
             </div>
-            <Button size="sm" variant="outline" rightIcon={<ArrowRight className="w-3.5 h-3.5" />} onClick={() => navigate('/my-tasks')} className="w-full text-xs">
+            <Button
+              size="sm"
+              variant="outline"
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              onClick={() => navigate('/my-tasks')}
+              className="w-full text-xs"
+            >
               Buka My Tasks
             </Button>
           </div>
@@ -298,13 +324,22 @@ const HowToUseSection: React.FC<{
                 <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
                   <FileBarChart className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-sm text-stone-900 dark:text-white">3. Report Dashboard</h3>
+                <h3 className="font-bold text-sm text-stone-900 dark:text-white">
+                  3. Report Dashboard
+                </h3>
               </div>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-                Analitik visual kecepatan rilis, diagram status task, metrik prioritas, dan QA Traceability Matrix untuk audit kualitas.
+                Analitik visual kecepatan rilis, diagram status task, metrik prioritas, dan QA
+                Traceability Matrix untuk audit kualitas.
               </p>
             </div>
-            <Button size="sm" variant="outline" rightIcon={<ArrowRight className="w-3.5 h-3.5" />} onClick={() => navigate('/reports')} className="w-full text-xs">
+            <Button
+              size="sm"
+              variant="outline"
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              onClick={() => navigate('/reports')}
+              className="w-full text-xs"
+            >
               Buka Report
             </Button>
           </div>
@@ -316,13 +351,22 @@ const HowToUseSection: React.FC<{
                 <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400">
                   <Building2 className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-sm text-stone-900 dark:text-white">4. Workspace Settings</h3>
+                <h3 className="font-bold text-sm text-stone-900 dark:text-white">
+                  4. Workspace Settings
+                </h3>
               </div>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-                Pengaturan workspace, undang anggota tim, atur peran (Admin, PO, Dev, QA), dan tentukan aturan Task Creation Policy.
+                Pengaturan workspace, undang anggota tim, atur peran (Admin, PO, Dev, QA), dan
+                tentukan aturan Task Creation Policy.
               </p>
             </div>
-            <Button size="sm" variant="outline" rightIcon={<ArrowRight className="w-3.5 h-3.5" />} onClick={() => navigate('/workspaces/settings')} className="w-full text-xs">
+            <Button
+              size="sm"
+              variant="outline"
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              onClick={() => navigate('/workspaces/settings')}
+              className="w-full text-xs"
+            >
               Buka Settings
             </Button>
           </div>
@@ -340,7 +384,8 @@ const HowToUseSection: React.FC<{
             <span>Discussion & Mention</span>
           </div>
           <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-            Gunakan tab <strong>Discussion</strong> di dalam Drawer untuk bertukar pesan dengan tim. Anda dapat me-reply pesan dan melakukan <code>@mention</code> anggota tim di workspace.
+            Gunakan tab <strong>Discussion</strong> di dalam Drawer untuk bertukar pesan dengan tim.
+            Anda dapat me-reply pesan dan melakukan <code>@mention</code> anggota tim di workspace.
           </p>
         </Card>
 
@@ -350,7 +395,8 @@ const HowToUseSection: React.FC<{
             <span>Immutable Activity Log</span>
           </div>
           <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-            Setiap perpindahan status, perubahan assignee, dan modifikasi tercatat otomatis di tab <strong>Activity</strong> sebagai bukti audit yang tidak dapat dimanipulasi browser.
+            Setiap perpindahan status, perubahan assignee, dan modifikasi tercatat otomatis di tab{' '}
+            <strong>Activity</strong> sebagai bukti audit yang tidak dapat dimanipulasi browser.
           </p>
         </Card>
 
@@ -360,7 +406,8 @@ const HowToUseSection: React.FC<{
             <span>Quick Filter & Date Presets</span>
           </div>
           <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-            Gunakan filter preset <em>Today</em>, <em>This Week</em>, atau <em>Date Range</em> di Work Hub dan Report untuk menyaring tampilan data secara instan.
+            Gunakan filter preset <em>Today</em>, <em>This Week</em>, atau <em>Date Range</em> di
+            Work Hub dan Report untuk menyaring tampilan data secara instan.
           </p>
         </Card>
       </div>
@@ -371,16 +418,36 @@ const HowToUseSection: React.FC<{
           Lanjutkan membaca gambaran siklus atau alur kerja peran spesifik:
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => onNavigateToSection('overview')} className="text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onNavigateToSection('overview')}
+            className="text-xs"
+          >
             2. E2E Overview
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onNavigateToSection('user_flow', 'po')} className="text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onNavigateToSection('user_flow', 'po')}
+            className="text-xs"
+          >
             Flow PO
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onNavigateToSection('user_flow', 'dev')} className="text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onNavigateToSection('user_flow', 'dev')}
+            className="text-xs"
+          >
             Flow Dev
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onNavigateToSection('user_flow', 'qa')} className="text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onNavigateToSection('user_flow', 'qa')}
+            className="text-xs"
+          >
             Flow QA
           </Button>
         </div>
@@ -392,7 +459,9 @@ const HowToUseSection: React.FC<{
 /* =========================================================================
    1. OVERVIEW FLOW SECTION (END-TO-END)
    ========================================================================= */
-const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> = ({ onSelectRole }) => {
+const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> = ({
+  onSelectRole,
+}) => {
   return (
     <div className="space-y-6">
       {/* End-to-End Process Stepper */}
@@ -417,9 +486,13 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
               <span className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-bold text-xs flex items-center justify-center">
                 1
               </span>
-              <Badge variant="neutral" size="sm">Admin / PO</Badge>
+              <Badge variant="neutral" size="sm">
+                Admin / PO
+              </Badge>
             </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">Struktur & Ruang Kerja</h3>
+            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
+              Struktur & Ruang Kerja
+            </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
               Inisiasi Workspace, undang anggota tim, dan buat folder rilis / sprint.
             </p>
@@ -437,9 +510,13 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
               <span className="w-7 h-7 rounded-lg bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743] font-bold text-xs flex items-center justify-center">
                 2
               </span>
-              <Badge variant="review" size="sm">PO</Badge>
+              <Badge variant="review" size="sm">
+                PO
+              </Badge>
             </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">Parent & Subtask FE/BE/QA</h3>
+            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
+              Parent & Subtask FE/BE/QA
+            </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
               PO memecah parent task menjadi subtask FE, BE, & QA terarah ke masing-masing assignee.
             </p>
@@ -457,11 +534,16 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
               <span className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-bold text-xs flex items-center justify-center">
                 3
               </span>
-              <Badge variant="neutral" size="sm">Developer</Badge>
+              <Badge variant="neutral" size="sm">
+                Developer
+              </Badge>
             </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">Coding & Submit Review</h3>
+            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
+              Coding & Submit Review
+            </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
-              Dev mengerjakan subtask (In Progress), lalu mengajukan ke In Review saat coding selesai.
+              Dev mengerjakan subtask (In Progress), lalu mengajukan ke In Review saat coding
+              selesai.
             </p>
             <button
               onClick={() => onSelectRole('dev')}
@@ -477,11 +559,16 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
               <span className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center justify-center">
                 4
               </span>
-              <Badge variant="passed" size="sm">QA</Badge>
+              <Badge variant="passed" size="sm">
+                QA
+              </Badge>
             </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">Quality Gate & Testing</h3>
+            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
+              Quality Gate & Testing
+            </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
-              QA me-review kode/fitur. Jika ada bug $\rightarrow$ Changes Requested. Jika lolos $\rightarrow$ Done.
+              QA me-review kode/fitur. Jika ada bug $\rightarrow$ Changes Requested. Jika lolos
+              $\rightarrow$ Done.
             </p>
             <button
               onClick={() => onSelectRole('qa')}
@@ -497,9 +584,13 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
               <span className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 font-bold text-xs flex items-center justify-center">
                 5
               </span>
-              <Badge variant="review" size="sm">PO / Admin</Badge>
+              <Badge variant="review" size="sm">
+                PO / Admin
+              </Badge>
             </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">Final Acceptance</h3>
+            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
+              Final Acceptance
+            </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
               Setelah seluruh subtask FE, BE, & QA tervalidasi Done, PO menyelesaikan Parent Task.
             </p>
@@ -534,45 +625,103 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
             <tbody className="divide-y divide-stone-100 dark:divide-stone-800/60 text-stone-700 dark:text-stone-300">
               <tr>
                 <td className="py-3 px-4 font-medium">Buat Workspace, Folder & Kelola Anggota</td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-stone-400 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-stone-400 mx-auto" /></td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <X className="w-4 h-4 text-stone-400 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <X className="w-4 h-4 text-stone-400 mx-auto" />
+                </td>
               </tr>
               <tr>
                 <td className="py-3 px-4 font-medium">Buat & Rencanakan Parent Task / Subtask</td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-stone-400 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-stone-400 mx-auto" /></td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <X className="w-4 h-4 text-stone-400 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <X className="w-4 h-4 text-stone-400 mx-auto" />
+                </td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-medium">Update Status Eksekusi (Todo $\rightarrow$ In Progress $\rightarrow$ In Review)</td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">Subtask Milik Sendiri</span></td>
-                <td className="py-3 px-4 text-center"><span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Subtask Milik Sendiri</span></td>
+                <td className="py-3 px-4 font-medium">
+                  Update Status Eksekusi (Todo $\rightarrow$ In Progress $\rightarrow$ In Review)
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                    Subtask Milik Sendiri
+                  </span>
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    Subtask Milik Sendiri
+                  </span>
+                </td>
               </tr>
               <tr>
                 <td className="py-3 px-4 font-medium">Self-Approval Subtask langsung ke "Done"</td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><span className="text-red-500 font-bold">Dilarang (Blocked)</span></td>
-                <td className="py-3 px-4 text-center"><span className="text-red-500 font-bold">Dilarang (Blocked)</span></td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <span className="text-red-500 font-bold">Dilarang (Blocked)</span>
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <span className="text-red-500 font-bold">Dilarang (Blocked)</span>
+                </td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-medium">Approve Review / Beri Review Notes (Changes Requested)</td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-stone-400 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
+                <td className="py-3 px-4 font-medium">
+                  Approve Review / Beri Review Notes (Changes Requested)
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <X className="w-4 h-4 text-stone-400 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-medium">Selesaikan Parent Task Akhir (Final Acceptance)</td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-stone-400 mx-auto" /></td>
-                <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-stone-400 mx-auto" /></td>
+                <td className="py-3 px-4 font-medium">
+                  Selesaikan Parent Task Akhir (Final Acceptance)
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <X className="w-4 h-4 text-stone-400 mx-auto" />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <X className="w-4 h-4 text-stone-400 mx-auto" />
+                </td>
               </tr>
             </tbody>
           </table>
@@ -585,16 +734,36 @@ const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> =
           Lihat detail SOP dan panduan alur kerja untuk setiap role tim:
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => onSelectRole('owner_admin')} className="text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onSelectRole('owner_admin')}
+            className="text-xs"
+          >
             Alur Owner/Admin
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onSelectRole('po')} className="text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onSelectRole('po')}
+            className="text-xs"
+          >
             Alur Product Owner
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onSelectRole('dev')} className="text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onSelectRole('dev')}
+            className="text-xs"
+          >
             Alur Developer
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onSelectRole('qa')} className="text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onSelectRole('qa')}
+            className="text-xs"
+          >
             Alur QA
           </Button>
         </div>
@@ -689,7 +858,9 @@ const UserFlowSection: React.FC<{
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className={`text-xs font-bold truncate ${isSelected ? 'text-stone-900 dark:text-white' : 'text-stone-700 dark:text-stone-300'}`}>
+                    <p
+                      className={`text-xs font-bold truncate ${isSelected ? 'text-stone-900 dark:text-white' : 'text-stone-700 dark:text-stone-300'}`}
+                    >
                       {tab.label}
                     </p>
                     <p className="text-[10px] text-stone-400 dark:text-stone-500 truncate">
@@ -697,7 +868,9 @@ const UserFlowSection: React.FC<{
                     </p>
                   </div>
                 </div>
-                {isSelected && <CheckCircle2 className="w-4 h-4 text-stone-900 dark:text-[#B1E743] shrink-0 ml-1" />}
+                {isSelected && (
+                  <CheckCircle2 className="w-4 h-4 text-stone-900 dark:text-[#B1E743] shrink-0 ml-1" />
+                )}
               </button>
             );
           })}
@@ -727,11 +900,19 @@ const OwnerAdminFlowSection: React.FC = () => {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-stone-900 dark:text-white">Alur Kerja: Owner & Admin</h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">Tata kelola workspace, hak akses tim, audit log, dan override eskalasi.</p>
+              <h2 className="text-lg font-bold text-stone-900 dark:text-white">
+                Alur Kerja: Owner & Admin
+              </h2>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                Tata kelola workspace, hak akses tim, audit log, dan override eskalasi.
+              </p>
             </div>
           </div>
-          <Button size="sm" leftIcon={<Building2 className="w-4 h-4" />} onClick={() => navigate('/workspaces/settings')}>
+          <Button
+            size="sm"
+            leftIcon={<Building2 className="w-4 h-4" />}
+            onClick={() => navigate('/workspaces/settings')}
+          >
             Workspace Settings
           </Button>
         </div>
@@ -746,9 +927,12 @@ const OwnerAdminFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                 Tahap 1
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Setup Workspace & Member</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Setup Workspace & Member
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buat workspace baru, atur slug, dan undang anggota tim dengan role yang tepat (`po`, `dev`, `qa`).
+                Buat workspace baru, atur slug, dan undang anggota tim dengan role yang tepat (`po`,
+                `dev`, `qa`).
               </p>
             </div>
 
@@ -756,9 +940,12 @@ const OwnerAdminFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                 Tahap 2
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Konfigurasi Task Policy</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Konfigurasi Task Policy
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Tentukan kebijakan apakah Dev diizinkan membuat task mandiri atau hanya PO/Admin yang boleh merencanakan task.
+                Tentukan kebijakan apakah Dev diizinkan membuat task mandiri atau hanya PO/Admin
+                yang boleh merencanakan task.
               </p>
             </div>
 
@@ -766,9 +953,12 @@ const OwnerAdminFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                 Tahap 3
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Audit & Monitoring</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Audit & Monitoring
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Pantau laporan agregat di Report Dashboard dan riwayat aktivitas (*Activity Audit Log*) yang tidak dapat dimanipulasi.
+                Pantau laporan agregat di Report Dashboard dan riwayat aktivitas (*Activity Audit
+                Log*) yang tidak dapat dimanipulasi.
               </p>
             </div>
           </div>
@@ -776,7 +966,9 @@ const OwnerAdminFlowSection: React.FC = () => {
 
         <div className="mt-6 pt-6 border-t border-stone-100 dark:border-stone-800">
           <Alert tone="info" title="Hak Istimewa Admin (Governance Override)">
-            Owner dan Admin memiliki wewenang penuh untuk melakukan intervensi jika ada subtask yang terblokir, mengedit detail parent task kapan saja, dan memoderasi komentar pada thread diskusi.
+            Owner dan Admin memiliki wewenang penuh untuk melakukan intervensi jika ada subtask yang
+            terblokir, mengedit detail parent task kapan saja, dan memoderasi komentar pada thread
+            diskusi.
           </Alert>
         </div>
       </Card>
@@ -798,11 +990,20 @@ const PoFlowSection: React.FC = () => {
               <Layers className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-stone-900 dark:text-white">Alur Kerja: Product Owner (PO)</h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">Perencanaan folder sprint, requirement, parent task, pembagian subtask, dan final acceptance.</p>
+              <h2 className="text-lg font-bold text-stone-900 dark:text-white">
+                Alur Kerja: Product Owner (PO)
+              </h2>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                Perencanaan folder sprint, requirement, parent task, pembagian subtask, dan final
+                acceptance.
+              </p>
             </div>
           </div>
-          <Button size="sm" leftIcon={<Layers className="w-4 h-4" />} onClick={() => navigate('/work')}>
+          <Button
+            size="sm"
+            leftIcon={<Layers className="w-4 h-4" />}
+            onClick={() => navigate('/work')}
+          >
             Buka Work Hub
           </Button>
         </div>
@@ -816,40 +1017,52 @@ const PoFlowSection: React.FC = () => {
             <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
               <div className="flex items-center gap-2">
                 <FolderPlus className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
-                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">1. Buat Folder Sprint</h4>
+                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                  1. Buat Folder Sprint
+                </h4>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buat struktur folder kerja (maksimal 2 tingkat kedalaman) untuk mengelompokkan deliverable fitur.
+                Buat struktur folder kerja (maksimal 2 tingkat kedalaman) untuk mengelompokkan
+                deliverable fitur.
               </p>
             </div>
 
             <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
-                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">2. Buat Parent Task</h4>
+                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                  2. Buat Parent Task
+                </h4>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buat parent task fitur utama, tautkan URL requirement/PRD, dan tentukan prioritas serta estimasi tanggal.
+                Buat parent task fitur utama, tautkan URL requirement/PRD, dan tentukan prioritas
+                serta estimasi tanggal.
               </p>
             </div>
 
             <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
               <div className="flex items-center gap-2">
                 <GitCommit className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
-                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">3. Pecah Subtask (FE/BE/QA)</h4>
+                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                  3. Pecah Subtask (FE/BE/QA)
+                </h4>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buka tab *Subtasks*, buat subtask terarah (`Frontend`, `Backend`, `QA`) dan tugaskan langsung ke anggota tim.
+                Buka tab *Subtasks*, buat subtask terarah (`Frontend`, `Backend`, `QA`) dan tugaskan
+                langsung ke anggota tim.
               </p>
             </div>
 
             <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">4. Final Acceptance</h4>
+                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                  4. Final Acceptance
+                </h4>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Pantau bar ringkasan penyelesaian (`FE 1/1 · BE 1/1 · QA 1/1`). Jika semua lolos uji, selesaikan Parent Task ke **Done**.
+                Pantau bar ringkasan penyelesaian (`FE 1/1 · BE 1/1 · QA 1/1`). Jika semua lolos
+                uji, selesaikan Parent Task ke **Done**.
               </p>
             </div>
           </div>
@@ -858,9 +1071,13 @@ const PoFlowSection: React.FC = () => {
         <div className="mt-6 p-4 rounded-xl bg-[#B1E743]/10 dark:bg-[#B1E743]/10 border border-[#B1E743]/30 dark:border-[#B1E743]/20 flex items-start gap-3">
           <Sparkles className="w-5 h-5 text-stone-900 dark:text-[#B1E743] shrink-0 mt-0.5" />
           <div className="space-y-1 text-xs">
-            <span className="font-bold text-[#141413] dark:text-[#B1E743]">Prinsip Explicit Parent Completion:</span>
+            <span className="font-bold text-[#141413] dark:text-[#B1E743]">
+              Prinsip Explicit Parent Completion:
+            </span>
             <p className="text-stone-700 dark:text-stone-300">
-              Sistem tidak akan menyelesaikan parent task secara otomatis saat subtask selesai. Penutupan parent task adalah keputusan sadar Product Owner setelah memastikan hasil pengerjaan sesuai dengan kriteria penerimaan produk.
+              Sistem tidak akan menyelesaikan parent task secara otomatis saat subtask selesai.
+              Penutupan parent task adalah keputusan sadar Product Owner setelah memastikan hasil
+              pengerjaan sesuai dengan kriteria penerimaan produk.
             </p>
           </div>
         </div>
@@ -883,11 +1100,19 @@ const DevFlowSection: React.FC = () => {
               <Code2 className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-stone-900 dark:text-white">Alur Kerja: Developer (Dev)</h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">Fokus eksekusi subtask di My Tasks, pengajuan review, dan penanganan review notes.</p>
+              <h2 className="text-lg font-bold text-stone-900 dark:text-white">
+                Alur Kerja: Developer (Dev)
+              </h2>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                Fokus eksekusi subtask di My Tasks, pengajuan review, dan penanganan review notes.
+              </p>
             </div>
           </div>
-          <Button size="sm" leftIcon={<CheckSquare className="w-4 h-4" />} onClick={() => navigate('/my-tasks')}>
+          <Button
+            size="sm"
+            leftIcon={<CheckSquare className="w-4 h-4" />}
+            onClick={() => navigate('/my-tasks')}
+          >
             Buka My Tasks
           </Button>
         </div>
@@ -903,9 +1128,12 @@ const DevFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                 1. TODO
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Terima Tugas di My Tasks</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Terima Tugas di My Tasks
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buka menu *My Tasks*, periksa deskripsi tugas, requirement terkait, dan spesifikasi teknis.
+                Buka menu *My Tasks*, periksa deskripsi tugas, requirement terkait, dan spesifikasi
+                teknis.
               </p>
             </div>
 
@@ -913,9 +1141,12 @@ const DevFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
                 2. IN PROGRESS
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Mulai Pengerjaan Kode</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Mulai Pengerjaan Kode
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Ubah status ke **In Progress** saat mulai coding agar tim mengetahui subtask sedang aktif dikerjakan.
+                Ubah status ke **In Progress** saat mulai coding agar tim mengetahui subtask sedang
+                aktif dikerjakan.
               </p>
             </div>
 
@@ -923,9 +1154,12 @@ const DevFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                 3. IN REVIEW
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Submit untuk Uji QA</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Submit untuk Uji QA
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Setelah pull request/fitur siap, ubah status ke **In Review** untuk memicu proses verifikasi oleh QA.
+                Setelah pull request/fitur siap, ubah status ke **In Review** untuk memicu proses
+                verifikasi oleh QA.
               </p>
             </div>
 
@@ -933,9 +1167,12 @@ const DevFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                 4. DONE / REVISI
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Hasil Review QA</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Hasil Review QA
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Jika ada catatan revisi (`Changes Requested`), baca catatan di Drawer, perbaiki, dan submit ulang ke In Review.
+                Jika ada catatan revisi (`Changes Requested`), baca catatan di Drawer, perbaiki, dan
+                submit ulang ke In Review.
               </p>
             </div>
           </div>
@@ -946,9 +1183,13 @@ const DevFlowSection: React.FC = () => {
           <div className="p-4 rounded-xl bg-red-50/70 dark:bg-red-950/30 border border-red-200/80 dark:border-red-800/60 flex items-start gap-3">
             <Lock className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
             <div className="space-y-1 text-xs">
-              <span className="font-bold text-red-900 dark:text-red-200">Quality Gate: Anti Self-Approval</span>
+              <span className="font-bold text-red-900 dark:text-red-200">
+                Quality Gate: Anti Self-Approval
+              </span>
               <p className="text-red-800 dark:text-red-300">
-                Developer <strong>dilarang dan diblokir oleh sistem</strong> untuk langsung menyelesaikan subtask sendiri ke status <code>DONE</code>. Status Done hanya dapat diberikan oleh QA atau PO setelah pengujian terverifikasi.
+                Developer <strong>dilarang dan diblokir oleh sistem</strong> untuk langsung
+                menyelesaikan subtask sendiri ke status <code>DONE</code>. Status Done hanya dapat
+                diberikan oleh QA atau PO setelah pengujian terverifikasi.
               </p>
             </div>
           </div>
@@ -972,11 +1213,20 @@ const QaFlowSection: React.FC = () => {
               <TestTube className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-stone-900 dark:text-white">Alur Kerja: Quality Assurance (QA)</h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">Pintu gerbang kualitas (*Quality Gatekeeper*), review hasil kerja dev, dan eksekusi pengujian.</p>
+              <h2 className="text-lg font-bold text-stone-900 dark:text-white">
+                Alur Kerja: Quality Assurance (QA)
+              </h2>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                Pintu gerbang kualitas (*Quality Gatekeeper*), review hasil kerja dev, dan eksekusi
+                pengujian.
+              </p>
             </div>
           </div>
-          <Button size="sm" leftIcon={<Layers className="w-4 h-4" />} onClick={() => navigate('/work')}>
+          <Button
+            size="sm"
+            leftIcon={<Layers className="w-4 h-4" />}
+            onClick={() => navigate('/work')}
+          >
             Buka Work Hub
           </Button>
         </div>
@@ -991,9 +1241,12 @@ const QaFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                 1. Review Subtask Dev
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Verifikasi Subtask In Review</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Verifikasi Subtask In Review
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Saat subtask Developer berstatus **In Review**, buka drawer task dan uji kesesuaian fungsionalitasnya.
+                Saat subtask Developer berstatus **In Review**, buka drawer task dan uji kesesuaian
+                fungsionalitasnya.
               </p>
             </div>
 
@@ -1001,9 +1254,12 @@ const QaFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
                 2. Skenario Bug / Isu
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Kirim Changes Requested</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Kirim Changes Requested
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Jika ditemukan cacat / bug, ubah status ke **Changes Requested** dan wajib sertakan deskripsi jelas pada kolom *Review Notes*.
+                Jika ditemukan cacat / bug, ubah status ke **Changes Requested** dan wajib sertakan
+                deskripsi jelas pada kolom *Review Notes*.
               </p>
             </div>
 
@@ -1011,9 +1267,12 @@ const QaFlowSection: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                 3. Skenario Lolos Uji
               </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Approve Subtask Dev ke Done</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Approve Subtask Dev ke Done
+              </h4>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Jika seluruh kriteria pengujian terpenuhi, QA menyetujui subtask Dev menjadi **Done**.
+                Jika seluruh kriteria pengujian terpenuhi, QA menyetujui subtask Dev menjadi
+                **Done**.
               </p>
             </div>
           </div>
@@ -1028,10 +1287,14 @@ const QaFlowSection: React.FC = () => {
           <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/50 space-y-2">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">Eksekusi Subtask QA (Automation & E2E Verification)</h4>
+              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
+                Eksekusi Subtask QA (Automation & E2E Verification)
+              </h4>
             </div>
             <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-              Setelah subtask implementasi (Frontend & Backend) disetujui, QA mengeksekusi subtask pengujian mandiri (*E2E Automation Test / Regression Test*), melampirkan bukti pengujian, dan memindahkan subtask QA ke **Done**.
+              Setelah subtask implementasi (Frontend & Backend) disetujui, QA mengeksekusi subtask
+              pengujian mandiri (*E2E Automation Test / Regression Test*), melampirkan bukti
+              pengujian, dan memindahkan subtask QA ke **Done**.
             </p>
           </div>
         </div>

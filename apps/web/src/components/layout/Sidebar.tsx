@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Component, ShieldCheck, Layers, Building2, FileBarChart, CheckSquare, BookOpen } from 'lucide-react';
+import {
+  Component,
+  ShieldCheck,
+  Layers,
+  Building2,
+  FileBarChart,
+  CheckSquare,
+  BookOpen,
+} from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { selectCurrentUserRole } from '../../store/authSlice';
 
@@ -58,7 +66,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const currentUserRole = useAppSelector(selectCurrentUserRole);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
-  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || currentUserRole || '').toLowerCase();
+  const userRole = (
+    activeWorkspace?.role ||
+    activeWorkspace?.myRole ||
+    currentUserRole ||
+    ''
+  ).toLowerCase();
   const canAccessSettingsAndUI = ['owner', 'admin', 'po'].includes(userRole);
 
   // Mobile drawers always render expanded navigation.
@@ -89,7 +102,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
     >
       {/* Top Header: Matched h-16 (64px) height with compact Shield icon */}
       <div className="shrink-0">
-        <div className={`flex h-16 items-center border-b border-stone-100 dark:border-stone-800/80 ${isExpanded ? 'px-4 gap-2.5' : 'justify-center px-0'}`}>
+        <div
+          className={`flex h-16 items-center border-b border-stone-100 dark:border-stone-800/80 ${isExpanded ? 'px-4 gap-2.5' : 'justify-center px-0'}`}
+        >
           <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#B1E743] text-[#141413] shadow-xs font-bold">
             <ShieldCheck className="h-4 w-4" />
           </div>
@@ -98,8 +113,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
               isExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 pointer-events-none'
             }`}
           >
-            <span className="text-xs font-bold tracking-tight text-stone-900 dark:text-white">Qlick Hub</span>
-            <span className="text-[9px] font-semibold text-stone-500 dark:text-[#B1E743]">Work Hub v2.0</span>
+            <span className="text-xs font-bold tracking-tight text-stone-900 dark:text-white">
+              Qlick Hub
+            </span>
+            <span className="text-[9px] font-semibold text-stone-500 dark:text-[#B1E743]">
+              Work Hub v2.0
+            </span>
           </div>
         </div>
       </div>
@@ -121,7 +140,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
                 ? location.pathname === '/my-tasks' ||
                   location.pathname.startsWith('/my-tasks/') ||
                   location.pathname === '/requirements'
-                : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+                : item.path === '/work'
+                  ? location.pathname === '/work' ||
+                    /^\/projects\/[^/]+\/tasks\/[^/]+$/.test(location.pathname)
+                  : location.pathname === item.path ||
+                    location.pathname.startsWith(`${item.path}/`);
 
             return (
               <NavLink
@@ -171,7 +194,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
 
       {/* Footer Section */}
       <div className="shrink-0 border-t border-stone-100 p-3 dark:border-stone-800/80">
-        <div className={`flex items-center overflow-hidden rounded-xl border border-stone-200/80 bg-stone-50 px-3 py-2 text-[11px] dark:border-stone-800 dark:bg-stone-900/60 ${isExpanded ? '' : 'justify-center px-0'}`}>
+        <div
+          className={`flex items-center overflow-hidden rounded-xl border border-stone-200/80 bg-stone-50 px-3 py-2 text-[11px] dark:border-stone-800 dark:bg-stone-900/60 ${isExpanded ? '' : 'justify-center px-0'}`}
+        >
           <span className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
@@ -181,7 +206,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
               isExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 pointer-events-none'
             }`}
           >
-            <span className="font-semibold text-stone-700 dark:text-stone-200">Workspace Active</span>
+            <span className="font-semibold text-stone-700 dark:text-stone-200">
+              Workspace Active
+            </span>
             <span className="text-[10px] font-medium text-stone-400 dark:text-stone-500">v2.0</span>
           </div>
         </div>

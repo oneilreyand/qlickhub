@@ -84,7 +84,11 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
       role: 'qa',
     });
 
-    const ownerSessionId = await sessionManager.createSession(ownerUser.id, 'TestAgent', '127.0.0.1');
+    const ownerSessionId = await sessionManager.createSession(
+      ownerUser.id,
+      'TestAgent',
+      '127.0.0.1',
+    );
     const ownerToken = signToken({
       userId: ownerUser.id,
       email: ownerUser.email,
@@ -170,27 +174,6 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
       });
       assert.strictEqual(saved, null);
     });
-
-    test('POST /v1/notifications/test sends test notification and creates persistent in-app record', async () => {
-      const response = await fetch(`${baseUrl}/notifications/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: ownerCookie,
-        },
-      });
-
-      assert.strictEqual(response.status, 200);
-      const json = (await response.json()) as any;
-      assert.strictEqual(json.data.success, true);
-
-      const savedNotif = await NotificationModel.findOne({
-        where: { userId: ownerUser.id, type: 'system' },
-      });
-      assert.ok(savedNotif);
-      assert.strictEqual(savedNotif.title, '🔔 Test Notifikasi Qlick Hub');
-      assert.strictEqual(savedNotif.isRead, false);
-    });
   });
 
   describe('2. In-App Notification Query & Mutation REST API', () => {
@@ -233,9 +216,12 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
     });
 
     test('GET /v1/notifications?unreadOnly=true filters for unread notifications only', async () => {
-      const response = await fetch(`${baseUrl}/notifications?workspaceId=${workspace.id}&unreadOnly=true`, {
-        headers: { Cookie: devCookie },
-      });
+      const response = await fetch(
+        `${baseUrl}/notifications?workspaceId=${workspace.id}&unreadOnly=true`,
+        {
+          headers: { Cookie: devCookie },
+        },
+      );
 
       assert.strictEqual(response.status, 200);
       const json = (await response.json()) as any;
@@ -336,7 +322,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         CreateTaskSchema.parse({
           workspaceId: workspace.id,
           title: 'Parent Container',
-        })
+        }),
       );
 
       await taskService.createTask(
@@ -347,7 +333,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
           deliveryArea: 'backend',
           title: 'Implement Auth Service Subtask',
           assigneeId: devUser.id,
-        })
+        }),
       );
 
       // Give async promise callback a moment to settle
@@ -373,7 +359,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         CreateTaskSchema.parse({
           workspaceId: workspace.id,
           title: 'Parent Container for Reassignment',
-        })
+        }),
       );
 
       const task = await taskService.createTask(
@@ -384,7 +370,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
           deliveryArea: 'backend',
           title: 'Perform QA Review Subtask',
           assigneeId: devUser.id,
-        })
+        }),
       );
 
       await taskService.updateTask(ownerUser.id, workspace.id, task.id, {
@@ -415,7 +401,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         CreateTaskSchema.parse({
           workspaceId: workspace.id,
           title: 'Parent Container for Status Test',
-        })
+        }),
       );
 
       const task = await taskService.createTask(
@@ -426,7 +412,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
           deliveryArea: 'backend',
           title: 'Backend API Gateway Subtask',
           assigneeId: devUser.id,
-        })
+        }),
       );
 
       // Owner updates status to in_progress
@@ -455,7 +441,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         CreateTaskSchema.parse({
           workspaceId: workspace.id,
           title: 'Parent Feature for Dev Status Test',
-        })
+        }),
       );
 
       const subtask = await taskService.createTask(
@@ -466,7 +452,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
           deliveryArea: 'backend',
           title: 'Backend Subtask Status Test',
           assigneeId: devUser.id,
-        })
+        }),
       );
 
       // Owner updates subtask status to in_review
@@ -498,7 +484,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
           workspaceId: workspace.id,
           title: 'Payment Integration Flow Discussion',
           assigneeId: devUser.id,
-        })
+        }),
       );
 
       // QA user posts comment on task mentioning dev and owner
@@ -539,7 +525,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         CreateTaskSchema.parse({
           workspaceId: workspace.id,
           title: 'Core Architecture Parent Feature',
-        })
+        }),
       );
 
       await taskService.createTask(
@@ -550,7 +536,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
           deliveryArea: 'backend',
           title: 'BE Microservice Contract',
           assigneeId: devUser.id,
-        })
+        }),
       );
 
       await taskService.createTask(
@@ -561,7 +547,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
           deliveryArea: 'qa',
           title: 'QA Performance Testing',
           assigneeId: qaUser.id,
-        })
+        }),
       );
 
       // Owner broadcasts to @channel on parent task
@@ -608,7 +594,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         CreateTaskSchema.parse({
           workspaceId: workspace.id,
           title: 'Parent Container for Deadline Feature',
-        })
+        }),
       );
 
       const dueSubtask = await taskService.createTask(
@@ -620,14 +606,17 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
           title: 'Payment Gateway Integration Due Soon',
           dueDate: todayStr,
           assigneeId: devUser.id,
-        })
+        }),
       );
 
       // Trigger deadline scan via API
-      const res1 = await fetch(`${baseUrl}/notifications/check-deadlines?workspaceId=${workspace.id}`, {
-        method: 'POST',
-        headers: { Cookie: ownerCookie },
-      });
+      const res1 = await fetch(
+        `${baseUrl}/notifications/check-deadlines?workspaceId=${workspace.id}`,
+        {
+          method: 'POST',
+          headers: { Cookie: ownerCookie },
+        },
+      );
 
       assert.strictEqual(res1.status, 200);
       const json1 = (await res1.json()) as any;
@@ -648,10 +637,13 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
       assert.ok(deadlineNotif.message.includes('Payment Gateway Integration Due Soon'));
 
       // Re-trigger scan immediately: anti-spam should suppress duplicate notifications
-      const res2 = await fetch(`${baseUrl}/notifications/check-deadlines?workspaceId=${workspace.id}`, {
-        method: 'POST',
-        headers: { Cookie: ownerCookie },
-      });
+      const res2 = await fetch(
+        `${baseUrl}/notifications/check-deadlines?workspaceId=${workspace.id}`,
+        {
+          method: 'POST',
+          headers: { Cookie: ownerCookie },
+        },
+      );
 
       assert.strictEqual(res2.status, 200);
       const json2 = (await res2.json()) as any;
@@ -659,4 +651,3 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
     });
   });
 });
-

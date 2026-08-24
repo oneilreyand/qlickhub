@@ -33,6 +33,15 @@ function handleError(res: Response, error: unknown) {
       code: 'FORBIDDEN',
     });
   }
+  if (message.startsWith('CONFLICT:')) {
+    return res.status(409).json({
+      type: 'https://api.qa-hub.com/errors/conflict',
+      title: 'Conflict',
+      status: 409,
+      detail: message.replace('CONFLICT:', '').trim(),
+      code: 'IMMUTABLE_EVIDENCE',
+    });
+  }
   return res.status(500).json({
     type: 'https://api.qa-hub.com/errors/internal-error',
     title: 'Internal Server Error',
@@ -123,11 +132,14 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
       workspaceId,
       taskId,
       attachmentId,
-      actorId
+      actorId,
     );
 
     res.setHeader('Content-Type', attachment.mimeType);
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(attachment.fileName)}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(attachment.fileName)}"`,
+    );
 
     stream.on('error', (error) => {
       if (!res.headersSent) return handleError(res, error);
@@ -144,8 +156,13 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     const { workspaceId, taskId, attachmentId } = req.params;
     const actorId = req.user!.userId;
 
-    await attachmentService.deleteAttachment(workspaceId, taskId, attachmentId, actorId);
-    return res.status(200).json({ success: true });
+    const result = await attachmentService.deleteAttachment(
+      workspaceId,
+      taskId,
+      attachmentId,
+      actorId,
+    );
+    return res.status(200).json(result);
   } catch (error) {
     return handleError(res, error);
   }

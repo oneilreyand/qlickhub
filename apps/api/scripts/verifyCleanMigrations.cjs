@@ -36,7 +36,7 @@ async function main() {
           TEST_DATABASE_URL: connectionUrl(databaseName),
         },
         encoding: 'utf8',
-      }
+      },
     );
 
     process.stdout.write(migration.stdout || '');
@@ -53,29 +53,53 @@ async function main() {
       `SELECT name FROM "SequelizeMeta"
        WHERE name IN (
          '20260819000048-drop-task-attachments.cjs',
-         '20260821000049-recover-task-attachments.cjs'
+         '20260821000049-recover-task-attachments.cjs',
+         '20260821000052-migrate-legacy-requirement-test-cases.cjs',
+         '20260824000057-create-workspace-member-specialties.cjs'
        )
-       ORDER BY name;`
+       ORDER BY name;`,
     );
     assert.deepStrictEqual(
       migrationRows.map((row) => row.name),
       [
         '20260819000048-drop-task-attachments.cjs',
         '20260821000049-recover-task-attachments.cjs',
-      ]
+        '20260821000052-migrate-legacy-requirement-test-cases.cjs',
+        '20260824000057-create-workspace-member-specialties.cjs',
+      ],
     );
 
     const [tableRows] = await verificationDatabase.query(
-      `SELECT to_regclass('public.task_attachments') AS table_name;`
+      `SELECT
+         to_regclass('public.task_attachments') AS attachment_table,
+         to_regclass('public.legacy_requirement_test_case_migrations') AS migration_map_table,
+         to_regclass('public.workspace_member_specialties') AS member_specialty_table;`,
     );
-    assert.strictEqual(tableRows[0].table_name, 'task_attachments');
+    assert.strictEqual(tableRows[0].attachment_table, 'task_attachments');
+    assert.strictEqual(tableRows[0].migration_map_table, 'legacy_requirement_test_case_migrations');
+    assert.strictEqual(tableRows[0].member_specialty_table, 'workspace_member_specialties');
+
+    const [specialtyGuardRows] = await verificationDatabase.query(
+      `SELECT
+         EXISTS (
+           SELECT 1 FROM pg_constraint
+           WHERE conname = 'ck_workspace_member_specialties_value'
+         ) AS has_value_constraint,
+         EXISTS (
+           SELECT 1 FROM pg_trigger
+           WHERE tgname = 'trg_workspace_member_specialty_integrity'
+             AND NOT tgisinternal
+         ) AS has_integrity_trigger;`,
+    );
+    assert.strictEqual(specialtyGuardRows[0].has_value_constraint, true);
+    assert.strictEqual(specialtyGuardRows[0].has_integrity_trigger, true);
 
     const [enumRows] = await verificationDatabase.query(
       `SELECT e.enumlabel
        FROM pg_type t
        JOIN pg_enum e ON t.oid = e.enumtypid
        WHERE t.typname = 'enum_tasks_delivery_area'
-       ORDER BY e.enumsortorder;`
+       ORDER BY e.enumsortorder;`,
     );
     const deliveryAreas = enumRows.map((row) => row.enumlabel);
     assert.ok(deliveryAreas.includes('mobile'));
@@ -91,7 +115,7 @@ async function main() {
        FROM pg_stat_activity
        WHERE datname = :databaseName
          AND pid <> pg_backend_pid();`,
-      { replacements: { databaseName } }
+      { replacements: { databaseName } },
     );
     await admin.query(`DROP DATABASE IF EXISTS "${databaseName}";`);
     await admin.close();

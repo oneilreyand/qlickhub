@@ -3,7 +3,8 @@ import {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
   AddWorkspaceMemberInput,
-  AssignableWorkspaceRole,
+  DeveloperSpecialty,
+  UpdateMemberRoleInput,
   WorkspaceRole,
 } from '@qlick/contracts';
 
@@ -26,6 +27,7 @@ export interface WorkspaceMemberItem {
   workspaceId: string;
   userId: string;
   role: WorkspaceRole;
+  specialties?: DeveloperSpecialty[];
   joinedAt: string;
   user?: {
     id: string;
@@ -58,23 +60,38 @@ export const workspaceService = {
   },
 
   async getMembers(workspaceId: string): Promise<WorkspaceMemberItem[]> {
-    const res = await apiClient<{ data: WorkspaceMemberItem[] }>(`/workspaces/${workspaceId}/members`);
+    const res = await apiClient<{ data: WorkspaceMemberItem[] }>(
+      `/workspaces/${workspaceId}/members`,
+    );
     return res.data;
   },
 
-  async addMember(workspaceId: string, input: AddWorkspaceMemberInput): Promise<WorkspaceMemberItem> {
-    const res = await apiClient<{ data: WorkspaceMemberItem }>(`/workspaces/${workspaceId}/members`, {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
+  async addMember(
+    workspaceId: string,
+    input: AddWorkspaceMemberInput,
+  ): Promise<WorkspaceMemberItem> {
+    const res = await apiClient<{ data: WorkspaceMemberItem }>(
+      `/workspaces/${workspaceId}/members`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
     return res.data;
   },
 
-  async updateMemberRole(workspaceId: string, memberUserId: string, role: AssignableWorkspaceRole): Promise<WorkspaceMemberItem> {
-    const res = await apiClient<{ data: WorkspaceMemberItem }>(`/workspaces/${workspaceId}/members/${memberUserId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ role }),
-    });
+  async updateMemberRole(
+    workspaceId: string,
+    memberUserId: string,
+    input: UpdateMemberRoleInput,
+  ): Promise<WorkspaceMemberItem> {
+    const res = await apiClient<{ data: WorkspaceMemberItem }>(
+      `/workspaces/${workspaceId}/members/${memberUserId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    );
     return res.data;
   },
 

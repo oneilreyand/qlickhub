@@ -9,7 +9,9 @@ export interface ApiOptions extends RequestInit {
 const inFlightGetRequests = new Map<string, Promise<unknown>>();
 
 const getRequestKey = (url: string, config: RequestInit) => {
-  const headerEntries = Array.from(new Headers(config.headers).entries()).sort(([first], [second]) => first.localeCompare(second));
+  const headerEntries = Array.from(new Headers(config.headers).entries()).sort(
+    ([first], [second]) => first.localeCompare(second),
+  );
   return `${url}::${JSON.stringify(headerEntries)}`;
 };
 
@@ -47,7 +49,12 @@ function handleAuthFailure(errorCode?: string) {
   }
 }
 
-async function sendRequest<T>(url: string, config: RequestInit, endpoint: string, isRetry = false): Promise<T> {
+async function sendRequest<T>(
+  url: string,
+  config: RequestInit,
+  endpoint: string,
+  isRetry = false,
+): Promise<T> {
   const response = await fetch(url, config);
 
   if (!response.ok) {
@@ -60,7 +67,7 @@ async function sendRequest<T>(url: string, config: RequestInit, endpoint: string
       if (errorData.error?.code) {
         errorCode = errorData.error.code;
       }
-      
+
       if (errorData.detail) {
         errorMessage = errorData.detail;
       } else if (errorData.message) {
@@ -77,7 +84,12 @@ async function sendRequest<T>(url: string, config: RequestInit, endpoint: string
     }
 
     // Attempt automatic silent refresh if 401 occurs on ordinary endpoints
-    if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh') && !isRetry) {
+    if (
+      response.status === 401 &&
+      !endpoint.includes('/auth/login') &&
+      !endpoint.includes('/auth/refresh') &&
+      !isRetry
+    ) {
       const refreshed = await attemptTokenRefresh();
       if (refreshed) {
         // Retry original request with refreshed session cookie
@@ -89,6 +101,8 @@ async function sendRequest<T>(url: string, config: RequestInit, endpoint: string
     }
 
     const error = new Error(errorMessage) as any;
+    error.status = response.status;
+    error.code = errorCode || undefined;
     if (validationErrors) {
       error.errors = validationErrors;
     }

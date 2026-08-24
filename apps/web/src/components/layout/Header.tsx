@@ -24,10 +24,16 @@ import {
   Laptop,
   BookOpen,
   Clock,
+  Bug,
+  AlertTriangle,
+  XCircle,
+  Users,
+  Rocket,
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchWorkspaces, setActiveWorkspaceId, createWorkspace } from '../../store/workspaceSlice';
+import { canCreateWorkspace } from '../../lib/permissions/workspacePermissions';
 import {
   selectCurrentUser,
   selectCurrentUserRole,
@@ -72,12 +78,16 @@ export const Header: React.FC<HeaderProps> = ({
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab') || 'overview';
 
-  const { workspaces, activeWorkspaceId, isLoading, error } = useAppSelector((state) => state.workspace);
+  const { workspaces, activeWorkspaceId, isLoading, error } = useAppSelector(
+    (state) => state.workspace,
+  );
   const inAppNotifications = useAppSelector((state) => state.ui.inAppNotifications || []);
   const isNotificationsLoading = useAppSelector((state) => state.ui.isNotificationsLoading);
   const currentUser = useAppSelector(selectCurrentUser);
   const currentUserRole = useAppSelector(selectCurrentUserRole);
-  const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'mentions' | 'deadlines'>('all');
+  const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'mentions' | 'deadlines'>(
+    'all',
+  );
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -93,7 +103,6 @@ export const Header: React.FC<HeaderProps> = ({
     permission: fcmPermission,
     isSupported: isFcmSupported,
     requestPermission: requestFcmPermission,
-    sendTestNotification: sendTestFcmNotification,
     isRegistering: isFcmRegistering,
   } = useFcmNotifications();
 
@@ -108,11 +117,11 @@ export const Header: React.FC<HeaderProps> = ({
   const effectiveName = currentUser?.name || effectiveEmail.split('@')[0].replace('.', ' ');
   const userInitial = effectiveEmail ? effectiveEmail[0].toUpperCase() : 'U';
   const userName = effectiveName;
-  const canCreateWorkspace = ['owner', 'admin', 'po', 'qa'].includes(currentUserRole);
+  const mayCreateWorkspace = canCreateWorkspace(currentUserRole);
 
   const unreadCount = useMemo(
     () => inAppNotifications.filter((n) => !n.isRead).length,
-    [inAppNotifications]
+    [inAppNotifications],
   );
 
   const filteredNotifications = useMemo(() => {
@@ -144,7 +153,6 @@ export const Header: React.FC<HeaderProps> = ({
   // Connect SSE realtime event stream for notifications and mentions across active workspace
   useRealtimeEvents({ workspaceId: activeWorkspaceId || undefined });
 
-
   useEffect(() => {
     if (activeWorkspaceId) {
       dispatch(fetchInAppNotifications({ workspaceId: activeWorkspaceId }));
@@ -165,7 +173,12 @@ export const Header: React.FC<HeaderProps> = ({
   }, [dispatch, activeWorkspaceId]);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
-  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || currentUserRole || '').toLowerCase();
+  const userRole = (
+    activeWorkspace?.role ||
+    activeWorkspace?.myRole ||
+    currentUserRole ||
+    ''
+  ).toLowerCase();
   const canAccessSettingsAndUI = ['owner', 'admin', 'po'].includes(userRole);
   const canManageTaskPolicy = ['owner', 'admin'].includes(userRole);
 
@@ -178,13 +191,17 @@ export const Header: React.FC<HeaderProps> = ({
     if (!newWsName.trim()) return;
     setIsCreatingWs(true);
     try {
-      await dispatch(createWorkspace({ name: newWsName.trim(), description: newWsDesc.trim() || undefined })).unwrap();
+      await dispatch(
+        createWorkspace({ name: newWsName.trim(), description: newWsDesc.trim() || undefined }),
+      ).unwrap();
       dispatch(enqueueSnackbar(`Workspace "${newWsName.trim()}" created successfully!`, 'success'));
       setNewWsName('');
       setNewWsDesc('');
       setShowCreateWsModal(false);
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create workspace', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create workspace', 'error'),
+      );
     } finally {
       setIsCreatingWs(false);
     }
@@ -233,8 +250,8 @@ export const Header: React.FC<HeaderProps> = ({
               {isLoading
                 ? 'Loading...'
                 : activeWorkspace
-                ? activeWorkspace.name
-                : 'Select Workspace'}
+                  ? activeWorkspace.name
+                  : 'Select Workspace'}
             </span>
             <ChevronDown className="h-3.5 w-3.5 text-stone-400" />
           </button>
@@ -287,7 +304,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
 
-              {canCreateWorkspace && (
+              {mayCreateWorkspace && (
                 <div className="border-t border-stone-100 pt-1 dark:border-stone-800">
                   <button
                     type="button"
@@ -379,7 +396,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right section: Notifications & User profile */}
       <div className="flex items-center gap-2 sm:gap-3">
-
         {/* User Flow Guide Button */}
         <IconButton
           onClick={() => navigate('/user-flows')}
@@ -397,7 +413,11 @@ export const Header: React.FC<HeaderProps> = ({
           size="sm"
           className="rounded-full border border-stone-200/90 bg-white dark:border-stone-800 dark:bg-stone-900"
         >
-          {isDarkMode ? <Sun className="h-4.5 w-4.5 text-amber-400" /> : <Moon className="h-4.5 w-4.5 text-stone-500" />}
+          {isDarkMode ? (
+            <Sun className="h-4.5 w-4.5 text-amber-400" />
+          ) : (
+            <Moon className="h-4.5 w-4.5 text-stone-500" />
+          )}
         </IconButton>
 
         {/* Notification Bell with indicator dot */}
@@ -421,7 +441,9 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Header Bar */}
               <div className="flex items-center justify-between border-b border-stone-100 pb-3 dark:border-stone-800">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">Team Notifications</h3>
+                  <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                    Team Notifications
+                  </h3>
                   {unreadCount > 0 && (
                     <span className="rounded-full bg-[#B1E743] px-2 py-0.5 text-[11px] font-extrabold text-[#141413]">
                       {unreadCount} New
@@ -433,7 +455,9 @@ export const Header: React.FC<HeaderProps> = ({
                   {unreadCount > 0 && (
                     <button
                       type="button"
-                      onClick={() => dispatch(markAllNotificationsAsReadThunk(activeWorkspaceId || undefined))}
+                      onClick={() =>
+                        dispatch(markAllNotificationsAsReadThunk(activeWorkspaceId || undefined))
+                      }
                       className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:hover:text-stone-200 dark:hover:bg-stone-800 text-[11px] font-semibold flex items-center gap-1"
                       title="Mark all as read"
                     >
@@ -444,7 +468,9 @@ export const Header: React.FC<HeaderProps> = ({
                   {inAppNotifications.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => dispatch(clearInAppNotificationsThunk(activeWorkspaceId || undefined))}
+                      onClick={() =>
+                        dispatch(clearInAppNotificationsThunk(activeWorkspaceId || undefined))
+                      }
                       className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-[11px]"
                       title="Clear all notifications"
                     >
@@ -482,7 +508,9 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="my-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2 dark:bg-amber-950/40 dark:border-amber-800/60 dark:text-amber-200">
                   <div className="flex items-center gap-2">
                     <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span className="text-[11px] font-medium leading-tight">Aktifkan notifikasi FCM untuk update tugas real-time.</span>
+                    <span className="text-[11px] font-medium leading-tight">
+                      Aktifkan notifikasi FCM untuk update tugas real-time.
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -496,18 +524,11 @@ export const Header: React.FC<HeaderProps> = ({
               )}
 
               {isFcmSupported && fcmPermission === 'granted' && (
-                <div className="flex items-center justify-between px-1 py-1.5 border-b border-stone-100 dark:border-stone-800 text-[10px]">
+                <div className="flex items-center px-1 py-1.5 border-b border-stone-100 dark:border-stone-800 text-[10px]">
                   <span className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     FCM Push Aktif
                   </span>
-                  <button
-                    type="button"
-                    onClick={sendTestFcmNotification}
-                    className="text-[10px] text-stone-500 hover:text-stone-800 underline dark:text-stone-400 dark:hover:text-stone-200 font-medium"
-                  >
-                    Kirim Test Notif
-                  </button>
                 </div>
               )}
 
@@ -521,7 +542,9 @@ export const Header: React.FC<HeaderProps> = ({
                 ) : filteredNotifications.length === 0 ? (
                   <div className="py-8 text-center text-xs text-stone-400 space-y-1">
                     <Sparkles className="mx-auto h-6 w-6 text-stone-300 dark:text-stone-600" />
-                    <p className="font-semibold text-stone-600 dark:text-stone-300">All caught up!</p>
+                    <p className="font-semibold text-stone-600 dark:text-stone-300">
+                      All caught up!
+                    </p>
                     <p className="text-[11px]">No notifications in this filter.</p>
                   </div>
                 ) : (
@@ -563,6 +586,41 @@ export const Header: React.FC<HeaderProps> = ({
                               <Bell className="h-3.5 w-3.5" />
                             </div>
                           )}
+                          {notif.type === 'bug_created' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                              <Bug className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'bug_status_change' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                              <Bug className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'bug_critical' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 animate-pulse">
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'qa_signoff' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                              <CheckCheck className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'release_decision' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                              <Rocket className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'test_failed' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                              <XCircle className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                          {notif.type === 'workspace_membership' && (
+                            <div className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                              <Users className="h-3.5 w-3.5" />
+                            </div>
+                          )}
                         </div>
 
                         {/* Content */}
@@ -572,7 +630,10 @@ export const Header: React.FC<HeaderProps> = ({
                               {notif.title}
                             </p>
                             <span className="text-[10px] text-stone-400 shrink-0">
-                              {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(notif.createdAt).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
                             </span>
                           </div>
                           <p className="text-[11px] text-stone-600 dark:text-stone-300 line-clamp-2 leading-relaxed">
@@ -634,7 +695,9 @@ export const Header: React.FC<HeaderProps> = ({
           {isProfileOpen && (
             <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl ring-1 ring-stone-900/5 z-30 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100">
               <div className="border-b border-stone-100 px-3 py-2.5 dark:border-stone-800">
-                <p className="text-xs font-semibold text-stone-900 capitalize dark:text-stone-100">{userName}</p>
+                <p className="text-xs font-semibold text-stone-900 capitalize dark:text-stone-100">
+                  {userName}
+                </p>
                 <p className="truncate text-xs text-stone-500 dark:text-stone-400">{userEmail}</p>
               </div>
 
@@ -743,10 +806,7 @@ export const Header: React.FC<HeaderProps> = ({
       />
 
       {/* Active Sessions & Devices Modal */}
-      <ActiveSessionsModal
-        isOpen={showSessionsModal}
-        onClose={() => setShowSessionsModal(false)}
-      />
+      <ActiveSessionsModal isOpen={showSessionsModal} onClose={() => setShowSessionsModal(false)} />
 
       {/* Modal Molecule: Create New Workspace */}
       <Modal

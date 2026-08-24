@@ -29,11 +29,11 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const { activeWorkspaceId, workspaces, members, isMembersLoading } = useAppSelector(
-    (state: RootState) => state.workspace
+    (state: RootState) => state.workspace,
   );
   const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
   const canPlan = Boolean(
-    activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role)
+    activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role),
   );
 
   const [title, setTitle] = useState('');
@@ -74,7 +74,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         deliveryArea === 'mobile' ||
         deliveryArea === 'fullstack'
       ) {
-        return m.role === 'dev';
+        return m.role === 'dev' && (m.specialties || []).includes(deliveryArea);
       }
       if (deliveryArea === 'qa') {
         return m.role === 'qa';
@@ -127,12 +127,14 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         dueDate: dueDate || undefined,
       });
 
-      dispatch(enqueueSnackbar(`Planned ${deliveryArea.toUpperCase()} subtask successfully`, 'success'));
+      dispatch(
+        enqueueSnackbar(`Planned ${deliveryArea.toUpperCase()} subtask successfully`, 'success'),
+      );
       onCreated();
       onClose();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create subtask', 'error')
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create subtask', 'error'),
       );
     } finally {
       setIsSubmitting(false);
@@ -193,12 +195,12 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               onClick={() => setDeliveryArea('mobile')}
               className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col gap-1 ${
                 deliveryArea === 'mobile'
-                  ? 'border-purple-500 bg-purple-50/80 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 ring-2 ring-purple-500/20'
+                  ? 'border-stone-500 bg-stone-100 dark:bg-stone-800 text-stone-950 dark:text-stone-100 ring-2 ring-stone-500/20'
                   : 'border-stone-200 bg-white hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60 text-stone-600 dark:text-stone-400'
               }`}
             >
               <div className="flex items-center gap-1.5 font-bold text-xs">
-                <Smartphone className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                <Smartphone className="h-4 w-4 text-stone-600 dark:text-stone-400 shrink-0" />
                 <span>Mobile</span>
               </div>
               <span className="text-[10px] text-stone-500 dark:text-stone-400">iOS / Android</span>
@@ -210,12 +212,12 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               onClick={() => setDeliveryArea('fullstack')}
               className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col gap-1 ${
                 deliveryArea === 'fullstack'
-                  ? 'border-cyan-500 bg-cyan-50/80 dark:bg-cyan-950/40 text-cyan-950 dark:text-cyan-200 ring-2 ring-cyan-500/20'
+                  ? 'border-[#B1E743] bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] ring-2 ring-[#B1E743]/20'
                   : 'border-stone-200 bg-white hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60 text-stone-600 dark:text-stone-400'
               }`}
             >
               <div className="flex items-center gap-1.5 font-bold text-xs">
-                <Cpu className="h-4 w-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                <Cpu className="h-4 w-4 text-[#141413] dark:text-[#B1E743] shrink-0" />
                 <span>Fullstack</span>
               </div>
               <span className="text-[10px] text-stone-500 dark:text-stone-400">End-to-End</span>
@@ -242,7 +244,10 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
 
         {/* Subtask Title */}
         <div>
-          <label htmlFor="subtask-title" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+          <label
+            htmlFor="subtask-title"
+            className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+          >
             Subtask Title *
           </label>
           <Input
@@ -257,7 +262,10 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
 
         {/* Subtask Description */}
         <div>
-          <label htmlFor="subtask-description" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+          <label
+            htmlFor="subtask-description"
+            className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+          >
             Technical Description (Optional)
           </label>
           <Textarea
@@ -273,7 +281,10 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         {/* Assignee and Priority Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label htmlFor="subtask-assignee" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+            <label
+              htmlFor="subtask-assignee"
+              className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+            >
               Assignee ({deliveryArea.toUpperCase()} Team) <span className="text-rose-500">*</span>
             </label>
             <Select
@@ -286,7 +297,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               <option value="">Select {deliveryArea.toUpperCase()} Member *</option>
               {filteredMembers.map((member) => (
                 <option key={member.userId} value={member.userId}>
-                  {member.user?.name || member.user?.email || member.userId} ({member.role.toUpperCase()})
+                  {member.user?.name || member.user?.email || member.userId} (
+                  {member.role.toUpperCase()})
                 </option>
               ))}
             </Select>
@@ -298,7 +310,10 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
           </div>
 
           <div>
-            <label htmlFor="subtask-priority" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+            <label
+              htmlFor="subtask-priority"
+              className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+            >
               Priority
             </label>
             <Select
@@ -318,7 +333,10 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         {/* Start Date and Due Date Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label htmlFor="subtask-start-date" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+            <label
+              htmlFor="subtask-start-date"
+              className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+            >
               Start Date (Optional)
             </label>
             <Input
@@ -330,7 +348,10 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
           </div>
 
           <div>
-            <label htmlFor="subtask-due-date" className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+            <label
+              htmlFor="subtask-due-date"
+              className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+            >
               Due Date (Optional)
             </label>
             <Input
@@ -344,10 +365,22 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
 
         {/* Modal Actions */}
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-stone-100 dark:border-stone-800">
-          <Button variant="outline" size="sm" type="button" onClick={onClose} className="w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
-          <Button variant="primary" size="sm" type="submit" isLoading={isSubmitting} className="w-full sm:w-auto">
+          <Button
+            variant="primary"
+            size="sm"
+            type="submit"
+            isLoading={isSubmitting}
+            className="w-full sm:w-auto"
+          >
             Create Subtask
           </Button>
         </div>

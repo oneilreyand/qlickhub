@@ -59,6 +59,15 @@ function formatProblemDetails(err: unknown, res: Response): Response {
         code: 'FORBIDDEN',
       });
     }
+    if (err.message.startsWith('CONFLICT:')) {
+      return res.status(409).json({
+        type: 'https://tools.ietf.org/html/rfc9457',
+        title: 'Conflict',
+        status: 409,
+        detail: err.message.replace('CONFLICT:', '').trim(),
+        code: 'CONFLICT',
+      });
+    }
   }
 
   return res.status(500).json({
@@ -84,7 +93,7 @@ export class TaskController {
         workspaceId,
         query,
         req.user?.userId,
-        membership?.role
+        membership?.role,
       );
       res.status(200).json({ data: result });
     } catch (err) {
@@ -106,7 +115,7 @@ export class TaskController {
         page,
         limit,
         req.user?.userId,
-        membership?.role
+        membership?.role,
       );
       res.status(200).json({ data: result });
     } catch (err) {
@@ -114,7 +123,11 @@ export class TaskController {
     }
   }
 
-  async listTaskActivity(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+  async listTaskActivity(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
     try {
       const workspaceId = req.params.workspaceId;
       const taskId = req.params.taskId;
@@ -124,14 +137,23 @@ export class TaskController {
         taskId,
       });
 
-      const result = await taskService.listTaskActivity(req.user!.userId, workspaceId, taskId, query);
+      const result = await taskService.listTaskActivity(
+        req.user!.userId,
+        workspaceId,
+        taskId,
+        query,
+      );
       res.status(200).json({ data: result });
     } catch (err) {
       formatProblemDetails(err, res);
     }
   }
 
-  async listTaskComments(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+  async listTaskComments(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
     try {
       const workspaceId = req.params.workspaceId;
       const taskId = req.params.taskId;
@@ -141,14 +163,23 @@ export class TaskController {
         taskId,
       });
 
-      const result = await taskDiscussionService.listTaskComments(req.user!.userId, workspaceId, taskId, query);
+      const result = await taskDiscussionService.listTaskComments(
+        req.user!.userId,
+        workspaceId,
+        taskId,
+        query,
+      );
       res.status(200).json({ data: result });
     } catch (err) {
       formatProblemDetails(err, res);
     }
   }
 
-  async createTaskComment(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+  async createTaskComment(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
     try {
       const workspaceId = req.params.workspaceId;
       const taskId = req.params.taskId;
@@ -158,34 +189,58 @@ export class TaskController {
         taskId,
       });
 
-      const comment = await taskDiscussionService.createTaskComment(req.user!.userId, workspaceId, taskId, input);
+      const comment = await taskDiscussionService.createTaskComment(
+        req.user!.userId,
+        workspaceId,
+        taskId,
+        input,
+      );
       res.status(201).json({ data: comment });
     } catch (err) {
       formatProblemDetails(err, res);
     }
   }
 
-  async updateTaskComment(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+  async updateTaskComment(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
     try {
       const workspaceId = req.params.workspaceId;
       const taskId = req.params.taskId;
       const commentId = req.params.commentId;
       const input = UpdateTaskCommentSchema.parse(req.body);
 
-      const comment = await taskDiscussionService.updateTaskComment(req.user!.userId, workspaceId, taskId, commentId, input);
+      const comment = await taskDiscussionService.updateTaskComment(
+        req.user!.userId,
+        workspaceId,
+        taskId,
+        commentId,
+        input,
+      );
       res.status(200).json({ data: comment });
     } catch (err) {
       formatProblemDetails(err, res);
     }
   }
 
-  async deleteTaskComment(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+  async deleteTaskComment(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
     try {
       const workspaceId = req.params.workspaceId;
       const taskId = req.params.taskId;
       const commentId = req.params.commentId;
 
-      const comment = await taskDiscussionService.deleteTaskComment(req.user!.userId, workspaceId, taskId, commentId);
+      const comment = await taskDiscussionService.deleteTaskComment(
+        req.user!.userId,
+        workspaceId,
+        taskId,
+        commentId,
+      );
       res.status(200).json({ data: comment });
     } catch (err) {
       formatProblemDetails(err, res);
@@ -208,7 +263,11 @@ export class TaskController {
     }
   }
 
-  async createSubtask(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+  async createSubtask(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
     try {
       const workspaceId = req.params.workspaceId;
       const parentTaskId = req.params.taskId;
@@ -275,7 +334,7 @@ export class TaskController {
         workspaceId,
         taskId,
         req.user!.userId,
-        membership?.role
+        membership?.role,
       );
       res.status(200).json({ data: task });
     } catch (err) {
@@ -295,7 +354,11 @@ export class TaskController {
     }
   }
 
-  async updateTaskStatus(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+  async updateTaskStatus(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
     try {
       const workspaceId = req.params.workspaceId;
       const taskId = req.params.taskId;

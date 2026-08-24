@@ -12,7 +12,7 @@ describe('RichTextEditor Molecule', () => {
         required
         value="Hello world"
         onChange={handleChange}
-      />
+      />,
     );
 
     expect(screen.getByText('Task Description')).toBeInTheDocument();
@@ -25,11 +25,7 @@ describe('RichTextEditor Molecule', () => {
   it('switches between Preview and Write tabs and defaults to preview', () => {
     const handleChange = vi.fn();
     render(
-      <RichTextEditor
-        label="Task Description"
-        value="# Big Heading"
-        onChange={handleChange}
-      />
+      <RichTextEditor label="Task Description" value="# Big Heading" onChange={handleChange} />,
     );
 
     // Starts in Preview mode by default
@@ -54,7 +50,7 @@ describe('RichTextEditor Molecule', () => {
         value=""
         onChange={handleChange}
         defaultTab="write"
-      />
+      />,
     );
 
     const boldButton = screen.getByTitle('Bold (Ctrl+B)');
@@ -66,11 +62,7 @@ describe('RichTextEditor Molecule', () => {
   it('toggles fullscreen mode on and off', () => {
     const handleChange = vi.fn();
     render(
-      <RichTextEditor
-        label="Task Description"
-        value="Long text here..."
-        onChange={handleChange}
-      />
+      <RichTextEditor label="Task Description" value="Long text here..." onChange={handleChange} />,
     );
 
     const expandButton = screen.getByTitle('Expand Fullscreen / Focus Mode');
@@ -85,6 +77,19 @@ describe('RichTextEditor Molecule', () => {
     expect(screen.getByTitle('Expand Fullscreen / Focus Mode')).toBeInTheDocument();
   });
 
+  it('keeps focus mode inside the application content below the sticky header', () => {
+    render(
+      <RichTextEditor label="Task Description" value="Long text here..." onChange={vi.fn()} />,
+    );
+
+    fireEvent.click(screen.getByTitle('Expand Fullscreen / Focus Mode'));
+
+    const focusModePanel = screen.getByTitle('Exit Fullscreen (Esc)').closest('.fixed');
+
+    expect(focusModePanel).toHaveClass('top-24', 'inset-x-4', 'bottom-4');
+    expect(focusModePanel).not.toHaveClass('inset-4');
+  });
+
   it('disables textarea and formatting buttons when disabled is true without dimming the preview', () => {
     const handleChange = vi.fn();
     render(
@@ -94,7 +99,7 @@ describe('RichTextEditor Molecule', () => {
         value="![Sample](https://example.com/test.png)"
         onChange={handleChange}
         disabled
-      />
+      />,
     );
 
     // In Preview mode, image is rendered
@@ -121,7 +126,7 @@ describe('RichTextEditor Molecule', () => {
         value=""
         onChange={handleChange}
         defaultTab="write"
-      />
+      />,
     );
 
     const imageBtn = screen.getByTitle(/Insert Image Link/i);
@@ -135,7 +140,9 @@ describe('RichTextEditor Molecule', () => {
     const insertBtn = screen.getByRole('button', { name: 'Insert Image Link' });
     fireEvent.click(insertBtn);
 
-    expect(handleChange).toHaveBeenCalledWith(expect.stringContaining('https://example.com/ui-preview.png'));
+    expect(handleChange).toHaveBeenCalledWith(
+      expect.stringContaining('https://example.com/ui-preview.png'),
+    );
   });
 
   it('inserts video link via Video Link modal', () => {
@@ -146,7 +153,7 @@ describe('RichTextEditor Molecule', () => {
         value=""
         onChange={handleChange}
         defaultTab="write"
-      />
+      />,
     );
 
     const videoBtn = screen.getByTitle(/Insert Video Link/i);
@@ -160,6 +167,8 @@ describe('RichTextEditor Molecule', () => {
     const insertBtn = screen.getByRole('button', { name: 'Insert Video Link' });
     fireEvent.click(insertBtn);
 
-    expect(handleChange).toHaveBeenCalledWith(expect.stringContaining('https://cdn.example.com/demo.mp4'));
+    expect(handleChange).toHaveBeenCalledWith(
+      expect.stringContaining('https://cdn.example.com/demo.mp4'),
+    );
   });
 });

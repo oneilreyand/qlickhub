@@ -1,34 +1,39 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Task } from '@qlick/contracts';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { WorkQueueItem } from '@qlick/contracts';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { RootState } from '../store/store';
 import { selectCurrentUserId } from '../store/authSlice';
-import {
-  fetchTasks,
-  completeTask,
-  updateTask,
-  setSelectedTaskId,
-} from '../store/taskSlice';
+import { fetchTasks, fetchTaskById, setSelectedTaskId } from '../store/taskSlice';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { MyTaskDetailWorkspaceDrawer } from '../components/ui/organisms/myTasks/MyTaskDetailWorkspaceDrawer';
 import { CreateTaskModal } from '../components/ui/organisms/CreateTaskModal';
 import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
 import { MyTasksDashboard } from '../components/ui/organisms/MyTasksDashboard';
+import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
+import { useRoleAwareWorkQueue } from '../lib/hooks/useRoleAwareWorkQueue';
 
 export const MyTasksPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { activeWorkspaceId, workspaces, isLoading: isWsLoading } = useAppSelector((state: RootState) => state.workspace);
-  const { tasks, isLoading, selectedTaskId } = useAppSelector((state: RootState) => state.task);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {
+    activeWorkspaceId,
+    workspaces,
+    isLoading: isWsLoading,
+  } = useAppSelector((state: RootState) => state.workspace);
+  const { tasks, selectedTaskId } = useAppSelector((state: RootState) => state.task);
   const { folders } = useAppSelector((state: RootState) => state.folder);
   const currentUserId = useAppSelector(selectCurrentUserId);
 
   const activeWorkspace = useMemo(
     () => workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0],
-    [workspaces, activeWorkspaceId]
+    [workspaces, activeWorkspaceId],
   );
   const userRole = activeWorkspace?.role || activeWorkspace?.myRole || 'dev';
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const queueTriggerRef = useRef<HTMLElement | null>(null);
 
   const reloadTasks = () => {
     if (activeWorkspaceId) {
@@ -39,7 +44,7 @@ export const MyTasksPage: React.FC = () => {
             myTasksOnly: true,
             includeSubtaskSummary: true,
           },
-        })
+        }),
       );
     }
   };
@@ -50,23 +55,40 @@ export const MyTasksPage: React.FC = () => {
 
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId) || null,
-    [tasks, selectedTaskId]
+    [tasks, selectedTaskId],
+  );
+  const featureTaskIds = useMemo(() => tasks.map((task) => task.parentTaskId || task.id), [tasks]);
+  const { stateByFeatureTaskId: releaseReadinessStateByFeatureId, reload: reloadReleaseReadiness } =
+    useReleaseReadinessMap(activeWorkspaceId || undefined, featureTaskIds);
+  const { state: workQueueState, reload: reloadWorkQueue } = useRoleAwareWorkQueue(
+    activeWorkspaceId || undefined,
   );
 
-  const handleToggleComplete = async (e: React.MouseEvent, task: Task) => {
-    e.stopPropagation();
-    if (!activeWorkspaceId) return;
+  const handleOpenQueueItem = async (item: WorkQueueItem) => {
+    if (!activeWorkspaceId || item.subjectType === 'bug') return;
+    queueTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     try {
-      if (task.status === 'done') {
-        await dispatch(updateTask({ workspaceId: activeWorkspaceId, taskId: task.id, input: { status: 'todo' } })).unwrap();
-        dispatch(enqueueSnackbar('Task reopened', 'success'));
-      } else {
-        await dispatch(completeTask({ workspaceId: activeWorkspaceId, taskId: task.id, input: { status: 'done' } })).unwrap();
-        dispatch(enqueueSnackbar('Task marked as Done', 'success'));
-      }
-    } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update task status', 'error'));
+      const task = await dispatch(
+        fetchTaskById({
+          workspaceId: activeWorkspaceId,
+          taskId: item.subjectId,
+        }),
+      ).unwrap();
+      dispatch(setSelectedTaskId(task.id));
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Unable to open this work item.',
+          'error',
+        ),
+      );
     }
+  };
+
+  const handleCloseDrawer = () => {
+    dispatch(setSelectedTaskId(null));
+    window.requestAnimationFrame(() => queueTriggerRef.current?.focus());
   };
 
   if (!isWsLoading && workspaces.length === 0) {
@@ -76,12 +98,13 @@ export const MyTasksPage: React.FC = () => {
   return (
     <>
       <MyTasksDashboard
-        tasks={tasks}
-        isLoading={isLoading}
         selectedTaskId={selectedTaskId}
         userRole={userRole}
-        onSelectTask={(taskId) => dispatch(setSelectedTaskId(taskId))}
-        onToggleComplete={handleToggleComplete}
+        workspaceId={activeWorkspaceId || undefined}
+        queueState={workQueueState}
+        onRefreshQueue={reloadWorkQueue}
+        onOpenQueueItem={handleOpenQueueItem}
+        onBugDataChanged={reloadWorkQueue}
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
       />
 
@@ -90,14 +113,31 @@ export const MyTasksPage: React.FC = () => {
         task={selectedTask}
         userRole={userRole}
         isOpen={Boolean(selectedTaskId && selectedTask)}
-        onClose={() => dispatch(setSelectedTaskId(null))}
-        onDataChanged={reloadTasks}
+        releaseReadinessState={
+          selectedTask
+            ? releaseReadinessStateByFeatureId[selectedTask.parentTaskId || selectedTask.id]
+            : undefined
+        }
+        onClose={handleCloseDrawer}
+        onOpenFeature={(featureTaskId) => {
+          if (!activeWorkspaceId) return;
+          dispatch(setSelectedTaskId(null));
+          navigate(`/projects/${activeWorkspaceId}/tasks/${featureTaskId}`, {
+            state: { returnTo: `${location.pathname}${location.search}` },
+          });
+        }}
+        onDataChanged={() => {
+          reloadTasks();
+          reloadReleaseReadiness();
+          reloadWorkQueue();
+        }}
       />
 
       {/* Create Task Modal */}
       <CreateTaskModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onCreated={reloadWorkQueue}
         folders={folders}
       />
     </>

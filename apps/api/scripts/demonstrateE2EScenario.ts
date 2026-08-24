@@ -19,8 +19,7 @@ async function runE2EDemo() {
   await sequelize.authenticate();
   const passwordHash = await bcrypt.hash('Password123!', 10);
 
-  console.log('
-[1/9] Menyiapkan Akun Pengguna (Data Asli PostgreSQL):');
+  console.log('\n[1/9] Menyiapkan Akun Pengguna (Data Asli PostgreSQL):');
   const [poUser] = await UserModel.findOrCreate({
     where: { email: 'rian.po@example.com' },
     defaults: {
@@ -57,8 +56,7 @@ async function runE2EDemo() {
   });
   console.log('   QA  : ' + qaUser.name + ' (' + qaUser.email + ')');
 
-  console.log('
-[2/9] Membuat Workspace & Menugaskan Role Anggota:');
+  console.log('\n[2/9] Membuat Workspace & Menugaskan Role Anggota:');
   const [workspace] = await WorkspaceModel.findOrCreate({
     where: { slug: 'e2e-live-demo-workspace' },
     defaults: {
@@ -89,8 +87,7 @@ async function runE2EDemo() {
   await TaskModel.destroy({ where: { workspaceId: workspace.id }, force: true });
   await WorkFolderModel.destroy({ where: { workspaceId: workspace.id }, force: true });
 
-  console.log('
-[3/9] PO (Rian) Merencanakan Fitur di Task Hub:');
+  console.log('\n[3/9] PO (Rian) Merencanakan Fitur di Task Hub:');
   const folder = await WorkFolderModel.create({
     workspaceId: workspace.id,
     name: 'Sprint 1 - Pembayaran',
@@ -108,9 +105,17 @@ async function runE2EDemo() {
       description: 'Implementasi fitur QRIS dengan validasi timeout dan settlement realtime.',
       status: 'in_progress',
       priority: 'urgent',
-    })
+    }),
   );
-  console.log('   Parent Task Dibuat: [' + parentTask.displayId + '] ' + parentTask.title + ' (Status: ' + parentTask.status + ')');
+  console.log(
+    '   Parent Task Dibuat: [' +
+      parentTask.displayId +
+      '] ' +
+      parentTask.title +
+      ' (Status: ' +
+      parentTask.status +
+      ')',
+  );
 
   const subtaskFE = await taskService.createTask(
     poUser.id,
@@ -121,9 +126,15 @@ async function runE2EDemo() {
       title: 'Slicing & Form QRIS View',
       assigneeId: devUser.id,
       status: 'todo',
-    })
+    }),
   );
-  console.log('   Subtask FE Dibuat: [' + subtaskFE.displayId + '] ' + subtaskFE.title + ' -> Assignee: Budi (Dev)');
+  console.log(
+    '   Subtask FE Dibuat: [' +
+      subtaskFE.displayId +
+      '] ' +
+      subtaskFE.title +
+      ' -> Assignee: Budi (Dev)',
+  );
 
   const subtaskQA = await taskService.createTask(
     poUser.id,
@@ -134,12 +145,17 @@ async function runE2EDemo() {
       title: 'E2E Automation Test QRIS',
       assigneeId: qaUser.id,
       status: 'todo',
-    })
+    }),
   );
-  console.log('   Subtask QA Dibuat: [' + subtaskQA.displayId + '] ' + subtaskQA.title + ' -> Assignee: Doni (QA)');
+  console.log(
+    '   Subtask QA Dibuat: [' +
+      subtaskQA.displayId +
+      '] ' +
+      subtaskQA.title +
+      ' -> Assignee: Doni (QA)',
+  );
 
-  console.log('
-[4/9] Dev (Budi) Mengerjakan Subtask di My Tasks:');
+  console.log('\n[4/9] Dev (Budi) Mengerjakan Subtask di My Tasks:');
   const feInProgress = await taskService.updateTask(devUser.id, workspace.id, subtaskFE.id, {
     status: 'in_progress',
   });
@@ -150,21 +166,20 @@ async function runE2EDemo() {
   });
   console.log('   Budi selesai coding & submit: IN_PROGRESS -> ' + feInReview.status.toUpperCase());
 
-  console.log('
-[5/9] Uji Coba Celah Lama (Budi mencoba Self-Approval klik Done):');
+  console.log('\n[5/9] Uji Coba Celah Lama (Budi mencoba Self-Approval klik Done):');
   try {
     await taskService.updateTask(devUser.id, workspace.id, subtaskFE.id, {
       status: 'done',
     });
     console.error('   GAGAL: Sistem lama bocor! Dev berhasil self-approval.');
-  } catch (err) {
+  } catch (err: any) {
     console.log('   TERBLOKIR OLEH SISTEM BARU: ' + err.message);
     console.log('   Quality Gate Berhasil: Assignee tidak bisa self-approve!');
   }
 
-  console.log('
-[6/9] QA (Doni) Melakukan Code Review & Menemukan Isu:');
-  const reviewNote = 'Error modal QRIS tidak muncul saat koneksi timeout. Mohon tambahkan handling catch error.';
+  console.log('\n[6/9] QA (Doni) Melakukan Code Review & Menemukan Isu:');
+  const reviewNote =
+    'Error modal QRIS tidak muncul saat koneksi timeout. Mohon tambahkan handling catch error.';
   const changesReq = await taskService.updateTask(qaUser.id, workspace.id, subtaskFE.id, {
     status: 'changes_requested',
     reviewNotes: reviewNote,
@@ -173,8 +188,7 @@ async function runE2EDemo() {
   console.log('   Review Notes Tercatat: "' + changesReq.reviewNotes + '"');
   console.log('   Reviewed By: Doni Wijaya (ID: ' + changesReq.reviewedBy + ')');
 
-  console.log('
-[7/9] Dev (Budi) Membaca Review Notes di Drawer & Memperbaiki:');
+  console.log('\n[7/9] Dev (Budi) Membaca Review Notes di Drawer & Memperbaiki:');
   await taskService.updateTask(devUser.id, workspace.id, subtaskFE.id, {
     status: 'in_progress',
     description: 'Menambahkan Error Modal saat timeout pada Form QRIS.',
@@ -186,12 +200,11 @@ async function runE2EDemo() {
   });
   console.log('   Budi submit ulang: IN_PROGRESS -> IN_REVIEW');
 
-  console.log('
-[8/9] Uji Coba Ketergantungan Subtask QA:');
+  console.log('\n[8/9] Uji Coba Ketergantungan Subtask QA:');
   try {
     await taskService.updateTask(poUser.id, workspace.id, subtaskQA.id, { status: 'done' });
     console.error('   GAGAL: Subtask QA bisa selesai sebelum FE selesai!');
-  } catch (err) {
+  } catch (err: any) {
     console.log('   TERBLOKIR OLEH SISTEM BARU: ' + err.message);
     console.log('   Dependency Gate Berhasil: Subtask QA terkunci sampai FE selesai.');
   }
@@ -199,25 +212,35 @@ async function runE2EDemo() {
   const approvedFE = await taskService.updateTask(qaUser.id, workspace.id, subtaskFE.id, {
     status: 'done',
   });
-  console.log('   Doni menyetujui Subtask FE: IN_REVIEW -> ' + approvedFE.status.toUpperCase() + ' (Reviewed by Doni)');
+  console.log(
+    '   Doni menyetujui Subtask FE: IN_REVIEW -> ' +
+      approvedFE.status.toUpperCase() +
+      ' (Reviewed by Doni)',
+  );
 
   await taskService.updateTask(qaUser.id, workspace.id, subtaskQA.id, { status: 'in_review' });
-  const approvedQA = await taskService.updateTask(poUser.id, workspace.id, subtaskQA.id, { status: 'done' });
+  const approvedQA = await taskService.updateTask(poUser.id, workspace.id, subtaskQA.id, {
+    status: 'done',
+  });
   console.log('   Subtask QA selesai & diverifikasi: ' + approvedQA.status.toUpperCase());
 
-  console.log('
-[9/9] PO (Rian) Menyelesaikan Parent Task di Task Hub:');
+  console.log('\n[9/9] PO (Rian) Menyelesaikan Parent Task di Task Hub:');
   const completedParent = await taskService.completeTask(poUser.id, workspace.id, parentTask.id, {
     status: 'done',
   });
-  console.log('   Parent Task [' + completedParent.displayId + '] ' + completedParent.title + ' -> STATUS: ' + completedParent.status.toUpperCase());
+  console.log(
+    '   Parent Task [' +
+      completedParent.displayId +
+      '] ' +
+      completedParent.title +
+      ' -> STATUS: ' +
+      completedParent.status.toUpperCase(),
+  );
   console.log('   Completed At: ' + completedParent.completedAt);
 
-  console.log('
-========================================================================');
+  console.log('\n========================================================================');
   console.log('E2E DEMO BERHASIL 100% — SELURUH QUALITY GATES & RBAC VALID!');
-  console.log('========================================================================
-');
+  console.log('========================================================================\n');
 }
 
 runE2EDemo()

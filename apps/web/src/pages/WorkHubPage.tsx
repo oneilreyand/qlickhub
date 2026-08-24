@@ -26,12 +26,8 @@ export const WorkHubPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fadeIn">
-      {currentTab === 'overview' ? (
-        <OverviewStoreDashboard />
-      ) : (
-        <TaskHubDashboardTemplate />
-      )}
+    <div className="w-full space-y-6 pb-12 animate-fadeIn">
+      {currentTab === 'overview' ? <OverviewStoreDashboard /> : <TaskHubDashboardTemplate />}
     </div>
   );
 };

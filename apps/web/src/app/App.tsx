@@ -11,6 +11,7 @@ import { WorkspaceSettingsPage } from '../pages/WorkspaceSettingsPage';
 import { MyTasksPage } from '../pages/MyTasksPage';
 import { ReportPage } from '../pages/ReportPage';
 import { UserFlowPage } from '../pages/UserFlowPage';
+import { TaskDeepLinkPage } from '../pages/TaskDeepLinkPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { ErrorBoundary } from '../components/ui/organisms/ErrorBoundary';
 
@@ -28,6 +29,16 @@ export const App: React.FC = () => {
               <ProtectedRoute>
                 <AppLayout>
                   <WorkHubPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:projectId/tasks/:taskId"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <TaskDeepLinkPage />
                 </AppLayout>
               </ProtectedRoute>
             }

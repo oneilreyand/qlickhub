@@ -1,19 +1,22 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../http/middleware/authenticate.js';
 import { WorkspaceMemberModel } from '../db/models/workspaceMember.js';
-import { WorkspaceRole } from '@qlick/contracts';
+import { UserRole, WorkspaceRole } from '@qlick/contracts';
 
 export interface WorkspaceRequest extends AuthenticatedRequest {
   workspaceMembership?: WorkspaceMemberModel;
 }
 
+const workspaceCreationRoles: readonly UserRole[] = ['owner', 'admin', 'po'];
+
+export function canCreateWorkspace(userRole: UserRole | null | undefined): boolean {
+  return Boolean(userRole && workspaceCreationRoles.includes(userRole));
+}
+
 /**
  * Checks if a workspace role matches an allowed role list.
  */
-export function hasWorkspaceRole(
-  userRole: WorkspaceRole,
-  allowedRoles: WorkspaceRole[]
-): boolean {
+export function hasWorkspaceRole(userRole: WorkspaceRole, allowedRoles: WorkspaceRole[]): boolean {
   return allowedRoles.includes(userRole);
 }
 
@@ -98,14 +101,14 @@ export const requireWorkspaceMember = (allowedRoles?: WorkspaceRole[]) => {
 export const requireWorkspaceCreationPermission = () => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const userRole = req.user?.role;
-    const allowedRoles: string[] = ['owner', 'admin', 'po'];
 
-    if (!userRole || !allowedRoles.includes(userRole)) {
+    if (!canCreateWorkspace(userRole)) {
       return res.status(403).json({
         type: 'https://api.qa-hub.com/errors/forbidden',
         title: 'Forbidden',
         status: 403,
-        detail: 'Only workspace owners, admins, and product owners are authorized to create new workspaces.',
+        detail:
+          'Only workspace owners, admins, and product owners are authorized to create new workspaces.',
         code: 'FORBIDDEN',
       });
     }

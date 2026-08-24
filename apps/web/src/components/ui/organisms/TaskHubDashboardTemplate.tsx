@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { FolderTreeNode, TaskDatePreset } from '@qlick/contracts';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import type { FolderTreeNode, TaskDatePreset } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { DateRange } from '../molecules/DateRangePicker';
 import { Drawer } from '../molecules/Drawer';
 import { FolderTree } from './FolderTree';
-import { TaskCollection } from './TaskCollection';
+import { TaskCollection, type TaskDeliveryTraceRowState } from './TaskCollection';
 import { TaskTimelineView } from './TaskTimelineView';
 import { TaskDetailDrawer } from './TaskDetailDrawer';
 import { CreateTaskModal } from './CreateTaskModal';
@@ -24,11 +24,10 @@ import {
   archiveFolder as archiveFolderThunk,
   setSelectedFolderId,
 } from '../../../store/folderSlice';
-import {
-  fetchTasks,
-  setSelectedTaskId,
-} from '../../../store/taskSlice';
+import { fetchTasks, setSelectedTaskId } from '../../../store/taskSlice';
 import { useDebounce } from '../../../lib/hooks/useDebounce';
+import { useReleaseReadinessMap } from '../../../lib/hooks/useReleaseReadinessMap';
+import { traceabilityService } from '../../../lib/api/traceabilityService';
 
 const statusFilters: { label: string; value: string }[] = [
   { label: 'ALL', value: 'ALL' },
@@ -50,10 +49,7 @@ const datePresetViews: { label: string; value: TaskDatePreset | 'all' }[] = [
 /**
  * Recursively finds a folder node by ID within arbitrary nesting levels.
  */
-function findFolderInTree(
-  folders: FolderTreeNode[],
-  folderId: string
-): FolderTreeNode | null {
+function findFolderInTree(folders: FolderTreeNode[], folderId: string): FolderTreeNode | null {
   for (const folder of folders) {
     if (folder.id === folderId) return folder;
     if (folder.children && folder.children.length > 0) {
@@ -66,6 +62,8 @@ function findFolderInTree(
 
 export const TaskHubDashboardTemplate: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Granular selectors to minimize unwanted re-renders
@@ -89,26 +87,38 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMobileFolderDrawerOpen, setIsMobileFolderDrawerOpen] = useState(false);
+  const [deliveryTraceStateByTaskId, setDeliveryTraceStateByTaskId] = useState<
+    Record<string, TaskDeliveryTraceRowState>
+  >({});
 
   const activeWorkspace = useMemo(
     () => workspaces.find((w: { id: string }) => w.id === activeWorkspaceId),
-    [workspaces, activeWorkspaceId]
+    [workspaces, activeWorkspaceId],
   );
 
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId) || null,
-    [tasks, selectedTaskId]
+    [tasks, selectedTaskId],
   );
+  const workspaceFeatureTaskIds = useMemo(
+    () => tasks.filter((task) => task.workspaceId === activeWorkspaceId).map((task) => task.id),
+    [activeWorkspaceId, tasks],
+  );
+  const { stateByFeatureTaskId: releaseReadinessStateByTaskId, reload: reloadReleaseReadiness } =
+    useReleaseReadinessMap(activeWorkspaceId || undefined, workspaceFeatureTaskIds);
 
   // Recursive check: finds the folder anywhere in the tree and checks if it has child folders
   const selectedFolderNode = useMemo(
     () => (selectedFolderId ? findFolderInTree(folders, selectedFolderId) : null),
-    [folders, selectedFolderId]
+    [folders, selectedFolderId],
   );
 
   const selectedFolderIsParent = useMemo(
-    () => Boolean(selectedFolderNode && selectedFolderNode.children && selectedFolderNode.children.length > 0),
-    [selectedFolderNode]
+    () =>
+      Boolean(
+        selectedFolderNode && selectedFolderNode.children && selectedFolderNode.children.length > 0,
+      ),
+    [selectedFolderNode],
   );
 
   // Sync URL search parameter ?folderId=... & ?datePreset=... & ?view=...
@@ -147,10 +157,86 @@ export const TaskHubDashboardTemplate: React.FC = () => {
             startDate: dateRange?.startDate || undefined,
             endDate: dateRange?.endDate || undefined,
           },
-        })
+        }),
       );
     }
-  }, [activeWorkspaceId, selectedFolderId, selectedFolderIsParent, datePresetView, dateRange, dispatch]);
+  }, [
+    activeWorkspaceId,
+    selectedFolderId,
+    selectedFolderIsParent,
+    datePresetView,
+    dateRange,
+    dispatch,
+  ]);
+
+  useEffect(() => {
+    const workspaceTasks = activeWorkspaceId
+      ? tasks.filter((task) => task.workspaceId === activeWorkspaceId)
+      : [];
+
+    if (!activeWorkspaceId || workspaceTasks.length === 0) {
+      setDeliveryTraceStateByTaskId({});
+      return;
+    }
+
+    let isCancelled = false;
+
+    setDeliveryTraceStateByTaskId(
+      Object.fromEntries(
+        workspaceTasks.map((task) => [
+          task.id,
+          {
+            trace: null,
+            isLoading: true,
+            error: null,
+            permissionDenied: false,
+          },
+        ]),
+      ),
+    );
+
+    workspaceTasks.forEach((task) => {
+      void traceabilityService
+        .getParentTaskDeliveryTrace(activeWorkspaceId, task.id)
+        .then((trace) => {
+          if (isCancelled) return;
+          setDeliveryTraceStateByTaskId((current) => ({
+            ...current,
+            [task.id]: {
+              trace,
+              isLoading: false,
+              error: null,
+              permissionDenied: false,
+            },
+          }));
+        })
+        .catch((error: unknown) => {
+          if (isCancelled) return;
+          const status =
+            typeof error === 'object' && error !== null && 'status' in error
+              ? Number(error.status)
+              : undefined;
+          setDeliveryTraceStateByTaskId((current) => ({
+            ...current,
+            [task.id]: {
+              trace: null,
+              isLoading: false,
+              error:
+                status === 403
+                  ? null
+                  : error instanceof Error
+                    ? error.message
+                    : 'Delivery Trace unavailable',
+              permissionDenied: status === 403,
+            },
+          }));
+        });
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeWorkspaceId, tasks]);
 
   const loadWorkspaceData = useCallback(async () => {
     if (!activeWorkspaceId) return;
@@ -169,18 +255,25 @@ export const TaskHubDashboardTemplate: React.FC = () => {
               startDate: dateRange?.startDate || undefined,
               endDate: dateRange?.endDate || undefined,
             },
-          })
+          }),
         ).unwrap(),
       ]);
     } catch (error) {
       dispatch(
         enqueueSnackbar(
           error instanceof Error ? error.message : 'Failed to refresh workspace data',
-          'error'
-        )
+          'error',
+        ),
       );
     }
-  }, [activeWorkspaceId, selectedFolderId, selectedFolderIsParent, datePresetView, dateRange, dispatch]);
+  }, [
+    activeWorkspaceId,
+    selectedFolderId,
+    selectedFolderIsParent,
+    datePresetView,
+    dateRange,
+    dispatch,
+  ]);
 
   const handleSelectFolder = (folderId: string | null) => {
     dispatch(setSelectedFolderId(folderId));
@@ -217,15 +310,24 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     setSearchParams(newParams);
   };
 
+  const handleOpenTask = (taskId: string) => {
+    if (!activeWorkspaceId) return;
+    navigate(`/projects/${activeWorkspaceId}/tasks/${taskId}`, {
+      state: { returnTo: `${location.pathname}${location.search}` },
+    });
+  };
+
   const handleCreateFolder = async (name: string, parentFolderId?: string) => {
     if (!activeWorkspaceId) return;
     try {
       await dispatch(
-        createFolderThunk({ workspaceId: activeWorkspaceId, input: { name, parentFolderId } })
+        createFolderThunk({ workspaceId: activeWorkspaceId, input: { name, parentFolderId } }),
       ).unwrap();
       dispatch(enqueueSnackbar(`Folder "${name}" created successfully.`, 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create folder', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create folder', 'error'),
+      );
     }
   };
 
@@ -233,11 +335,13 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     if (!activeWorkspaceId) return;
     try {
       await dispatch(
-        updateFolderThunk({ workspaceId: activeWorkspaceId, folderId, input: { name: newName } })
+        updateFolderThunk({ workspaceId: activeWorkspaceId, folderId, input: { name: newName } }),
       ).unwrap();
       dispatch(enqueueSnackbar('Folder renamed.', 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to rename folder', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to rename folder', 'error'),
+      );
     }
   };
 
@@ -247,7 +351,9 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       await dispatch(archiveFolderThunk({ workspaceId: activeWorkspaceId, folderId })).unwrap();
       dispatch(enqueueSnackbar('Folder archived.', 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to archive folder', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to archive folder', 'error'),
+      );
     }
   };
 
@@ -258,7 +364,10 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         !debouncedSearchQuery ||
         task.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         task.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        Boolean(task.description && task.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
+        Boolean(
+          task.description &&
+          task.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()),
+        );
 
       const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter;
 
@@ -270,7 +379,9 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const totalTasksCount = tasks.length;
   const doneCount = tasks.filter((t) => t.status === 'done').length;
   const inReviewCount = tasks.filter((t) => t.status === 'in_review').length;
-  const urgentCount = tasks.filter((t) => t.priority === 'urgent' || t.status === 'canceled').length;
+  const urgentCount = tasks.filter(
+    (t) => t.priority === 'urgent' || t.status === 'canceled',
+  ).length;
   const donePercentage = totalTasksCount > 0 ? Math.round((doneCount / totalTasksCount) * 100) : 0;
 
   const selectedFolderName = selectedFolderNode ? selectedFolderNode.name : 'All Workspace Tasks';
@@ -371,7 +482,9 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 isLoading={isTaskLoading}
                 error={taskError}
                 selectedTaskId={selectedTaskId}
-                onSelect={(task) => dispatch(setSelectedTaskId(task.id))}
+                deliveryTraceStateByTaskId={deliveryTraceStateByTaskId}
+                releaseReadinessStateByTaskId={releaseReadinessStateByTaskId}
+                onSelect={(task) => handleOpenTask(task.id)}
               />
             ) : (
               <TaskTimelineView
@@ -379,7 +492,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 folders={folders}
                 isLoading={isTaskLoading}
                 selectedTaskId={selectedTaskId}
-                onSelect={(task) => dispatch(setSelectedTaskId(task.id))}
+                onSelect={(task) => handleOpenTask(task.id)}
                 isExpanded={isTimelineExpanded}
                 onToggleExpand={() => setIsTimelineExpanded((prev) => !prev)}
               />
@@ -414,8 +527,14 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       <TaskDetailDrawer
         task={selectedTask}
         folders={folders}
+        releaseReadinessState={
+          selectedTask ? releaseReadinessStateByTaskId[selectedTask.id] : undefined
+        }
         onClose={() => dispatch(setSelectedTaskId(null))}
-        onDataChanged={() => void loadWorkspaceData()}
+        onDataChanged={() => {
+          void loadWorkspaceData();
+          reloadReleaseReadiness();
+        }}
       />
 
       {/* Create Task Modal */}

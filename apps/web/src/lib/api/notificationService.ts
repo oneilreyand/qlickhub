@@ -48,7 +48,7 @@ export const notificationService = {
       {
         method: 'POST',
         body: JSON.stringify({ workspaceId }),
-      }
+      },
     );
     return res.data;
   },
@@ -66,13 +66,15 @@ export const notificationService = {
   /**
    * Clears all notifications for the user.
    */
-  async clearAllNotifications(workspaceId?: string): Promise<{ success: boolean; deletedCount: number }> {
+  async clearAllNotifications(
+    workspaceId?: string,
+  ): Promise<{ success: boolean; deletedCount: number }> {
     const params = workspaceId ? `?workspaceId=${workspaceId}` : '';
     const res = await apiClient<{ data: { success: boolean; deletedCount: number } }>(
       `/notifications${params}`,
       {
         method: 'DELETE',
-      }
+      },
     );
     return res.data;
   },
@@ -100,27 +102,17 @@ export const notificationService = {
   },
 
   /**
-   * Sends a test notification to the authenticated user's active device tokens and in-app bell.
+   * Triggers an approaching deadlines scan across tasks in the workspace.
    */
-  async sendTestNotification(): Promise<FcmTokenResponse> {
-    const res = await apiClient<{ data: FcmTokenResponse }>('/notifications/test', {
+  async checkApproachingDeadlines(
+    workspaceId?: string,
+  ): Promise<{ success: boolean; dispatchedCount: number; checkedTasksCount: number }> {
+    const params = workspaceId ? `?workspaceId=${workspaceId}` : '';
+    const res = await apiClient<{
+      data: { success: boolean; dispatchedCount: number; checkedTasksCount: number };
+    }>(`/notifications/check-deadlines${params}`, {
       method: 'POST',
     });
     return res.data;
   },
-
-  /**
-   * Triggers an approaching deadlines scan across tasks in the workspace.
-   */
-  async checkApproachingDeadlines(workspaceId?: string): Promise<{ success: boolean; dispatchedCount: number; checkedTasksCount: number }> {
-    const params = workspaceId ? `?workspaceId=${workspaceId}` : '';
-    const res = await apiClient<{ data: { success: boolean; dispatchedCount: number; checkedTasksCount: number } }>(
-      `/notifications/check-deadlines${params}`,
-      {
-        method: 'POST',
-      }
-    );
-    return res.data;
-  },
 };
-

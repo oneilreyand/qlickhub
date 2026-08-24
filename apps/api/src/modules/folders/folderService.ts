@@ -1,6 +1,7 @@
 import { Transaction } from 'sequelize';
 import { sequelize } from '../../db/sequelize.js';
 import { WorkFolderModel } from '../../db/models/workFolder.js';
+import { FolderActivityModel } from '../../db/models/folderActivity.js';
 import {
   CreateFolderInput,
   UpdateFolderInput,
@@ -28,7 +29,10 @@ function clampPosition(position: number, collectionLength: number): number {
   return Math.max(0, Math.min(position, collectionLength));
 }
 
-async function getLockedActiveFolders(workspaceId: string, transaction: Transaction): Promise<WorkFolderModel[]> {
+async function getLockedActiveFolders(
+  workspaceId: string,
+  transaction: Transaction,
+): Promise<WorkFolderModel[]> {
   return WorkFolderModel.findAll({
     where: { workspaceId, archivedAt: null },
     order: [
@@ -45,7 +49,10 @@ function getTemporaryStart(folders: WorkFolderModel[]): number {
   return Math.min(0, ...folders.map((folder) => folder.position)) - folders.length - 1;
 }
 
-async function stageFolderOrder(folders: WorkFolderModel[], transaction: Transaction): Promise<void> {
+async function stageFolderOrder(
+  folders: WorkFolderModel[],
+  transaction: Transaction,
+): Promise<void> {
   // Positions are unique among active siblings. Use temporary negative values first so
   // PostgreSQL never sees two active folders with the same final position mid-update.
   const temporaryStart = getTemporaryStart(folders);
@@ -55,21 +62,27 @@ async function stageFolderOrder(folders: WorkFolderModel[], transaction: Transac
   }
 }
 
-async function finalizeFolderOrder(folders: WorkFolderModel[], transaction: Transaction): Promise<void> {
+async function finalizeFolderOrder(
+  folders: WorkFolderModel[],
+  transaction: Transaction,
+): Promise<void> {
   for (const [index, folder] of folders.entries()) {
     folder.position = index;
     await folder.save({ transaction });
   }
 }
 
-async function persistFolderOrder(folders: WorkFolderModel[], transaction: Transaction): Promise<void> {
+async function persistFolderOrder(
+  folders: WorkFolderModel[],
+  transaction: Transaction,
+): Promise<void> {
   await stageFolderOrder(folders, transaction);
   await finalizeFolderOrder(folders, transaction);
 }
 
 function activeSiblings(
   folders: WorkFolderModel[],
-  parentFolderId: string | null
+  parentFolderId: string | null,
 ): WorkFolderModel[] {
   return folders.filter((candidate) => candidate.parentFolderId === parentFolderId);
 }
@@ -138,7 +151,9 @@ export class FolderService {
           throw new Error('BAD_REQUEST: Parent folder belongs to a different workspace.');
         }
         if (parentFolder.parentFolderId !== null) {
-          throw new Error('BAD_REQUEST: Maximum two persisted folder levels allowed below a workspace.');
+          throw new Error(
+            'BAD_REQUEST: Maximum two persisted folder levels allowed below a workspace.',
+          );
         }
         if (parentFolder.archivedAt !== null) {
           throw new Error('BAD_REQUEST: Cannot create a subfolder in an archived folder.');
@@ -160,11 +175,22 @@ export class FolderService {
           position: -1,
           createdBy: userId,
         },
-        { transaction }
+        { transaction },
       );
 
       siblings.splice(position, 0, folder);
       await persistFolderOrder(siblings, transaction);
+
+      await FolderActivityModel.create(
+        {
+          workspaceId,
+          folderId: folder.id,
+          actorId: userId,
+          action: 'created',
+          metadataJson: { name: folder.name, parentFolderId: folder.parentFolderId },
+        },
+        { transaction },
+      );
 
       return formatFolder(folder);
     });
@@ -173,7 +199,11 @@ export class FolderService {
   /**
    * Updates folder name or position within an atomic transaction.
    */
-  async updateFolder(workspaceId: string, folderId: string, input: UpdateFolderInput): Promise<Folder> {
+  async updateFolder(
+    workspaceId: string,
+    folderId: string,
+    input: UpdateFolderInput,
+  ): Promise<Folder> {
     return await sequelize.transaction(async (transaction) => {
       const folder = await WorkFolderModel.findOne({
         where: { id: folderId, workspaceId },
@@ -190,6 +220,18 @@ export class FolderService {
           folder.position = input.position;
           if (input.name !== undefined) folder.name = input.name;
           await folder.save({ transaction });
+
+          await FolderActivityModel.create(
+            {
+              workspaceId,
+              folderId: folder.id,
+              actorId: null,
+              action: 'updated',
+              metadataJson: { name: folder.name, position: folder.position },
+            },
+            { transaction },
+          );
+
           return formatFolder(folder);
         }
 
@@ -206,11 +248,35 @@ export class FolderService {
         siblings.splice(clampPosition(input.position, siblings.length), 0, orderedFolder);
         if (input.name !== undefined) orderedFolder.name = input.name;
         await persistFolderOrder(siblings, transaction);
+
+        await FolderActivityModel.create(
+          {
+            workspaceId,
+            folderId: orderedFolder.id,
+            actorId: null,
+            action: 'updated',
+            metadataJson: { name: orderedFolder.name, position: orderedFolder.position },
+          },
+          { transaction },
+        );
+
         return formatFolder(orderedFolder);
       }
 
       if (input.name !== undefined) folder.name = input.name;
       await folder.save({ transaction });
+
+      await FolderActivityModel.create(
+        {
+          workspaceId,
+          folderId: folder.id,
+          actorId: null,
+          action: 'updated',
+          metadataJson: { name: folder.name, position: folder.position },
+        },
+        { transaction },
+      );
+
       return formatFolder(folder);
     });
   }
@@ -250,7 +316,9 @@ export class FolderService {
         }
 
         if (targetParent.parentFolderId !== null) {
-          throw new Error('BAD_REQUEST: Maximum two persisted folder levels allowed below a workspace.');
+          throw new Error(
+            'BAD_REQUEST: Maximum two persisted folder levels allowed below a workspace.',
+          );
         }
 
         if (targetParent.archivedAt !== null) {
@@ -287,7 +355,11 @@ export class FolderService {
       if (sourceParentId === targetParentId) {
         const currentIndex = sourceSiblings.findIndex((sibling) => sibling.id === folderId);
         sourceSiblings.splice(currentIndex, 1);
-        sourceSiblings.splice(clampPosition(input.position, sourceSiblings.length), 0, orderedFolder);
+        sourceSiblings.splice(
+          clampPosition(input.position, sourceSiblings.length),
+          0,
+          orderedFolder,
+        );
         await persistFolderOrder(sourceSiblings, transaction);
         return formatFolder(orderedFolder);
       }
@@ -303,6 +375,17 @@ export class FolderService {
       await stageFolderOrder(remainingSourceSiblings, transaction);
       await finalizeFolderOrder(remainingSourceSiblings, transaction);
       await finalizeFolderOrder(targetSiblings, transaction);
+
+      await FolderActivityModel.create(
+        {
+          workspaceId,
+          folderId: orderedFolder.id,
+          actorId: null,
+          action: 'moved',
+          metadataJson: { parentFolderId: targetParentId, position: input.position },
+        },
+        { transaction },
+      );
 
       return formatFolder(orderedFolder);
     });
@@ -332,7 +415,7 @@ export class FolderService {
         });
         if (parentFolder && parentFolder.archivedAt !== null) {
           throw new Error(
-            'BAD_REQUEST: Cannot unarchive child folder while its parent is archived. Unarchive the parent folder first.'
+            'BAD_REQUEST: Cannot unarchive child folder while its parent is archived. Unarchive the parent folder first.',
           );
         }
       }
@@ -348,11 +431,22 @@ export class FolderService {
           {
             where: { parentFolderId: folderId, workspaceId },
             transaction,
-          }
+          },
         );
 
         const activeFolders = await getLockedActiveFolders(workspaceId, transaction);
         await persistFolderOrder(activeSiblings(activeFolders, folder.parentFolderId), transaction);
+
+        await FolderActivityModel.create(
+          {
+            workspaceId,
+            folderId: folder.id,
+            actorId: null,
+            action: 'archived',
+            metadataJson: null,
+          },
+          { transaction },
+        );
       } else {
         if (folder.archivedAt === null) {
           return formatFolder(folder);
@@ -365,6 +459,17 @@ export class FolderService {
         folder.archivedAt = null;
         folder.position = nextPosition;
         await folder.save({ transaction });
+
+        await FolderActivityModel.create(
+          {
+            workspaceId,
+            folderId: folder.id,
+            actorId: null,
+            action: 'unarchived',
+            metadataJson: null,
+          },
+          { transaction },
+        );
       }
 
       return formatFolder(folder);

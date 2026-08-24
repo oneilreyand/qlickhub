@@ -5,10 +5,23 @@ import {
   TaskActivityModel,
   WorkFolderModel,
   WorkspaceMemberModel,
+  WorkspaceMemberSpecialtyModel,
   UserModel,
   TaskCreationPermissionModel,
+  TaskAttachmentModel,
+  TaskRequirementModel,
+  TaskDocumentModel,
+  BugModel,
+  QaSignOffModel,
+  ReleaseDecisionModel,
 } from '../../db/models/index.js';
-import { assertCanCreateTask, assertCanMutateTask, assertCanMoveTask, assertCanAccessTask, isPlanner } from '../../policies/taskPolicy.js';
+import {
+  assertCanCreateTask,
+  assertCanMutateTask,
+  assertCanMoveTask,
+  assertCanAccessTask,
+  isPlanner,
+} from '../../policies/taskPolicy.js';
 import { fcmService } from '../../services/fcmService.js';
 import {
   CreateTaskInput,
@@ -24,6 +37,7 @@ import {
   TaskActivityQuery,
   TaskActivityListResponse,
   WorkspaceRole,
+  DeveloperSpecialty,
 } from '@qlick/contracts';
 
 function formatTask(t: TaskModel): Task {
@@ -47,7 +61,9 @@ function formatTask(t: TaskModel): Task {
     completedAt: json.completedAt ? new Date(json.completedAt).toISOString() : null,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: json.updatedAt ? new Date(json.updatedAt).toISOString() : new Date().toISOString(),
-    ...((json as any).subtasks && { subtasks: (json as any).subtasks.map((st: any) => formatTask(st)) }),
+    ...((json as any).subtasks && {
+      subtasks: (json as any).subtasks.map((st: any) => formatTask(st)),
+    }),
   } as Task;
 }
 
@@ -56,36 +72,66 @@ async function assertRoleMatchesDeliveryArea(
   assigneeId: string | null | undefined,
   deliveryArea: DeliveryArea | null | undefined,
   allowRoleMismatch: boolean | undefined,
-  transaction: Transaction
-): Promise<{ isMismatch: boolean; assigneeRole?: string }> {
+  roleMismatchReason: string | undefined,
+  actorRole: WorkspaceRole,
+  transaction: Transaction,
+): Promise<{
+  isMismatch: boolean;
+  assigneeRole?: string;
+  assigneeSpecialties?: DeveloperSpecialty[];
+}> {
   if (!assigneeId || !deliveryArea) return { isMismatch: false };
 
   const membership = await WorkspaceMemberModel.findOne({
     where: { workspaceId, userId: assigneeId },
+    include: [{ model: WorkspaceMemberSpecialtyModel, as: 'specialties', required: false }],
     transaction,
   });
 
-  if (!membership) return { isMismatch: false };
+  if (!membership)
+    throw new Error('BAD_REQUEST: Assigned user is not an active member of this Workspace.');
 
   const targetRole = membership.role;
+  const specialties = (
+    (membership as unknown as { specialties?: WorkspaceMemberSpecialtyModel[] }).specialties || []
+  ).map((row) => row.specialty);
   const isPlannerRole = ['owner', 'admin', 'po'].includes(targetRole);
-  const isDevArea = deliveryArea === 'frontend' || deliveryArea === 'backend' || deliveryArea === 'mobile' || deliveryArea === 'fullstack';
+  const isDevArea =
+    deliveryArea === 'frontend' ||
+    deliveryArea === 'backend' ||
+    deliveryArea === 'mobile' ||
+    deliveryArea === 'fullstack';
   const isQa = deliveryArea === 'qa';
 
   let isMismatch = false;
-  if (isDevArea && targetRole !== 'dev' && !isPlannerRole) {
-    isMismatch = true;
+  if (isDevArea && !isPlannerRole) {
+    // Existing Developer memberships predate specialty persistence. Keep them
+    // assignable during migration, while every newly classified Developer is
+    // strictly matched to their configured delivery areas.
+    isMismatch =
+      targetRole !== 'dev' ||
+      (specialties.length > 0 && !specialties.includes(deliveryArea as DeveloperSpecialty));
   } else if (isQa && targetRole !== 'qa' && !isPlannerRole) {
     isMismatch = true;
   }
 
   if (isMismatch && !allowRoleMismatch) {
     throw new Error(
-      `BAD_REQUEST: Assigned member has role "${targetRole}", which does not match subtask delivery area "${deliveryArea}". Set allowRoleMismatch to true to override.`
+      `BAD_REQUEST: Assigned member role/specialties do not match subtask delivery area "${deliveryArea}".`,
     );
   }
 
-  return { isMismatch, assigneeRole: targetRole };
+  if (isMismatch && allowRoleMismatch && actorRole !== 'owner') {
+    throw new Error(
+      'FORBIDDEN: Only the Workspace Owner may override a delivery-area assignment mismatch.',
+    );
+  }
+
+  if (isMismatch && allowRoleMismatch && !roleMismatchReason?.trim()) {
+    throw new Error('BAD_REQUEST: A role mismatch override reason is required.');
+  }
+
+  return { isMismatch, assigneeRole: targetRole, assigneeSpecialties: specialties };
 }
 
 async function attachSubtaskSummaries(workspaceId: string, parentTasks: Task[]): Promise<Task[]> {
@@ -149,7 +195,7 @@ async function logActivity(
   actorId: string | null,
   action: string,
   metadataJson: Record<string, unknown> | null,
-  transaction: Transaction
+  transaction: Transaction,
 ): Promise<TaskActivityModel> {
   return await TaskActivityModel.create(
     {
@@ -159,7 +205,7 @@ async function logActivity(
       action,
       metadataJson,
     },
-    { transaction }
+    { transaction },
   );
 }
 
@@ -168,7 +214,7 @@ async function moveDirectSubtasksToFolder(
   parentTaskId: string,
   targetFolderId: string | null,
   actorId: string,
-  transaction: Transaction
+  transaction: Transaction,
 ): Promise<void> {
   const subtasks = await TaskModel.findAll({
     where: { workspaceId, parentTaskId },
@@ -180,7 +226,7 @@ async function moveDirectSubtasksToFolder(
 
   await TaskModel.update(
     { folderId: targetFolderId },
-    { where: { workspaceId, parentTaskId }, transaction }
+    { where: { workspaceId, parentTaskId }, transaction },
   );
 
   await Promise.all(
@@ -191,16 +237,16 @@ async function moveDirectSubtasksToFolder(
         actorId,
         'subtask.moved',
         { oldFolderId: subtask.folderId, newFolderId: targetFolderId, parentTaskId },
-        transaction
-      )
-    )
+        transaction,
+      ),
+    ),
   );
 }
 
 async function assertAssigneeBelongsToWorkspace(
   workspaceId: string,
   assigneeId: string | null | undefined,
-  transaction: Transaction
+  transaction: Transaction,
 ): Promise<void> {
   if (!assigneeId) return;
 
@@ -217,7 +263,7 @@ async function assertAssigneeBelongsToWorkspace(
 async function getActorMembership(
   workspaceId: string,
   actorId: string,
-  transaction: Transaction
+  transaction: Transaction,
 ): Promise<WorkspaceMemberModel> {
   const membership = await WorkspaceMemberModel.findOne({
     where: { workspaceId, userId: actorId },
@@ -239,7 +285,7 @@ export class TaskService {
     workspaceId: string,
     query: TaskListQuery,
     actorId?: string,
-    actorRole?: WorkspaceRole
+    actorRole?: WorkspaceRole,
   ): Promise<TaskListResponse> {
     const page = query.page || 1;
     const limit = query.limit || 50;
@@ -250,10 +296,7 @@ export class TaskService {
     // My Tasks specific scoping (PO sees their created/assigned parent tasks; Dev & QA see their assigned subtasks)
     if (query.myTasksOnly && actorId) {
       if (actorRole === 'owner' || actorRole === 'admin' || actorRole === 'po') {
-        (where as any)[Op.or] = [
-          { reporterId: actorId },
-          { assigneeId: actorId },
-        ];
+        (where as any)[Op.or] = [{ reporterId: actorId }, { assigneeId: actorId }];
         if (!query.parentTaskId) {
           (where as any).parentTaskId = null;
         }
@@ -272,15 +315,12 @@ export class TaskService {
             WHERE st.parent_task_id = "TaskModel"."id"
               AND st.assignee_id = ${sequelize.escape(actorId)}
               AND st.deleted_at IS NULL
-          )`
+          )`,
         );
         (where as any)[Op.and] = [
           ...((where as any)[Op.and] || []),
           {
-            [Op.or]: [
-              subtaskCondition,
-              { reporterId: actorId },
-            ],
+            [Op.or]: [subtaskCondition, { reporterId: actorId }],
           },
         ];
       } else if (!query.parentTaskId && !query.assigneeId) {
@@ -320,7 +360,7 @@ export class TaskService {
           SELECT id FROM folder_tree;`,
           {
             replacements: { folderId: folder.id, workspaceId },
-          }
+          },
         )) as Array<{ id: string }[]>;
 
         const descendantIds = results.map((row: any) => row.id);
@@ -342,12 +382,16 @@ export class TaskService {
 
     // Status filtering
     if (query.status) {
-      (where as any).status = Array.isArray(query.status) ? { [Op.in]: query.status } : query.status;
+      (where as any).status = Array.isArray(query.status)
+        ? { [Op.in]: query.status }
+        : query.status;
     }
 
     // Priority filtering
     if (query.priority) {
-      (where as any).priority = Array.isArray(query.priority) ? { [Op.in]: query.priority } : query.priority;
+      (where as any).priority = Array.isArray(query.priority)
+        ? { [Op.in]: query.priority }
+        : query.priority;
     }
 
     // Assignee filtering
@@ -361,7 +405,9 @@ export class TaskService {
       (where as any)[Op.or] = [
         { title: { [Op.iLike]: term } },
         { description: { [Op.iLike]: term } },
-        sequelize.where(sequelize.cast(sequelize.col('TaskModel.id'), 'text'), { [Op.iLike]: term }),
+        sequelize.where(sequelize.cast(sequelize.col('TaskModel.id'), 'text'), {
+          [Op.iLike]: term,
+        }),
       ];
     }
 
@@ -380,7 +426,9 @@ export class TaskService {
         (where as any).dueDate = { [Op.between]: [monday, sunday] };
       } else if (query.datePreset === 'this_month' || query.datePreset === 'month') {
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+          .toISOString()
+          .split('T')[0];
         (where as any).dueDate = { [Op.between]: [firstDay, lastDay] };
       } else if (query.datePreset === 'overdue') {
         (where as any).dueDate = { [Op.lt]: todayStr };
@@ -422,7 +470,7 @@ export class TaskService {
     workspaceId: string,
     taskId: string,
     actorId: string,
-    actorRole?: WorkspaceRole
+    actorRole?: WorkspaceRole,
   ): Promise<Task> {
     const task = await TaskModel.findOne({
       where: { id: taskId, workspaceId },
@@ -474,6 +522,7 @@ export class TaskService {
       const task = await TaskModel.findOne({
         where: { id: taskId, workspaceId },
         transaction,
+        lock: transaction.LOCK.UPDATE,
       });
 
       if (!task) {
@@ -483,7 +532,49 @@ export class TaskService {
       const subtasks = await TaskModel.findAll({
         where: { parentTaskId: taskId, workspaceId },
         transaction,
+        lock: transaction.LOCK.UPDATE,
       });
+
+      const targetTaskIds = [task.id, ...subtasks.map((subtask) => subtask.id)];
+      // A managed transaction uses one PostgreSQL connection, so these checks stay
+      // sequential instead of issuing overlapping client.query calls.
+      const requirementLinks = await TaskRequirementModel.count({
+        where: { workspaceId, taskId: { [Op.in]: targetTaskIds } },
+        transaction,
+      });
+      const documentLinks = await TaskDocumentModel.count({
+        where: { workspaceId, taskId: { [Op.in]: targetTaskIds } },
+        transaction,
+      });
+      const attachments = await TaskAttachmentModel.count({
+        where: { workspaceId, taskId: { [Op.in]: targetTaskIds } },
+        transaction,
+      });
+      const bugs = await BugModel.count({
+        where: { workspaceId, featureTaskId: { [Op.in]: targetTaskIds } },
+        transaction,
+      });
+      const qaSignOffs = await QaSignOffModel.count({
+        where: { workspaceId, featureTaskId: { [Op.in]: targetTaskIds } },
+        transaction,
+      });
+      const releaseDecisions = await ReleaseDecisionModel.count({
+        where: { workspaceId, featureTaskId: { [Op.in]: targetTaskIds } },
+        transaction,
+      });
+
+      if (
+        requirementLinks > 0 ||
+        documentLinks > 0 ||
+        attachments > 0 ||
+        bugs > 0 ||
+        qaSignOffs > 0 ||
+        releaseDecisions > 0
+      ) {
+        throw new Error(
+          `CONFLICT: Unlink or remove permitted Task records before deletion. Immutable delivery history cannot be deleted (${requirementLinks} Requirement link(s), ${documentLinks} document link(s), ${attachments} attachment(s), ${bugs} Bug(s), ${qaSignOffs} QA Sign-off(s), ${releaseDecisions} Release Decision(s)).`,
+        );
+      }
 
       for (const st of subtasks) {
         await st.destroy({ transaction }); // Note: Using paranoid destroy by default in sequelize if configured
@@ -504,7 +595,7 @@ export class TaskService {
     page = 1,
     limit = 50,
     actorId?: string,
-    actorRole?: WorkspaceRole
+    actorRole?: WorkspaceRole,
   ): Promise<TaskListResponse> {
     if (actorId && actorRole) {
       await this.getTask(workspaceId, parentTaskId, actorId, actorRole);
@@ -538,7 +629,7 @@ export class TaskService {
     actorId: string,
     workspaceId: string,
     taskId: string,
-    query: TaskActivityQuery
+    query: TaskActivityQuery,
   ): Promise<TaskActivityListResponse> {
     const page = query.page || 1;
     const limit = query.limit || 50;
@@ -606,7 +697,9 @@ export class TaskService {
           actorName: actorInfo?.name || actorInfo?.email || 'System',
           action: json.action,
           metadataJson: json.metadataJson || null,
-          createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
+          createdAt: json.createdAt
+            ? new Date(json.createdAt).toISOString()
+            : new Date().toISOString(),
         };
       });
 
@@ -624,7 +717,19 @@ export class TaskService {
    */
   async createTask(actorId: string, input: CreateTaskInput): Promise<Task> {
     const createdResult = await sequelize.transaction(async (transaction) => {
-      const { workspaceId, folderId, parentTaskId, deliveryArea, title, description, status, priority, assigneeId, startDate, dueDate } = input;
+      const {
+        workspaceId,
+        folderId,
+        parentTaskId,
+        deliveryArea,
+        title,
+        description,
+        status,
+        priority,
+        assigneeId,
+        startDate,
+        dueDate,
+      } = input;
       const membership = await getActorMembership(workspaceId, actorId, transaction);
 
       let hasSpecialPermission = false;
@@ -633,29 +738,20 @@ export class TaskService {
           where: {
             workspaceId,
             userId: actorId,
-            [Op.or]: [
-              { expiresAt: null },
-              { expiresAt: { [Op.gt]: new Date() } },
-            ],
+            [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }],
           },
           transaction,
         });
         hasSpecialPermission = Boolean(perm);
       }
 
-      assertCanCreateTask(
-        membership.role,
-        actorId,
-        assigneeId,
-        parentTaskId,
-        hasSpecialPermission
-      );
+      assertCanCreateTask(membership.role, actorId, assigneeId, parentTaskId, hasSpecialPermission);
 
       let targetFolderId = folderId || null;
 
       // Parent tasks have no individual assignee (unassigned feature container owned by reporter/PO)
       // Subtasks hold the designated execution assignee (FE / BE / QA)
-      const resolvedAssigneeId = parentTaskId ? (assigneeId || null) : null;
+      const resolvedAssigneeId = parentTaskId ? assigneeId || null : null;
 
       let parentTaskRecord: TaskModel | null = null;
       if (parentTaskId) {
@@ -698,7 +794,9 @@ export class TaskService {
         resolvedAssigneeId,
         deliveryArea,
         input.allowRoleMismatch,
-        transaction
+        input.roleMismatchReason,
+        membership.role,
+        transaction,
       );
 
       const completedAt = status === 'done' ? new Date() : null;
@@ -719,11 +817,16 @@ export class TaskService {
           dueDate: dueDate || null,
           completedAt,
         },
-        { transaction }
+        { transaction },
       );
 
       // If parent task is already done, adding an incomplete subtask reopens the parent task
-      if (parentTaskRecord && parentTaskRecord.status === 'done' && status !== 'done' && status !== 'canceled') {
+      if (
+        parentTaskRecord &&
+        parentTaskRecord.status === 'done' &&
+        status !== 'done' &&
+        status !== 'canceled'
+      ) {
         parentTaskRecord.status = 'in_progress';
         parentTaskRecord.completedAt = null;
         await parentTaskRecord.save({ transaction });
@@ -733,7 +836,7 @@ export class TaskService {
           actorId,
           'task.reopened',
           { reason: `Incomplete subtask "${title}" added` },
-          transaction
+          transaction,
         );
       }
 
@@ -753,10 +856,16 @@ export class TaskService {
           priority: priority || 'medium',
           assigneeId: assigneeId || null,
           ...(roleCheck.isMismatch
-            ? { roleMismatchOverride: true, assigneeRole: roleCheck.assigneeRole, deliveryArea }
+            ? {
+                roleMismatchOverride: true,
+                roleMismatchReason: input.roleMismatchReason,
+                assigneeRole: roleCheck.assigneeRole,
+                assigneeSpecialties: roleCheck.assigneeSpecialties,
+                deliveryArea,
+              }
             : {}),
         },
-        transaction
+        transaction,
       );
 
       return {
@@ -781,11 +890,12 @@ export class TaskService {
               taskId: createdResult.id,
               workspaceId: input.workspaceId,
             })
-            .catch((err) => console.warn('Failed to dispatch FCM task assignment notification:', err));
+            .catch((err) =>
+              console.warn('Failed to dispatch FCM task assignment notification:', err),
+            );
         })
         .catch(() => {});
     }
-
 
     return createdResult.formatted;
   }
@@ -793,7 +903,12 @@ export class TaskService {
   /**
    * Updates task details. Enforces field-level policy and records Activity audit events.
    */
-  async updateTask(actorId: string, workspaceId: string, taskId: string, input: UpdateTaskInput): Promise<Task> {
+  async updateTask(
+    actorId: string,
+    workspaceId: string,
+    taskId: string,
+    input: UpdateTaskInput,
+  ): Promise<Task> {
     const updatedResult = await sequelize.transaction(async (transaction) => {
       const task = await TaskModel.findOne({
         where: { id: taskId, workspaceId },
@@ -805,12 +920,17 @@ export class TaskService {
       }
 
       const membership = await getActorMembership(workspaceId, actorId, transaction);
-      assertCanMutateTask(membership.role, actorId, {
-        parentTaskId: task.parentTaskId,
-        assigneeId: task.assigneeId,
-        status: task.status,
-        deliveryArea: task.deliveryArea,
-      }, input);
+      assertCanMutateTask(
+        membership.role,
+        actorId,
+        {
+          parentTaskId: task.parentTaskId,
+          assigneeId: task.assigneeId,
+          status: task.status,
+          deliveryArea: task.deliveryArea,
+        },
+        input,
+      );
 
       if (input.parentTaskId !== undefined && input.parentTaskId !== task.parentTaskId) {
         throw new Error('BAD_REQUEST: A task parent cannot be changed after creation.');
@@ -829,7 +949,9 @@ export class TaskService {
 
       if (input.folderId !== undefined && input.folderId !== task.folderId) {
         if (task.parentTaskId) {
-          throw new Error('BAD_REQUEST: Subtask folder cannot be modified directly; move the parent task instead.');
+          throw new Error(
+            'BAD_REQUEST: Subtask folder cannot be modified directly; move the parent task instead.',
+          );
         }
 
         if (input.folderId !== null) {
@@ -871,22 +993,34 @@ export class TaskService {
         task.priority = input.priority;
       }
 
-      let roleCheckResult: { isMismatch: boolean; assigneeRole?: string } = { isMismatch: false };
+      let roleCheckResult: {
+        isMismatch: boolean;
+        assigneeRole?: string;
+        assigneeSpecialties?: DeveloperSpecialty[];
+      } = { isMismatch: false };
       if (!task.parentTaskId) {
         if (task.assigneeId !== null) {
           task.assigneeId = null;
         }
-      } else if (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) {
-        await assertAssigneeBelongsToWorkspace(workspaceId, input.assigneeId, transaction);
+      } else if (
+        (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) ||
+        (input.deliveryArea !== undefined && input.deliveryArea !== changes['deliveryArea']?.old)
+      ) {
+        const nextAssigneeId = input.assigneeId !== undefined ? input.assigneeId : task.assigneeId;
+        await assertAssigneeBelongsToWorkspace(workspaceId, nextAssigneeId, transaction);
         roleCheckResult = await assertRoleMatchesDeliveryArea(
           workspaceId,
-          input.assigneeId,
-          input.deliveryArea !== undefined ? input.deliveryArea : task.deliveryArea,
+          nextAssigneeId,
+          task.deliveryArea,
           input.allowRoleMismatch,
-          transaction
+          input.roleMismatchReason,
+          membership.role,
+          transaction,
         );
-        changes['assigneeId'] = { old: task.assigneeId, new: input.assigneeId };
-        task.assigneeId = input.assigneeId;
+        if (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) {
+          changes['assigneeId'] = { old: task.assigneeId, new: input.assigneeId };
+          task.assigneeId = input.assigneeId;
+        }
       }
 
       if (input.startDate !== undefined && input.startDate !== task.startDate) {
@@ -922,30 +1056,30 @@ export class TaskService {
               .map((st) => `"${st.title}" (${st.deliveryArea || 'subtask'}: ${st.status})`)
               .join(', ');
             throw new Error(
-              `BAD_REQUEST: Cannot complete task while subtasks are incomplete. Please complete all subtasks (FE, BE, QA) first: ${incompleteList}`
+              `BAD_REQUEST: Cannot complete task while subtasks are incomplete. Please complete all subtasks first: ${incompleteList}`,
             );
           }
         }
 
-        // Dependency Check: QA Subtask cannot be done until all sibling FE/BE subtasks are done
+        // Dependency Check: QA Subtask cannot be done until all sibling development subtasks are done
         if (input.status === 'done' && task.parentTaskId && task.deliveryArea === 'qa') {
-          const incompleteFeBe = await TaskModel.findAll({
+          const incompleteDevelopment = await TaskModel.findAll({
             where: {
               workspaceId,
               parentTaskId: task.parentTaskId,
-              deliveryArea: { [Op.in]: ['frontend', 'backend'] },
+              deliveryArea: { [Op.in]: ['frontend', 'backend', 'mobile', 'fullstack'] },
               status: { [Op.notIn]: ['done', 'canceled'] },
             },
             attributes: ['id', 'title', 'deliveryArea', 'status'],
             transaction,
           });
 
-          if (incompleteFeBe.length > 0) {
-            const incompleteList = incompleteFeBe
+          if (incompleteDevelopment.length > 0) {
+            const incompleteList = incompleteDevelopment
               .map((st) => `"${st.title}" (${st.deliveryArea}: ${st.status})`)
               .join(', ');
             throw new Error(
-              `BAD_REQUEST: Cannot mark QA subtask as Done until all Frontend and Backend subtasks are completed: ${incompleteList}`
+              `BAD_REQUEST: Cannot mark QA subtask as Done until all development subtasks are completed: ${incompleteList}`,
             );
           }
         }
@@ -953,7 +1087,9 @@ export class TaskService {
         // Review notes validation on changes_requested
         if (input.status === 'changes_requested') {
           if (!input.reviewNotes && !task.reviewNotes) {
-            throw new Error('BAD_REQUEST: Review notes are required when requesting changes on a subtask.');
+            throw new Error(
+              'BAD_REQUEST: Review notes are required when requesting changes on a subtask.',
+            );
           }
           task.reviewedBy = actorId;
           changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
@@ -986,7 +1122,7 @@ export class TaskService {
               actorId,
               'task.reopened',
               { reason: `Subtask "${task.title}" status changed to ${input.status}` },
-              transaction
+              transaction,
             );
           }
         }
@@ -1005,7 +1141,10 @@ export class TaskService {
       // Record Activity audit event for updates
       if (Object.keys(changes).length > 0) {
         const actionPrefix = task.parentTaskId ? 'subtask.' : 'task.';
-        const primaryAction = Object.keys(changes).length === 1 ? `${actionPrefix}${Object.keys(changes)[0]}_updated` : `${actionPrefix}updated`;
+        const primaryAction =
+          Object.keys(changes).length === 1
+            ? `${actionPrefix}${Object.keys(changes)[0]}_updated`
+            : `${actionPrefix}updated`;
         await logActivity(
           workspaceId,
           task.id,
@@ -1014,13 +1153,19 @@ export class TaskService {
           {
             changes,
             ...(roleCheckResult.isMismatch
-              ? { roleMismatchOverride: true, assigneeRole: roleCheckResult.assigneeRole, deliveryArea: task.deliveryArea }
+              ? {
+                  roleMismatchOverride: true,
+                  roleMismatchReason: input.roleMismatchReason,
+                  assigneeRole: roleCheckResult.assigneeRole,
+                  assigneeSpecialties: roleCheckResult.assigneeSpecialties,
+                  deliveryArea: task.deliveryArea,
+                }
               : {}),
             ...(input.status === 'changes_requested' || input.reviewNotes
               ? { reviewNotes: input.reviewNotes || task.reviewNotes, reviewedBy: actorId }
               : {}),
           },
-          transaction
+          transaction,
         );
       }
 
@@ -1052,7 +1197,9 @@ export class TaskService {
               taskId: updatedResult.id,
               workspaceId,
             })
-            .catch((err) => console.warn('Failed to dispatch FCM task assignment notification:', err));
+            .catch((err) =>
+              console.warn('Failed to dispatch FCM task assignment notification:', err),
+            );
         })
         .catch(() => {});
     }
@@ -1086,12 +1233,13 @@ export class TaskService {
                 oldStatus: String(updatedResult.changes.status.old),
                 newStatus: String(updatedResult.changes.status.new),
               })
-              .catch((err) => console.warn('Failed to dispatch FCM task status notification:', err));
+              .catch((err) =>
+                console.warn('Failed to dispatch FCM task status notification:', err),
+              );
           })
           .catch(() => {});
       }
     }
-
 
     return updatedResult.formatted;
   }
@@ -1099,7 +1247,12 @@ export class TaskService {
   /**
    * Moves a parent task to a target folder or unfiled, propagating folder change to all direct subtasks and logging Activity.
    */
-  async moveTask(actorId: string, workspaceId: string, taskId: string, input: MoveTaskInput): Promise<Task> {
+  async moveTask(
+    actorId: string,
+    workspaceId: string,
+    taskId: string,
+    input: MoveTaskInput,
+  ): Promise<Task> {
     return await sequelize.transaction(async (transaction) => {
       const task = await TaskModel.findOne({
         where: { id: taskId, workspaceId },
@@ -1133,7 +1286,13 @@ export class TaskService {
       await task.save({ transaction });
 
       // Propagate folder change to direct subtasks and audit each visible change.
-      await moveDirectSubtasksToFolder(workspaceId, taskId, input.targetFolderId, actorId, transaction);
+      await moveDirectSubtasksToFolder(
+        workspaceId,
+        taskId,
+        input.targetFolderId,
+        actorId,
+        transaction,
+      );
 
       // Record Activity audit event for move
       await logActivity(
@@ -1142,7 +1301,7 @@ export class TaskService {
         actorId,
         'task.moved',
         { oldFolderId, newFolderId: input.targetFolderId },
-        transaction
+        transaction,
       );
 
       return formatTask(task);
@@ -1152,8 +1311,16 @@ export class TaskService {
   /**
    * Completes or cancels a task or subtask.
    */
-  async completeTask(actorId: string, workspaceId: string, taskId: string, input: CompleteTaskInput): Promise<Task> {
-    return this.updateTask(actorId, workspaceId, taskId, { status: input.status, reviewNotes: input.reviewNotes });
+  async completeTask(
+    actorId: string,
+    workspaceId: string,
+    taskId: string,
+    input: CompleteTaskInput,
+  ): Promise<Task> {
+    return this.updateTask(actorId, workspaceId, taskId, {
+      status: input.status,
+      reviewNotes: input.reviewNotes,
+    });
   }
 }
 

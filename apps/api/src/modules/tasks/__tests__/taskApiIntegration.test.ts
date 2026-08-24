@@ -122,11 +122,26 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
   });
 
   after(async () => {
-    await TaskModel.destroy({ where: { workspaceId: [workspaceA.id, workspaceB.id] }, force: true });
-    await WorkFolderModel.destroy({ where: { workspaceId: [workspaceA.id, workspaceB.id] }, force: true });
+    await TaskModel.destroy({
+      where: { workspaceId: [workspaceA.id, workspaceB.id] },
+      force: true,
+    });
+    await WorkFolderModel.destroy({
+      where: { workspaceId: [workspaceA.id, workspaceB.id] },
+      force: true,
+    });
     await WorkspaceModel.destroy({ where: { id: [workspaceA.id, workspaceB.id] }, force: true });
     await UserModel.destroy({
-      where: { id: [user.id, externalAssignee.id, workspaceAdmin.id, qaMember.id, productMember.id, developerMember.id] },
+      where: {
+        id: [
+          user.id,
+          externalAssignee.id,
+          workspaceAdmin.id,
+          qaMember.id,
+          productMember.id,
+          developerMember.id,
+        ],
+      },
       force: true,
     });
   });
@@ -174,7 +189,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           folderId: null,
           title: 'Standalone Unfiled Task',
           priority: 'medium',
-        })
+        }),
       );
 
       assert.strictEqual(unfiledTask.folderId, null);
@@ -186,7 +201,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           folderId: activeFolderA.id,
           title: 'Filed Task in Active Folder A',
           priority: 'low',
-        })
+        }),
       );
 
       // Query unfiled only
@@ -196,7 +211,10 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       });
       const unfiledResult = await taskService.listTasks(workspaceA.id, unfiledQuery);
       assert.ok(unfiledResult.tasks.some((t) => t.id === unfiledTask.id));
-      assert.strictEqual(unfiledResult.tasks.some((t) => t.id === filedTask.id), false);
+      assert.strictEqual(
+        unfiledResult.tasks.some((t) => t.id === filedTask.id),
+        false,
+      );
 
       // Query by folder ID
       const folderQuery = TaskListQuerySchema.parse({
@@ -205,7 +223,10 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       });
       const folderResult = await taskService.listTasks(workspaceA.id, folderQuery);
       assert.ok(folderResult.tasks.some((t) => t.id === filedTask.id));
-      assert.strictEqual(folderResult.tasks.some((t) => t.id === unfiledTask.id), false);
+      assert.strictEqual(
+        folderResult.tasks.some((t) => t.id === unfiledTask.id),
+        false,
+      );
     });
   });
 
@@ -225,7 +246,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         (err: any) => {
           assert.strictEqual(err.name, 'SequelizeForeignKeyConstraintError');
           return true;
-        }
+        },
       );
     });
 
@@ -238,13 +259,13 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
               workspaceId: workspaceA.id, // Workspace A
               folderId: folderB.id, // Folder in Workspace B!
               title: 'Malicious Cross-Workspace Task',
-            })
+            }),
           );
         },
         (err: Error) => {
           assert.ok(err.message.includes('NOT_FOUND: Folder not found in this workspace.'));
           return true;
-        }
+        },
       );
     });
 
@@ -254,7 +275,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'Task to move cross-workspace',
-        })
+        }),
       );
 
       await assert.rejects(
@@ -265,13 +286,13 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
             taskInA.id,
             MoveTaskSchema.parse({
               targetFolderId: folderB.id, // Folder in Workspace B!
-            })
+            }),
           );
         },
         (err: Error) => {
           assert.ok(err.message.includes('NOT_FOUND: Target folder not found in this workspace.'));
           return true;
-        }
+        },
       );
     });
   });
@@ -286,13 +307,13 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
               workspaceId: workspaceA.id,
               folderId: archivedFolderA.id,
               title: 'Task in archived folder',
-            })
+            }),
           );
         },
         (err: Error) => {
           assert.ok(err.message.includes('BAD_REQUEST: Cannot create task in an archived folder.'));
           return true;
-        }
+        },
       );
     });
 
@@ -303,7 +324,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           folderId: activeFolderA.id,
           title: 'Task to move into archived',
-        })
+        }),
       );
 
       await assert.rejects(
@@ -314,13 +335,13 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
             task.id,
             MoveTaskSchema.parse({
               targetFolderId: archivedFolderA.id,
-            })
+            }),
           );
         },
         (err: Error) => {
           assert.ok(err.message.includes('BAD_REQUEST: Cannot move task into an archived folder.'));
           return true;
-        }
+        },
       );
     });
 
@@ -331,7 +352,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           folderId: null,
           title: 'Moveable Task',
-        })
+        }),
       );
 
       // Move into active folder A
@@ -341,7 +362,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         task.id,
         MoveTaskSchema.parse({
           targetFolderId: activeFolderA.id,
-        })
+        }),
       );
       assert.strictEqual(movedToA.folderId, activeFolderA.id);
 
@@ -352,7 +373,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         task.id,
         MoveTaskSchema.parse({
           targetFolderId: null,
-        })
+        }),
       );
       assert.strictEqual(movedToUnfiled.folderId, null);
     });
@@ -380,7 +401,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           user: { userId: user.id },
         } as any,
         response as any,
-        () => undefined
+        () => undefined,
       );
 
       assert.strictEqual(statusCode, 201);
@@ -393,7 +414,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'Parent Container for Subtask Test',
-        })
+        }),
       );
 
       await assert.rejects(
@@ -406,17 +427,17 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
               deliveryArea: 'backend',
               title: 'Cannot assign an external member',
               assigneeId: externalAssignee.id,
-            })
+            }),
           );
         },
         (err: Error) => {
           assert.ok(err.message.includes('Assignee must be a member of this workspace'));
           return true;
-        }
+        },
       );
     });
 
-    test('Clears a subtask assignee when their workspace membership is removed', async () => {
+    test('Preserves a historical subtask assignee when their workspace membership is deactivated', async () => {
       await WorkspaceMemberModel.create({
         workspaceId: workspaceA.id,
         userId: externalAssignee.id,
@@ -428,7 +449,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'Parent Container for Member Removal Test',
-        })
+        }),
       );
 
       const subtask = await taskService.createTask(
@@ -439,7 +460,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           deliveryArea: 'backend',
           title: 'Subtask reassigned when member leaves',
           assigneeId: externalAssignee.id,
-        })
+        }),
       );
 
       await WorkspaceMemberModel.destroy({
@@ -447,7 +468,18 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       });
 
       const storedSubtask = await TaskModel.findByPk(subtask.id);
-      assert.strictEqual(storedSubtask?.assigneeId, null);
+      assert.strictEqual(storedSubtask?.assigneeId, externalAssignee.id);
+      assert.strictEqual(
+        await WorkspaceMemberModel.findOne({
+          where: { workspaceId: workspaceA.id, userId: externalAssignee.id },
+        }),
+        null,
+      );
+      const historicalMembership = await WorkspaceMemberModel.findOne({
+        where: { workspaceId: workspaceA.id, userId: externalAssignee.id },
+        paranoid: false,
+      });
+      assert.ok(historicalMembership?.deletedAt);
     });
 
     test('Includes subfolder tasks when querying a parent with includeDescendants', async () => {
@@ -465,7 +497,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           folderId: childFolder.id,
           title: 'Task stored in child folder',
-        })
+        }),
       );
 
       const parentResult = await taskService.listTasks(
@@ -474,15 +506,18 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           folderId: activeFolderA.id,
           includeDescendants: true,
-        })
+        }),
       );
       assert.ok(parentResult.tasks.some((task) => task.id === taskInChild.id));
 
       const exactFolderResult = await taskService.listTasks(
         workspaceA.id,
-        TaskListQuerySchema.parse({ workspaceId: workspaceA.id, folderId: activeFolderA.id })
+        TaskListQuerySchema.parse({ workspaceId: workspaceA.id, folderId: activeFolderA.id }),
       );
-      assert.strictEqual(exactFolderResult.tasks.some((task) => task.id === taskInChild.id), false);
+      assert.strictEqual(
+        exactFolderResult.tasks.some((task) => task.id === taskInChild.id),
+        false,
+      );
     });
 
     test('Includes deeply nested 3-level subfolder tasks (A -> B -> C) when querying A with includeDescendants', async () => {
@@ -509,7 +544,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           folderId: folderLevelC.id,
           title: 'Deeply nested task in Level C',
           description: 'Special unique description query target xyz987',
-        })
+        }),
       );
 
       // Query from root Folder A with includeDescendants: true
@@ -519,7 +554,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           folderId: activeFolderA.id,
           includeDescendants: true,
-        })
+        }),
       );
       assert.ok(rootResult.tasks.some((task) => task.id === taskInLevelC.id));
 
@@ -529,7 +564,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         TaskListQuerySchema.parse({
           workspaceId: workspaceA.id,
           search: 'xyz987',
-        })
+        }),
       );
       assert.ok(searchDescResult.tasks.some((task) => task.id === taskInLevelC.id));
 
@@ -539,7 +574,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         TaskListQuerySchema.parse({
           workspaceId: workspaceA.id,
           search: taskInLevelC.id.slice(0, 8),
-        })
+        }),
       );
       assert.ok(searchIdResult.tasks.some((task) => task.id === taskInLevelC.id));
     });
@@ -559,7 +594,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           title: 'Today Task',
           dueDate: todayStr,
-        })
+        }),
       );
 
       // Create Overdue task
@@ -570,7 +605,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           title: 'Overdue Task',
           dueDate: pastDate,
           status: 'todo',
-        })
+        }),
       );
 
       // Create Completed Overdue task (should NOT show up in overdue preset)
@@ -581,7 +616,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           title: 'Completed Past Task',
           dueDate: pastDate,
           status: 'done',
-        })
+        }),
       );
 
       // Test 'today' preset
@@ -599,7 +634,10 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       });
       const overdueList = await taskService.listTasks(workspaceA.id, overdueQuery);
       assert.ok(overdueList.tasks.some((t) => t.id === overdueTask.id));
-      assert.strictEqual(overdueList.tasks.some((t) => t.id === completedOverdueTask.id), false);
+      assert.strictEqual(
+        overdueList.tasks.some((t) => t.id === completedOverdueTask.id),
+        false,
+      );
     });
 
     test('Filters tasks by explicit startDate and endDate range', async () => {
@@ -612,7 +650,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           title: 'In Range Task',
           dueDate: '2026-09-05',
-        })
+        }),
       );
 
       const outOfRangeTask = await taskService.createTask(
@@ -621,7 +659,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           title: 'Out of Range Task',
           dueDate: '2026-09-20',
-        })
+        }),
       );
 
       const rangeQuery = TaskListQuerySchema.parse({
@@ -632,7 +670,10 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       const rangeResult = await taskService.listTasks(workspaceA.id, rangeQuery);
 
       assert.ok(rangeResult.tasks.some((t) => t.id === inRangeTask.id));
-      assert.strictEqual(rangeResult.tasks.some((t) => t.id === outOfRangeTask.id), false);
+      assert.strictEqual(
+        rangeResult.tasks.some((t) => t.id === outOfRangeTask.id),
+        false,
+      );
     });
   });
 
@@ -644,7 +685,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           title: 'Task to Complete',
           status: 'todo',
-        })
+        }),
       );
       assert.strictEqual(task.completedAt, null);
 
@@ -652,13 +693,15 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         user.id,
         workspaceA.id,
         task.id,
-        CompleteTaskSchema.parse({ status: 'done' })
+        CompleteTaskSchema.parse({ status: 'done' }),
       );
       assert.strictEqual(completed.status, 'done');
       assert.notStrictEqual(completed.completedAt, null);
 
       // Reopening task clears completedAt
-      const reopened = await taskService.updateTask(user.id, workspaceA.id, task.id, { status: 'in_progress' });
+      const reopened = await taskService.updateTask(user.id, workspaceA.id, task.id, {
+        status: 'in_progress',
+      });
       assert.strictEqual(reopened.status, 'in_progress');
       assert.strictEqual(reopened.completedAt, null);
     });
@@ -672,7 +715,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           title: 'Admin may edit every task',
           assigneeId: user.id,
-        })
+        }),
       );
 
       const updated = await taskService.updateTask(workspaceAdmin.id, workspaceA.id, task.id, {
@@ -689,11 +732,11 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           title: 'QA-owned task',
           assigneeId: qaMember.id,
-        })
+        }),
       );
       const unassignedTask = await taskService.createTask(
         user.id,
-        CreateTaskSchema.parse({ workspaceId: workspaceA.id, title: 'Unassigned task' })
+        CreateTaskSchema.parse({ workspaceId: workspaceA.id, title: 'Unassigned task' }),
       );
       const anotherMembersTask = await taskService.createTask(
         user.id,
@@ -701,20 +744,26 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           workspaceId: workspaceA.id,
           title: 'Another member task',
           assigneeId: user.id,
-        })
+        }),
       );
 
       await assert.rejects(
         () => taskService.completeTask(qaMember.id, workspaceA.id, ownTask.id, { status: 'done' }),
-        /FORBIDDEN: (QA members cannot modify parent tasks|Only Product Owner, Admin, or Owner)/
+        /FORBIDDEN: (QA members cannot modify parent tasks|Only Product Owner, Admin, or Owner)/,
       );
       await assert.rejects(
-        () => taskService.moveTask(qaMember.id, workspaceA.id, unassignedTask.id, { targetFolderId: activeFolderA.id }),
-        /Only Product Owner, Admin, or Owner can move parent tasks/
+        () =>
+          taskService.moveTask(qaMember.id, workspaceA.id, unassignedTask.id, {
+            targetFolderId: activeFolderA.id,
+          }),
+        /Only Product Owner, Admin, or Owner can move parent tasks/,
       );
       await assert.rejects(
-        () => taskService.updateTask(qaMember.id, workspaceA.id, anotherMembersTask.id, { title: 'Forbidden edit' }),
-        /FORBIDDEN: (QA members cannot modify parent tasks|Only Product Owner, Admin, or Owner)/
+        () =>
+          taskService.updateTask(qaMember.id, workspaceA.id, anotherMembersTask.id, {
+            title: 'Forbidden edit',
+          }),
+        /FORBIDDEN: (QA members cannot modify parent tasks|Only Product Owner, Admin, or Owner)/,
       );
     });
 
@@ -729,18 +778,24 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
               workspaceId: workspaceA.id,
               title: 'QA cannot delegate a new task',
               assigneeId: user.id,
-            })
+            }),
           ),
-        /Only Product Owner, Admin, or Owner can create tasks/
+        /Only Product Owner, Admin, or Owner can create tasks/,
       );
 
       const unassignedTask = await taskService.createTask(
         user.id,
-        CreateTaskSchema.parse({ workspaceId: workspaceA.id, title: 'QA cannot delegate existing work' })
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          title: 'QA cannot delegate existing work',
+        }),
       );
       await assert.rejects(
-        () => taskService.updateTask(qaMember.id, workspaceA.id, unassignedTask.id, { assigneeId: user.id }),
-        /FORBIDDEN: (QA members cannot modify parent tasks|Only Product Owner, Admin, or Owner)/
+        () =>
+          taskService.updateTask(qaMember.id, workspaceA.id, unassignedTask.id, {
+            assigneeId: user.id,
+          }),
+        /FORBIDDEN: (QA members cannot modify parent tasks|Only Product Owner, Admin, or Owner)/,
       );
     });
 
@@ -749,9 +804,12 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         () =>
           taskService.createTask(
             developerMember.id,
-            CreateTaskSchema.parse({ workspaceId: workspaceA.id, title: 'Read-only member mutation' })
+            CreateTaskSchema.parse({
+              workspaceId: workspaceA.id,
+              title: 'Read-only member mutation',
+            }),
           ),
-        /Only Product Owner, Admin, or Owner can create tasks/
+        /Only Product Owner, Admin, or Owner can create tasks/,
       );
     });
 
@@ -776,7 +834,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           user: { userId: developerMember.id },
         } as any,
         response as any,
-        () => undefined
+        () => undefined,
       );
 
       assert.strictEqual(statusCode, 403);
@@ -796,7 +854,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'Parent Task A (Dev assigned to subtask)',
-        })
+        }),
       );
 
       subtaskDev = await taskService.createTask(
@@ -807,7 +865,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           deliveryArea: 'backend',
           title: 'Subtask assigned to Dev',
           assigneeId: developerMember.id,
-        })
+        }),
       );
 
       // Create Parent Task B (no subtask for developerMember, subtask for qaMember)
@@ -816,7 +874,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'Parent Task B (Only QA assigned to subtask)',
-        })
+        }),
       );
 
       await taskService.createTask(
@@ -827,7 +885,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
           deliveryArea: 'qa',
           title: 'Subtask assigned to QA',
           assigneeId: qaMember.id,
-        })
+        }),
       );
     });
 
@@ -836,7 +894,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         workspaceA.id,
         TaskListQuerySchema.parse({ workspaceId: workspaceA.id, rootOnly: true }),
         productMember.id,
-        'po'
+        'po',
       );
       assert.ok(result.tasks.some((t) => t.id === parentA.id));
       assert.ok(result.tasks.some((t) => t.id === parentB.id));
@@ -847,10 +905,13 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         workspaceA.id,
         TaskListQuerySchema.parse({ workspaceId: workspaceA.id, rootOnly: true }),
         developerMember.id,
-        'dev'
+        'dev',
       );
       assert.ok(result.tasks.some((t) => t.id === parentA.id));
-      assert.strictEqual(result.tasks.some((t) => t.id === parentB.id), false);
+      assert.strictEqual(
+        result.tasks.some((t) => t.id === parentB.id),
+        false,
+      );
     });
 
     test('Executor (Dev) can access Parent Task A and its subtask via getTask', async () => {
@@ -858,7 +919,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         workspaceA.id,
         parentA.id,
         developerMember.id,
-        'dev'
+        'dev',
       );
       assert.strictEqual(accessedParent.id, parentA.id);
 
@@ -866,24 +927,20 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         workspaceA.id,
         subtaskDev.id,
         developerMember.id,
-        'dev'
+        'dev',
       );
       assert.strictEqual(accessedSubtask.id, subtaskDev.id);
     });
 
     test('Executor (Dev) is denied access (403 FORBIDDEN) to Parent Task B where they have no assigned subtask', async () => {
       await assert.rejects(
-        () =>
-          taskService.getTask(
-            workspaceA.id,
-            parentB.id,
-            developerMember.id,
-            'dev'
-          ),
+        () => taskService.getTask(workspaceA.id, parentB.id, developerMember.id, 'dev'),
         (err: Error) => {
-          assert.ok(err.message.includes('FORBIDDEN: You do not have permission to access this task.'));
+          assert.ok(
+            err.message.includes('FORBIDDEN: You do not have permission to access this task.'),
+          );
           return true;
-        }
+        },
       );
     });
   });

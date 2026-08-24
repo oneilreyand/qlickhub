@@ -1,4 +1,4 @@
-import { WorkspaceRole } from '@qlick/contracts';
+import { AttachmentCategory, WorkspaceRole } from '@qlick/contracts';
 
 const plannerRoles: readonly WorkspaceRole[] = ['owner', 'admin', 'po'];
 
@@ -20,7 +20,7 @@ export function assertCanUploadAttachment(
     parentTaskId?: string | null;
     assigneeId?: string | null;
   },
-  allowQaTaskCreation: boolean = true
+  allowQaTaskCreation: boolean = true,
 ): void {
   if (isPlanner(role)) return;
 
@@ -28,16 +28,22 @@ export function assertCanUploadAttachment(
 
   if (isSubtask) {
     if (task.assigneeId && task.assigneeId === actorId) return;
-    throw new Error('FORBIDDEN: Only assigned members or project planners can upload subtask evidence.');
+    throw new Error(
+      'FORBIDDEN: Only assigned members or project planners can upload subtask evidence.',
+    );
   }
 
   if (role === 'qa') {
     if (allowQaTaskCreation) return;
     if (!task.assigneeId || task.assigneeId === actorId) return;
-    throw new Error('FORBIDDEN: QA members may upload evidence only to their own or unassigned tasks.');
+    throw new Error(
+      'FORBIDDEN: QA members may upload evidence only to their own or unassigned tasks.',
+    );
   }
 
-  throw new Error('FORBIDDEN: Only Product Owner, Admin, Owner, or QA members can upload evidence to parent tasks.');
+  throw new Error(
+    'FORBIDDEN: Only Product Owner, Admin, Owner, or QA members can upload evidence to parent tasks.',
+  );
 }
 
 export function assertCanDeleteAttachment(
@@ -45,11 +51,21 @@ export function assertCanDeleteAttachment(
   actorId: string,
   attachment: {
     uploaderId: string;
-  }
+    category: AttachmentCategory;
+    isLinkedToTestResult: boolean;
+  },
 ): void {
+  if (attachment.category === 'qa_evidence' || attachment.isLinkedToTestResult) {
+    throw new Error(
+      'CONFLICT: Formal QA evidence is immutable and cannot be deleted. Upload a replacement attachment instead.',
+    );
+  }
+
   if (isPlanner(role)) return;
 
   if (attachment.uploaderId === actorId) return;
 
-  throw new Error('FORBIDDEN: Only Product Owner, Admin, Owner, or the original uploader can delete this attachment.');
+  throw new Error(
+    'FORBIDDEN: Only Product Owner, Admin, Owner, or the original uploader can delete this attachment.',
+  );
 }

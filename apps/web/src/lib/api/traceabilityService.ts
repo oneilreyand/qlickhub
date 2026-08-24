@@ -1,25 +1,31 @@
 import { apiClient } from './apiClient';
 import {
   WorkspaceTraceabilitySummary,
+  ParentTaskDeliveryTrace,
   RequirementTestCase,
   TestCaseStatus,
 } from '@qlick/contracts';
 
 export const traceabilityService = {
-  async getTraceabilitySummary(
-    workspaceId: string
-  ): Promise<WorkspaceTraceabilitySummary> {
-    return await apiClient<WorkspaceTraceabilitySummary>(
-      `/workspaces/${workspaceId}/traceability`
+  async getParentTaskDeliveryTrace(
+    workspaceId: string,
+    taskId: string,
+  ): Promise<ParentTaskDeliveryTrace> {
+    return await apiClient<ParentTaskDeliveryTrace>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/delivery-trace`,
     );
+  },
+
+  async getTraceabilitySummary(workspaceId: string): Promise<WorkspaceTraceabilitySummary> {
+    return await apiClient<WorkspaceTraceabilitySummary>(`/workspaces/${workspaceId}/traceability`);
   },
 
   async listRequirementTestCases(
     workspaceId: string,
-    requirementId: string
+    requirementId: string,
   ): Promise<RequirementTestCase[]> {
     const res = await apiClient<{ testCases: RequirementTestCase[] }>(
-      `/workspaces/${workspaceId}/requirements/${requirementId}/test-cases`
+      `/workspaces/${workspaceId}/requirements/${requirementId}/test-cases`,
     );
     return res.testCases || [];
   },
@@ -32,14 +38,14 @@ export const traceabilityService = {
       testType?: string;
       status?: string;
       executionDetails?: string;
-    }
+    },
   ): Promise<RequirementTestCase> {
     const res = await apiClient<{ testCase: RequirementTestCase }>(
       `/workspaces/${workspaceId}/requirements/${requirementId}/test-cases`,
       {
         method: 'POST',
         body: JSON.stringify(input),
-      }
+      },
     );
     return res.testCase;
   },
@@ -48,14 +54,14 @@ export const traceabilityService = {
     workspaceId: string,
     testCaseId: string,
     status: TestCaseStatus,
-    executionDetails?: string
+    executionDetails?: string,
   ): Promise<RequirementTestCase> {
     const res = await apiClient<{ testCase: RequirementTestCase }>(
       `/workspaces/${workspaceId}/test-cases/${testCaseId}`,
       {
         method: 'PATCH',
         body: JSON.stringify({ status, executionDetails }),
-      }
+      },
     );
     return res.testCase;
   },

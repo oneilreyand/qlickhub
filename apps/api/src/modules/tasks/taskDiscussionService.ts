@@ -4,6 +4,7 @@ import {
   TaskModel,
   TaskCommentModel,
   TaskCommentMentionModel,
+  TaskActivityModel,
   WorkspaceMemberModel,
   UserModel,
 } from '../../db/models/index.js';
@@ -17,11 +18,10 @@ import {
 import { fcmService } from '../../services/fcmService.js';
 import { realtimeEventBus } from '../../services/realtimeEventBus.js';
 
-
 async function getActorMembership(
   workspaceId: string,
   actorId: string,
-  transaction?: Transaction
+  transaction?: Transaction,
 ): Promise<WorkspaceMemberModel> {
   const membership = await WorkspaceMemberModel.findOne({
     where: { workspaceId, userId: actorId },
@@ -96,7 +96,7 @@ export class TaskDiscussionService {
     actorId: string,
     workspaceId: string,
     taskId: string,
-    query: TaskCommentQuery
+    query: TaskCommentQuery,
   ): Promise<TaskCommentListResponse> {
     const page = query.page || 1;
     const limit = query.limit || 50;
@@ -187,7 +187,7 @@ export class TaskDiscussionService {
     actorId: string,
     workspaceId: string,
     taskId: string,
-    input: CreateTaskCommentInput
+    input: CreateTaskCommentInput,
   ): Promise<TaskComment> {
     const commentResult = await sequelize.transaction(async (transaction) => {
       await getActorMembership(workspaceId, actorId, transaction);
@@ -234,7 +234,9 @@ export class TaskDiscussionService {
         });
 
         if (memberships.length !== new Set(mentionedUserIds).size) {
-          throw new Error('BAD_REQUEST: All mentioned users must be active members of this workspace.');
+          throw new Error(
+            'BAD_REQUEST: All mentioned users must be active members of this workspace.',
+          );
         }
       }
 
@@ -246,7 +248,7 @@ export class TaskDiscussionService {
           parentCommentId: input.parentCommentId || null,
           body: input.body,
         },
-        { transaction }
+        { transaction },
       );
 
       if (mentionedUserIds.length > 0) {
@@ -256,7 +258,7 @@ export class TaskDiscussionService {
             userId: uId,
             workspaceId,
           })),
-          { transaction }
+          { transaction },
         );
       }
 
@@ -297,10 +299,7 @@ export class TaskDiscussionService {
         const relatedSubtasks = await TaskModel.findAll({
           where: {
             workspaceId,
-            [Op.or]: [
-              { parentTaskId: parentId },
-              { id: parentId },
-            ],
+            [Op.or]: [{ parentTaskId: parentId }, { id: parentId }],
           },
           attributes: ['reporterId', 'assigneeId'],
           transaction,
@@ -358,45 +357,45 @@ export class TaskDiscussionService {
         ];
 
     const recipientIds = Array.from(
-      new Set(baseRecipients.filter((id): id is string => Boolean(id && id !== actorId)))
+      new Set(baseRecipients.filter((id): id is string => Boolean(id && id !== actorId))),
     );
 
-      if (recipientIds.length > 0) {
-        UserModel.findByPk(actorId)
-          .then((actorUser) => {
-            const authorName = actorUser?.name || actorUser?.email || 'Workspace Member';
-            fcmService
-              .sendDiscussionUpdateNotification({
-                recipientUserIds: recipientIds,
-                authorName,
-                authorId: actorId,
-                taskTitle: commentResult.taskTitle,
-                taskId,
-                workspaceId,
-                commentId: commentResult.commentId,
-                commentSnippet: input.body,
-                isChannel: commentResult.isChannelMention,
-              })
-              .catch((err) => console.warn('Failed to dispatch FCM discussion notification:', err));
-          })
-          .catch(() => {});
-      }
-
-      // Realtime SSE event dispatch to workspace
-      try {
-        realtimeEventBus.emitToWorkspace(workspaceId, 'discussion:comment_created', {
-          taskId,
-          comment: commentResult.formatted,
-          authorId: actorId,
-          mentionedUserIds: commentResult.mentionedUserIds,
-          isChannel: commentResult.isChannelMention,
-        });
-      } catch (err) {
-        console.warn('⚠️ Failed to dispatch realtime discussion comment creation event:', err);
-      }
-
-      return commentResult.formatted;
+    if (recipientIds.length > 0) {
+      UserModel.findByPk(actorId)
+        .then((actorUser) => {
+          const authorName = actorUser?.name || actorUser?.email || 'Workspace Member';
+          fcmService
+            .sendDiscussionUpdateNotification({
+              recipientUserIds: recipientIds,
+              authorName,
+              authorId: actorId,
+              taskTitle: commentResult.taskTitle,
+              taskId,
+              workspaceId,
+              commentId: commentResult.commentId,
+              commentSnippet: input.body,
+              isChannel: commentResult.isChannelMention,
+            })
+            .catch((err) => console.warn('Failed to dispatch FCM discussion notification:', err));
+        })
+        .catch(() => {});
     }
+
+    // Realtime SSE event dispatch to workspace
+    try {
+      realtimeEventBus.emitToWorkspace(workspaceId, 'discussion:comment_created', {
+        taskId,
+        comment: commentResult.formatted,
+        authorId: actorId,
+        mentionedUserIds: commentResult.mentionedUserIds,
+        isChannel: commentResult.isChannelMention,
+      });
+    } catch (err) {
+      console.warn('⚠️ Failed to dispatch realtime discussion comment creation event:', err);
+    }
+
+    return commentResult.formatted;
+  }
 
   /**
    * Updates an existing comment message body (author or owner/admin moderation).
@@ -406,7 +405,7 @@ export class TaskDiscussionService {
     workspaceId: string,
     taskId: string,
     commentId: string,
-    input: UpdateTaskCommentInput
+    input: UpdateTaskCommentInput,
   ): Promise<TaskComment> {
     const updated = await sequelize.transaction(async (transaction) => {
       const membership = await getActorMembership(workspaceId, actorId, transaction);
@@ -454,6 +453,17 @@ export class TaskDiscussionService {
       comment.editedAt = new Date();
       await comment.save({ transaction });
 
+      await TaskActivityModel.create(
+        {
+          workspaceId,
+          taskId,
+          actorId,
+          action: 'comment.edited',
+          metadataJson: { commentId: comment.id, isModerator },
+        },
+        { transaction },
+      );
+
       return formatComment(comment);
     });
 
@@ -476,7 +486,7 @@ export class TaskDiscussionService {
     actorId: string,
     workspaceId: string,
     taskId: string,
-    commentId: string
+    commentId: string,
   ): Promise<TaskComment> {
     const deleted = await sequelize.transaction(async (transaction) => {
       const membership = await getActorMembership(workspaceId, actorId, transaction);
@@ -519,6 +529,17 @@ export class TaskDiscussionService {
       await comment.save({ transaction });
       await comment.destroy({ transaction });
 
+      await TaskActivityModel.create(
+        {
+          workspaceId,
+          taskId,
+          actorId,
+          action: 'comment.deleted',
+          metadataJson: { commentId: comment.id, isModerator },
+        },
+        { transaction },
+      );
+
       const formatted = formatComment(comment);
       if (!formatted.deletedAt) {
         formatted.deletedAt = new Date().toISOString();
@@ -540,4 +561,3 @@ export class TaskDiscussionService {
 }
 
 export const taskDiscussionService = new TaskDiscussionService();
-

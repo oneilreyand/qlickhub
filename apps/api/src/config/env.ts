@@ -36,33 +36,40 @@ const parseEnv = () => {
     throw new Error('Invalid environment variables for API');
   }
   const values = result.data;
-  const defaultDevelopmentDatabaseUrl = 'postgres://postgres:postgres@localhost:5432/qa_management_dev';
+  const defaultDevelopmentDatabaseUrl =
+    'postgres://postgres:postgres@localhost:5432/qa_management_dev';
   const defaultTestDatabaseUrl = 'postgres://postgres:postgres@localhost:5432/qa_management_test';
   const isProduction = values.NODE_ENV === 'production';
-  const attachmentStorageProvider = values.ATTACHMENT_STORAGE_PROVIDER || (isProduction ? 'google_drive' : 'local');
-  const databaseUrl = values.NODE_ENV === 'test'
-    ? values.TEST_DATABASE_URL || defaultTestDatabaseUrl
-    : values.DATABASE_URL || defaultDevelopmentDatabaseUrl;
-  const jwtAccessSecret = values.JWT_ACCESS_SECRET || 'development-only-jwt-access-secret-change-before-production';
+  const attachmentStorageProvider =
+    values.ATTACHMENT_STORAGE_PROVIDER || (isProduction ? 'google_drive' : 'local');
+  const databaseUrl =
+    values.NODE_ENV === 'test'
+      ? values.TEST_DATABASE_URL || defaultTestDatabaseUrl
+      : values.DATABASE_URL || defaultDevelopmentDatabaseUrl;
+  const jwtAccessSecret =
+    values.JWT_ACCESS_SECRET || 'development-only-jwt-access-secret-change-before-production';
 
   if (isProduction) {
     if (!values.DATABASE_URL) throw new Error('DATABASE_URL must be configured in production.');
-    if (!values.JWT_ACCESS_SECRET) throw new Error('JWT_ACCESS_SECRET must be configured in production.');
+    if (!values.JWT_ACCESS_SECRET)
+      throw new Error('JWT_ACCESS_SECRET must be configured in production.');
     if (values.CORS_ORIGIN.split(',').some((origin) => origin.trim() === '*')) {
       throw new Error('CORS_ORIGIN must be an explicit allowlist in production.');
     }
     if (!values.DATABASE_SSL) throw new Error('DATABASE_SSL=true is required in production.');
-    if (attachmentStorageProvider !== 'google_drive') {
-      throw new Error('ATTACHMENT_STORAGE_PROVIDER=google_drive is required in production.');
-    }
-    if (!values.GOOGLE_DRIVE_ROOT_FOLDER_ID) {
-      throw new Error('GOOGLE_DRIVE_ROOT_FOLDER_ID must be configured when using Google Drive storage.');
+    if (attachmentStorageProvider === 'google_drive' && !values.GOOGLE_DRIVE_ROOT_FOLDER_ID) {
+      throw new Error(
+        'GOOGLE_DRIVE_ROOT_FOLDER_ID must be configured when using Google Drive storage.',
+      );
     }
   }
+
+  const databaseSsl = values.NODE_ENV === 'test' ? false : values.DATABASE_SSL;
 
   return {
     ...values,
     DATABASE_URL: databaseUrl,
+    DATABASE_SSL: databaseSsl,
     JWT_ACCESS_SECRET: jwtAccessSecret,
     ATTACHMENT_STORAGE_PROVIDER: attachmentStorageProvider,
   };

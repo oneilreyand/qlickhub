@@ -7,6 +7,7 @@ import {
   UserModel,
   WorkspaceModel,
   WorkspaceMemberModel,
+  WorkspaceMemberSpecialtyModel,
   WorkFolderModel,
   TaskModel,
   RequirementModel,
@@ -30,7 +31,7 @@ function createEvidenceImageFile(
   workspaceId: string,
   taskId: string,
   fileName: string,
-  svgContent: string
+  svgContent: string,
 ): { storageRef: string; fileSize: number; mimeType: string } {
   const targetDir = path.join(STORAGE_BASE_DIR, workspaceId, taskId);
   if (!fs.existsSync(targetDir)) {
@@ -74,8 +75,10 @@ export async function seedFullTestData() {
     fs.mkdirSync(STORAGE_BASE_DIR, { recursive: true });
   }
 
-  // 2. Create the exact 5 User Accounts requested by user
-  console.log('👥 Creating 5 Core Users: Owner (1), PO (1), Dev BE (1), Dev FE (1), QA Lead (1)...');
+  // 2. Create explicit development fixture accounts for every persisted specialty.
+  console.log(
+    '👥 Creating 7 Core Users: Owner, PO, Dev BE, Dev FE, Dev Mobile, Dev Fullstack, and QA...',
+  );
   const passwordHash = await bcrypt.hash('Password123!', 10);
 
   const usersData = [
@@ -84,7 +87,8 @@ export async function seedFullTestData() {
       email: 'owner@assist.id',
       name: 'Reyand',
       role: 'admin' as const,
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       passwordHash,
     },
     {
@@ -92,7 +96,8 @@ export async function seedFullTestData() {
       email: 'po@assist.id',
       name: 'Fajar',
       role: 'po' as const,
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
       passwordHash,
     },
     {
@@ -100,7 +105,8 @@ export async function seedFullTestData() {
       email: 'dev.be@assist.id',
       name: 'Indra',
       role: 'dev' as const,
-      avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
       passwordHash,
     },
     {
@@ -108,7 +114,24 @@ export async function seedFullTestData() {
       email: 'dev.fe@assist.id',
       name: 'Iwal',
       role: 'dev' as const,
-      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+      passwordHash,
+    },
+    {
+      id: uuidv4(),
+      email: 'dev.mobile@assist.id',
+      name: 'Nadia',
+      role: 'dev' as const,
+      avatarUrl: null,
+      passwordHash,
+    },
+    {
+      id: uuidv4(),
+      email: 'dev.fullstack@assist.id',
+      name: 'Raka',
+      role: 'dev' as const,
+      avatarUrl: null,
       passwordHash,
     },
     {
@@ -116,7 +139,8 @@ export async function seedFullTestData() {
       email: 'qa@assist.id',
       name: 'Depi',
       role: 'qa' as const,
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
       passwordHash,
     },
   ];
@@ -128,6 +152,8 @@ export async function seedFullTestData() {
   const userPo = userMap.get('po@assist.id')!;
   const userDevBe = userMap.get('dev.be@assist.id')!;
   const userDevFe = userMap.get('dev.fe@assist.id')!;
+  const userDevMobile = userMap.get('dev.mobile@assist.id')!;
+  const userDevFullstack = userMap.get('dev.fullstack@assist.id')!;
   const userQa = userMap.get('qa@assist.id')!;
 
   console.log(`✅ Created ${createdUsers.length} users with standard password 'Password123!'.`);
@@ -138,20 +164,52 @@ export async function seedFullTestData() {
     id: uuidv4(),
     name: 'Fintech Ecosystem & Core Banking Platform',
     slug: 'fintech-core-banking',
-    description: 'Enterprise payment orchestration, ASPI-standard QRIS dynamic gateway, biometric KYC verification, and automated QA traceability hub.',
+    description:
+      'Enterprise payment orchestration, ASPI-standard QRIS dynamic gateway, biometric KYC verification, and automated QA traceability hub.',
     ownerId: userOwner.id,
     allowQaTaskCreation: true,
   });
 
-  // Assign all 5 users to workspace with their respective roles
+  // Assign all users to the Workspace; authorization remains the generic dev role.
   const workspaceMembers = [
     { workspaceId: workspace.id, userId: userOwner.id, role: 'owner' as const },
     { workspaceId: workspace.id, userId: userPo.id, role: 'po' as const },
     { workspaceId: workspace.id, userId: userDevBe.id, role: 'dev' as const },
     { workspaceId: workspace.id, userId: userDevFe.id, role: 'dev' as const },
+    { workspaceId: workspace.id, userId: userDevMobile.id, role: 'dev' as const },
+    { workspaceId: workspace.id, userId: userDevFullstack.id, role: 'dev' as const },
     { workspaceId: workspace.id, userId: userQa.id, role: 'qa' as const },
   ];
-  await WorkspaceMemberModel.bulkCreate(workspaceMembers);
+  const createdWorkspaceMembers = await WorkspaceMemberModel.bulkCreate(workspaceMembers);
+  const membershipByUserId = new Map(
+    createdWorkspaceMembers.map((member) => [member.userId, member]),
+  );
+  await WorkspaceMemberSpecialtyModel.bulkCreate([
+    {
+      workspaceId: workspace.id,
+      workspaceMemberId: membershipByUserId.get(userDevBe.id)!.id,
+      specialty: 'backend',
+      createdBy: userOwner.id,
+    },
+    {
+      workspaceId: workspace.id,
+      workspaceMemberId: membershipByUserId.get(userDevFe.id)!.id,
+      specialty: 'frontend',
+      createdBy: userOwner.id,
+    },
+    {
+      workspaceId: workspace.id,
+      workspaceMemberId: membershipByUserId.get(userDevMobile.id)!.id,
+      specialty: 'mobile',
+      createdBy: userOwner.id,
+    },
+    {
+      workspaceId: workspace.id,
+      workspaceMemberId: membershipByUserId.get(userDevFullstack.id)!.id,
+      specialty: 'fullstack',
+      createdBy: userOwner.id,
+    },
+  ]);
 
   // Grant Task Creation Permissions
   await TaskCreationPermissionModel.bulkCreate([
@@ -175,7 +233,7 @@ export async function seedFullTestData() {
     },
   ]);
 
-  console.log('✅ Workspace created and all 5 members added with permissions.');
+  console.log('✅ Workspace created with persisted Developer specialties.');
 
   // 4. Create 2-Level Hierarchical Work Folders
   console.log('📁 Creating 2-Level Hierarchical Work Folders...');
@@ -547,19 +605,51 @@ The dynamic QR generation service accepts merchant checkout parameters, formats 
 - **Security & Compliance**: HMAC-SHA256 signature verification, PCI-DSS tokenization compliance.
 `,
     inScope: [
-      { id: '1', text: 'Dynamic QRIS payload generation with ASPI Tag 54 amount validation', position: 0 },
-      { id: '2', text: 'Real-time payment confirmation via Webhook with HMAC-SHA256 signature', position: 1 },
-      { id: '3', text: 'Expiry timer handling and automated cancellation after 15 minutes', position: 2 },
-      { id: '4', text: 'Redis distributed locking to eliminate double-credit race conditions', position: 3 },
+      {
+        id: '1',
+        text: 'Dynamic QRIS payload generation with ASPI Tag 54 amount validation',
+        position: 0,
+      },
+      {
+        id: '2',
+        text: 'Real-time payment confirmation via Webhook with HMAC-SHA256 signature',
+        position: 1,
+      },
+      {
+        id: '3',
+        text: 'Expiry timer handling and automated cancellation after 15 minutes',
+        position: 2,
+      },
+      {
+        id: '4',
+        text: 'Redis distributed locking to eliminate double-credit race conditions',
+        position: 3,
+      },
     ],
     outScope: [
       { id: '1', text: 'Static merchant table stickers (Scheduled for Sprint 27)', position: 0 },
-      { id: '2', text: 'Cross-border QRIS (Singapore NETS / Thailand PromptPay settlement rails)', position: 1 },
+      {
+        id: '2',
+        text: 'Cross-border QRIS (Singapore NETS / Thailand PromptPay settlement rails)',
+        position: 1,
+      },
     ],
     acceptanceCriteria: [
-      { id: '1', text: '100% of ASPI compliance EMVCo test vectors pass with exact CRC16 match', position: 0 },
-      { id: '2', text: 'P99 generation latency is under 150ms under 500 concurrent requests/sec', position: 1 },
-      { id: '3', text: 'Duplicate webhook callbacks do not trigger multiple ledger entries', position: 2 },
+      {
+        id: '1',
+        text: '100% of ASPI compliance EMVCo test vectors pass with exact CRC16 match',
+        position: 0,
+      },
+      {
+        id: '2',
+        text: 'P99 generation latency is under 150ms under 500 concurrent requests/sec',
+        position: 1,
+      },
+      {
+        id: '3',
+        text: 'Duplicate webhook callbacks do not trigger multiple ledger entries',
+        position: 2,
+      },
     ],
     changelog: 'Approved by Product Owner, Tech Lead, and QA Lead for production release.',
     createdBy: userQa.id,
@@ -594,16 +684,40 @@ The legacy onboarding funnel experienced an average user drop-off rate of **38.4
 3. **Automate Data Extraction**: Achieve >= 98.0% zero-touch OCR auto-fill accuracy for Indonesian e-KTP.
 `,
     inScope: [
-      { id: '1', text: 'Real-time client camera framing guidance with gyroscope angle detection', position: 0 },
-      { id: '2', text: 'Auto-shutter capture when card borders and sharpness pass threshold', position: 1 },
-      { id: '3', text: 'Active & passive 3D face liveness detection (blink, tilt, smile detection)', position: 2 },
+      {
+        id: '1',
+        text: 'Real-time client camera framing guidance with gyroscope angle detection',
+        position: 0,
+      },
+      {
+        id: '2',
+        text: 'Auto-shutter capture when card borders and sharpness pass threshold',
+        position: 1,
+      },
+      {
+        id: '3',
+        text: 'Active & passive 3D face liveness detection (blink, tilt, smile detection)',
+        position: 2,
+      },
     ],
     outScope: [
-      { id: '1', text: 'Passport and KITAS foreigner document verification (Planned for Q4)', position: 0 },
+      {
+        id: '1',
+        text: 'Passport and KITAS foreigner document verification (Planned for Q4)',
+        position: 0,
+      },
     ],
     acceptanceCriteria: [
-      { id: '1', text: 'Median onboarding duration under 75 seconds on mobile 4G network', position: 0 },
-      { id: '2', text: 'False Rejection Rate (FRR) < 1.5% and False Acceptance Rate (FAR) < 0.001%', position: 1 },
+      {
+        id: '1',
+        text: 'Median onboarding duration under 75 seconds on mobile 4G network',
+        position: 0,
+      },
+      {
+        id: '2',
+        text: 'False Rejection Rate (FRR) < 1.5% and False Acceptance Rate (FAR) < 0.001%',
+        position: 1,
+      },
     ],
     changelog: 'Initial version draft submitted by Sarah Jenkins (PO).',
     createdBy: userPo.id,
@@ -612,7 +726,9 @@ The legacy onboarding funnel experienced an average user drop-off rate of **38.4
   console.log('✅ QA Documents and version history created.');
 
   // 7. Create End-to-End Parent Tasks & Subtasks with Maximal Text Lengths
-  console.log('🎯 Creating Rich Parent Tasks & Subtasks (Maximizing Text Lengths for Stress Testing)...');
+  console.log(
+    '🎯 Creating Rich Parent Tasks & Subtasks (Maximizing Text Lengths for Stress Testing)...',
+  );
 
   const today = '2026-08-19';
   const yesterday = '2026-08-18';
@@ -629,7 +745,8 @@ The legacy onboarding funnel experienced an average user drop-off rate of **38.4
     workspaceId: workspace.id,
     folderId: fQris.id,
     parentTaskId: null,
-    title: '[EPIC-PAY-101] ASPI EMVCo Dynamic QRIS Generation with 15-Minute Expiry & Real-time Webhook Dispatcher',
+    title:
+      '[EPIC-PAY-101] ASPI EMVCo Dynamic QRIS Generation with 15-Minute Expiry & Real-time Webhook Dispatcher',
     description: `# ASPI EMVCo Dynamic QRIS Generation Engine & Real-Time Settlement Hub
 
 ## 1. System Overview & Architectural Topology
@@ -703,7 +820,8 @@ In the event of an unrecoverable failure in the primary payment gateway, traffic
     folderId: fQris.id,
     parentTaskId: tQrisParent.id,
     deliveryArea: 'backend',
-    title: '[BE-101] Implement ASPI EMVCo TLV Payload Generator with CRC16-CCITT & Redis TTL Expiry',
+    title:
+      '[BE-101] Implement ASPI EMVCo TLV Payload Generator with CRC16-CCITT & Redis TTL Expiry',
     description: `### Technical Implementation Details
 Construct the core cryptographic payload builder for dynamic QRIS generation according to Bank Indonesia standards.
 
@@ -735,7 +853,8 @@ curl -X POST https://api.assist.id/v1/payments/qris/dynamic \\
     assigneeId: userDevBe.id,
     reporterId: userDevBe.id,
     reviewedBy: userOwner.id,
-    reviewNotes: 'Code reviewed and merged via PR #142. Performance test indicates 1.2ms average payload construction latency.',
+    reviewNotes:
+      'Code reviewed and merged via PR #142. Performance test indicates 1.2ms average payload construction latency.',
     startDate: '2026-08-11',
     dueDate: yesterday,
     completedAt: new Date('2026-08-18T16:30:00Z'),
@@ -748,7 +867,8 @@ curl -X POST https://api.assist.id/v1/payments/qris/dynamic \\
     folderId: fQris.id,
     parentTaskId: tQrisParent.id,
     deliveryArea: 'frontend',
-    title: '[FE-102] Dynamic QR display component with SVG rendering, circular countdown timer & SSE listener',
+    title:
+      '[FE-102] Dynamic QR display component with SVG rendering, circular countdown timer & SSE listener',
     description: `### UI / UX Component Specification
 Develop a responsive QR checkout dialog featuring high-contrast QR rendering, real-time SVG circular countdown ring, and live payment status listener via Server-Sent Events (SSE).
 
@@ -771,7 +891,8 @@ Develop a responsive QR checkout dialog featuring high-contrast QR rendering, re
     assigneeId: userDevFe.id,
     reporterId: userDevBe.id,
     reviewedBy: userPo.id,
-    reviewNotes: 'UI and responsiveness verified across iPhone 15 Safari, Samsung Galaxy S24 Chrome, and Desktop browsers.',
+    reviewNotes:
+      'UI and responsiveness verified across iPhone 15 Safari, Samsung Galaxy S24 Chrome, and Desktop browsers.',
     startDate: '2026-08-12',
     dueDate: yesterday,
     completedAt: new Date('2026-08-18T17:45:00Z'),
@@ -784,7 +905,8 @@ Develop a responsive QR checkout dialog featuring high-contrast QR rendering, re
     folderId: fQris.id,
     parentTaskId: tQrisParent.id,
     deliveryArea: 'backend',
-    title: '[BE-103] Idempotent Webhook Receiver with HMAC-SHA256 signature verification & BullMQ Dead Letter Queue',
+    title:
+      '[BE-103] Idempotent Webhook Receiver with HMAC-SHA256 signature verification & BullMQ Dead Letter Queue',
     description: `### Webhook Notification Engine Architecture
 Ingest payment notifications from acquiring bank switches with strict cryptographic verification and distributed locking.
 
@@ -800,14 +922,61 @@ Ingest payment notifications from acquiring bank switches with strict cryptograp
     dueDate: today,
   });
 
-  // Subtask 4: QA End-to-End Simulation & Stress Test (IN REVIEW)
+  // Subtask 4: Mobile payment-status handoff (IN PROGRESS)
+  await TaskModel.create({
+    id: uuidv4(),
+    workspaceId: workspace.id,
+    folderId: fQris.id,
+    parentTaskId: tQrisParent.id,
+    deliveryArea: 'mobile',
+    title: '[MOB-104] Native QR payment status handoff, deep-link recovery & offline retry state',
+    description: `### Mobile Delivery Scope
+Connect the native checkout flow to QR payment status updates while preserving the transaction state across backgrounding, deep links, and temporary offline conditions.
+
+#### Acceptance Criteria:
+- [ ] Android and iOS resume the active payment session after app backgrounding.
+- [ ] Successful payment deep links route to the persisted receipt.
+- [ ] Offline retry never creates a duplicate payment request.`,
+    status: 'in_progress',
+    priority: 'high',
+    assigneeId: userDevMobile.id,
+    reporterId: userPo.id,
+    startDate: '2026-08-17',
+    dueDate: tomorrow,
+  });
+
+  // Subtask 5: Fullstack merchant reconciliation view (TODO)
+  await TaskModel.create({
+    id: uuidv4(),
+    workspaceId: workspace.id,
+    folderId: fQris.id,
+    parentTaskId: tQrisParent.id,
+    deliveryArea: 'fullstack',
+    title: '[FS-105] Merchant reconciliation view with settlement API and discrepancy drill-down',
+    description: `### Fullstack Delivery Scope
+Deliver the authenticated reconciliation endpoint and matching merchant interface for QR settlements, including discrepancy visibility and export readiness.
+
+#### Acceptance Criteria:
+- [ ] Settlement totals are read from persisted ledger records.
+- [ ] Merchant UI exposes unmatched transactions with accessible status labels.
+- [ ] Workspace authorization is enforced by the backend.`,
+    status: 'todo',
+    priority: 'medium',
+    assigneeId: userDevFullstack.id,
+    reporterId: userPo.id,
+    startDate: '2026-08-21',
+    dueDate: nextWeek,
+  });
+
+  // Subtask 6: QA End-to-End Simulation & Stress Test (IN REVIEW)
   const stQrisQa1 = await TaskModel.create({
     id: uuidv4(),
     workspaceId: workspace.id,
     folderId: fQris.id,
     parentTaskId: tQrisParent.id,
     deliveryArea: 'qa',
-    title: '[QA-104] Execute E2E Bank Switch Simulation, Chaos Network Timeout Injection & 500 RPS Stress Test',
+    title:
+      '[QA-104] Execute E2E Bank Switch Simulation, Chaos Network Timeout Injection & 500 RPS Stress Test',
     description: `### Comprehensive QA Verification Scope
 Execute automated and manual test scenarios simulating various acquiring bank responses.
 
@@ -827,14 +996,15 @@ Execute automated and manual test scenarios simulating various acquiring bank re
     dueDate: tomorrow,
   });
 
-  // Subtask 5: QA Security Pen-Test (TODO)
+  // Subtask 7: QA Security Pen-Test (TODO)
   const stQrisQa2 = await TaskModel.create({
     id: uuidv4(),
     workspaceId: workspace.id,
     folderId: fQris.id,
     parentTaskId: tQrisParent.id,
     deliveryArea: 'qa',
-    title: '[QA-105] Security Penetration Testing: Cryptographic Nonce Tampering & Replay Attack Defense',
+    title:
+      '[QA-105] Security Penetration Testing: Cryptographic Nonce Tampering & Replay Attack Defense',
     description: `### Penetration Testing Scope:
 1. Replay previous bank webhook notifications with identical timestamps to check if signature deduplication blocks processing.
 2. Attempt parameter tampering by altering transaction amount (Tag 54) while maintaining old CRC16 to ensure server returns \`CRC_CHECKSUM_MISMATCH\`.
@@ -855,7 +1025,8 @@ Execute automated and manual test scenarios simulating various acquiring bank re
     workspaceId: workspace.id,
     folderId: fOcr.id,
     parentTaskId: null,
-    title: '[EPIC-KYC-201] Next-Gen Biometric Onboarding: e-KTP Optical Character Recognition & Face Liveness Pipeline',
+    title:
+      '[EPIC-KYC-201] Next-Gen Biometric Onboarding: e-KTP Optical Character Recognition & Face Liveness Pipeline',
     description: `# Next-Gen Digital KYC 2.0 & Biometric Identity Verification
 
 ## 1. Executive Summary & Business Drivers
@@ -904,7 +1075,8 @@ Upgrade the merchant onboarding experience to comply with Bank Indonesia and OJK
     folderId: fOcr.id,
     parentTaskId: tKycParent.id,
     deliveryArea: 'frontend',
-    title: '[FE-201] WebRTC Camera Viewfinder with Real-time Card Guidance, Gyroscope Sensor & Auto-Shutter',
+    title:
+      '[FE-201] WebRTC Camera Viewfinder with Real-time Card Guidance, Gyroscope Sensor & Auto-Shutter',
     description: `### Frontend WebRTC Implementation
 Created a high-framerate camera viewfinder that guides users to align their Indonesian identity card within a rounded bounding frame.
 
@@ -928,7 +1100,8 @@ Created a high-framerate camera viewfinder that guides users to align their Indo
     folderId: fOcr.id,
     parentTaskId: tKycParent.id,
     deliveryArea: 'backend',
-    title: '[BE-202] Async Cloud Vision Processing Pipeline with Image Deskewing, Grayscale & Regex Normalization',
+    title:
+      '[BE-202] Async Cloud Vision Processing Pipeline with Image Deskewing, Grayscale & Regex Normalization',
     description: `### OCR Backend Worker Pipeline
 Processes uploaded identity card photos with OpenCV image deskewing and Tesseract / Google Cloud Vision OCR extraction.
 
@@ -951,7 +1124,8 @@ Processes uploaded identity card photos with OpenCV image deskewing and Tesserac
     folderId: fOcr.id,
     parentTaskId: tKycParent.id,
     deliveryArea: 'qa',
-    title: '[QA-204] Test Matrix Execution on 120 Synthetic e-KTP Cards Across Low-Light, Glare & Skewed Angles',
+    title:
+      '[QA-204] Test Matrix Execution on 120 Synthetic e-KTP Cards Across Low-Light, Glare & Skewed Angles',
     description: `### QA Benchmark Findings & Rejection Details
 Tested 120 synthetic and volunteer test cards in varied environmental conditions.
 
@@ -981,7 +1155,8 @@ Frontend viewfinder must enforce minimal ambient light threshold and reject flas
     workspaceId: workspace.id,
     folderId: fAml.id,
     parentTaskId: null,
-    title: '[EPIC-AML-202] Automated AML & PPATK Sanctions List Screening Engine with Trigram Indexing',
+    title:
+      '[EPIC-AML-202] Automated AML & PPATK Sanctions List Screening Engine with Trigram Indexing',
     description: `# Automated Anti-Money Laundering & Sanctions Screening Hub
 
 ## 1. Compliance Architecture & Sanctions Lists
@@ -1006,7 +1181,8 @@ Real-time high-throughput watchlist screening against United Nations (UNSC), OFA
     folderId: fAml.id,
     parentTaskId: tAmlParent.id,
     deliveryArea: 'backend',
-    title: '[BE-203] Real-time Jaro-Winkler & Trigram AML/PEP Sanctions Screening Engine with Honorific Sanitizer',
+    title:
+      '[BE-203] Real-time Jaro-Winkler & Trigram AML/PEP Sanctions Screening Engine with Honorific Sanitizer',
     description: `### AML Compliance Matching Microservice
 Fuzzy matches applicant names against PPATK and OFAC SDN sanctions list using trigram indexes and Jaro-Winkler coefficient calculations.
 
@@ -1029,8 +1205,10 @@ Fuzzy matches applicant names against PPATK and OFAC SDN sanctions list using tr
     folderId: fAml.id,
     parentTaskId: tAmlParent.id,
     deliveryArea: 'qa',
-    title: '[QA-205] Verify Jaro-Winkler fuzzy matching precision & honorific stripping on 500 test vectors',
-    description: 'Validated 500 common Indonesian names containing titles. Verified false-positive review triggers dropped from 14.2% down to 1.6%.',
+    title:
+      '[QA-205] Verify Jaro-Winkler fuzzy matching precision & honorific stripping on 500 test vectors',
+    description:
+      'Validated 500 common Indonesian names containing titles. Verified false-positive review triggers dropped from 14.2% down to 1.6%.',
     status: 'in_review',
     priority: 'high',
     assigneeId: userQa.id,
@@ -1047,7 +1225,8 @@ Fuzzy matches applicant names against PPATK and OFAC SDN sanctions list using tr
     workspaceId: workspace.id,
     folderId: fDbPool.id,
     parentTaskId: null,
-    title: '[EPIC-INFRA-301] PostgreSQL Read-Replicas, PgBouncer Connection Pooling & Disaster Recovery Failover',
+    title:
+      '[EPIC-INFRA-301] PostgreSQL Read-Replicas, PgBouncer Connection Pooling & Disaster Recovery Failover',
     description: `# Enterprise Platform Resilience & Zero-Downtime Database Architecture
 
 ## 1. Objective
@@ -1069,7 +1248,8 @@ Establish multi-node PostgreSQL read-replica clusters and PgBouncer transaction 
     assigneeId: null,
     reporterId: userOwner.id,
     reviewedBy: userOwner.id,
-    reviewNotes: 'Disaster recovery failover simulation completed with 11.8s RTO and 0.0s data loss.',
+    reviewNotes:
+      'Disaster recovery failover simulation completed with 11.8s RTO and 0.0s data loss.',
     startDate: '2026-08-01',
     dueDate: '2026-08-15',
     completedAt: new Date('2026-08-15T18:00:00Z'),
@@ -1081,8 +1261,10 @@ Establish multi-node PostgreSQL read-replica clusters and PgBouncer transaction 
     folderId: fDbPool.id,
     parentTaskId: tInfraParent.id,
     deliveryArea: 'backend',
-    title: '[BE-301] PgBouncer transaction pooling configuration & Sequelize read/write pool routing',
-    description: 'Configured transaction pooling and split Sequelize queries so all analytical reporting queries route to read replicas.',
+    title:
+      '[BE-301] PgBouncer transaction pooling configuration & Sequelize read/write pool routing',
+    description:
+      'Configured transaction pooling and split Sequelize queries so all analytical reporting queries route to read replicas.',
     status: 'done',
     priority: 'high',
     assigneeId: userDevBe.id,
@@ -1098,8 +1280,10 @@ Establish multi-node PostgreSQL read-replica clusters and PgBouncer transaction 
     folderId: fDbPool.id,
     parentTaskId: tInfraParent.id,
     deliveryArea: 'qa',
-    title: '[QA-302] Chaos Engineering: Kill Primary DB Node & verify automated replica promotion within 12 seconds',
-    description: 'Injected SIGKILL into Primary DB container under 1,000 active client connections. Verified Patroni auto-promoted replica in 11.8s.',
+    title:
+      '[QA-302] Chaos Engineering: Kill Primary DB Node & verify automated replica promotion within 12 seconds',
+    description:
+      'Injected SIGKILL into Primary DB container under 1,000 active client connections. Verified Patroni auto-promoted replica in 11.8s.',
     status: 'done',
     priority: 'high',
     assigneeId: userQa.id,
@@ -1117,7 +1301,8 @@ Establish multi-node PostgreSQL read-replica clusters and PgBouncer transaction 
     workspaceId: workspace.id,
     folderId: fPasskey.id,
     parentTaskId: null,
-    title: '[EPIC-SEC-302] FIDO2 WebAuthn Passkey Biometric Authentication for Merchant SuperAdmin Portal',
+    title:
+      '[EPIC-SEC-302] FIDO2 WebAuthn Passkey Biometric Authentication for Merchant SuperAdmin Portal',
     description: `# FIDO2 / WebAuthn Hardware Passkey Security Protocol
 
 ## 1. Specification & Threat Model
@@ -1146,8 +1331,10 @@ Eliminate credential stuffing and phishing vectors by enabling hardware cryptogr
     folderId: fPasskey.id,
     parentTaskId: tPasskeyParent.id,
     deliveryArea: 'backend',
-    title: '[BE-303] WebAuthn Registration and Authentication Ceremony Endpoints with Attestation Verification',
-    description: 'Constructed FIDO2 ceremony endpoints with CBOR decoding and sign counter monotonic increment assertion.',
+    title:
+      '[BE-303] WebAuthn Registration and Authentication Ceremony Endpoints with Attestation Verification',
+    description:
+      'Constructed FIDO2 ceremony endpoints with CBOR decoding and sign counter monotonic increment assertion.',
     status: 'done',
     priority: 'urgent',
     assigneeId: userDevBe.id,
@@ -1163,8 +1350,10 @@ Eliminate credential stuffing and phishing vectors by enabling hardware cryptogr
     folderId: fPasskey.id,
     parentTaskId: tPasskeyParent.id,
     deliveryArea: 'frontend',
-    title: '[FE-304] Client WebAuthn Navigator Credentials API Integration with TouchID / FaceID Biometric Prompt',
-    description: 'Built clean React biometric enrollment modal with device capability detection and graceful fallback.',
+    title:
+      '[FE-304] Client WebAuthn Navigator Credentials API Integration with TouchID / FaceID Biometric Prompt',
+    description:
+      'Built clean React biometric enrollment modal with device capability detection and graceful fallback.',
     status: 'in_review',
     priority: 'high',
     assigneeId: userDevFe.id,
@@ -1179,8 +1368,10 @@ Eliminate credential stuffing and phishing vectors by enabling hardware cryptogr
     folderId: fPasskey.id,
     parentTaskId: tPasskeyParent.id,
     deliveryArea: 'qa',
-    title: '[QA-305] Cross-Browser & Cross-Platform WebAuthn Compatibility Matrix on Physical Hardware',
-    description: 'Testing biometric authentication across iOS Safari FaceID, Android Chrome Fingerprint, macOS TouchID, and Windows Hello.',
+    title:
+      '[QA-305] Cross-Browser & Cross-Platform WebAuthn Compatibility Matrix on Physical Hardware',
+    description:
+      'Testing biometric authentication across iOS Safari FaceID, Android Chrome Fingerprint, macOS TouchID, and Windows Hello.',
     status: 'in_progress',
     priority: 'high',
     assigneeId: userQa.id,
@@ -1197,7 +1388,8 @@ Eliminate credential stuffing and phishing vectors by enabling hardware cryptogr
     workspaceId: workspace.id,
     folderId: fAiFraud.id,
     parentTaskId: null,
-    title: '[PO Spec] PRD: Machine Learning Transaction Velocity Scoring & Real-Time Card Testing Mitigation',
+    title:
+      '[PO Spec] PRD: Machine Learning Transaction Velocity Scoring & Real-Time Card Testing Mitigation',
     description: `# PRD: AI Real-Time Fraud & Card Testing Anomaly Engine
 
 ## 1. Background & Threat Landscape
@@ -1220,7 +1412,8 @@ Fraudsters frequently use compromised BIN lists to test stolen credit cards with
     workspaceId: workspace.id,
     folderId: fWebhook.id,
     parentTaskId: null,
-    title: '[PO Spec] User Story: Automated Daily Settlement Reconciliation CSV & SFTP Batch Dispatch',
+    title:
+      '[PO Spec] User Story: Automated Daily Settlement Reconciliation CSV & SFTP Batch Dispatch',
     description: `### User Story: Daily Automated Merchant Settlement Reconciliation
 As a corporate merchant finance manager, I want to receive an encrypted CSV report of all settled QRIS and Credit Card transactions at 00:01 WIB every morning via SFTP and email, so that I can automatically reconcile bank deposits against my ERP ledger without manual data export.`,
     status: 'todo',
@@ -1327,7 +1520,7 @@ As a corporate merchant finance manager, I want to receive an encrypted CSV repo
     workspace.id,
     tQrisParent.id,
     'qris_payment_flow_architecture.svg',
-    svgQrisDiagram
+    svgQrisDiagram,
   );
 
   // 2. K6 Benchmark Latency Chart SVG
@@ -1364,7 +1557,7 @@ As a corporate merchant finance manager, I want to receive an encrypted CSV repo
     workspace.id,
     stQrisQa1.id,
     'k6_stress_test_latency_distribution.svg',
-    svgK6Chart
+    svgK6Chart,
   );
 
   // 3. e-KTP Viewfinder UI Wireframe SVG
@@ -1392,7 +1585,7 @@ As a corporate merchant finance manager, I want to receive an encrypted CSV repo
     workspace.id,
     stKycFe.id,
     'ektp_camera_viewfinder_ui_mockup.svg',
-    svgEktpViewfinder
+    svgEktpViewfinder,
   );
 
   // 4. Low-light Bug Evidence SVG
@@ -1418,7 +1611,7 @@ As a corporate merchant finance manager, I want to receive an encrypted CSV repo
     workspace.id,
     stKycQa.id,
     'ocr_bounding_box_extraction_failure.svg',
-    svgBugEvidence
+    svgBugEvidence,
   );
 
   // 5. WebAuthn Passkey Sequence Diagram SVG
@@ -1451,7 +1644,7 @@ As a corporate merchant finance manager, I want to receive an encrypted CSV repo
     workspace.id,
     tPasskeyParent.id,
     'webauthn_passkey_security_ceremony.svg',
-    svgWebAuthn
+    svgWebAuthn,
   );
 
   // Bulk create attachments in DB
@@ -1683,7 +1876,8 @@ If pixel brightness variance indicates harsh glare over the central bounding box
       actorId: userQa.id,
       type: 'mention',
       title: 'New Mention in KYC Discussion',
-      message: 'Depi mentioned you: "@Iwal (Dev FE) Please check OCR camera canvas orientation issue on iOS WebKit."',
+      message:
+        'Depi mentioned you: "@Iwal (Dev FE) Please check OCR camera canvas orientation issue on iOS WebKit."',
       isRead: false,
       createdAt: new Date('2026-08-17T11:20:00Z'),
     },
@@ -1695,7 +1889,8 @@ If pixel brightness variance indicates harsh glare over the central bounding box
       actorId: userPo.id,
       type: 'status_change',
       title: 'Task Status Updated',
-      message: 'Fajar (PO) moved "Indonesian Standard QRIS Checkout UI & Dynamic QR Canvas" to DONE.',
+      message:
+        'Fajar (PO) moved "Indonesian Standard QRIS Checkout UI & Dynamic QR Canvas" to DONE.',
       isRead: false,
       createdAt: new Date('2026-08-18T18:00:00Z'),
     },
@@ -1720,7 +1915,8 @@ If pixel brightness variance indicates harsh glare over the central bounding box
       actorId: userDevFe.id,
       type: 'mention',
       title: 'New Mention in QRIS Discussion',
-      message: 'Iwal mentioned you: "@Indra (Dev BE) SSE payment event stream contract tested and working smoothly."',
+      message:
+        'Iwal mentioned you: "@Indra (Dev BE) SSE payment event stream contract tested and working smoothly."',
       isRead: false,
       createdAt: new Date('2026-08-18T14:15:00Z'),
     },
@@ -1757,7 +1953,8 @@ If pixel brightness variance indicates harsh glare over the central bounding box
       actorId: userPo.id,
       type: 'assignment',
       title: 'New Subtask Assigned',
-      message: 'Fajar (PO) assigned you to "[QA] End-to-End KYC Verification & False-Positive Regression Matrix".',
+      message:
+        'Fajar (PO) assigned you to "[QA] End-to-End KYC Verification & False-Positive Regression Matrix".',
       isRead: true,
       readAt: new Date('2026-08-15T10:00:00Z'),
       createdAt: new Date('2026-08-15T09:00:00Z'),
@@ -1780,7 +1977,8 @@ If pixel brightness variance indicates harsh glare over the central bounding box
       workspaceId: workspace.id,
       type: 'system',
       title: '🌟 Welcome to Qlick Hub',
-      message: 'Workspace "Fintech Ecosystem & Core Banking Platform" is fully configured and ready for collaboration.',
+      message:
+        'Workspace "Fintech Ecosystem & Core Banking Platform" is fully configured and ready for collaboration.',
       isRead: false,
       createdAt: new Date('2026-08-19T08:00:00Z'),
     },
@@ -1797,11 +1995,15 @@ If pixel brightness variance indicates harsh glare over the central bounding box
   console.log('   2. [PO]           po@assist.id        (Fajar)');
   console.log('   3. [Dev BE]       dev.be@assist.id    (Indra)');
   console.log('   4. [Dev FE]       dev.fe@assist.id    (Iwal)');
-  console.log('   5. [QA Lead]      qa@assist.id        (Depi)');
+  console.log('   5. [Dev Mobile]   dev.mobile@assist.id (Nadia)');
+  console.log('   6. [Dev Fullstack] dev.fullstack@assist.id (Raka)');
+  console.log('   7. [QA Lead]      qa@assist.id        (Depi)');
   console.log('------------------------------------------------------');
   console.log('🏢 Workspace: Fintech Ecosystem & Core Banking Platform');
   console.log('📁 Hierarchical Folders: 4 Level-1 Epics, 7 Feature Subfolders');
-  console.log('🎯 Tasks & Subtasks: Full lifecycle across Backend, Frontend, and QA');
+  console.log(
+    '🎯 Tasks & Subtasks: Full lifecycle across Backend, Frontend, Mobile, Fullstack, and QA',
+  );
   console.log('📎 Image Attachments: Real SVG diagrams created and linked on disk');
   console.log('💬 Discussions: Multi-turn threaded debates with @mentions');
   console.log('📋 Traceability: Requirements, Test Cases & QA Markdown Plans');
@@ -1810,7 +2012,10 @@ If pixel brightness variance indicates harsh glare over the central bounding box
   await sequelize.close();
 }
 
-if (process.argv[1]?.endsWith('seedFullTestData.ts') || process.argv[1]?.endsWith('seedFullTestData.js')) {
+if (
+  process.argv[1]?.endsWith('seedFullTestData.ts') ||
+  process.argv[1]?.endsWith('seedFullTestData.js')
+) {
   seedFullTestData().catch((err) => {
     console.error('❌ Error executing seedFullTestData:', err);
     process.exit(1);

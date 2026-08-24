@@ -1,6 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { workspaceService, WorkspaceItem, WorkspaceMemberItem } from '../lib/api/workspaceService';
-import { CreateWorkspaceInput, UpdateWorkspaceInput, AddWorkspaceMemberInput, AssignableWorkspaceRole } from '@qlick/contracts';
+import {
+  CreateWorkspaceInput,
+  UpdateWorkspaceInput,
+  AddWorkspaceMemberInput,
+  UpdateMemberRoleInput,
+} from '@qlick/contracts';
 
 interface WorkspaceState {
   workspaces: WorkspaceItem[];
@@ -22,46 +27,51 @@ const initialState: WorkspaceState = {
   error: null,
 };
 
-export const fetchWorkspaces = createAsyncThunk(
-  'workspace/fetchWorkspaces',
-  async () => {
-    return await workspaceService.getWorkspaces();
-  }
-);
+export const fetchWorkspaces = createAsyncThunk('workspace/fetchWorkspaces', async () => {
+  return await workspaceService.getWorkspaces();
+});
 
 export const createWorkspace = createAsyncThunk(
   'workspace/createWorkspace',
   async (input: CreateWorkspaceInput) => {
     return await workspaceService.createWorkspace(input);
-  }
+  },
 );
 
 export const updateWorkspace = createAsyncThunk(
   'workspace/updateWorkspace',
   async ({ workspaceId, input }: { workspaceId: string; input: UpdateWorkspaceInput }) => {
     return await workspaceService.updateWorkspace(workspaceId, input);
-  }
+  },
 );
 
 export const fetchMembers = createAsyncThunk(
   'workspace/fetchMembers',
   async (workspaceId: string) => {
     return await workspaceService.getMembers(workspaceId);
-  }
+  },
 );
 
 export const addMember = createAsyncThunk(
   'workspace/addMember',
   async ({ workspaceId, input }: { workspaceId: string; input: AddWorkspaceMemberInput }) => {
     return await workspaceService.addMember(workspaceId, input);
-  }
+  },
 );
 
 export const updateMemberRole = createAsyncThunk(
   'workspace/updateMemberRole',
-  async ({ workspaceId, memberUserId, role }: { workspaceId: string; memberUserId: string; role: AssignableWorkspaceRole }) => {
-    return await workspaceService.updateMemberRole(workspaceId, memberUserId, role);
-  }
+  async ({
+    workspaceId,
+    memberUserId,
+    input,
+  }: {
+    workspaceId: string;
+    memberUserId: string;
+    input: UpdateMemberRoleInput;
+  }) => {
+    return await workspaceService.updateMemberRole(workspaceId, memberUserId, input);
+  },
 );
 
 export const removeMember = createAsyncThunk(
@@ -69,7 +79,7 @@ export const removeMember = createAsyncThunk(
   async ({ workspaceId, memberUserId }: { workspaceId: string; memberUserId: string }) => {
     await workspaceService.removeMember(workspaceId, memberUserId);
     return memberUserId;
-  }
+  },
 );
 
 const workspaceSlice = createSlice({
@@ -98,7 +108,7 @@ const workspaceSlice = createSlice({
         state.isLoading = false;
         state.isInitialized = true;
         state.workspaces = action.payload;
-        
+
         // Ensure activeWorkspaceId is valid and exists in user's memberships
         const isValidActive = action.payload.some((w) => w.id === state.activeWorkspaceId);
         if (!isValidActive) {
@@ -143,7 +153,7 @@ const workspaceSlice = createSlice({
       .addCase(updateMemberRole.fulfilled, (state, action) => {
         const index = state.members.findIndex((m) => m.userId === action.payload.userId);
         if (index !== -1) {
-          state.members[index].role = action.payload.role;
+          state.members[index] = { ...state.members[index], ...action.payload };
         }
       })
       .addCase(removeMember.fulfilled, (state, action) => {

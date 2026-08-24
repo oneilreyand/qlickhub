@@ -30,19 +30,17 @@ describe('EmptyWorkspaceOnboarding Organism', () => {
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', CREATE_WORKSPACE_ILLUSTRATION_URL);
     expect(CREATE_WORKSPACE_ILLUSTRATION_URL).toBe(
-      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020941/create_workspace.png'
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020941/create_workspace.png',
     );
 
     expect(
-      screen.getByRole('heading', { name: /create your first workspace/i })
+      screen.getByRole('heading', { name: /create your first workspace/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /create workspace/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /create workspace/i })).toBeInTheDocument();
   });
 
-  it('opens create workspace modal when button is clicked by permitted role', () => {
-    localStorage.setItem('user_role', 'qa');
+  it('opens create workspace modal when button is clicked by a permitted role', () => {
+    localStorage.setItem('user_role', 'po');
     renderWithProviders(<EmptyWorkspaceOnboarding />);
 
     const createBtn = screen.getByRole('button', { name: /create workspace/i });
@@ -51,18 +49,21 @@ describe('EmptyWorkspaceOnboarding Organism', () => {
     expect(screen.getByLabelText(/workspace name/i)).toBeInTheDocument();
   });
 
+  it('does not offer workspace creation to QA', () => {
+    localStorage.setItem('user_role', 'qa');
+    renderWithProviders(<EmptyWorkspaceOnboarding />);
+
+    expect(screen.getByRole('heading', { name: /no workspace assigned yet/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /check again/i })).toBeInTheDocument();
+  });
+
   it('renders no workspace assigned state for member/dev roles without create button', () => {
     localStorage.setItem('user_role', 'dev');
     renderWithProviders(<EmptyWorkspaceOnboarding />);
 
-    expect(
-      screen.getByRole('heading', { name: /no workspace assigned yet/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /^create workspace$/i })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /check again/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /no workspace assigned yet/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /check again/i })).toBeInTheDocument();
   });
 });

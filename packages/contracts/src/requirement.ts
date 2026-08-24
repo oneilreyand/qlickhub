@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TaskStatusSchema, DeliveryAreaSchema } from './task.js';
 
 export const RequirementStatusSchema = z.enum(['draft', 'active', 'deprecated']);
 export type RequirementStatus = z.infer<typeof RequirementStatusSchema>;
@@ -27,6 +28,98 @@ export const CreateRequirementSchema = z.object({
 });
 
 export type CreateRequirementInput = z.infer<typeof CreateRequirementSchema>;
+
+export const UpdateRequirementSchema = z
+  .object({
+    code: z.string().min(2).max(50).trim().optional(),
+    title: z.string().min(1).max(255).trim().optional(),
+    description: z.string().nullable().optional(),
+    url: z.string().url().nullable().optional(),
+    status: RequirementStatusSchema.optional(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided for update.',
+  });
+
+export type UpdateRequirementInput = z.infer<typeof UpdateRequirementSchema>;
+
+export const AcceptanceCriterionStatusSchema = z.enum(['active', 'deprecated']);
+export type AcceptanceCriterionStatus = z.infer<typeof AcceptanceCriterionStatusSchema>;
+
+export const AcceptanceCriterionSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  requirementId: z.string().uuid(),
+  sequence: z.number().int().positive(),
+  code: z.string().regex(/^AC-[1-9]\d*$/),
+  text: z.string().min(1).trim(),
+  status: AcceptanceCriterionStatusSchema,
+  createdBy: z.string().uuid(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type AcceptanceCriterion = z.infer<typeof AcceptanceCriterionSchema>;
+
+export const CreateAcceptanceCriterionSchema = z
+  .object({
+    workspaceId: z.string().uuid(),
+    requirementId: z.string().uuid(),
+    text: z.string().min(1).trim(),
+    sequence: z.number().int().positive().optional(),
+  })
+  .strict();
+
+export type CreateAcceptanceCriterionInput = z.infer<typeof CreateAcceptanceCriterionSchema>;
+
+export const UpdateAcceptanceCriterionSchema = z
+  .object({
+    text: z.string().min(1).trim().optional(),
+    sequence: z.number().int().positive().optional(),
+    status: AcceptanceCriterionStatusSchema.optional(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided for update.',
+  });
+
+export type UpdateAcceptanceCriterionInput = z.infer<typeof UpdateAcceptanceCriterionSchema>;
+
+export const RequirementLinkedTaskSchema = z.object({
+  taskId: z.string().uuid(),
+  title: z.string(),
+  status: TaskStatusSchema,
+  deliveryArea: DeliveryAreaSchema.nullable().optional(),
+});
+
+export type RequirementLinkedTask = z.infer<typeof RequirementLinkedTaskSchema>;
+
+export const RequirementDetailResponseSchema = z.object({
+  requirement: RequirementSchema,
+  linkedTasks: z.array(RequirementLinkedTaskSchema),
+  acceptanceCriteria: z.array(AcceptanceCriterionSchema).default([]),
+});
+
+export type RequirementDetailResponse = z.infer<typeof RequirementDetailResponseSchema>;
+
+export const RequirementResponseSchema = z.object({
+  requirement: RequirementSchema,
+});
+
+export type RequirementResponse = z.infer<typeof RequirementResponseSchema>;
+
+export const AcceptanceCriterionResponseSchema = z.object({
+  acceptanceCriterion: AcceptanceCriterionSchema,
+});
+
+export type AcceptanceCriterionResponse = z.infer<typeof AcceptanceCriterionResponseSchema>;
+
+export const AcceptanceCriterionListResponseSchema = z.object({
+  acceptanceCriteria: z.array(AcceptanceCriterionSchema),
+});
+
+export type AcceptanceCriterionListResponse = z.infer<typeof AcceptanceCriterionListResponseSchema>;
 
 export const TaskRequirementLinkSchema = z.object({
   id: z.string().uuid(),

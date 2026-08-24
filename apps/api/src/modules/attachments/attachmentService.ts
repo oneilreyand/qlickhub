@@ -3,6 +3,7 @@ import {
   TaskAttachmentModel,
   TaskModel,
   TaskActivityModel,
+  TestResultEvidenceModel,
   WorkspaceMemberModel,
   WorkspaceModel,
 } from '../../db/models/index.js';
@@ -46,7 +47,7 @@ export class AttachmentService {
   async listTaskAttachments(
     workspaceId: string,
     taskId: string,
-    actorId: string
+    actorId: string,
   ): Promise<TaskAttachment[]> {
     const member = await getActorMembership(workspaceId, actorId);
     assertCanReadAttachments(member.role);
@@ -77,7 +78,7 @@ export class AttachmentService {
       size: number;
       category: AttachmentCategory;
       caption?: string;
-    }
+    },
   ): Promise<TaskAttachment> {
     const member = await getActorMembership(workspaceId, actorId);
     const workspace = await WorkspaceModel.findByPk(workspaceId);
@@ -93,7 +94,7 @@ export class AttachmentService {
       member.role,
       actorId,
       { parentTaskId: task.parentTaskId, assigneeId: task.assigneeId },
-      workspace?.allowQaTaskCreation ?? true
+      workspace?.allowQaTaskCreation ?? true,
     );
 
     const stored = await storageService.saveFile({
@@ -120,7 +121,7 @@ export class AttachmentService {
             caption: file.caption || null,
             uploaderId: actorId,
           },
-          { transaction }
+          { transaction },
         );
 
         await TaskActivityModel.create(
@@ -138,7 +139,7 @@ export class AttachmentService {
               storageProvider: attachment.storageProvider,
             },
           },
-          { transaction }
+          { transaction },
         );
 
         return formatAttachment(attachment);
@@ -157,7 +158,7 @@ export class AttachmentService {
     workspaceId: string,
     taskId: string,
     attachmentId: string,
-    actorId: string
+    actorId: string,
   ): Promise<{ attachment: TaskAttachment; stream: import('node:stream').Readable }> {
     const member = await getActorMembership(workspaceId, actorId);
     assertCanReadAttachments(member.role);
@@ -186,29 +187,34 @@ export class AttachmentService {
     workspaceId: string,
     taskId: string,
     attachmentId: string,
-    actorId: string
-  ): Promise<{ success: boolean }> {
+    actorId: string,
+  ): Promise<{ success: boolean; storageCleanupPending: boolean }> {
     const member = await getActorMembership(workspaceId, actorId);
-    const attachment = await TaskAttachmentModel.findOne({
-      where: { id: attachmentId, workspaceId, taskId },
-    });
+    const storageTarget = await sequelize.transaction(async (transaction) => {
+      const attachment = await TaskAttachmentModel.findOne({
+        where: { id: attachmentId, workspaceId, taskId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
 
-    if (!attachment) {
-      throw new Error('NOT_FOUND: Attachment evidence not found.');
-    }
+      if (!attachment) {
+        throw new Error('NOT_FOUND: Attachment evidence not found.');
+      }
 
-    assertCanDeleteAttachment(member.role, actorId, { uploaderId: attachment.uploaderId });
+      const evidenceLink = await TestResultEvidenceModel.findOne({
+        where: { workspaceId, attachmentId },
+        attributes: ['attachmentId'],
+        transaction,
+      });
 
-    await storageService.deleteFile({
-      provider: attachment.storageProvider,
-      storageRef: attachment.storageRef,
-      providerFileId: attachment.providerFileId,
-    });
+      assertCanDeleteAttachment(member.role, actorId, {
+        uploaderId: attachment.uploaderId,
+        category: attachment.category,
+        isLinkedToTestResult: Boolean(evidenceLink),
+      });
 
-    await sequelize.transaction(async (transaction) => {
       await attachment.destroy({ transaction });
 
-      // Record Activity audit log in transaction
       await TaskActivityModel.create(
         {
           workspaceId,
@@ -221,11 +227,31 @@ export class AttachmentService {
             category: attachment.category,
           },
         },
-        { transaction }
+        { transaction },
       );
+
+      return {
+        provider: attachment.storageProvider,
+        storageRef: attachment.storageRef,
+        providerFileId: attachment.providerFileId,
+      };
     });
 
-    return { success: true };
+    let storageCleanupPending = false;
+    try {
+      await storageService.deleteFile(storageTarget);
+    } catch (error) {
+      storageCleanupPending = true;
+      console.error('Attachment metadata deleted but storage cleanup is pending.', {
+        workspaceId,
+        taskId,
+        attachmentId,
+        provider: storageTarget.provider,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    return { success: true, storageCleanupPending };
   }
 }
 

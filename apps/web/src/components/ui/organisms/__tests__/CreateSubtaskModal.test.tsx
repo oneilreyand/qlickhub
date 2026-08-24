@@ -66,12 +66,17 @@ describe('CreateSubtaskModal UI Component', () => {
           onClose={vi.fn()}
           onCreated={vi.fn()}
         />
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.getByText(/Plan Subtask — Parent Task for Planning Subtask/)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Implement API contracts/)).toBeInTheDocument();
     expect(screen.getByText(/Delivery Area/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Frontend/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Backend/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Mobile/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Fullstack/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /QA Testing/ })).toBeInTheDocument();
     expect(screen.getByLabelText('Assignee')).toBeInTheDocument();
     expect(screen.getByText('Create Subtask')).toBeInTheDocument();
   });

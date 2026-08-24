@@ -1,15 +1,15 @@
 import React from 'react';
-import { fireEvent, render, screen, act } from '@testing-library/react';
+import { fireEvent, render, screen, act, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { SubtaskList } from '../SubtaskList';
+import { taskService } from '../../../../lib/api/taskService';
 import taskReducer from '../../../../store/taskSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
 import type { Task } from '@qlick/contracts';
-
 
 import { realtimeManager } from '../../../../hooks/useRealtimeEvents';
 
@@ -49,6 +49,7 @@ vi.mock('../../../../lib/api/taskService', () => ({
     deleteTaskComment: vi.fn(),
     updateTask: vi.fn(),
     completeTask: vi.fn(),
+    deleteTask: vi.fn(),
   },
 }));
 
@@ -127,6 +128,8 @@ describe('SubtaskList Organism Component', () => {
   let originalEventSource: any;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(taskService.deleteTask).mockResolvedValue({ success: true });
     realtimeManager.disconnect();
     MockEventSource.instances = [];
     originalEventSource = (global as any).EventSource;
@@ -145,7 +148,7 @@ describe('SubtaskList Organism Component', () => {
         workspaceId="ws-1"
         members={mockMembers}
         canPlan={true}
-      />
+      />,
     );
 
     expect(screen.getByText(/Direct Subtasks \(3\)/i)).toBeInTheDocument();
@@ -157,11 +160,7 @@ describe('SubtaskList Organism Component', () => {
 
   it('filters subtasks by delivery area when clicking area filter chips', () => {
     renderWithStore(
-      <SubtaskList
-        subtasks={mockSubtasks}
-        workspaceId="ws-1"
-        members={mockMembers}
-      />
+      <SubtaskList subtasks={mockSubtasks} workspaceId="ws-1" members={mockMembers} />,
     );
 
     expect(screen.getByText('Build Subtask Accordion UI')).toBeInTheDocument();
@@ -186,7 +185,7 @@ describe('SubtaskList Organism Component', () => {
         workspaceId="ws-1"
         canPlan={true}
         onOpenCreateModal={onOpenCreateModal}
-      />
+      />,
     );
 
     expect(screen.getByText(/No subtasks created under this task/i)).toBeInTheDocument();
@@ -199,11 +198,7 @@ describe('SubtaskList Organism Component', () => {
 
   it('expands accordion item when clicking subtask row and reveals inner workspace', async () => {
     renderWithStore(
-      <SubtaskList
-        subtasks={mockSubtasks}
-        workspaceId="ws-1"
-        members={mockMembers}
-      />
+      <SubtaskList subtasks={mockSubtasks} workspaceId="ws-1" members={mockMembers} />,
     );
 
     const subtaskTitle = screen.getByText('Build Subtask Accordion UI');
@@ -230,7 +225,7 @@ describe('SubtaskList Organism Component', () => {
         workspaceId="ws-1"
         currentUserId="user-fe"
         members={mockMembers}
-      />
+      />,
     );
 
     // Initial state: no unread badge
@@ -260,5 +255,91 @@ describe('SubtaskList Organism Component', () => {
 
     // The subtask row should now display the animated unread badge: "+1 Baru"
     expect(await screen.findByText(/\+1 Baru/i)).toBeInTheDocument();
+  });
+
+  it('lets a planner confirm deletion of one Subtask and refreshes the parent list', async () => {
+    const onSubtaskDeleted = vi.fn();
+    const plannerMembers = [
+      ...mockMembers,
+      { userId: 'user-po', role: 'po', user: { name: 'Product Owner', email: 'po@qa.com' } },
+    ];
+    renderWithStore(
+      <SubtaskList
+        subtasks={mockSubtasks}
+        workspaceId="ws-1"
+        currentUserId="user-po"
+        members={plannerMembers}
+        canPlan={true}
+        onSubtaskDeleted={onSubtaskDeleted}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('Build Subtask Accordion UI').closest('button')!);
+    fireEvent.click(await screen.findByRole('button', { name: /^details$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Subtask' }));
+
+    const confirmation = await screen.findByRole('dialog', { name: 'Delete subtask?' });
+    expect(
+      within(confirmation).getByText(
+        /Requirement\/document links and removable attachments must be cleared first/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(confirmation).getByText(
+        /immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion/i,
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Delete Subtask' }));
+
+    await waitFor(() => {
+      expect(taskService.deleteTask).toHaveBeenCalledWith('ws-1', 'sub-fe-1');
+      expect(onSubtaskDeleted).toHaveBeenCalledWith('sub-fe-1');
+    });
+    expect(screen.queryByRole('dialog', { name: 'Delete subtask?' })).not.toBeInTheDocument();
+  });
+
+  it('hides Subtask deletion from non-planners and keeps confirmation open on API failure', async () => {
+    const onSubtaskDeleted = vi.fn();
+    const plannerMembers = [
+      ...mockMembers,
+      { userId: 'user-po', role: 'po', user: { name: 'Product Owner', email: 'po@qa.com' } },
+    ];
+
+    const firstRender = renderWithStore(
+      <SubtaskList
+        subtasks={mockSubtasks}
+        workspaceId="ws-1"
+        currentUserId="user-fe"
+        members={mockMembers}
+        canPlan={false}
+      />,
+    );
+    fireEvent.click(screen.getByText('Build Subtask Accordion UI').closest('button')!);
+    fireEvent.click(await screen.findByRole('button', { name: /^details$/i }));
+    expect(screen.queryByRole('button', { name: 'Delete Subtask' })).not.toBeInTheDocument();
+    firstRender.unmount();
+
+    vi.mocked(taskService.deleteTask).mockRejectedValueOnce(
+      new Error('Delete subtask request failed'),
+    );
+    renderWithStore(
+      <SubtaskList
+        subtasks={mockSubtasks}
+        workspaceId="ws-1"
+        currentUserId="user-po"
+        members={plannerMembers}
+        canPlan={true}
+        onSubtaskDeleted={onSubtaskDeleted}
+      />,
+    );
+    fireEvent.click(screen.getByText('Build Subtask Accordion UI').closest('button')!);
+    fireEvent.click(await screen.findByRole('button', { name: /^details$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Subtask' }));
+    const confirmation = await screen.findByRole('dialog', { name: 'Delete subtask?' });
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Delete Subtask' }));
+
+    await waitFor(() => expect(taskService.deleteTask).toHaveBeenCalledWith('ws-1', 'sub-fe-1'));
+    expect(onSubtaskDeleted).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Delete subtask?' })).toBeInTheDocument();
   });
 });

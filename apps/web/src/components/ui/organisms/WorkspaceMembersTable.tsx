@@ -1,6 +1,6 @@
 import React from 'react';
 import { Users, UserPlus, Shield, Trash2, Key } from 'lucide-react';
-import { AssignableWorkspaceRole } from '@qlick/contracts';
+import { AssignableWorkspaceRole, DeveloperSpecialty } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { Button } from '../atoms/Button';
 import { Badge, BadgeProps } from '../atoms/Badge';
@@ -17,14 +17,24 @@ const roleLabels: Record<string, { label: string; variant: BadgeProps['variant']
   qa: { label: 'QA Engineer', variant: 'draft' },
 };
 
+const developerSpecialties: DeveloperSpecialty[] = ['frontend', 'backend', 'mobile', 'fullstack'];
+const developerSpecialtyLabels: Record<DeveloperSpecialty, string> = {
+  frontend: 'FE',
+  backend: 'BE',
+  mobile: 'MOB',
+  fullstack: 'FS',
+};
+
 export interface WorkspaceMembersTableProps {
   members: WorkspaceMemberItem[];
   isLoading: boolean;
   canManageMembers: boolean;
+  managerRole: 'owner' | 'admin' | null;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onInviteClick: () => void;
   onRoleChange: (memberUserId: string, newRole: AssignableWorkspaceRole) => void;
+  onSpecialtiesChange?: (memberUserId: string, specialties: DeveloperSpecialty[]) => void;
   onRemoveMember: (memberUserId: string, memberEmail: string) => void;
   onResetPasswordClick: (user: { id: string; name: string; email: string }) => void;
 }
@@ -33,10 +43,12 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
   members,
   isLoading,
   canManageMembers,
+  managerRole,
   searchQuery,
   onSearchChange,
   onInviteClick,
   onRoleChange,
+  onSpecialtiesChange,
   onRemoveMember,
   onResetPasswordClick,
 }) => {
@@ -44,8 +56,74 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
     const query = searchQuery.toLowerCase();
     const email = m.user?.email.toLowerCase() || '';
     const name = m.user?.name.toLowerCase() || '';
-    return email.includes(query) || name.includes(query) || m.role.includes(query);
+    return (
+      email.includes(query) ||
+      name.includes(query) ||
+      m.role.includes(query) ||
+      (m.specialties || []).some((specialty) => specialty.includes(query))
+    );
   });
+
+  const canRemoveMember = (memberRole: WorkspaceMemberItem['role']) => {
+    if (managerRole === 'owner') return memberRole !== 'owner';
+    if (managerRole === 'admin') return !['owner', 'admin'].includes(memberRole);
+    return false;
+  };
+
+  const renderSpecialties = (member: WorkspaceMemberItem) => {
+    if (member.role !== 'dev')
+      return <span className="text-[11px] text-stone-400">Not applicable</span>;
+    const memberSpecialties = member.specialties || [];
+    if (!canManageMembers) {
+      return memberSpecialties.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {memberSpecialties.map((specialty) => (
+            <Badge key={specialty} variant="neutral" size="sm">
+              {specialty}
+            </Badge>
+          ))}
+        </div>
+      ) : (
+        <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+          Unclassified Developer
+        </span>
+      );
+    }
+    return (
+      <div
+        className="flex flex-wrap gap-1"
+        aria-label={`Developer specialties for ${member.user?.name || member.user?.email || 'member'}`}
+      >
+        {developerSpecialties.map((specialty) => {
+          const selected = memberSpecialties.includes(specialty);
+          return (
+            <button
+              key={specialty}
+              type="button"
+              aria-pressed={selected}
+              aria-label={`Toggle ${specialty} specialty for ${member.user?.name || member.user?.email || 'member'}`}
+              disabled={selected && memberSpecialties.length === 1}
+              onClick={() =>
+                onSpecialtiesChange?.(
+                  member.userId,
+                  selected
+                    ? memberSpecialties.filter((item) => item !== specialty)
+                    : [...memberSpecialties, specialty],
+                )
+              }
+              className={`min-h-11 rounded-lg border px-2 text-[10px] font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B1E743] disabled:cursor-not-allowed disabled:opacity-60 ${
+                selected
+                  ? 'border-[#B1E743] bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743]'
+                  : 'border-stone-200 text-stone-500 dark:border-stone-700 dark:text-stone-400'
+              }`}
+            >
+              {developerSpecialtyLabels[specialty]}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <Card className="p-5">
@@ -60,7 +138,11 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
             </span>
           </h2>
           <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
-            Assigned workspace roles: <span className="font-semibold text-stone-700 dark:text-stone-300">Owner, Admin, PO, Dev, QA</span>.
+            Assigned workspace roles:{' '}
+            <span className="font-semibold text-stone-700 dark:text-stone-300">
+              Owner, Admin, PO, Dev, QA
+            </span>
+            .
           </p>
         </div>
 
@@ -115,7 +197,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                     </div>
                   </div>
 
-                  {canManageMembers && member.role !== 'owner' && (
+                  {canRemoveMember(member.role) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -136,7 +218,9 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                     {canManageMembers && member.role !== 'owner' ? (
                       <select
                         value={member.role}
-                        onChange={(e) => onRoleChange(member.userId, e.target.value as AssignableWorkspaceRole)}
+                        onChange={(e) =>
+                          onRoleChange(member.userId, e.target.value as AssignableWorkspaceRole)
+                        }
                         className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-stone-800 outline-none focus:ring-2 focus:ring-[#22201F]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
                       >
                         <option value="admin">Admin</option>
@@ -145,11 +229,21 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                         <option value="qa">QA Engineer (QA)</option>
                       </select>
                     ) : (
-                      <Badge variant={roleConfig.variant} size="sm" icon={<Shield className="h-3 w-3" />}>
+                      <Badge
+                        variant={roleConfig.variant}
+                        size="sm"
+                        icon={<Shield className="h-3 w-3" />}
+                      >
                         {roleConfig.label}
                       </Badge>
                     )}
                   </div>
+                </div>
+                <div className="border-t border-stone-100 pt-2 dark:border-stone-800">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">
+                    Developer specialties
+                  </p>
+                  {renderSpecialties(member)}
                 </div>
               </Card>
             );
@@ -166,6 +260,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
             <tr className="border-b border-stone-200 bg-stone-50/50 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:border-stone-800 dark:bg-stone-800/40 dark:text-stone-400">
               <th className="py-3 px-3">User</th>
               <th className="py-3 px-3">Workspace Role</th>
+              <th className="py-3 px-3">Developer Specialties</th>
               <th className="py-3 px-3">Joined Date</th>
               <th className="py-3 px-3 text-right">Actions</th>
             </tr>
@@ -185,6 +280,9 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                   </td>
                   <td className="py-3.5 px-3">
                     <Skeleton variant="text" className="h-6 w-16 rounded-full" />
+                  </td>
+                  <td className="py-3.5 px-3">
+                    <Skeleton variant="text" className="h-6 w-28 rounded-full" />
                   </td>
                   <td className="py-3.5 px-3">
                     <Skeleton variant="text" className="h-4 w-20" />
@@ -219,7 +317,9 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                       {canManageMembers && member.role !== 'owner' ? (
                         <select
                           value={member.role}
-                          onChange={(e) => onRoleChange(member.userId, e.target.value as AssignableWorkspaceRole)}
+                          onChange={(e) =>
+                            onRoleChange(member.userId, e.target.value as AssignableWorkspaceRole)
+                          }
                           className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-stone-800 outline-none focus:ring-2 focus:ring-[#22201F]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
                         >
                           <option value="admin">Admin</option>
@@ -228,11 +328,17 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                           <option value="qa">QA Engineer (QA)</option>
                         </select>
                       ) : (
-                        <Badge variant={roleConfig.variant} size="sm" icon={<Shield className="h-3 w-3" />}>
+                        <Badge
+                          variant={roleConfig.variant}
+                          size="sm"
+                          icon={<Shield className="h-3 w-3" />}
+                        >
                           {roleConfig.label}
                         </Badge>
                       )}
                     </td>
+
+                    <td className="py-3.5 px-3">{renderSpecialties(member)}</td>
 
                     <td className="py-3.5 px-3 text-stone-500 dark:text-stone-400 text-[11px]">
                       {new Date(member.joinedAt).toLocaleDateString()}
@@ -256,15 +362,19 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                           >
                             <Key className="h-4 w-4 text-amber-500" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onRemoveMember(member.userId, u?.email || 'this member')}
-                            title="Remove Member"
-                            aria-label="Remove member"
-                          >
-                            <Trash2 className="h-4 w-4 text-rose-500" />
-                          </Button>
+                          {canRemoveMember(member.role) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                onRemoveMember(member.userId, u?.email || 'this member')
+                              }
+                              title="Remove Member"
+                              aria-label="Remove member"
+                            >
+                              <Trash2 className="h-4 w-4 text-rose-500" />
+                            </Button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -273,7 +383,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
               })
             ) : (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-stone-400">
+                <td colSpan={5} className="py-8 text-center text-stone-400">
                   No team members match your search criteria.
                 </td>
               </tr>

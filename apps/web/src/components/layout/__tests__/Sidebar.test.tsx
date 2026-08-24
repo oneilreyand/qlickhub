@@ -11,7 +11,7 @@ import uiReducer from '../../../store/uiSlice';
 import workspaceReducer from '../../../store/workspaceSlice';
 import { Sidebar } from '../Sidebar';
 
-function renderSidebar(role: 'owner' | 'admin' | 'po' | 'dev' | 'qa') {
+function renderSidebar(role: 'owner' | 'admin' | 'po' | 'dev' | 'qa', initialPath = '/work') {
   const store = configureStore({
     reducer: {
       auth: authReducer,
@@ -59,11 +59,11 @@ function renderSidebar(role: 'owner' | 'admin' | 'po' | 'dev' | 'qa') {
 
   return render(
     <Provider store={store}>
-      <MemoryRouter initialEntries={['/work']}>
+      <MemoryRouter initialEntries={[initialPath]}>
         {/* Pass onCloseMobile so isExpanded is true and labels/links render fully */}
         <Sidebar onCloseMobile={vi.fn()} />
       </MemoryRouter>
-    </Provider>
+    </Provider>,
   );
 }
 
@@ -94,5 +94,14 @@ describe('Sidebar Role-based Visibility', () => {
     expect(screen.getByText('Workspace Settings')).toBeInTheDocument();
     expect(screen.getByText('Component Gallery')).toBeInTheDocument();
     unmountPo();
+  });
+
+  it('keeps Work Hub active on a canonical task deep link', () => {
+    renderSidebar(
+      'dev',
+      '/projects/10000000-0000-4000-8000-000000000001/tasks/10000000-0000-4000-8000-000000000002',
+    );
+
+    expect(screen.getByRole('link', { name: 'Work Hub' })).toHaveClass('bg-[#B1E743]');
   });
 });

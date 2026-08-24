@@ -3,6 +3,7 @@ import { authenticate } from '../../http/middleware/authenticate.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import {
   getTraceabilitySummary,
+  getParentTaskDeliveryTrace,
   listRequirementTestCases,
   createRequirementTestCase,
   updateTestCaseStatus,
@@ -16,24 +17,36 @@ traceabilityRoutes.use(authenticate);
 traceabilityRoutes.get(
   '/workspaces/:workspaceId/traceability',
   requireWorkspaceMember(),
-  getTraceabilitySummary
+  getTraceabilitySummary,
+);
+
+traceabilityRoutes.get(
+  '/workspaces/:workspaceId/tasks/:taskId/delivery-trace',
+  requireWorkspaceMember(),
+  getParentTaskDeliveryTrace,
 );
 
 // Requirement Test Cases endpoints
 traceabilityRoutes.get(
   '/workspaces/:workspaceId/requirements/:requirementId/test-cases',
   requireWorkspaceMember(),
-  listRequirementTestCases
+  listRequirementTestCases,
 );
 
 traceabilityRoutes.post(
   '/workspaces/:workspaceId/requirements/:requirementId/test-cases',
   requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
-  createRequirementTestCase
+  createRequirementTestCase,
 );
 
 traceabilityRoutes.patch(
-  '/workspaces/:workspaceId/test-cases/:testCaseId',
+  '/workspaces/:workspaceId/requirements/:requirementId/test-cases/:testCaseId',
   requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
-  updateTestCaseStatus
+  updateTestCaseStatus,
+);
+
+traceabilityRoutes.patch(
+  '/workspaces/:workspaceId/requirement-test-cases/:testCaseId',
+  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  updateTestCaseStatus,
 );
