@@ -2,26 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   CheckCircle2,
   RotateCcw,
-  Plus,
   MessageSquare,
   History,
   ListTodo,
   FileText,
   Trash2,
   FileCode2,
-  Clock,
-  AlertCircle,
-  AlertTriangle,
-  User,
-  Folder,
-  Calendar,
-  Code2,
-  Layers,
-  Smartphone,
-  Cpu,
   Bug,
-  TrendingUp,
-  Lock,
   Route,
 } from 'lucide-react';
 
@@ -39,28 +26,23 @@ import type {
 } from '@qlick/contracts';
 
 import { Drawer } from '../molecules/Drawer';
-import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
-import { Card } from '../atoms/Card';
-import { Input } from '../atoms/Input';
-import { Select } from '../atoms/Select';
-import { RichTextEditor } from '../molecules/RichTextEditor';
 import { TaskCommentBox } from '../molecules/TaskCommentBox';
 import { Tabs, TabItem } from '../molecules/Tabs';
-import { ReleaseReadinessSignal } from '../molecules/ReleaseReadinessSignal';
 import { TaskHierarchyBreadcrumb } from '../molecules/TaskHierarchyBreadcrumb';
-
-import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
-import { TaskScheduleHealthBadge } from '../molecules/TaskScheduleHealthBadge';
-import { calculateRoleOverlapAndBottlenecks } from '../../../lib/utils/scheduleHealth';
-import { Skeleton } from '../atoms/Skeleton';
-import { Alert } from '../atoms/Alert';
-import { IconButton } from '../atoms/IconButton';
 import { CreateSubtaskModal } from './CreateSubtaskModal';
 import { SubtaskList } from './SubtaskList';
-import { RequirementManager } from './RequirementManager';
 import { TaskDeliveryTracePanel } from './TaskDeliveryTracePanel';
 import { BugExperiencePanel } from './BugExperiencePanel';
+import {
+  TaskDetailOverviewTab,
+  TaskDetailSpecsTab,
+  TaskDetailActivityTab,
+  TaskDeleteConfirmationModal,
+  TaskCreateQaDocModal,
+  EMPTY_ACTIVITY_ILLUSTRATION_URL,
+} from './taskDetail';
+
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateTask, moveTask, completeTask } from '../../../store/taskSlice';
 import { enqueueSnackbar, addInAppNotification } from '../../../store/uiSlice';
@@ -78,8 +60,7 @@ export const EMPTY_DISCUSSION_ILLUSTRATION_URL =
 export const EMPTY_SUBTASKS_ILLUSTRATION_URL =
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024045/ChatGPT_Image_Aug_18_2026_10_32_51_AM.png';
 
-export const EMPTY_ACTIVITY_ILLUSTRATION_URL =
-  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024043/ChatGPT_Image_Aug_18_2026_10_33_31_AM.png';
+export { EMPTY_ACTIVITY_ILLUSTRATION_URL };
 
 const PAGE_SIZE = 50;
 
@@ -87,341 +68,7 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffSec < 60) return 'Just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHour < 24) return `${diffHour}h ago`;
-  if (diffDay === 1) return 'Yesterday';
-  if (diffDay < 7) return `${diffDay}d ago`;
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
-function getActivityIcon(action: string) {
-  if (action === 'qa.sign_off.created')
-    return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
-  if (action === 'release.decision.created')
-    return <FileText className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
-  if (action.includes('completed'))
-    return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
-  if (action.includes('status'))
-    return <Clock className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
-  if (action.includes('priority')) return <AlertCircle className="h-3.5 w-3.5 text-amber-500" />;
-  if (action.includes('assignee')) return <User className="h-3.5 w-3.5 text-blue-500" />;
-  if (action.includes('date') || action.includes('schedule'))
-    return <Calendar className="h-3.5 w-3.5 text-purple-500" />;
-  if (action.includes('moved') || action.includes('folder'))
-    return <Folder className="h-3.5 w-3.5 text-amber-500" />;
-  if (action.includes('subtask'))
-    return <ListTodo className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
-  if (action.includes('requirement') || action.includes('brief') || action.includes('spec'))
-    return <FileText className="h-3.5 w-3.5 text-emerald-500" />;
-  if (action.includes('comment')) return <MessageSquare className="h-3.5 w-3.5 text-blue-500" />;
-  return <History className="h-3.5 w-3.5 text-stone-400" />;
-}
-
-function renderHumanActivityDescription(act: TaskActivity) {
-  const meta = (act.metadataJson || {}) as Record<string, any>;
-  const action = act.action;
-  const changes = meta.changes || {};
-
-  if (action === 'qa.sign_off.created') {
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        recorded QA Sign-off as{' '}
-        <span
-          className={
-            meta.decision === 'approved'
-              ? 'font-semibold text-emerald-600 dark:text-emerald-400'
-              : 'font-semibold text-rose-600 dark:text-rose-400'
-          }
-        >
-          {meta.decision === 'approved' ? 'Approved' : 'Rejected'}
-        </span>
-      </span>
-    );
-  }
-
-  if (action === 'release.decision.created') {
-    return (
-      <span className="inline-flex flex-wrap items-center gap-1 text-stone-700 dark:text-stone-300">
-        <span>recorded Release Decision as</span>
-        <span
-          className={
-            meta.decision === 'approved'
-              ? 'font-semibold text-emerald-600 dark:text-emerald-400'
-              : 'font-semibold text-rose-600 dark:text-rose-400'
-          }
-        >
-          {meta.decision === 'approved' ? 'Approved' : 'Rejected'}
-        </span>
-        {meta.isOverride && (
-          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-            QA override
-          </span>
-        )}
-      </span>
-    );
-  }
-
-  // Status changes (task or subtask)
-  if (
-    action.includes('status_updated') ||
-    action.includes('status_changed') ||
-    action === 'task.status' ||
-    action === 'subtask.status' ||
-    Boolean(changes.status)
-  ) {
-    const oldStatus = changes.status?.old ?? meta.oldStatus ?? meta.previousStatus;
-    const newStatus = changes.status?.new ?? meta.newStatus ?? meta.status;
-
-    return (
-      <span className="inline-flex items-center gap-1.5 flex-wrap text-stone-700 dark:text-stone-300">
-        <span>changed status</span>
-        {oldStatus && (
-          <>
-            <span>from</span>
-            <TaskStatusBadge state={oldStatus} />
-          </>
-        )}
-        {newStatus && (
-          <>
-            <span>to</span>
-            <TaskStatusBadge state={newStatus} />
-          </>
-        )}
-        {meta.reviewNotes && (
-          <span className="text-[11px] italic text-rose-600 dark:text-rose-400">
-            (Review notes: &ldquo;{meta.reviewNotes}&rdquo;)
-          </span>
-        )}
-        {meta.roleMismatchOverride && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-semibold">
-            Role Override ({meta.assigneeRole})
-          </span>
-        )}
-      </span>
-    );
-  }
-
-  // Priority changes
-  if (
-    action.includes('priority_updated') ||
-    action.includes('priority_changed') ||
-    action === 'task.priority' ||
-    action === 'subtask.priority' ||
-    Boolean(changes.priority)
-  ) {
-    const oldP = changes.priority?.old ?? meta.oldPriority ?? meta.previousPriority;
-    const newP = changes.priority?.new ?? meta.newPriority ?? meta.priority;
-
-    return (
-      <span className="inline-flex items-center gap-1.5 flex-wrap text-stone-700 dark:text-stone-300">
-        <span>changed priority</span>
-        {oldP && (
-          <>
-            <span>from</span>
-            <span className="font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
-              {oldP}
-            </span>
-          </>
-        )}
-        {newP && (
-          <>
-            <span>to</span>
-            <span className="font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              {newP}
-            </span>
-          </>
-        )}
-      </span>
-    );
-  }
-
-  // Assignee changes
-  if (
-    action.includes('assignee_updated') ||
-    action.includes('assignee_changed') ||
-    Boolean(changes.assigneeId)
-  ) {
-    const newAssignee = meta.newAssigneeName || meta.assigneeName;
-    if (
-      changes.assigneeId?.new === null ||
-      (!newAssignee && changes.assigneeId && !changes.assigneeId.new)
-    ) {
-      return <span className="text-stone-700 dark:text-stone-300">unassigned this task</span>;
-    }
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        assigned task to{' '}
-        <span className="font-semibold text-stone-900 dark:text-stone-100">
-          {newAssignee || 'team member'}
-        </span>
-      </span>
-    );
-  }
-
-  // Due date changes
-  if (
-    action.includes('dueDate_updated') ||
-    action.includes('dates_changed') ||
-    action.includes('date_updated') ||
-    Boolean(changes.dueDate) ||
-    Boolean(changes.startDate)
-  ) {
-    const oldDue = changes.dueDate?.old ?? meta.oldDueDate;
-    const newDue = changes.dueDate?.new ?? meta.newDueDate ?? meta.dueDate;
-
-    if (oldDue && newDue) {
-      return (
-        <span className="text-stone-700 dark:text-stone-300">
-          changed due date from{' '}
-          <span className="font-semibold text-stone-900 dark:text-stone-100">{oldDue}</span> to{' '}
-          <span className="font-semibold text-stone-900 dark:text-stone-100">{newDue}</span>
-        </span>
-      );
-    }
-    if (newDue) {
-      return (
-        <span className="text-stone-700 dark:text-stone-300">
-          set due date to{' '}
-          <span className="font-semibold text-stone-900 dark:text-stone-100">{newDue}</span>
-        </span>
-      );
-    }
-    return <span className="text-stone-700 dark:text-stone-300">updated task schedule dates</span>;
-  }
-
-  // Title changes
-  if (action.includes('title_updated') || Boolean(changes.title)) {
-    const newTitle = changes.title?.new ?? meta.title;
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        renamed to{' '}
-        <span className="font-semibold text-stone-900 dark:text-stone-100">"{newTitle}"</span>
-      </span>
-    );
-  }
-
-  // Description changes
-  if (action.includes('description_updated') || Boolean(changes.description)) {
-    return <span className="text-stone-700 dark:text-stone-300">updated task description</span>;
-  }
-
-  // Generic multiple updates
-  if (action === 'task.updated' || action === 'subtask.updated' || action === 'updated') {
-    const changedFields = Object.keys(changes);
-    if (changedFields.length > 0) {
-      return (
-        <span className="text-stone-700 dark:text-stone-300">
-          updated {changedFields.join(', ')}
-        </span>
-      );
-    }
-    return <span className="text-stone-700 dark:text-stone-300">updated task details</span>;
-  }
-
-  // Task created
-  if (action === 'task.created' || action === 'created') {
-    return <span className="text-stone-700 dark:text-stone-300">created this task</span>;
-  }
-
-  // Subtask created
-  if (action === 'subtask.created' || action === 'subtask_created') {
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        created subtask{' '}
-        <span className="font-semibold text-stone-900 dark:text-stone-100">
-          "{meta.title || act.taskTitle || 'Subtask'}"
-        </span>
-        {meta.deliveryArea && (
-          <span className="ml-1 px-1.5 py-0.5 rounded bg-[#B1E743]/20 dark:bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] text-[10px] font-bold uppercase">
-            {meta.deliveryArea}
-          </span>
-        )}
-      </span>
-    );
-  }
-
-  // Task / Subtask completed
-  if (action.includes('completed')) {
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        marked as{' '}
-        <span className="font-semibold text-emerald-600 dark:text-emerald-400">Completed</span>
-      </span>
-    );
-  }
-
-  // Task reopened
-  if (action.includes('reopened')) {
-    return <span className="text-stone-700 dark:text-stone-300">reopened this task</span>;
-  }
-
-  // Task / Subtask moved
-  if (action.includes('moved')) {
-    const folderName = meta.targetFolderName || meta.newFolderName || 'another folder';
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        moved to folder{' '}
-        <span className="font-semibold text-stone-900 dark:text-stone-100">{folderName}</span>
-      </span>
-    );
-  }
-
-  // Requirement linked/unlinked
-  if (action === 'requirement.linked' || action === 'requirement_linked') {
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        linked requirement{' '}
-        <span className="font-semibold text-stone-900 dark:text-stone-100">
-          [{meta.code || 'REQ'}] {meta.title || ''}
-        </span>
-      </span>
-    );
-  }
-  if (action === 'requirement.unlinked' || action === 'requirement_unlinked') {
-    return <span className="text-stone-700 dark:text-stone-300">unlinked a requirement</span>;
-  }
-
-  // Specification Brief
-  if (action.includes('brief')) {
-    return (
-      <span className="text-stone-700 dark:text-stone-300">
-        updated specification brief {meta.version ? `to version v${meta.version}` : ''}
-      </span>
-    );
-  }
-
-  // Comments
-  if (action.includes('comment')) {
-    return (
-      <span className="text-stone-700 dark:text-stone-300">posted a comment in discussion</span>
-    );
-  }
-
-  return (
-    <span className="text-stone-700 dark:text-stone-300">
-      recorded {action.replace(/\./g, ' ')}
-    </span>
-  );
-}
-
-interface TaskDetailDrawerProps {
+export interface TaskDetailDrawerProps {
   task: Task | null;
   folders: FolderTreeNode[];
   parentTask?: Task | null;
@@ -523,7 +170,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   // Connect realtime SSE event listener for task & subtask discussions
   useRealtimeEvents({
     workspaceId: activeWorkspaceId || undefined,
-    enableToast: false, // In-app toasts are handled globally in Header
+    enableToast: false,
     onCommentCreated: (payload) => {
       if (!task) return;
 
@@ -554,7 +201,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
         setCommentsTotal((prev) => prev + 1);
 
-        // If user is not currently viewing discussion tab, display prominent unread badge
         if (isFromOtherUser && activeTab !== 'discussion') {
           setHasUnreadDiscussion(true);
           setUnreadDiscussionCount((prev) => prev + 1);
@@ -866,47 +512,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
-  const subtaskMetrics = React.useMemo(() => {
-    const feTotal = subtasks.filter((s) => s.deliveryArea === 'frontend').length;
-    const feDone = subtasks.filter(
-      (s) => s.deliveryArea === 'frontend' && s.status === 'done',
-    ).length;
-    const beTotal = subtasks.filter((s) => s.deliveryArea === 'backend').length;
-    const beDone = subtasks.filter(
-      (s) => s.deliveryArea === 'backend' && s.status === 'done',
-    ).length;
-    const mobileTotal = subtasks.filter((s) => s.deliveryArea === 'mobile').length;
-    const mobileDone = subtasks.filter(
-      (s) => s.deliveryArea === 'mobile' && s.status === 'done',
-    ).length;
-    const fullstackTotal = subtasks.filter((s) => s.deliveryArea === 'fullstack').length;
-    const fullstackDone = subtasks.filter(
-      (s) => s.deliveryArea === 'fullstack' && s.status === 'done',
-    ).length;
-    const qaTotal = subtasks.filter((s) => s.deliveryArea === 'qa').length;
-    const qaDone = subtasks.filter((s) => s.deliveryArea === 'qa' && s.status === 'done').length;
-    const totalDone = subtasks.filter((s) => s.status === 'done').length;
-    return {
-      feTotal,
-      feDone,
-      beTotal,
-      beDone,
-      mobileTotal,
-      mobileDone,
-      fullstackTotal,
-      fullstackDone,
-      qaTotal,
-      qaDone,
-      totalDone,
-      total: subtasks.length,
-    };
-  }, [subtasks]);
-
-  const scheduleOverlapAnalysis = React.useMemo(() => {
-    if (!task) return null;
-    return calculateRoleOverlapAndBottlenecks(task, subtasks, productBrief, members);
-  }, [task, subtasks, productBrief, members]);
-
   const incompleteSubtasks = React.useMemo(
     () => subtasks.filter((s) => s.status !== 'done' && s.status !== 'canceled'),
     [subtasks],
@@ -1051,7 +656,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         }),
       ).unwrap();
 
-      // If user has edited Product Brief or is on prd tab, persist Product Brief version as well
       if (
         canPlan &&
         productBriefTitle.trim() &&
@@ -1174,7 +778,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         mentionedUserIds: targetMentionedUserIds,
       });
 
-      // Deduplicate into comments state if SSE hasn't inserted it yet
       setComments((prevComments) => {
         if (!created.parentCommentId) {
           const exists = prevComments.some((c) => c.id === created.id);
@@ -1351,7 +954,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />+{unreadDiscussionCount} Baru
         </span>
       ) : undefined,
-
       icon: <MessageSquare className="h-3.5 w-3.5" />,
     },
   ];
@@ -1443,709 +1045,69 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
-            <div className="space-y-4">
-              {!canEditTask && (
-                <Alert tone="info" title="Read-only task">
-                  Only a Product Owner, Admin, or Owner can update this parent task.
-                </Alert>
-              )}
-              {isAssignedExecutor && !canPlan && (
-                <Alert tone="info" title="Execution access">
-                  You can update this assigned subtask's description and status only.
-                </Alert>
-              )}
-              {releaseReadinessState && (
-                <Card className="space-y-2 border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-950/40">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-                    Release Readiness
-                  </p>
-                  <ReleaseReadinessSignal state={releaseReadinessState} showReason />
-                </Card>
-              )}
-              <RichTextEditor
-                id="task-description"
-                label="Task Overview & Description"
-                value={description}
-                onChange={setDescription}
-                minRows={4}
-                disabled={!canEditTask}
-                placeholder="High-level task summary, objective, and requirements with paragraphs, bullet points, headers..."
-              />
-
-              {/* Delivery Progress & Multi-Role Readiness Banner */}
-              <Card className="p-4 space-y-3 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90 shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-[#22201F] dark:text-[#B1E743]" />
-                    <h4 className="text-xs font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider">
-                      Delivery & Multi-Role Readiness
-                    </h4>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {scheduleOverlapAnalysis && (
-                      <TaskScheduleHealthBadge
-                        status={scheduleOverlapAnalysis.overallHealth}
-                        label={
-                          scheduleOverlapAnalysis.overallHealth === 'delayed'
-                            ? `${scheduleOverlapAnalysis.primaryBottleneck.title} (${scheduleOverlapAnalysis.primaryBottleneck.overlapDays}d)`
-                            : scheduleOverlapAnalysis.overallHealth === 'at_risk'
-                              ? scheduleOverlapAnalysis.primaryBottleneck.title
-                              : 'Schedule On Track'
-                        }
-                      />
-                    )}
-                    <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
-                      {subtaskMetrics.total > 0
-                        ? `${subtaskMetrics.totalDone}/${subtaskMetrics.total} Complete`
-                        : '0 items'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Overlap / Bottleneck Root Cause Notice if not on track */}
-                {scheduleOverlapAnalysis &&
-                  scheduleOverlapAnalysis.primaryBottleneck.role !== 'none' && (
-                    <div
-                      onClick={() => setActiveTab('subtasks')}
-                      className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs cursor-pointer transition-all ${
-                        scheduleOverlapAnalysis.primaryBottleneck.severity === 'delayed'
-                          ? 'bg-rose-50 border-rose-200 text-rose-900 dark:bg-rose-950/40 dark:border-rose-900/60 dark:text-rose-200'
-                          : 'bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/40 dark:border-amber-900/60 dark:text-amber-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <AlertTriangle className="h-4 w-4 shrink-0 opacity-80" />
-                        <span className="font-medium truncate">
-                          <strong>{scheduleOverlapAnalysis.primaryBottleneck.title}:</strong>{' '}
-                          {scheduleOverlapAnalysis.primaryBottleneck.description}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-bold underline shrink-0">
-                        View Timeline ➔
-                      </span>
-                    </div>
-                  )}
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 pt-1">
-                  {/* PRD Readiness */}
-                  <div
-                    onClick={() => setActiveTab('prd')}
-                    className="p-2.5 rounded-xl border border-stone-200 bg-stone-50/70 hover:bg-stone-100 dark:border-stone-800 dark:bg-stone-950/50 dark:hover:bg-stone-800/60 cursor-pointer transition-all"
-                  >
-                    <p className="text-[10px] font-bold text-stone-500 uppercase">PRD & Specs</p>
-                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1 mt-0.5">
-                      {productBrief ? (
-                        <span className="text-stone-900 dark:text-[#B1E743] font-bold">
-                          v{productBrief.currentVersion.version} Ready
-                        </span>
-                      ) : (
-                        <span className="text-stone-400">Draft</span>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* FE Subtasks */}
-                  <div
-                    onClick={() => setActiveTab('subtasks')}
-                    className="p-2.5 rounded-xl border border-sky-200/80 bg-sky-50/50 hover:bg-sky-100/60 dark:border-sky-900/60 dark:bg-sky-950/20 dark:hover:bg-sky-950/40 cursor-pointer transition-all"
-                  >
-                    <p className="text-[10px] font-bold text-sky-700 dark:text-sky-300 uppercase flex items-center gap-1">
-                      <Code2 className="h-3 w-3" /> Frontend
-                    </p>
-                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                      {subtaskMetrics.feDone}/{subtaskMetrics.feTotal} Done
-                    </p>
-                  </div>
-
-                  {/* BE Subtasks */}
-                  <div
-                    onClick={() => setActiveTab('subtasks')}
-                    className="p-2.5 rounded-xl border border-amber-200/80 bg-amber-50/50 hover:bg-amber-100/60 dark:border-amber-900/60 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 cursor-pointer transition-all"
-                  >
-                    <p className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1">
-                      <Layers className="h-3 w-3" /> Backend
-                    </p>
-                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                      {subtaskMetrics.beDone}/{subtaskMetrics.beTotal} Done
-                    </p>
-                  </div>
-
-                  {/* Mobile Subtasks */}
-                  <div
-                    onClick={() => setActiveTab('subtasks')}
-                    className="p-2.5 rounded-xl border border-stone-200/80 bg-stone-50/50 hover:bg-stone-100/60 dark:border-stone-800 dark:bg-stone-900/20 dark:hover:bg-stone-900/40 cursor-pointer transition-all"
-                  >
-                    <p className="text-[10px] font-bold text-stone-700 dark:text-stone-300 uppercase flex items-center gap-1">
-                      <Smartphone className="h-3 w-3" /> Mobile
-                    </p>
-                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                      {subtaskMetrics.mobileDone}/{subtaskMetrics.mobileTotal} Done
-                    </p>
-                  </div>
-
-                  <div
-                    onClick={() => setActiveTab('subtasks')}
-                    className="p-2.5 rounded-xl border border-[#B1E743]/40 bg-[#B1E743]/10 hover:bg-[#B1E743]/20 cursor-pointer transition-all"
-                  >
-                    <p className="text-[10px] font-bold text-[#141413] dark:text-[#B1E743] uppercase flex items-center gap-1">
-                      <Cpu className="h-3 w-3" /> Fullstack
-                    </p>
-                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                      {subtaskMetrics.fullstackDone}/{subtaskMetrics.fullstackTotal} Done
-                    </p>
-                  </div>
-
-                  {/* QA Subtasks & Verification */}
-                  <div
-                    onClick={() => setActiveTab('subtasks')}
-                    className="p-2.5 rounded-xl border border-emerald-200/80 bg-emerald-50/50 hover:bg-emerald-100/60 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 cursor-pointer transition-all"
-                  >
-                    <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase flex items-center gap-1">
-                      <Bug className="h-3 w-3" /> QA Testing
-                    </p>
-                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                      {subtaskMetrics.qaDone}/{subtaskMetrics.qaTotal} Verified
-                    </p>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-4 space-y-4 border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/60">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label
-                      htmlFor="task-status"
-                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
-                    >
-                      Status
-                    </label>
-                    <Select
-                      value={status}
-                      id="task-status"
-                      onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                      disabled={!canEditTask}
-                      aria-label="Status"
-                    >
-                      <option value="todo">To Do</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="in_review">In Review</option>
-                      <option value="done">Done</option>
-                      <option value="canceled">Canceled</option>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="task-priority"
-                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
-                    >
-                      Priority
-                    </label>
-                    <Select
-                      value={priority}
-                      id="task-priority"
-                      onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                      disabled={!canEditPlanning}
-                      aria-label="Priority"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </Select>
-                  </div>
-                </div>
-
-                {!task.parentTaskId && (
-                  <div>
-                    <label
-                      htmlFor="task-folder"
-                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
-                    >
-                      Folder Location
-                    </label>
-                    <Select
-                      value={folderId || ''}
-                      id="task-folder"
-                      onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
-                      disabled={!canEditPlanning}
-                      aria-label="Folder Location"
-                    >
-                      <option value="">Unfiled (Workspace Root)</option>
-                      {flatFolders.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {'\u00A0'.repeat(f.depth * 4)}
-                          {f.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label
-                      htmlFor="task-start-date"
-                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
-                    >
-                      Start Date
-                    </label>
-                    <Input
-                      type="date"
-                      id="task-start-date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      disabled={!canEditPlanning}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="task-due-date"
-                      className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
-                    >
-                      Due Date
-                    </label>
-                    <Input
-                      type="date"
-                      id="task-due-date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      disabled={!canEditPlanning}
-                    />
-                  </div>
-                </div>
-              </Card>
-            </div>
+            <TaskDetailOverviewTab
+              task={task}
+              description={description}
+              onDescriptionChange={setDescription}
+              status={status}
+              onStatusChange={setStatus}
+              priority={priority}
+              onPriorityChange={setPriority}
+              folderId={folderId}
+              onFolderIdChange={setFolderId}
+              startDate={startDate}
+              onStartDateChange={setStartDate}
+              dueDate={dueDate}
+              onDueDateChange={setDueDate}
+              flatFolders={flatFolders}
+              canEditTask={canEditTask}
+              canPlan={canPlan}
+              canEditPlanning={canEditPlanning}
+              isAssignedExecutor={isAssignedExecutor}
+              releaseReadinessState={releaseReadinessState}
+              productBrief={productBrief}
+              subtasks={subtasks}
+              members={members}
+              onSelectTab={handleTabChange}
+            />
           )}
 
           {/* TAB 2: SPECS & REQUIREMENTS */}
           {activeTab === 'prd' && (
-            <div className="space-y-4">
-              <Card className="p-5 space-y-4 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-3 dark:border-stone-800">
-                  <div className="flex items-center gap-2">
-                    <FileCode2 className="h-5 w-5 text-[#22201F] dark:text-[#B1E743]" />
-                    <div>
-                      <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                        Specifications & Requirements
-                      </h3>
-                      <p className="text-xs text-stone-500 dark:text-stone-400">
-                        Define task specifications, scope, acceptance criteria, and requirement
-                        links.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Persisted Specification Brief */}
-                  <div className="space-y-4 rounded-xl border border-[#B1E743]/30 bg-[#B1E743]/5 p-4 dark:border-[#B1E743]/20 dark:bg-[#B1E743]/5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                          Specification Brief
-                        </h4>
-                        <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                          The versioned specification source of truth. Use scope for commitments;
-                          create Subtasks for execution work.
-                        </p>
-                      </div>
-                      <span className="shrink-0 rounded-lg bg-[#B1E743]/20 px-2 py-1 text-[11px] font-bold text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743]">
-                        {productBrief ? `v${productBrief.currentVersion.version}` : 'New draft'}
-                      </span>
-                    </div>
-
-                    {isLoadingProductBrief ? (
-                      <div className="space-y-3">
-                        <Skeleton className="h-10 w-full rounded-xl" />
-                        <Skeleton className="h-44 w-full rounded-xl" />
-                      </div>
-                    ) : productBriefError ? (
-                      <Alert tone="error" title="Specification Brief unavailable">
-                        <div className="flex items-center justify-between gap-3">
-                          <span>{productBriefError}</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void loadProductBrief()}
-                          >
-                            Retry
-                          </Button>
-                        </div>
-                      </Alert>
-                    ) : (
-                      <>
-                        {!canPlan && (
-                          <Alert tone="info" title="Read-only Specification Brief">
-                            Only a Product Owner, Admin, or Owner can update Specification Brief
-                            content and scope.
-                          </Alert>
-                        )}
-
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <div>
-                            <label
-                              htmlFor="product-brief-title"
-                              className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
-                            >
-                              Specification Title
-                            </label>
-                            <textarea
-                              id="product-brief-title"
-                              value={productBriefTitle}
-                              onChange={(event) => setProductBriefTitle(event.target.value)}
-                              disabled={!canPlan}
-                              rows={2}
-                              placeholder="Specification brief title..."
-                              className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-stone-900 leading-relaxed placeholder-stone-400 focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400/10 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100 disabled:opacity-60 disabled:cursor-not-allowed resize-y break-words whitespace-pre-wrap"
-                            />
-                          </div>
-
-                          <div>
-                            <label
-                              htmlFor="product-brief-owner"
-                              className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
-                            >
-                              Specification Owner / PO
-                            </label>
-                            {(() => {
-                              const specOwnerMember =
-                                members.find((member) => member.userId === productBriefOwnerId) ||
-                                members.find(
-                                  (member) =>
-                                    member.userId ===
-                                    (productBrief?.document.ownerId ||
-                                      task?.reporterId ||
-                                      currentUserId),
-                                );
-                              const specOwnerName =
-                                specOwnerMember?.user?.name ||
-                                specOwnerMember?.user?.email ||
-                                (productBriefOwnerId ? productBriefOwnerId : 'Product Owner');
-                              const specOwnerRole = specOwnerMember?.role
-                                ? specOwnerMember.role.toUpperCase()
-                                : 'PO';
-
-                              return (
-                                <div
-                                  id="product-brief-owner"
-                                  className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-stone-200 bg-stone-100/80 text-xs text-stone-800 dark:border-stone-800 dark:bg-stone-900/80 dark:text-stone-200 min-h-[46px]"
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <div className="w-6 h-6 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0">
-                                      <User className="h-3.5 w-3.5" />
-                                    </div>
-                                    <span className="font-semibold truncate">{specOwnerName}</span>
-                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 shrink-0">
-                                      {specOwnerRole === 'OWNER' ? 'OWNER' : 'PO'}
-                                    </span>
-                                  </div>
-                                  <div
-                                    className="flex items-center gap-1 text-[10px] text-stone-400 dark:text-stone-500 shrink-0"
-                                    title="Specification owner terkunci pada akun PO / Creator dan tidak dapat diubah"
-                                  >
-                                    <Lock className="h-3.5 w-3.5 text-stone-400 dark:text-stone-500" />
-                                    <span className="hidden sm:inline font-medium">Terkunci</span>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                            <p className="mt-1 text-[10px] text-stone-400 dark:text-stone-500">
-                              Akun PO / Creator pembuat spesifikasi ini terkunci secara permanen dan
-                              tidak dapat diubah.
-                            </p>
-                          </div>
-                        </div>
-
-                        <RichTextEditor
-                          id="product-brief-content"
-                          label="Specification context & details"
-                          value={productBriefContent}
-                          onChange={setProductBriefContent}
-                          disabled={!canPlan}
-                          minRows={10}
-                          placeholder="Explain the problem, intended user outcome, behaviour, decisions, and supporting images or links in Markdown..."
-                        />
-
-                        {/* Scope & Acceptance Criteria Section - Full width stacked rows with paragraph inputs */}
-                        <div className="space-y-4">
-                          {/* In Scope */}
-                          <div className="space-y-3 rounded-xl border border-[#B1E743]/40 bg-[#B1E743]/5 p-4 dark:border-[#B1E743]/30 dark:bg-[#B1E743]/10">
-                            <div>
-                              <h5 className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-[#B1E743]" />
-                                In Scope
-                              </h5>
-                              <p className="text-[11px] text-stone-600 dark:text-stone-400 mt-0.5">
-                                Deliverables and commitments included in this task.
-                              </p>
-                            </div>
-                            <div className="space-y-2.5">
-                              {productBriefInScope.map((item) => (
-                                <div key={item.id} className="flex items-start gap-2">
-                                  <textarea
-                                    aria-label="In Scope item"
-                                    value={item.text}
-                                    onChange={(event) =>
-                                      updateScopeItem('in', item.id, event.target.value)
-                                    }
-                                    disabled={!canPlan}
-                                    rows={2}
-                                    placeholder="Tuliskan deliverable / spesifikasi in scope secara rinci (bisa paragraf panjang)..."
-                                    className="w-full rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-900 shadow-xs outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 disabled:opacity-60 resize-y"
-                                  />
-                                  {canPlan && (
-                                    <IconButton
-                                      label="Remove In Scope item"
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => removeScopeItem('in', item.id)}
-                                      className="mt-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </IconButton>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                            {canPlan && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                leftIcon={<Plus className="h-3.5 w-3.5" />}
-                                onClick={() => addScopeItem('in')}
-                              >
-                                Add In Scope
-                              </Button>
-                            )}
-                          </div>
-
-                          {/* Out of Scope */}
-                          <div className="space-y-3 rounded-xl border border-stone-200/80 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-900/30">
-                            <div>
-                              <h5 className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-stone-400" />
-                                Out of Scope
-                              </h5>
-                              <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                                Explicit exclusions and boundaries for this task.
-                              </p>
-                            </div>
-                            <div className="space-y-2.5">
-                              {productBriefOutScope.map((item) => (
-                                <div key={item.id} className="flex items-start gap-2">
-                                  <textarea
-                                    aria-label="Out of Scope item"
-                                    value={item.text}
-                                    onChange={(event) =>
-                                      updateScopeItem('out', item.id, event.target.value)
-                                    }
-                                    disabled={!canPlan}
-                                    rows={2}
-                                    placeholder="Tuliskan batasan / hal yang out of scope secara rinci (bisa paragraf panjang)..."
-                                    className="w-full rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-900 shadow-xs outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 disabled:opacity-60 resize-y"
-                                  />
-                                  {canPlan && (
-                                    <IconButton
-                                      label="Remove Out of Scope item"
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => removeScopeItem('out', item.id)}
-                                      className="mt-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </IconButton>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                            {canPlan && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                leftIcon={<Plus className="h-3.5 w-3.5" />}
-                                onClick={() => addScopeItem('out')}
-                              >
-                                Add Out of Scope
-                              </Button>
-                            )}
-                          </div>
-
-                          {/* Acceptance Criteria */}
-                          <div className="space-y-3 rounded-xl border border-stone-200/80 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-900/30">
-                            <div>
-                              <h5 className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-amber-400" />
-                                Acceptance Criteria
-                              </h5>
-                              <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                                Observable delivery targets and acceptance criteria for completion.
-                              </p>
-                            </div>
-                            <div className="space-y-2.5">
-                              {productBriefAcceptanceCriteria.map((criterion) => (
-                                <div key={criterion.id} className="flex items-start gap-2">
-                                  <textarea
-                                    aria-label="Acceptance criterion"
-                                    value={criterion.text}
-                                    onChange={(event) =>
-                                      updateAcceptanceCriterion(criterion.id, event.target.value)
-                                    }
-                                    disabled={!canPlan}
-                                    rows={2}
-                                    placeholder="Tuliskan kriteria penerimaan (Acceptance Criteria) secara lengkap dalam bentuk paragraf atau spesifikasi teknis..."
-                                    className="w-full rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-900 shadow-xs outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 disabled:opacity-60 resize-y"
-                                  />
-                                  {canPlan && (
-                                    <IconButton
-                                      label="Remove acceptance criterion"
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => removeAcceptanceCriterion(criterion.id)}
-                                      className="mt-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </IconButton>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                            {canPlan && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                leftIcon={<Plus className="h-3.5 w-3.5" />}
-                                onClick={addAcceptanceCriterion}
-                              >
-                                Add Acceptance Criterion
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        {canPlan && (
-                          <div className="flex justify-end border-t border-stone-200 dark:border-stone-800 pt-3">
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              isLoading={isSavingProductBrief}
-                              disabled={!productBriefTitle.trim()}
-                              onClick={handleSaveProductBrief}
-                            >
-                              Save new version
-                            </Button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  {/* Requirement & Specifications Management Section */}
-                  <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-3 dark:border-stone-800 dark:bg-stone-950/40">
-                    <RequirementManager
-                      workspaceId={activeWorkspaceId || ''}
-                      taskId={task.id}
-                      userRole={(activeWorkspace?.role || 'dev') as any}
-                      onRequirementChanged={() => {
-                        loadActivity(1);
-                      }}
-                    />
-                  </div>
-
-                  {/* QA Documents & Test Plans Section */}
-                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-3 dark:border-emerald-900/60 dark:bg-emerald-950/20">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                          <Bug className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>
-                            QA Test Plans & Verification Docs ({(taskQaDocLinks || []).length})
-                          </span>
-                        </span>
-                        <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                          {canManageQaDocs
-                            ? 'Test plans, test scenarios, and QA sign-off documents linked to this task.'
-                            : 'Authored by QA Engineer, Admin, or Owner for quality verification.'}
-                        </p>
-                      </div>
-
-                      {canManageQaDocs && (
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          leftIcon={<Plus className="h-3 w-3" />}
-                          onClick={() => setIsCreateQaDocModalOpen(true)}
-                        >
-                          New QA Doc
-                        </Button>
-                      )}
-                    </div>
-
-                    {isLoadingQaDocs ? (
-                      <div className="space-y-2">
-                        <Skeleton className="h-10 w-full rounded-xl" />
-                      </div>
-                    ) : (taskQaDocLinks || []).length === 0 ? (
-                      <div className="p-3 text-center border border-dashed border-emerald-200 dark:border-emerald-900/60 rounded-xl">
-                        <p className="text-xs text-stone-500 italic">
-                          {canManageQaDocs
-                            ? 'No QA test documents linked to this task yet. Click "New QA Doc" to author a test plan.'
-                            : 'No QA test documents attached to this task yet.'}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {taskQaDocLinks.map((link) => {
-                          const versionNum =
-                            typeof link.document?.currentVersion === 'number'
-                              ? link.document.currentVersion
-                              : (link.document?.currentVersion as any)?.version || 1;
-                          return (
-                            <div
-                              key={link.id}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-stone-200 bg-white text-xs dark:border-stone-800 dark:bg-stone-900 gap-2 shadow-xs"
-                            >
-                              <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                  {link.document?.docType === 'test_plan'
-                                    ? 'Test Plan'
-                                    : link.document?.docType === 'test_strategy'
-                                      ? 'Test Strategy'
-                                      : link.document?.docType === 'release_report'
-                                        ? 'Release Report'
-                                        : link.document?.docType === 'qa_guide'
-                                          ? 'QA Guide'
-                                          : 'QA Doc'}
-                                </span>
-                                <span className="font-bold text-stone-900 dark:text-stone-100 truncate">
-                                  {link.document?.title || 'QA Document'}
-                                </span>
-                                <span className="text-[11px] font-mono text-stone-400">
-                                  v{versionNum}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                {canManageQaDocs && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-stone-600 hover:text-rose-600 hover:border-rose-300 dark:text-stone-400 dark:hover:text-rose-400"
-                                    onClick={() => handleUnlinkQaDoc(link.documentId)}
-                                  >
-                                    Unlink
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            </div>
+            <TaskDetailSpecsTab
+              task={task}
+              activeWorkspaceId={activeWorkspaceId}
+              userRole={userWorkspaceRole}
+              canPlan={canPlan}
+              canManageQaDocs={canManageQaDocs}
+              productBrief={productBrief}
+              isLoadingProductBrief={isLoadingProductBrief}
+              productBriefError={productBriefError}
+              productBriefTitle={productBriefTitle}
+              onProductBriefTitleChange={setProductBriefTitle}
+              productBriefContent={productBriefContent}
+              onProductBriefContentChange={setProductBriefContent}
+              productBriefInScope={productBriefInScope}
+              productBriefOutScope={productBriefOutScope}
+              productBriefAcceptanceCriteria={productBriefAcceptanceCriteria}
+              productBriefOwnerId={productBriefOwnerId}
+              isSavingProductBrief={isSavingProductBrief}
+              onAddScopeItem={addScopeItem}
+              onUpdateScopeItem={updateScopeItem}
+              onRemoveScopeItem={removeScopeItem}
+              onAddAcceptanceCriterion={addAcceptanceCriterion}
+              onUpdateAcceptanceCriterion={updateAcceptanceCriterion}
+              onRemoveAcceptanceCriterion={removeAcceptanceCriterion}
+              onSaveProductBrief={handleSaveProductBrief}
+              onReloadProductBrief={() => void loadProductBrief()}
+              taskQaDocLinks={taskQaDocLinks}
+              isLoadingQaDocs={isLoadingQaDocs}
+              onOpenCreateQaDocModal={() => setIsCreateQaDocModalOpen(true)}
+              onUnlinkQaDoc={handleUnlinkQaDoc}
+              onRequirementChanged={() => loadActivity(1)}
+              members={members}
+              currentUserId={currentUserId}
+            />
           )}
 
           {/* TAB 3: DELIVERY TRACE */}
@@ -2156,6 +1118,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             />
           )}
 
+          {/* TAB 4: BUGS */}
           {activeTab === 'bugs' && (
             <BugExperiencePanel
               workspaceId={activeWorkspaceId || task.workspaceId}
@@ -2165,7 +1128,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             />
           )}
 
-          {/* SUBTASKS */}
+          {/* TAB 5: SUBTASKS */}
           {activeTab === 'subtasks' && (
             <SubtaskList
               subtasks={subtasks}
@@ -2202,128 +1165,20 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             />
           )}
 
-          {/* TAB 5: ACTIVITY AUDIT */}
+          {/* TAB 6: ACTIVITY AUDIT */}
           {activeTab === 'activity' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-bold text-stone-900 dark:text-stone-100">
-                    Activity & Audit Trail
-                  </h3>
-                  <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                    Chronological history of all updates made to this task and its subtasks.
-                  </p>
-                </div>
-                <span className="text-[11px] font-semibold text-stone-400">
-                  {activityTotal} events
-                </span>
-              </div>
-
-              {isLoadingActivity ? (
-                <div className="space-y-2 py-2">
-                  <Skeleton variant="text" className="h-14 w-full rounded-xl" />
-                  <Skeleton variant="text" className="h-14 w-full rounded-xl" />
-                </div>
-              ) : activityError ? (
-                <Alert tone="error" title="Audit trail unavailable">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>{activityError}</span>
-                    <Button variant="outline" size="sm" onClick={() => void loadActivity()}>
-                      Retry
-                    </Button>
-                  </div>
-                </Alert>
-              ) : activities.length === 0 ? (
-                <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
-                  <div className="flex justify-center">
-                    <img
-                      src={EMPTY_ACTIVITY_ILLUSTRATION_URL}
-                      alt="No activity recorded"
-                      className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
-                      loading="lazy"
-                    />
-                    <div className="hidden dark:flex items-center justify-center py-2">
-                      <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
-                        <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
-                        <History className="h-7 w-7 text-[#B1E743]" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-200 font-bold">
-                      No activity recorded yet
-                    </p>
-                    <p className="text-[11px] sm:text-xs text-stone-500 dark:text-stone-400 max-w-sm mx-auto leading-relaxed">
-                      Any status updates, assignments, or edits will appear here.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="relative pl-3 space-y-3 before:absolute before:left-6 before:top-3 before:bottom-3 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-800">
-                  {activities.map((act) => (
-                    <div key={act.id} className="relative flex items-start gap-3 pl-0 group">
-                      {/* Avatar / Icon circle */}
-                      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-xs z-10">
-                        {getActivityIcon(act.action)}
-                      </div>
-
-                      {/* Card Content */}
-                      <div className="min-w-0 flex-1 rounded-xl border border-stone-200/80 bg-white/80 p-3 shadow-xs dark:border-stone-800 dark:bg-stone-900/70">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 flex-wrap text-xs">
-                            <span className="font-bold text-stone-900 dark:text-stone-100">
-                              {act.actorName || 'Team member'}
-                            </span>
-                            {renderHumanActivityDescription(act)}
-                          </div>
-                          <span
-                            className="text-[11px] font-medium text-stone-400 dark:text-stone-500 shrink-0"
-                            title={new Date(act.createdAt).toLocaleString()}
-                          >
-                            {formatRelativeTime(act.createdAt)}
-                          </span>
-                        </div>
-
-                        {act.isSubtask && act.taskTitle && (
-                          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md">
-                            <ListTodo className="h-3 w-3" />
-                            <span>Subtask: {act.taskTitle}</span>
-                            {act.deliveryArea && (
-                              <span className="uppercase text-[9px] font-bold px-1 bg-amber-200/60 dark:bg-amber-900/60 rounded">
-                                {act.deliveryArea}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {!activityError && activityTotal > activities.length && (
-                <div className="flex flex-col items-center gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    isLoading={isLoadingActivity}
-                    onClick={() => void loadActivity(activityPage + 1, true)}
-                  >
-                    Load older activities ({activityTotal - activities.length} remaining)
-                  </Button>
-                </div>
-              )}
-              {!activityError &&
-                activityTotal > PAGE_SIZE &&
-                activities.length === activityTotal && (
-                  <p className="text-center text-[11px] text-stone-400 pt-1">
-                    All {activityTotal} activity events loaded.
-                  </p>
-                )}
-            </div>
+            <TaskDetailActivityTab
+              activities={activities}
+              activityTotal={activityTotal}
+              activityPage={activityPage}
+              isLoadingActivity={isLoadingActivity}
+              activityError={activityError}
+              onLoadActivity={(page, append) => void loadActivity(page, append)}
+              pageSize={PAGE_SIZE}
+            />
           )}
 
-          {/* TAB 4: DISCUSSION */}
+          {/* TAB 7: DISCUSSION */}
           {activeTab === 'discussion' && (
             <TaskCommentBox
               comments={comments}
@@ -2357,124 +1212,27 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         }}
       />
 
-      <Modal
+      <TaskDeleteConfirmationModal
         isOpen={canPlan && isDeleteConfirmationOpen}
-        onClose={() => {
-          if (!isDeletingTask) setIsDeleteConfirmationOpen(false);
-        }}
-        title={isSubtask ? 'Delete subtask?' : 'Delete task?'}
-        description={
-          isSubtask
-            ? 'This action removes the subtask from active Feature views.'
-            : 'This action removes the task from active Task Hub views.'
-        }
-        size="sm"
-      >
-        <div className="space-y-4">
-          <Alert
-            tone="warning"
-            title={
-              isSubtask ? 'This subtask will be soft-deleted' : 'This task will be soft-deleted'
-            }
-          >
-            {task.subtaskSummary?.total
-              ? `${task.subtaskSummary.total} direct subtask${task.subtaskSummary.total === 1 ? '' : 's'} will also be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion.`
-              : `${isSubtask ? 'The subtask' : 'The task'} will be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion.`}
-          </Alert>
-          <p className="text-xs leading-5 text-stone-600 dark:text-stone-300">
-            Delete{' '}
-            <span className="font-bold text-stone-900 dark:text-stone-100">{task.title}</span>?
-          </p>
-          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsDeleteConfirmationOpen(false)}
-              disabled={isDeletingTask}
-            >
-              {isSubtask ? 'Keep Subtask' : 'Keep Task'}
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => void handleDeleteTask()}
-              isLoading={isDeletingTask}
-              leftIcon={<Trash2 className="h-3.5 w-3.5" />}
-            >
-              {isSubtask ? 'Delete Subtask' : 'Delete Task'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onClose={() => setIsDeleteConfirmationOpen(false)}
+        task={task}
+        isDeleting={isDeletingTask}
+        onConfirmDelete={() => void handleDeleteTask()}
+      />
 
-      {/* Create & Link QA Document Modal */}
-      <Modal
+      <TaskCreateQaDocModal
         isOpen={isCreateQaDocModalOpen}
         onClose={() => setIsCreateQaDocModalOpen(false)}
-        title="Create & Link QA Document"
-        description={`Author a new QA test plan or scenario document linked to "${task?.title}"`}
-        size="lg"
-      >
-        <form onSubmit={handleCreateAndLinkQaDoc} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Document Title *
-            </label>
-            <Input
-              required
-              placeholder="e.g. Test Plan: Payment Gateway Integration"
-              value={newQaDocTitle}
-              onChange={(e) => setNewQaDocTitle(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Document Type *
-            </label>
-            <Select value={newQaDocType} onChange={(e) => setNewQaDocType(e.target.value)}>
-              <option value="test_plan">Test Plan</option>
-              <option value="test_strategy">Test Strategy</option>
-              <option value="product_brief">Product Brief</option>
-              <option value="release_report">Release Report</option>
-              <option value="qa_guide">QA Guide</option>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Document Content (Markdown) *
-            </label>
-            <RichTextEditor
-              id="new-task-qa-doc-content"
-              value={newQaDocContent}
-              onChange={setNewQaDocContent}
-              placeholder="Write test objectives, scope, test cases, and verification criteria..."
-              minRows={8}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3 border-t border-stone-100 dark:border-stone-800">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsCreateQaDocModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              isLoading={isSubmittingQaDoc}
-              disabled={!newQaDocTitle.trim() || !newQaDocContent.trim()}
-            >
-              Create & Link Document
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        taskTitle={task.title}
+        docTitle={newQaDocTitle}
+        onDocTitleChange={setNewQaDocTitle}
+        docType={newQaDocType}
+        onDocTypeChange={setNewQaDocType}
+        docContent={newQaDocContent}
+        onDocContentChange={setNewQaDocContent}
+        isSubmitting={isSubmittingQaDoc}
+        onSubmit={handleCreateAndLinkQaDoc}
+      />
     </>
   );
 };
