@@ -16,7 +16,7 @@ describe('Test Management Policy Unit Tests', () => {
     }
   });
 
-  test('allows planners to manage definitions while the QA linking decision remains pending', () => {
+  test('keeps published Test Case governance with planners while QA draft authority is scoped separately', () => {
     assert.doesNotThrow(() => assertCanManageTestCaseDefinition('owner'));
     assert.doesNotThrow(() => assertCanManageTestCaseDefinition('admin'));
     assert.doesNotThrow(() => assertCanManageTestCaseDefinition('po'));
@@ -38,45 +38,45 @@ describe('Test Management Policy Unit Tests', () => {
     assert.throws(() => assertCanExecuteTestRun('dev'), /Only QA Engineer, Admin, or Owner/);
   });
 
-  test('allows planners to create test cases but restricts QA and Dev', () => {
+  test('allows QA to create draft candidates while Dev remains restricted', () => {
     assert.doesNotThrow(() => assertCanCreateTestCase('po'));
     assert.doesNotThrow(() => assertCanCreateTestCase('admin'));
     assert.doesNotThrow(() => assertCanCreateTestCase('owner'));
-    assert.throws(
-      () => assertCanCreateTestCase('qa'),
-      /Only Product Owner, Admin, or Owner members/,
-    );
+    assert.doesNotThrow(() => assertCanCreateTestCase('qa'));
     assert.throws(
       () => assertCanCreateTestCase('dev'),
-      /Only Product Owner, Admin, or Owner members/,
+      /Only QA, Product Owner, Admin, or Owner members/,
     );
   });
 
-  test('allows planners to update test cases but restricts QA and Dev', () => {
-    assert.doesNotThrow(() => assertCanUpdateTestCase('po'));
-    assert.doesNotThrow(() => assertCanUpdateTestCase('admin'));
-    assert.doesNotThrow(() => assertCanUpdateTestCase('owner'));
+  test('allows QA to edit drafts and submit review, but not change published cases', () => {
+    assert.doesNotThrow(() => assertCanUpdateTestCase('po', 'active', 'active'));
+    assert.doesNotThrow(() => assertCanUpdateTestCase('admin', 'active', 'archived'));
+    assert.doesNotThrow(() => assertCanUpdateTestCase('owner', 'in_review', 'active'));
+    assert.doesNotThrow(() => assertCanUpdateTestCase('qa', 'draft', 'draft'));
+    assert.doesNotThrow(() => assertCanUpdateTestCase('qa', 'draft', 'in_review'));
+    assert.throws(() => assertCanUpdateTestCase('qa', 'draft', 'active'), /QA can edit only draft/);
     assert.throws(
-      () => assertCanUpdateTestCase('qa'),
-      /Only Product Owner, Admin, or Owner members/,
+      () => assertCanUpdateTestCase('qa', 'active', 'active'),
+      /QA can edit only draft/,
     );
     assert.throws(
-      () => assertCanUpdateTestCase('dev'),
-      /Only Product Owner, Admin, or Owner members/,
+      () => assertCanUpdateTestCase('po', 'draft', 'active'),
+      /Invalid Test Case lifecycle transition/,
     );
+    assert.throws(
+      () => assertCanUpdateTestCase('owner', 'archived', 'active'),
+      /Invalid Test Case lifecycle transition/,
+    );
+    assert.throws(() => assertCanUpdateTestCase('dev', 'draft', 'draft'), /QA can edit only draft/);
   });
 
-  test('allows planners to import test cases but restricts QA and Dev', () => {
+  test('allows QA create-only imports but keeps update import planner-only', () => {
     assert.doesNotThrow(() => assertCanImportTestCases('po'));
     assert.doesNotThrow(() => assertCanImportTestCases('admin'));
     assert.doesNotThrow(() => assertCanImportTestCases('owner'));
-    assert.throws(
-      () => assertCanImportTestCases('qa'),
-      /Only Product Owner, Admin, or Owner members/,
-    );
-    assert.throws(
-      () => assertCanImportTestCases('dev'),
-      /Only Product Owner, Admin, or Owner members/,
-    );
+    assert.doesNotThrow(() => assertCanImportTestCases('qa'));
+    assert.throws(() => assertCanImportTestCases('qa', 'update'), /update import is planner-only/);
+    assert.throws(() => assertCanImportTestCases('dev'), /update import is planner-only/);
   });
 });

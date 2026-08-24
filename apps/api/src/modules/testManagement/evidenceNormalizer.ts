@@ -8,6 +8,14 @@ export interface NormalizedEvidence {
   previewStatus: EvidencePreviewStatus;
 }
 
+function isAllowedDirectMediaHost(hostname: string): boolean {
+  return (process.env.EVIDENCE_DIRECT_MEDIA_HOST_ALLOWLIST || '')
+    .split(',')
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(hostname);
+}
+
 export function normalizeEvidenceUrl(rawUrl: string): NormalizedEvidence {
   const trimmed = rawUrl.trim();
   let parsed: URL;
@@ -24,8 +32,9 @@ export function normalizeEvidenceUrl(rawUrl: string): NormalizedEvidence {
   const hostname = parsed.hostname.toLowerCase();
   const pathname = parsed.pathname;
 
-  // Direct image files
-  if (/\.(png|jpe?g|gif|webp|svg|bmp|ico)$/i.test(pathname)) {
+  // Direct media must come from an explicitly configured host. All other HTTPS
+  // URLs remain auditable click-to-open links without an in-app media preview.
+  if (isAllowedDirectMediaHost(hostname) && /\.(png|jpe?g|gif|webp|svg|bmp|ico)$/i.test(pathname)) {
     return {
       url: trimmed,
       provider: 'direct_image',
@@ -36,7 +45,7 @@ export function normalizeEvidenceUrl(rawUrl: string): NormalizedEvidence {
   }
 
   // Direct video files
-  if (/\.(mp4|webm|ogg|mov|m4v)$/i.test(pathname)) {
+  if (isAllowedDirectMediaHost(hostname) && /\.(mp4|webm|ogg|mov|m4v)$/i.test(pathname)) {
     return {
       url: trimmed,
       provider: 'direct_video',

@@ -141,7 +141,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [isSubmittingBug, setIsSubmittingBug] = useState(false);
 
   const canExecuteTests = ['owner', 'admin', 'qa'].includes(userRole.toLowerCase());
-  const canAuthorTests = ['owner', 'admin', 'po'].includes(userRole.toLowerCase());
+  const canAuthorTests = ['owner', 'admin', 'po', 'qa'].includes(userRole.toLowerCase());
 
   const bugTraceOptions = useMemo(() => {
     if (!executionWorkspace) return [];
@@ -1012,7 +1012,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   return (
                     <label
                       key={att.id}
-                      className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer p-1.5 rounded hover:bg-slate-700/50 transition-colors min-h-[36px]"
+                      className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer p-1.5 rounded hover:bg-slate-700/50 transition-colors min-h-[44px]"
                     >
                       <input
                         type="checkbox"
@@ -1248,6 +1248,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         isOpen={isImportWizardOpen}
         onClose={() => setIsImportWizardOpen(false)}
         workspaceId={workspaceId}
+        userRole={userRole as WorkspaceRole}
         onImportComplete={() => {
           dispatch(enqueueSnackbar('Spreadsheet import finished', 'success'));
           void loadExecutions();

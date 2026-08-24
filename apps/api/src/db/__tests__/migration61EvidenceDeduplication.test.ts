@@ -18,8 +18,8 @@ import {
 
 const require = createRequire(import.meta.url);
 
-describe('Migration 61: Evidence Links Deterministic Deduplication Test', () => {
-  test('deduplicates existing duplicate normalized URLs and applies unique indexes cleanly', async () => {
+describe('Migration 61: Evidence Links Non-Destructive Deduplication Test', () => {
+  test('preserves legacy duplicates as archived records and applies partial unique indexes', async () => {
     await sequelize.authenticate();
     const stamp = Date.now();
 
@@ -114,7 +114,7 @@ describe('Migration 61: Evidence Links Deterministic Deduplication Test', () => 
     // Insert 2 rows with identical (workspace_id, test_result_id, normalized_url)
     await sequelize.query(
       `INSERT INTO test_result_evidence_links (id, workspace_id, test_result_id, url, provider, media_kind, label, added_by, added_at, normalized_url, preview_status)
-       VALUES 
+       VALUES
        ('${firstId}', '${workspace.id}', '${testResult.id}', '${dupUrl}', 'direct_image', 'image', 'Canonical 1', '${user.id}', '${earlierDate.toISOString()}', '${dupUrl}', 'ready'),
        ('${secondId}', '${workspace.id}', '${testResult.id}', '${dupUrl}', 'direct_image', 'image', 'Duplicate 2', '${user.id}', '${laterDate.toISOString()}', '${dupUrl}', 'ready');`,
     );
@@ -124,7 +124,7 @@ describe('Migration 61: Evidence Links Deterministic Deduplication Test', () => 
     // Insert 2 rows with identical (workspace_id, bug_id, normalized_url)
     await sequelize.query(
       `INSERT INTO bug_evidence_links (id, workspace_id, bug_id, url, provider, media_kind, label, added_by, added_at, normalized_url, preview_status)
-       VALUES 
+       VALUES
        ('${bugFirstId}', '${workspace.id}', '${bug.id}', '${dupUrl}', 'direct_image', 'image', 'Canonical Bug 1', '${user.id}', '${earlierDate.toISOString()}', '${dupUrl}', 'ready'),
        ('${bugSecondId}', '${workspace.id}', '${bug.id}', '${dupUrl}', 'direct_image', 'image', 'Duplicate Bug 2', '${user.id}', '${laterDate.toISOString()}', '${dupUrl}', 'ready');`,
     );
@@ -146,22 +146,52 @@ describe('Migration 61: Evidence Links Deterministic Deduplication Test', () => 
     }
     await migration.up(sequelize.getQueryInterface(), sequelize.Sequelize);
 
-    // Verify deduplication: only canonical earliest row remains
+    // Verify both rows remain, with the later row preserved as an archived duplicate.
     const [resultRows] = (await sequelize.query(
-      `SELECT id, label FROM test_result_evidence_links WHERE workspace_id = '${workspace.id}' AND test_result_id = '${testResult.id}';`,
-    )) as [Array<{ id: string; label: string }>, unknown];
+      `SELECT id, label, deduplicated_at, canonical_evidence_link_id
+       FROM test_result_evidence_links
+       WHERE workspace_id = '${workspace.id}' AND test_result_id = '${testResult.id}'
+       ORDER BY added_at ASC, id ASC;`,
+    )) as [
+      Array<{
+        id: string;
+        label: string;
+        deduplicated_at: Date | null;
+        canonical_evidence_link_id: string | null;
+      }>,
+      unknown,
+    ];
 
-    assert.strictEqual(resultRows.length, 1);
+    assert.strictEqual(resultRows.length, 2);
     assert.strictEqual(resultRows[0].id, firstId);
     assert.strictEqual(resultRows[0].label, 'Canonical 1');
+    assert.strictEqual(resultRows[0].deduplicated_at, null);
+    assert.strictEqual(resultRows[1].id, secondId);
+    assert.ok(resultRows[1].deduplicated_at);
+    assert.strictEqual(resultRows[1].canonical_evidence_link_id, firstId);
 
     const [bugRows] = (await sequelize.query(
-      `SELECT id, label FROM bug_evidence_links WHERE workspace_id = '${workspace.id}' AND bug_id = '${bug.id}';`,
-    )) as [Array<{ id: string; label: string }>, unknown];
+      `SELECT id, label, deduplicated_at, canonical_evidence_link_id
+       FROM bug_evidence_links
+       WHERE workspace_id = '${workspace.id}' AND bug_id = '${bug.id}'
+       ORDER BY added_at ASC, id ASC;`,
+    )) as [
+      Array<{
+        id: string;
+        label: string;
+        deduplicated_at: Date | null;
+        canonical_evidence_link_id: string | null;
+      }>,
+      unknown,
+    ];
 
-    assert.strictEqual(bugRows.length, 1);
+    assert.strictEqual(bugRows.length, 2);
     assert.strictEqual(bugRows[0].id, bugFirstId);
     assert.strictEqual(bugRows[0].label, 'Canonical Bug 1');
+    assert.strictEqual(bugRows[0].deduplicated_at, null);
+    assert.strictEqual(bugRows[1].id, bugSecondId);
+    assert.ok(bugRows[1].deduplicated_at);
+    assert.strictEqual(bugRows[1].canonical_evidence_link_id, bugFirstId);
 
     // Attempting to insert a duplicate now must fail due to unique constraint
     let caughtError: unknown = null;

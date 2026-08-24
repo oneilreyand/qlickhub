@@ -13,11 +13,13 @@ export interface TestResultEvidenceLinkAttributes {
   addedAt?: Date;
   normalizedUrl: string;
   previewStatus: 'ready' | 'unsupported' | 'restricted' | 'failed';
+  deduplicatedAt?: Date | null;
+  canonicalEvidenceLinkId?: string | null;
 }
 
 type TestResultEvidenceLinkCreationAttributes = Optional<
   TestResultEvidenceLinkAttributes,
-  'id' | 'label' | 'addedAt' | 'previewStatus'
+  'id' | 'label' | 'addedAt' | 'previewStatus' | 'deduplicatedAt' | 'canonicalEvidenceLinkId'
 >;
 
 export class TestResultEvidenceLinkModel
@@ -35,6 +37,8 @@ export class TestResultEvidenceLinkModel
   declare readonly addedAt: Date;
   declare normalizedUrl: string;
   declare previewStatus: 'ready' | 'unsupported' | 'restricted' | 'failed';
+  declare deduplicatedAt: Date | null;
+  declare canonicalEvidenceLinkId: string | null;
 }
 
 TestResultEvidenceLinkModel.init(
@@ -65,6 +69,12 @@ TestResultEvidenceLinkModel.init(
       defaultValue: 'ready',
       field: 'preview_status',
     },
+    deduplicatedAt: { type: DataTypes.DATE, allowNull: true, field: 'deduplicated_at' },
+    canonicalEvidenceLinkId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'canonical_evidence_link_id',
+    },
   },
   {
     sequelize,
@@ -76,6 +86,7 @@ TestResultEvidenceLinkModel.init(
         unique: true,
         fields: ['workspace_id', 'test_result_id', 'normalized_url'],
         name: 'idx_test_result_evidence_links_unique_url',
+        where: { deduplicated_at: null },
       },
     ],
   },

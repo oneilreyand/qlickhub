@@ -29,6 +29,19 @@ The repository behavior below is now the approved baseline:
 
 Future changes to this baseline require a separately claimed product decision and additive, migration-safe implementation where applicable.
 
+## 2026-08-24 Addendum: Test Case intake, evidence, and communication defaults
+
+The product direction approved the following extension to the baseline:
+
+1. QA may create and edit Test Cases while they are `draft`, including their Requirement mappings, and may submit a draft for planner review. Only Owner/Admin/PO may publish (`active`) or archive a Test Case.
+2. Test Case lifecycle is `draft → in_review → active → archived`; only `active` Test Cases may start new runs.
+3. Phase one supports manual CSV/XLSX intake only; it does not synchronize Google Sheets automatically.
+4. Spreadsheet import defaults to `create_only`. `update` is Owner/Admin/PO-only, must use server-side preview/validation, and never archives unmatched Test Cases.
+5. PO/Owner/Admin receive immediate notification for Critical/High Bugs; lower-severity updates remain available in Feature context/digest paths.
+6. Evidence links use HTTPS and allow in-app preview only for Google Drive, YouTube, Loom, Vimeo, and direct media from an explicitly configured host allowlist. Other HTTPS URLs remain stored as auditable click-to-open links.
+
+Migration 61 had not been applied to staging or production at the time of this decision. It therefore remains safe to revise before release, provided clean-migration and legacy-duplicate verification pass.
+
 ---
 
 ## 1. Context and Problem Statement

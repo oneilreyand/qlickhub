@@ -113,12 +113,16 @@ const bugContextIncludes = [
       {
         model: TestResultEvidenceLinkModel,
         as: 'externalEvidenceLinks',
+        where: { deduplicatedAt: null },
+        required: false,
       },
     ],
   },
   {
     model: BugEvidenceLinkModel,
     as: 'externalEvidenceLinks',
+    where: { deduplicatedAt: null },
+    required: false,
   },
 ];
 
@@ -552,6 +556,7 @@ export class BugService {
     const existingLink = await BugEvidenceLinkModel.findOne({
       where: {
         bugId,
+        deduplicatedAt: null,
         [Op.or]: [{ normalizedUrl: normalized.normalizedUrl }, { url: input.url }],
       },
     });

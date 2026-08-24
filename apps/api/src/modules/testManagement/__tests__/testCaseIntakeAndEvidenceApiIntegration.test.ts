@@ -8,6 +8,7 @@ import {
   TaskAttachmentModel,
   TaskModel,
   TaskRequirementModel,
+  TestCaseImportModel,
   TestCaseModel,
   TestCaseRequirementModel,
   UserModel,
@@ -31,6 +32,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
   let featureTaskA: TaskModel;
   let taskAttachmentA: TaskAttachmentModel;
   let createdCaseId: string;
+  let qaDraftCaseId: string;
 
   let poCookie: string;
   let qaCookie: string;
@@ -170,23 +172,27 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
     }
   });
 
-  // SLICE 1: Native Test Case Authoring & Planner Authority (ADR-001)
-  describe('Slice 1: Native Test Case Authoring & Planner Authority', () => {
-    test('QA cannot create a Test Case (403 Forbidden under ADR-001)', async () => {
+  // SLICE 1: Native Test Case Authoring & Publishing Authority (ADR-001 addendum)
+  describe('Slice 1: Native Test Case Authoring & Publishing Authority', () => {
+    test('QA creates a draft Test Case', async () => {
       const res = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
         body: JSON.stringify({
-          title: 'QA unauthorized creation attempt',
+          title: 'QA draft creation attempt',
           externalReference: 'TC-QA-001',
           testType: 'manual',
           priority: 'high',
+          status: 'draft',
           steps: ['Step 1'],
           requirementIds: [requirementA1.id],
         }),
       });
 
-      assert.strictEqual(res.status, 403);
+      assert.strictEqual(res.status, 201);
+      const data = (await res.json()) as any;
+      assert.strictEqual(data.testCase.status, 'draft');
+      qaDraftCaseId = data.testCase.id;
     });
 
     test('Dev cannot create a Test Case (403 Forbidden)', async () => {
@@ -206,7 +212,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(res.status, 403);
     });
 
-    test('PO creates active Test Case with external reference and requirement link (201 Created)', async () => {
+    test('PO creates draft Test Case with external reference and requirement link (201 Created)', async () => {
       const res = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: poCookie },
@@ -215,7 +221,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
           externalReference: 'TC-NATIVE-001',
           testType: 'manual',
           priority: 'high',
-          status: 'active',
+          status: 'draft',
           preconditions: 'User has valid cart',
           steps: ['1. Go to checkout', '2. Fill valid visa card', '3. Click pay'],
           expectedResult: 'Success order confirmation',
@@ -230,13 +236,62 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(data.testCase.title, 'Verify standard card payment flow');
       assert.strictEqual(data.testCase.externalReference, 'TC-NATIVE-001');
       assert.strictEqual(data.testCase.priority, 'high');
-      assert.strictEqual(data.testCase.status, 'active');
+      assert.strictEqual(data.testCase.status, 'draft');
       assert.strictEqual(data.testCase.scenarioKind, 'positive');
       assert.strictEqual(data.testCase.source, 'native');
       createdCaseId = data.testCase.id;
     });
 
-    test('QA is forbidden from updating Test Cases (403 Forbidden)', async () => {
+    test('PO progresses its draft through review before publishing it', async () => {
+      const reviewRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${createdCaseId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({ status: 'in_review' }),
+        },
+      );
+      assert.strictEqual(reviewRes.status, 200);
+      const publishRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${createdCaseId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({ status: 'active' }),
+        },
+      );
+      assert.strictEqual(publishRes.status, 200);
+    });
+
+    test('QA can edit a draft and submit it for planner review', async () => {
+      const res = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaDraftCaseId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({ title: 'QA draft ready for review', status: 'in_review' }),
+        },
+      );
+      assert.strictEqual(res.status, 200);
+      const data = (await res.json()) as any;
+      assert.strictEqual(data.testCase.status, 'in_review');
+    });
+
+    test('PO publishes a QA review submission as active', async () => {
+      const res = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaDraftCaseId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({ status: 'active' }),
+        },
+      );
+      assert.strictEqual(res.status, 200);
+      const data = (await res.json()) as any;
+      assert.strictEqual(data.testCase.status, 'active');
+    });
+
+    test('QA is forbidden from editing an active Test Case (403 Forbidden)', async () => {
       const res = await fetch(
         `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${createdCaseId}`,
         {
@@ -278,7 +333,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
           title: 'Duplicate external ref test',
           externalReference: 'TC-NATIVE-001',
           testType: 'manual',
-          status: 'active',
+          status: 'draft',
           steps: ['Step 1'],
           requirementIds: [requirementA1.id],
         }),
@@ -351,7 +406,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(res.status, 400);
     });
 
-    test('QA attempting to commit import is rejected (403 Forbidden under ADR-001)', async () => {
+    test('QA cannot commit a planner-owned import session', async () => {
       const res = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/commit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
@@ -365,7 +420,42 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(res.status, 403);
     });
 
-    test('PO commits import in create_only mode creates active cases and records audit', async () => {
+    test('QA imports an owned create-only session as drafts', async () => {
+      const csvContent = [
+        'Test Case ID,Title,Requirement Code',
+        'TC-QA-IMPORT,QA imported draft,REQ-INTAKE-001',
+      ].join('\n');
+      const previewRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/preview`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({ fileName: 'qa_draft.csv', fileContent: csvContent }),
+        },
+      );
+      assert.strictEqual(previewRes.status, 200);
+      const previewData = (await previewRes.json()) as any;
+
+      const commitRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/commit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({
+            importSessionId: previewData.preview.importSessionId,
+            contentHash: previewData.preview.contentHash,
+            mode: 'create_only',
+          }),
+        },
+      );
+      assert.strictEqual(commitRes.status, 201);
+      const imported = await TestCaseModel.findOne({
+        where: { workspaceId: workspaceA.id, externalReference: 'TC-QA-IMPORT' },
+      });
+      assert.strictEqual(imported?.status, 'draft');
+    });
+
+    test('PO commits import in create_only mode creates draft cases and records audit', async () => {
       const res = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/commit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: poCookie },
@@ -387,7 +477,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       });
       assert.ok(importedCase);
       assert.strictEqual(importedCase.title, 'Verify invalid CVV rejection');
-      assert.strictEqual(importedCase.status, 'active');
+      assert.strictEqual(importedCase.status, 'draft');
       assert.strictEqual(importedCase.source, 'spreadsheet_import');
     });
 
@@ -876,6 +966,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       const commitData = (await commitRes.json()) as any;
       assert.strictEqual(commitData.result.createdRows, 0);
       assert.strictEqual(commitData.result.failedRows, 1);
+      assert.strictEqual(commitData.result.status, 'failed');
       assert.strictEqual(commitData.result.errors.length, 1);
       assert.ok(commitData.result.errors[0].error.includes('is not active (draft)'));
     });
@@ -1021,6 +1112,79 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.ok(
         (errBody.detail || errBody.error || '').includes('does not belong to the Feature Task'),
       );
+    });
+
+    test('recordTestResult rejects attachment evidence when Feature provenance cannot be proven', async () => {
+      const unscopedCase = await TestCaseModel.create({
+        workspaceId: workspaceA.id,
+        title: 'Unscoped attachment provenance case',
+        testType: 'manual',
+        priority: 'medium',
+        status: 'active',
+        scenarioKind: 'positive',
+        source: 'native',
+        createdBy: po.id,
+      });
+
+      const runRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${unscopedCase.id}/runs`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({ build: 'unscoped-evidence-build', environment: 'staging' }),
+        },
+      );
+      assert.strictEqual(runRes.status, 201);
+      const runData = (await runRes.json()) as any;
+
+      const recordRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${unscopedCase.id}/runs/${runData.testRun.id}/results`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({ status: 'passed', evidenceAttachmentIds: [taskAttachmentA.id] }),
+        },
+      );
+      assert.strictEqual(recordRes.status, 400);
+      const errBody = (await recordRes.json()) as any;
+      assert.ok((errBody.detail || errBody.error || '').includes('has no Requirement mapping'));
+    });
+
+    test('expired import sessions persist failed status before the commit request is rejected', async () => {
+      const csvContent = [
+        'External Reference,Title,Requirement Code',
+        `TC-EXPIRED,Expired session case,${requirementA1.code}`,
+      ].join('\n');
+      const previewRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/preview`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({ fileName: 'expired.csv', fileContent: csvContent }),
+        },
+      );
+      assert.strictEqual(previewRes.status, 200);
+      const previewData = (await previewRes.json()) as any;
+      await TestCaseImportModel.update(
+        { createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+        { where: { id: previewData.preview.importSessionId } },
+      );
+
+      const commitRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/commit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({
+            importSessionId: previewData.preview.importSessionId,
+            contentHash: previewData.preview.contentHash,
+            mode: 'create_only',
+          }),
+        },
+      );
+      assert.strictEqual(commitRes.status, 400);
+      const persisted = await TestCaseImportModel.findByPk(previewData.preview.importSessionId);
+      assert.strictEqual(persisted?.status, 'failed');
     });
   });
 });

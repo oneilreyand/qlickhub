@@ -346,9 +346,9 @@ export class TestCaseImportService {
     const { workspaceId, importSessionId, contentHash, mode } = input;
 
     const result = await sequelize.transaction(
-      async (transaction): Promise<TestCaseImportResult> => {
+      async (transaction): Promise<TestCaseImportResult | 'expired'> => {
         const membership = await getMembership(workspaceId, actorId, transaction);
-        assertCanImportTestCases(membership.role);
+        assertCanImportTestCases(membership.role, mode);
 
         // Verify server-side staged session with row lock
 
@@ -413,10 +413,11 @@ export class TestCaseImportService {
 
         const elapsed = Date.now() - new Date(stagedImport.createdAt).getTime();
         if (elapsed > SESSION_TTL_MS) {
-          await stagedImport.update({ status: 'failed' }, { transaction });
-          throw new Error(
-            'BAD_REQUEST: Import preview session has expired. Please re-upload the file.',
+          await stagedImport.update(
+            { status: 'failed', completedAt: new Date(), failedRows: stagedImport.totalRows },
+            { transaction },
           );
+          return 'expired';
         }
 
         // Re-fetch current database requirements & test cases in this workspace
@@ -640,7 +641,7 @@ export class TestCaseImportService {
                 description: null,
                 testType,
                 priority,
-                status: 'active',
+                status: 'draft',
                 preconditions: payload.preconditions || null,
                 steps: payload.steps || [],
                 expectedResult: payload.expectedResult || null,
@@ -694,11 +695,12 @@ export class TestCaseImportService {
         }
 
         const completedAt = new Date();
+        const importStatus =
+          failedRows > 0 && createdRows === 0 && updatedRows === 0 ? 'failed' : 'completed';
         await stagedImport.update(
           {
             mode,
-            status:
-              failedRows > 0 && createdRows === 0 && updatedRows === 0 ? 'failed' : 'completed',
+            status: importStatus,
             createdRows,
             updatedRows,
             skippedRows,
@@ -713,7 +715,7 @@ export class TestCaseImportService {
           workspaceId,
           sourceFileName: stagedImport.sourceFileName,
           mode,
-          status: stagedImport.status as 'completed',
+          status: importStatus,
           totalRows: stagedRows.length,
 
           createdRows,
@@ -726,6 +728,12 @@ export class TestCaseImportService {
         };
       },
     );
+
+    if (result === 'expired') {
+      throw new Error(
+        'BAD_REQUEST: Import preview session has expired. Please re-upload the file.',
+      );
+    }
 
     return result;
   }

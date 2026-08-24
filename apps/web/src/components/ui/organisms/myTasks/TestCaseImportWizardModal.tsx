@@ -19,16 +19,19 @@ import type {
   TestCaseImportMode,
   TestCaseImportPreviewResponse,
   TestCaseImportResult,
+  WorkspaceRole,
 } from '@qlick/contracts';
 import { MAX_IMPORT_ROWS } from '@qlick/contracts';
 import { testManagementService } from '../../../../lib/api/testManagementService';
 import { Button } from '../../atoms/Button';
+import { IconButton } from '../../atoms/IconButton';
 import { Modal } from '../../molecules/Modal';
 
 export interface TestCaseImportWizardModalProps {
   isOpen: boolean;
   onClose: () => void;
   workspaceId: string;
+  userRole: WorkspaceRole;
   onImportComplete: () => void;
 }
 
@@ -42,8 +45,8 @@ const TARGET_FIELDS = [
   { key: 'steps', label: 'Steps / Procedure' },
   { key: 'expected_result', label: 'Expected Result' },
   { key: 'test_data', label: 'Test Data' },
-  { key: 'priority', label: 'Priority (critical, high, medium, low)' },
-  { key: 'scenario_kind', label: 'Scenario Kind (positive, negative, edge)' },
+  { key: 'priority', label: 'Priority (high, medium, low)' },
+  { key: 'scenario_kind', label: 'Scenario Kind (positive, negative)' },
   { key: 'test_type', label: 'Test Type (manual, e2e, integration, unit)' },
   { key: 'preconditions', label: 'Preconditions' },
 ];
@@ -52,6 +55,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
   isOpen,
   onClose,
   workspaceId,
+  userRole,
   onImportComplete,
 }) => {
   const [step, setStep] = useState<WizardStep>('upload');
@@ -66,6 +70,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
   } | null>(null);
   const [importResult, setImportResult] = useState<TestCaseImportResult | null>(null);
   const [audits, setAudits] = useState<TestCaseImportAudit[]>([]);
+  const canUpdateImportedCases = userRole === 'owner' || userRole === 'admin' || userRole === 'po';
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -266,13 +271,14 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         {errorMessage && (
           <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center justify-between">
             <span>{errorMessage}</span>
-            <button
-              type="button"
+            <IconButton
+              label="Dismiss import error"
               onClick={() => setErrorMessage(null)}
+              variant="danger"
               className="text-red-400 hover:text-red-200"
             >
               <X className="w-4 h-4" />
-            </button>
+            </IconButton>
           </div>
         )}
 
@@ -361,7 +367,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                   value={selectedSheet}
                   onChange={(e) => handleSheetChange(e.target.value)}
                   disabled={loading}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[36px]"
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px]"
                 >
                   {previewData.availableSheets.map((s) => (
                     <option key={s} value={s}>
@@ -399,7 +405,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                             [header]: val,
                           }));
                         }}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[36px]"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px]"
                       >
                         {TARGET_FIELDS.map((f) => (
                           <option key={f.key} value={f.key}>
@@ -464,10 +470,11 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                   <span className="font-semibold">Select Sheet / Tab:</span>
                 </div>
                 <select
+                  aria-label="Select spreadsheet sheet"
                   value={selectedSheet}
                   onChange={(e) => handleSheetChange(e.target.value)}
                   disabled={loading}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px]"
                 >
                   {previewData.availableSheets.map((s) => (
                     <option key={s} value={s}>
@@ -496,17 +503,21 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                   />
                   <span className="text-slate-200">Skip Existing (Create Only)</span>
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer ml-3">
-                  <input
-                    type="radio"
-                    name="importMode"
-                    value="update"
-                    checked={importMode === 'update'}
-                    onChange={() => setImportMode('update')}
-                    className="text-primary focus:ring-primary"
-                  />
-                  <span className="text-slate-200">Update Existing Fields</span>
-                </label>
+                {canUpdateImportedCases ? (
+                  <label className="flex items-center gap-1.5 cursor-pointer ml-3">
+                    <input
+                      type="radio"
+                      name="importMode"
+                      value="update"
+                      checked={importMode === 'update'}
+                      onChange={() => setImportMode('update')}
+                      className="text-primary focus:ring-primary"
+                    />
+                    <span className="text-slate-200">Update Existing Fields</span>
+                  </label>
+                ) : (
+                  <span className="ml-3 text-slate-400">QA imports are create-only drafts.</span>
+                )}
               </div>
             </div>
 

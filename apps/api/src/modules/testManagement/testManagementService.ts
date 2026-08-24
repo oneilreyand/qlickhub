@@ -173,6 +173,8 @@ const testRunIncludes = [
       {
         model: TestResultEvidenceLinkModel,
         as: 'externalEvidenceLinks',
+        where: { deduplicatedAt: null },
+        required: false,
       },
     ],
   },
@@ -335,7 +337,12 @@ export class TestManagementService {
     const testCase = await sequelize.transaction(async (transaction) => {
       const membership = await getMembership(input.workspaceId, actorId, transaction);
       assertCanCreateTestCase(membership.role);
-      const effectiveStatus = input.status || 'active';
+      if (input.status && input.status !== 'draft') {
+        throw new Error(
+          'BAD_REQUEST: New Test Cases must start as draft and follow the review lifecycle.',
+        );
+      }
+      const effectiveStatus = 'draft';
 
       const requirements = await RequirementModel.findAll({
         where: { workspaceId: input.workspaceId, id: requirementIds },
@@ -421,7 +428,7 @@ export class TestManagementService {
         throw new Error('NOT_FOUND: Test Case not found in this workspace.');
       }
 
-      assertCanUpdateTestCase(membership.role);
+      assertCanUpdateTestCase(membership.role, testCase.status, input.status);
 
       if (input.externalReference && input.externalReference !== testCase.externalReference) {
         const existingRef = await TestCaseModel.findOne({
@@ -612,39 +619,53 @@ export class TestManagementService {
         });
         const reqIds = tcReqs.map((r) => r.requirementId);
 
-        if (reqIds.length > 0) {
-          const taskReqs = await TaskRequirementModel.findAll({
-            where: { workspaceId: input.workspaceId, requirementId: reqIds },
-            attributes: ['taskId'],
-            transaction,
-          });
-          const linkedTaskIds = taskReqs.map((tr) => tr.taskId);
+        if (reqIds.length === 0) {
+          throw new Error(
+            'BAD_REQUEST: Evidence attachment provenance cannot be verified because this Test Case has no Requirement mapping.',
+          );
+        }
 
-          if (linkedTaskIds.length > 0) {
-            const linkedTasks = await TaskModel.findAll({
-              where: { workspaceId: input.workspaceId, id: linkedTaskIds },
-              attributes: ['id', 'parentTaskId'],
-              transaction,
-            });
-            const featureTaskIds = [...new Set(linkedTasks.map((t) => t.parentTaskId || t.id))];
+        const taskReqs = await TaskRequirementModel.findAll({
+          where: { workspaceId: input.workspaceId, requirementId: reqIds },
+          attributes: ['taskId'],
+          transaction,
+        });
+        const linkedTaskIds = taskReqs.map((tr) => tr.taskId);
 
-            const allScopedTasks = await TaskModel.findAll({
-              where: {
-                workspaceId: input.workspaceId,
-                [Op.or]: [{ id: featureTaskIds }, { parentTaskId: featureTaskIds }],
-              },
-              attributes: ['id'],
-              transaction,
-            });
-            const allowedTaskIds = new Set(allScopedTasks.map((t) => t.id));
+        if (linkedTaskIds.length === 0) {
+          throw new Error(
+            'BAD_REQUEST: Evidence attachment provenance cannot be verified because the mapped Requirement has no Feature Task.',
+          );
+        }
 
-            for (const att of attachments) {
-              if (!allowedTaskIds.has(att.taskId)) {
-                throw new Error(
-                  `BAD_REQUEST: Attachment "${att.fileName}" does not belong to the Feature Task or Subtasks associated with this Test Case.`,
-                );
-              }
-            }
+        const linkedTasks = await TaskModel.findAll({
+          where: { workspaceId: input.workspaceId, id: linkedTaskIds },
+          attributes: ['id', 'parentTaskId'],
+          transaction,
+        });
+        const featureTaskIds = [...new Set(linkedTasks.map((t) => t.parentTaskId || t.id))];
+
+        if (featureTaskIds.length === 0) {
+          throw new Error(
+            'BAD_REQUEST: Evidence attachment Feature Task scope could not be resolved.',
+          );
+        }
+
+        const allScopedTasks = await TaskModel.findAll({
+          where: {
+            workspaceId: input.workspaceId,
+            [Op.or]: [{ id: featureTaskIds }, { parentTaskId: featureTaskIds }],
+          },
+          attributes: ['id'],
+          transaction,
+        });
+        const allowedTaskIds = new Set(allScopedTasks.map((t) => t.id));
+
+        for (const att of attachments) {
+          if (!allowedTaskIds.has(att.taskId)) {
+            throw new Error(
+              `BAD_REQUEST: Attachment "${att.fileName}" does not belong to the Feature Task or Subtasks associated with this Test Case.`,
+            );
           }
         }
       }
@@ -818,6 +839,7 @@ export class TestManagementService {
     const existingLink = await TestResultEvidenceLinkModel.findOne({
       where: {
         testResultId: run.result!.id,
+        deduplicatedAt: null,
         [Op.or]: [{ normalizedUrl: normalized.normalizedUrl }, { url: input.url }],
       },
     });

@@ -1,6 +1,6 @@
 # Test Case Intake, Evidence Link, and Cross-Role Communication Plan
 
-**Status:** proposed — requires product-policy approval before implementation  
+**Status:** approved — product-policy defaults confirmed 2026-08-24
 **Created:** 2026-08-24  
 **Scope:** native Test Case authoring, controlled spreadsheet import, external evidence links with in-app preview, and QA–Developer–PO handoffs.
 
@@ -50,7 +50,9 @@ flowchart LR
 | D5  | PO notification threshold               | PO receives immediate alert for Critical/High bugs and release blockers; other Bug updates go to a digest or feature view.                                                                  | Notification volume is a product choice, not merely a technical setting.                           |
 | D6  | External evidence provider policy       | Allow direct image/video and a fixed provider allowlist (initially Google Drive, YouTube, Loom, Vimeo); unsupported URLs remain click-to-open.                                              | Arbitrary embeds create privacy, XSS, phishing, and CSP risk.                                      |
 
-No migration, role-policy change, or automatic Sheet synchronization may start until D1–D6 are approved.
+**Approval record (2026-08-24):** D1–D6 were approved with the proposed defaults, with D4 constrained so `create_only` remains the default and `update` is available only to Owner/Admin/PO after preview. Migration 61 is confirmed not to have run in staging or production. Direct image/video preview is additionally limited to the configured HTTPS host allowlist; unlisted HTTPS URLs remain auditable click-to-open links.
+
+No automatic Sheet synchronization is permitted by this decision.
 
 ## 4. Target data model
 

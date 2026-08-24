@@ -13,11 +13,13 @@ export interface BugEvidenceLinkAttributes {
   addedAt?: Date;
   normalizedUrl: string;
   previewStatus: 'ready' | 'unsupported' | 'restricted' | 'failed';
+  deduplicatedAt?: Date | null;
+  canonicalEvidenceLinkId?: string | null;
 }
 
 type BugEvidenceLinkCreationAttributes = Optional<
   BugEvidenceLinkAttributes,
-  'id' | 'label' | 'addedAt' | 'previewStatus'
+  'id' | 'label' | 'addedAt' | 'previewStatus' | 'deduplicatedAt' | 'canonicalEvidenceLinkId'
 >;
 
 export class BugEvidenceLinkModel
@@ -35,6 +37,8 @@ export class BugEvidenceLinkModel
   declare readonly addedAt: Date;
   declare normalizedUrl: string;
   declare previewStatus: 'ready' | 'unsupported' | 'restricted' | 'failed';
+  declare deduplicatedAt: Date | null;
+  declare canonicalEvidenceLinkId: string | null;
 }
 
 BugEvidenceLinkModel.init(
@@ -65,6 +69,12 @@ BugEvidenceLinkModel.init(
       defaultValue: 'ready',
       field: 'preview_status',
     },
+    deduplicatedAt: { type: DataTypes.DATE, allowNull: true, field: 'deduplicated_at' },
+    canonicalEvidenceLinkId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'canonical_evidence_link_id',
+    },
   },
   {
     sequelize,
@@ -76,6 +86,7 @@ BugEvidenceLinkModel.init(
         unique: true,
         fields: ['workspace_id', 'bug_id', 'normalized_url'],
         name: 'idx_bug_evidence_links_unique_url',
+        where: { deduplicated_at: null },
       },
     ],
   },
