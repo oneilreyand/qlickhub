@@ -192,7 +192,8 @@ export async function downloadTestCaseTemplate(_req: AuthenticatedRequest, res: 
 
 export async function previewTestCaseImport(req: AuthenticatedRequest, res: Response) {
   try {
-    const { fileName, fileContent, fileBase64 } = req.body || {};
+    const { fileName, fileContent, fileBase64, mimeType, sheetName, columnMapping } =
+      req.body || {};
     if (!fileName || (!fileContent && !fileBase64)) {
       return problem(
         res,
@@ -210,6 +211,9 @@ export async function previewTestCaseImport(req: AuthenticatedRequest, res: Resp
       req.user!.userId,
       fileName,
       buffer,
+      mimeType || '',
+      sheetName || (req.query.sheetName as string) || undefined,
+      columnMapping || undefined,
     );
     return res.status(200).json({ preview });
   } catch (error) {

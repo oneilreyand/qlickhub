@@ -329,7 +329,8 @@ export class TestManagementService {
 
     const testCase = await sequelize.transaction(async (transaction) => {
       const membership = await getMembership(input.workspaceId, actorId, transaction);
-      assertCanCreateTestCase(membership.role, input.status);
+      const effectiveStatus = input.status || (membership.role === 'qa' ? 'draft' : 'active');
+      assertCanCreateTestCase(membership.role, effectiveStatus);
 
       const requirements = await RequirementModel.findAll({
         where: { workspaceId: input.workspaceId, id: requirementIds },
@@ -359,7 +360,7 @@ export class TestManagementService {
           description: input.description || null,
           testType: input.testType,
           priority: input.priority || 'medium',
-          status: input.status || 'draft',
+          status: effectiveStatus,
           preconditions: input.preconditions || null,
           steps: input.steps,
           expectedResult: input.expectedResult || null,
@@ -415,7 +416,12 @@ export class TestManagementService {
         throw new Error('NOT_FOUND: Test Case not found in this workspace.');
       }
 
-      assertCanUpdateTestCase(membership.role, testCase.status, input.status);
+      assertCanUpdateTestCase(
+        membership.role,
+        testCase.status,
+        input.status,
+        Boolean(input.requirementIds),
+      );
 
       if (input.externalReference && input.externalReference !== testCase.externalReference) {
         const existingRef = await TestCaseModel.findOne({
@@ -739,6 +745,16 @@ export class TestManagementService {
     }
 
     const normalized = normalizeEvidenceUrl(input.url);
+
+    const existingLink = await TestResultEvidenceLinkModel.findOne({
+      where: {
+        testResultId: run.result!.id,
+        [Op.or]: [{ normalizedUrl: normalized.normalizedUrl }, { url: input.url }],
+      },
+    });
+    if (existingLink) {
+      throw new Error('CONFLICT: This evidence link is already attached to this Test Result.');
+    }
 
     const created = await sequelize.transaction(async (transaction) => {
       const link = await TestResultEvidenceLinkModel.create(

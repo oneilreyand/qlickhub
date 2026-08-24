@@ -17,8 +17,8 @@ export function normalizeEvidenceUrl(rawUrl: string): NormalizedEvidence {
     throw new Error('BAD_REQUEST: Invalid evidence URL format.');
   }
 
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    throw new Error('BAD_REQUEST: Evidence URL must use http or https protocol.');
+  if (parsed.protocol !== 'https:') {
+    throw new Error('BAD_REQUEST: Only secure HTTPS URLs are permitted for evidence links.');
   }
 
   const hostname = parsed.hostname.toLowerCase();

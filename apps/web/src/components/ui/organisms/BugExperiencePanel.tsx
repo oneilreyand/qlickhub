@@ -372,13 +372,42 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                   )}
                 </div>
 
-                {/* Evidence Links Section */}
-                {(originEvidenceLinks.length > 0 || bugEvidenceLinks.length > 0) && (
+                {/* Evidence Links & Attachments Section */}
+                {(originEvidenceLinks.length > 0 ||
+                  bugEvidenceLinks.length > 0 ||
+                  (bug.originatingTestResult?.evidence &&
+                    bug.originatingTestResult.evidence.length > 0)) && (
                   <div className="mt-2 space-y-2 border-t border-slate-700/50 pt-3">
                     <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
                       Attached & Inherited Evidence
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {/* Inherited formal file attachments */}
+                      {(bug.originatingTestResult?.evidence || []).map((att) => (
+                        <div
+                          key={att.attachmentId}
+                          className="relative flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-xs"
+                        >
+                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-rose-500/20 text-rose-400 px-1.5 py-0.2 rounded border border-rose-500/30">
+                            Inherited File from Run
+                          </span>
+                          <div className="min-w-0 pr-2">
+                            <p className="font-semibold text-slate-200 truncate">{att.fileName}</p>
+                            <p className="text-[10px] font-mono text-slate-400">{att.mimeType}</p>
+                          </div>
+                          <a
+                            href={`/v1/workspaces/${workspaceId}/tasks/${bug.featureTaskId}/attachments/${att.attachmentId}/download`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                            title="Download attachment"
+                          >
+                            <Link2 className="w-4 h-4" />
+                          </a>
+                        </div>
+                      ))}
+
+                      {/* Inherited external links */}
                       {originEvidenceLinks.map((link) => (
                         <div key={link.id} className="relative">
                           <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-rose-500/20 text-rose-400 px-1.5 py-0.2 rounded border border-rose-500/30">
@@ -399,6 +428,8 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                           />
                         </div>
                       ))}
+
+                      {/* Bug-specific evidence links */}
                       {bugEvidenceLinks.map((link) => (
                         <div key={link.id} className="relative">
                           <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-sky-500/20 text-sky-400 px-1.5 py-0.2 rounded border border-sky-500/30">

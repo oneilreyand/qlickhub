@@ -27,10 +27,21 @@ export type EvidenceMediaKind = z.infer<typeof EvidenceMediaKindSchema>;
 export const EvidencePreviewStatusSchema = z.enum(['ready', 'unsupported', 'restricted', 'failed']);
 export type EvidencePreviewStatus = z.infer<typeof EvidencePreviewStatusSchema>;
 
+export const MAX_IMPORT_ROWS = 500;
+
 const NonBlankTextSchema = z.string().trim().min(1);
 
+export const HttpsUrlSchema = z
+  .string()
+  .trim()
+  .url()
+  .max(2048)
+  .refine((val) => val.startsWith('https://'), {
+    message: 'Only secure HTTPS URLs are permitted',
+  });
+
 export const CreateEvidenceLinkInputSchema = z.object({
-  url: z.string().trim().url().max(2048),
+  url: HttpsUrlSchema,
   label: z.string().trim().max(255).nullable().optional(),
 });
 export type CreateEvidenceLinkInput = z.infer<typeof CreateEvidenceLinkInputSchema>;
@@ -39,13 +50,13 @@ export const TestResultEvidenceLinkSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
   testResultId: z.string().uuid(),
-  url: z.string().max(2048),
+  url: HttpsUrlSchema,
   provider: NonBlankTextSchema.max(64),
   mediaKind: EvidenceMediaKindSchema,
   label: z.string().nullable(),
   addedBy: z.string().uuid(),
   addedAt: z.string().datetime(),
-  normalizedUrl: z.string().max(2048),
+  normalizedUrl: HttpsUrlSchema,
   previewStatus: EvidencePreviewStatusSchema,
 });
 export type TestResultEvidenceLink = z.infer<typeof TestResultEvidenceLinkSchema>;
@@ -79,8 +90,9 @@ export const CreateTestCaseSchema = z.object({
   description: z.string().trim().max(10000).nullable().optional(),
   testType: CanonicalTestCaseTypeSchema.default('manual'),
   priority: TestCasePrioritySchema.default('medium'),
-  status: TestCaseDefinitionStatusSchema.default('draft'),
+  status: TestCaseDefinitionStatusSchema.optional(),
   preconditions: z.string().trim().max(10000).nullable().optional(),
+
   steps: z.array(NonBlankTextSchema.max(2000)).max(100).default([]),
   expectedResult: z.string().trim().max(10000).nullable().optional(),
   testData: z.string().trim().max(10000).nullable().optional(),
@@ -249,7 +261,13 @@ export const TestCaseImportDryRunRowSchema = z.object({
 });
 export type TestCaseImportDryRunRow = z.infer<typeof TestCaseImportDryRunRowSchema>;
 
+export const PreviewTestCaseImportQuerySchema = z.object({
+  sheetName: z.string().trim().optional(),
+});
+export type PreviewTestCaseImportQuery = z.infer<typeof PreviewTestCaseImportQuerySchema>;
+
 export const TestCaseImportPreviewResponseSchema = z.object({
+  importSessionId: z.string().uuid(),
   fileName: z.string(),
   contentHash: z.string(),
   templateVersion: z.string(),
@@ -257,16 +275,20 @@ export const TestCaseImportPreviewResponseSchema = z.object({
   validRows: z.number().int().nonnegative(),
   invalidRows: z.number().int().nonnegative(),
   duplicateRows: z.number().int().nonnegative(),
+  availableSheets: z.array(z.string()).default([]),
+  selectedSheet: z.string().default('Sheet1'),
+  expiresAt: z.string().datetime(),
   rows: z.array(TestCaseImportDryRunRowSchema),
 });
 export type TestCaseImportPreviewResponse = z.infer<typeof TestCaseImportPreviewResponseSchema>;
 
 export const CommitTestCaseImportSchema = z.object({
   workspaceId: z.string().uuid(),
-  fileName: NonBlankTextSchema.max(255),
+  importSessionId: z.string().uuid(),
   contentHash: NonBlankTextSchema.max(64),
   mode: TestCaseImportModeSchema.default('create_only'),
-  rows: z.array(TestCaseImportDryRunRowSchema).min(1).max(1000),
+  sheetName: z.string().trim().optional(),
+  columnMapping: z.record(z.string()).optional(),
 });
 export type CommitTestCaseImportInput = z.infer<typeof CommitTestCaseImportSchema>;
 

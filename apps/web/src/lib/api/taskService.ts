@@ -13,13 +13,12 @@ import {
   CreateTaskCommentInput,
   UpdateTaskCommentInput,
   TaskComment,
+  TaskAttachment,
 } from '@qlick/contracts';
 
 export const taskService = {
   async getTask(workspaceId: string, taskId: string): Promise<Task> {
-    const res = await apiClient<{ data: Task }>(
-      `/workspaces/${workspaceId}/tasks/${taskId}`
-    );
+    const res = await apiClient<{ data: Task }>(`/workspaces/${workspaceId}/tasks/${taskId}`);
     return res.data;
   },
 
@@ -28,39 +27,37 @@ export const taskService = {
       `/workspaces/${workspaceId}/tasks/${taskId}`,
       {
         method: 'DELETE',
-      }
+      },
     );
     return res.data;
   },
 
-  async updateTaskStatus(
-    workspaceId: string,
-    taskId: string,
-    status: TaskStatus
-  ): Promise<Task> {
+  async updateTaskStatus(workspaceId: string, taskId: string, status: TaskStatus): Promise<Task> {
     const res = await apiClient<{ data: Task }>(
       `/workspaces/${workspaceId}/tasks/${taskId}/status`,
       {
         method: 'PATCH',
         body: JSON.stringify({ status }),
-      }
+      },
     );
     return res.data;
   },
 
   async listTasks(
     workspaceId: string,
-    query?: Partial<Omit<TaskListQuery, 'workspaceId'>>
+    query?: Partial<Omit<TaskListQuery, 'workspaceId'>>,
   ): Promise<TaskListResponse> {
     const params: Record<string, string> = {};
     if (query) {
       if (query.folderId) params.folderId = query.folderId;
-      if (query.includeDescendants !== undefined) params.includeDescendants = String(query.includeDescendants);
+      if (query.includeDescendants !== undefined)
+        params.includeDescendants = String(query.includeDescendants);
       if (query.unfiledOnly !== undefined) params.unfiledOnly = String(query.unfiledOnly);
       if (query.rootOnly !== undefined) params.rootOnly = String(query.rootOnly);
       if (query.myTasksOnly !== undefined) params.myTasksOnly = String(query.myTasksOnly);
       if (query.parentTaskId) params.parentTaskId = query.parentTaskId;
-      if (query.includeSubtaskSummary !== undefined) params.includeSubtaskSummary = String(query.includeSubtaskSummary);
+      if (query.includeSubtaskSummary !== undefined)
+        params.includeSubtaskSummary = String(query.includeSubtaskSummary);
       if (query.status) {
         params.status = Array.isArray(query.status) ? query.status.join(',') : query.status;
       }
@@ -76,10 +73,9 @@ export const taskService = {
       if (query.limit) params.limit = String(query.limit);
     }
 
-    const res = await apiClient<{ data: TaskListResponse }>(
-      `/workspaces/${workspaceId}/tasks`,
-      { params }
-    );
+    const res = await apiClient<{ data: TaskListResponse }>(`/workspaces/${workspaceId}/tasks`, {
+      params,
+    });
     return res.data;
   },
 
@@ -87,18 +83,18 @@ export const taskService = {
     workspaceId: string,
     parentTaskId: string,
     page = 1,
-    limit = 50
+    limit = 50,
   ): Promise<TaskListResponse> {
     const res = await apiClient<{ data: TaskListResponse }>(
       `/workspaces/${workspaceId}/tasks/${parentTaskId}/subtasks`,
-      { params: { page: String(page), limit: String(limit) } }
+      { params: { page: String(page), limit: String(limit) } },
     );
     return res.data;
   },
 
   async createTask(
     workspaceId: string,
-    input: Omit<CreateTaskInput, 'workspaceId'>
+    input: Omit<CreateTaskInput, 'workspaceId'>,
   ): Promise<Task> {
     const res = await apiClient<{ data: Task }>(`/workspaces/${workspaceId}/tasks`, {
       method: 'POST',
@@ -110,59 +106,41 @@ export const taskService = {
   async createSubtask(
     workspaceId: string,
     parentTaskId: string,
-    input: Omit<CreateTaskInput, 'workspaceId' | 'parentTaskId'>
+    input: Omit<CreateTaskInput, 'workspaceId' | 'parentTaskId'>,
   ): Promise<Task> {
     const res = await apiClient<{ data: Task }>(
       `/workspaces/${workspaceId}/tasks/${parentTaskId}/subtasks`,
       {
         method: 'POST',
         body: JSON.stringify({ ...input, workspaceId, parentTaskId }),
-      }
+      },
     );
     return res.data;
   },
 
-  async updateTask(
-    workspaceId: string,
-    taskId: string,
-    input: UpdateTaskInput
-  ): Promise<Task> {
-    const res = await apiClient<{ data: Task }>(
-      `/workspaces/${workspaceId}/tasks/${taskId}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify(input),
-      }
-    );
+  async updateTask(workspaceId: string, taskId: string, input: UpdateTaskInput): Promise<Task> {
+    const res = await apiClient<{ data: Task }>(`/workspaces/${workspaceId}/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
     return res.data;
   },
 
-  async moveTask(
-    workspaceId: string,
-    taskId: string,
-    input: MoveTaskInput
-  ): Promise<Task> {
-    const res = await apiClient<{ data: Task }>(
-      `/workspaces/${workspaceId}/tasks/${taskId}/move`,
-      {
-        method: 'PUT',
-        body: JSON.stringify(input),
-      }
-    );
+  async moveTask(workspaceId: string, taskId: string, input: MoveTaskInput): Promise<Task> {
+    const res = await apiClient<{ data: Task }>(`/workspaces/${workspaceId}/tasks/${taskId}/move`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
     return res.data;
   },
 
-  async completeTask(
-    workspaceId: string,
-    taskId: string,
-    input: CompleteTaskInput
-  ): Promise<Task> {
+  async completeTask(workspaceId: string, taskId: string, input: CompleteTaskInput): Promise<Task> {
     const res = await apiClient<{ data: Task }>(
       `/workspaces/${workspaceId}/tasks/${taskId}/complete`,
       {
         method: 'POST',
         body: JSON.stringify(input),
-      }
+      },
     );
     return res.data;
   },
@@ -171,11 +149,11 @@ export const taskService = {
     workspaceId: string,
     taskId: string,
     page = 1,
-    limit = 50
+    limit = 50,
   ): Promise<TaskActivityListResponse> {
     const res = await apiClient<{ data: TaskActivityListResponse }>(
       `/workspaces/${workspaceId}/tasks/${taskId}/activity`,
-      { params: { page: String(page), limit: String(limit) } }
+      { params: { page: String(page), limit: String(limit) } },
     );
     return res.data;
   },
@@ -184,11 +162,11 @@ export const taskService = {
     workspaceId: string,
     taskId: string,
     page = 1,
-    limit = 50
+    limit = 50,
   ): Promise<TaskCommentListResponse> {
     const res = await apiClient<{ data: TaskCommentListResponse }>(
       `/workspaces/${workspaceId}/tasks/${taskId}/comments`,
-      { params: { page: String(page), limit: String(limit) } }
+      { params: { page: String(page), limit: String(limit) } },
     );
     return res.data;
   },
@@ -196,14 +174,14 @@ export const taskService = {
   async createTaskComment(
     workspaceId: string,
     taskId: string,
-    input: CreateTaskCommentInput
+    input: CreateTaskCommentInput,
   ): Promise<TaskComment> {
     const res = await apiClient<{ data: TaskComment }>(
       `/workspaces/${workspaceId}/tasks/${taskId}/comments`,
       {
         method: 'POST',
         body: JSON.stringify(input),
-      }
+      },
     );
     return res.data;
   },
@@ -212,14 +190,14 @@ export const taskService = {
     workspaceId: string,
     taskId: string,
     commentId: string,
-    input: UpdateTaskCommentInput
+    input: UpdateTaskCommentInput,
   ): Promise<TaskComment> {
     const res = await apiClient<{ data: TaskComment }>(
       `/workspaces/${workspaceId}/tasks/${taskId}/comments/${commentId}`,
       {
         method: 'PATCH',
         body: JSON.stringify(input),
-      }
+      },
     );
     return res.data;
   },
@@ -227,14 +205,21 @@ export const taskService = {
   async deleteTaskComment(
     workspaceId: string,
     taskId: string,
-    commentId: string
+    commentId: string,
   ): Promise<TaskComment> {
     const res = await apiClient<{ data: TaskComment }>(
       `/workspaces/${workspaceId}/tasks/${taskId}/comments/${commentId}`,
       {
         method: 'DELETE',
-      }
+      },
     );
     return res.data;
+  },
+
+  async listTaskAttachments(workspaceId: string, taskId: string): Promise<TaskAttachment[]> {
+    const res = await apiClient<{ attachments: TaskAttachment[] }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/attachments`,
+    );
+    return res.attachments || [];
   },
 };

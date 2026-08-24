@@ -223,9 +223,15 @@ export class BugService {
     if (query.status) where.status = query.status;
 
     if (query.queue === 'assigned_work') {
+      if (membership.role !== 'dev') {
+        throw new Error('FORBIDDEN: Only Developers have an assigned work queue.');
+      }
       where.assigneeId = actorId;
       where.status = { [Op.in]: ['open', 'reopened', 'in_progress'] };
     } else if (query.queue === 'retest') {
+      if (membership.role !== 'qa' && membership.role !== 'owner' && membership.role !== 'admin') {
+        throw new Error('FORBIDDEN: Only QA, Admin, or Owner can access the retest queue.');
+      }
       where.status = 'resolved';
     }
 
@@ -541,6 +547,16 @@ export class BugService {
 
     const normalized = normalizeEvidenceUrl(input.url);
 
+    const existingLink = await BugEvidenceLinkModel.findOne({
+      where: {
+        bugId,
+        [Op.or]: [{ normalizedUrl: normalized.normalizedUrl }, { url: input.url }],
+      },
+    });
+    if (existingLink) {
+      throw new Error('CONFLICT: This evidence link is already attached to this Bug.');
+    }
+
     const created = await sequelize.transaction(async (transaction) => {
       const link = await BugEvidenceLinkModel.create(
         {
@@ -616,7 +632,7 @@ export class BugService {
       where: { id: input.featureTaskId, workspaceId: input.workspaceId },
       transaction,
     });
-    if (!featureTask) throw new Error('NOT_FOUND: Feature task not found in this workspace.');
+    if (!featureTask) throw new Error('BAD_REQUEST: Feature task not found in this workspace.');
     if (featureTask.parentTaskId) {
       throw new Error('BAD_REQUEST: Bugs must link to the root Feature task, not a subtask.');
     }
@@ -625,7 +641,7 @@ export class BugService {
       where: { id: input.requirementId, workspaceId: input.workspaceId },
       transaction,
     });
-    if (!requirement) throw new Error('NOT_FOUND: Requirement not found in this workspace.');
+    if (!requirement) throw new Error('BAD_REQUEST: Requirement not found in this workspace.');
 
     const subtasks = await TaskModel.findAll({
       where: { workspaceId: input.workspaceId, parentTaskId: featureTask.id },

@@ -939,6 +939,28 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(input.url, 'https://drive.google.com/file/d/12345/view');
       assert.strictEqual(input.label, 'Checkout video recording');
 
+      // Rejects insecure HTTP and dangerous protocols
+      assert.throws(() =>
+        CreateEvidenceLinkInputSchema.parse({
+          url: 'http://drive.google.com/file/d/12345/view',
+        }),
+      );
+      assert.throws(() =>
+        CreateEvidenceLinkInputSchema.parse({
+          url: 'javascript:alert(1)',
+        }),
+      );
+      assert.throws(() =>
+        CreateEvidenceLinkInputSchema.parse({
+          url: 'file:///etc/passwd',
+        }),
+      );
+      assert.throws(() =>
+        CreateEvidenceLinkInputSchema.parse({
+          url: 'data:text/html,<script>alert(1)</script>',
+        }),
+      );
+
       const evidenceLink = TestResultEvidenceLinkSchema.parse({
         id: '123e4567-e89b-12d3-a456-426614174099',
         workspaceId,
@@ -957,6 +979,8 @@ describe('Contracts Validation Suite', () => {
     });
 
     test('validates spreadsheet import preview, dry run, and commit contracts', () => {
+      const sessionId = '123e4567-e89b-12d3-a456-426614174098';
+      const expiresAt = new Date(Date.now() + 3600000).toISOString();
       const dryRunRow = TestCaseImportDryRunRowSchema.parse({
         sourceRowNumber: 2,
         externalReference: 'TC-101',
@@ -979,6 +1003,7 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(dryRunRow.isValid, true);
 
       const preview = TestCaseImportPreviewResponseSchema.parse({
+        importSessionId: sessionId,
         fileName: 'test_cases_template.xlsx',
         contentHash: 'a'.repeat(64),
         templateVersion: '1.0',
@@ -986,18 +1011,25 @@ describe('Contracts Validation Suite', () => {
         validRows: 1,
         invalidRows: 0,
         duplicateRows: 0,
+        availableSheets: ['Sheet1', 'Regression'],
+        selectedSheet: 'Sheet1',
+        expiresAt,
         rows: [dryRunRow],
       });
       assert.strictEqual(preview.totalRows, 1);
+      assert.strictEqual(preview.importSessionId, sessionId);
+      assert.strictEqual(preview.availableSheets.length, 2);
 
       const commit = CommitTestCaseImportSchema.parse({
         workspaceId,
-        fileName: 'test_cases_template.xlsx',
+        importSessionId: sessionId,
         contentHash: 'a'.repeat(64),
         mode: 'create_only',
-        rows: [dryRunRow],
+        sheetName: 'Sheet1',
+        columnMapping: { Title: 'title' },
       });
       assert.strictEqual(commit.mode, 'create_only');
+      assert.strictEqual(commit.importSessionId, sessionId);
     });
   });
 

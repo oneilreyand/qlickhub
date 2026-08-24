@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   EvidenceMediaKindSchema,
   EvidencePreviewStatusSchema,
+  HttpsUrlSchema,
   TestResultEvidenceLinkSchema,
   TestResultEvidenceSchema,
   TestResultStatusSchema,
@@ -19,13 +20,13 @@ export const BugEvidenceLinkSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
   bugId: z.string().uuid(),
-  url: z.string().max(2048),
+  url: HttpsUrlSchema,
   provider: NonBlankTextSchema.max(64),
   mediaKind: EvidenceMediaKindSchema,
   label: z.string().nullable(),
   addedBy: z.string().uuid(),
   addedAt: z.string().datetime(),
-  normalizedUrl: z.string().max(2048),
+  normalizedUrl: HttpsUrlSchema,
   previewStatus: EvidencePreviewStatusSchema,
 });
 export type BugEvidenceLink = z.infer<typeof BugEvidenceLinkSchema>;
@@ -33,7 +34,7 @@ export type BugEvidenceLink = z.infer<typeof BugEvidenceLinkSchema>;
 export const CreateBugEvidenceLinkSchema = z.object({
   workspaceId: z.string().uuid(),
   bugId: z.string().uuid(),
-  url: z.string().trim().url().max(2048),
+  url: HttpsUrlSchema,
   label: z.string().trim().max(255).nullable().optional(),
 });
 export type CreateBugEvidenceLinkInput = z.infer<typeof CreateBugEvidenceLinkSchema>;

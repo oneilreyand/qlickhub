@@ -38,6 +38,11 @@ import { DropdownMenu } from '../components/ui/molecules/DropdownMenu';
 import { EmptyState } from '../components/ui/molecules/EmptyState';
 import { SearchInput } from '../components/ui/molecules/SearchInput';
 import { ReleaseReadinessSignal } from '../components/ui/molecules/ReleaseReadinessSignal';
+import { EvidenceCard } from '../components/ui/molecules/EvidenceCard';
+import {
+  EvidencePreviewModal,
+  EvidencePreviewItem,
+} from '../components/ui/organisms/EvidencePreviewModal';
 
 import { StatCard } from '../components/ui/organisms/StatCard';
 import { DataTable } from '../components/ui/organisms/DataTable';
@@ -88,7 +93,9 @@ export const ComponentGalleryPage: React.FC = () => {
     startDate: '2026-08-01',
     endDate: '2026-08-13',
   });
+  const [demoEvidencePreview, setDemoEvidencePreview] = useState<EvidencePreviewItem | null>(null);
   const dispatch = useAppDispatch();
+
   const isGlobalActionPending = useAppSelector((state) => state.ui.pendingOperations.length > 0);
   const currentUserRole = useAppSelector(selectCurrentUserRole);
   const { workspaces, activeWorkspaceId } = useAppSelector((state) => state.workspace);
@@ -839,8 +846,67 @@ export const ComponentGalleryPage: React.FC = () => {
               </Accordion>
             </div>
           </Section>
+
+          {/* Section: Evidence Cards & Media Preview */}
+          <Section
+            category="Molecules & Organisms"
+            title="Formal QA Evidence Links & Sandboxed Preview"
+            description="Preview cards and sandboxed modal for external video/image evidence from YouTube, Loom, Vimeo, Google Drive, and direct HTTPS assets."
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <EvidenceCard
+                link={{
+                  id: 'demo-1',
+                  url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                  normalizedUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+                  provider: 'youtube',
+                  mediaKind: 'video',
+                  label: 'E2E Checkout Failure Reproduction Video',
+                  previewStatus: 'ready',
+                }}
+                onPreview={(l) =>
+                  setDemoEvidencePreview({
+                    url: l.url,
+                    normalizedUrl: l.normalizedUrl,
+                    provider: l.provider,
+                    mediaKind: l.mediaKind,
+                    label: l.label,
+                    previewStatus: 'ready',
+                  })
+                }
+              />
+              <EvidenceCard
+                link={{
+                  id: 'demo-2',
+                  url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c',
+                  normalizedUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c',
+                  provider: 'direct_image',
+                  mediaKind: 'image',
+                  label: 'Console Error Screenshot',
+                  previewStatus: 'ready',
+                }}
+                onPreview={(l) =>
+                  setDemoEvidencePreview({
+                    url: l.url,
+                    normalizedUrl: l.normalizedUrl,
+                    provider: l.provider,
+                    mediaKind: l.mediaKind,
+                    label: l.label,
+                    previewStatus: 'ready',
+                  })
+                }
+              />
+            </div>
+          </Section>
         </div>
       </div>
+
+      {/* Evidence Preview Modal */}
+      <EvidencePreviewModal
+        isOpen={Boolean(demoEvidencePreview)}
+        onClose={() => setDemoEvidencePreview(null)}
+        evidence={demoEvidencePreview}
+      />
 
       {/* Interactive Modal Demo */}
       <Modal

@@ -32,24 +32,38 @@ export function assertCanUpdateTestCase(
   role: WorkspaceRole,
   currentStatus: TestCaseDefinitionStatus,
   nextStatus?: TestCaseDefinitionStatus,
+  _isRequirementMappingChanged = false,
 ): void {
   if (role === 'owner' || role === 'admin' || role === 'po') return;
   if (role === 'qa') {
+    if (currentStatus === 'active' || currentStatus === 'archived') {
+      throw new Error('FORBIDDEN: QA cannot edit published active or archived Test Cases.');
+    }
     if (nextStatus === 'active' || nextStatus === 'archived') {
       throw new Error(
         'FORBIDDEN: Only Product Owner, Admin, or Owner members can publish or archive Test Cases.',
       );
     }
-    if (currentStatus === 'draft' || currentStatus === 'in_review') return;
-    throw new Error('FORBIDDEN: QA cannot edit published active or archived Test Cases.');
+    return;
   }
   throw new Error(
     'FORBIDDEN: Only QA, Product Owner, Admin, or Owner members can update Test Cases.',
   );
 }
 
-export function assertCanImportTestCases(role: WorkspaceRole): void {
-  if (role === 'owner' || role === 'admin' || role === 'po' || role === 'qa') return;
+export function assertCanImportTestCases(
+  role: WorkspaceRole,
+  mode: 'create_only' | 'update' = 'create_only',
+): void {
+  if (role === 'owner' || role === 'admin' || role === 'po') return;
+  if (role === 'qa') {
+    if (mode === 'update') {
+      throw new Error(
+        'FORBIDDEN: QA members cannot use update mode to overwrite existing Test Cases or Requirement mappings. Only Product Owner, Admin, or Owner can use update mode.',
+      );
+    }
+    return;
+  }
   throw new Error(
     'FORBIDDEN: You do not have permission to import Test Cases into this workspace.',
   );

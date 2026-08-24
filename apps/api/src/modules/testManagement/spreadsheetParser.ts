@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { inflateRawSync } from 'node:zlib';
+import { MAX_IMPORT_ROWS } from '@qlick/contracts';
 
 export interface ParsedSpreadsheetRow {
   rowNumber: number;
@@ -9,7 +10,10 @@ export interface ParsedSpreadsheetRow {
 /**
  * Standard RFC 4180 CSV parser supporting quoted values, embedded newlines, and escaped quotes.
  */
-export function parseCsvContent(content: string): ParsedSpreadsheetRow[] {
+export function parseCsvContent(
+  content: string,
+  columnMapping?: Record<string, string>,
+): ParsedSpreadsheetRow[] {
   const cleanContent = content.replace(/^\uFEFF/, ''); // strip BOM
   const rows: string[][] = [];
   let currentRow: string[] = [];
@@ -67,10 +71,15 @@ export function parseCsvContent(content: string): ParsedSpreadsheetRow[] {
 
   if (rows.length < 2) return [];
 
-  const headers = rows[0].map((h) => normalizeHeader(h));
+  const rawHeaders = rows[0];
+  const headers = rawHeaders.map((h) => resolveHeader(h, columnMapping));
   const parsedRows: ParsedSpreadsheetRow[] = [];
 
   for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+    if (parsedRows.length >= MAX_IMPORT_ROWS) {
+      throw new Error(`BAD_REQUEST: Spreadsheet exceeds maximum limit of ${MAX_IMPORT_ROWS} rows.`);
+    }
+
     const row = rows[rowIndex];
     const data: Record<string, string> = {};
     let hasAnyValue = false;
@@ -134,20 +143,87 @@ function unzipBuffer(buffer: Buffer): Map<string, Buffer> {
 }
 
 /**
- * Parse an XLSX file buffer into spreadsheet rows.
+ * Discover available sheet names in an XLSX file.
  */
-export function parseXlsxContent(buffer: Buffer): ParsedSpreadsheetRow[] {
+export function getSpreadsheetSheets(buffer: Buffer, mimeType = ''): string[] {
+  if (
+    mimeType.includes('csv') ||
+    (!mimeType.includes('spreadsheet') &&
+      !mimeType.includes('excel') &&
+      !mimeType.includes('openxmlformats'))
+  ) {
+    // Check if buffer looks like zip
+    if (buffer.length < 4 || buffer.readUInt32LE(0) !== 0x04034b50) {
+      return ['Sheet1'];
+    }
+  }
+
+  try {
+    const files = unzipBuffer(buffer);
+    const workbookXml = files.get('xl/workbook.xml')?.toString('utf8') || '';
+    if (!workbookXml) return ['Sheet1'];
+
+    const sheetNames: string[] = [];
+    const sheetRegex = /<sheet\s+[^>]*name="([^"]+)"[^>]*>/g;
+    let match: RegExpExecArray | null;
+    while ((match = sheetRegex.exec(workbookXml)) !== null) {
+      sheetNames.push(match[1]);
+    }
+
+    return sheetNames.length > 0 ? sheetNames : ['Sheet1'];
+  } catch {
+    return ['Sheet1'];
+  }
+}
+
+/**
+ * Parse an XLSX file buffer into spreadsheet rows with sheet selection and column mapping.
+ */
+export function parseXlsxContent(
+  buffer: Buffer,
+  selectedSheetName?: string,
+  columnMapping?: Record<string, string>,
+): ParsedSpreadsheetRow[] {
   try {
     const files = unzipBuffer(buffer);
     const sharedStringsXml = files.get('xl/sharedStrings.xml')?.toString('utf8') || '';
-    const sheet1Xml =
-      files.get('xl/worksheets/sheet1.xml')?.toString('utf8') ||
-      files.get('xl/worksheets/sheet.xml')?.toString('utf8') ||
-      '';
+    const workbookXml = files.get('xl/workbook.xml')?.toString('utf8') || '';
+    const relsXml = files.get('xl/_rels/workbook.xml.rels')?.toString('utf8') || '';
 
-    if (!sheet1Xml) {
-      // Fallback: If not standard XLSX, try parsing as UTF-8 CSV
-      return parseCsvContent(buffer.toString('utf8'));
+    // Determine target worksheet xml file
+    let targetWorksheetPath = 'xl/worksheets/sheet1.xml';
+
+    if (selectedSheetName && workbookXml) {
+      const sheetRegex = new RegExp(
+        `<sheet\\s+[^>]*name="${selectedSheetName}"[^>]*r:id="([^"]+)"`,
+        'i',
+      );
+      const sheetMatch = sheetRegex.exec(workbookXml);
+      if (sheetMatch && relsXml) {
+        const rId = sheetMatch[1];
+        const relRegex = new RegExp(`<Relationship\\s+[^>]*Id="${rId}"[^>]*Target="([^"]+)"`, 'i');
+        const relMatch = relRegex.exec(relsXml);
+        if (relMatch) {
+          const target = relMatch[1];
+          targetWorksheetPath = target.startsWith('worksheets/')
+            ? `xl/${target}`
+            : target.startsWith('xl/')
+              ? target
+              : `xl/worksheets/${target}`;
+        }
+      }
+    }
+
+    let worksheetXml = files.get(targetWorksheetPath)?.toString('utf8') || '';
+    if (!worksheetXml) {
+      worksheetXml =
+        files.get('xl/worksheets/sheet1.xml')?.toString('utf8') ||
+        files.get('xl/worksheets/sheet.xml')?.toString('utf8') ||
+        '';
+    }
+
+    if (!worksheetXml) {
+      return parseCsvContent(buffer.toString('utf8'), columnMapping);
     }
 
     // Extract shared strings
@@ -172,7 +248,7 @@ export function parseXlsxContent(buffer: Buffer): ParsedSpreadsheetRow[] {
     const rawRows: { rowNum: number; cells: Record<string, string> }[] = [];
     let rowMatch: RegExpExecArray | null;
 
-    while ((rowMatch = rowRegex.exec(sheet1Xml)) !== null) {
+    while ((rowMatch = rowRegex.exec(worksheetXml)) !== null) {
       const rowNum = parseInt(rowMatch[1], 10);
       const rowContent = rowMatch[2];
       const cells: Record<string, string> = {};
@@ -203,11 +279,17 @@ export function parseXlsxContent(buffer: Buffer): ParsedSpreadsheetRow[] {
     const headerRow = rawRows[0];
     const colToHeader: Record<string, string> = {};
     for (const [col, headerVal] of Object.entries(headerRow.cells)) {
-      colToHeader[col] = normalizeHeader(headerVal);
+      colToHeader[col] = resolveHeader(headerVal, columnMapping);
     }
 
     const parsedRows: ParsedSpreadsheetRow[] = [];
     for (let i = 1; i < rawRows.length; i++) {
+      if (parsedRows.length >= MAX_IMPORT_ROWS) {
+        throw new Error(
+          `BAD_REQUEST: Spreadsheet exceeds maximum limit of ${MAX_IMPORT_ROWS} rows.`,
+        );
+      }
+
       const { rowNum, cells } = rawRows[i];
       const data: Record<string, string> = {};
       let hasAnyValue = false;
@@ -225,14 +307,24 @@ export function parseXlsxContent(buffer: Buffer): ParsedSpreadsheetRow[] {
     }
 
     return parsedRows;
-  } catch {
-    // Fallback to CSV parse if error occurs
-    return parseCsvContent(buffer.toString('utf8'));
+  } catch (err: any) {
+    if (err.message?.includes('exceeds maximum limit')) {
+      throw err;
+    }
+    return parseCsvContent(buffer.toString('utf8'), columnMapping);
   }
 }
 
 export function computeContentHash(content: string | Buffer): string {
   return createHash('sha256').update(content).digest('hex');
+}
+
+function resolveHeader(raw: string, columnMapping?: Record<string, string>): string {
+  const trimmed = raw.trim();
+  if (columnMapping && columnMapping[trimmed]) {
+    return columnMapping[trimmed];
+  }
+  return normalizeHeader(trimmed);
 }
 
 function normalizeHeader(raw: string): string {

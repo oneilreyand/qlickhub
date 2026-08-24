@@ -433,7 +433,11 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     const qaCreate = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-      body: JSON.stringify({ title: 'QA definition', requirementIds: [requirementA.id] }),
+      body: JSON.stringify({
+        title: 'QA definition',
+        status: 'active',
+        requirementIds: [requirementA.id],
+      }),
     });
     assert.strictEqual(qaCreate.status, 403);
 

@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import type { Transaction } from 'sequelize';
 import type {
   CommitTestCaseImportInput,
@@ -7,6 +8,7 @@ import type {
   TestCaseImportResult,
   TestCaseImportRowError,
 } from '@qlick/contracts';
+import { MAX_IMPORT_ROWS } from '@qlick/contracts';
 import { sequelize } from '../../db/sequelize.js';
 import {
   RequirementModel,
@@ -19,7 +21,12 @@ import {
   WorkspaceMemberModel,
 } from '../../db/models/index.js';
 import { assertCanImportTestCases } from '../../policies/testManagementPolicy.js';
-import { computeContentHash, parseCsvContent, parseXlsxContent } from './spreadsheetParser.js';
+import {
+  computeContentHash,
+  getSpreadsheetSheets,
+  parseCsvContent,
+  parseXlsxContent,
+} from './spreadsheetParser.js';
 
 async function getMembership(workspaceId: string, actorId: string, transaction?: Transaction) {
   const membership = await WorkspaceMemberModel.findOne({
@@ -35,6 +42,8 @@ async function getMembership(workspaceId: string, actorId: string, transaction?:
 function iso(value: Date): string {
   return new Date(value).toISOString();
 }
+
+const SESSION_TTL_MS = 3600 * 1000; // 1 hour
 
 export class TestCaseImportService {
   getTemplateCsv(): string {
@@ -87,19 +96,29 @@ export class TestCaseImportService {
     actorId: string,
     fileName: string,
     fileBuffer: Buffer | string,
+    mimeType = '',
+    sheetName?: string,
+    columnMapping?: Record<string, string>,
   ): Promise<TestCaseImportPreviewResponse> {
     const membership = await getMembership(workspaceId, actorId);
     assertCanImportTestCases(membership.role);
 
     const isBuffer = Buffer.isBuffer(fileBuffer);
     const contentHash = computeContentHash(fileBuffer);
+    const availableSheets = isBuffer ? getSpreadsheetSheets(fileBuffer, mimeType) : ['Sheet1'];
+    const selectedSheet =
+      sheetName && availableSheets.includes(sheetName) ? sheetName : availableSheets[0] || 'Sheet1';
 
     const parsedRows = isBuffer
-      ? parseXlsxContent(fileBuffer)
-      : parseCsvContent(fileBuffer.toString());
+      ? parseXlsxContent(fileBuffer, selectedSheet, columnMapping)
+      : parseCsvContent(fileBuffer.toString(), columnMapping);
 
     if (parsedRows.length === 0) {
       throw new Error('BAD_REQUEST: The uploaded file contains no valid data rows or headers.');
+    }
+
+    if (parsedRows.length > MAX_IMPORT_ROWS) {
+      throw new Error(`BAD_REQUEST: Spreadsheet exceeds maximum limit of ${MAX_IMPORT_ROWS} rows.`);
     }
 
     const [requirements, existingTestCases] = await Promise.all([
@@ -109,7 +128,7 @@ export class TestCaseImportService {
       }),
       TestCaseModel.findAll({
         where: { workspaceId },
-        attributes: ['id', 'externalReference'],
+        attributes: ['id', 'externalReference', 'status'],
       }),
     ]);
 
@@ -118,10 +137,13 @@ export class TestCaseImportService {
       reqByCode.set(req.code.trim().toUpperCase(), req.id);
     }
 
-    const existingByExtRef = new Map<string, string>();
+    const existingByExtRef = new Map<string, { id: string; status: string }>();
     for (const tc of existingTestCases) {
       if (tc.externalReference) {
-        existingByExtRef.set(tc.externalReference.trim().toUpperCase(), tc.id);
+        existingByExtRef.set(tc.externalReference.trim().toUpperCase(), {
+          id: tc.id,
+          status: tc.status,
+        });
       }
     }
 
@@ -217,7 +239,7 @@ export class TestCaseImportService {
         const dbMatch = existingByExtRef.get(normalized);
         if (dbMatch) {
           isDuplicate = true;
-          existingTestCaseId = dbMatch;
+          existingTestCaseId = dbMatch.id;
         }
       }
 
@@ -247,38 +269,22 @@ export class TestCaseImportService {
       });
     }
 
-    return {
-      fileName,
-      contentHash,
-      templateVersion: '1.0',
-      totalRows: dryRunRows.length,
-      validRows: validCount,
-      invalidRows: invalidCount,
-      duplicateRows: duplicateCount,
-      rows: dryRunRows,
-    };
-  }
+    const importSessionId = uuidv4();
+    const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
 
-  async commitImport(
-    actorId: string,
-    input: CommitTestCaseImportInput,
-  ): Promise<TestCaseImportResult> {
-    const { workspaceId, fileName, contentHash, mode, rows } = input;
-
-    const result = await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(workspaceId, actorId, transaction);
-      assertCanImportTestCases(membership.role);
-
-      const importRecord = await TestCaseImportModel.create(
+    // Save server-side staging record
+    await sequelize.transaction(async (transaction) => {
+      await TestCaseImportModel.create(
         {
+          id: importSessionId,
           workspaceId,
           actorId,
           sourceFileName: fileName,
           contentHash,
           templateVersion: '1.0',
-          mode,
+          mode: 'create_only',
           status: 'in_progress',
-          totalRows: rows.length,
+          totalRows: dryRunRows.length,
           createdRows: 0,
           updatedRows: 0,
           skippedRows: 0,
@@ -287,54 +293,165 @@ export class TestCaseImportService {
         { transaction },
       );
 
+      for (const row of dryRunRows) {
+        await TestCaseImportRowModel.create(
+          {
+            importId: importSessionId,
+            sourceRowNumber: row.sourceRowNumber,
+            externalReference: row.externalReference,
+            parsedPayload: {
+              ...row,
+              sheetName: selectedSheet,
+            } as unknown as Record<string, unknown>,
+            outcome: row.isValid ? (row.isDuplicate ? 'skipped' : 'created') : 'failed',
+            validationErrors: row.validationErrors.length > 0 ? row.validationErrors : null,
+            testCaseId: row.existingTestCaseId || null,
+          },
+          { transaction },
+        );
+      }
+    });
+
+    return {
+      importSessionId,
+      fileName,
+      contentHash,
+      templateVersion: '1.0',
+      totalRows: dryRunRows.length,
+      validRows: validCount,
+      invalidRows: invalidCount,
+      duplicateRows: duplicateCount,
+      availableSheets,
+      selectedSheet,
+      expiresAt: expiresAt.toISOString(),
+      rows: dryRunRows,
+    };
+  }
+
+  async commitImport(
+    actorId: string,
+    input: CommitTestCaseImportInput,
+  ): Promise<TestCaseImportResult> {
+    const { workspaceId, importSessionId, contentHash, mode } = input;
+
+    const result = await sequelize.transaction(async (transaction) => {
+      const membership = await getMembership(workspaceId, actorId, transaction);
+      assertCanImportTestCases(membership.role, mode);
+
+      // Verify server-side staged session
+      const stagedImport = await TestCaseImportModel.findOne({
+        where: { id: importSessionId, workspaceId },
+        transaction,
+      });
+
+      if (!stagedImport) {
+        throw new Error('NOT_FOUND: Import session not found or invalid.');
+      }
+
+      if (stagedImport.actorId !== actorId) {
+        throw new Error('FORBIDDEN: You do not own this import session.');
+      }
+
+      if (stagedImport.contentHash !== contentHash) {
+        throw new Error('BAD_REQUEST: Content hash mismatch. The uploaded file has been modified.');
+      }
+
+      const elapsed = Date.now() - new Date(stagedImport.createdAt).getTime();
+      if (elapsed > SESSION_TTL_MS) {
+        throw new Error(
+          'BAD_REQUEST: Import preview session has expired. Please re-upload the file.',
+        );
+      }
+
+      // Re-fetch current database requirements & test cases in this workspace
+      const [requirements, existingTestCases] = await Promise.all([
+        RequirementModel.findAll({
+          where: { workspaceId },
+          attributes: ['id', 'code'],
+          transaction,
+        }),
+        TestCaseModel.findAll({
+          where: { workspaceId },
+          attributes: ['id', 'externalReference', 'status'],
+          transaction,
+        }),
+      ]);
+
+      const reqByCode = new Map<string, string>();
+      for (const req of requirements) {
+        reqByCode.set(req.code.trim().toUpperCase(), req.id);
+      }
+
+      const existingByExtRef = new Map<string, TestCaseModel>();
+      for (const tc of existingTestCases) {
+        if (tc.externalReference) {
+          existingByExtRef.set(tc.externalReference.trim().toUpperCase(), tc);
+        }
+      }
+
+      const stagedRows = await TestCaseImportRowModel.findAll({
+        where: { importId: importSessionId },
+        order: [['sourceRowNumber', 'ASC']],
+        transaction,
+      });
+
       let createdRows = 0;
       let updatedRows = 0;
       let skippedRows = 0;
       let failedRows = 0;
       const errors: TestCaseImportRowError[] = [];
 
-      for (const row of rows) {
-        if (!row.isValid || !row.resolvedRequirementId || !row.title) {
+      for (const stagedRow of stagedRows) {
+        const payload = (stagedRow.parsedPayload || {}) as unknown as TestCaseImportDryRunRow;
+
+        // Server-side validation check
+        const extRef = (payload.externalReference || '').trim() || null;
+        const title = (payload.title || '').trim();
+        const reqCode = (payload.requirementCode || '').trim();
+
+        if (!title || !reqCode) {
           failedRows++;
-          const errorMsg = row.validationErrors.join('; ') || 'Invalid row data.';
+          const errorMsg = 'Missing required Title or Requirement Code.';
           errors.push({
-            rowNumber: row.sourceRowNumber,
-            externalReference: row.externalReference,
+            rowNumber: stagedRow.sourceRowNumber,
+            externalReference: extRef,
             error: errorMsg,
           });
-
-          await TestCaseImportRowModel.create(
-            {
-              importId: importRecord.id,
-              sourceRowNumber: row.sourceRowNumber,
-              externalReference: row.externalReference,
-              parsedPayload: row as unknown as Record<string, unknown>,
-              outcome: 'failed',
-              validationErrors: row.validationErrors,
-              testCaseId: null,
-            },
+          await stagedRow.update(
+            { outcome: 'failed', validationErrors: [errorMsg] },
             { transaction },
           );
           continue;
         }
 
-        let existingCase: TestCaseModel | null = null;
-        if (row.externalReference) {
-          existingCase = await TestCaseModel.findOne({
-            where: { workspaceId, externalReference: row.externalReference },
-            transaction,
+        // Re-resolve requirement code server-side
+        const resolvedReqId = reqByCode.get(reqCode.toUpperCase());
+        if (!resolvedReqId) {
+          failedRows++;
+          const errorMsg = `Requirement code "${reqCode}" not found in this workspace.`;
+          errors.push({
+            rowNumber: stagedRow.sourceRowNumber,
+            externalReference: extRef,
+            error: errorMsg,
           });
+          await stagedRow.update(
+            { outcome: 'failed', validationErrors: [errorMsg] },
+            { transaction },
+          );
+          continue;
+        }
+
+        // Check duplicate
+        let existingCase: TestCaseModel | undefined;
+        if (extRef) {
+          existingCase = existingByExtRef.get(extRef.toUpperCase());
         }
 
         if (existingCase) {
           if (mode === 'create_only') {
             skippedRows++;
-            await TestCaseImportRowModel.create(
+            await stagedRow.update(
               {
-                importId: importRecord.id,
-                sourceRowNumber: row.sourceRowNumber,
-                externalReference: row.externalReference,
-                parsedPayload: row as unknown as Record<string, unknown>,
                 outcome: 'skipped',
                 validationErrors: ['Skipped: external reference already exists in workspace.'],
                 testCaseId: existingCase.id,
@@ -343,16 +460,35 @@ export class TestCaseImportService {
             );
           } else {
             // mode === 'update'
+            // Enforce QA restriction: QA cannot edit active or archived cases
+            if (
+              membership.role === 'qa' &&
+              (existingCase.status === 'active' || existingCase.status === 'archived')
+            ) {
+              failedRows++;
+              const errorMsg = 'FORBIDDEN: QA members cannot update active or archived Test Cases.';
+              errors.push({
+                rowNumber: stagedRow.sourceRowNumber,
+                externalReference: extRef,
+                error: errorMsg,
+              });
+              await stagedRow.update(
+                { outcome: 'failed', validationErrors: [errorMsg] },
+                { transaction },
+              );
+              continue;
+            }
+
             await existingCase.update(
               {
-                title: row.title,
-                testType: row.testType,
-                priority: row.priority,
-                scenarioKind: row.scenarioKind,
-                preconditions: row.preconditions || null,
-                steps: row.steps,
-                expectedResult: row.expectedResult || null,
-                testData: row.testData || null,
+                title,
+                testType: payload.testType || 'manual',
+                priority: payload.priority || 'medium',
+                scenarioKind: payload.scenarioKind || 'positive',
+                preconditions: payload.preconditions || null,
+                steps: payload.steps || [],
+                expectedResult: payload.expectedResult || null,
+                testData: payload.testData || null,
               },
               { transaction },
             );
@@ -362,7 +498,7 @@ export class TestCaseImportService {
               where: {
                 workspaceId,
                 testCaseId: existingCase.id,
-                requirementId: row.resolvedRequirementId,
+                requirementId: resolvedReqId,
               },
               transaction,
             });
@@ -371,7 +507,7 @@ export class TestCaseImportService {
                 {
                   workspaceId,
                   testCaseId: existingCase.id,
-                  requirementId: row.resolvedRequirementId,
+                  requirementId: resolvedReqId,
                   linkedBy: actorId,
                 },
                 { transaction },
@@ -379,12 +515,8 @@ export class TestCaseImportService {
             }
 
             updatedRows++;
-            await TestCaseImportRowModel.create(
+            await stagedRow.update(
               {
-                importId: importRecord.id,
-                sourceRowNumber: row.sourceRowNumber,
-                externalReference: row.externalReference,
-                parsedPayload: row as unknown as Record<string, unknown>,
                 outcome: 'updated',
                 validationErrors: null,
                 testCaseId: existingCase.id,
@@ -398,7 +530,7 @@ export class TestCaseImportService {
                 testCaseId: existingCase.id,
                 actorId,
                 action: 'test_case_updated',
-                metadata: { importId: importRecord.id, source: 'spreadsheet_import' },
+                metadata: { importId: stagedImport.id, source: 'spreadsheet_import' },
               },
               { transaction },
             );
@@ -408,28 +540,32 @@ export class TestCaseImportService {
           const createdCase = await TestCaseModel.create(
             {
               workspaceId,
-              externalReference: row.externalReference || null,
-              title: row.title,
+              externalReference: extRef,
+              title,
               description: null,
-              testType: row.testType,
-              priority: row.priority,
+              testType: payload.testType || 'manual',
+              priority: payload.priority || 'medium',
               status: 'draft',
-              preconditions: row.preconditions || null,
-              steps: row.steps,
-              expectedResult: row.expectedResult || null,
-              testData: row.testData || null,
-              scenarioKind: row.scenarioKind,
+              preconditions: payload.preconditions || null,
+              steps: payload.steps || [],
+              expectedResult: payload.expectedResult || null,
+              testData: payload.testData || null,
+              scenarioKind: payload.scenarioKind || 'positive',
               source: 'spreadsheet_import',
               createdBy: actorId,
             },
             { transaction },
           );
 
+          if (extRef) {
+            existingByExtRef.set(extRef.toUpperCase(), createdCase);
+          }
+
           await TestCaseRequirementModel.create(
             {
               workspaceId,
               testCaseId: createdCase.id,
-              requirementId: row.resolvedRequirementId,
+              requirementId: resolvedReqId,
               linkedBy: actorId,
             },
             { transaction },
@@ -442,21 +578,17 @@ export class TestCaseImportService {
               actorId,
               action: 'test_case_created',
               metadata: {
-                importId: importRecord.id,
+                importId: stagedImport.id,
                 source: 'spreadsheet_import',
-                externalReference: row.externalReference,
+                externalReference: extRef,
               },
             },
             { transaction },
           );
 
           createdRows++;
-          await TestCaseImportRowModel.create(
+          await stagedRow.update(
             {
-              importId: importRecord.id,
-              sourceRowNumber: row.sourceRowNumber,
-              externalReference: row.externalReference,
-              parsedPayload: row as unknown as Record<string, unknown>,
               outcome: 'created',
               validationErrors: null,
               testCaseId: createdCase.id,
@@ -467,8 +599,9 @@ export class TestCaseImportService {
       }
 
       const completedAt = new Date();
-      await importRecord.update(
+      await stagedImport.update(
         {
+          mode,
           status: failedRows > 0 && createdRows === 0 && updatedRows === 0 ? 'failed' : 'completed',
           createdRows,
           updatedRows,
@@ -480,17 +613,17 @@ export class TestCaseImportService {
       );
 
       return {
-        importId: importRecord.id,
+        importId: stagedImport.id,
         workspaceId,
-        sourceFileName: fileName,
+        sourceFileName: stagedImport.sourceFileName,
         mode,
-        status: importRecord.status,
-        totalRows: rows.length,
+        status: stagedImport.status,
+        totalRows: stagedRows.length,
         createdRows,
         updatedRows,
         skippedRows,
         failedRows,
-        createdAt: iso(importRecord.createdAt),
+        createdAt: iso(stagedImport.createdAt),
         completedAt: iso(completedAt),
         errors,
       };

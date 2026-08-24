@@ -125,12 +125,14 @@ export const testManagementService = {
     fileName: string,
     fileContent?: string,
     fileBase64?: string,
+    sheetName?: string,
+    columnMapping?: Record<string, string>,
   ): Promise<TestCaseImportPreviewResponse> {
     const response = await apiClient<{ preview: TestCaseImportPreviewResponse }>(
       `/workspaces/${workspaceId}/test-cases/import/preview`,
       {
         method: 'POST',
-        body: JSON.stringify({ fileName, fileContent, fileBase64 }),
+        body: JSON.stringify({ fileName, fileContent, fileBase64, sheetName, columnMapping }),
       },
     );
     return response.preview;

@@ -12,6 +12,7 @@ import {
   Upload,
   X,
   XCircle,
+  Layers,
 } from 'lucide-react';
 import type {
   TestCaseImportAudit,
@@ -19,6 +20,7 @@ import type {
   TestCaseImportPreviewResponse,
   TestCaseImportResult,
 } from '@qlick/contracts';
+import { MAX_IMPORT_ROWS } from '@qlick/contracts';
 import { testManagementService } from '../../../../lib/api/testManagementService';
 import { Button } from '../../atoms/Button';
 import { Modal } from '../../molecules/Modal';
@@ -41,6 +43,12 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
   const [step, setStep] = useState<WizardStep>('upload');
   const [previewData, setPreviewData] = useState<TestCaseImportPreviewResponse | null>(null);
   const [importMode, setImportMode] = useState<TestCaseImportMode>('create_only');
+  const [selectedSheet, setSelectedSheet] = useState<string>('Sheet1');
+  const [activeFile, setActiveFile] = useState<{
+    name: string;
+    content?: string;
+    base64?: string;
+  } | null>(null);
   const [importResult, setImportResult] = useState<TestCaseImportResult | null>(null);
   const [audits, setAudits] = useState<TestCaseImportAudit[]>([]);
 
@@ -52,6 +60,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
       setStep('upload');
       setPreviewData(null);
       setImportResult(null);
+      setActiveFile(null);
       setErrorMessage(null);
     }
   }, [isOpen]);
@@ -87,6 +96,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         reader.onload = async () => {
           try {
             const base64 = (reader.result as string).split(',')[1];
+            setActiveFile({ name: file.name, base64 });
             const preview = await testManagementService.previewImport(
               workspaceId,
               file.name,
@@ -94,6 +104,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
               base64,
             );
             setPreviewData(preview);
+            setSelectedSheet(preview.selectedSheet || 'Sheet1');
             setStep('preview');
           } catch (err: unknown) {
             setErrorMessage(err instanceof Error ? err.message : 'Failed to parse XLSX file.');
@@ -104,13 +115,36 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         reader.readAsDataURL(file);
       } else {
         const text = await file.text();
+        setActiveFile({ name: file.name, content: text });
         const preview = await testManagementService.previewImport(workspaceId, file.name, text);
         setPreviewData(preview);
+        setSelectedSheet('Sheet1');
         setStep('preview');
         setLoading(false);
       }
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to parse spreadsheet.');
+      setLoading(false);
+    }
+  };
+
+  const handleSheetChange = async (newSheet: string) => {
+    if (!activeFile || newSheet === selectedSheet) return;
+    setLoading(true);
+    setErrorMessage(null);
+    setSelectedSheet(newSheet);
+    try {
+      const preview = await testManagementService.previewImport(
+        workspaceId,
+        activeFile.name,
+        activeFile.content,
+        activeFile.base64,
+        newSheet,
+      );
+      setPreviewData(preview);
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to parse selected sheet.');
+    } finally {
       setLoading(false);
     }
   };
@@ -123,10 +157,10 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
 
     try {
       const result = await testManagementService.commitImport(workspaceId, {
-        fileName: previewData.fileName,
+        importSessionId: previewData.importSessionId,
         contentHash: previewData.contentHash,
         mode: importMode,
-        rows: previewData.rows,
+        sheetName: selectedSheet,
       });
       setImportResult(result);
       setStep('result');
@@ -242,7 +276,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                   : 'Drop your CSV or XLSX file here, or browse'}
               </p>
               <p className="text-xs text-slate-400 mt-1">
-                Supports standard CSV and XLSX formats up to 5,000 rows.
+                Supports standard CSV and XLSX formats up to {MAX_IMPORT_ROWS} rows.
               </p>
             </div>
 
@@ -281,6 +315,28 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                 <p className="text-lg font-bold text-amber-400">{previewData.duplicateRows}</p>
               </div>
             </div>
+
+            {/* Sheet selection bar (if multi-sheet XLSX) */}
+            {previewData.availableSheets && previewData.availableSheets.length > 1 && (
+              <div className="flex items-center justify-between gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700 text-xs">
+                <div className="flex items-center gap-2 text-slate-300">
+                  <Layers className="w-4 h-4 text-primary" />
+                  <span className="font-semibold">Select Sheet / Tab:</span>
+                </div>
+                <select
+                  value={selectedSheet}
+                  onChange={(e) => handleSheetChange(e.target.value)}
+                  disabled={loading}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {previewData.availableSheets.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Mode selection */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-slate-800/40 rounded-xl border border-slate-700/60 text-xs">
