@@ -30,7 +30,9 @@ import { EvidenceCard } from '../molecules/EvidenceCard';
 import { Modal } from '../molecules/Modal';
 import { EvidencePreviewItem, EvidencePreviewModal } from './EvidencePreviewModal';
 import { bugService } from '../../../lib/api/bugService';
+import { taskService } from '../../../lib/api/taskService';
 import { useAppDispatch } from '../../../store/hooks';
+
 import { enqueueSnackbar } from '../../../store/uiSlice';
 
 export interface BugExperiencePanelProps {
@@ -396,13 +398,18 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                             <p className="text-[10px] font-mono text-slate-400">{att.mimeType}</p>
                           </div>
                           <a
-                            href={`/v1/workspaces/${workspaceId}/tasks/${bug.featureTaskId}/attachments/${att.attachmentId}/download`}
+                            href={taskService.getAttachmentDownloadUrl(
+                              workspaceId,
+                              att.taskId || bug.featureTaskId,
+                              att.attachmentId,
+                            )}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-                            title="Download attachment"
+                            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                            aria-label={`Download ${att.fileName}`}
+                            title={`Download ${att.fileName}`}
                           >
-                            <Link2 className="w-4 h-4" />
+                            <Link2 className="w-5 h-5" />
                           </a>
                         </div>
                       ))}

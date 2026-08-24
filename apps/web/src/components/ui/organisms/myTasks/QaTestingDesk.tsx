@@ -16,6 +16,7 @@ import {
 import type {
   EvidencePreviewStatus,
   Task,
+  TaskAttachment,
   TaskComment,
   TaskStatus,
   TaskTestExecutionWorkspace,
@@ -107,6 +108,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [evidenceLinksInput, setEvidenceLinksInput] = useState<{ url: string; label: string }[]>(
     [],
   );
+  const [availableAttachments, setAvailableAttachments] = useState<TaskAttachment[]>([]);
+  const [selectedAttachmentIds, setSelectedAttachmentIds] = useState<string[]>([]);
   const [resultFormError, setResultFormError] = useState<string | null>(null);
   const [isRecordingResult, setIsRecordingResult] = useState(false);
 
@@ -138,7 +141,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [isSubmittingBug, setIsSubmittingBug] = useState(false);
 
   const canExecuteTests = ['owner', 'admin', 'qa'].includes(userRole.toLowerCase());
-  const canAuthorTests = ['owner', 'admin', 'po', 'qa'].includes(userRole.toLowerCase());
+  const canAuthorTests = ['owner', 'admin', 'po'].includes(userRole.toLowerCase());
 
   const bugTraceOptions = useMemo(() => {
     if (!executionWorkspace) return [];
@@ -254,13 +257,20 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     }
   };
 
-  const openResultModal = (testCaseId: string, testRunId: string) => {
+  const openResultModal = async (testCaseId: string, testRunId: string) => {
     setResultTarget({ testCaseId, testRunId });
     setResultStatus('passed');
     setActualResult('');
     setResultNotes('');
     setEvidenceLinksInput([]);
+    setSelectedAttachmentIds([]);
     setResultFormError(null);
+    try {
+      const atts = await taskService.listTaskAttachments(workspaceId, subtask.id);
+      setAvailableAttachments(atts || []);
+    } catch {
+      setAvailableAttachments([]);
+    }
   };
 
   const handleAddEvidenceLinkInput = () => {
@@ -297,7 +307,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           status: resultStatus,
           actualResult: actualResult.trim() || null,
           notes: resultNotes.trim() || null,
-          evidenceAttachmentIds: [],
+          evidenceAttachmentIds: selectedAttachmentIds,
           evidenceLinks: validLinks,
         },
       );
@@ -799,13 +809,50 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                               </p>
                             )}
 
-                            {/* Evidence Links */}
-                            {evidenceLinks.length > 0 && (
+                            {/* Result Evidence (Formal Files & External Links) */}
+                            {((run.result?.evidence && run.result.evidence.length > 0) ||
+                              evidenceLinks.length > 0) && (
                               <div className="mt-2 pt-2 border-t border-slate-700/40">
                                 <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1.5">
-                                  Result Evidence ({evidenceLinks.length})
+                                  Result Evidence (
+                                  {(run.result?.evidence?.length || 0) + evidenceLinks.length})
                                 </span>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {/* Formal attached files */}
+                                  {(run.result?.evidence || []).map((att) => (
+                                    <div
+                                      key={att.attachmentId}
+                                      className="relative flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-xs"
+                                    >
+                                      <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                                        Formal File
+                                      </span>
+                                      <div className="min-w-0 pr-2">
+                                        <p className="font-semibold text-slate-200 truncate">
+                                          {att.fileName}
+                                        </p>
+                                        <p className="text-[10px] font-mono text-slate-400">
+                                          {att.mimeType}
+                                        </p>
+                                      </div>
+                                      <a
+                                        href={taskService.getAttachmentDownloadUrl(
+                                          workspaceId,
+                                          att.taskId || subtask.id,
+                                          att.attachmentId,
+                                        )}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                                        aria-label={`Download ${att.fileName}`}
+                                        title={`Download ${att.fileName}`}
+                                      >
+                                        <Link2 className="w-5 h-5" />
+                                      </a>
+                                    </div>
+                                  ))}
+
+                                  {/* External links */}
                                   {evidenceLinks.map((link) => (
                                     <EvidenceCard
                                       key={link.id}
@@ -943,6 +990,43 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             rows={2}
             maxLength={10000}
           />
+
+          {/* Uploaded QA Task Attachments Picker */}
+          {availableAttachments.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-slate-700/60">
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+                Link Uploaded QA Task Attachments ({selectedAttachmentIds.length} selected)
+              </label>
+              <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-slate-800/40 rounded-xl border border-slate-700">
+                {availableAttachments.map((att) => {
+                  const isChecked = selectedAttachmentIds.includes(att.id);
+                  return (
+                    <label
+                      key={att.id}
+                      className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer p-1.5 rounded hover:bg-slate-700/50 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedAttachmentIds((prev) => [...prev, att.id]);
+                          } else {
+                            setSelectedAttachmentIds((prev) => prev.filter((id) => id !== att.id));
+                          }
+                        }}
+                        className="rounded border-slate-600 text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <span className="truncate flex-1 font-medium">{att.fileName}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {(att.fileSize / 1024).toFixed(1)} KB
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* External Evidence Links Input Builder */}
           <div className="space-y-2 pt-2 border-t border-slate-700/60">

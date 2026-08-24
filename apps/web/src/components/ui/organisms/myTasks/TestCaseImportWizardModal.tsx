@@ -32,7 +32,21 @@ export interface TestCaseImportWizardModalProps {
   onImportComplete: () => void;
 }
 
-type WizardStep = 'upload' | 'preview' | 'result' | 'history';
+type WizardStep = 'upload' | 'mapping' | 'preview' | 'result' | 'history';
+
+const TARGET_FIELDS = [
+  { key: '', label: '(Ignore / Do Not Import)' },
+  { key: 'title', label: 'Title (Required)' },
+  { key: 'requirement_code', label: 'Requirement Code (Required)' },
+  { key: 'external_reference', label: 'External Reference / Test Case ID' },
+  { key: 'steps', label: 'Steps / Procedure' },
+  { key: 'expected_result', label: 'Expected Result' },
+  { key: 'test_data', label: 'Test Data' },
+  { key: 'priority', label: 'Priority (critical, high, medium, low)' },
+  { key: 'scenario_kind', label: 'Scenario Kind (positive, negative, edge)' },
+  { key: 'test_type', label: 'Test Type (manual, e2e, integration, unit)' },
+  { key: 'preconditions', label: 'Preconditions' },
+];
 
 export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps> = ({
   isOpen,
@@ -42,6 +56,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
 }) => {
   const [step, setStep] = useState<WizardStep>('upload');
   const [previewData, setPreviewData] = useState<TestCaseImportPreviewResponse | null>(null);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [importMode, setImportMode] = useState<TestCaseImportMode>('create_only');
   const [selectedSheet, setSelectedSheet] = useState<string>('Sheet1');
   const [activeFile, setActiveFile] = useState<{
@@ -59,6 +74,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
     if (isOpen) {
       setStep('upload');
       setPreviewData(null);
+      setColumnMapping({});
       setImportResult(null);
       setActiveFile(null);
       setErrorMessage(null);
@@ -105,7 +121,8 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
             );
             setPreviewData(preview);
             setSelectedSheet(preview.selectedSheet || 'Sheet1');
-            setStep('preview');
+            setColumnMapping(preview.columnMapping || {});
+            setStep(preview.headers && preview.headers.length > 0 ? 'mapping' : 'preview');
           } catch (err: unknown) {
             setErrorMessage(err instanceof Error ? err.message : 'Failed to parse XLSX file.');
           } finally {
@@ -119,11 +136,34 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         const preview = await testManagementService.previewImport(workspaceId, file.name, text);
         setPreviewData(preview);
         setSelectedSheet('Sheet1');
-        setStep('preview');
+        setColumnMapping(preview.columnMapping || {});
+        setStep(preview.headers && preview.headers.length > 0 ? 'mapping' : 'preview');
         setLoading(false);
       }
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to parse spreadsheet.');
+      setLoading(false);
+    }
+  };
+
+  const handleApplyMapping = async () => {
+    if (!activeFile) return;
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const preview = await testManagementService.previewImport(
+        workspaceId,
+        activeFile.name,
+        activeFile.content,
+        activeFile.base64,
+        selectedSheet,
+        columnMapping,
+      );
+      setPreviewData(preview);
+      setStep('preview');
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to generate dry-run preview.');
+    } finally {
       setLoading(false);
     }
   };
@@ -140,8 +180,10 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         activeFile.content,
         activeFile.base64,
         newSheet,
+        columnMapping,
       );
       setPreviewData(preview);
+      setColumnMapping(preview.columnMapping || {});
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to parse selected sheet.');
     } finally {
@@ -211,9 +253,11 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
           ? 'Import History & Audit Log'
           : step === 'result'
             ? 'Import Completed'
-            : step === 'preview'
-              ? 'Import Dry-Run Preview'
-              : 'Import Test Cases from Spreadsheet'
+            : step === 'mapping'
+              ? 'Map Spreadsheet Columns'
+              : step === 'preview'
+                ? 'Import Dry-Run Preview'
+                : 'Import Test Cases from Spreadsheet'
       }
       description="Batch intake CSV or XLSX test cases with automatic requirement linking and idempotency."
       size="4xl"
@@ -293,7 +337,101 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
           </div>
         )}
 
-        {/* STEP 2: PREVIEW DRY-RUN */}
+        {/* STEP 2: INTERACTIVE COLUMN MAPPING */}
+        {step === 'mapping' && previewData && (
+          <div className="space-y-4 max-h-[70vh] flex flex-col">
+            <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 text-xs text-slate-300">
+              <p className="font-semibold text-slate-200 mb-1">Interactive Column Mapping</p>
+              <p>
+                Verify or adjust how columns from{' '}
+                <strong className="text-primary">{activeFile?.name}</strong> map to canonical Test
+                Case fields.
+              </p>
+            </div>
+
+            {/* Sheet selection bar (if multi-sheet XLSX) */}
+            {previewData.availableSheets && previewData.availableSheets.length > 1 && (
+              <div className="flex items-center justify-between gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700 text-xs">
+                <div className="flex items-center gap-2 text-slate-300">
+                  <Layers className="w-4 h-4 text-primary" />
+                  <span className="font-semibold">Select Sheet / Tab:</span>
+                </div>
+                <select
+                  value={selectedSheet}
+                  onChange={(e) => handleSheetChange(e.target.value)}
+                  disabled={loading}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {previewData.availableSheets.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Mapping Grid */}
+            <div className="flex-1 overflow-auto border border-slate-700 rounded-xl bg-slate-900/60 p-3 space-y-2 max-h-[42vh]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-semibold text-xs text-slate-400 border-b border-slate-800 pb-2 px-1">
+                <span>Spreadsheet Column Header</span>
+                <span>Target Canonical Field</span>
+              </div>
+              {(previewData.headers || []).map((header) => {
+                const currentTarget = columnMapping[header] || '';
+                return (
+                  <div
+                    key={header}
+                    className="grid grid-cols-1 sm:grid-cols-2 items-center gap-3 p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/60 text-xs"
+                  >
+                    <div className="font-mono text-slate-200 truncate" title={header}>
+                      {header}
+                    </div>
+                    <div>
+                      <select
+                        value={currentTarget}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setColumnMapping((prev) => ({
+                            ...prev,
+                            [header]: val,
+                          }));
+                        }}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        {TARGET_FIELDS.map((f) => (
+                          <option key={f.key} value={f.key}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <Button
+                variant="ghost"
+                onClick={() => setStep('upload')}
+                leftIcon={<ArrowLeft className="w-4 h-4" />}
+              >
+                Back to Upload
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleApplyMapping}
+                disabled={loading}
+                leftIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                {loading ? 'Analyzing...' : 'Next: Dry-Run Preview'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: PREVIEW DRY-RUN */}
         {step === 'preview' && previewData && (
           <div className="space-y-4 max-h-[70vh] flex flex-col">
             {/* Stats bar */}
@@ -434,10 +572,16 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
             <div className="flex items-center justify-between pt-2">
               <Button
                 variant="ghost"
-                onClick={() => setStep('upload')}
+                onClick={() =>
+                  setStep(
+                    previewData.headers && previewData.headers.length > 0 ? 'mapping' : 'upload',
+                  )
+                }
                 leftIcon={<ArrowLeft className="w-4 h-4" />}
               >
-                Back to Upload
+                {previewData.headers && previewData.headers.length > 0
+                  ? 'Back to Column Mapping'
+                  : 'Back to Upload'}
               </Button>
               <Button
                 variant="primary"

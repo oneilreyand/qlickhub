@@ -217,13 +217,22 @@ describe('QaTestingDesk Organism', () => {
     });
   });
 
-  it('renders Canonical Test Management workspace with Native Authoring and Import buttons', async () => {
-    renderDesk();
+  it('renders Canonical Test Management workspace with Native Authoring and Import buttons for Planners', async () => {
+    renderDesk('po');
 
     expect(await screen.findByText('No Test Cases linked to this Feature')).toBeInTheDocument();
     expect(screen.getByText('QA Testing & Quality Desk')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /New Test Case/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Import Spreadsheet/i })).toBeInTheDocument();
+  });
+
+  it('hides Native Authoring and Import buttons for QA role under ADR-001', async () => {
+    renderDesk('qa');
+
+    expect(await screen.findByText('No Test Cases linked to this Feature')).toBeInTheDocument();
+    expect(screen.getByText('QA Testing & Quality Desk')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New Test Case/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Import Spreadsheet/i })).not.toBeInTheDocument();
   });
 
   it('refetches and renders persisted Test Case and Run history after reopening', async () => {

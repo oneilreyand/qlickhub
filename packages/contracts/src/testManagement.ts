@@ -134,6 +134,7 @@ export type ListTestCasesQuery = z.infer<typeof ListTestCasesQuerySchema>;
 
 export const TestResultEvidenceSchema = z.object({
   attachmentId: z.string().uuid(),
+  taskId: z.string().uuid(),
   fileName: NonBlankTextSchema.max(255),
   mimeType: NonBlankTextSchema.max(127),
   linkedBy: z.string().uuid(),
@@ -194,17 +195,19 @@ export const CreateTestRunSchema = z.object({
 });
 export type CreateTestRunInput = z.infer<typeof CreateTestRunSchema>;
 
-export const CreateTestResultSchema = z.object({
+export const RecordTestResultSchema = z.object({
   workspaceId: z.string().uuid(),
   testCaseId: z.string().uuid(),
   testRunId: z.string().uuid(),
   status: TestResultStatusSchema,
-  actualResult: z.string().trim().max(20000).nullable().optional(),
+  actualResult: z.string().trim().max(10000).nullable().optional(),
   notes: z.string().trim().max(10000).nullable().optional(),
-  evidenceAttachmentIds: z.array(z.string().uuid()).max(50).default([]),
-  evidenceLinks: z.array(CreateEvidenceLinkInputSchema).max(20).default([]),
+  evidenceAttachmentIds: z.array(z.string().uuid()).default([]),
+  evidenceLinks: z.array(CreateEvidenceLinkInputSchema).default([]),
 });
-export type CreateTestResultInput = z.infer<typeof CreateTestResultSchema>;
+export type RecordTestResultInput = z.infer<typeof RecordTestResultSchema>;
+export const CreateTestResultSchema = RecordTestResultSchema;
+export type CreateTestResultInput = RecordTestResultInput;
 
 export const TestActivityActionSchema = z.enum([
   'test_case_created',
@@ -277,9 +280,12 @@ export const TestCaseImportPreviewResponseSchema = z.object({
   duplicateRows: z.number().int().nonnegative(),
   availableSheets: z.array(z.string()).default([]),
   selectedSheet: z.string().default('Sheet1'),
+  headers: z.array(z.string()).default([]),
+  columnMapping: z.record(z.string()).optional(),
   expiresAt: z.string().datetime(),
   rows: z.array(TestCaseImportDryRunRowSchema),
 });
+
 export type TestCaseImportPreviewResponse = z.infer<typeof TestCaseImportPreviewResponseSchema>;
 
 export const CommitTestCaseImportSchema = z.object({

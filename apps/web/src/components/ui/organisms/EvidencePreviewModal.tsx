@@ -34,6 +34,32 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
 }) => {
   const [zoom, setZoom] = useState(1);
 
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
+
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
+  const handleResetZoom = () => setZoom(1);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setZoom(1);
+      return;
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        setZoom((prev) => Math.min(prev + 0.25, 3));
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        setZoom((prev) => Math.max(prev - 0.25, 0.5));
+      } else if (e.key === '0') {
+        e.preventDefault();
+        setZoom(1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   if (!isOpen || !evidence) return null;
 
   const isImage = evidence.mediaKind === 'image' || evidence.provider === 'direct_image';
@@ -41,10 +67,6 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
     evidence.provider === 'direct_video' ||
     (evidence.mediaKind === 'video' && /\.(mp4|webm|ogg|mov)$/i.test(evidence.url));
   const isEmbedVideo = ['youtube', 'loom', 'vimeo', 'google_drive'].includes(evidence.provider);
-
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
-  const handleResetZoom = () => setZoom(1);
 
   return (
     <Modal
@@ -56,15 +78,15 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
     >
       <div className="flex flex-col gap-4">
         {/* Controls bar */}
-        <div className="flex items-center justify-between bg-slate-900/60 dark:bg-slate-800/60 border border-slate-700/60 rounded-xl px-4 py-2 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/60 dark:bg-slate-800/60 border border-slate-700/60 rounded-xl px-4 py-2 text-xs">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-medium bg-slate-800 border border-slate-700 text-slate-300">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium bg-slate-800 border border-slate-700 text-slate-300">
               {isImage ? (
-                <ImageIcon className="w-3.5 h-3.5" />
+                <ImageIcon className="w-4 h-4" />
               ) : isEmbedVideo || isDirectVideo ? (
-                <Video className="w-3.5 h-3.5" />
+                <Video className="w-4 h-4" />
               ) : (
-                <FileText className="w-3.5 h-3.5" />
+                <FileText className="w-4 h-4" />
               )}
               {evidence.provider.replace('_', ' ')}
             </span>
@@ -72,36 +94,36 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
 
           <div className="flex items-center gap-2">
             {isImage && (
-              <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700">
+              <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700">
                 <button
                   type="button"
                   onClick={handleZoomOut}
-                  aria-label="Zoom out"
-                  title="Zoom Out"
-                  className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-1 focus:ring-lime-400"
+                  aria-label="Zoom out (-)"
+                  title="Zoom Out (-)"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
                 >
-                  <ZoomOut className="w-3.5 h-3.5" />
+                  <ZoomOut className="w-4 h-4" />
                 </button>
-                <span className="text-xs font-mono text-slate-300 px-1">
+                <span className="text-xs font-mono text-slate-300 px-2 select-none">
                   {Math.round(zoom * 100)}%
                 </span>
                 <button
                   type="button"
                   onClick={handleZoomIn}
-                  aria-label="Zoom in"
-                  title="Zoom In"
-                  className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-1 focus:ring-lime-400"
+                  aria-label="Zoom in (+)"
+                  title="Zoom In (+)"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
                 >
-                  <ZoomIn className="w-3.5 h-3.5" />
+                  <ZoomIn className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handleResetZoom}
-                  aria-label="Reset zoom"
-                  title="Reset Zoom"
-                  className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors ml-1 focus:outline-none focus:ring-1 focus:ring-lime-400"
+                  aria-label="Reset zoom (0)"
+                  title="Reset Zoom (0)"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
                 >
-                  <RotateCcw className="w-3 h-3" />
+                  <RotateCcw className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -110,9 +132,10 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
               href={evidence.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
+              className="inline-flex min-h-[44px] items-center gap-1.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400 font-medium"
+              aria-label="Open evidence link in external tab"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
+              <ExternalLink className="w-4 h-4" />
               <span>Open External</span>
             </a>
           </div>

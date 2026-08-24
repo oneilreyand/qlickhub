@@ -71,5 +71,12 @@ BugEvidenceLinkModel.init(
     tableName: 'bug_evidence_links',
     underscored: true,
     timestamps: false,
+    indexes: [
+      {
+        unique: true,
+        fields: ['workspace_id', 'bug_id', 'normalized_url'],
+        name: 'idx_bug_evidence_links_unique_url',
+      },
+    ],
   },
 );

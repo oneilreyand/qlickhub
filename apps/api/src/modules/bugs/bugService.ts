@@ -144,11 +144,13 @@ function formatBugWithContext(bug: ContextualBugModel): BugWithContext {
       executedAt: iso(result.executedAt),
       evidence: (result.evidenceLinks || []).map((link) => ({
         attachmentId: link.attachmentId,
+        taskId: link.attachment?.taskId || '00000000-0000-0000-0000-000000000000',
         fileName: link.attachment?.fileName || 'Evidence',
         mimeType: link.attachment?.mimeType || 'application/octet-stream',
         linkedBy: link.linkedBy,
         linkedAt: iso(link.linkedAt),
       })),
+
       evidenceLinks: (result.externalEvidenceLinks || []).map((link) => ({
         id: link.id,
         workspaceId: link.workspaceId,
@@ -557,56 +559,65 @@ export class BugService {
       throw new Error('CONFLICT: This evidence link is already attached to this Bug.');
     }
 
-    const created = await sequelize.transaction(async (transaction) => {
-      const link = await BugEvidenceLinkModel.create(
-        {
-          workspaceId,
-          bugId,
-          url: input.url,
-          provider: normalized.provider,
-          mediaKind: normalized.mediaKind,
-          label: input.label || null,
-          addedBy: actorId,
-          normalizedUrl: normalized.normalizedUrl,
-          previewStatus: normalized.previewStatus,
-        },
-        { transaction },
-      );
-
-      await BugActivityModel.create(
-        {
-          workspaceId,
-          bugId,
-          actorId,
-          action: 'bug_updated',
-          fromStatus: bug.status,
-          toStatus: bug.status,
-          metadata: {
-            evidenceLinkId: link.id,
-            kind,
+    try {
+      const created = await sequelize.transaction(async (transaction) => {
+        const link = await BugEvidenceLinkModel.create(
+          {
+            workspaceId,
+            bugId,
             url: input.url,
             provider: normalized.provider,
+            mediaKind: normalized.mediaKind,
+            label: input.label || null,
+            addedBy: actorId,
+            normalizedUrl: normalized.normalizedUrl,
+            previewStatus: normalized.previewStatus,
           },
-        },
-        { transaction },
-      );
+          { transaction },
+        );
 
-      return link;
-    });
+        await BugActivityModel.create(
+          {
+            workspaceId,
+            bugId,
+            actorId,
+            action: 'bug_updated',
+            fromStatus: bug.status,
+            toStatus: bug.status,
+            metadata: {
+              evidenceLinkId: link.id,
+              kind,
+              url: input.url,
+              provider: normalized.provider,
+            },
+          },
+          { transaction },
+        );
 
-    return {
-      id: created.id,
-      workspaceId: created.workspaceId,
-      bugId: created.bugId,
-      url: created.url,
-      provider: created.provider,
-      mediaKind: created.mediaKind,
-      label: created.label || null,
-      addedBy: created.addedBy,
-      addedAt: iso(created.addedAt),
-      normalizedUrl: created.normalizedUrl,
-      previewStatus: created.previewStatus,
-    };
+        return link;
+      });
+
+      return {
+        id: created.id,
+        workspaceId: created.workspaceId,
+        bugId: created.bugId,
+        url: created.url,
+        provider: created.provider,
+        mediaKind: created.mediaKind,
+        label: created.label || null,
+        addedBy: created.addedBy,
+        addedAt: iso(created.addedAt),
+        normalizedUrl: created.normalizedUrl,
+        previewStatus: created.previewStatus,
+      };
+    } catch (err: any) {
+      if (err.name === 'SequelizeUniqueConstraintError') {
+        throw new Error('CONFLICT: This evidence link is already attached to this Bug.', {
+          cause: err,
+        });
+      }
+      throw err;
+    }
   }
 
   async listBugActivity(

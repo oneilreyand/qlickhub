@@ -176,8 +176,28 @@ export function getSpreadsheetSheets(buffer: Buffer, mimeType = ''): string[] {
   }
 }
 
+export function parseSharedStringsXml(sharedStringsXml: string): string[] {
+  const sharedStrings: string[] = [];
+  const siRegex = /<si>(.*?)<\/si>/gs;
+  let siMatch: RegExpExecArray | null;
+  while ((siMatch = siRegex.exec(sharedStringsXml)) !== null) {
+    const textMatches = siMatch[1].match(/<t(?:\s+[^>]*)?>(.*?)<\/t>/gs) || [];
+    const text = textMatches
+      .map((t) => t.replace(/<[^>]+>/g, ''))
+      .join('')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'");
+    sharedStrings.push(text);
+  }
+  return sharedStrings;
+}
+
 /**
  * Parse an XLSX file buffer into spreadsheet rows with sheet selection and column mapping.
+
  */
 export function parseXlsxContent(
   buffer: Buffer,
@@ -221,29 +241,14 @@ export function parseXlsxContent(
         files.get('xl/worksheets/sheet.xml')?.toString('utf8') ||
         '';
     }
-
     if (!worksheetXml) {
       return parseCsvContent(buffer.toString('utf8'), columnMapping);
     }
 
-    // Extract shared strings
-    const sharedStrings: string[] = [];
-    const siRegex = /<si>(.*?)<\/si>/gs;
-    let siMatch: RegExpExecArray | null;
-    while ((siMatch = siRegex.exec(sharedStringsXml)) !== null) {
-      const textMatches = siMatch[1].match(/<t(?:\s+[^>]*)?>(.*?)<\/t>/gs) || [];
-      const text = textMatches
-        .map((t) => t.replace(/<[^>]+>/g, ''))
-        .join('')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&apos;/g, "'");
-      sharedStrings.push(text);
-    }
+    const sharedStrings = parseSharedStringsXml(sharedStringsXml);
 
     // Extract sheet rows
+
     const rowRegex = /<row\s+r="(\d+)"[^>]*>(.*?)<\/row>/gs;
     const rawRows: { rowNum: number; cells: Record<string, string> }[] = [];
     let rowMatch: RegExpExecArray | null;
@@ -319,6 +324,96 @@ export function computeContentHash(content: string | Buffer): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
+export function extractSpreadsheetHeaders(
+  content: Buffer | string,
+  mimeType = '',
+  sheetName?: string,
+): string[] {
+  if (typeof content === 'string') {
+    const cleanContent = content.replace(/^\uFEFF/, '');
+    const firstLine = cleanContent.split(/\r?\n/)[0] || '';
+    return parseCsvRow(firstLine);
+  }
+  if (Buffer.isBuffer(content)) {
+    try {
+      const files = unzipBuffer(content);
+      if (files.size > 0) {
+        const availableSheets = getSpreadsheetSheets(content, mimeType);
+        const selectedSheet =
+          sheetName && availableSheets.includes(sheetName)
+            ? sheetName
+            : availableSheets[0] || 'Sheet1';
+        const sheetIndex = Math.max(1, availableSheets.indexOf(selectedSheet) + 1);
+        const sheetXml =
+          files.get(`xl/worksheets/sheet${sheetIndex}.xml`) ||
+          files.get('xl/worksheets/sheet1.xml');
+        if (sheetXml) {
+          const sharedStrings = parseSharedStringsXml(
+            files.get('xl/sharedStrings.xml')?.toString('utf8') || '',
+          );
+          const xml = sheetXml.toString('utf8');
+
+          const row1Match = xml.match(/<row[^>]*r="1"[^>]*>([\s\S]*?)<\/row>/i);
+          if (row1Match) {
+            const cellsContent = row1Match[1];
+            const cellRegex =
+              /<c[^>]*r="([A-Z]+)1"[^>]*(?:t="([^"]*)")?[^>]*>(?:<v>([^<]*)<\/v>|<is><t>([^<]*)<\/t><\/is>)?<\/c>/gi;
+            let cellMatch: RegExpExecArray | null;
+            const headers: string[] = [];
+            while ((cellMatch = cellRegex.exec(cellsContent)) !== null) {
+              const type = cellMatch[2];
+              const val = cellMatch[3] || cellMatch[4] || '';
+              let text = val;
+              if (type === 's') {
+                const idx = parseInt(val, 10);
+                text = sharedStrings[idx] || '';
+              }
+              if (text.trim()) headers.push(text.trim());
+            }
+            if (headers.length > 0) return headers;
+          }
+        }
+      }
+    } catch {}
+    const cleanContent = content.toString('utf8').replace(/^\uFEFF/, '');
+    const firstLine = cleanContent.split(/\r?\n/)[0] || '';
+    return parseCsvRow(firstLine);
+  }
+  return [];
+}
+
+function parseCsvRow(line: string): string[] {
+  const row: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += c;
+      }
+    } else {
+      if (c === '"') {
+        inQuotes = true;
+      } else if (c === ',') {
+        row.push(current.trim());
+        current = '';
+      } else {
+        current += c;
+      }
+    }
+  }
+  row.push(current.trim());
+  return row.filter((h) => h.length > 0);
+}
+
 function resolveHeader(raw: string, columnMapping?: Record<string, string>): string {
   const trimmed = raw.trim();
   if (columnMapping && columnMapping[trimmed]) {
@@ -327,7 +422,7 @@ function resolveHeader(raw: string, columnMapping?: Record<string, string>): str
   return normalizeHeader(trimmed);
 }
 
-function normalizeHeader(raw: string): string {
+export function normalizeHeader(raw: string): string {
   const clean = raw
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '_')

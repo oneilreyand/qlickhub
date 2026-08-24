@@ -114,11 +114,13 @@ function formatResult(result: TestResultWithEvidence): TestResult {
     executedAt: iso(result.executedAt),
     evidence: (result.evidenceLinks || []).map((link) => ({
       attachmentId: link.attachmentId,
+      taskId: link.attachment?.taskId || '00000000-0000-0000-0000-000000000000',
       fileName: link.attachment?.fileName || 'Evidence',
       mimeType: link.attachment?.mimeType || 'application/octet-stream',
       linkedBy: link.linkedBy,
       linkedAt: iso(link.linkedAt),
     })),
+
     evidenceLinks: (result.externalEvidenceLinks || []).map(formatEvidenceLink),
     createdAt: iso(result.createdAt),
   };
@@ -329,8 +331,8 @@ export class TestManagementService {
 
     const testCase = await sequelize.transaction(async (transaction) => {
       const membership = await getMembership(input.workspaceId, actorId, transaction);
-      const effectiveStatus = input.status || (membership.role === 'qa' ? 'draft' : 'active');
-      assertCanCreateTestCase(membership.role, effectiveStatus);
+      assertCanCreateTestCase(membership.role);
+      const effectiveStatus = input.status || 'active';
 
       const requirements = await RequirementModel.findAll({
         where: { workspaceId: input.workspaceId, id: requirementIds },
@@ -416,12 +418,7 @@ export class TestManagementService {
         throw new Error('NOT_FOUND: Test Case not found in this workspace.');
       }
 
-      assertCanUpdateTestCase(
-        membership.role,
-        testCase.status,
-        input.status,
-        Boolean(input.requirementIds),
-      );
+      assertCanUpdateTestCase(membership.role);
 
       if (input.externalReference && input.externalReference !== testCase.externalReference) {
         const existingRef = await TestCaseModel.findOne({
@@ -623,22 +620,38 @@ export class TestManagementService {
       }
 
       if (evidenceLinksInput.length > 0) {
+        const seenNormalized = new Set<string>();
         for (const link of evidenceLinksInput) {
           const normalized = normalizeEvidenceUrl(link.url);
-          await TestResultEvidenceLinkModel.create(
-            {
-              workspaceId: input.workspaceId,
-              testResultId: result.id,
-              url: link.url,
-              provider: normalized.provider,
-              mediaKind: normalized.mediaKind,
-              label: link.label || null,
-              addedBy: actorId,
-              normalizedUrl: normalized.normalizedUrl,
-              previewStatus: normalized.previewStatus,
-            },
-            { transaction },
-          );
+          if (seenNormalized.has(normalized.normalizedUrl)) {
+            throw new Error('CONFLICT: Duplicate evidence link detected in test result payload.');
+          }
+          seenNormalized.add(normalized.normalizedUrl);
+
+          try {
+            await TestResultEvidenceLinkModel.create(
+              {
+                workspaceId: input.workspaceId,
+                testResultId: result.id,
+                url: link.url,
+                provider: normalized.provider,
+                mediaKind: normalized.mediaKind,
+                label: link.label || null,
+                addedBy: actorId,
+                normalizedUrl: normalized.normalizedUrl,
+                previewStatus: normalized.previewStatus,
+              },
+              { transaction },
+            );
+          } catch (err: any) {
+            if (err.name === 'SequelizeUniqueConstraintError') {
+              throw new Error(
+                'CONFLICT: This evidence link is already attached to this Test Result.',
+                { cause: err },
+              );
+            }
+            throw err;
+          }
         }
       }
 
@@ -756,43 +769,52 @@ export class TestManagementService {
       throw new Error('CONFLICT: This evidence link is already attached to this Test Result.');
     }
 
-    const created = await sequelize.transaction(async (transaction) => {
-      const link = await TestResultEvidenceLinkModel.create(
-        {
-          workspaceId,
-          testResultId: run.result!.id,
-          url: input.url,
-          provider: normalized.provider,
-          mediaKind: normalized.mediaKind,
-          label: input.label || null,
-          addedBy: actorId,
-          normalizedUrl: normalized.normalizedUrl,
-          previewStatus: normalized.previewStatus,
-        },
-        { transaction },
-      );
-
-      await TestCaseActivityModel.create(
-        {
-          workspaceId,
-          testCaseId,
-          testRunId,
-          testResultId: run.result!.id,
-          actorId,
-          action: 'test_evidence_link_added',
-          metadata: {
-            evidenceLinkId: link.id,
+    try {
+      const created = await sequelize.transaction(async (transaction) => {
+        const link = await TestResultEvidenceLinkModel.create(
+          {
+            workspaceId,
+            testResultId: run.result!.id,
             url: input.url,
             provider: normalized.provider,
+            mediaKind: normalized.mediaKind,
+            label: input.label || null,
+            addedBy: actorId,
+            normalizedUrl: normalized.normalizedUrl,
+            previewStatus: normalized.previewStatus,
           },
-        },
-        { transaction },
-      );
+          { transaction },
+        );
 
-      return link;
-    });
+        await TestCaseActivityModel.create(
+          {
+            workspaceId,
+            testCaseId,
+            testRunId,
+            testResultId: run.result!.id,
+            actorId,
+            action: 'test_evidence_link_added',
+            metadata: {
+              evidenceLinkId: link.id,
+              url: input.url,
+              provider: normalized.provider,
+            },
+          },
+          { transaction },
+        );
 
-    return formatEvidenceLink(created);
+        return link;
+      });
+
+      return formatEvidenceLink(created);
+    } catch (err: any) {
+      if (err.name === 'SequelizeUniqueConstraintError') {
+        throw new Error('CONFLICT: This evidence link is already attached to this Test Result.', {
+          cause: err,
+        });
+      }
+      throw err;
+    }
   }
 
   async listTestRuns(workspaceId: string, testCaseId: string, actorId: string): Promise<TestRun[]> {

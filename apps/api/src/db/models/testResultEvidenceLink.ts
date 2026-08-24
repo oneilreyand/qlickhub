@@ -71,5 +71,12 @@ TestResultEvidenceLinkModel.init(
     tableName: 'test_result_evidence_links',
     underscored: true,
     timestamps: false,
+    indexes: [
+      {
+        unique: true,
+        fields: ['workspace_id', 'test_result_id', 'normalized_url'],
+        name: 'idx_test_result_evidence_links_unique_url',
+      },
+    ],
   },
 );
