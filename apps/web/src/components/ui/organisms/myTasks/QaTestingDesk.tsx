@@ -266,8 +266,17 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     setSelectedAttachmentIds([]);
     setResultFormError(null);
     try {
-      const atts = await taskService.listTaskAttachments(workspaceId, subtask.id);
-      setAvailableAttachments(atts || []);
+      const taskIdsToFetch = [subtask.id];
+      if (subtask.parentTaskId) taskIdsToFetch.push(subtask.parentTaskId);
+      const allAtts = await Promise.all(
+        taskIdsToFetch.map((tId) =>
+          taskService.listTaskAttachments(workspaceId, tId).catch(() => []),
+        ),
+      );
+      const flattened = allAtts.flat();
+      const uniqueById = Array.from(new Map(flattened.map((a) => [a.id, a])).values());
+      const qaEvidenceOnly = uniqueById.filter((a) => a.category === 'qa_evidence');
+      setAvailableAttachments(qaEvidenceOnly);
     } catch {
       setAvailableAttachments([]);
     }
@@ -992,18 +1001,18 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           />
 
           {/* Uploaded QA Task Attachments Picker */}
-          {availableAttachments.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-slate-700/60">
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
-                Link Uploaded QA Task Attachments ({selectedAttachmentIds.length} selected)
-              </label>
+          <div className="space-y-2 pt-2 border-t border-slate-700/60">
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+              Link Uploaded QA Task Attachments ({selectedAttachmentIds.length} selected)
+            </label>
+            {availableAttachments.length > 0 ? (
               <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-slate-800/40 rounded-xl border border-slate-700">
                 {availableAttachments.map((att) => {
                   const isChecked = selectedAttachmentIds.includes(att.id);
                   return (
                     <label
                       key={att.id}
-                      className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer p-1.5 rounded hover:bg-slate-700/50 transition-colors"
+                      className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer p-1.5 rounded hover:bg-slate-700/50 transition-colors min-h-[36px]"
                     >
                       <input
                         type="checkbox"
@@ -1025,8 +1034,12 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   );
                 })}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="p-3 text-center bg-slate-800/30 rounded-xl border border-slate-700/50 text-xs text-slate-400">
+                No formal QA evidence attachments uploaded to this feature task.
+              </div>
+            )}
+          </div>
 
           {/* External Evidence Links Input Builder */}
           <div className="space-y-2 pt-2 border-t border-slate-700/60">

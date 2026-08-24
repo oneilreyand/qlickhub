@@ -357,10 +357,11 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                   <span className="font-semibold">Select Sheet / Tab:</span>
                 </div>
                 <select
+                  aria-label="Select spreadsheet sheet"
                   value={selectedSheet}
                   onChange={(e) => handleSheetChange(e.target.value)}
                   disabled={loading}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[36px]"
                 >
                   {previewData.availableSheets.map((s) => (
                     <option key={s} value={s}>
@@ -389,6 +390,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                     </div>
                     <div>
                       <select
+                        aria-label={`Target field for column ${header}`}
                         value={currentTarget}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -397,7 +399,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                             [header]: val,
                           }));
                         }}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[36px]"
                       >
                         {TARGET_FIELDS.map((f) => (
                           <option key={f.key} value={f.key}>

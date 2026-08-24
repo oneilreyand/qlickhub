@@ -127,7 +127,7 @@ export class TestCaseImportService {
     const [requirements, existingTestCases] = await Promise.all([
       RequirementModel.findAll({
         where: { workspaceId },
-        attributes: ['id', 'code', 'title'],
+        attributes: ['id', 'code', 'title', 'status'],
       }),
       TestCaseModel.findAll({
         where: { workspaceId },
@@ -135,9 +135,9 @@ export class TestCaseImportService {
       }),
     ]);
 
-    const reqByCode = new Map<string, string>();
+    const reqByCode = new Map<string, { id: string; status: string }>();
     for (const req of requirements) {
-      reqByCode.set(req.code.trim().toUpperCase(), req.id);
+      reqByCode.set(req.code.trim().toUpperCase(), { id: req.id, status: req.status });
     }
 
     const existingByExtRef = new Map<string, { id: string; status: string }>();
@@ -213,8 +213,12 @@ export class TestCaseImportService {
         const found = reqByCode.get(reqCode.toUpperCase());
         if (!found) {
           errors.push(`Requirement code "${reqCode}" was not found in this workspace.`);
+        } else if (found.status !== 'active') {
+          errors.push(
+            `Requirement "${reqCode}" is not active (${found.status}). Only active requirements can be mapped.`,
+          );
         } else {
-          resolvedReqId = found;
+          resolvedReqId = found.id;
         }
       }
 
@@ -419,7 +423,7 @@ export class TestCaseImportService {
         const [requirements, existingTestCases] = await Promise.all([
           RequirementModel.findAll({
             where: { workspaceId },
-            attributes: ['id', 'code'],
+            attributes: ['id', 'code', 'status'],
             transaction,
           }),
           TestCaseModel.findAll({
@@ -429,9 +433,9 @@ export class TestCaseImportService {
           }),
         ]);
 
-        const reqByCode = new Map<string, string>();
+        const reqByCode = new Map<string, { id: string; status: string }>();
         for (const req of requirements) {
-          reqByCode.set(req.code.trim().toUpperCase(), req.id);
+          reqByCode.set(req.code.trim().toUpperCase(), { id: req.id, status: req.status });
         }
 
         const existingByExtRef = new Map<string, TestCaseModel>();
@@ -455,39 +459,97 @@ export class TestCaseImportService {
 
         for (const stagedRow of stagedRows) {
           const payload = (stagedRow.parsedPayload || {}) as unknown as TestCaseImportDryRunRow;
-
-          // Server-side validation check
           const extRef = (payload.externalReference || '').trim() || null;
           const title = (payload.title || '').trim();
           const reqCode = (payload.requirementCode || '').trim();
 
-          if (!title || !reqCode) {
+          // If the row already failed during preview dry-run, reject it consistently
+          if (
+            stagedRow.outcome === 'failed' ||
+            (stagedRow.validationErrors && stagedRow.validationErrors.length > 0)
+          ) {
             failedRows++;
-            const errorMsg = 'Missing required Title or Requirement Code.';
+            const errorMsg =
+              (stagedRow.validationErrors || []).join('; ') ||
+              'Row failed validation during preview.';
             errors.push({
               rowNumber: stagedRow.sourceRowNumber,
               externalReference: extRef,
               error: errorMsg,
             });
-            await stagedRow.update(
-              { outcome: 'failed', validationErrors: [errorMsg] },
-              { transaction },
-            );
             continue;
           }
 
-          // Re-resolve requirement code server-side
-          const resolvedReqId = reqByCode.get(reqCode.toUpperCase());
-          if (!resolvedReqId) {
+          // Strict server-side re-validation
+          const rowValidationErrors: string[] = [];
+
+          if (!title) {
+            rowValidationErrors.push('Test Case Title is required.');
+          } else if (title.length > 255) {
+            rowValidationErrors.push('Test Case Title must not exceed 255 characters.');
+          }
+
+          let resolvedReqId: string | null = null;
+          if (!reqCode) {
+            rowValidationErrors.push('Requirement Code is required (e.g. REQ-001).');
+          } else {
+            const req = reqByCode.get(reqCode.toUpperCase());
+            if (!req) {
+              rowValidationErrors.push(
+                `Requirement code "${reqCode}" not found in this workspace.`,
+              );
+            } else if (req.status !== 'active') {
+              rowValidationErrors.push(
+                `Requirement "${reqCode}" is not active (${req.status}). Only active requirements can be mapped.`,
+              );
+            } else {
+              resolvedReqId = req.id;
+            }
+          }
+
+          // Strict Priority
+          let priority: 'high' | 'medium' | 'low' = 'medium';
+          const rawPriority = (payload.priority || '').trim().toLowerCase();
+          if (rawPriority === 'high' || rawPriority === 'medium' || rawPriority === 'low') {
+            priority = rawPriority;
+          } else if (rawPriority.length > 0) {
+            rowValidationErrors.push(
+              `Invalid priority "${payload.priority}". Allowed: high, medium, low.`,
+            );
+          }
+
+          // Strict Scenario Kind
+          let scenarioKind: 'positive' | 'negative' = 'positive';
+          const rawScenario = (payload.scenarioKind || '').trim().toLowerCase();
+          if (rawScenario === 'positive' || rawScenario === 'negative') {
+            scenarioKind = rawScenario;
+          } else if (rawScenario.length > 0) {
+            rowValidationErrors.push(
+              `Invalid scenario kind "${payload.scenarioKind}". Allowed: positive, negative.`,
+            );
+          }
+
+          // Strict Test Type
+          let testType: 'manual' | 'e2e' | 'integration' | 'unit' = 'manual';
+          const rawType = (payload.testType || '').trim().toLowerCase();
+          if (['manual', 'e2e', 'integration', 'unit'].includes(rawType)) {
+            testType = rawType as typeof testType;
+          } else if (rawType.length > 0) {
+            rowValidationErrors.push(
+              `Invalid test type "${payload.testType}". Allowed: manual, e2e, integration, unit.`,
+            );
+          }
+
+          if (rowValidationErrors.length > 0 || !resolvedReqId) {
             failedRows++;
-            const errorMsg = `Requirement code "${reqCode}" not found in this workspace.`;
+            const errorMsg = rowValidationErrors.join('; ') || 'Row failed validation.';
             errors.push({
               rowNumber: stagedRow.sourceRowNumber,
               externalReference: extRef,
               error: errorMsg,
             });
             await stagedRow.update(
-              { outcome: 'failed', validationErrors: [errorMsg] },
+              { outcome: 'failed', validationErrors: rowValidationErrors },
               { transaction },
             );
             continue;
@@ -512,32 +574,12 @@ export class TestCaseImportService {
               );
             } else {
               // mode === 'update'
-              // Enforce QA restriction: QA cannot edit active or archived cases
-              if (
-                membership.role === 'qa' &&
-                (existingCase.status === 'active' || existingCase.status === 'archived')
-              ) {
-                failedRows++;
-                const errorMsg =
-                  'FORBIDDEN: QA members cannot update active or archived Test Cases.';
-                errors.push({
-                  rowNumber: stagedRow.sourceRowNumber,
-                  externalReference: extRef,
-                  error: errorMsg,
-                });
-                await stagedRow.update(
-                  { outcome: 'failed', validationErrors: [errorMsg] },
-                  { transaction },
-                );
-                continue;
-              }
-
               await existingCase.update(
                 {
                   title,
-                  testType: payload.testType || 'manual',
-                  priority: payload.priority || 'medium',
-                  scenarioKind: payload.scenarioKind || 'positive',
+                  testType,
+                  priority,
+                  scenarioKind,
                   preconditions: payload.preconditions || null,
                   steps: payload.steps || [],
                   expectedResult: payload.expectedResult || null,
@@ -589,21 +631,21 @@ export class TestCaseImportService {
               );
             }
           } else {
-            // Create new Test Case
+            // Create new Test Case (active canonical state for Planner import under ADR-001)
             const createdCase = await TestCaseModel.create(
               {
                 workspaceId,
                 externalReference: extRef,
                 title,
                 description: null,
-                testType: payload.testType || 'manual',
-                priority: payload.priority || 'medium',
-                status: 'draft',
+                testType,
+                priority,
+                status: 'active',
                 preconditions: payload.preconditions || null,
                 steps: payload.steps || [],
                 expectedResult: payload.expectedResult || null,
                 testData: payload.testData || null,
-                scenarioKind: payload.scenarioKind || 'positive',
+                scenarioKind,
                 source: 'spreadsheet_import',
                 createdBy: actorId,
               },

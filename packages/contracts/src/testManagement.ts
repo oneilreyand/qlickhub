@@ -28,6 +28,8 @@ export const EvidencePreviewStatusSchema = z.enum(['ready', 'unsupported', 'rest
 export type EvidencePreviewStatus = z.infer<typeof EvidencePreviewStatusSchema>;
 
 export const MAX_IMPORT_ROWS = 500;
+export const MAX_EVIDENCE_ATTACHMENTS = 20;
+export const MAX_EVIDENCE_LINKS = 20;
 
 const NonBlankTextSchema = z.string().trim().min(1);
 
@@ -202,9 +204,19 @@ export const RecordTestResultSchema = z.object({
   status: TestResultStatusSchema,
   actualResult: z.string().trim().max(10000).nullable().optional(),
   notes: z.string().trim().max(10000).nullable().optional(),
-  evidenceAttachmentIds: z.array(z.string().uuid()).default([]),
-  evidenceLinks: z.array(CreateEvidenceLinkInputSchema).default([]),
+  evidenceAttachmentIds: z
+    .array(z.string().uuid())
+    .max(
+      MAX_EVIDENCE_ATTACHMENTS,
+      `Evidence attachments cannot exceed ${MAX_EVIDENCE_ATTACHMENTS} files`,
+    )
+    .default([]),
+  evidenceLinks: z
+    .array(CreateEvidenceLinkInputSchema)
+    .max(MAX_EVIDENCE_LINKS, `Evidence links cannot exceed ${MAX_EVIDENCE_LINKS} links`)
+    .default([]),
 });
+
 export type RecordTestResultInput = z.infer<typeof RecordTestResultSchema>;
 export const CreateTestResultSchema = RecordTestResultSchema;
 export type CreateTestResultInput = RecordTestResultInput;

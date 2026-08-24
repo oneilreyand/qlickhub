@@ -115,6 +115,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       code: 'REQ-INTAKE-001',
       title: 'Checkout Payment Integration',
       description: 'Support card payments',
+      status: 'active',
       createdBy: po.id,
     });
 
@@ -123,6 +124,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       code: 'REQ-INTAKE-002',
       title: 'Order Confirmation Receipt',
       description: 'Send receipt email',
+      status: 'active',
       createdBy: po.id,
     });
 
@@ -377,15 +379,15 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(res.status, 201);
       const data = (await res.json()) as any;
       assert.strictEqual(data.result.createdRows, 2);
-      assert.strictEqual(data.result.failedRows, 1);
-      assert.strictEqual(data.result.skippedRows, 1);
+      assert.strictEqual(data.result.failedRows, 2);
+      assert.strictEqual(data.result.skippedRows, 0);
 
       const importedCase = await TestCaseModel.findOne({
         where: { workspaceId: workspaceA.id, externalReference: 'TC-IMP-001' },
       });
       assert.ok(importedCase);
       assert.strictEqual(importedCase.title, 'Verify invalid CVV rejection');
-      assert.strictEqual(importedCase.status, 'draft');
+      assert.strictEqual(importedCase.status, 'active');
       assert.strictEqual(importedCase.source, 'spreadsheet_import');
     });
 
@@ -407,8 +409,8 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       const replayData = (await replayRes.json()) as any;
       assert.strictEqual(replayData.result.status, 'completed');
       assert.strictEqual(replayData.result.createdRows, 2);
-      assert.strictEqual(replayData.result.failedRows, 1);
-      assert.strictEqual(replayData.result.skippedRows, 1);
+      assert.strictEqual(replayData.result.failedRows, 2);
+      assert.strictEqual(replayData.result.skippedRows, 0);
     });
 
     test('Concurrent parallel commits on the same staged session are race-safe', async () => {
@@ -816,6 +818,209 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       const verifiedData = (await verifyRes.json()) as any;
       assert.strictEqual(verifiedData.bug.status, 'verified');
       assert.strictEqual(verifiedData.bug.bugEvidenceLinks.length, 2);
+    });
+
+    test('import rejects mapping to inactive requirements (draft/deprecated) with row errors', async () => {
+      // Create a draft requirement in workspaceA
+      const draftReq = await RequirementModel.create({
+        workspaceId: workspaceA.id,
+        code: 'REQ-DRAFT-001',
+        title: 'Draft Requirement',
+        status: 'draft',
+        createdBy: po.id,
+      });
+
+      const csvContent = [
+        'External Reference,Title,Requirement Code,Priority,Scenario Kind,Test Type',
+        `TC-INACTIVE-01,Test On Inactive Req,${draftReq.code},medium,positive,manual`,
+      ].join('\n');
+
+      const previewRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/preview`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({
+            fileName: 'inactive_req_test.csv',
+            fileContent: csvContent,
+          }),
+        },
+      );
+
+      assert.strictEqual(previewRes.status, 200);
+      const previewData = (await previewRes.json()) as any;
+      assert.strictEqual(previewData.preview.totalRows, 1);
+      assert.strictEqual(previewData.preview.validRows, 0);
+      assert.strictEqual(previewData.preview.invalidRows, 1);
+      assert.ok(
+        previewData.preview.rows[0].validationErrors.some((e: string) =>
+          e.includes('is not active (draft)'),
+        ),
+      );
+
+      // Attempt commit on this session
+      const commitRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/commit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({
+            importSessionId: previewData.preview.importSessionId,
+            contentHash: previewData.preview.contentHash,
+            mode: 'create_only',
+          }),
+        },
+      );
+
+      assert.strictEqual(commitRes.status, 201);
+      const commitData = (await commitRes.json()) as any;
+      assert.strictEqual(commitData.result.createdRows, 0);
+      assert.strictEqual(commitData.result.failedRows, 1);
+      assert.strictEqual(commitData.result.errors.length, 1);
+      assert.ok(commitData.result.errors[0].error.includes('is not active (draft)'));
+    });
+
+    test('commitImport strictly rejects invalid priority/testType/scenarioKind without falling back to defaults', async () => {
+      const csvContent = [
+        'External Reference,Title,Requirement Code,Priority,Scenario Kind,Test Type',
+        `TC-INVALID-FIELDS,Invalid Field Case,${requirementA1.code},INVALID_PRIORITY,INVALID_SCENARIO,INVALID_TYPE`,
+      ].join('\n');
+
+      const previewRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/preview`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({
+            fileName: 'invalid_fields.csv',
+            fileContent: csvContent,
+          }),
+        },
+      );
+
+      assert.strictEqual(previewRes.status, 200);
+      const previewData = (await previewRes.json()) as any;
+      assert.strictEqual(previewData.preview.validRows, 0);
+      assert.strictEqual(previewData.preview.invalidRows, 1);
+
+      const commitRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/commit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({
+            importSessionId: previewData.preview.importSessionId,
+            contentHash: previewData.preview.contentHash,
+            mode: 'create_only',
+          }),
+        },
+      );
+
+      assert.strictEqual(commitRes.status, 201);
+      const commitData = (await commitRes.json()) as any;
+      assert.strictEqual(commitData.result.createdRows, 0);
+      assert.strictEqual(commitData.result.failedRows, 1);
+
+      // Verify no test case was created with that external reference
+      const createdCase = await TestCaseModel.findOne({
+        where: { workspaceId: workspaceA.id, externalReference: 'TC-INVALID-FIELDS' },
+      });
+      assert.strictEqual(createdCase, null);
+    });
+
+    test('recordTestResult rejects payload exceeding 20 evidence attachments or 20 links with 400', async () => {
+      // Start a test run
+      const runRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({
+            build: 'limit-test-build',
+            environment: 'staging',
+          }),
+        },
+      );
+      assert.strictEqual(runRes.status, 201);
+      const runData = (await runRes.json()) as any;
+      const testRunId = runData.testRun.id;
+
+      // Generate 21 links (exceeds max 20)
+      const excessiveLinks = Array.from({ length: 21 }, (_, i) => ({
+        url: `https://example.com/evidence-${i}.png`,
+        label: `Evidence link ${i}`,
+      }));
+
+      const recordRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs/${testRunId}/results`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({
+            status: 'passed',
+            evidenceLinks: excessiveLinks,
+          }),
+        },
+      );
+      assert.strictEqual(recordRes.status, 400);
+      const errBody = (await recordRes.json()) as any;
+      assert.ok((errBody.detail || errBody.error || '').includes('Evidence links cannot exceed'));
+    });
+
+    test('recordTestResult rejects evidence attachments belonging to an unrelated feature task with 400', async () => {
+      // Create an unrelated task in workspaceA with an attachment
+      const unrelatedTask = await TaskModel.create({
+        workspaceId: workspaceA.id,
+        title: 'Unrelated Feature Task',
+        reporterId: po.id,
+        status: 'todo',
+        priority: 'medium',
+      });
+
+      const unrelatedAttachment = await TaskAttachmentModel.create({
+        workspaceId: workspaceA.id,
+        taskId: unrelatedTask.id,
+        fileName: 'unrelated-evidence.png',
+        fileSize: 1024,
+        mimeType: 'image/png',
+        category: 'qa_evidence',
+        storageRef: 'fake-unrelated-key',
+        uploaderId: qa.id,
+      });
+
+      // Start run on executableCaseId (which is linked to requirementA1 and featureTaskA)
+      const runRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({
+            build: 'scoping-test-build',
+            environment: 'staging',
+          }),
+        },
+      );
+      assert.strictEqual(runRes.status, 201);
+      const runData = (await runRes.json()) as any;
+      const testRunId = runData.testRun.id;
+
+      // Attempt to attach unrelatedAttachment
+      const recordRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs/${testRunId}/results`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({
+            status: 'passed',
+            evidenceAttachmentIds: [unrelatedAttachment.id],
+          }),
+        },
+      );
+      assert.strictEqual(recordRes.status, 400);
+      const errBody = (await recordRes.json()) as any;
+      assert.ok(
+        (errBody.detail || errBody.error || '').includes('does not belong to the Feature Task'),
+      );
     });
   });
 });

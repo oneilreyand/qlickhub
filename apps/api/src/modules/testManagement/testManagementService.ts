@@ -5,6 +5,8 @@ import {
   CreateTestResultInput,
   CreateTestRunInput,
   ListTestCasesQuery,
+  MAX_EVIDENCE_ATTACHMENTS,
+  MAX_EVIDENCE_LINKS,
   TestCase,
   TestCaseActivity,
   TestResult,
@@ -13,6 +15,7 @@ import {
   TaskTestExecutionWorkspace,
   UpdateTestCaseInput,
 } from '@qlick/contracts';
+
 import { sequelize } from '../../db/sequelize.js';
 import {
   RequirementModel,
@@ -549,7 +552,16 @@ export class TestManagementService {
       throw new Error('BAD_REQUEST: Evidence references must not contain duplicates.');
     }
 
+    if (evidenceAttachmentIds.length > MAX_EVIDENCE_ATTACHMENTS) {
+      throw new Error(
+        `BAD_REQUEST: Evidence attachments cannot exceed ${MAX_EVIDENCE_ATTACHMENTS} files.`,
+      );
+    }
+
     const evidenceLinksInput = input.evidenceLinks || [];
+    if (evidenceLinksInput.length > MAX_EVIDENCE_LINKS) {
+      throw new Error(`BAD_REQUEST: Evidence links cannot exceed ${MAX_EVIDENCE_LINKS} links.`);
+    }
 
     await sequelize.transaction(async (transaction) => {
       const membership = await getMembership(input.workspaceId, actorId, transaction);
@@ -590,6 +602,50 @@ export class TestManagementService {
         });
         if (attachments.length !== evidenceAttachmentIds.length) {
           throw new Error('BAD_REQUEST: Evidence must reference QA evidence in this workspace.');
+        }
+
+        // Validate task-scoping: attachments must belong to the feature task or subtasks associated with this test case
+        const tcReqs = await TestCaseRequirementModel.findAll({
+          where: { workspaceId: input.workspaceId, testCaseId: input.testCaseId },
+          attributes: ['requirementId'],
+          transaction,
+        });
+        const reqIds = tcReqs.map((r) => r.requirementId);
+
+        if (reqIds.length > 0) {
+          const taskReqs = await TaskRequirementModel.findAll({
+            where: { workspaceId: input.workspaceId, requirementId: reqIds },
+            attributes: ['taskId'],
+            transaction,
+          });
+          const linkedTaskIds = taskReqs.map((tr) => tr.taskId);
+
+          if (linkedTaskIds.length > 0) {
+            const linkedTasks = await TaskModel.findAll({
+              where: { workspaceId: input.workspaceId, id: linkedTaskIds },
+              attributes: ['id', 'parentTaskId'],
+              transaction,
+            });
+            const featureTaskIds = [...new Set(linkedTasks.map((t) => t.parentTaskId || t.id))];
+
+            const allScopedTasks = await TaskModel.findAll({
+              where: {
+                workspaceId: input.workspaceId,
+                [Op.or]: [{ id: featureTaskIds }, { parentTaskId: featureTaskIds }],
+              },
+              attributes: ['id'],
+              transaction,
+            });
+            const allowedTaskIds = new Set(allScopedTasks.map((t) => t.id));
+
+            for (const att of attachments) {
+              if (!allowedTaskIds.has(att.taskId)) {
+                throw new Error(
+                  `BAD_REQUEST: Attachment "${att.fileName}" does not belong to the Feature Task or Subtasks associated with this Test Case.`,
+                );
+              }
+            }
+          }
         }
       }
 
