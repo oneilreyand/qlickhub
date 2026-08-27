@@ -22,14 +22,22 @@ import {
   Lightbulb,
   Compass,
   Users,
+  AlertTriangle,
+  FileSpreadsheet,
+  Bug,
+  ShieldAlert,
+  HelpCircle,
+  Clock,
+  Briefcase,
+  UserCheck,
 } from 'lucide-react';
 import { Card } from '../atoms/Card';
 import { Badge } from '../atoms/Badge';
 import { Button } from '../atoms/Button';
 import { Alert } from '../atoms/Alert';
-import { InteractiveGuideSimulator } from './InteractiveGuideSimulator';
+import { InteractiveGuideSimulator, FilterRole } from './InteractiveGuideSimulator';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { selectCurrentUserRole, setShowOnboardingModal } from '../../../store/authSlice';
+import { selectCurrentUserRole, selectCurrentUser, setShowOnboardingModal } from '../../../store/authSlice';
 
 export type MainSectionKey = 'panduan' | 'overview' | 'user_flow';
 export type RoleKey = 'owner_admin' | 'po' | 'dev' | 'qa';
@@ -44,6 +52,7 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const currentRole = useAppSelector(selectCurrentUserRole);
+  const currentUser = useAppSelector(selectCurrentUser);
 
   const getInitialRole = (): RoleKey => {
     if (
@@ -87,6 +96,14 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
     }
   };
 
+  const getSimulatorFilterRole = (): FilterRole => {
+    if (currentRole === 'owner' || currentRole === 'admin') return 'admin';
+    if (currentRole === 'po') return 'po';
+    if (currentRole === 'dev') return 'dev';
+    if (currentRole === 'qa') return 'qa';
+    return 'all';
+  };
+
   const sectionTabs: {
     key: MainSectionKey;
     label: string;
@@ -96,85 +113,38 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
   }[] = [
     {
       key: 'panduan',
-      label: 'Panduan Aplikasi',
-      description: 'Tutorial & Cara Penggunaan Fitur',
+      label: 'Panduan Aplikasi & Simulator',
+      description: 'Tutorial praktis & Simulator interaktif fitur',
       icon: BookOpen,
-      badge: 'Tutorial',
+      badge: 'Tutorial & Simulator',
     },
     {
       key: 'overview',
-      label: 'E2E Overview',
-      description: 'Siklus 5 Fase & Matriks RBAC',
+      label: 'E2E Overview & RBAC',
+      description: 'Siklus 5 Fase & Matriks Hak Akses',
       icon: Sparkles,
       badge: 'Siklus & RBAC',
     },
     {
       key: 'user_flow',
-      label: 'User Flow',
-      description: 'Alur Kerja Berdasarkan Role',
+      label: 'Alur Kerja per Role',
+      description: 'Checklist & Panduan Khusus Peran Anda',
       icon: Users,
-      badge: 'Per Role',
+      badge: 'Spesifik Peran',
     },
   ];
 
   return (
     <div className="w-full space-y-6 pb-12">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-900 via-[#1C1A19] to-stone-900 p-6 sm:p-8 text-white shadow-xl border border-stone-800">
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-[#B1E743]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-48 h-48 bg-[#B1E743]/10 rounded-full blur-2xl pointer-events-none" />
+      {/* 1. Personalized Logged-in User Role Hero Banner */}
+      <LoggedInRoleHeroBanner
+        currentRole={currentRole}
+        userName={currentUser?.name || currentUser?.email || 'Team Member'}
+        onOpenOnboarding={() => dispatch(setShowOnboardingModal(true))}
+        onSelectRoleView={(role) => handleNavigateToSection('user_flow', role)}
+      />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold text-[#B1E743] backdrop-blur-xs border border-white/10">
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Interactive System Guide</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              User Flow & Cara Penggunaan Aplikasi
-            </h1>
-            <p className="text-sm text-stone-300 max-w-2xl leading-relaxed">
-              Panduan terintegrasi Qlick Hub yang dibagi menjadi 3 bagian:{' '}
-              <strong>Panduan Aplikasi</strong> (Tutorial praktis), <strong>E2E Overview</strong>{' '}
-              (Siklus kolaborasi & RBAC), dan <strong>User Flow</strong> (Alur kerja spesifik per
-              role tim).
-            </p>
-          </div>
-
-          {/* Quick Action CTAs */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => dispatch(setShowOnboardingModal(true))}
-              leftIcon={<Sparkles className="w-4 h-4 text-amber-400" />}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white font-bold"
-            >
-              Tur Onboarding
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/work')}
-              leftIcon={<Layers className="w-4 h-4 text-[#B1E743]" />}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-            >
-              Buka Work Hub
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/my-tasks')}
-              leftIcon={<CheckSquare className="w-4 h-4 text-[#B1E743]" />}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-            >
-              Buka My Tasks
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Top 3 Main Section Tabs */}
+      {/* 2. Top 3 Main Section Tabs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-1.5 bg-stone-100 dark:bg-stone-900/60 rounded-2xl border border-stone-200/80 dark:border-stone-800">
         {sectionTabs.map((tab, idx) => {
           const Icon = tab.icon;
@@ -227,9 +197,12 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
         })}
       </div>
 
-      {/* Tab Content Display (3 Sections) */}
+      {/* 3. Tab Content Display */}
       {activeSection === 'panduan' && (
-        <HowToUseSection onNavigateToSection={handleNavigateToSection} />
+        <HowToUseSection
+          activeUserRole={getSimulatorFilterRole()}
+          onNavigateToSection={handleNavigateToSection}
+        />
       )}
       {activeSection === 'overview' && (
         <OverviewFlowSection onSelectRole={(role) => handleNavigateToSection('user_flow', role)} />
@@ -242,11 +215,207 @@ export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initi
 };
 
 /* =========================================================================
-   0. CARA PENGGUNAAN APLIKASI (HOW TO USE / TUTORIAL)
+   A. PERSONALIZED LOGGED-IN ROLE HERO BANNER
+   ========================================================================= */
+interface LoggedInRoleHeroBannerProps {
+  currentRole: string | null;
+  userName: string;
+  onOpenOnboarding: () => void;
+  onSelectRoleView: (role: RoleKey) => void;
+}
+
+const LoggedInRoleHeroBanner: React.FC<LoggedInRoleHeroBannerProps> = ({
+  currentRole,
+  userName,
+  onOpenOnboarding,
+  onSelectRoleView,
+}) => {
+  const navigate = useNavigate();
+
+  const getRoleMetadata = () => {
+    switch (currentRole) {
+      case 'owner':
+      case 'admin':
+        return {
+          title: 'Owner & Workspace Admin',
+          badgeText: 'Governance & Escalation',
+          badgeColor: 'bg-amber-400/20 text-amber-300 border-amber-400/30',
+          icon: ShieldCheck,
+          deskRoute: '/workspaces/settings',
+          deskLabel: 'Buka Workspace Settings',
+          summary:
+            'Anda memegang kendali tata kelola workspace, keanggotaan tim, klasifikasi spesialisasi developer (ADR-002), dan akuntabilitas keputusan rilis tertinggi.',
+          primaryActions: [
+            'Kelola anggota & spesialisasi (FE/BE/Mobile/Fullstack)',
+            'Atur kebijakan task creation permission',
+            'Tinjau delivery progress & role bottlenecks',
+          ],
+          boundary:
+            'Tidak boleh menandatangani QA Sign-off sekaligus Release Decision pada Feature yang sama.',
+        };
+      case 'po':
+        return {
+          title: 'Product Owner (PO)',
+          badgeText: 'Product Planning & Release Ownership',
+          badgeColor: 'bg-purple-400/20 text-purple-300 border-purple-400/30',
+          icon: CheckCircle2,
+          deskRoute: '/my-tasks',
+          deskLabel: 'Buka PO Release Desk',
+          summary:
+            'Anda bertanggung jawab atas perencanaan requirement (In/Out Scope, AC), pembagian subtask terarah ke developer, evaluasi kesiapan rilis, dan penerbitan Release Decision.',
+          primaryActions: [
+            'Tulis Specification Brief & tautkan Requirement',
+            'Bagi subtask sesuai Developer Specialties',
+            'Evaluasi Readiness Snapshot & terbitkan Release Decision',
+          ],
+          boundary:
+            'Tidak mengeksekusi Test Runs, tidak menandatangani QA Sign-off, dan tidak dapat self-approve subtask sendiri.',
+        };
+      case 'dev':
+        return {
+          title: 'Developer (Frontend / Backend / Mobile / Fullstack)',
+          badgeText: 'Technical Delivery & Quality Gate',
+          badgeColor: 'bg-blue-400/20 text-blue-300 border-blue-400/30',
+          icon: Code2,
+          deskRoute: '/my-tasks',
+          deskLabel: 'Buka Dev Working Desk',
+          summary:
+            'Ruang kerja utama Anda adalah Dev Working Desk di My Tasks. Fokus pada implementasi kode sesuai acceptance criteria, ajukan ke In Review, dan perbaiki Bug yang ditugaskan.',
+          primaryActions: [
+            'Eksekusi subtask: todo ➔ in_progress ➔ in_review',
+            'Tulis technical handover notes saat submit review',
+            'Perbaiki defect di antrean Bug Fixes dari hasil uji QA',
+          ],
+          boundary:
+            'Anti Self-Approval: Developer dilarang memindahkan subtask sendiri ke DONE (wajib diverifikasi oleh QA).',
+        };
+      case 'qa':
+        return {
+          title: 'Quality Assurance (QA)',
+          badgeText: 'Quality Gatekeeper & Sign-off Certification',
+          badgeColor: 'bg-emerald-400/20 text-emerald-300 border-emerald-400/30',
+          icon: TestTube,
+          deskRoute: '/my-tasks',
+          deskLabel: 'Buka QA Testing Desk',
+          summary:
+            'Pintu gerbang kualitas sistem. Anda berwenang mereview subtask developer, authoring test cases (Spreadsheet Intake), merekam test runs & evidence, retest bug, dan menerbitkan QA Sign-off.',
+          primaryActions: [
+            'Review subtask In Review (Approve ke DONE / Changes Requested)',
+            'Import Test Case Spreadsheet Wizard (CSV / XLSX)',
+            'Catat immutable Test Result, Evidence Links, & QA Sign-off',
+          ],
+          boundary:
+            'Tidak dapat membuat Release Decision produk atau mengubah alokasi Requirement milik Planner.',
+        };
+      default:
+        return {
+          title: 'Qlick Hub Member',
+          badgeText: 'Collaboration Workspace',
+          badgeColor: 'bg-white/10 text-[#B1E743] border-white/20',
+          icon: BookOpen,
+          deskRoute: '/work',
+          deskLabel: 'Buka Work Hub',
+          summary:
+            'Selamat datang di Qlick Hub. Pelajari panduan kolaborasi terintegrasi untuk mengoptimalkan alur kerja tim Anda.',
+          primaryActions: ['Buka Work Hub', 'Buka My Tasks', 'Pelajari User Flow'],
+          boundary: 'Ikuti batasan wewenang sesuai role yang ditetapkan di workspace Anda.',
+        };
+    }
+  };
+
+  const meta = getRoleMetadata();
+  const RoleIcon = meta.icon;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-900 via-[#1C1A19] to-stone-900 p-6 sm:p-8 text-white shadow-xl border border-stone-800">
+      <div className="absolute top-0 right-0 -mt-8 -mr-8 w-72 h-72 bg-[#B1E743]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/3 -mb-12 w-56 h-56 bg-[#B1E743]/10 rounded-full blur-2xl pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="space-y-3 max-w-3xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-xs border ${meta.badgeColor}`}
+            >
+              <RoleIcon className="w-3.5 h-3.5" />
+              <span>{meta.badgeText}</span>
+            </span>
+            <span className="text-xs text-stone-400">
+              Halo, <strong className="text-white">{userName}</strong>
+            </span>
+          </div>
+
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
+              <span>Panduan Interaktif: {meta.title}</span>
+            </h1>
+            <p className="text-sm text-stone-300 mt-1.5 leading-relaxed">{meta.summary}</p>
+          </div>
+
+          {/* Key Actions & Boundary Pills */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-stone-300 space-y-1">
+              <span className="font-bold text-white flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-[#B1E743]" /> Fokus Utama Anda:
+              </span>
+              <ul className="list-disc pl-4 space-y-0.5 text-stone-300 text-[11px]">
+                {meta.primaryActions.map((act, i) => (
+                  <li key={i}>{act}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 space-y-1">
+              <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" /> Hard Boundary (Governance):
+              </span>
+              <p className="text-[11px] leading-relaxed">{meta.boundary}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Action CTAs */}
+        <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => navigate(meta.deskRoute)}
+            rightIcon={<ArrowRight className="w-4 h-4" />}
+            className="w-full justify-center font-bold"
+          >
+            {meta.deskLabel}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/work')}
+            leftIcon={<Layers className="w-4 h-4 text-[#B1E743]" />}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+          >
+            Buka Work Hub
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenOnboarding}
+            leftIcon={<Sparkles className="w-4 h-4 text-amber-400" />}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+          >
+            Mulai Tur Onboarding
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* =========================================================================
+   B. 01. PANDUAN APLIKASI & WORKFLOW SIMULATOR
    ========================================================================= */
 const HowToUseSection: React.FC<{
+  activeUserRole: FilterRole;
   onNavigateToSection: (section: MainSectionKey, role?: RoleKey) => void;
-}> = ({ onNavigateToSection }) => {
+}> = ({ activeUserRole, onNavigateToSection }) => {
   const navigate = useNavigate();
 
   return (
@@ -302,8 +471,9 @@ const HowToUseSection: React.FC<{
                 <h3 className="font-bold text-sm text-stone-900 dark:text-white">2. My Tasks</h3>
               </div>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-                Ruang kerja personal. Menampilkan subtask yang ditugaskan khusus untuk Anda, filter
-                tanggal/status, dan tempat memperbarui status kerja secara cepat.
+                Ruang kerja terarah per-role. Menyajikan <strong>Dev Working Desk</strong>,{' '}
+                <strong>QA Testing Desk</strong>, atau <strong>PO Planning Desk</strong> sesuai role
+                login Anda.
               </p>
             </div>
             <Button
@@ -356,8 +526,8 @@ const HowToUseSection: React.FC<{
                 </h3>
               </div>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-                Pengaturan workspace, undang anggota tim, atur peran (Admin, PO, Dev, QA), dan
-                tentukan aturan Task Creation Policy.
+                Pengaturan workspace, kelola member & spesialisasi Dev (FE/BE/Mobile/Fullstack),
+                aturan permission, dan sesi login aktif.
               </p>
             </div>
             <Button
@@ -374,40 +544,40 @@ const HowToUseSection: React.FC<{
       </Card>
 
       {/* 2. Panduan Langkah demi Langkah Interaktif (Interactive Workflow Simulator) */}
-      <InteractiveGuideSimulator />
+      <InteractiveGuideSimulator activeUserRole={activeUserRole} />
 
       {/* 3. Kolaborasi & Fitur Pendukung */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-5 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-2.5">
           <div className="flex items-center gap-2 text-stone-900 dark:text-white font-bold text-sm">
             <MessageSquare className="w-4 h-4 text-[#141413] dark:text-[#B1E743]" />
-            <span>Discussion & Mention</span>
+            <span>Discussion & Realtime Events</span>
           </div>
           <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-            Gunakan tab <strong>Discussion</strong> di dalam Drawer untuk bertukar pesan dengan tim.
-            Anda dapat me-reply pesan dan melakukan <code>@mention</code> anggota tim di workspace.
+            Gunakan tab <strong>Discussion</strong> di dalam Drawer untuk bertukar pesan dengan tim
+            secara real-time melalui koneksi SSE dengan notifikasi unread badge.
           </p>
         </Card>
 
         <Card className="p-5 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-2.5">
           <div className="flex items-center gap-2 text-stone-900 dark:text-white font-bold text-sm">
             <ShieldCheck className="w-4 h-4 text-amber-500" />
-            <span>Immutable Activity Log</span>
+            <span>Immutable Audit Trail</span>
           </div>
           <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-            Setiap perpindahan status, perubahan assignee, dan modifikasi tercatat otomatis di tab{' '}
-            <strong>Activity</strong> sebagai bukti audit yang tidak dapat dimanipulasi browser.
+            Setiap perpindahan status, QA Sign-off, dan Release Decision tercatat permanen di tab{' '}
+            <strong>Activity</strong> sebagai bukti audit yang aman dari manipulasi.
           </p>
         </Card>
 
         <Card className="p-5 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-2.5">
           <div className="flex items-center gap-2 text-stone-900 dark:text-white font-bold text-sm">
             <Lightbulb className="w-4 h-4 text-[#B1E743]" />
-            <span>Quick Filter & Date Presets</span>
+            <span>Developer Specialties (ADR-002)</span>
           </div>
           <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-            Gunakan filter preset <em>Today</em>, <em>This Week</em>, atau <em>Date Range</em> di
-            Work Hub dan Report untuk menyaring tampilan data secara instan.
+            Penugasan subtask divalidasi ketat terhadap keahlian Frontend, Backend, Mobile, atau
+            Fullstack untuk menjamin eksekusi teknis yang akuntabel.
           </p>
         </Card>
       </div>
@@ -457,848 +627,445 @@ const HowToUseSection: React.FC<{
 };
 
 /* =========================================================================
-   1. OVERVIEW FLOW SECTION (END-TO-END)
+   C. 02. E2E OVERVIEW & RBAC MATRIX (5-PHASE LIFECYCLE)
    ========================================================================= */
-const OverviewFlowSection: React.FC<{ onSelectRole: (role: RoleKey) => void }> = ({
-  onSelectRole,
-}) => {
+const OverviewFlowSection: React.FC<{
+  onSelectRole: (role: RoleKey) => void;
+}> = ({ onSelectRole }) => {
   return (
     <div className="space-y-6">
-      {/* End-to-End Process Stepper */}
-      <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19]">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-100 dark:border-stone-800">
-          <div>
-            <h2 className="text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-stone-900 dark:text-[#B1E743]" />
-              Siklus Lengkap Kolaborasi Tim (End-to-End Lifecycle)
+      {/* 1. 5-Phase Lifecycle Breakdown */}
+      <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]">
+              <Sparkles className="w-5 h-5" />
+            </span>
+            <h2 className="text-lg font-bold text-stone-900 dark:text-white">
+              Siklus Lengkap Kolaborasi Tim (End-to-End 5-Phase Lifecycle)
             </h2>
-            <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-              Bagaimana keempat peran berkolaborasi dari fase perencanaan hingga verifikasi rilis.
-            </p>
           </div>
-          <Badge variant="info">5 Fase Kunci</Badge>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+            Alur kerja terintegrasi dari pembentukan tim hingga keputusan rilis produk resmi.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
-          {/* Step 1: Inisiasi */}
-          <div className="flex flex-col p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/60 dark:border-stone-800 relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-bold text-xs flex items-center justify-center">
-                1
-              </span>
-              <Badge variant="neutral" size="sm">
-                Admin / PO
-              </Badge>
-            </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
-              Struktur & Ruang Kerja
-            </h3>
-            <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
-              Inisiasi Workspace, undang anggota tim, dan buat folder rilis / sprint.
+        {/* 5 Phase Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {/* Phase 1 */}
+          <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/80 dark:border-stone-800 space-y-2">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+              FASE 1
+            </span>
+            <h3 className="font-bold text-sm text-stone-900 dark:text-white">Governance</h3>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              Owner/Admin setup workspace, undang member, & tetapkan Developer Specialties (ADR-002).
             </p>
-            <button
-              onClick={() => onSelectRole('owner_admin')}
-              className="mt-auto text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 hover:underline pt-2 border-t border-stone-200/40 dark:border-stone-800"
-            >
-              Lihat detail Admin <ArrowRight className="w-3 h-3" />
-            </button>
           </div>
 
-          {/* Step 2: Perencanaan */}
-          <div className="flex flex-col p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/60 dark:border-stone-800 relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="w-7 h-7 rounded-lg bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743] font-bold text-xs flex items-center justify-center">
-                2
-              </span>
-              <Badge variant="review" size="sm">
-                PO
-              </Badge>
-            </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
-              Parent & Subtask FE/BE/QA
-            </h3>
-            <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
-              PO memecah parent task menjadi subtask FE, BE, & QA terarah ke masing-masing assignee.
+          {/* Phase 2 */}
+          <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/80 dark:border-stone-800 space-y-2">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300">
+              FASE 2
+            </span>
+            <h3 className="font-bold text-sm text-stone-900 dark:text-white">Product Planning</h3>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              PO tulis Specification Brief (In/Out Scope, AC), buat Test Cases, & pecah subtask.
             </p>
-            <button
-              onClick={() => onSelectRole('po')}
-              className="mt-auto text-xs font-bold text-stone-900 dark:text-[#B1E743] flex items-center gap-1 hover:underline pt-2 border-t border-stone-200/40 dark:border-stone-800"
-            >
-              Lihat detail PO <ArrowRight className="w-3 h-3" />
-            </button>
           </div>
 
-          {/* Step 3: Implementasi */}
-          <div className="flex flex-col p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/60 dark:border-stone-800 relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-bold text-xs flex items-center justify-center">
-                3
-              </span>
-              <Badge variant="neutral" size="sm">
-                Developer
-              </Badge>
-            </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
-              Coding & Submit Review
-            </h3>
-            <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
-              Dev mengerjakan subtask (In Progress), lalu mengajukan ke In Review saat coding
-              selesai.
+          {/* Phase 3 */}
+          <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/80 dark:border-stone-800 space-y-2">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+              FASE 3
+            </span>
+            <h3 className="font-bold text-sm text-stone-900 dark:text-white">Dev Execution</h3>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              Dev kerjakan subtask di My Tasks, tulis handover notes, & ajukan ke IN REVIEW.
             </p>
-            <button
-              onClick={() => onSelectRole('dev')}
-              className="mt-auto text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:underline pt-2 border-t border-stone-200/40 dark:border-stone-800"
-            >
-              Lihat detail Dev <ArrowRight className="w-3 h-3" />
-            </button>
           </div>
 
-          {/* Step 4: Quality Gate */}
-          <div className="flex flex-col p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/60 dark:border-stone-800 relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center justify-center">
-                4
-              </span>
-              <Badge variant="passed" size="sm">
-                QA
-              </Badge>
-            </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
-              Quality Gate & Testing
-            </h3>
-            <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
-              QA me-review kode/fitur. Jika ada bug $\rightarrow$ Changes Requested. Jika lolos
-              $\rightarrow$ Done.
+          {/* Phase 4 */}
+          <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/80 dark:border-stone-800 space-y-2">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+              FASE 4
+            </span>
+            <h3 className="font-bold text-sm text-stone-900 dark:text-white">QA Verification</h3>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              QA uji subtask, rekam Test Runs & Evidence, kelola Bug, dan terbitkan QA Sign-off.
             </p>
-            <button
-              onClick={() => onSelectRole('qa')}
-              className="mt-auto text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline pt-2 border-t border-stone-200/40 dark:border-stone-800"
-            >
-              Lihat detail QA <ArrowRight className="w-3 h-3" />
-            </button>
           </div>
 
-          {/* Step 5: Final Acceptance */}
-          <div className="flex flex-col p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/60 dark:border-stone-800 relative">
-            <div className="flex items-center justify-between mb-3">
-              <span className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 font-bold text-xs flex items-center justify-center">
-                5
-              </span>
-              <Badge variant="review" size="sm">
-                PO / Admin
-              </Badge>
-            </div>
-            <h3 className="font-semibold text-sm text-stone-900 dark:text-white mb-1">
-              Final Acceptance
-            </h3>
-            <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
-              Setelah seluruh subtask FE, BE, & QA tervalidasi Done, PO menyelesaikan Parent Task.
+          {/* Phase 5 */}
+          <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/80 dark:border-stone-800 space-y-2">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
+              FASE 5
+            </span>
+            <h3 className="font-bold text-sm text-stone-900 dark:text-white">Release Decision</h3>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              PO evaluasi readiness snapshot, terbitkan Release Decision, & tutup Feature resmi.
             </p>
-            <button
-              onClick={() => onSelectRole('po')}
-              className="mt-auto text-xs font-semibold text-purple-600 dark:text-purple-400 flex items-center gap-1 hover:underline pt-2 border-t border-stone-200/40 dark:border-stone-800"
-            >
-              Lihat Acceptance PO <ArrowRight className="w-3 h-3" />
-            </button>
           </div>
         </div>
       </Card>
 
-      {/* Role Comparison Matrix */}
-      <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19]">
-        <h2 className="text-lg font-bold text-stone-900 dark:text-white mb-4 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-stone-900 dark:text-[#B1E743]" />
-          Matriks Peran & Hak Akses (RBAC Matrix)
-        </h2>
+      {/* 2. RBAC & Governance Matrix Table */}
+      <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-4">
+        <div>
+          <h3 className="text-base font-bold text-stone-900 dark:text-white">
+            Matriks Peran & Hak Akses (RBAC Governance Matrix)
+          </h3>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+            Penegakan otoritas server-side mutlak berdasarkan ADR-001 & ADR-002.
+          </p>
+        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
+        <div className="overflow-x-auto border border-stone-200 dark:border-stone-800 rounded-xl">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400 font-semibold">
-                <th className="py-3 px-4">Operasi / Fitur</th>
-                <th className="py-3 px-4 text-center">Owner / Admin</th>
-                <th className="py-3 px-4 text-center">Product Owner (PO)</th>
-                <th className="py-3 px-4 text-center">Developer (Dev)</th>
-                <th className="py-3 px-4 text-center">Quality Assurance (QA)</th>
+              <tr className="bg-stone-100 dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 font-bold">
+                <th className="p-3">Fitur / Aksi Operasional</th>
+                <th className="p-3 text-center">Owner</th>
+                <th className="p-3 text-center">Admin</th>
+                <th className="p-3 text-center">PO</th>
+                <th className="p-3 text-center">Developer</th>
+                <th className="p-3 text-center">QA</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 dark:divide-stone-800/60 text-stone-700 dark:text-stone-300">
+            <tbody className="divide-y divide-stone-200 dark:divide-stone-800 text-stone-700 dark:text-stone-300">
               <tr>
-                <td className="py-3 px-4 font-medium">Buat Workspace, Folder & Kelola Anggota</td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <X className="w-4 h-4 text-stone-400 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <X className="w-4 h-4 text-stone-400 mx-auto" />
-                </td>
+                <td className="p-3 font-semibold">Workspace & Member Governance</td>
+                <td className="p-3 text-center font-bold text-emerald-600">Full</td>
+                <td className="p-3 text-center font-bold text-emerald-600">Full</td>
+                <td className="p-3 text-center text-stone-400">-</td>
+                <td className="p-3 text-center text-stone-400">-</td>
+                <td className="p-3 text-center text-stone-400">-</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-medium">Buat & Rencanakan Parent Task / Subtask</td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <X className="w-4 h-4 text-stone-400 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <X className="w-4 h-4 text-stone-400 mx-auto" />
-                </td>
+                <td className="p-3 font-semibold">Folder & Task Planning (Parent Feature)</td>
+                <td className="p-3 text-center text-emerald-600">Ya</td>
+                <td className="p-3 text-center text-emerald-600">Ya</td>
+                <td className="p-3 text-center font-bold text-emerald-600">Utama</td>
+                <td className="p-3 text-center text-stone-400">Izin Khusus</td>
+                <td className="p-3 text-center text-stone-400">Izin Khusus</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-medium">
-                  Update Status Eksekusi (Todo $\rightarrow$ In Progress $\rightarrow$ In Review)
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-                    Subtask Milik Sendiri
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    Subtask Milik Sendiri
-                  </span>
-                </td>
+                <td className="p-3 font-semibold">Subtask Planning & Dev Specialties Assign</td>
+                <td className="p-3 text-center text-emerald-600">Ya</td>
+                <td className="p-3 text-center text-emerald-600">Ya</td>
+                <td className="p-3 text-center font-bold text-emerald-600">Utama</td>
+                <td className="p-3 text-center text-rose-500 font-bold">Dilarang</td>
+                <td className="p-3 text-center text-rose-500 font-bold">Dilarang</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-medium">Self-Approval Subtask langsung ke "Done"</td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <span className="text-red-500 font-bold">Dilarang (Blocked)</span>
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <span className="text-red-500 font-bold">Dilarang (Blocked)</span>
-                </td>
+                <td className="p-3 font-semibold">Eksekusi Subtask Dev (todo ➔ in_review)</td>
+                <td className="p-3 text-center text-stone-400">-</td>
+                <td className="p-3 text-center text-stone-400">-</td>
+                <td className="p-3 text-center text-stone-400">-</td>
+                <td className="p-3 text-center font-bold text-emerald-600">Utama</td>
+                <td className="p-3 text-center text-stone-400">-</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-medium">
-                  Approve Review / Beri Review Notes (Changes Requested)
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <X className="w-4 h-4 text-stone-400 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
+                <td className="p-3 font-semibold">Review & Approval Subtask (ke DONE)</td>
+                <td className="p-3 text-center text-emerald-600">Ya</td>
+                <td className="p-3 text-center text-emerald-600">Ya</td>
+                <td className="p-3 text-center text-emerald-600">Ya</td>
+                <td className="p-3 text-center text-rose-500 font-bold">Locked (Gate)</td>
+                <td className="p-3 text-center font-bold text-emerald-600">Utama</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-medium">
-                  Selesaikan Parent Task Akhir (Final Acceptance)
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <Check className="w-4 h-4 text-emerald-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <X className="w-4 h-4 text-stone-400 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <X className="w-4 h-4 text-stone-400 mx-auto" />
-                </td>
+                <td className="p-3 font-semibold">Spreadsheet Intake & Test Runs Evidence</td>
+                <td className="p-3 text-center text-emerald-600">Ya</td>
+                <td className="p-3 text-center text-emerald-600">Ya</td>
+                <td className="p-3 text-center text-emerald-600">Import TC</td>
+                <td className="p-3 text-center text-stone-400">-</td>
+                <td className="p-3 text-center font-bold text-emerald-600">Utama</td>
+              </tr>
+              <tr>
+                <td className="p-3 font-semibold">QA Sign-off Certification</td>
+                <td className="p-3 text-center text-amber-600 font-semibold">Segregated</td>
+                <td className="p-3 text-center text-amber-600 font-semibold">Segregated</td>
+                <td className="p-3 text-center text-rose-500 font-bold">Dilarang</td>
+                <td className="p-3 text-center text-rose-500 font-bold">Dilarang</td>
+                <td className="p-3 text-center font-bold text-emerald-600">Utama</td>
+              </tr>
+              <tr>
+                <td className="p-3 font-semibold">Release Decision & Parent Feature Done</td>
+                <td className="p-3 text-center text-amber-600 font-semibold">Segregated</td>
+                <td className="p-3 text-center text-amber-600 font-semibold">Segregated</td>
+                <td className="p-3 text-center font-bold text-emerald-600">Utama</td>
+                <td className="p-3 text-center text-rose-500 font-bold">Dilarang</td>
+                <td className="p-3 text-center text-rose-500 font-bold">Dilarang</td>
               </tr>
             </tbody>
           </table>
         </div>
       </Card>
-
-      {/* Navigasi Lanjutan ke Role Flow */}
-      <div className="p-4 rounded-xl bg-stone-100 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="text-xs text-stone-600 dark:text-stone-400">
-          Lihat detail SOP dan panduan alur kerja untuk setiap role tim:
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onSelectRole('owner_admin')}
-            className="text-xs"
-          >
-            Alur Owner/Admin
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onSelectRole('po')}
-            className="text-xs"
-          >
-            Alur Product Owner
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onSelectRole('dev')}
-            className="text-xs"
-          >
-            Alur Developer
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onSelectRole('qa')}
-            className="text-xs"
-          >
-            Alur QA
-          </Button>
-        </div>
-      </div>
     </div>
   );
 };
 
 /* =========================================================================
-   2. USER FLOW PER ROLE CONTAINER
+   D. 03. ALUR KERJA SPESIFIK PER ROLE (USER FLOW SECTION)
    ========================================================================= */
 const UserFlowSection: React.FC<{
   activeRole: RoleKey;
   onSelectRole: (role: RoleKey) => void;
 }> = ({ activeRole, onSelectRole }) => {
-  const roleTabs: {
-    key: RoleKey;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    badge: string;
-    desc: string;
-  }[] = [
-    {
-      key: 'owner_admin',
-      label: 'Owner & Admin',
-      icon: ShieldCheck,
-      badge: 'Governance',
-      desc: 'Setup workspace, member, Task Policy & override',
-    },
-    {
-      key: 'po',
-      label: 'Product Owner (PO)',
-      icon: Layers,
-      badge: 'Planning',
-      desc: 'Folder sprint, parent task, subtask & explicit completion',
-    },
-    {
-      key: 'dev',
-      label: 'Developer (Dev)',
-      icon: Code2,
-      badge: 'Execution',
-      desc: 'My Tasks, Todo → In Progress → In Review, anti self-approval',
-    },
-    {
-      key: 'qa',
-      label: 'Quality Assurance (QA)',
-      icon: TestTube,
-      badge: 'Verification',
-      desc: 'Gatekeeper, review notes, approve Done & subtask QA',
-    },
+  const navigate = useNavigate();
+
+  const roleTabs: { key: RoleKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { key: 'owner_admin', label: 'Owner & Admin', icon: ShieldCheck },
+    { key: 'po', label: 'Product Owner (PO)', icon: CheckCircle2 },
+    { key: 'dev', label: 'Developer (Dev)', icon: Code2 },
+    { key: 'qa', label: 'Quality Assurance (QA)', icon: TestTube },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Role Navigation Bar */}
-      <Card className="p-4 bg-stone-50/80 dark:bg-stone-900/60 border-stone-200/80 dark:border-stone-800">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 px-1">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-stone-900 dark:text-[#B1E743]" />
-            <h3 className="text-xs font-bold text-stone-900 dark:text-white uppercase tracking-wider">
-              Pilih Alur Kerja Berdasarkan Role (User Flow)
-            </h3>
-          </div>
-          <span className="text-[11px] text-stone-500 dark:text-stone-400">
-            Pilih peran di bawah untuk melihat SOP & Quality Gate
-          </span>
-        </div>
+      {/* Role Switcher Pills */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-stone-100 dark:bg-stone-900/60 rounded-2xl border border-stone-200/80 dark:border-stone-800">
+        {roleTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeRole === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => onSelectRole(tab.key)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                isActive
+                  ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm ring-2 ring-[#B1E743]/30'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white/60 dark:hover:bg-stone-800/50'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? 'text-[#B1E743]' : 'text-stone-400'}`} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {roleTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isSelected = activeRole === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => onSelectRole(tab.key)}
-                className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
-                  isSelected
-                    ? 'bg-white dark:bg-[#22201F] border-[#B1E743] shadow-md ring-2 ring-[#B1E743]/30 dark:ring-[#B1E743]/20'
-                    : 'bg-white/70 dark:bg-stone-900/40 border-stone-200/80 dark:border-stone-800 hover:bg-white dark:hover:bg-stone-800/80 text-stone-600 dark:text-stone-300'
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`p-2 rounded-lg shrink-0 ${
-                      isSelected
-                        ? 'bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]'
-                        : 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p
-                      className={`text-xs font-bold truncate ${isSelected ? 'text-stone-900 dark:text-white' : 'text-stone-700 dark:text-stone-300'}`}
-                    >
-                      {tab.label}
-                    </p>
-                    <p className="text-[10px] text-stone-400 dark:text-stone-500 truncate">
-                      {tab.desc}
-                    </p>
-                  </div>
-                </div>
-                {isSelected && (
-                  <CheckCircle2 className="w-4 h-4 text-stone-900 dark:text-[#B1E743] shrink-0 ml-1" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </Card>
-
-      {/* Active Role Content */}
-      {activeRole === 'owner_admin' && <OwnerAdminFlowSection />}
-      {activeRole === 'po' && <PoFlowSection />}
-      {activeRole === 'dev' && <DevFlowSection />}
-      {activeRole === 'qa' && <QaFlowSection />}
-    </div>
-  );
-};
-
-/* =========================================================================
-   3. OWNER & ADMIN FLOW SECTION
-   ========================================================================= */
-const OwnerAdminFlowSection: React.FC = () => {
-  const navigate = useNavigate();
-  return (
-    <div className="space-y-6">
-      <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19]">
-        <div className="flex items-center justify-between pb-4 border-b border-stone-100 dark:border-stone-800 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
+      {/* Role Details */}
+      {activeRole === 'owner_admin' && (
+        <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-5">
+          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-stone-900 dark:text-white">
-                Alur Kerja: Owner & Admin
+              <h2 className="text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-amber-500" />
+                Alur Kerja: Owner & Workspace Admin
               </h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Tata kelola workspace, hak akses tim, audit log, dan override eskalasi.
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                Governance, akuntabilitas keanggotaan, spesialisasi developer, dan eskalasi rilis.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/workspaces/settings')}
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              className="text-xs"
+            >
+              Buka Settings
+            </Button>
+          </div>
+
+          <div className="space-y-3 text-xs text-stone-700 dark:text-stone-300">
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                1. Manajemen Keanggotaan & Developer Specialties (ADR-002)
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Saat mengundang atau mengedit developer, tetapkan klasifikasi spesialisasi: Frontend,
+                Backend, Mobile, dan/atau Fullstack. Penugasan subtask teknis akan divalidasi
+                terhadap data spesialisasi ini.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                2. Kebijakan Task Creation & Hak Akses
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Atur toggle <code>allowQaTaskCreation</code> jika QA diizinkan membuat Parent Task.
+                Namun izin ini tidak pernah memberikan hak untuk memecah/mengubah subtask planner.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                3. Override Spesialisasi Dev (Owner-Only Audit)
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Jika situasi darurat memerlukan penugasan di luar spesialisasi, hanya Owner yang
+                dapat melakukan override dengan menyertakan alasan audit 10-500 karakter.
               </p>
             </div>
           </div>
-          <Button
-            size="sm"
-            leftIcon={<Building2 className="w-4 h-4" />}
-            onClick={() => navigate('/workspaces/settings')}
-          >
-            Workspace Settings
-          </Button>
-        </div>
+        </Card>
+      )}
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider text-xs">
-            Langkah-Langkah Kerja Utama
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                Tahap 1
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Setup Workspace & Member
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buat workspace baru, atur slug, dan undang anggota tim dengan role yang tepat (`po`,
-                `dev`, `qa`).
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                Tahap 2
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Konfigurasi Task Policy
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Tentukan kebijakan apakah Dev diizinkan membuat task mandiri atau hanya PO/Admin
-                yang boleh merencanakan task.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                Tahap 3
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Audit & Monitoring
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Pantau laporan agregat di Report Dashboard dan riwayat aktivitas (*Activity Audit
-                Log*) yang tidak dapat dimanipulasi.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 pt-6 border-t border-stone-100 dark:border-stone-800">
-          <Alert tone="info" title="Hak Istimewa Admin (Governance Override)">
-            Owner dan Admin memiliki wewenang penuh untuk melakukan intervensi jika ada subtask yang
-            terblokir, mengedit detail parent task kapan saja, dan memoderasi komentar pada thread
-            diskusi.
-          </Alert>
-        </div>
-      </Card>
-    </div>
-  );
-};
-
-/* =========================================================================
-   3. PRODUCT OWNER (PO) FLOW SECTION
-   ========================================================================= */
-const PoFlowSection: React.FC = () => {
-  const navigate = useNavigate();
-  return (
-    <div className="space-y-6">
-      <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19]">
-        <div className="flex items-center justify-between pb-4 border-b border-stone-100 dark:border-stone-800 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-[#B1E743]/20 text-[#141413] dark:bg-stone-800 dark:text-[#B1E743]">
-              <Layers className="w-6 h-6" />
-            </div>
+      {activeRole === 'po' && (
+        <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-5">
+          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-stone-900 dark:text-white">
+              <h2 className="text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-purple-500" />
                 Alur Kerja: Product Owner (PO)
               </h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Perencanaan folder sprint, requirement, parent task, pembagian subtask, dan final
-                acceptance.
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                Perencanaan spesifikasi, alokasi tugas terarah, dan verifikasi keputusan rilis.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/work')}
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              className="text-xs"
+            >
+              Buka Work Hub
+            </Button>
+          </div>
+
+          <div className="space-y-3 text-xs text-stone-700 dark:text-stone-300">
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                1. Penulisan Specification Brief & Requirement Linking
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Tuliskan ruang lingkup (In Scope, Out Scope, Acceptance Criteria) di tab Specs &
+                Requirements. Tautkan link Figma/PRD untuk ketertelusuran tim penguji.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                2. Pemecahan Subtask Sesuai Developer Specialties
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Pecah Feature menjadi subtask Frontend, Backend, Mobile, Fullstack, dan QA. Pilih
+                assignee yang spesialisasi terdaftarnya sesuai dengan deliverable.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                3. Penerbitan Release Decision & Penutupan Parent Feature
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Setelah QA memberikan QA Sign-off (Approved), buka Release Decision Desk untuk
+                menyetujui rilis produksi, lalu tandai Parent Task menjadi DONE secara sadar.
               </p>
             </div>
           </div>
-          <Button
-            size="sm"
-            leftIcon={<Layers className="w-4 h-4" />}
-            onClick={() => navigate('/work')}
-          >
-            Buka Work Hub
-          </Button>
-        </div>
+        </Card>
+      )}
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider text-xs">
-            Alur Eksekusi Product Owner
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <div className="flex items-center gap-2">
-                <FolderPlus className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
-                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                  1. Buat Folder Sprint
-                </h4>
-              </div>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buat struktur folder kerja (maksimal 2 tingkat kedalaman) untuk mengelompokkan
-                deliverable fitur.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
-                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                  2. Buat Parent Task
-                </h4>
-              </div>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buat parent task fitur utama, tautkan URL requirement/PRD, dan tentukan prioritas
-                serta estimasi tanggal.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <div className="flex items-center gap-2">
-                <GitCommit className="w-4 h-4 text-stone-700 dark:text-[#B1E743]" />
-                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                  3. Pecah Subtask (FE/BE/QA)
-                </h4>
-              </div>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buka tab *Subtasks*, buat subtask terarah (`Frontend`, `Backend`, `QA`) dan tugaskan
-                langsung ke anggota tim.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                  4. Final Acceptance
-                </h4>
-              </div>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Pantau bar ringkasan penyelesaian (`FE 1/1 · BE 1/1 · QA 1/1`). Jika semua lolos
-                uji, selesaikan Parent Task ke **Done**.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 p-4 rounded-xl bg-[#B1E743]/10 dark:bg-[#B1E743]/10 border border-[#B1E743]/30 dark:border-[#B1E743]/20 flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-stone-900 dark:text-[#B1E743] shrink-0 mt-0.5" />
-          <div className="space-y-1 text-xs">
-            <span className="font-bold text-[#141413] dark:text-[#B1E743]">
-              Prinsip Explicit Parent Completion:
-            </span>
-            <p className="text-stone-700 dark:text-stone-300">
-              Sistem tidak akan menyelesaikan parent task secara otomatis saat subtask selesai.
-              Penutupan parent task adalah keputusan sadar Product Owner setelah memastikan hasil
-              pengerjaan sesuai dengan kriteria penerimaan produk.
-            </p>
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-};
-
-/* =========================================================================
-   4. DEVELOPER (DEV) FLOW SECTION
-   ========================================================================= */
-const DevFlowSection: React.FC = () => {
-  const navigate = useNavigate();
-  return (
-    <div className="space-y-6">
-      <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19]">
-        <div className="flex items-center justify-between pb-4 border-b border-stone-100 dark:border-stone-800 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400">
-              <Code2 className="w-6 h-6" />
-            </div>
+      {activeRole === 'dev' && (
+        <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-5">
+          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-stone-900 dark:text-white">
+              <h2 className="text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
+                <Code2 className="w-5 h-5 text-blue-500" />
                 Alur Kerja: Developer (Dev)
               </h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Fokus eksekusi subtask di My Tasks, pengajuan review, dan penanganan review notes.
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                Eksekusi subtask teknis, penegakan anti self-approval gate, dan perbaikan bug.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/my-tasks')}
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              className="text-xs"
+            >
+              Buka Dev Working Desk
+            </Button>
+          </div>
+
+          <div className="space-y-3 text-xs text-stone-700 dark:text-stone-300">
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                1. Transisi Status Subtask: todo ➔ in_progress ➔ in_review
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Ambil tugas dari antrean Assigned Work di My Tasks. Saat coding, ubah ke IN
+                PROGRESS. Setelah deployed ke staging, ajukan ke IN REVIEW beserta catatan teknis.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                2. Penegakan Anti Self-Approval Guardrail
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Developer dilarang menandai subtask miliknya sendiri menjadi DONE. Subtask hanya
+                bisa dipindahkan ke DONE oleh QA setelah lulus uji acceptance criteria.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                3. Penanganan Bug Fixes dari Hasil Uji QA
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Periksa antrean Bug Fixes. Pelajari evidence screenshot/video dari Test Result QA,
+                perbaiki kodenya, lalu ubah status Bug menjadi RESOLVED untuk retest independen.
               </p>
             </div>
           </div>
-          <Button
-            size="sm"
-            leftIcon={<CheckSquare className="w-4 h-4" />}
-            onClick={() => navigate('/my-tasks')}
-          >
-            Buka My Tasks
-          </Button>
-        </div>
+        </Card>
+      )}
 
-        {/* Workflow Progression Stepper */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider text-xs">
-            Siklus Status Subtask Developer
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                1. TODO
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Terima Tugas di My Tasks
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Buka menu *My Tasks*, periksa deskripsi tugas, requirement terkait, dan spesifikasi
-                teknis.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                2. IN PROGRESS
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Mulai Pengerjaan Kode
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Ubah status ke **In Progress** saat mulai coding agar tim mengetahui subtask sedang
-                aktif dikerjakan.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                3. IN REVIEW
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Submit untuk Uji QA
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Setelah pull request/fitur siap, ubah status ke **In Review** untuk memicu proses
-                verifikasi oleh QA.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                4. DONE / REVISI
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Hasil Review QA
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Jika ada catatan revisi (`Changes Requested`), baca catatan di Drawer, perbaiki, dan
-                submit ulang ke In Review.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quality Gate Guardrail Alert */}
-        <div className="mt-6 space-y-3">
-          <div className="p-4 rounded-xl bg-red-50/70 dark:bg-red-950/30 border border-red-200/80 dark:border-red-800/60 flex items-start gap-3">
-            <Lock className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-            <div className="space-y-1 text-xs">
-              <span className="font-bold text-red-900 dark:text-red-200">
-                Quality Gate: Anti Self-Approval
-              </span>
-              <p className="text-red-800 dark:text-red-300">
-                Developer <strong>dilarang dan diblokir oleh sistem</strong> untuk langsung
-                menyelesaikan subtask sendiri ke status <code>DONE</code>. Status Done hanya dapat
-                diberikan oleh QA atau PO setelah pengujian terverifikasi.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-};
-
-/* =========================================================================
-   5. QUALITY ASSURANCE (QA) FLOW SECTION
-   ========================================================================= */
-const QaFlowSection: React.FC = () => {
-  const navigate = useNavigate();
-  return (
-    <div className="space-y-6">
-      <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19]">
-        <div className="flex items-center justify-between pb-4 border-b border-stone-100 dark:border-stone-800 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
-              <TestTube className="w-6 h-6" />
-            </div>
+      {activeRole === 'qa' && (
+        <Card className="p-6 border-stone-200/80 dark:border-stone-800 dark:bg-[#1C1A19] space-y-5">
+          <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-stone-900 dark:text-white">
+              <h2 className="text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
+                <TestTube className="w-5 h-5 text-emerald-500" />
                 Alur Kerja: Quality Assurance (QA)
               </h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Pintu gerbang kualitas (*Quality Gatekeeper*), review hasil kerja dev, dan eksekusi
-                pengujian.
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                Pintu gerbang kualitas, import spreadsheet test cases, immutable test results & QA Sign-off.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/my-tasks')}
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              className="text-xs"
+            >
+              Buka QA Testing Desk
+            </Button>
+          </div>
+
+          <div className="space-y-3 text-xs text-stone-700 dark:text-stone-300">
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                1. Review Subtask In Review & Penegakan Acceptance Criteria
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Uji deliverable developer di staging. Jika lolos, approve ke DONE. Jika ditemukan
+                cacat, kembalikan ke CHANGES REQUESTED dengan review notes wajib.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                2. Spreadsheet Intake Wizard (CSV/XLSX) & Formal Evidence Links
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Impor file test case massal dengan wizard multi-sheet dan pemetaan kolom. Saat
+                eksekusi Test Run, lampirkan evidence link dengan in-app zoom/pan preview.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                3. Retest Independen Bug & Penerbitan QA Sign-off
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Uji kembali bug berstatus RESOLVED. Jika bersih, tandai VERIFIED (CLOSED). Terbitkan
+                QA Sign-off resmi setelah seluruh kriteria release readiness terpenuhi 100%.
               </p>
             </div>
           </div>
-          <Button
-            size="sm"
-            leftIcon={<Layers className="w-4 h-4" />}
-            onClick={() => navigate('/work')}
-          >
-            Buka Work Hub
-          </Button>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider text-xs">
-            Langkah Review & Pengujian QA
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                1. Review Subtask Dev
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Verifikasi Subtask In Review
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Saat subtask Developer berstatus **In Review**, buka drawer task dan uji kesesuaian
-                fungsionalitasnya.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                2. Skenario Bug / Isu
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Kirim Changes Requested
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Jika ditemukan cacat / bug, ubah status ke **Changes Requested** dan wajib sertakan
-                deskripsi jelas pada kolom *Review Notes*.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-900/50 border border-stone-200/70 dark:border-stone-800 space-y-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                3. Skenario Lolos Uji
-              </span>
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Approve Subtask Dev ke Done
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Jika seluruh kriteria pengujian terpenuhi, QA menyetujui subtask Dev menjadi
-                **Done**.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Eksekusi Subtask QA */}
-        <div className="mt-6 pt-6 border-t border-stone-100 dark:border-stone-800 space-y-4">
-          <h3 className="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider text-xs">
-            Pengujian Akhir & Eksekusi Subtask QA
-          </h3>
-
-          <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/50 space-y-2">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <h4 className="font-semibold text-sm text-stone-900 dark:text-white">
-                Eksekusi Subtask QA (Automation & E2E Verification)
-              </h4>
-            </div>
-            <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-              Setelah subtask implementasi (Frontend & Backend) disetujui, QA mengeksekusi subtask
-              pengujian mandiri (*E2E Automation Test / Regression Test*), melampirkan bukti
-              pengujian, dan memindahkan subtask QA ke **Done**.
-            </p>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
     </div>
   );
 };
