@@ -3,10 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { DiscussionMediaRenderer } from '../DiscussionMediaRenderer';
 
 describe('DiscussionMediaRenderer', () => {
+  it('keeps plain message text charcoal when rendered inside a lime sender bubble', () => {
+    render(<DiscussionMediaRenderer content="QA meminta Developer melakukan retest." />);
+
+    expect(
+      screen.getByText('QA meminta Developer melakukan retest.').closest('p')?.parentElement,
+    ).toHaveClass('text-inherit');
+  });
+
   it('renders regular text and highlights @channel and mentions', () => {
-    render(
-      <DiscussionMediaRenderer content="Hey @channel please review the PR from @indra" />
-    );
+    render(<DiscussionMediaRenderer content="Hey @channel please review the PR from @indra" />);
 
     expect(screen.getByText('@channel')).toBeInTheDocument();
     expect(screen.getByText('@indra')).toBeInTheDocument();
@@ -15,7 +21,7 @@ describe('DiscussionMediaRenderer', () => {
 
   it('detects and renders zoomable image preview with click-to-enlarge', () => {
     render(
-      <DiscussionMediaRenderer content="Screenshot evidence: https://example.com/assets/screenshot.png" />
+      <DiscussionMediaRenderer content="Screenshot evidence: https://example.com/assets/screenshot.png" />,
     );
 
     const img = screen.getByAltText('Image Attachment');
@@ -32,7 +38,7 @@ describe('DiscussionMediaRenderer', () => {
 
   it('detects and renders HTML5 video player for direct video URLs', () => {
     const { container } = render(
-      <DiscussionMediaRenderer content="Recorded reproduction video: https://cdn.example.com/bugs/bug-demo.mp4" />
+      <DiscussionMediaRenderer content="Recorded reproduction video: https://cdn.example.com/bugs/bug-demo.mp4" />,
     );
 
     const videoEl = container.querySelector('video');
@@ -43,7 +49,7 @@ describe('DiscussionMediaRenderer', () => {
 
   it('detects and renders YouTube embedded player iframe inside chat without redirect', () => {
     const { container } = render(
-      <DiscussionMediaRenderer content="Feature walkthrough: https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
+      <DiscussionMediaRenderer content="Feature walkthrough: https://www.youtube.com/watch?v=dQw4w9WgXcQ" />,
     );
 
     const iframeEl = container.querySelector('iframe');
@@ -54,7 +60,7 @@ describe('DiscussionMediaRenderer', () => {
 
   it('detects and renders Loom embedded player iframe', () => {
     const { container } = render(
-      <DiscussionMediaRenderer content="Loom recording: https://www.loom.com/share/abcdef123456" />
+      <DiscussionMediaRenderer content="Loom recording: https://www.loom.com/share/abcdef123456" />,
     );
 
     const iframeEl = container.querySelector('iframe');
@@ -64,7 +70,7 @@ describe('DiscussionMediaRenderer', () => {
 
   it('detects and renders Vimeo embedded player iframe', () => {
     const { container } = render(
-      <DiscussionMediaRenderer content="Vimeo test video: https://vimeo.com/76979871" />
+      <DiscussionMediaRenderer content="Vimeo test video: https://vimeo.com/76979871" />,
     );
 
     const iframeEl = container.querySelector('iframe');
@@ -74,17 +80,20 @@ describe('DiscussionMediaRenderer', () => {
 
   it('detects and renders Google Drive video / file preview iframe directly in app', () => {
     const { container } = render(
-      <DiscussionMediaRenderer content="Google Drive Video: https://drive.google.com/file/d/1A2B3C4D5E6F_xyz/view?usp=sharing" />
+      <DiscussionMediaRenderer content="Google Drive Video: https://drive.google.com/file/d/1A2B3C4D5E6F_xyz/view?usp=sharing" />,
     );
 
     const iframeEl = container.querySelector('iframe');
     expect(iframeEl).toBeInTheDocument();
-    expect(iframeEl).toHaveAttribute('src', 'https://drive.google.com/file/d/1A2B3C4D5E6F_xyz/preview');
+    expect(iframeEl).toHaveAttribute(
+      'src',
+      'https://drive.google.com/file/d/1A2B3C4D5E6F_xyz/preview',
+    );
   });
 
   it('detects and renders Figma design link card preview', () => {
     render(
-      <DiscussionMediaRenderer content="Figma mockup: https://www.figma.com/design/AbCdEf123/Checkout-Flow-Redesign" />
+      <DiscussionMediaRenderer content="Figma mockup: https://www.figma.com/design/AbCdEf123/Checkout-Flow-Redesign" />,
     );
 
     expect(screen.getByText('Figma Design')).toBeInTheDocument();
@@ -94,7 +103,7 @@ describe('DiscussionMediaRenderer', () => {
 
   it('detects and renders rich web link preview card for PRs and doc links', () => {
     render(
-      <DiscussionMediaRenderer content="Check PR details here: https://github.com/qlick-org/qareport/pull/105" />
+      <DiscussionMediaRenderer content="Check PR details here: https://github.com/qlick-org/qareport/pull/105" />,
     );
 
     expect(screen.getByText('github.com')).toBeInTheDocument();
@@ -103,7 +112,7 @@ describe('DiscussionMediaRenderer', () => {
 
   it('detects and renders markdown images and opens zoom lightbox', () => {
     render(
-      <DiscussionMediaRenderer content="Check this UI glitch: ![Bug Screenshot](https://res.cloudinary.com/demo/image/upload/sample.jpg)" />
+      <DiscussionMediaRenderer content="Check this UI glitch: ![Bug Screenshot](https://res.cloudinary.com/demo/image/upload/sample.jpg)" />,
     );
 
     expect(screen.getByText(/Check this UI glitch:/i)).toBeInTheDocument();
@@ -124,9 +133,10 @@ describe('DiscussionMediaRenderer', () => {
   });
 
   it('detects and renders base64 data URL images from clipboard paste', () => {
-    const dummyBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const dummyBase64 =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
     render(
-      <DiscussionMediaRenderer content={`Pasted image: ![Pasted Screenshot](${dummyBase64})`} />
+      <DiscussionMediaRenderer content={`Pasted image: ![Pasted Screenshot](${dummyBase64})`} />,
     );
 
     const img = screen.getByAltText('Pasted Screenshot');

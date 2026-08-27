@@ -12,6 +12,7 @@ import type { Task, TaskTestExecutionWorkspace, TestRun } from '@qlick/contracts
 
 const serviceMocks = vi.hoisted(() => ({
   getTaskTestExecutions: vi.fn(),
+  createTestCase: vi.fn(),
   createTestRun: vi.fn(),
   recordTestResult: vi.fn(),
   addTestResultEvidenceLink: vi.fn(),
@@ -33,6 +34,11 @@ const taskServiceMocks = vi.hoisted(() => ({
   updateTask: vi.fn(),
 }));
 
+const requirementServiceMocks = vi.hoisted(() => ({
+  listRequirements: vi.fn(),
+  listTaskRequirementLinks: vi.fn(),
+}));
+
 const releaseServiceMocks = vi.hoisted(() => ({
   listFeatureReleaseRecords: vi.fn(),
   createQaSignOff: vi.fn(),
@@ -49,6 +55,10 @@ vi.mock('../../../../../lib/api/bugService', () => ({
 
 vi.mock('../../../../../lib/api/taskService', () => ({
   taskService: taskServiceMocks,
+}));
+
+vi.mock('../../../../../lib/api/requirementService', () => ({
+  requirementService: requirementServiceMocks,
 }));
 
 vi.mock('../../../../../lib/api/releaseDecisionService', () => ({
@@ -121,6 +131,34 @@ const mockQaSubtask: Task = {
   updatedAt: now,
 };
 
+const mockFeatureTask: Task = {
+  id: ids.feature,
+  workspaceId: ids.workspace,
+  parentTaskId: null,
+  deliveryArea: null,
+  title: 'Checkout Feature',
+  description: null,
+  status: 'in_progress',
+  priority: 'high',
+  reporterId: ids.reporter,
+  assigneeId: ids.reporter,
+  createdAt: now,
+  updatedAt: now,
+};
+
+const activeRequirement = {
+  id: ids.requirement,
+  workspaceId: ids.workspace,
+  code: 'UAT-MCU-001',
+  title: 'Open the mass MCU registration menu',
+  description: null,
+  url: null,
+  status: 'active' as const,
+  createdBy: ids.reporter,
+  createdAt: now,
+  updatedAt: now,
+};
+
 const inProgressRun: TestRun = {
   id: ids.run,
   workspaceId: ids.workspace,
@@ -172,6 +210,7 @@ const renderDesk = (userRole = 'qa') =>
     <Provider store={createTestStore()}>
       <QaTestingDesk
         subtask={mockQaSubtask}
+        parentTask={mockFeatureTask}
         workspaceId={ids.workspace}
         currentUserId={ids.qa}
         userRole={userRole}
@@ -190,6 +229,11 @@ describe('QaTestingDesk Organism', () => {
       executions: [],
     });
     serviceMocks.createTestRun.mockResolvedValue(inProgressRun);
+    serviceMocks.createTestCase.mockResolvedValue({
+      ...executionWorkspace().executions[0].testCase,
+      title: 'QA can author the first Test Case',
+      status: 'draft',
+    });
     serviceMocks.recordTestResult.mockResolvedValue({
       ...inProgressRun,
       status: 'completed',
@@ -215,6 +259,17 @@ describe('QaTestingDesk Organism', () => {
       qaSignOffs: [],
       releaseDecisions: [],
     });
+    requirementServiceMocks.listRequirements.mockResolvedValue([activeRequirement]);
+    requirementServiceMocks.listTaskRequirementLinks.mockResolvedValue([
+      {
+        id: '10000000-0000-4000-8000-000000000013',
+        workspaceId: ids.workspace,
+        taskId: ids.feature,
+        requirementId: ids.requirement,
+        linkedBy: ids.reporter,
+        createdAt: now,
+      },
+    ]);
   });
 
   it('renders Canonical Test Management workspace with Native Authoring and Import buttons for Planners', async () => {
@@ -226,13 +281,43 @@ describe('QaTestingDesk Organism', () => {
     expect(screen.getByRole('button', { name: /Import Spreadsheet/i })).toBeInTheDocument();
   });
 
-  it('hides Native Authoring and Import buttons for QA role under ADR-001', async () => {
+  it('lets QA author the first Test Case from active Requirements linked to the Feature', async () => {
+    const user = userEvent.setup();
     renderDesk('qa');
 
     expect(await screen.findByText('No Test Cases linked to this Feature')).toBeInTheDocument();
-    expect(screen.getByText('QA Testing & Quality Desk')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /New Test Case/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Import Spreadsheet/i })).not.toBeInTheDocument();
+    const createButton = screen.getByRole('button', { name: /New Test Case/i });
+    await waitFor(() => expect(createButton).toBeEnabled());
+    await user.click(createButton);
+
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByRole('button', {
+        name: /UAT-MCU-001 Open the mass MCU registration menu/i,
+      }),
+    ).toBeInTheDocument();
+    await user.type(
+      within(dialog).getByPlaceholderText(/Verify returning customer card checkout/i),
+      'QA can author the first Test Case',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Save Draft' }));
+
+    await waitFor(() =>
+      expect(serviceMocks.createTestCase).toHaveBeenCalledWith(ids.workspace, {
+        title: 'QA can author the first Test Case',
+        externalReference: null,
+        priority: 'medium',
+        status: 'draft',
+        scenarioKind: 'positive',
+        source: 'native',
+        testType: 'manual',
+        preconditions: null,
+        steps: [],
+        expectedResult: null,
+        testData: null,
+        requirementIds: [ids.requirement],
+      }),
+    );
   });
 
   it('refetches and renders persisted Test Case and Run history after reopening', async () => {

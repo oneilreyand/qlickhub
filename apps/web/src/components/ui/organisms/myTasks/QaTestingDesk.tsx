@@ -44,6 +44,7 @@ import { ReleaseAssurancePanel } from '../ReleaseAssurancePanel';
 import { TestCaseFormModal } from './TestCaseFormModal';
 import { TestCaseImportWizardModal } from './TestCaseImportWizardModal';
 import { bugService } from '../../../../lib/api/bugService';
+import { requirementService } from '../../../../lib/api/requirementService';
 import { taskService } from '../../../../lib/api/taskService';
 import { testManagementService } from '../../../../lib/api/testManagementService';
 import { calculateSubtaskScheduleHealth } from '../../../../lib/utils/scheduleHealth';
@@ -89,6 +90,11 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [executionError, setExecutionError] = useState<string | null>(null);
   const [executionPermissionDenied, setExecutionPermissionDenied] = useState(false);
   const executionRequestIdRef = useRef(0);
+  const [requirementOptions, setRequirementOptions] = useState<
+    { id: string; code: string; title: string }[]
+  >([]);
+  const [isLoadingRequirementOptions, setIsLoadingRequirementOptions] = useState(true);
+  const [requirementOptionsError, setRequirementOptionsError] = useState<string | null>(null);
 
   // Test Run creation state
   const [runTestCaseId, setRunTestCaseId] = useState<string | null>(null);
@@ -142,6 +148,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
   const canExecuteTests = ['owner', 'admin', 'qa'].includes(userRole.toLowerCase());
   const canAuthorTests = ['owner', 'admin', 'po', 'qa'].includes(userRole.toLowerCase());
+  const requirementScopeTaskId = parentTask?.id || subtask.parentTaskId || subtask.id;
 
   const bugTraceOptions = useMemo(() => {
     if (!executionWorkspace) return [];
@@ -164,17 +171,6 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     [members],
   );
 
-  const requirementOptions = useMemo(() => {
-    if (!executionWorkspace) return [];
-    return executionWorkspace.executions.flatMap(({ testCase }) =>
-      testCase.requirementIds.map((reqId) => ({
-        id: reqId,
-        code: `REQ-${reqId.slice(0, 6).toUpperCase()}`,
-        title: `Requirement ${reqId.slice(0, 8)}`,
-      })),
-    );
-  }, [executionWorkspace]);
-
   const openBugModal = () => {
     setBugTitle('');
     setBugSeverity('high');
@@ -191,6 +187,52 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       .then((res) => setComments(res.comments || []))
       .catch(() => setComments([]));
   }, [subtask.id, workspaceId]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    const loadRequirementOptions = async () => {
+      setIsLoadingRequirementOptions(true);
+      setRequirementOptionsError(null);
+
+      try {
+        const [requirements, links] = await Promise.all([
+          requirementService.listRequirements(workspaceId),
+          requirementService.listTaskRequirementLinks(workspaceId, requirementScopeTaskId),
+        ]);
+        if (!isCurrent) return;
+
+        const linkedRequirementIds = new Set(links.map((link) => link.requirementId));
+        setRequirementOptions(
+          requirements
+            .filter(
+              (requirement) =>
+                requirement.status === 'active' && linkedRequirementIds.has(requirement.id),
+            )
+            .map((requirement) => ({
+              id: requirement.id,
+              code: requirement.code,
+              title: requirement.title,
+            })),
+        );
+      } catch (error) {
+        if (!isCurrent) return;
+        setRequirementOptions([]);
+        setRequirementOptionsError(
+          error instanceof Error
+            ? error.message
+            : 'Unable to load the active Requirements linked to this Feature.',
+        );
+      } finally {
+        if (isCurrent) setIsLoadingRequirementOptions(false);
+      }
+    };
+
+    void loadRequirementOptions();
+    return () => {
+      isCurrent = false;
+    };
+  }, [requirementScopeTaskId, workspaceId]);
 
   const loadExecutions = useCallback(async () => {
     const requestId = ++executionRequestIdRef.current;
@@ -593,6 +635,12 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 variant="primary"
                 size="sm"
                 onClick={() => setIsTestCaseFormOpen(true)}
+                disabled={isLoadingRequirementOptions || requirementOptions.length === 0}
+                title={
+                  isLoadingRequirementOptions
+                    ? 'Loading linked Requirements'
+                    : 'Link at least one active Requirement to this Feature before authoring a Test Case.'
+                }
                 leftIcon={<Plus className="h-3.5 w-3.5" />}
               >
                 New Test Case
@@ -615,11 +663,23 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             {executionError}
           </Alert>
         ) : !executionWorkspace || executionWorkspace.executions.length === 0 ? (
-          <EmptyState
-            icon={<CheckSquare className="h-6 w-6" />}
-            title="No Test Cases linked to this Feature"
-            description="Author a native Test Case or import CSV/XLSX spreadsheet rows linked to Requirements."
-          />
+          <div className="space-y-3">
+            {requirementOptionsError ? (
+              <Alert tone="error" title="Unable to load linked Requirements">
+                {requirementOptionsError}
+              </Alert>
+            ) : !isLoadingRequirementOptions && requirementOptions.length === 0 ? (
+              <Alert tone="info" title="Link a Requirement before authoring a Test Case">
+                This Feature has no active linked Requirements yet. A Product Owner or Admin can
+                link one from the Requirements section, then QA can create the Test Case.
+              </Alert>
+            ) : null}
+            <EmptyState
+              icon={<CheckSquare className="h-6 w-6" />}
+              title="No Test Cases linked to this Feature"
+              description="Author a native Test Case or import CSV/XLSX spreadsheet rows linked to Requirements."
+            />
+          </div>
         ) : (
           <div className="space-y-4">
             {!canExecuteTests && (

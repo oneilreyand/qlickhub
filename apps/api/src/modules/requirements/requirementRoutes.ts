@@ -12,6 +12,7 @@ import {
   listTaskRequirements,
   linkRequirementToTask,
   unlinkRequirementFromTask,
+  bulkCorrectTaskRequirements,
 } from './requirementController.js';
 
 export const requirementRoutes = Router({ mergeParams: true });
@@ -72,6 +73,12 @@ requirementRoutes.post(
   '/workspaces/:workspaceId/tasks/:taskId/requirements',
   requireWorkspaceMember(['owner', 'admin', 'po']),
   linkRequirementToTask,
+);
+
+requirementRoutes.post(
+  '/workspaces/:workspaceId/tasks/:taskId/requirements/bulk-correction',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  bulkCorrectTaskRequirements,
 );
 
 requirementRoutes.delete(

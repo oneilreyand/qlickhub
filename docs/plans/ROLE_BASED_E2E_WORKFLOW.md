@@ -1,7 +1,7 @@
 # Role-Based End-to-End Workflow
 
 **Status:** approved implementation guide  
-**Updated:** 2026-08-24  
+**Updated:** 2026-08-27
 **Scope:** authenticated Workspace delivery flow for Owner, Admin, Product Owner (PO), Developer, and QA
 
 ## Purpose
@@ -62,7 +62,7 @@ parent Task status.
 | Admin     | Workspace governance and independent operational support                                  | Create Workspace; manage members/specialties; grant parent-Task creation; plan; execute/review; manage Bugs; sign off **or** decide                                              | Cannot remove an Owner or exercise the Owner-only specialty mismatch override. Cannot both sign and decide the same certification.                                                          |
 | PO        | Product planning and release ownership                                                    | Create Workspace; create folders/Requirements/Test Case definitions; plan/assign Feature and subtasks; review independently; record a Release Decision; explicitly close Feature | Does not manage Workspace memberships, execute Test Runs/Results, manage Bugs, create QA Sign-off, or self-approve its own assigned execution work.                                         |
 | Developer | Implement assigned Frontend, Backend, Mobile, or Fullstack work and resolve assigned Bugs | Update own execution status and technical handover detail; submit for review; fix assigned Bug                                                                                   | Cannot plan/delete subtasks, edit planning fields, change another member's subtask, mark own work `done`, execute Tests, sign off, or decide release.                                       |
-| QA        | Independently verify delivery, execute test work, manage/retest Bugs, and certify quality | Review any subtask in `in_review`; execute assigned QA subtask; append Runs/immutable Results/evidence; open/retest/verify/reopen Bugs; append QA Sign-off                       | Cannot plan/delete subtasks, modify parent Task planning, manage Test Case definitions/Requirement mappings, make a Release Decision, or use a parent-Task creation grant to plan subtasks. |
+| QA        | Author draft test coverage, independently verify delivery, manage/retest Bugs, and certify quality | Create/edit `draft` Test Cases and Requirement mappings; submit them for planner review; review any subtask in `in_review`; execute assigned QA subtask; append Runs/immutable Results/evidence; open/retest/verify/reopen Bugs; append QA Sign-off | Cannot publish (`active`) or archive Test Cases; cannot plan/delete subtasks, modify parent Task planning, make a Release Decision, or use a parent-Task creation grant to plan subtasks. |
 
 ## End-to-end lifecycle by handoff
 
@@ -86,8 +86,9 @@ parent Task status.
    not permitted.
 2. Create or update the Workspace-scoped Requirement and Acceptance Criteria. Link the Requirement
    to the intended Feature / Story; one Requirement may be linked to more than one Task.
-3. Define reusable Test Cases and link them to the Requirement. This mapping is planner-managed;
-   QA execution does not alter coverage ownership.
+3. Define the Requirement and Acceptance Criteria clearly enough for QA to author test coverage.
+   Owner/Admin/PO may also create Test Cases directly, but native QA authoring is the normal
+   test-design handoff described in the next stage.
 4. Create the root Feature / Story Task, add product context, dates, priority, and persisted
    document/evidence links where authorized.
 5. Plan direct delivery subtasks only—Frontend, Backend, Mobile, Fullstack, and/or QA—and assign
@@ -114,13 +115,17 @@ parent Task status.
 
 1. Open **My Tasks**. The backend exposes three QA queues: **Test and review work**, **Retest
    work**, and **QA Sign-off**.
-2. Review any delivery subtask in `in_review` against the linked Requirement and Acceptance Criteria.
+2. For a linked, active Requirement, create or edit a reusable Test Case in `draft`, including its
+   Requirement mapping and steps. QA submits `draft → in_review` when the test design is ready.
+   A Planner (PO, Owner, or Admin) reviews it and alone advances `in_review → active` (or archives
+   it). Only an `active` Test Case may start a new Test Run.
+3. Review any delivery subtask in `in_review` against the linked Requirement and Acceptance Criteria.
    QA either changes it to `done`, or returns it to `changes_requested` with non-empty review notes.
-3. Execute assigned QA delivery work through `todo → in_progress → done`. QA completion waits for
+4. Execute assigned QA delivery work through `todo → in_progress → done`. QA completion waits for
    every incomplete Frontend, Backend, Mobile, and Fullstack sibling.
-4. Run the reusable Test Case as a persisted Test Run and append an immutable Result. Attach
+5. Run the published reusable Test Case as a persisted Test Run and append an immutable Result. Attach
    authorized evidence to the Result when required; do not fabricate a browser-only file URL.
-5. If a Result fails or is blocked, create a first-class Bug with Feature, Requirement, originating
+6. If a Result fails or is blocked, create a first-class Bug with Feature, Requirement, originating
    Result, severity, reproducible context, and Developer assignment. After the Developer resolves
    it, QA independently retests and verifies or reopens the Bug.
 
@@ -148,6 +153,7 @@ the Feature. Otherwise, the queue directs the team back to review, test, or Bug 
 | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Developer assignment conflicts with specialty                                                    | Backend rejects the assignment. Owner alone may override with an auditable reason.                          | Planner / Owner                                                           |
 | Developer attempts planning, another member's work, or self-completion                           | Backend rejects the mutation.                                                                               | Developer submits for independent review instead.                         |
+| QA attempts to run a `draft`/`in_review` Test Case, or publish/archive one                         | Backend rejects the mutation.                                                                               | QA submits the draft; PO, Owner, or Admin reviews and publishes it.       |
 | QA finds a delivery issue                                                                        | QA returns `changes_requested` with review notes, or records a first-class Bug for a failed/blocked Result. | Assigned Developer, then QA retest                                        |
 | Feature misses coverage, test, Bug, development, or sign-off gate                                | Readiness exposes labelled reasons; no browser-side workaround exists.                                      | Planner, Developer, or QA according to the reported reason                |
 | Signer attempts the same release decision                                                        | Backend rejects self-approval.                                                                              | A different eligible PO, Owner, or Admin                                  |
@@ -166,7 +172,7 @@ the Feature. Otherwise, the queue directs the team back to review, test, or Bug 
 
 A release-ready Feature is supported by persisted, authorized records—not local UI state:
 
-- Requirement and Test Case mapping;
+- Requirement and an `active` Test Case mapping (QA may author the draft; a Planner publishes it);
 - Test Run and immutable latest Result, with authorized evidence where applicable;
 - Bug and retest history, including verification state;
 - backend-derived readiness snapshot;

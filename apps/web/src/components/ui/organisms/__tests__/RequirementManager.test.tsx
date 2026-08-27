@@ -9,6 +9,7 @@ const updateRequirementMock = vi.fn();
 const listTaskRequirementLinksMock = vi.fn();
 const linkRequirementMock = vi.fn();
 const unlinkRequirementMock = vi.fn();
+const bulkCorrectTaskRequirementsMock = vi.fn();
 
 vi.mock('../../../../lib/api/requirementService', () => ({
   requirementService: {
@@ -19,6 +20,7 @@ vi.mock('../../../../lib/api/requirementService', () => ({
     listTaskRequirementLinks: (...args: any[]) => listTaskRequirementLinksMock(...args),
     linkRequirement: (...args: any[]) => linkRequirementMock(...args),
     unlinkRequirement: (...args: any[]) => unlinkRequirementMock(...args),
+    bulkCorrectTaskRequirements: (...args: any[]) => bulkCorrectTaskRequirementsMock(...args),
   },
 }));
 
@@ -145,6 +147,45 @@ describe('RequirementManager Organism', () => {
     await waitFor(() => {
       expect(screen.getByText('Linked Specifications & Requirements (1)')).toBeInTheDocument();
       expect(screen.getByText('Available Workspace Requirements (1)')).toBeInTheDocument();
+    });
+  });
+
+  test('lets a planner confirm a bulk unlink for Requirements linked to the current Feature', async () => {
+    listTaskRequirementLinksMock.mockResolvedValueOnce([
+      {
+        id: 'link-1',
+        workspaceId: 'ws-1',
+        taskId: 'task-1',
+        requirementId: 'req-1',
+        linkedBy: 'user-po',
+        createdAt: '2026-08-21T00:00:00.000Z',
+      },
+      {
+        id: 'link-2',
+        workspaceId: 'ws-1',
+        taskId: 'task-1',
+        requirementId: 'req-2',
+        linkedBy: 'user-po',
+        createdAt: '2026-08-21T00:00:00.000Z',
+      },
+    ]);
+    bulkCorrectTaskRequirementsMock.mockResolvedValueOnce({ action: 'unlink', affectedCount: 2 });
+
+    render(<RequirementManager workspaceId="ws-1" taskId="task-1" userRole="po" />);
+
+    expect(await screen.findByText('Linked Specifications & Requirements (2)')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Select all 2 linked Requirements'));
+    fireEvent.click(screen.getByTestId('bulk-correct-requirements-btn'));
+
+    expect(screen.getByRole('dialog', { name: /Correct 2 Requirements/i })).toBeInTheDocument();
+    expect(screen.getByText(/never deletes a Requirement or its history/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Unlink selected' }));
+
+    await waitFor(() => {
+      expect(bulkCorrectTaskRequirementsMock).toHaveBeenCalledWith('ws-1', 'task-1', {
+        requirementIds: ['req-1', 'req-2'],
+        action: 'unlink',
+      });
     });
   });
 

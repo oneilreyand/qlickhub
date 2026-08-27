@@ -4,6 +4,8 @@ import {
   RequirementDetailResponse,
   TaskRequirementLink,
   UpdateRequirementInput,
+  BulkCorrectTaskRequirementsInput,
+  BulkCorrectTaskRequirementsResponse,
 } from '@qlick/contracts';
 
 export const requirementService = {
@@ -86,5 +88,19 @@ export const requirementService = {
     await apiClient(`/workspaces/${workspaceId}/tasks/${taskId}/requirements/${requirementId}`, {
       method: 'DELETE',
     });
+  },
+
+  async bulkCorrectTaskRequirements(
+    workspaceId: string,
+    taskId: string,
+    input: Omit<BulkCorrectTaskRequirementsInput, 'workspaceId'>,
+  ): Promise<BulkCorrectTaskRequirementsResponse> {
+    return apiClient<BulkCorrectTaskRequirementsResponse>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/requirements/bulk-correction`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
   },
 };

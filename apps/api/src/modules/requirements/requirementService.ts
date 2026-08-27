@@ -22,7 +22,10 @@ import {
   CreateAcceptanceCriterionInput,
   UpdateAcceptanceCriterionInput,
   TaskRequirementLink,
+  BulkCorrectTaskRequirementsInput,
+  BulkCorrectTaskRequirementsResponse,
 } from '@qlick/contracts';
+import { Op } from 'sequelize';
 
 function formatRequirement(r: RequirementModel | Record<string, any>): Requirement {
   const json = typeof (r as any).toJSON === 'function' ? (r as any).toJSON() : r;
@@ -570,6 +573,87 @@ export class RequirementService {
     });
 
     return { success: true };
+  }
+
+  async bulkCorrectTaskRequirements(
+    workspaceId: string,
+    taskId: string,
+    actorId: string,
+    input: BulkCorrectTaskRequirementsInput,
+  ): Promise<BulkCorrectTaskRequirementsResponse> {
+    const member = await getActorMembership(workspaceId, actorId);
+    assertCanLinkRequirement(member.role);
+
+    return sequelize.transaction(async (transaction) => {
+      const task = await TaskModel.findOne({
+        where: { id: taskId, workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!task) {
+        throw new Error('NOT_FOUND: Task not found in this workspace.');
+      }
+
+      const links = await TaskRequirementModel.findAll({
+        where: {
+          workspaceId,
+          taskId,
+          requirementId: { [Op.in]: input.requirementIds },
+        },
+        include: [{ model: RequirementModel, as: 'requirement' }],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (links.length !== input.requirementIds.length) {
+        throw new Error(
+          'BAD_REQUEST: Every selected Requirement must still be linked to this task before a bulk correction can run.',
+        );
+      }
+
+      const requirementSummaries = links.map((link) => ({
+        id: link.requirementId,
+        code: link.requirement?.code || '',
+        title: link.requirement?.title || '',
+      }));
+
+      if (input.action === 'unlink') {
+        await TaskRequirementModel.destroy({
+          where: { id: { [Op.in]: links.map((link) => link.id) } },
+          transaction,
+        });
+      } else {
+        await RequirementModel.update(
+          { status: 'deprecated' },
+          {
+            where: { id: { [Op.in]: input.requirementIds }, workspaceId },
+            transaction,
+          },
+        );
+      }
+
+      await TaskActivityModel.create(
+        {
+          workspaceId,
+          taskId,
+          actorId,
+          action:
+            input.action === 'unlink'
+              ? 'requirements_bulk_unlinked'
+              : 'requirements_bulk_deprecated',
+          metadataJson: {
+            affectedCount: input.requirementIds.length,
+            requirements: requirementSummaries,
+          },
+        },
+        { transaction },
+      );
+
+      return {
+        action: input.action,
+        affectedCount: input.requirementIds.length,
+      };
+    });
   }
 }
 

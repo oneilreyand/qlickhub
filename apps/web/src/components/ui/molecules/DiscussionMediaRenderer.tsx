@@ -51,18 +51,23 @@ const globalLinkMetaCache = new Map<
 // Regex patterns to detect media URLs
 const IMAGE_EXT_REGEX = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)(\?.*)?$/i;
 const DIRECT_VIDEO_EXT_REGEX = /\.(mp4|webm|ogg|mov|m4v|mkv)(\?.*)?$/i;
-const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
+const YOUTUBE_REGEX =
+  /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
 const LOOM_REGEX = /(?:https?:\/\/)?(?:www\.)?loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/i;
 const VIMEO_REGEX = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/i;
 const STREAMABLE_REGEX = /(?:https?:\/\/)?(?:www\.)?streamable\.com\/(?:e\/)?([a-zA-Z0-9]+)/i;
-const FIGMA_REGEX = /(?:https?:\/\/)?(?:www\.)?figma\.com\/(?:file|design|proto|board)\/([a-zA-Z0-9]+)(?:\/([^\s?#]+))?/i;
-const GOOGLE_DRIVE_REGEX = /(?:https?:\/\/)?(?:drive|docs)\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^&]+&)*id=)([a-zA-Z0-9_-]+)/i;
-const PINTEREST_PIN_REGEX = /(?:https?:\/\/)?(?:www\.|[a-z]{2}\.)?pinterest\.(?:com|co\.[a-z]{2}|[a-z]{2})\/pin\/(\d+)/i;
+const FIGMA_REGEX =
+  /(?:https?:\/\/)?(?:www\.)?figma\.com\/(?:file|design|proto|board)\/([a-zA-Z0-9]+)(?:\/([^\s?#]+))?/i;
+const GOOGLE_DRIVE_REGEX =
+  /(?:https?:\/\/)?(?:drive|docs)\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^&]+&)*id=)([a-zA-Z0-9_-]+)/i;
+const PINTEREST_PIN_REGEX =
+  /(?:https?:\/\/)?(?:www\.|[a-z]{2}\.)?pinterest\.(?:com|co\.[a-z]{2}|[a-z]{2})\/pin\/(\d+)/i;
 const PINTEREST_SHORT_REGEX = /(?:https?:\/\/)?pin\.it\/([a-zA-Z0-9]+)/i;
 
 const MARKDOWN_IMG_REGEX = /!\[([^\]]*)\]\(((?:https?:\/\/|data:image\/)[^\s)]+)\)/gi;
 const HTML_IMG_REGEX = /<img\s+[^>]*src=["']((?:https?:\/\/|data:image\/)[^"']+)["'][^>]*>/gi;
-const DATA_IMAGE_REGEX = /(data:image\/(?:png|jpe?g|gif|webp|svg\+xml|avif|bmp);base64,[A-Za-z0-9+/=]+)/gi;
+const DATA_IMAGE_REGEX =
+  /(data:image\/(?:png|jpe?g|gif|webp|svg\+xml|avif|bmp);base64,[A-Za-z0-9+/=]+)/gi;
 const URL_REGEX = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
 
 function isCloudVideoUrl(url: string): boolean {
@@ -72,7 +77,8 @@ function isCloudVideoUrl(url: string): boolean {
     lower.includes('/video/upload/') ||
     lower.includes('/videos/') ||
     (lower.includes('cloudinary.com') && lower.includes('/video/')) ||
-    (lower.includes('firebasestorage.googleapis.com') && (lower.includes('video') || lower.includes('.mp4')))
+    (lower.includes('firebasestorage.googleapis.com') &&
+      (lower.includes('video') || lower.includes('.mp4')))
   );
 }
 
@@ -366,7 +372,9 @@ export const DiscussionMediaRenderer: React.FC<DiscussionMediaRendererProps> = (
       const figmaMatch = url.match(FIGMA_REGEX);
       if (figmaMatch && figmaMatch[1]) {
         seenUrls.add(url);
-        const slug = figmaMatch[2] ? decodeURIComponent(figmaMatch[2]).replace(/-/g, ' ') : 'Figma Design';
+        const slug = figmaMatch[2]
+          ? decodeURIComponent(figmaMatch[2]).replace(/-/g, ' ')
+          : 'Figma Design';
         items.push({
           type: 'figma',
           url,
@@ -435,9 +443,15 @@ export const DiscussionMediaRenderer: React.FC<DiscussionMediaRendererProps> = (
       if (media.type === 'pinterest' || media.type === 'web_link') {
         const targetUrl = media.originalUrl;
         if (!globalLinkMetaCache.has(targetUrl) && !linkMetaMap[targetUrl]) {
-          const p = apiClient<{ data: { url: string; title?: string; imageUrl?: string; authorName?: string; description?: string } }>(
-            `/meta/link-preview?url=${encodeURIComponent(targetUrl)}`
-          )
+          const p = apiClient<{
+            data: {
+              url: string;
+              title?: string;
+              imageUrl?: string;
+              authorName?: string;
+              description?: string;
+            };
+          }>(`/meta/link-preview?url=${encodeURIComponent(targetUrl)}`)
             .then((res) => {
               if (isMounted && res?.data) {
                 globalLinkMetaCache.set(targetUrl, res.data);
@@ -513,9 +527,7 @@ export const DiscussionMediaRenderer: React.FC<DiscussionMediaRendererProps> = (
     <div className={`space-y-2 text-xs ${className}`}>
       {/* Main Comment Text */}
       {textWithoutStandaloneMedia && (
-        <div className="text-stone-800 dark:text-stone-200">
-          {renderFormattedText(textWithoutStandaloneMedia)}
-        </div>
+        <div className="text-inherit">{renderFormattedText(textWithoutStandaloneMedia)}</div>
       )}
 
       {/* Embedded Rich Media Gallery (Direct Video, YouTube, Drive, Loom, Images) */}
@@ -545,7 +557,9 @@ export const DiscussionMediaRenderer: React.FC<DiscussionMediaRendererProps> = (
                       type="button"
                       onClick={() => handleToggleFullscreen(containerId)}
                       className="px-2 py-0.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white transition-all text-[10px] font-bold flex items-center gap-1 shrink-0"
-                      title={isFullscreen ? 'Kecilkan video' : 'Perbesar video yang sedang berjalan'}
+                      title={
+                        isFullscreen ? 'Kecilkan video' : 'Perbesar video yang sedang berjalan'
+                      }
                     >
                       {isFullscreen ? (
                         <>
@@ -598,7 +612,9 @@ export const DiscussionMediaRenderer: React.FC<DiscussionMediaRendererProps> = (
                       type="button"
                       onClick={() => handleToggleFullscreen(containerId)}
                       className="px-2 py-0.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white transition-all text-[10px] font-bold flex items-center gap-1 shrink-0"
-                      title={isFullscreen ? 'Kecilkan video' : 'Perbesar video yang sedang berjalan'}
+                      title={
+                        isFullscreen ? 'Kecilkan video' : 'Perbesar video yang sedang berjalan'
+                      }
                     >
                       {isFullscreen ? (
                         <>
@@ -747,9 +763,7 @@ export const DiscussionMediaRenderer: React.FC<DiscussionMediaRendererProps> = (
                     <div className="font-bold text-xs text-stone-900 dark:text-stone-100 truncate">
                       {meta?.title || media.title || 'Web Link'}
                     </div>
-                    <div className="text-[10px] text-stone-400 truncate">
-                      {media.domain}
-                    </div>
+                    <div className="text-[10px] text-stone-400 truncate">{media.domain}</div>
                   </div>
                 </div>
               </div>

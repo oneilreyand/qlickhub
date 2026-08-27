@@ -9,6 +9,7 @@ import {
   CreateAcceptanceCriterionSchema,
   UpdateAcceptanceCriterionSchema,
   LinkRequirementSchema,
+  BulkCorrectTaskRequirementsSchema,
 } from '@qlick/contracts';
 
 function handleError(res: Response, error: unknown) {
@@ -248,6 +249,27 @@ export const unlinkRequirementFromTask = async (req: AuthenticatedRequest, res: 
 
     await requirementService.unlinkRequirementFromTask(workspaceId, taskId, actorId, requirementId);
     return res.status(200).json({ success: true });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const bulkCorrectTaskRequirements = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { workspaceId, taskId } = req.params;
+    const actorId = req.user!.userId;
+    const parsed = BulkCorrectTaskRequirementsSchema.parse({
+      ...req.body,
+      workspaceId,
+    });
+
+    const result = await requirementService.bulkCorrectTaskRequirements(
+      workspaceId,
+      taskId,
+      actorId,
+      parsed,
+    );
+    return res.status(200).json(result);
   } catch (error) {
     return handleError(res, error);
   }

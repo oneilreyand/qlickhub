@@ -107,7 +107,7 @@ describe('SubtaskRoleTimeline Molecule', () => {
         subtasks={mockSubtasks}
         productBrief={mockBrief}
         members={mockMembers}
-      />
+      />,
     );
 
     // Primary Bottleneck banner
@@ -128,7 +128,7 @@ describe('SubtaskRoleTimeline Molecule', () => {
         subtasks={mockSubtasks}
         productBrief={mockBrief}
         members={mockMembers}
-      />
+      />,
     );
 
     // Initial view: all subtasks listed in stream
@@ -151,7 +151,7 @@ describe('SubtaskRoleTimeline Molecule', () => {
         subtasks={mockSubtasks}
         productBrief={mockBrief}
         members={mockMembers}
-      />
+      />,
     );
 
     // PO specs card displays Sarah PO
@@ -159,5 +159,25 @@ describe('SubtaskRoleTimeline Molecule', () => {
 
     // BE card displays Alex Backend
     expect(screen.getByText('Alex Backend')).toBeInTheDocument();
+  });
+
+  it('renders the schedule as a calendar grid with accessible full-date headers', () => {
+    render(
+      <SubtaskRoleTimeline
+        parentTask={mockParentTask}
+        subtasks={mockSubtasks}
+        productBrief={mockBrief}
+        members={mockMembers}
+      />,
+    );
+
+    expect(screen.getByRole('grid', { name: 'Role schedule calendar' })).toBeInTheDocument();
+    expect(screen.getByText('Agustus 2026')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /sabtu, 1 agustus 2026/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /Payment Gateway API Integration.*Aug 1.*Aug 10/i }),
+    ).toBeInTheDocument();
   });
 });

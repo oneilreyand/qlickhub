@@ -13,7 +13,9 @@ import { IconButton } from '../atoms/IconButton';
 import { Input } from '../atoms/Input';
 import { Badge } from '../atoms/Badge';
 import { Skeleton } from '../atoms/Skeleton';
+import { Checkbox } from '../atoms/Checkbox';
 import { EmptyState } from '../molecules/EmptyState';
+import { Modal } from '../molecules/Modal';
 import { Alert } from '../atoms/Alert';
 import {
   FileText,
@@ -63,6 +65,10 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
 
   // Action loading state per requirement ID
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [selectedRequirementIds, setSelectedRequirementIds] = useState<string[]>([]);
+  const [isBulkCorrectionOpen, setIsBulkCorrectionOpen] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'unlink' | 'deprecate'>('unlink');
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   const canManage = ['owner', 'admin', 'po'].includes(userRole);
 
@@ -90,6 +96,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
     setTaskLinks([]);
     setExpandedReqId(null);
     setRequirementDetails({});
+    setSelectedRequirementIds([]);
     loadData();
   }, [loadData]);
 
@@ -180,6 +187,47 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
     }
   };
 
+  const handleToggleRequirementSelection = (requirementId: string) => {
+    setSelectedRequirementIds((current) =>
+      current.includes(requirementId)
+        ? current.filter((id) => id !== requirementId)
+        : [...current, requirementId],
+    );
+  };
+
+  const handleToggleAllLinkedSelection = () => {
+    const linkedIds = filteredLinkedRequirements.map((requirement) => requirement.id);
+    const allFilteredLinkedAreSelected =
+      linkedIds.length > 0 && linkedIds.every((id) => selectedRequirementIds.includes(id));
+
+    setSelectedRequirementIds((current) =>
+      allFilteredLinkedAreSelected
+        ? current.filter((id) => !linkedIds.includes(id))
+        : Array.from(new Set([...current, ...linkedIds])),
+    );
+  };
+
+  const handleBulkCorrection = async () => {
+    if (!canManage || !taskId || selectedRequirementIds.length === 0) return;
+
+    setIsBulkSaving(true);
+    setError(null);
+    try {
+      await requirementService.bulkCorrectTaskRequirements(workspaceId, taskId, {
+        requirementIds: selectedRequirementIds,
+        action: bulkAction,
+      });
+      setSelectedRequirementIds([]);
+      setIsBulkCorrectionOpen(false);
+      await loadData();
+      onRequirementChanged?.();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to apply the bulk correction.');
+    } finally {
+      setIsBulkSaving(false);
+    }
+  };
+
   const isLinked = (reqId: string) => taskLinks.some((l) => l.requirementId === reqId);
 
   const matchesSearch = (requirement: Requirement) => {
@@ -205,6 +253,14 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
   const searchableRequirementCount = isTaskContext
     ? linkedRequirements.length + availableRequirements.length
     : requirements.length;
+  const selectedLinkedRequirementCount = selectedRequirementIds.filter((id) =>
+    linkedRequirements.some((requirement) => requirement.id === id),
+  ).length;
+  const allFilteredLinkedAreSelected =
+    filteredLinkedRequirements.length > 0 &&
+    filteredLinkedRequirements.every((requirement) =>
+      selectedRequirementIds.includes(requirement.id),
+    );
 
   type RequirementDisplayEntry =
     | { kind: 'requirement'; requirement: Requirement }
@@ -306,18 +362,31 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
           )}
 
           {canManage && (
-            <Button
-              size="sm"
-              variant="primary"
-              leftIcon={<Plus className="h-3.5 w-3.5" />}
-              onClick={() => {
-                setEditingRequirement(null);
-                setIsModalOpen(true);
-              }}
-              data-testid="create-requirement-btn"
-            >
-              New Requirement
-            </Button>
+            <>
+              {isTaskContext && linkedRequirements.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={selectedLinkedRequirementCount === 0}
+                  onClick={() => setIsBulkCorrectionOpen(true)}
+                  data-testid="bulk-correct-requirements-btn"
+                >
+                  Correct selected ({selectedLinkedRequirementCount})
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="primary"
+                leftIcon={<Plus className="h-3.5 w-3.5" />}
+                onClick={() => {
+                  setEditingRequirement(null);
+                  setIsModalOpen(true);
+                }}
+                data-testid="create-requirement-btn"
+              >
+                New Requirement
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -336,6 +405,16 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
             className="text-xs"
           />
         </div>
+      )}
+
+      {isTaskContext && canManage && filteredLinkedRequirements.length > 0 && !isLoading && (
+        <Checkbox
+          id="select-all-linked-requirements"
+          checked={allFilteredLinkedAreSelected}
+          onChange={handleToggleAllLinkedSelection}
+          label={`Select all ${filteredLinkedRequirements.length} linked Requirements`}
+          className="text-xs"
+        />
       )}
 
       {/* Loading Skeleton */}
@@ -432,6 +511,15 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                    {taskId && canManage && linked && (
+                      <Checkbox
+                        id={`select-requirement-${req.id}`}
+                        checked={selectedRequirementIds.includes(req.id)}
+                        onChange={() => handleToggleRequirementSelection(req.id)}
+                        aria-label={`Select ${req.code}: ${req.title}`}
+                        className="shrink-0"
+                      />
+                    )}
                     <span className="font-mono text-[11px] font-bold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded shrink-0">
                       {req.code}
                     </span>
@@ -582,6 +670,65 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
         initialData={editingRequirement}
         isSaving={isSaving}
       />
+
+      <Modal
+        isOpen={isBulkCorrectionOpen}
+        onClose={() => !isBulkSaving && setIsBulkCorrectionOpen(false)}
+        title={`Correct ${selectedLinkedRequirementCount} Requirement${selectedLinkedRequirementCount === 1 ? '' : 's'}`}
+        description="This change is limited to Requirements currently linked to this Feature. It never deletes a Requirement or its history."
+        primaryActionLabel={bulkAction === 'unlink' ? 'Unlink selected' : 'Deprecate selected'}
+        secondaryActionLabel="Cancel"
+        onPrimaryAction={handleBulkCorrection}
+        isPrimaryLoading={isBulkSaving}
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              aria-pressed={bulkAction === 'unlink'}
+              onClick={() => setBulkAction('unlink')}
+              variant={bulkAction === 'unlink' ? 'secondary' : 'outline'}
+              className={`h-auto min-h-[88px] justify-start whitespace-normal px-3 py-2.5 text-left ${
+                bulkAction === 'unlink'
+                  ? 'border border-[#B1E743] bg-[#B1E743]/10 dark:border-[#B1E743] dark:bg-[#B1E743]/10'
+                  : ''
+              }`}
+            >
+              <span>
+                <span className="block text-sm font-semibold">Unlink from this Feature</span>
+                <span className="mt-0.5 block text-xs font-normal text-stone-500 dark:text-stone-400">
+                  Removes only this Feature mapping. The Requirement remains reusable elsewhere.
+                </span>
+              </span>
+            </Button>
+            <Button
+              type="button"
+              aria-pressed={bulkAction === 'deprecate'}
+              onClick={() => setBulkAction('deprecate')}
+              variant={bulkAction === 'deprecate' ? 'secondary' : 'outline'}
+              className={`h-auto min-h-[88px] justify-start whitespace-normal px-3 py-2.5 text-left ${
+                bulkAction === 'deprecate'
+                  ? 'border border-[#B1E743] bg-[#B1E743]/10 dark:border-[#B1E743] dark:bg-[#B1E743]/10'
+                  : ''
+              }`}
+            >
+              <span>
+                <span className="block text-sm font-semibold">Mark as deprecated</span>
+                <span className="mt-0.5 block text-xs font-normal text-stone-500 dark:text-stone-400">
+                  Keeps all existing links and history, but marks the Requirement as no longer
+                  valid.
+                </span>
+              </span>
+            </Button>
+          </div>
+
+          <Alert tone="info">
+            Existing Test Case, Bug, and activity history are retained. This operation is recorded
+            in the Feature activity log.
+          </Alert>
+        </div>
+      </Modal>
     </div>
   );
 };

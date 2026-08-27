@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CheckCircle2, FileCheck, Plus, Send, Trash2, X } from 'lucide-react';
 import type {
   CanonicalTestCaseType,
@@ -66,6 +66,26 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isPoOrAdmin = userRole === 'owner' || userRole === 'admin' || userRole === 'po';
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setTitle(initialTestCase?.title || '');
+    setExternalReference(initialTestCase?.externalReference || '');
+    setPriority(initialTestCase?.priority || 'medium');
+    setScenarioKind(initialTestCase?.scenarioKind || 'positive');
+    setTestType(initialTestCase?.testType || 'manual');
+    setPreconditions(initialTestCase?.preconditions || '');
+    setSteps(
+      initialTestCase?.steps && initialTestCase.steps.length > 0 ? initialTestCase.steps : [''],
+    );
+    setExpectedResult(initialTestCase?.expectedResult || '');
+    setTestData(initialTestCase?.testData || '');
+    setSelectedReqIds(
+      initialTestCase?.requirementIds || (requirements[0] ? [requirements[0].id] : []),
+    );
+    setErrorMessage(null);
+  }, [initialTestCase, isOpen, requirements]);
 
   const handleAddStep = () => {
     setSteps((prev) => [...prev, '']);

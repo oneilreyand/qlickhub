@@ -77,7 +77,14 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     start.setDate(start.getDate() - 2);
     end.setDate(end.getDate() + 4);
 
-    const cols: Array<{ key: string; label: string; subLabel: string; isToday: boolean; isWeekend: boolean; date: Date }> = [];
+    const cols: Array<{
+      key: string;
+      label: string;
+      subLabel: string;
+      isToday: boolean;
+      isWeekend: boolean;
+      date: Date;
+    }> = [];
     const cur = new Date(start);
     while (cur <= end) {
       const key = normalizeDateStr(cur);
@@ -104,6 +111,23 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
   }, [parentTask, subtasks, todayStr]);
 
   const totalDurationMs = Math.max(endDateRange.getTime() - startDateRange.getTime(), 1);
+
+  const calendarMonths = useMemo(() => {
+    return dayColumns.reduce<Array<{ key: string; label: string; days: number }>>((months, day) => {
+      const key = `${day.date.getFullYear()}-${day.date.getMonth()}`;
+      const current = months[months.length - 1];
+      if (current?.key === key) {
+        current.days += 1;
+      } else {
+        months.push({
+          key,
+          label: day.date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
+          days: 1,
+        });
+      }
+      return months;
+    }, []);
+  }, [dayColumns]);
 
   // Position of Today line
   const todayMarkerPercent = useMemo(() => {
@@ -207,7 +231,6 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     }
   };
 
-
   const filteredSubtasks = useMemo(() => {
     if (activeRoleFilter === 'all') return subtasks;
     if (activeRoleFilter === 'po') return [];
@@ -224,8 +247,8 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
           bottleneck.severity === 'delayed'
             ? 'bg-rose-50/90 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/60 text-rose-950 dark:text-rose-100'
             : bottleneck.severity === 'at_risk'
-            ? 'bg-amber-50/90 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/60 text-amber-950 dark:text-amber-100'
-            : 'bg-emerald-50/90 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/60 text-emerald-950 dark:text-emerald-100'
+              ? 'bg-amber-50/90 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/60 text-amber-950 dark:text-amber-100'
+              : 'bg-emerald-50/90 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/60 text-emerald-950 dark:text-emerald-100'
         }`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -248,8 +271,8 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                     analysis.overallHealth === 'delayed'
                       ? `${bottleneck.overlapDays}d Slippage`
                       : analysis.overallHealth === 'at_risk'
-                      ? 'At Risk'
-                      : 'On Track'
+                        ? 'At Risk'
+                        : 'On Track'
                   }
                 />
               </div>
@@ -290,10 +313,10 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
             const cardBorder = isDelayed
               ? 'border-rose-300 dark:border-rose-900 bg-rose-50/40 dark:bg-rose-950/20'
               : isAtRisk
-              ? 'border-amber-300 dark:border-amber-900 bg-amber-50/40 dark:bg-amber-950/20'
-              : isDone
-              ? 'border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/15'
-              : 'border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-900/40';
+                ? 'border-amber-300 dark:border-amber-900 bg-amber-50/40 dark:bg-amber-950/20'
+                : isDone
+                  ? 'border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/15'
+                  : 'border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-900/40';
 
             return (
               <div
@@ -303,10 +326,18 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                 {/* Header: Icon, Role Name, Health Badge */}
                 <div className="flex items-start justify-between gap-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    {stage.role === 'po' && <FileCode2 className="h-4 w-4 text-stone-700 dark:text-[#B1E743] shrink-0" />}
-                    {stage.role === 'backend' && <Layers className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />}
-                    {stage.role === 'frontend' && <Code2 className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />}
-                    {stage.role === 'qa' && <Bug className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                    {stage.role === 'po' && (
+                      <FileCode2 className="h-4 w-4 text-stone-700 dark:text-[#B1E743] shrink-0" />
+                    )}
+                    {stage.role === 'backend' && (
+                      <Layers className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    )}
+                    {stage.role === 'frontend' && (
+                      <Code2 className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                    )}
+                    {stage.role === 'qa' && (
+                      <Bug className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    )}
                     <span className="font-bold text-xs text-stone-900 dark:text-stone-100 truncate">
                       {stage.shortLabel}
                     </span>
@@ -317,12 +348,12 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                       isDelayed
                         ? `${stage.daysOverdue}d Late`
                         : isDone
-                        ? 'Done'
-                        : isAtRisk
-                        ? 'At Risk'
-                        : stage.status === 'unscheduled'
-                        ? 'Unscheduled'
-                        : 'On Track'
+                          ? 'Done'
+                          : isAtRisk
+                            ? 'At Risk'
+                            : stage.status === 'unscheduled'
+                              ? 'Unscheduled'
+                              : 'On Track'
                     }
                     compact={false}
                   />
@@ -331,7 +362,9 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                 {/* Timeline Dates Window */}
                 <div className="space-y-1 text-[11px] text-stone-600 dark:text-stone-300">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-stone-400 dark:text-stone-500 uppercase font-semibold">Planned:</span>
+                    <span className="text-[10px] text-stone-400 dark:text-stone-500 uppercase font-semibold">
+                      Planned:
+                    </span>
                     <span className="font-mono font-medium">
                       {formatShortDate(stage.startDate)} → {formatShortDate(stage.dueDate)}
                     </span>
@@ -351,12 +384,16 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                   <div className="flex items-center gap-1 truncate max-w-[120px]">
                     <User className="h-3 w-3 shrink-0 text-stone-400" />
                     <span className="truncate">
-                      {stage.assignees.length > 0 ? stage.assignees.map((a) => a.name).join(', ') : 'Unassigned'}
+                      {stage.assignees.length > 0
+                        ? stage.assignees.map((a) => a.name).join(', ')
+                        : 'Unassigned'}
                     </span>
                   </div>
                   <span className="font-mono">
                     {stage.role === 'po'
-                      ? productBrief ? 'v' + productBrief.currentVersion.version : 'Draft'
+                      ? productBrief
+                        ? 'v' + productBrief.currentVersion.version
+                        : 'Draft'
                       : `${stage.subtasks.filter((s) => s.status === 'done').length}/${stage.subtasks.length} tasks`}
                   </span>
                 </div>
@@ -371,11 +408,31 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
         <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800/70 p-1 rounded-xl flex-wrap">
           {[
             { id: 'all', label: `All (${subtasks.length})` },
-            { id: 'backend', label: `BE (${subtasks.filter((s) => s.deliveryArea === 'backend').length})`, icon: <Layers className="h-3 w-3" /> },
-            { id: 'frontend', label: `FE (${subtasks.filter((s) => s.deliveryArea === 'frontend').length})`, icon: <Code2 className="h-3 w-3" /> },
-            { id: 'mobile', label: `MOB (${subtasks.filter((s) => s.deliveryArea === 'mobile').length})`, icon: <Smartphone className="h-3 w-3" /> },
-            { id: 'fullstack', label: `FS (${subtasks.filter((s) => s.deliveryArea === 'fullstack').length})`, icon: <Cpu className="h-3 w-3" /> },
-            { id: 'qa', label: `QA (${subtasks.filter((s) => s.deliveryArea === 'qa').length})`, icon: <Bug className="h-3 w-3" /> },
+            {
+              id: 'backend',
+              label: `BE (${subtasks.filter((s) => s.deliveryArea === 'backend').length})`,
+              icon: <Layers className="h-3 w-3" />,
+            },
+            {
+              id: 'frontend',
+              label: `FE (${subtasks.filter((s) => s.deliveryArea === 'frontend').length})`,
+              icon: <Code2 className="h-3 w-3" />,
+            },
+            {
+              id: 'mobile',
+              label: `MOB (${subtasks.filter((s) => s.deliveryArea === 'mobile').length})`,
+              icon: <Smartphone className="h-3 w-3" />,
+            },
+            {
+              id: 'fullstack',
+              label: `FS (${subtasks.filter((s) => s.deliveryArea === 'fullstack').length})`,
+              icon: <Cpu className="h-3 w-3" />,
+            },
+            {
+              id: 'qa',
+              label: `QA (${subtasks.filter((s) => s.deliveryArea === 'qa').length})`,
+              icon: <Bug className="h-3 w-3" />,
+            },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -394,21 +451,33 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
         </div>
 
         <div className="flex items-center gap-3 text-[11px] font-medium text-stone-500 dark:text-stone-400 flex-wrap">
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> BE</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-sky-500" /> FE</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-purple-500" /> MOB</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-cyan-500" /> FS</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> QA</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Late</span>
+          <span className="flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> BE
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-sky-500" /> FE
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-purple-500" /> MOB
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-cyan-500" /> FS
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> QA
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Late
+          </span>
         </div>
       </div>
 
-      {/* 4. Subtask Interactive Gantt Canvas */}
+      {/* 4. Full calendar schedule: date context lives in the calendar header, never inside a narrow task bar. */}
       <div className="rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#1C1A19] overflow-hidden shadow-xs">
         <div className="flex overflow-x-auto min-w-0">
           {/* Left Column: Subtask Label & Role */}
           <div className="w-64 sm:w-72 md:w-80 shrink-0 sticky left-0 z-20 bg-white dark:bg-[#1C1A19] border-r border-stone-200 dark:border-stone-800 shadow-xs">
-            <div className="h-11 px-3 flex items-center justify-between border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80 text-[10px] font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+            <div className="h-[72px] px-3 flex items-end justify-between pb-2.5 border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80 text-[10px] font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400">
               <span>Role & Subtask</span>
               <span>Health</span>
             </div>
@@ -422,47 +491,84 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                 >
                   <div className="flex items-center gap-2 min-w-0 pr-2">
                     {getRoleBadge(st.deliveryArea)}
-                    <span className="text-xs font-semibold text-stone-900 dark:text-stone-100 truncate" title={st.title}>
+                    <span
+                      className="text-xs font-semibold text-stone-900 dark:text-stone-100 truncate"
+                      title={st.title}
+                    >
                       {st.title}
                     </span>
                   </div>
-                  <TaskScheduleHealthBadge status={health.status} label={health.label} compact={true} />
+                  <TaskScheduleHealthBadge
+                    status={health.status}
+                    label={health.label}
+                    compact={true}
+                  />
                 </div>
               );
             })}
           </div>
 
-          {/* Right Column: Day-by-Day Gantt Stream */}
-          <div className="flex-1 overflow-x-auto min-w-[400px]">
-            <div style={{ width: `${dayColumns.length * 36}px` }} className="relative select-none">
-              {/* Day header row */}
-              <div className="h-11 flex border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80">
+          {/* Right Column: calendar header plus day-by-day role swimlanes */}
+          <div className="flex-1 min-w-[720px]">
+            <div
+              style={{ width: `${dayColumns.length * 44}px` }}
+              className="relative select-none"
+              role="grid"
+              aria-label="Role schedule calendar"
+            >
+              {/* Calendar header: month grouping makes the date range legible at a glance. */}
+              <div className="h-7 flex border-b border-stone-200 dark:border-stone-800 bg-stone-100/80 dark:bg-stone-900">
+                {calendarMonths.map((month) => (
+                  <div
+                    key={month.key}
+                    style={{ width: `${month.days * 44}px` }}
+                    className="shrink-0 border-r border-stone-200 dark:border-stone-800 px-2 flex items-center text-[10px] font-extrabold uppercase tracking-wider text-stone-600 dark:text-stone-300"
+                  >
+                    {month.label}
+                  </div>
+                ))}
+              </div>
+
+              <div className="h-[44px] flex border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80">
                 {dayColumns.map((col) => (
                   <div
                     key={col.key}
-                    style={{ width: '36px' }}
+                    style={{ width: '44px' }}
+                    role="columnheader"
+                    aria-label={col.date.toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
                     className={`h-full border-r border-stone-200/70 dark:border-stone-800/70 flex flex-col items-center justify-center text-center shrink-0 ${
                       col.isToday
                         ? 'bg-amber-50/80 dark:bg-amber-950/40 font-bold text-amber-700 dark:text-amber-400'
                         : col.isWeekend
-                        ? 'bg-stone-100/40 dark:bg-stone-900/30 text-stone-400'
-                        : 'text-stone-600 dark:text-stone-300'
+                          ? 'bg-stone-100/40 dark:bg-stone-900/30 text-stone-400'
+                          : 'text-stone-600 dark:text-stone-300'
                     }`}
                   >
-                    <span className="text-[11px] leading-tight font-bold">{col.label}</span>
-                    <span className="text-[9px] text-stone-400 leading-tight">{col.subLabel}</span>
+                    <span className="text-xs leading-tight font-bold">{col.label}</span>
+                    <span className="text-[10px] text-stone-400 leading-tight uppercase">
+                      {col.subLabel}
+                    </span>
                   </div>
                 ))}
               </div>
 
               {/* Background Grid Columns */}
-              <div className="absolute inset-0 top-11 pointer-events-none flex">
+              <div className="absolute inset-0 top-[72px] pointer-events-none flex">
                 {dayColumns.map((col) => (
                   <div
                     key={`grid-${col.key}`}
-                    style={{ width: '36px' }}
+                    style={{ width: '44px' }}
                     className={`h-full border-r border-stone-100 dark:border-stone-800/30 shrink-0 ${
-                      col.isToday ? 'bg-amber-50/30 dark:bg-amber-950/15' : col.isWeekend ? 'bg-stone-50/30 dark:bg-stone-900/20' : ''
+                      col.isToday
+                        ? 'bg-amber-50/30 dark:bg-amber-950/15'
+                        : col.isWeekend
+                          ? 'bg-stone-50/30 dark:bg-stone-900/20'
+                          : ''
                     }`}
                   />
                 ))}
@@ -494,9 +600,11 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                     {st.startDate || st.dueDate ? (
                       <div
                         style={pos}
-                        className={`absolute h-6 rounded-lg px-2 flex items-center justify-between text-xs font-semibold cursor-pointer transition-all duration-150 z-10 hover:scale-[1.01] hover:z-30 ${getRoleBarStyle(
+                        role="img"
+                        aria-label={`${st.title}. ${st.deliveryArea?.toUpperCase() || 'SUBTASK'}. ${formatShortDate(st.startDate)} sampai ${formatShortDate(st.dueDate)}. ${health.label}.`}
+                        className={`absolute h-7 rounded-lg px-2 flex items-center text-xs font-semibold transition-all duration-150 z-10 hover:scale-[1.01] hover:z-30 ${getRoleBarStyle(
                           st.deliveryArea,
-                          health.status
+                          health.status,
                         )}`}
                         title={`${st.title} (${st.deliveryArea?.toUpperCase() || 'SUBTASK'}) • ${st.startDate || '—'} → ${st.dueDate || '—'} [${health.label}]`}
                       >
@@ -510,10 +618,6 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                           )}
                           <span className="truncate text-[10px] font-bold">{st.title}</span>
                         </div>
-
-                        <span className="text-[9px] opacity-90 ml-1 font-mono shrink-0">
-                          {formatShortDate(st.startDate)} → {formatShortDate(st.dueDate)}
-                        </span>
                       </div>
                     ) : (
                       <div className="pl-3 flex items-center gap-1 text-[11px] text-stone-400 italic">

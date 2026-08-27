@@ -143,6 +143,38 @@ export const LinkRequirementSchema = z.object({
 
 export type LinkRequirementInput = z.infer<typeof LinkRequirementSchema>;
 
+/**
+ * A safety-scoped correction operation. Every selected Requirement must already
+ * be linked to the target Feature/Task, so a planner cannot accidentally alter
+ * unrelated Workspace Requirements from this workflow.
+ */
+export const BulkCorrectTaskRequirementsSchema = z
+  .object({
+    workspaceId: z.string().uuid(),
+    requirementIds: z.array(z.string().uuid()).min(1).max(50),
+    action: z.enum(['unlink', 'deprecate']),
+  })
+  .superRefine((data, context) => {
+    if (new Set(data.requirementIds).size !== data.requirementIds.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['requirementIds'],
+        message: 'Each Requirement may be selected only once.',
+      });
+    }
+  });
+
+export type BulkCorrectTaskRequirementsInput = z.infer<typeof BulkCorrectTaskRequirementsSchema>;
+
+export const BulkCorrectTaskRequirementsResponseSchema = z.object({
+  action: z.enum(['unlink', 'deprecate']),
+  affectedCount: z.number().int().nonnegative(),
+});
+
+export type BulkCorrectTaskRequirementsResponse = z.infer<
+  typeof BulkCorrectTaskRequirementsResponseSchema
+>;
+
 export const RequirementListResponseSchema = z.object({
   requirements: z.array(RequirementSchema),
 });

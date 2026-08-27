@@ -387,6 +387,94 @@ describe('Requirement HTTP API Integration Tests (AGY-1.1 and AGY-1.2)', () => {
     assert.strictEqual(adminUnlink.status, 200);
   });
 
+  test('PO can bulk unlink or deprecate only Requirements currently linked to the selected Feature', async () => {
+    const [first, second, unlinked] = await Promise.all(
+      ['REQ-BULK-01', 'REQ-BULK-02', 'REQ-BULK-03'].map((code, index) =>
+        RequirementModel.create({
+          workspaceId: workspace1.id,
+          code,
+          title: `Bulk correction Requirement ${index + 1}`,
+          createdBy: poUser.id,
+        }),
+      ),
+    );
+
+    await TaskRequirementModel.bulkCreate([
+      {
+        workspaceId: workspace1.id,
+        taskId: task1.id,
+        requirementId: first.id,
+        linkedBy: poUser.id,
+      },
+      {
+        workspaceId: workspace1.id,
+        taskId: task1.id,
+        requirementId: second.id,
+        linkedBy: poUser.id,
+      },
+    ]);
+
+    const deprecateResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace1.id}/tasks/${task1.id}/requirements/bulk-correction`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({ requirementIds: [first.id, second.id], action: 'deprecate' }),
+      },
+    );
+    assert.strictEqual(deprecateResponse.status, 200);
+    assert.deepStrictEqual(await deprecateResponse.json(), {
+      action: 'deprecate',
+      affectedCount: 2,
+    });
+
+    const deprecatedRequirements = await RequirementModel.findAll({
+      where: { id: [first.id, second.id] },
+      order: [['code', 'ASC']],
+    });
+    assert.deepStrictEqual(
+      deprecatedRequirements.map((requirement) => requirement.status),
+      ['deprecated', 'deprecated'],
+    );
+    assert.strictEqual(
+      await TaskRequirementModel.count({ where: { taskId: task1.id, requirementId: first.id } }),
+      1,
+    );
+
+    const unlinkResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace1.id}/tasks/${task1.id}/requirements/bulk-correction`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({ requirementIds: [first.id, second.id], action: 'unlink' }),
+      },
+    );
+    assert.strictEqual(unlinkResponse.status, 200);
+    assert.strictEqual(
+      await TaskRequirementModel.count({
+        where: { taskId: task1.id, requirementId: [first.id, second.id] },
+      }),
+      0,
+    );
+    assert.strictEqual(await RequirementModel.count({ where: { id: [first.id, second.id] } }), 2);
+
+    const invalidScopeResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace1.id}/tasks/${task1.id}/requirements/bulk-correction`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({ requirementIds: [unlinked.id], action: 'deprecate' }),
+      },
+    );
+    assert.strictEqual(invalidScopeResponse.status, 400);
+
+    const activity = await TaskActivityModel.findOne({
+      where: { taskId: task1.id, action: 'requirements_bulk_unlinked' },
+      order: [['createdAt', 'DESC']],
+    });
+    assert.strictEqual(activity?.metadataJson?.affectedCount, 2);
+  });
+
   test('Dev and QA members have authorized read access (list, detail), but mutations return 403 Forbidden', async () => {
     // 1. Dev & QA list workspace requirements
     const devListRes = await fetch(`${baseUrl}/workspaces/${workspace1.id}/requirements`, {
