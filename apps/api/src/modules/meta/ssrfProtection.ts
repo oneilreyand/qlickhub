@@ -351,6 +351,8 @@ export interface ValidateUrlSafetyResult {
   error?: string;
   parsedUrl?: URL;
   resolvedAddresses?: string[];
+  pinnedAddress?: string;
+  pinnedFamily?: number;
 }
 
 /**
@@ -378,7 +380,8 @@ export function isLoopback(hostname: string): boolean {
  * - Allows only http: and https:
  * - Rejects credentials
  * - Rejects localhost, internal domain suffixes, and cloud metadata names
- * - Resolves hostname and verifies every resolved IP is public
+ * - Resolves hostname exactly once via dnsResolver and verifies every resolved IP is public/safe
+ * - Returns the pinned address to lock socket connection without second DNS lookup
  */
 export async function validateUrlSafety(
   rawUrl: string,
@@ -444,20 +447,34 @@ export async function validateUrlSafety(
         return { safe: false, error: 'PRIVATE_IP_BLOCKED' };
       }
     }
+    return {
+      safe: true,
+      parsedUrl: parsed,
+      resolvedAddresses: [hostname],
+      pinnedAddress: hostname,
+      pinnedFamily: 4,
+    };
   }
 
   // 5. Check if hostname is directly an IP literal
-  const ipType = net.isIP(hostname.replace(/^\[|\]$/g, ''));
+  const cleanIpLiteral = hostname.replace(/^\[|\]$/g, '');
+  const ipType = net.isIP(cleanIpLiteral);
   if (ipType !== 0) {
-    if (isPrivateOrReservedIp(hostname)) {
-      if (!(options.allowTestLocalhost && isLoopback(hostname))) {
+    if (isPrivateOrReservedIp(cleanIpLiteral)) {
+      if (!(options.allowTestLocalhost && isLoopback(cleanIpLiteral))) {
         return { safe: false, error: 'PRIVATE_IP_BLOCKED' };
       }
     }
-    return { safe: true, parsedUrl: parsed, resolvedAddresses: [hostname] };
+    return {
+      safe: true,
+      parsedUrl: parsed,
+      resolvedAddresses: [cleanIpLiteral],
+      pinnedAddress: cleanIpLiteral,
+      pinnedFamily: ipType,
+    };
   }
 
-  // 6. Perform DNS resolution and verify all returned addresses
+  // 6. Perform DNS resolution exactly once and verify all returned addresses
   try {
     const lookups = await dnsResolver(hostname);
     if (!lookups || lookups.length === 0) {
@@ -473,7 +490,14 @@ export async function validateUrlSafety(
       }
     }
 
-    return { safe: true, parsedUrl: parsed, resolvedAddresses: resolvedIps };
+    const selectedLookup = lookups[0];
+    return {
+      safe: true,
+      parsedUrl: parsed,
+      resolvedAddresses: resolvedIps,
+      pinnedAddress: selectedLookup.address,
+      pinnedFamily: selectedLookup.family || (selectedLookup.address.includes(':') ? 6 : 4),
+    };
   } catch {
     return { safe: false, error: 'DNS_LOOKUP_FAILED' };
   }
@@ -496,16 +520,18 @@ export interface SafeFetchResponse {
   statusCode?: number;
   contentType?: string;
   error?: string;
+  pinnedIpUsed?: string;
 }
 
 /**
  * Safely fetches a URL by:
- * - Validating initial URL and re-validating every redirect target
- * - Limiting redirect hops (max 3)
- * - Restricting Content-Type (HTML or JSON)
- * - Streaming response body up to maxBodyBytes (512KB) and truncating/aborting
- * - Applying strict timeouts
- * - Preventing header/credential leakage
+ * - Resolving DNS once and locking connection socket to the pinned public IP (no second DNS resolution, closing TOCTOU / rebinding)
+ * - Preserving original Host header and TLS SNI without disabling TLS certificate verification
+ * - Stripping/omitting sensitive headers (Cookie, Authorization, proxy credentials)
+ * - Re-validating and re-pinning IP for each redirect hop
+ * - Restricting Content-Type via exact case-insensitive media-type matching
+ * - Streaming response body with strict byte limit (512KB) and returning safe error if exceeded (never truncated success)
+ * - Enforcing strict request timeouts
  */
 export async function safeFetch(
   targetUrl: string,
@@ -520,148 +546,240 @@ export async function safeFetch(
   let hops = 0;
 
   while (hops <= maxRedirects) {
-    // 1. Re-validate current hop destination
+    // 1. Single DNS resolution and comprehensive safety validation for current hop
     const safetyCheck = await validateUrlSafety(currentUrl, {
       dnsResolver: options.dnsResolver,
       allowTestLocalhost: options.allowTestLocalhost,
     });
 
-    if (!safetyCheck.safe) {
+    if (!safetyCheck.safe || !safetyCheck.parsedUrl || !safetyCheck.pinnedAddress) {
       return {
         ok: false,
-        error: hops === 0 ? 'UNSAFE_URL' : 'UNSAFE_REDIRECT',
+        error: hops === 0 ? safetyCheck.error || 'UNSAFE_URL' : 'UNSAFE_REDIRECT',
       };
     }
 
-    let response: Response;
-    try {
-      response = await fetch(currentUrl, {
-        method: 'GET',
-        redirect: 'manual', // Strictly control redirects manually
-        signal: AbortSignal.timeout(timeoutMs),
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          Accept:
-            'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.1',
-        },
-      });
-    } catch (err: any) {
-      if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
-        return { ok: false, error: 'TIMEOUT' };
-      }
-      return { ok: false, error: 'FETCH_FAILED' };
-    }
+    const parsedUrl = safetyCheck.parsedUrl;
+    const pinnedIp = safetyCheck.pinnedAddress;
+    const pinnedFamily = safetyCheck.pinnedFamily || (pinnedIp.includes(':') ? 6 : 4);
 
-    // 2. Handle Redirects (301, 302, 303, 307, 308)
-    if (
-      response.status === 301 ||
-      response.status === 302 ||
-      response.status === 303 ||
-      response.status === 307 ||
-      response.status === 308
-    ) {
+    // 2. Perform HTTP/HTTPS request with socket pinned directly to pinnedIp
+    const isHttps = parsedUrl.protocol === 'https:';
+    const httpModule = isHttps ? https : http;
+    const defaultPort = isHttps ? 443 : 80;
+    const port = parsedUrl.port ? parseInt(parsedUrl.port, 10) : defaultPort;
+
+    // Custom DNS lookup that always returns the validated pinned IP without network DNS query
+    const customLookup: any = (
+      _hostname: string,
+      lookupOpts: any,
+      callback: (err: NodeJS.ErrnoException | null, address: any, family?: number) => void,
+    ) => {
+      let cb = callback;
+      let opts = lookupOpts;
+      if (typeof opts === 'function') {
+        cb = opts;
+        opts = {};
+      }
+      if (opts && (opts as any).all) {
+        cb(null, [{ address: pinnedIp, family: pinnedFamily }]);
+      } else {
+        cb(null, pinnedIp, pinnedFamily);
+      }
+    };
+
+    const requestResult = await new Promise<SafeFetchResponse>((resolve) => {
+      let settled = false;
+      const safeResolve = (val: SafeFetchResponse) => {
+        if (!settled) {
+          settled = true;
+          resolve(val);
+        }
+      };
+
+      try {
+        const req = httpModule.request(
+          {
+            protocol: parsedUrl.protocol,
+            hostname: parsedUrl.hostname,
+            port,
+            path: `${parsedUrl.pathname}${parsedUrl.search}`,
+            method: 'GET',
+            lookup: customLookup,
+            headers: {
+              Host: parsedUrl.host,
+              'User-Agent':
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+              Accept:
+                'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.1',
+              'Accept-Language': 'en-US,en;q=0.9',
+              Connection: 'close',
+            },
+            // TLS verification is strictly enabled
+            rejectUnauthorized: true,
+            // Ensure SNI matches the target hostname
+            ...(isHttps ? { servername: parsedUrl.hostname } : {}),
+          },
+          (res) => {
+            const statusCode = res.statusCode || 0;
+
+            // Handle Redirects (301, 302, 303, 307, 308)
+            if ([301, 302, 303, 307, 308].includes(statusCode)) {
+              const locationHeader = res.headers.location;
+              res.resume();
+              if (!locationHeader || typeof locationHeader !== 'string') {
+                safeResolve({ ok: false, error: 'INVALID_REDIRECT_LOCATION' });
+                return;
+              }
+              try {
+                const nextUrl = new URL(locationHeader, currentUrl).toString();
+                safeResolve({
+                  ok: false,
+                  error: 'REDIRECT',
+                  finalUrl: nextUrl,
+                  statusCode,
+                });
+              } catch {
+                safeResolve({ ok: false, error: 'INVALID_REDIRECT_LOCATION' });
+              }
+              return;
+            }
+
+            // Handle non-success HTTP status
+            if (statusCode < 200 || statusCode >= 300) {
+              res.resume();
+              safeResolve({
+                ok: false,
+                error: 'HTTP_ERROR',
+                statusCode,
+              });
+              return;
+            }
+
+            // 4. Exact Content-Type validation
+            const rawContentType = (res.headers['content-type'] || '').trim();
+            const mediaType = rawContentType.split(';')[0].trim().toLowerCase();
+
+            if (allowedContentTypes.length > 0) {
+              const isAllowed = allowedContentTypes.some(
+                (allowed) => allowed.trim().toLowerCase() === mediaType,
+              );
+              if (!isAllowed) {
+                res.resume();
+                safeResolve({
+                  ok: false,
+                  error: 'INVALID_CONTENT_TYPE',
+                  contentType: rawContentType,
+                  statusCode,
+                });
+                return;
+              }
+            }
+
+            // 5. Check Content-Length header if present
+            const contentLengthHeader = res.headers['content-length'];
+            if (contentLengthHeader) {
+              const contentLength = parseInt(contentLengthHeader, 10);
+              if (!Number.isNaN(contentLength) && contentLength > maxBodyBytes) {
+                res.destroy();
+                safeResolve({
+                  ok: false,
+                  error: 'RESPONSE_TOO_LARGE',
+                  statusCode,
+                });
+                return;
+              }
+            }
+
+            // 6. Stream chunks with strict byte limit (fail closed on overflow)
+            let totalBytes = 0;
+            const chunks: Buffer[] = [];
+
+            res.on('data', (chunk: Buffer) => {
+              totalBytes += chunk.length;
+              if (totalBytes > maxBodyBytes) {
+                res.destroy();
+                safeResolve({
+                  ok: false,
+                  error: 'RESPONSE_TOO_LARGE',
+                  statusCode,
+                });
+                return;
+              }
+              chunks.push(chunk);
+            });
+
+            res.on('end', () => {
+              const bodyBuffer = Buffer.concat(chunks);
+              const bodyText = bodyBuffer.toString('utf-8');
+
+              if (mediaType === 'application/json') {
+                try {
+                  const jsonData = JSON.parse(bodyText);
+                  safeResolve({
+                    ok: true,
+                    jsonData,
+                    finalUrl: currentUrl,
+                    statusCode,
+                    contentType: rawContentType,
+                    pinnedIpUsed: pinnedIp,
+                  });
+                } catch {
+                  safeResolve({
+                    ok: false,
+                    error: 'INVALID_JSON',
+                    statusCode,
+                  });
+                }
+                return;
+              }
+
+              safeResolve({
+                ok: true,
+                html: bodyText,
+                finalUrl: currentUrl,
+                statusCode,
+                contentType: rawContentType,
+                pinnedIpUsed: pinnedIp,
+              });
+            });
+
+            res.on('error', () => {
+              safeResolve({ ok: false, error: 'STREAM_READ_FAILED' });
+            });
+          },
+        );
+
+        req.setTimeout(timeoutMs, () => {
+          req.destroy(new Error('TIMEOUT'));
+          safeResolve({ ok: false, error: 'TIMEOUT' });
+        });
+
+        req.on('error', (err: any) => {
+          if (err?.message === 'TIMEOUT' || err?.code === 'ETIMEDOUT') {
+            safeResolve({ ok: false, error: 'TIMEOUT' });
+          } else {
+            safeResolve({ ok: false, error: 'FETCH_FAILED' });
+          }
+        });
+
+        req.end();
+      } catch {
+        safeResolve({ ok: false, error: 'FETCH_FAILED' });
+      }
+    });
+
+    // Handle redirect outcome
+    if (requestResult.error === 'REDIRECT' && requestResult.finalUrl) {
       hops++;
       if (hops > maxRedirects) {
         return { ok: false, error: 'TOO_MANY_REDIRECTS' };
       }
-
-      const locationHeader = response.headers.get('location');
-      if (!locationHeader) {
-        return { ok: false, error: 'INVALID_REDIRECT_LOCATION' };
-      }
-
-      try {
-        currentUrl = new URL(locationHeader, currentUrl).toString();
-      } catch {
-        return { ok: false, error: 'INVALID_REDIRECT_LOCATION' };
-      }
+      currentUrl = requestResult.finalUrl;
       continue;
     }
 
-    // 3. Handle non-success statuses
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: 'HTTP_ERROR',
-        statusCode: response.status,
-      };
-    }
-
-    // 4. Validate Content-Type
-    const contentType = (response.headers.get('content-type') || '').toLowerCase();
-    if (allowedContentTypes.length > 0) {
-      const isAllowed = allowedContentTypes.some((type) => contentType.includes(type));
-      if (!isAllowed) {
-        return {
-          ok: false,
-          error: 'INVALID_CONTENT_TYPE',
-          contentType,
-        };
-      }
-    }
-
-    // 5. Read response body stream with strict size limit (maxBodyBytes)
-    let bodyText: string;
-    try {
-      if (response.body) {
-        const reader = response.body.getReader();
-        const chunks: Uint8Array[] = [];
-        let totalBytes = 0;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (value) {
-            chunks.push(value);
-            totalBytes += value.length;
-            if (totalBytes >= maxBodyBytes) {
-              await reader.cancel().catch(() => {});
-              break;
-            }
-          }
-        }
-
-        const combined = new Uint8Array(Math.min(totalBytes, maxBodyBytes));
-        let offset = 0;
-        for (const chunk of chunks) {
-          const toCopy = Math.min(chunk.length, maxBodyBytes - offset);
-          combined.set(chunk.subarray(0, toCopy), offset);
-          offset += toCopy;
-          if (offset >= maxBodyBytes) break;
-        }
-
-        bodyText = new TextDecoder('utf-8', { fatal: false }).decode(combined);
-      } else {
-        bodyText = await response.text();
-      }
-    } catch {
-      return { ok: false, error: 'STREAM_READ_FAILED' };
-    }
-
-    // If json response was requested
-    if (contentType.includes('application/json')) {
-      try {
-        const jsonData = JSON.parse(bodyText);
-        return {
-          ok: true,
-          jsonData,
-          finalUrl: currentUrl,
-          statusCode: response.status,
-          contentType,
-        };
-      } catch {
-        return { ok: false, error: 'INVALID_JSON' };
-      }
-    }
-
-    return {
-      ok: true,
-      html: bodyText,
-      finalUrl: currentUrl,
-      statusCode: response.status,
-      contentType,
-    };
+    return requestResult;
   }
 
   return { ok: false, error: 'TOO_MANY_REDIRECTS' };
