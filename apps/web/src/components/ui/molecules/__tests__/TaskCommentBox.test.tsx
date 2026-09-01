@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { TaskCommentBox } from '../TaskCommentBox';
 import type { TaskComment } from '@qlick/contracts';
 
@@ -221,5 +221,65 @@ describe('TaskCommentBox Molecule Component', () => {
     });
 
     expect(handlePostComment).toHaveBeenCalledWith('New message from developer', null, []);
+  });
+
+  it('opens delete confirmation modal when delete button is clicked and cancels on cancel', async () => {
+    const handleDeleteComment = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TaskCommentBox
+        comments={mockComments}
+        currentUserId="user-2"
+        members={mockMembers}
+        onPostComment={vi.fn()}
+        onDeleteComment={handleDeleteComment}
+      />
+    );
+
+    // Click delete button on user-2's comment
+    const deleteBtn = screen.getByRole('button', { name: /Delete message/i });
+    fireEvent.click(deleteBtn);
+
+    // Modal dialog should appear
+    const dialog = screen.getByRole('dialog', { name: /Delete comment\?/i });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText(/Are you sure you want to delete this comment\?/i)).toBeInTheDocument();
+
+    // Click cancel button
+    const cancelBtn = within(dialog).getByRole('button', { name: /Cancel/i });
+    fireEvent.click(cancelBtn);
+
+    // Modal should close and onDeleteComment should not be called
+    expect(screen.queryByRole('dialog', { name: /Delete comment\?/i })).not.toBeInTheDocument();
+    expect(handleDeleteComment).not.toHaveBeenCalled();
+  });
+
+  it('opens delete confirmation modal and calls onDeleteComment on confirm', async () => {
+    const handleDeleteComment = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TaskCommentBox
+        comments={mockComments}
+        currentUserId="user-2"
+        members={mockMembers}
+        onPostComment={vi.fn()}
+        onDeleteComment={handleDeleteComment}
+      />
+    );
+
+    // Click delete button
+    const deleteBtn = screen.getByRole('button', { name: /Delete message/i });
+    fireEvent.click(deleteBtn);
+
+    // Modal dialog should appear
+    const dialog = screen.getByRole('dialog', { name: /Delete comment\?/i });
+    expect(dialog).toBeInTheDocument();
+
+    // Click confirm delete button
+    const confirmDeleteBtn = within(dialog).getByRole('button', { name: /Delete Comment/i });
+    await act(async () => {
+      fireEvent.click(confirmDeleteBtn);
+    });
+
+    expect(handleDeleteComment).toHaveBeenCalledWith('comm-1');
+    expect(screen.queryByRole('dialog', { name: /Delete comment\?/i })).not.toBeInTheDocument();
   });
 });

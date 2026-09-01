@@ -23,6 +23,8 @@ import { WorkspaceMembersTable } from '../components/ui/organisms/WorkspaceMembe
 import { InviteMemberModal } from '../components/ui/organisms/InviteMemberModal';
 import { AdminResetPasswordModal } from '../components/ui/organisms/AdminResetPasswordModal';
 import { Button } from '../components/ui/atoms/Button';
+import { Modal } from '../components/ui/molecules/Modal';
+import { Alert } from '../components/ui/atoms/Alert';
 
 export const WorkspaceSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -56,6 +58,17 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const [newMemberPassword, setNewMemberPassword] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
+  // Workspace Archive / Restore Modal State
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  // Member Removal Modal State
+  const [memberPendingRemoval, setMemberPendingRemoval] = useState<{
+    userId: string;
+    email: string;
+  } | null>(null);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
+
   useEffect(() => {
     dispatch(fetchWorkspaces());
   }, [dispatch]);
@@ -81,19 +94,21 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const isArchived = Boolean(activeWorkspace?.archivedAt);
   const canArchiveWorkspace = userRole === 'owner';
 
-  const handleWorkspaceArchive = async () => {
+  const handleConfirmArchiveToggle = async () => {
     if (!activeWorkspace) return;
-    const action = isArchived ? 'restore' : 'archive';
-    if (!window.confirm(`Are you sure you want to ${action} ${activeWorkspace.name}?`)) return;
+    setIsArchiving(true);
     try {
       await dispatch(
         isArchived ? restoreWorkspace(activeWorkspace.id) : archiveWorkspace(activeWorkspace.id),
       ).unwrap();
       dispatch(enqueueSnackbar(`Workspace ${isArchived ? 'restored' : 'archived'}`, 'success'));
+      setIsArchiveModalOpen(false);
     } catch (err) {
       dispatch(
         enqueueSnackbar(err instanceof Error ? err.message : 'Workspace action failed', 'error'),
       );
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -243,24 +258,29 @@ export const WorkspaceSettingsPage: React.FC = () => {
     }
   };
 
-  const handleRemoveMember = async (memberUserId: string, memberEmail: string) => {
-    if (
-      !activeWorkspace ||
-      !window.confirm(`Are you sure you want to remove ${memberEmail} from this workspace?`)
-    )
-      return;
+  const handleRemoveMember = (memberUserId: string, memberEmail: string) => {
+    setMemberPendingRemoval({ userId: memberUserId, email: memberEmail });
+  };
+
+  const handleConfirmRemoveMember = async () => {
+    if (!activeWorkspace || !memberPendingRemoval) return;
+    const { userId, email } = memberPendingRemoval;
+    setIsRemovingMember(true);
     try {
       await dispatch(
         removeMember({
           workspaceId: activeWorkspace.id,
-          memberUserId,
+          memberUserId: userId,
         }),
       ).unwrap();
-      dispatch(enqueueSnackbar(`Removed ${memberEmail} from workspace`, 'info'));
+      dispatch(enqueueSnackbar(`Removed ${email} from workspace`, 'info'));
+      setMemberPendingRemoval(null);
     } catch (err) {
       dispatch(
         enqueueSnackbar(err instanceof Error ? err.message : 'Failed to remove member', 'error'),
       );
+    } finally {
+      setIsRemovingMember(false);
     }
   };
 
@@ -326,7 +346,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
           {canArchiveWorkspace && (
             <Button
               variant={isArchived ? 'secondary' : 'destructive'}
-              onClick={() => void handleWorkspaceArchive()}
+              onClick={() => setIsArchiveModalOpen(true)}
             >
               {isArchived ? 'Restore Workspace' : 'Archive Workspace'}
             </Button>
@@ -399,6 +419,103 @@ export const WorkspaceSettingsPage: React.FC = () => {
         onPasswordChange={setNewMemberPassword}
         onSubmit={handleAdminResetPassword}
       />
+
+      {/* Modal: Archive / Restore Workspace Confirmation */}
+      <Modal
+        isOpen={isArchiveModalOpen}
+        onClose={() => {
+          if (!isArchiving) setIsArchiveModalOpen(false);
+        }}
+        title={
+          isArchived
+            ? `Restore "${activeWorkspace.name}"?`
+            : `Archive "${activeWorkspace.name}"?`
+        }
+        description={
+          isArchived
+            ? 'Restoring this workspace will make it active and allow mutations again.'
+            : 'Archiving this workspace will make it read-only and block workspace mutations while preserving all delivery and audit records.'
+        }
+        size="md"
+      >
+        <div className="space-y-4">
+          {isArchived ? (
+            <p className="text-xs text-stone-600 dark:text-stone-300">
+              Are you sure you want to restore{' '}
+              <span className="font-semibold text-stone-900 dark:text-stone-100">
+                {activeWorkspace.name}
+              </span>
+              ? Members will be able to collaborate and make updates again.
+            </p>
+          ) : (
+            <Alert tone="warning" title="Workspace will become read-only">
+              All tasks, subtasks, test cases, evidence, and audit logs will remain intact, but
+              creating or editing items in this workspace will be blocked until restored.
+            </Alert>
+          )}
+          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsArchiveModalOpen(false)}
+              disabled={isArchiving}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={isArchived ? 'primary' : 'destructive'}
+              size="sm"
+              onClick={() => void handleConfirmArchiveToggle()}
+              isLoading={isArchiving}
+            >
+              {isArchived ? 'Restore Workspace' : 'Archive Workspace'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: Remove Member Confirmation */}
+      <Modal
+        isOpen={Boolean(memberPendingRemoval)}
+        onClose={() => {
+          if (!isRemovingMember) setMemberPendingRemoval(null);
+        }}
+        title="Remove Member from Workspace?"
+        description={`Remove ${memberPendingRemoval?.email || 'this member'} from ${activeWorkspace.name}.`}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Alert tone="warning" title="Member Access Revocation">
+            This member will lose access to this workspace immediately. Their historical task
+            activities and delivery trace contributions will be retained.
+          </Alert>
+          <p className="text-xs text-stone-600 dark:text-stone-300">
+            Are you sure you want to remove{' '}
+            <span className="font-semibold text-stone-900 dark:text-stone-100">
+              {memberPendingRemoval?.email}
+            </span>
+            ?
+          </p>
+          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMemberPendingRemoval(null)}
+              disabled={isRemovingMember}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void handleConfirmRemoveMember()}
+              isLoading={isRemovingMember}
+            >
+              Remove Member
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -20,6 +20,7 @@ import { LoadingSpinner } from '../atoms/LoadingSpinner';
 import { Skeleton } from '../atoms/Skeleton';
 import { Alert } from '../atoms/Alert';
 import { DiscussionMediaRenderer } from './DiscussionMediaRenderer';
+import { Modal } from './Modal';
 
 export const EMPTY_DISCUSSION_ILLUSTRATION_URL =
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024196/ChatGPT_Image_Aug_18_2026_10_33_27_AM.png';
@@ -82,6 +83,9 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
   const [editingCommentText, setEditingCommentText] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [commentToDelete, setCommentToDelete] = useState<{ id: string; isBubble: boolean } | null>(
+    null,
+  );
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -202,12 +206,18 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
     }
   };
 
-  const handleDelete = async (commentId: string) => {
+  const handleDelete = (commentId: string) => {
     if (!onDeleteComment) return;
-    if (!window.confirm(isBubble ? 'Delete this message?' : 'Are you sure you want to delete this message?')) return;
-    setDeletingId(commentId);
+    setCommentToDelete({ id: commentId, isBubble });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!commentToDelete || !onDeleteComment) return;
+    const targetId = commentToDelete.id;
+    setDeletingId(targetId);
     try {
-      await onDeleteComment(commentId);
+      await onDeleteComment(targetId);
+      setCommentToDelete(null);
     } finally {
       setDeletingId(null);
     }
@@ -1312,6 +1322,46 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
           )}
         </div>
       )}
+
+      {/* Modal: Delete Comment Confirmation */}
+      <Modal
+        isOpen={Boolean(commentToDelete)}
+        onClose={() => {
+          if (!deletingId) setCommentToDelete(null);
+        }}
+        title={commentToDelete?.isBubble ? 'Delete message?' : 'Delete comment?'}
+        description={
+          commentToDelete?.isBubble
+            ? 'This action will remove the message from this discussion.'
+            : 'This action will remove the comment and any direct replies from this task discussion.'
+        }
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-stone-600 dark:text-stone-300">
+            Are you sure you want to delete this {commentToDelete?.isBubble ? 'message' : 'comment'}? This action cannot be undone.
+          </p>
+          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCommentToDelete(null)}
+              disabled={Boolean(deletingId)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void handleConfirmDelete()}
+              isLoading={Boolean(deletingId)}
+              leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+            >
+              Delete {commentToDelete?.isBubble ? 'Message' : 'Comment'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
