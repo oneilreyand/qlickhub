@@ -1,5 +1,8 @@
 import dns from 'node:dns';
+import http from 'node:http';
+import https from 'node:https';
 import net from 'node:net';
+import { URL } from 'node:url';
 
 export const MAX_REDIRECTS = 3;
 export const MAX_BODY_BYTES = 512 * 1024; // 512 KB
@@ -146,7 +149,8 @@ export function parseIpv6Words(rawIp: string): number[] | null {
 
 /**
  * Validates whether an IPv4 or IPv6 address is private, loopback, link-local,
- * multicast, carrier-grade NAT, cloud metadata, or reserved.
+ * multicast, carrier-grade NAT, cloud metadata, or reserved special-use.
+ * Uses strict fail-closed policy: only true global-unicast routable IPs are permitted.
  */
 export function isPrivateOrReservedIp(ip: string): boolean {
   if (!ip || typeof ip !== 'string') return true;
@@ -164,7 +168,7 @@ export function isPrivateOrReservedIp(ip: string): boolean {
   if (words !== null) {
     const [w0, w1, w2, w3, w4, w5, w6, w7] = words;
 
-    // ::1/128 - Loopback
+    // ::1/128 - Loopback (RFC 4291)
     if (
       w0 === 0 &&
       w1 === 0 &&
@@ -178,7 +182,7 @@ export function isPrivateOrReservedIp(ip: string): boolean {
       return true;
     }
 
-    // ::/128 - Unspecified
+    // ::/128 - Unspecified (RFC 4291)
     if (
       w0 === 0 &&
       w1 === 0 &&
@@ -192,13 +196,13 @@ export function isPrivateOrReservedIp(ip: string): boolean {
       return true;
     }
 
-    // ::ffff:0:0/96 - IPv4-mapped IPv6
+    // ::ffff:0:0/96 - IPv4-mapped IPv6 (RFC 4291)
     if (w0 === 0 && w1 === 0 && w2 === 0 && w3 === 0 && w4 === 0 && w5 === 0xffff) {
       const embeddedV4 = ((w6 << 16) | w7) >>> 0;
       return isPrivateOrReservedIpv4Int(embeddedV4);
     }
 
-    // ::0:0/96 - IPv4-compatible IPv6 (deprecated)
+    // ::0:0/96 - IPv4-compatible IPv6 (deprecated RFC 4291)
     if (
       w0 === 0 &&
       w1 === 0 &&
@@ -212,13 +216,21 @@ export function isPrivateOrReservedIp(ip: string): boolean {
       return isPrivateOrReservedIpv4Int(embeddedV4);
     }
 
-    // 2002::/16 - 6to4 prefix (contains embedded IPv4 in w1:w2)
-    if (w0 === 0x2002) {
-      const embeddedV4 = ((w1 << 16) | w2) >>> 0;
+    // 64:ff9b::/96 - IPv4/IPv6 translation well-known prefix (RFC 6052)
+    if (w0 === 0x0064 && w1 === 0xff9b && w2 === 0 && w3 === 0 && w4 === 0 && w5 === 0) {
+      const embeddedV4 = ((w6 << 16) | w7) >>> 0;
       return isPrivateOrReservedIpv4Int(embeddedV4);
     }
 
-    // 2001:0000::/32 - Teredo prefix (contains embedded IPv4 in client/server fields)
+    // 64:ff9b:1::/48 - Local-Use IPv4/IPv6 translation (RFC 8215)
+    if (w0 === 0x0064 && w1 === 0xff9b && w2 === 0x0001) {
+      return true;
+    }
+
+    // 0100::/64 - Discard-only prefix (RFC 6666)
+    if (w0 === 0x0100 && w1 === 0 && w2 === 0 && w3 === 0) return true;
+
+    // 2001:0000::/32 - Teredo prefix (RFC 4380)
     if (w0 === 0x2001 && w1 === 0x0000) {
       const serverV4 = ((w2 << 16) | w3) >>> 0;
       const clientV4 = ~((w6 << 16) | w7) >>> 0;
@@ -227,26 +239,40 @@ export function isPrivateOrReservedIp(ip: string): boolean {
       }
     }
 
-    // fc00::/7 - Unique Local Unicast (ULA: fc00:: to fdff::, includes AWS fd00:ec2::254)
-    if ((w0 & 0xfe00) === 0xfc00) return true;
+    // 2001:2::/48 - BMWG Benchmarking (RFC 5180)
+    if (w0 === 0x2001 && w1 === 0x0002) return true;
 
-    // fe80::/10 - Link-Local Unicast (fe80:: to febf::)
-    if ((w0 & 0xffc0) === 0xfe80) return true;
+    // 2001:10::/28 - ORCHIDv2 (RFC 7343)
+    if (w0 === 0x2001 && (w1 & 0xfff0) === 0x0010) return true;
 
-    // ff00::/8 - Multicast
-    if ((w0 & 0xff00) === 0xff00) return true;
-
-    // fec0::/10 - Site-Local (deprecated RFC 3879)
-    if ((w0 & 0xffc0) === 0xfec0) return true;
+    // 2001:20::/28 - Drone Remote ID (RFC 9385)
+    if (w0 === 0x2001 && (w1 & 0xfff0) === 0x0020) return true;
 
     // 2001:db8::/32 - Documentation (RFC 3849)
     if (w0 === 0x2001 && w1 === 0x0db8) return true;
 
-    // 0100::/64 - Discard-only prefix (RFC 6666)
-    if (w0 === 0x0100 && w1 === 0 && w2 === 0 && w3 === 0) return true;
+    // 2002::/16 - 6to4 prefix (RFC 3056)
+    if (w0 === 0x2002) {
+      const embeddedV4 = ((w1 << 16) | w2) >>> 0;
+      if (isPrivateOrReservedIpv4Int(embeddedV4)) return true;
+    }
 
-    // 2001:2::/48 - Benchmarking (RFC 5180)
-    if (w0 === 0x2001 && w1 === 0x0002) return true;
+    // fc00::/7 - Unique Local Unicast (ULA: fc00:: to fdff::, RFC 4193)
+    if ((w0 & 0xfe00) === 0xfc00) return true;
+
+    // fe80::/10 - Link-Local Unicast (fe80:: to febf::, RFC 4291)
+    if ((w0 & 0xffc0) === 0xfe80) return true;
+
+    // fec0::/10 - Site-Local (deprecated RFC 3879)
+    if ((w0 & 0xffc0) === 0xfec0) return true;
+
+    // ff00::/8 - Multicast (RFC 4291)
+    if ((w0 & 0xff00) === 0xff00) return true;
+
+    // Fail-closed check: Ensure the address is within Global Unicast space (2000::/3)
+    if ((w0 & 0xe000) !== 0x2000) {
+      return true;
+    }
 
     return false;
   }
