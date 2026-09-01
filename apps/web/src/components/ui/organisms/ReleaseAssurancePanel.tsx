@@ -1,9 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, FileCheck2, History, ShieldAlert, ShieldCheck, XCircle } from 'lucide-react';
+import {
+  Ban,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  FileCheck2,
+  History,
+  ShieldAlert,
+  ShieldCheck,
+  XCircle,
+} from 'lucide-react';
 import type {
   FeatureReleaseRecords,
+  QaSignOff,
   QaSignOffDecision,
   ReadinessSnapshot,
+  ReleaseDecision,
   ReleaseDecisionOutcome,
   WorkspaceRole,
 } from '@qlick/contracts';
@@ -30,8 +42,15 @@ export interface ReleaseAssurancePanelProps {
   onDataChanged?: () => void;
 }
 
-const decisionBadge = (decision: 'approved' | 'rejected') =>
-  decision === 'approved' ? (
+const decisionBadge = (decision: 'approved' | 'rejected', isCancelled = false) => {
+  if (isCancelled) {
+    return (
+      <Badge variant="neutral" icon={<Ban className="h-3.5 w-3.5" />}>
+        Cancelled ({decision === 'approved' ? 'Approved' : 'Rejected'})
+      </Badge>
+    );
+  }
+  return decision === 'approved' ? (
     <Badge variant="passed" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
       Approved
     </Badge>
@@ -40,6 +59,7 @@ const decisionBadge = (decision: 'approved' | 'rejected') =>
       Rejected
     </Badge>
   );
+};
 
 const actorLabel = (actorId: string, members: RootState['workspace']['members']) => {
   const member = members.find((item) => item.userId === actorId);
@@ -150,15 +170,43 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Cancellation modal state
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [recordToCancel, setRecordToCancel] = useState<{
+    id: string;
+    type: 'qa' | 'release';
+    title: string;
+  } | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
   const normalizedRole = userRole.toLowerCase();
   const canSignOff = ['owner', 'admin', 'qa'].includes(normalizedRole);
   const canDecideRelease = ['owner', 'admin', 'po'].includes(normalizedRole);
-  const latestQaSignOff = records?.qaSignOffs[0] || null;
-  const latestReleaseDecision = records?.releaseDecisions[0] || null;
+
+  const allQaSignOffs = records?.qaSignOffs || [];
+  const allReleaseDecisions = records?.releaseDecisions || [];
+
+  // Active records (non-cancelled)
+  const activeQaSignOffs = allQaSignOffs.filter((s) => !s.cancellation);
+  const activeReleaseDecisions = allReleaseDecisions.filter((d) => !d.cancellation);
+
+  const latestActiveQaSignOff = activeQaSignOffs[0] || null;
+  const latestActiveReleaseDecision = activeReleaseDecisions[0] || null;
+
+  const latestRecord =
+    mode === 'qa'
+      ? latestActiveQaSignOff || allQaSignOffs[0] || null
+      : latestActiveReleaseDecision || allReleaseDecisions[0] || null;
+
   const currentReadinessSnapshot = records?.currentReadinessSnapshot || null;
   const isSelfApproval =
     mode === 'release' &&
-    Boolean(latestQaSignOff && currentUserId && latestQaSignOff.signedBy === currentUserId);
+    Boolean(
+      latestActiveQaSignOff && currentUserId && latestActiveQaSignOff.signedBy === currentUserId,
+    );
 
   const loadRecords = useCallback(async () => {
     const requestId = ++requestIdRef.current;
@@ -204,14 +252,21 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     setIsModalOpen(true);
   };
 
+  const openCancelModal = (record: { id: string; type: 'qa' | 'release'; title: string }) => {
+    setRecordToCancel(record);
+    setCancelReason('');
+    setCancelError(null);
+    setIsCancelModalOpen(true);
+  };
+
   const requiresOverrideReason =
     mode === 'release' &&
     decision === 'approved' &&
     currentReadinessSnapshot?.evaluation.ready === false;
 
   const submitDecision = async () => {
-    if (mode === 'release' && !latestQaSignOff) {
-      setFormError('A QA Sign-off is required before recording a Release Decision.');
+    if (mode === 'release' && !latestActiveQaSignOff) {
+      setFormError('An active QA Sign-off is required before recording a Release Decision.');
       return;
     }
     if (requiresOverrideReason && !overrideReason.trim()) {
@@ -230,7 +285,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
         dispatch(enqueueSnackbar('QA Sign-off recorded without changing Task status', 'success'));
       } else {
         await releaseDecisionService.createReleaseDecision(workspaceId, featureTaskId, {
-          qaSignOffId: latestQaSignOff!.id,
+          qaSignOffId: latestActiveQaSignOff!.id,
           decision,
           notes: notes.trim() || null,
           overrideReason: requiresOverrideReason ? overrideReason.trim() : null,
@@ -251,11 +306,64 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     }
   };
 
+  const submitCancellation = async () => {
+    if (!recordToCancel) return;
+    const trimmedReason = cancelReason.trim();
+    if (!trimmedReason) {
+      setCancelError('Cancellation reason is required.');
+      return;
+    }
+
+    try {
+      setIsCancelling(true);
+      setCancelError(null);
+      if (recordToCancel.type === 'qa') {
+        await releaseDecisionService.cancelQaSignOff(
+          workspaceId,
+          featureTaskId,
+          recordToCancel.id,
+          {
+            reason: trimmedReason,
+          },
+        );
+        dispatch(enqueueSnackbar('QA Sign-off cancelled successfully', 'success'));
+      } else {
+        await releaseDecisionService.cancelReleaseDecision(
+          workspaceId,
+          featureTaskId,
+          recordToCancel.id,
+          { reason: trimmedReason },
+        );
+        dispatch(enqueueSnackbar('Release Decision cancelled successfully', 'success'));
+      }
+      setIsCancelModalOpen(false);
+      setRecordToCancel(null);
+      await loadRecords();
+      onDataChanged?.();
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Failed to cancel record.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const title = mode === 'qa' ? 'QA Certification' : 'Release Decision';
-  const latestRecord = mode === 'qa' ? latestQaSignOff : latestReleaseDecision;
-  const snapshot = latestRecord?.readinessSnapshot || latestQaSignOff?.readinessSnapshot || null;
+  const snapshot =
+    latestRecord?.readinessSnapshot || latestActiveQaSignOff?.readinessSnapshot || null;
   const canMutate = mode === 'qa' ? canSignOff : canDecideRelease;
-  const buttonDisabled = !canMutate || (mode === 'release' && (!latestQaSignOff || isSelfApproval));
+  const buttonDisabled =
+    !canMutate || (mode === 'release' && (!latestActiveQaSignOff || isSelfApproval));
+
+  // Check if active record can be cancelled by current user
+  const canCancelCurrentQa =
+    Boolean(latestActiveQaSignOff) &&
+    (['owner', 'admin'].includes(normalizedRole) ||
+      (normalizedRole === 'qa' && latestActiveQaSignOff?.signedBy === currentUserId));
+
+  const canCancelCurrentRelease =
+    Boolean(latestActiveReleaseDecision) && ['owner', 'admin', 'po'].includes(normalizedRole);
+
+  const hasActiveReleaseDecision = activeReleaseDecisions.length > 0;
 
   const historyText = useMemo(() => {
     if (!records) return '';
@@ -292,7 +400,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             title={
               isSelfApproval
                 ? 'The QA signer cannot make the Release Decision for the same certification'
-                : mode === 'release' && !latestQaSignOff
+                : mode === 'release' && !latestActiveQaSignOff
                   ? 'Record QA Sign-off before making a Release Decision'
                   : undefined
             }
@@ -336,7 +444,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           description={
             mode === 'qa'
               ? 'Record explicit QA certification after reviewing persisted execution evidence.'
-              : latestQaSignOff
+              : latestActiveQaSignOff
                 ? currentReadinessSnapshot?.evaluation.ready
                   ? 'The latest QA certification and persisted gates are ready for an independent product decision.'
                   : 'Review the failed readiness gates below before rejecting the release or recording a reasoned override.'
@@ -345,15 +453,77 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
         />
       ) : (
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600 dark:text-stone-400">
-            {decisionBadge(latestRecord.decision)}
-            <span>
-              {mode === 'qa'
-                ? `Signed by ${actorLabel(latestQaSignOff!.signedBy, members)}`
-                : `Decided by ${actorLabel(latestReleaseDecision!.decidedBy, members)}`}
-            </span>
-            <span aria-label="Decision history">{historyText}</span>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-600 dark:text-stone-400">
+            <div className="flex flex-wrap items-center gap-2">
+              {decisionBadge(latestRecord.decision, Boolean(latestRecord.cancellation))}
+              <span>
+                {mode === 'qa'
+                  ? `Signed by ${actorLabel((latestRecord as QaSignOff).signedBy, members)}`
+                  : `Decided by ${actorLabel((latestRecord as ReleaseDecision).decidedBy, members)}`}
+              </span>
+              <span aria-label="Decision history">{historyText}</span>
+            </div>
+
+            {/* Cancel Action for latest active record */}
+            {!latestRecord.cancellation && (
+              <div>
+                {mode === 'qa' && canCancelCurrentQa && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      openCancelModal({
+                        id: latestRecord.id,
+                        type: 'qa',
+                        title: `QA Sign-off (${latestRecord.decision})`,
+                      })
+                    }
+                    leftIcon={<Ban className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
+                    title={
+                      hasActiveReleaseDecision
+                        ? 'Cancel related Release Decision first'
+                        : 'Cancel this QA Sign-off'
+                    }
+                  >
+                    Cancel Sign-off
+                  </Button>
+                )}
+                {mode === 'release' && canCancelCurrentRelease && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      openCancelModal({
+                        id: latestRecord.id,
+                        type: 'release',
+                        title: `Release Decision (${latestRecord.decision})`,
+                      })
+                    }
+                    leftIcon={<Ban className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
+                  >
+                    Cancel Decision
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Cancellation metadata banner if cancelled */}
+          {latestRecord.cancellation && (
+            <div className="rounded-xl border border-stone-200 bg-stone-50/90 p-3 text-xs dark:border-stone-800 dark:bg-stone-950/40">
+              <div className="flex items-center gap-1.5 font-semibold text-stone-900 dark:text-stone-200">
+                <Ban className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                <span>
+                  Cancelled by {actorLabel(latestRecord.cancellation.cancelledBy, members)} ·{' '}
+                  {new Date(latestRecord.cancellation.cancelledAt).toLocaleString()}
+                </span>
+              </div>
+              <p className="mt-1 text-stone-700 italic dark:text-stone-300">
+                "{latestRecord.cancellation.reason}"
+              </p>
+            </div>
+          )}
+
           {latestRecord.notes && (
             <p className="rounded-xl bg-stone-50 p-3 text-xs text-stone-700 dark:bg-stone-950/40 dark:text-stone-300">
               {latestRecord.notes}
@@ -378,6 +548,137 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
         </Alert>
       )}
 
+      {/* History toggle & list */}
+      {!isLoading &&
+        !permissionDenied &&
+        !error &&
+        records &&
+        (allQaSignOffs.length > 1 || allReleaseDecisions.length > 1) && (
+          <div className="border-t border-stone-200 pt-2 dark:border-stone-800">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowHistory((prev) => !prev)}
+              rightIcon={
+                showHistory ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )
+              }
+            >
+              {showHistory ? 'Hide history' : `View assurance history (${historyText})`}
+            </Button>
+
+            {showHistory && (
+              <div className="mt-2 space-y-2">
+                {mode === 'qa' && (
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-bold text-stone-700 dark:text-stone-300">
+                      All QA Sign-offs
+                    </h5>
+                    {allQaSignOffs.map((so) => (
+                      <div
+                        key={so.id}
+                        className="rounded-lg border border-stone-200 p-2.5 text-xs dark:border-stone-800"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {decisionBadge(so.decision, Boolean(so.cancellation))}
+                            <span>{actorLabel(so.signedBy, members)}</span>
+                            <span className="text-stone-400">
+                              {new Date(so.signedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {!so.cancellation && canCancelCurrentQa && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                openCancelModal({
+                                  id: so.id,
+                                  type: 'qa',
+                                  title: `QA Sign-off (${so.decision})`,
+                                })
+                              }
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                        </div>
+                        {so.notes && (
+                          <p className="mt-1 text-stone-600 dark:text-stone-400">{so.notes}</p>
+                        )}
+                        {so.cancellation && (
+                          <div className="mt-1.5 rounded bg-stone-100 p-1.5 text-stone-600 dark:bg-stone-900/60 dark:text-stone-400">
+                            <span className="font-semibold">Cancelled: </span>
+                            <span>{so.cancellation.reason}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {mode === 'release' && (
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-bold text-stone-700 dark:text-stone-300">
+                      All Release Decisions
+                    </h5>
+                    {allReleaseDecisions.map((rd) => (
+                      <div
+                        key={rd.id}
+                        className="rounded-lg border border-stone-200 p-2.5 text-xs dark:border-stone-800"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {decisionBadge(rd.decision, Boolean(rd.cancellation))}
+                            <span>{actorLabel(rd.decidedBy, members)}</span>
+                            <span className="text-stone-400">
+                              {new Date(rd.decidedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {!rd.cancellation && canCancelCurrentRelease && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                openCancelModal({
+                                  id: rd.id,
+                                  type: 'release',
+                                  title: `Release Decision (${rd.decision})`,
+                                })
+                              }
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                        </div>
+                        {rd.notes && (
+                          <p className="mt-1 text-stone-600 dark:text-stone-400">{rd.notes}</p>
+                        )}
+                        {rd.overrideReason && (
+                          <p className="mt-1 text-amber-600 dark:text-amber-400">
+                            <span className="font-semibold">Override: </span>
+                            {rd.overrideReason}
+                          </p>
+                        )}
+                        {rd.cancellation && (
+                          <div className="mt-1.5 rounded bg-stone-100 p-1.5 text-stone-600 dark:bg-stone-900/60 dark:text-stone-400">
+                            <span className="font-semibold">Cancelled: </span>
+                            <span>{rd.cancellation.reason}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+      {/* Record Decision Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => !isSubmitting && setIsModalOpen(false)}
@@ -452,6 +753,64 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               }
             >
               Record decision
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Cancel Record Modal */}
+      <Modal
+        isOpen={isCancelModalOpen}
+        onClose={() => !isCancelling && setIsCancelModalOpen(false)}
+        title={recordToCancel?.type === 'qa' ? 'Cancel QA Sign-off' : 'Cancel Release Decision'}
+        size="md"
+      >
+        <div className="space-y-4">
+          <Alert tone="warning" title="Permanent cancellation">
+            This creates an append-only cancellation event. A cancellation is permanent and cannot
+            be undone. Cancelled records are retained indefinitely for audit history.
+          </Alert>
+
+          {recordToCancel?.type === 'qa' && hasActiveReleaseDecision && (
+            <Alert tone="error" title="Sequence requirement (D5)">
+              An active Release Decision references this Feature / Story. You must cancel the
+              Release Decision before cancelling this QA Sign-off.
+            </Alert>
+          )}
+
+          <Textarea
+            label="Cancellation reason"
+            value={cancelReason}
+            onChange={(event) => {
+              setCancelReason(event.target.value);
+              setCancelError(null);
+            }}
+            placeholder="Explain why this assurance record is being cancelled..."
+            rows={3}
+            maxLength={20000}
+            required
+            disabled={isCancelling}
+            error={cancelError || undefined}
+          />
+
+          <div className="flex flex-col-reverse gap-2 border-t border-stone-200 pt-3 sm:flex-row sm:justify-end dark:border-stone-800">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCancelModalOpen(false)}
+              disabled={isCancelling}
+            >
+              Back
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void submitCancellation()}
+              isLoading={isCancelling}
+              disabled={recordToCancel?.type === 'qa' && hasActiveReleaseDecision}
+              leftIcon={<Ban className="h-4 w-4" />}
+            >
+              Confirm Cancellation
             </Button>
           </div>
         </div>

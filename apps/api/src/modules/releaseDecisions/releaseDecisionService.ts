@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { Op, type Transaction } from 'sequelize';
 import type {
+  CancelQaSignOffInput,
+  CancelReleaseDecisionInput,
   CreateQaSignOffInput,
   CreateReleaseDecisionInput,
   FeatureReleaseRecords,
@@ -12,7 +14,9 @@ import type {
 import { sequelize } from '../../db/sequelize.js';
 import {
   BugModel,
+  QaSignOffCancellationModel,
   QaSignOffModel,
+  ReleaseDecisionCancellationModel,
   ReleaseDecisionModel,
   TaskActivityModel,
   TaskModel,
@@ -25,6 +29,8 @@ import {
   WorkspaceMemberModel,
 } from '../../db/models/index.js';
 import {
+  assertCanCancelQaSignOff,
+  assertCanCancelReleaseDecision,
   assertCanCreateQaSignOff,
   assertCanCreateReleaseDecision,
   assertIndependentReleaseDecision,
@@ -46,6 +52,15 @@ function formatQaSignOff(signOff: QaSignOffModel): QaSignOff {
     readinessSnapshot: signOff.readinessSnapshot,
     signedBy: signOff.signedBy,
     signedAt: iso(signOff.signedAt),
+    cancellation: signOff.cancellation
+      ? {
+          id: signOff.cancellation.id,
+          workspaceId: signOff.cancellation.workspaceId,
+          cancelledBy: signOff.cancellation.cancelledBy,
+          cancelledAt: iso(signOff.cancellation.cancelledAt),
+          reason: signOff.cancellation.reason,
+        }
+      : null,
   };
 }
 
@@ -61,6 +76,15 @@ function formatReleaseDecision(decision: ReleaseDecisionModel): ReleaseDecision 
     readinessSnapshot: decision.readinessSnapshot,
     decidedBy: decision.decidedBy,
     decidedAt: iso(decision.decidedAt),
+    cancellation: decision.cancellation
+      ? {
+          id: decision.cancellation.id,
+          workspaceId: decision.cancellation.workspaceId,
+          cancelledBy: decision.cancellation.cancelledBy,
+          cancelledAt: iso(decision.cancellation.cancelledAt),
+          reason: decision.cancellation.reason,
+        }
+      : null,
   };
 }
 
@@ -102,6 +126,7 @@ export class ReleaseDecisionService {
 
       const signOffs = await QaSignOffModel.findAll({
         where: { workspaceId, featureTaskId: { [Op.in]: uniqueFeatureTaskIds } },
+        include: [{ model: QaSignOffCancellationModel, as: 'cancellation', required: false }],
         order: [
           ['signedAt', 'DESC'],
           ['id', 'DESC'],
@@ -110,7 +135,7 @@ export class ReleaseDecisionService {
       });
       const latestSignOffByFeatureId = new Map<string, QaSignOffModel>();
       for (const signOff of signOffs) {
-        if (!latestSignOffByFeatureId.has(signOff.featureTaskId)) {
+        if (!signOff.cancellation && !latestSignOffByFeatureId.has(signOff.featureTaskId)) {
           latestSignOffByFeatureId.set(signOff.featureTaskId, signOff);
         }
       }
@@ -146,6 +171,7 @@ export class ReleaseDecisionService {
       const [qaSignOffs, releaseDecisions] = await Promise.all([
         QaSignOffModel.findAll({
           where: { workspaceId, featureTaskId },
+          include: [{ model: QaSignOffCancellationModel, as: 'cancellation', required: false }],
           order: [
             ['signedAt', 'DESC'],
             ['id', 'DESC'],
@@ -154,6 +180,9 @@ export class ReleaseDecisionService {
         }),
         ReleaseDecisionModel.findAll({
           where: { workspaceId, featureTaskId },
+          include: [
+            { model: ReleaseDecisionCancellationModel, as: 'cancellation', required: false },
+          ],
           order: [
             ['decidedAt', 'DESC'],
             ['id', 'DESC'],
@@ -161,11 +190,12 @@ export class ReleaseDecisionService {
           transaction,
         }),
       ]);
+      const latestActiveQaSignOff = qaSignOffs.find((s) => !s.cancellation) || null;
       const currentReadinessSnapshot = await this.captureReadinessSnapshot(
         workspaceId,
         featureTaskId,
         new Date(),
-        qaSignOffs[0] || null,
+        latestActiveQaSignOff,
         transaction,
       );
 
@@ -261,6 +291,108 @@ export class ReleaseDecisionService {
     return result;
   }
 
+  async cancelQaSignOff(actorId: string, input: CancelQaSignOffInput): Promise<QaSignOff> {
+    const signOffWithCancellation = await sequelize.transaction(async (transaction) => {
+      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      await this.getFeatureTask(input.workspaceId, input.featureTaskId, transaction);
+
+      const signOff = await QaSignOffModel.findOne({
+        where: {
+          id: input.qaSignOffId,
+          workspaceId: input.workspaceId,
+          featureTaskId: input.featureTaskId,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (!signOff) {
+        throw new Error('NOT_FOUND: QA Sign-off was not found for this Feature / Story.');
+      }
+
+      assertCanCancelQaSignOff(membership.role, actorId, signOff.signedBy);
+
+      const existingCancellation = await QaSignOffCancellationModel.findOne({
+        where: {
+          workspaceId: input.workspaceId,
+          qaSignOffId: signOff.id,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (existingCancellation) {
+        throw new Error('CONFLICT: QA Sign-off has already been cancelled.');
+      }
+
+      // Enforce D5 sequence: Cancel every Release Decision referencing a QA Sign-off first
+      const referencingDecisions = await ReleaseDecisionModel.findAll({
+        where: {
+          workspaceId: input.workspaceId,
+          qaSignOffId: signOff.id,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (referencingDecisions.length > 0) {
+        const decisionIds = referencingDecisions.map((d) => d.id);
+        const decisionCancellations = await ReleaseDecisionCancellationModel.findAll({
+          where: {
+            workspaceId: input.workspaceId,
+            releaseDecisionId: { [Op.in]: decisionIds },
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        const cancelledDecisionIds = new Set(decisionCancellations.map((c) => c.releaseDecisionId));
+        const activeReferencingDecisions = referencingDecisions.filter(
+          (d) => !cancelledDecisionIds.has(d.id),
+        );
+        if (activeReferencingDecisions.length > 0) {
+          throw new Error(
+            'CONFLICT: Cancel the related Release Decision before cancelling this QA Sign-off.',
+          );
+        }
+      }
+
+      const cancellation = await QaSignOffCancellationModel.create(
+        {
+          workspaceId: input.workspaceId,
+          qaSignOffId: signOff.id,
+          featureTaskId: input.featureTaskId,
+          cancelledBy: actorId,
+          cancelledAt: new Date(),
+          reason: input.reason.trim(),
+        },
+        { transaction },
+      );
+
+      await TaskActivityModel.create(
+        {
+          workspaceId: input.workspaceId,
+          taskId: input.featureTaskId,
+          actorId,
+          action: 'qa.sign_off.cancelled',
+          metadataJson: {
+            qaSignOffId: signOff.id,
+            cancellationId: cancellation.id,
+            reason: cancellation.reason,
+            cancelledBy: actorId,
+            cancelledAt: cancellation.cancelledAt,
+            decision: signOff.decision,
+          },
+        },
+        { transaction },
+      );
+
+      signOff.cancellation = cancellation;
+      return signOff;
+    });
+
+    return formatQaSignOff(signOffWithCancellation);
+  }
+
   async createReleaseDecision(
     actorId: string,
     input: CreateReleaseDecisionInput,
@@ -282,8 +414,21 @@ export class ReleaseDecisionService {
       if (!signOff) {
         throw new Error('BAD_REQUEST: QA Sign-off was not found for this Feature / Story.');
       }
+      const isSignOffCancelled = await QaSignOffCancellationModel.findOne({
+        where: {
+          workspaceId: input.workspaceId,
+          qaSignOffId: signOff.id,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (isSignOffCancelled) {
+        throw new Error(
+          'CONFLICT: Cannot record a Release Decision against a cancelled QA Sign-off.',
+        );
+      }
 
-      const latestSignOff = await QaSignOffModel.findOne({
+      const allSignOffs = await QaSignOffModel.findAll({
         where: { workspaceId: input.workspaceId, featureTaskId: input.featureTaskId },
         order: [
           ['signedAt', 'DESC'],
@@ -292,8 +437,19 @@ export class ReleaseDecisionService {
         transaction,
         lock: transaction.LOCK.UPDATE,
       });
-      if (!latestSignOff || latestSignOff.id !== signOff.id) {
-        throw new Error('CONFLICT: Release Decision must reference the latest QA Sign-off.');
+      const allSignOffIds = allSignOffs.map((s) => s.id);
+      const allCancellations = await QaSignOffCancellationModel.findAll({
+        where: {
+          workspaceId: input.workspaceId,
+          qaSignOffId: { [Op.in]: allSignOffIds },
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      const cancelledSignOffIds = new Set(allCancellations.map((c) => c.qaSignOffId));
+      const latestActiveSignOff = allSignOffs.find((s) => !cancelledSignOffIds.has(s.id));
+      if (!latestActiveSignOff || latestActiveSignOff.id !== signOff.id) {
+        throw new Error('CONFLICT: Release Decision must reference the latest active QA Sign-off.');
       }
 
       assertIndependentReleaseDecision(actorId, signOff.signedBy);
@@ -390,6 +546,80 @@ export class ReleaseDecisionService {
       .catch(() => {});
 
     return result;
+  }
+
+  async cancelReleaseDecision(
+    actorId: string,
+    input: CancelReleaseDecisionInput,
+  ): Promise<ReleaseDecision> {
+    const decisionWithCancellation = await sequelize.transaction(async (transaction) => {
+      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      await this.getFeatureTask(input.workspaceId, input.featureTaskId, transaction);
+
+      const decision = await ReleaseDecisionModel.findOne({
+        where: {
+          id: input.releaseDecisionId,
+          workspaceId: input.workspaceId,
+          featureTaskId: input.featureTaskId,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (!decision) {
+        throw new Error('NOT_FOUND: Release Decision was not found for this Feature / Story.');
+      }
+
+      assertCanCancelReleaseDecision(membership.role);
+
+      const existingCancellation = await ReleaseDecisionCancellationModel.findOne({
+        where: {
+          workspaceId: input.workspaceId,
+          releaseDecisionId: decision.id,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (existingCancellation) {
+        throw new Error('CONFLICT: Release Decision has already been cancelled.');
+      }
+
+      const cancellation = await ReleaseDecisionCancellationModel.create(
+        {
+          workspaceId: input.workspaceId,
+          releaseDecisionId: decision.id,
+          featureTaskId: input.featureTaskId,
+          cancelledBy: actorId,
+          cancelledAt: new Date(),
+          reason: input.reason.trim(),
+        },
+        { transaction },
+      );
+
+      await TaskActivityModel.create(
+        {
+          workspaceId: input.workspaceId,
+          taskId: input.featureTaskId,
+          actorId,
+          action: 'release.decision.cancelled',
+          metadataJson: {
+            releaseDecisionId: decision.id,
+            cancellationId: cancellation.id,
+            reason: cancellation.reason,
+            cancelledBy: actorId,
+            cancelledAt: cancellation.cancelledAt,
+            decision: decision.decision,
+          },
+        },
+        { transaction },
+      );
+
+      decision.cancellation = cancellation;
+      return decision;
+    });
+
+    return formatReleaseDecision(decisionWithCancellation);
   }
 
   private async getFeatureTask(

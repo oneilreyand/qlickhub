@@ -53,4 +53,30 @@ export const releaseDecisionService = {
     );
     return response.releaseDecision;
   },
+
+  async cancelQaSignOff(
+    workspaceId: string,
+    featureTaskId: string,
+    qaSignOffId: string,
+    input: { reason: string },
+  ): Promise<QaSignOff> {
+    const response = await apiClient<{ qaSignOff: QaSignOff }>(
+      `/workspaces/${workspaceId}/features/${featureTaskId}/qa-sign-offs/${qaSignOffId}/cancellation`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return response.qaSignOff;
+  },
+
+  async cancelReleaseDecision(
+    workspaceId: string,
+    featureTaskId: string,
+    releaseDecisionId: string,
+    input: { reason: string },
+  ): Promise<ReleaseDecision> {
+    const response = await apiClient<{ releaseDecision: ReleaseDecision }>(
+      `/workspaces/${workspaceId}/features/${featureTaskId}/release-decisions/${releaseDecisionId}/cancellation`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return response.releaseDecision;
+  },
 };

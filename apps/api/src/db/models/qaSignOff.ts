@@ -2,6 +2,8 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import type { QaSignOffDecision, ReadinessSnapshot } from '@qlick/contracts';
 import { sequelize } from '../sequelize.js';
 
+import type { QaSignOffCancellationModel } from './qaSignOffCancellation.js';
+
 export interface QaSignOffAttributes {
   id: string;
   workspaceId: string;
@@ -11,9 +13,13 @@ export interface QaSignOffAttributes {
   readinessSnapshot: ReadinessSnapshot;
   signedBy: string;
   signedAt?: Date;
+  cancellation?: QaSignOffCancellationModel | null;
 }
 
-type QaSignOffCreationAttributes = Optional<QaSignOffAttributes, 'id' | 'notes' | 'signedAt'>;
+type QaSignOffCreationAttributes = Optional<
+  QaSignOffAttributes,
+  'id' | 'notes' | 'signedAt' | 'cancellation'
+>;
 
 export class QaSignOffModel
   extends Model<QaSignOffAttributes, QaSignOffCreationAttributes>
@@ -27,6 +33,7 @@ export class QaSignOffModel
   declare readinessSnapshot: ReadinessSnapshot;
   declare signedBy: string;
   declare readonly signedAt: Date;
+  declare cancellation?: QaSignOffCancellationModel | null;
 }
 
 QaSignOffModel.init(

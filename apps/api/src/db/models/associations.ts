@@ -30,7 +30,9 @@ import { BugModel } from './bug.js';
 import { BugActivityModel } from './bugActivity.js';
 import { BugEvidenceLinkModel } from './bugEvidenceLink.js';
 import { QaSignOffModel } from './qaSignOff.js';
+import { QaSignOffCancellationModel } from './qaSignOffCancellation.js';
 import { ReleaseDecisionModel } from './releaseDecision.js';
+import { ReleaseDecisionCancellationModel } from './releaseDecisionCancellation.js';
 import { UserFcmTokenModel } from './userFcmToken.js';
 import { TaskCreationPermissionModel } from './taskCreationPermission.js';
 import { FolderActivityModel } from './folderActivity.js';
@@ -1026,6 +1028,95 @@ export function setupAssociations() {
   ReleaseDecisionModel.belongsTo(UserModel, {
     foreignKey: 'decidedBy',
     as: 'decider',
+    onDelete: 'RESTRICT',
+  });
+
+  // Append-only QA Sign-off & Release Decision Cancellation Associations
+  QaSignOffModel.hasOne(QaSignOffCancellationModel, {
+    foreignKey: 'qaSignOffId',
+    as: 'cancellation',
+    onDelete: 'CASCADE',
+  });
+  QaSignOffCancellationModel.belongsTo(QaSignOffModel, {
+    foreignKey: 'qaSignOffId',
+    as: 'qaSignOff',
+    onDelete: 'RESTRICT',
+  });
+
+  ReleaseDecisionModel.hasOne(ReleaseDecisionCancellationModel, {
+    foreignKey: 'releaseDecisionId',
+    as: 'cancellation',
+    onDelete: 'CASCADE',
+  });
+  ReleaseDecisionCancellationModel.belongsTo(ReleaseDecisionModel, {
+    foreignKey: 'releaseDecisionId',
+    as: 'releaseDecision',
+    onDelete: 'RESTRICT',
+  });
+
+  WorkspaceModel.hasMany(QaSignOffCancellationModel, {
+    foreignKey: 'workspaceId',
+    as: 'qaSignOffCancellations',
+    onDelete: 'CASCADE',
+  });
+  QaSignOffCancellationModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+
+  WorkspaceModel.hasMany(ReleaseDecisionCancellationModel, {
+    foreignKey: 'workspaceId',
+    as: 'releaseDecisionCancellations',
+    onDelete: 'CASCADE',
+  });
+  ReleaseDecisionCancellationModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+
+  TaskModel.hasMany(QaSignOffCancellationModel, {
+    foreignKey: 'featureTaskId',
+    as: 'qaSignOffCancellations',
+    onDelete: 'RESTRICT',
+  });
+  QaSignOffCancellationModel.belongsTo(TaskModel, {
+    foreignKey: 'featureTaskId',
+    as: 'featureTask',
+    onDelete: 'RESTRICT',
+  });
+
+  TaskModel.hasMany(ReleaseDecisionCancellationModel, {
+    foreignKey: 'featureTaskId',
+    as: 'releaseDecisionCancellations',
+    onDelete: 'RESTRICT',
+  });
+  ReleaseDecisionCancellationModel.belongsTo(TaskModel, {
+    foreignKey: 'featureTaskId',
+    as: 'featureTask',
+    onDelete: 'RESTRICT',
+  });
+
+  UserModel.hasMany(QaSignOffCancellationModel, {
+    foreignKey: 'cancelledBy',
+    as: 'qaSignOffCancellations',
+    onDelete: 'RESTRICT',
+  });
+  QaSignOffCancellationModel.belongsTo(UserModel, {
+    foreignKey: 'cancelledBy',
+    as: 'canceller',
+    onDelete: 'RESTRICT',
+  });
+
+  UserModel.hasMany(ReleaseDecisionCancellationModel, {
+    foreignKey: 'cancelledBy',
+    as: 'releaseDecisionCancellations',
+    onDelete: 'RESTRICT',
+  });
+  ReleaseDecisionCancellationModel.belongsTo(UserModel, {
+    foreignKey: 'cancelledBy',
+    as: 'canceller',
     onDelete: 'RESTRICT',
   });
 

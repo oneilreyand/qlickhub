@@ -43,8 +43,8 @@ export const TaskDeleteConfirmationModal: React.FC<TaskDeleteConfirmationModalPr
           title={isSubtask ? 'This subtask will be soft-deleted' : 'This task will be soft-deleted'}
         >
           {task.subtaskSummary?.total
-            ? `${task.subtaskSummary.total} direct subtask${task.subtaskSummary.total === 1 ? '' : 's'} will also be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion.`
-            : `${isSubtask ? 'The subtask' : 'The task'} will be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion.`}
+            ? `${task.subtaskSummary.total} direct subtask${task.subtaskSummary.total === 1 ? '' : 's'} will also be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; active QA Sign-offs and active Release Decisions must be cancelled before deletion; immutable QA evidence and Bugs permanently block deletion.`
+            : `${isSubtask ? 'The subtask' : 'The task'} will be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; active QA Sign-offs and active Release Decisions must be cancelled before deletion; immutable QA evidence and Bugs permanently block deletion.`}
         </Alert>
         <p className="text-xs leading-5 text-stone-600 dark:text-stone-300">
           Delete <span className="font-bold text-stone-900 dark:text-stone-100">{task.title}</span>?

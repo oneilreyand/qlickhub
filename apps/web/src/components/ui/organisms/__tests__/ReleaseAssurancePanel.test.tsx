@@ -13,6 +13,8 @@ const releaseServiceMocks = vi.hoisted(() => ({
   listFeatureReleaseRecords: vi.fn(),
   createQaSignOff: vi.fn(),
   createReleaseDecision: vi.fn(),
+  cancelQaSignOff: vi.fn(),
+  cancelReleaseDecision: vi.fn(),
 }));
 
 vi.mock('../../../../lib/api/releaseDecisionService', () => ({
@@ -25,6 +27,7 @@ const ids = {
   qa: '10000000-0000-4000-8000-000000000003',
   po: '10000000-0000-4000-8000-000000000004',
   signOff: '10000000-0000-4000-8000-000000000005',
+  decision: '10000000-0000-4000-8000-000000000008',
 };
 const now = '2026-08-22T10:00:00.000Z';
 
@@ -114,7 +117,10 @@ const readinessSnapshot = (
   };
 };
 
-const qaSignOff = (decision: 'approved' | 'rejected' = 'approved'): QaSignOff => ({
+const qaSignOff = (
+  decision: 'approved' | 'rejected' = 'approved',
+  cancellation: any = null,
+): QaSignOff => ({
   id: ids.signOff,
   workspaceId: ids.workspace,
   featureTaskId: ids.feature,
@@ -123,17 +129,36 @@ const qaSignOff = (decision: 'approved' | 'rejected' = 'approved'): QaSignOff =>
   readinessSnapshot: readinessSnapshot(decision),
   signedBy: ids.qa,
   signedAt: now,
+  cancellation,
+});
+
+const releaseDecision = (
+  decision: 'approved' | 'rejected' = 'approved',
+  cancellation: any = null,
+): any => ({
+  id: ids.decision,
+  workspaceId: ids.workspace,
+  featureTaskId: ids.feature,
+  qaSignOffId: ids.signOff,
+  decision,
+  notes: 'Approved for launch',
+  overrideReason: null,
+  readinessSnapshot: readinessSnapshot('approved'),
+  decidedBy: ids.po,
+  decidedAt: now,
+  cancellation,
 });
 
 const records = (
   signOffs: QaSignOff[] = [],
   currentReadinessSnapshot = readinessSnapshot(signOffs[0]?.decision || null),
+  decisions: any[] = [],
 ): FeatureReleaseRecords => ({
   workspaceId: ids.workspace,
   featureTaskId: ids.feature,
   currentReadinessSnapshot,
   qaSignOffs: signOffs,
-  releaseDecisions: [],
+  releaseDecisions: decisions,
 });
 
 const createStore = () =>
@@ -307,5 +332,102 @@ describe('ReleaseAssurancePanel', () => {
     const button = await screen.findByRole('button', { name: 'Record Release Decision' });
     expect(button).toBeDisabled();
     expect(screen.getByText(/cannot make its Release Decision/)).toBeInTheDocument();
+  });
+
+  it('allows QA signer to cancel their QA Sign-off with mandatory reason (D3)', async () => {
+    releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(records([qaSignOff()]));
+    releaseServiceMocks.cancelQaSignOff.mockResolvedValue({ id: ids.signOff });
+    const user = userEvent.setup();
+    renderPanel('qa', { currentUserId: ids.qa, userRole: 'qa' });
+
+    const cancelBtn = await screen.findByRole('button', { name: 'Cancel Sign-off' });
+    await user.click(cancelBtn);
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Cancel QA Sign-off')).toBeInTheDocument();
+
+    // Try submitting without reason
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm Cancellation' }));
+    expect(await within(dialog).findByText('Cancellation reason is required.')).toBeInTheDocument();
+    expect(releaseServiceMocks.cancelQaSignOff).not.toHaveBeenCalled();
+
+    // Enter reason and confirm
+    await user.type(
+      within(dialog).getByLabelText('Cancellation reason'),
+      'Discovered regression in build 102.',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm Cancellation' }));
+
+    await waitFor(() =>
+      expect(releaseServiceMocks.cancelQaSignOff).toHaveBeenCalledWith(
+        ids.workspace,
+        ids.feature,
+        ids.signOff,
+        { reason: 'Discovered regression in build 102.' },
+      ),
+    );
+  });
+
+  it('allows Product Owner to cancel a Release Decision with mandatory reason (D4)', async () => {
+    releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(
+      records([qaSignOff()], readinessSnapshot(), [releaseDecision()]),
+    );
+    releaseServiceMocks.cancelReleaseDecision.mockResolvedValue({ id: ids.decision });
+    const user = userEvent.setup();
+    renderPanel('release', { currentUserId: ids.po, userRole: 'po' });
+
+    const cancelBtn = await screen.findByRole('button', { name: 'Cancel Decision' });
+    await user.click(cancelBtn);
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Cancel Release Decision')).toBeInTheDocument();
+
+    await user.type(
+      within(dialog).getByLabelText('Cancellation reason'),
+      'Infrastructure degradation requiring rollback.',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm Cancellation' }));
+
+    await waitFor(() =>
+      expect(releaseServiceMocks.cancelReleaseDecision).toHaveBeenCalledWith(
+        ids.workspace,
+        ids.feature,
+        ids.decision,
+        { reason: 'Infrastructure degradation requiring rollback.' },
+      ),
+    );
+  });
+
+  it('displays sequence warning and disables QA cancellation when active Release Decision exists (D5)', async () => {
+    releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(
+      records([qaSignOff()], readinessSnapshot(), [releaseDecision()]),
+    );
+    const user = userEvent.setup();
+    renderPanel('qa', { currentUserId: ids.qa, userRole: 'qa' });
+
+    const cancelBtn = await screen.findByRole('button', { name: 'Cancel Sign-off' });
+    await user.click(cancelBtn);
+
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        /You must cancel the Release Decision before cancelling this QA Sign-off/,
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Confirm Cancellation' })).toBeDisabled();
+  });
+
+  it('renders cancelled status badge and reason for cancelled records', async () => {
+    const cancelledSignOff = qaSignOff('approved', {
+      id: 'cancellation-id-1',
+      cancelledBy: ids.qa,
+      cancelledAt: now,
+      reason: 'Superseded by urgent patch',
+    });
+    releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(records([cancelledSignOff]));
+    renderPanel('qa');
+
+    expect(await screen.findByText('Cancelled (Approved)')).toBeInTheDocument();
+    expect(screen.getByText(/"Superseded by urgent patch"/)).toBeInTheDocument();
   });
 });

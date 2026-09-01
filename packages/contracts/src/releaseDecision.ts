@@ -98,6 +98,15 @@ export const ReadinessSnapshotSchema = z.discriminatedUnion('schemaVersion', [
 ]);
 export type ReadinessSnapshot = z.infer<typeof ReadinessSnapshotSchema>;
 
+export const ReleaseRecordCancellationSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  cancelledBy: z.string().uuid(),
+  cancelledAt: z.string().datetime(),
+  reason: z.string().trim().min(1, 'Cancellation reason is required.').max(20000),
+});
+export type ReleaseRecordCancellation = z.infer<typeof ReleaseRecordCancellationSchema>;
+
 export const QaSignOffSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
@@ -107,6 +116,7 @@ export const QaSignOffSchema = z.object({
   readinessSnapshot: ReadinessSnapshotSchema,
   signedBy: z.string().uuid(),
   signedAt: z.string().datetime(),
+  cancellation: ReleaseRecordCancellationSchema.nullable().optional(),
 });
 export type QaSignOff = z.infer<typeof QaSignOffSchema>;
 
@@ -121,6 +131,7 @@ export const ReleaseDecisionSchema = z.object({
   readinessSnapshot: ReadinessSnapshotSchema,
   decidedBy: z.string().uuid(),
   decidedAt: z.string().datetime(),
+  cancellation: ReleaseRecordCancellationSchema.nullable().optional(),
 });
 export type ReleaseDecision = z.infer<typeof ReleaseDecisionSchema>;
 
@@ -151,6 +162,22 @@ export const CreateReleaseDecisionSchema = z
     }
   });
 export type CreateReleaseDecisionInput = z.infer<typeof CreateReleaseDecisionSchema>;
+
+export const CancelQaSignOffInputSchema = z.object({
+  workspaceId: z.string().uuid(),
+  featureTaskId: z.string().uuid(),
+  qaSignOffId: z.string().uuid(),
+  reason: z.string().trim().min(1, 'Cancellation reason is required.').max(20000),
+});
+export type CancelQaSignOffInput = z.infer<typeof CancelQaSignOffInputSchema>;
+
+export const CancelReleaseDecisionInputSchema = z.object({
+  workspaceId: z.string().uuid(),
+  featureTaskId: z.string().uuid(),
+  releaseDecisionId: z.string().uuid(),
+  reason: z.string().trim().min(1, 'Cancellation reason is required.').max(20000),
+});
+export type CancelReleaseDecisionInput = z.infer<typeof CancelReleaseDecisionInputSchema>;
 
 export const FeatureReleaseRecordsSchema = z.object({
   workspaceId: z.string().uuid(),

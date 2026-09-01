@@ -1,6 +1,8 @@
 import type { Response } from 'express';
 import { z, ZodError } from 'zod';
 import {
+  CancelQaSignOffInputSchema,
+  CancelReleaseDecisionInputSchema,
   CreateQaSignOffSchema,
   CreateReleaseDecisionSchema,
   ListWorkspaceReleaseReadinessQuerySchema,
@@ -98,6 +100,39 @@ export async function createReleaseDecision(req: AuthenticatedRequest, res: Resp
       input,
     );
     return res.status(201).json({ releaseDecision });
+  } catch (error) {
+    return handleError(res, error);
+  }
+}
+
+export async function cancelQaSignOff(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = CancelQaSignOffInputSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+      featureTaskId: req.params.featureTaskId,
+      qaSignOffId: req.params.qaSignOffId,
+    });
+    const qaSignOff = await releaseDecisionService.cancelQaSignOff(req.user!.userId, input);
+    return res.status(200).json({ qaSignOff });
+  } catch (error) {
+    return handleError(res, error);
+  }
+}
+
+export async function cancelReleaseDecision(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = CancelReleaseDecisionInputSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+      featureTaskId: req.params.featureTaskId,
+      releaseDecisionId: req.params.releaseDecisionId,
+    });
+    const releaseDecision = await releaseDecisionService.cancelReleaseDecision(
+      req.user!.userId,
+      input,
+    );
+    return res.status(200).json({ releaseDecision });
   } catch (error) {
     return handleError(res, error);
   }

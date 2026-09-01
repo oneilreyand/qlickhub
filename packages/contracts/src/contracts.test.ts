@@ -62,6 +62,9 @@ import {
   UpdateBugSchema,
   CreateQaSignOffSchema,
   CreateReleaseDecisionSchema,
+  CancelQaSignOffInputSchema,
+  CancelReleaseDecisionInputSchema,
+  ReleaseRecordCancellationSchema,
   QaSignOffSchema,
   ReleaseDecisionSchema,
   ReadinessSnapshotV2Schema,
@@ -1281,6 +1284,90 @@ describe('Contracts Validation Suite', () => {
           overrideReason: 'Not applicable to rejection.',
         }),
       );
+    });
+
+    test('validates append-only cancellation input schemas with mandatory trimmed reason', () => {
+      const cancelSignOff = CancelQaSignOffInputSchema.parse({
+        workspaceId,
+        featureTaskId,
+        qaSignOffId,
+        reason: '  Regression suite had invalid test seed data.  ',
+      });
+      assert.strictEqual(cancelSignOff.reason, 'Regression suite had invalid test seed data.');
+
+      const cancelDecision = CancelReleaseDecisionInputSchema.parse({
+        workspaceId,
+        featureTaskId,
+        releaseDecisionId: '223e4567-e89b-42d3-a456-426614174005',
+        reason: 'Rollout postponed pending security review.',
+      });
+      assert.strictEqual(cancelDecision.reason, 'Rollout postponed pending security review.');
+
+      // Empty or whitespace-only reason rejected
+      assert.throws(() =>
+        CancelQaSignOffInputSchema.parse({
+          workspaceId,
+          featureTaskId,
+          qaSignOffId,
+          reason: '   ',
+        }),
+      );
+      assert.throws(() =>
+        CancelReleaseDecisionInputSchema.parse({
+          workspaceId,
+          featureTaskId,
+          releaseDecisionId: '223e4567-e89b-42d3-a456-426614174005',
+          reason: '',
+        }),
+      );
+
+      // Oversized reason (> 20000 chars) rejected
+      assert.throws(() =>
+        CancelQaSignOffInputSchema.parse({
+          workspaceId,
+          featureTaskId,
+          qaSignOffId,
+          reason: 'a'.repeat(20001),
+        }),
+      );
+
+      // Valid cancellation summary on QaSignOff and ReleaseDecision
+      const cancellationObj = ReleaseRecordCancellationSchema.parse({
+        id: '333e4567-e89b-42d3-a456-426614174006',
+        workspaceId,
+        cancelledBy: qaUserId,
+        cancelledAt: capturedAt,
+        reason: 'Corrective cancellation event.',
+      });
+      assert.strictEqual(cancellationObj.reason, 'Corrective cancellation event.');
+
+      const cancelledSignOff = QaSignOffSchema.parse({
+        id: qaSignOffId,
+        workspaceId,
+        featureTaskId,
+        decision: 'approved',
+        notes: null,
+        readinessSnapshot,
+        signedBy: qaUserId,
+        signedAt: capturedAt,
+        cancellation: cancellationObj,
+      });
+      assert.strictEqual(cancelledSignOff.cancellation?.id, cancellationObj.id);
+
+      const cancelledDecision = ReleaseDecisionSchema.parse({
+        id: '223e4567-e89b-42d3-a456-426614174005',
+        workspaceId,
+        featureTaskId,
+        qaSignOffId,
+        decision: 'approved',
+        notes: null,
+        overrideReason: null,
+        readinessSnapshot,
+        decidedBy: poUserId,
+        decidedAt: capturedAt,
+        cancellation: cancellationObj,
+      });
+      assert.strictEqual(cancelledDecision.cancellation?.reason, 'Corrective cancellation event.');
     });
 
     test('validates deterministic readiness snapshot v2 while retaining snapshot v1 compatibility', () => {

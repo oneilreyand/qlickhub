@@ -24,3 +24,31 @@ export function assertIndependentReleaseDecision(actorId: string, qaSignerId: st
     );
   }
 }
+
+export function assertCanCancelQaSignOff(
+  role: WorkspaceRole,
+  actorId: string,
+  signerId: string,
+): void {
+  if (['owner', 'admin'].includes(role)) {
+    return;
+  }
+  if (role === 'qa' && actorId === signerId) {
+    return;
+  }
+  if (role === 'qa') {
+    throw new Error('FORBIDDEN: A QA member cannot cancel another QA member’s sign-off.');
+  }
+  throw new Error(
+    'FORBIDDEN: Only the original QA signer, Owner, or Admin can cancel a QA Sign-off.',
+  );
+}
+
+export function assertCanCancelReleaseDecision(role: WorkspaceRole): void {
+  if (['owner', 'admin', 'po'].includes(role)) {
+    return;
+  }
+  throw new Error(
+    'FORBIDDEN: Only the Product Owner, Owner, or Admin can cancel a Release Decision.',
+  );
+}

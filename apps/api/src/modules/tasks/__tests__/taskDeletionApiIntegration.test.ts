@@ -415,8 +415,8 @@ describe('Task deletion HTTP API integration (AGY-2.4)', () => {
     assert.match(body.detail, /1 document link\(s\)/);
     assert.match(body.detail, /1 attachment\(s\)/);
     assert.match(body.detail, /1 Bug\(s\)/);
-    assert.match(body.detail, /1 QA Sign-off\(s\)/);
-    assert.match(body.detail, /1 Release Decision\(s\)/);
+    assert.match(body.detail, /1 active QA Sign-off\(s\)/);
+    assert.match(body.detail, /1 active Release Decision\(s\)/);
     assert.ok(await TaskModel.findByPk(feature.id));
 
     await assert.rejects(feature.destroy(), /release-critical records and cannot be soft-deleted/);

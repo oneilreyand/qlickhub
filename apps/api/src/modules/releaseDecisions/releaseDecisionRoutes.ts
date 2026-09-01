@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import {
+  cancelQaSignOff,
+  cancelReleaseDecision,
   createQaSignOff,
   createReleaseDecision,
   listFeatureReleaseRecords,
@@ -29,7 +31,17 @@ releaseDecisionRoutes.post(
   createQaSignOff,
 );
 releaseDecisionRoutes.post(
+  '/workspaces/:workspaceId/features/:featureTaskId/qa-sign-offs/:qaSignOffId/cancellation',
+  requireWorkspaceMember(['owner', 'admin', 'qa']),
+  cancelQaSignOff,
+);
+releaseDecisionRoutes.post(
   '/workspaces/:workspaceId/features/:featureTaskId/release-decisions',
   requireWorkspaceMember(['owner', 'admin', 'po']),
   createReleaseDecision,
+);
+releaseDecisionRoutes.post(
+  '/workspaces/:workspaceId/features/:featureTaskId/release-decisions/:releaseDecisionId/cancellation',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  cancelReleaseDecision,
 );

@@ -12,7 +12,9 @@ import { RoleAwareWorkQueueSchema } from '@qlick/contracts';
 import { sequelize } from '../../db/sequelize.js';
 import {
   BugModel,
+  QaSignOffCancellationModel,
   QaSignOffModel,
+  ReleaseDecisionCancellationModel,
   ReleaseDecisionModel,
   RequirementModel,
   TaskModel,
@@ -135,6 +137,7 @@ async function plannerBuckets(
 
   const signOffs = await QaSignOffModel.findAll({
     where: { workspaceId, featureTaskId: { [Op.in]: featureIds } },
+    include: [{ model: QaSignOffCancellationModel, as: 'cancellation', required: false }],
     order: [
       ['signedAt', 'DESC'],
       ['id', 'DESC'],
@@ -143,7 +146,7 @@ async function plannerBuckets(
   });
   const latestSignOffByFeatureId = new Map<string, QaSignOffModel>();
   for (const signOff of signOffs) {
-    if (!latestSignOffByFeatureId.has(signOff.featureTaskId)) {
+    if (!signOff.cancellation && !latestSignOffByFeatureId.has(signOff.featureTaskId)) {
       latestSignOffByFeatureId.set(signOff.featureTaskId, signOff);
     }
   }
@@ -154,10 +157,14 @@ async function plannerBuckets(
           (
             await ReleaseDecisionModel.findAll({
               where: { workspaceId, qaSignOffId: { [Op.in]: latestSignOffIds } },
-              attributes: ['qaSignOffId'],
+              include: [
+                { model: ReleaseDecisionCancellationModel, as: 'cancellation', required: false },
+              ],
               transaction,
             })
-          ).map((decision) => decision.qaSignOffId),
+          )
+            .filter((decision) => !decision.cancellation)
+            .map((decision) => decision.qaSignOffId),
         )
       : new Set<string>();
 
@@ -366,6 +373,7 @@ async function qaBuckets(
     featureIds.length > 0
       ? await QaSignOffModel.findAll({
           where: { workspaceId, featureTaskId: { [Op.in]: featureIds } },
+          include: [{ model: QaSignOffCancellationModel, as: 'cancellation', required: false }],
           order: [
             ['signedAt', 'DESC'],
             ['id', 'DESC'],
@@ -375,7 +383,7 @@ async function qaBuckets(
       : [];
   const latestSignOffByFeatureId = new Map<string, QaSignOffModel>();
   for (const signOff of signOffs) {
-    if (!latestSignOffByFeatureId.has(signOff.featureTaskId)) {
+    if (!signOff.cancellation && !latestSignOffByFeatureId.has(signOff.featureTaskId)) {
       latestSignOffByFeatureId.set(signOff.featureTaskId, signOff);
     }
   }

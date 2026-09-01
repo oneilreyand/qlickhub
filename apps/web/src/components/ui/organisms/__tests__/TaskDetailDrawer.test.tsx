@@ -569,7 +569,7 @@ describe('TaskDetailDrawer UI Component', () => {
     ).toBeInTheDocument();
     expect(
       within(confirmation).getByText(
-        /immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion/i,
+        /active QA Sign-offs and active Release Decisions must be cancelled before deletion; immutable QA evidence and Bugs permanently block deletion/i,
       ),
     ).toBeInTheDocument();
 
@@ -616,7 +616,7 @@ describe('TaskDetailDrawer UI Component', () => {
     ).toBeInTheDocument();
     expect(
       within(confirmation).getByText(
-        /immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion/i,
+        /active QA Sign-offs and active Release Decisions must be cancelled before deletion; immutable QA evidence and Bugs permanently block deletion/i,
       ),
     ).toBeInTheDocument();
     fireEvent.click(within(confirmation).getByRole('button', { name: 'Delete Subtask' }));

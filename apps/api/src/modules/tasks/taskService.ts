@@ -13,7 +13,9 @@ import {
   TaskDocumentModel,
   BugModel,
   QaSignOffModel,
+  QaSignOffCancellationModel,
   ReleaseDecisionModel,
+  ReleaseDecisionCancellationModel,
 } from '../../db/models/index.js';
 import {
   assertCanCreateTask,
@@ -555,11 +557,21 @@ export class TaskService {
         transaction,
       });
       const qaSignOffs = await QaSignOffModel.count({
-        where: { workspaceId, featureTaskId: { [Op.in]: targetTaskIds } },
+        where: {
+          workspaceId,
+          featureTaskId: { [Op.in]: targetTaskIds },
+          '$cancellation.id$': null,
+        },
+        include: [{ model: QaSignOffCancellationModel, as: 'cancellation', required: false }],
         transaction,
       });
       const releaseDecisions = await ReleaseDecisionModel.count({
-        where: { workspaceId, featureTaskId: { [Op.in]: targetTaskIds } },
+        where: {
+          workspaceId,
+          featureTaskId: { [Op.in]: targetTaskIds },
+          '$cancellation.id$': null,
+        },
+        include: [{ model: ReleaseDecisionCancellationModel, as: 'cancellation', required: false }],
         transaction,
       });
 
@@ -572,7 +584,7 @@ export class TaskService {
         releaseDecisions > 0
       ) {
         throw new Error(
-          `CONFLICT: Unlink or remove permitted Task records before deletion. Immutable delivery history cannot be deleted (${requirementLinks} Requirement link(s), ${documentLinks} document link(s), ${attachments} attachment(s), ${bugs} Bug(s), ${qaSignOffs} QA Sign-off(s), ${releaseDecisions} Release Decision(s)).`,
+          `CONFLICT: Unlink or remove permitted Task records before deletion. Immutable delivery history cannot be deleted (${requirementLinks} Requirement link(s), ${documentLinks} document link(s), ${attachments} attachment(s), ${bugs} Bug(s), ${qaSignOffs} active QA Sign-off(s), ${releaseDecisions} active Release Decision(s)).`,
         );
       }
 

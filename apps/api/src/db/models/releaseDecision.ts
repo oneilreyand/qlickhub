@@ -2,6 +2,8 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import type { ReadinessSnapshot, ReleaseDecisionOutcome } from '@qlick/contracts';
 import { sequelize } from '../sequelize.js';
 
+import type { ReleaseDecisionCancellationModel } from './releaseDecisionCancellation.js';
+
 export interface ReleaseDecisionAttributes {
   id: string;
   workspaceId: string;
@@ -13,11 +15,12 @@ export interface ReleaseDecisionAttributes {
   readinessSnapshot: ReadinessSnapshot;
   decidedBy: string;
   decidedAt?: Date;
+  cancellation?: ReleaseDecisionCancellationModel | null;
 }
 
 type ReleaseDecisionCreationAttributes = Optional<
   ReleaseDecisionAttributes,
-  'id' | 'notes' | 'overrideReason' | 'decidedAt'
+  'id' | 'notes' | 'overrideReason' | 'decidedAt' | 'cancellation'
 >;
 
 export class ReleaseDecisionModel
@@ -34,6 +37,7 @@ export class ReleaseDecisionModel
   declare readinessSnapshot: ReadinessSnapshot;
   declare decidedBy: string;
   declare readonly decidedAt: Date;
+  declare cancellation?: ReleaseDecisionCancellationModel | null;
 }
 
 ReleaseDecisionModel.init(
