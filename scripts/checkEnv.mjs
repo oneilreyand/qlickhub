@@ -97,6 +97,20 @@ if (!backend) {
   ) {
     errors.push('backend: DATABASE_SSL=true is required in production');
   }
+  if (backend.values.has('DATABASE_POOL_MAX')) {
+    const poolMaxRaw = backend.values.get('DATABASE_POOL_MAX');
+    if (poolMaxRaw !== '') {
+      const poolMax = Number.parseInt(poolMaxRaw, 10);
+      if (
+        Number.isNaN(poolMax) ||
+        poolMax < 1 ||
+        poolMax > 50 ||
+        String(poolMax) !== poolMaxRaw.trim()
+      ) {
+        errors.push('backend: DATABASE_POOL_MAX must be an integer between 1 and 50');
+      }
+    }
+  }
   if ((backend.values.get('CORS_ORIGIN') || '').split(',').some((value) => value.trim() === '*')) {
     errors.push('backend: CORS_ORIGIN must not contain a wildcard');
   }

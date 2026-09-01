@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAnalytics, isSupported as isAnalyticsSupported, Analytics } from "firebase/analytics";
-import { getMessaging, isSupported as isMessagingSupported, Messaging } from "firebase/messaging";
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAnalytics, isSupported as isAnalyticsSupported, Analytics } from 'firebase/analytics';
+import { getMessaging, isSupported as isMessagingSupported, Messaging } from 'firebase/messaging';
 
 // All Firebase configuration MUST come from environment variables.
 // Never add hardcoded fallback values here — use .env.local in development
@@ -17,49 +17,55 @@ export const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Validate required Firebase config in development to catch misconfiguration early
-if (import.meta.env.DEV) {
-  const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'messagingSenderId', 'appId'] as const;
-  const missing = requiredKeys.filter((k) => !firebaseConfig[k]);
-  if (missing.length > 0) {
-    console.warn(
-      `[Firebase] Missing required env vars: ${missing.map((k) => `VITE_FIREBASE_${k.replace(/([A-Z])/g, '_$1').toUpperCase()}`).join(', ')}.\n` +
-      'Copy .env.example to .env.local and fill in your Firebase project credentials.'
-    );
-  }
-}
+export const hasFirebaseCredentials = Boolean(
+  firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId,
+);
 
-// Inisialisasi Firebase App
-export const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+let firebaseAppInstance: FirebaseApp | null = null;
+
+export const getFirebaseApp = (): FirebaseApp | null => {
+  if (firebaseAppInstance) return firebaseAppInstance;
+  if (!hasFirebaseCredentials) return null;
+
+  if (getApps().length > 0) {
+    firebaseAppInstance = getApp();
+  } else {
+    firebaseAppInstance = initializeApp(firebaseConfig);
+  }
+  return firebaseAppInstance;
+};
+
+// Lazy export for app
+export const app: FirebaseApp | null = hasFirebaseCredentials ? getFirebaseApp() : null;
 
 // Inisialisasi Analytics secara aman
 export let analytics: Analytics | null = null;
-if (typeof window !== "undefined") {
-  isAnalyticsSupported().then((supported: boolean) => {
-    if (supported) {
-      analytics = getAnalytics(app);
-    }
-  }).catch(() => {});
+if (typeof window !== 'undefined' && hasFirebaseCredentials) {
+  isAnalyticsSupported()
+    .then((supported: boolean) => {
+      const activeApp = getFirebaseApp();
+      if (supported && activeApp) {
+        analytics = getAnalytics(activeApp);
+      }
+    })
+    .catch(() => {});
 }
 
 // Inisialisasi Messaging (FCM)
 export let messaging: Messaging | null = null;
 export async function getMessagingInstance(): Promise<Messaging | null> {
   if (messaging) return messaging;
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined' || !hasFirebaseCredentials) return null;
 
   try {
     const supported = await isMessagingSupported();
-    if (supported) {
-      messaging = getMessaging(app);
+    const activeApp = getFirebaseApp();
+    if (supported && activeApp) {
+      messaging = getMessaging(activeApp);
       return messaging;
     }
   } catch {
     // Messaging not supported in current environment
   }
   return null;
-}
-
-if (typeof window !== "undefined") {
-  getMessagingInstance().catch(() => {});
 }

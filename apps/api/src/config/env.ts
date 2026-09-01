@@ -21,6 +21,10 @@ const envSchema = z.object({
     .default('4000')
     .transform((val: string) => parseInt(val, 10)),
   DATABASE_URL: z.string().url().optional(),
+  DATABASE_POOL_MAX: z.preprocess(
+    (val) => (val === '' || val === undefined || val === null ? undefined : val),
+    z.coerce.number().int().min(1).max(50).optional(),
+  ),
   MIGRATION_DATABASE_URL: z.string().url().optional(),
   TEST_DATABASE_URL: z.string().url().optional(),
   JWT_ACCESS_SECRET: z.string().min(32).optional(),

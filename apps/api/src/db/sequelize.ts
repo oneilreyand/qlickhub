@@ -18,7 +18,10 @@ export const sequelize = new Sequelize(env.DATABASE_URL, {
     : undefined,
   logging:
     env.NODE_ENV === 'development' ? (msg: string) => console.log(`[Sequelize] ${msg}`) : false,
-  pool: getSequelizePoolConfig(env.NODE_ENV),
+  pool: getSequelizePoolConfig({
+    nodeEnv: env.NODE_ENV,
+    poolMax: env.DATABASE_POOL_MAX,
+  }),
   define: {
     timestamps: true,
     underscored: true,
