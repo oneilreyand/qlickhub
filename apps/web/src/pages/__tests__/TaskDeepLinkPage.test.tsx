@@ -7,6 +7,7 @@ import type { Task } from '@qlick/contracts';
 import { TaskDeepLinkPage } from '../TaskDeepLinkPage';
 import folderReducer from '../../store/folderSlice';
 import workspaceReducer from '../../store/workspaceSlice';
+import taskReducer from '../../store/taskSlice';
 
 const { getTaskMock, getFolderTreeMock } = vi.hoisted(() => ({
   getTaskMock: vi.fn(),
@@ -39,24 +40,27 @@ vi.mock('../../components/ui/organisms/TaskDetailDrawer', () => ({
     onClose,
     onNavigateToTask,
   }: {
-    task: Task;
+    task: Task | null;
     parentTask?: Task | null;
     onClose: () => void;
     onNavigateToTask: (taskId: string) => void;
-  }) => (
-    <div data-testid="task-deep-link-drawer">
-      <span>{task.title}</span>
-      {parentTask && <span>Parent: {parentTask.title}</span>}
-      <button type="button" onClick={onClose}>
-        Close task
-      </button>
-      {task.parentTaskId && (
-        <button type="button" onClick={() => onNavigateToTask(task.parentTaskId!)}>
-          Open parent
+  }) => {
+    if (!task) return null;
+    return (
+      <div data-testid="task-deep-link-drawer">
+        <span>{task.title}</span>
+        {parentTask && <span>Parent: {parentTask.title}</span>}
+        <button type="button" onClick={onClose}>
+          Close task
         </button>
-      )}
-    </div>
-  ),
+        {task.parentTaskId && (
+          <button type="button" onClick={() => onNavigateToTask(task.parentTaskId!)}>
+            Open parent
+          </button>
+        )}
+      </div>
+    );
+  },
 }));
 
 const workspaceId = '10000000-0000-4000-8000-000000000001';
@@ -78,6 +82,7 @@ function createStore(includeWorkspace = true) {
     reducer: {
       folder: folderReducer,
       workspace: workspaceReducer,
+      task: taskReducer,
     },
     preloadedState: {
       workspace: {

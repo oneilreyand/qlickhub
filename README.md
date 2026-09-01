@@ -1,7 +1,20 @@
 # Qlick Hub
 
-Qlick Hub is a QA-native delivery workspace. It uses npm workspaces for the React/Vite web app,
-Express API, and shared API contracts.
+Qlick Hub is a unified Task Management & QA-native delivery workspace connecting Product Owners, Developers, and QA. It uses npm workspaces for the React/Vite web app, Express API, and shared API contracts.
+
+## Single Source of Truth (SSoT) Documentation
+
+The authoritative documentation for this repository is organized into 4 core SSoT pillars in [`docs/`](docs/):
+
+| SSoT Document                                                                | Scope & Focus                                                                                                        |
+| :--------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| [**`docs/1_ARCHITECTURE.md`**](docs/1_ARCHITECTURE.md)                       | Domain Model, Hierarchy (`Workspace → Folder → Feature/Story`), RBAC, Database Schema & Security.                    |
+| [**`docs/2_WORKFLOW_AND_ROLES.md`**](docs/2_WORKFLOW_AND_ROLES.md)           | End-to-End Role Workflow (Owner, PO, Dev, QA), Developer Specialties, Subtask & Bug Lifecycles, Release Gates.       |
+| [**`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`**](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md) | Atomic UI System (`apps/web/src/components/ui/`), Stitch Design Tokens (`#B1E743` Lime), Routes & Component Gallery. |
+| [**`docs/4_AGENT_DEV_GUIDELINES.md`**](docs/4_AGENT_DEV_GUIDELINES.md)       | AI Agent & Developer Operating Rules, Definition of Done, PostgreSQL Test Evidence Policy, and Report Template.      |
+
+- Active Backlog & Sprint Tracking: [`TODO.md`](TODO.md)
+- Agent Operating Rules & Source of Truth Hierarchy: [`AGENTS.md`](AGENTS.md)
 
 ## Local development
 

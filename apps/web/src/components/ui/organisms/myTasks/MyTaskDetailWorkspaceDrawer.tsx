@@ -140,6 +140,10 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
     { id: 'dev', label: 'Dev Working Desk', icon: <Code2 className="h-3.5 w-3.5" /> },
     { id: 'qa', label: 'QA Testing Desk', icon: <Bug className="h-3.5 w-3.5" /> },
   ];
+  const developerReviewTabs: TabItem[] = [
+    { id: 'dev', label: 'Dev Working Desk', icon: <Code2 className="h-3.5 w-3.5" /> },
+    { id: 'qa', label: 'QA Evidence', icon: <Bug className="h-3.5 w-3.5" /> },
+  ];
 
   const handleRoleTabChange = (viewMode: string) => {
     const nextViewMode = viewMode as 'po' | 'dev' | 'qa';
@@ -147,41 +151,42 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
     if (nextViewMode === 'po') setActiveSubtaskForExecution(null);
   };
 
-  const roleToolbar = isPlanner ? (
-    <div className="flex min-w-0 items-center gap-2">
-      <div className="min-w-0 flex-1 overflow-hidden">
-        <Tabs
-          tabs={roleTabs}
-          activeTabId={activeViewMode}
-          onChange={handleRoleTabChange}
-          variant="pills"
-        />
+  const roleToolbar =
+    isPlanner || userRole.toLowerCase() === 'dev' ? (
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <Tabs
+            tabs={isPlanner ? roleTabs : developerReviewTabs}
+            activeTabId={activeViewMode}
+            onChange={handleRoleTabChange}
+            variant="pills"
+          />
+        </div>
+        <span className="hidden shrink-0 px-2 text-xs font-bold capitalize text-stone-700 dark:text-stone-300 sm:inline">
+          Role: {userRole}
+        </span>
       </div>
-      <span className="hidden shrink-0 px-2 text-xs font-bold capitalize text-stone-700 dark:text-stone-300 sm:inline">
-        Role: {userRole}
-      </span>
-    </div>
-  ) : activeViewMode === 'dev' ? (
-    <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
-      <Code2 className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
-      <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
-        Developer Working Desk
-      </span>
-      <span className="hidden shrink-0 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[10px] font-extrabold text-sky-800 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-300 sm:inline-flex">
-        Executor Workspace
-      </span>
-    </div>
-  ) : (
-    <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
-      <Bug className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-      <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
-        QA Testing & Quality Desk
-      </span>
-      <span className="hidden shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 sm:inline-flex">
-        QA Verification
-      </span>
-    </div>
-  );
+    ) : activeViewMode === 'dev' ? (
+      <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
+        <Code2 className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+        <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
+          Developer Working Desk
+        </span>
+        <span className="hidden shrink-0 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[10px] font-extrabold text-sky-800 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-300 sm:inline-flex">
+          Executor Workspace
+        </span>
+      </div>
+    ) : (
+      <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
+        <Bug className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
+          QA Testing & Quality Desk
+        </span>
+        <span className="hidden shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 sm:inline-flex">
+          QA Verification
+        </span>
+      </div>
+    );
 
   return (
     <Drawer
@@ -250,7 +255,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
             currentUserId={currentUserId || undefined}
             userRole={userRole}
             onDataChanged={onDataChanged}
-            onBackToOverview={() => setActiveViewMode('po')}
+            onBackToOverview={() => setActiveViewMode(isPlanner ? 'po' : 'dev')}
           />
         )}
       </div>

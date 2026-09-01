@@ -11,33 +11,24 @@ import {
   ArrowRight,
   CheckCircle2,
   Sparkles,
-  Lock,
-  FileText,
-  FolderPlus,
-  GitCommit,
   Check,
-  X,
   FileBarChart,
   MessageSquare,
   Lightbulb,
   Compass,
   Users,
-  AlertTriangle,
-  FileSpreadsheet,
-  Bug,
   ShieldAlert,
-  HelpCircle,
-  Clock,
-  Briefcase,
-  UserCheck,
 } from 'lucide-react';
 import { Card } from '../atoms/Card';
 import { Badge } from '../atoms/Badge';
 import { Button } from '../atoms/Button';
-import { Alert } from '../atoms/Alert';
 import { InteractiveGuideSimulator, FilterRole } from './InteractiveGuideSimulator';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { selectCurrentUserRole, selectCurrentUser, setShowOnboardingModal } from '../../../store/authSlice';
+import {
+  selectCurrentUserRole,
+  selectCurrentUser,
+  setShowOnboardingModal,
+} from '../../../store/authSlice';
 
 export type MainSectionKey = 'panduan' | 'overview' | 'user_flow';
 export type RoleKey = 'owner_admin' | 'po' | 'dev' | 'qa';
@@ -49,7 +40,6 @@ interface UserFlowGuideProps {
 }
 
 export const UserFlowGuide: React.FC<UserFlowGuideProps> = ({ initialRole, initialSection }) => {
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const currentRole = useAppSelector(selectCurrentUserRole);
   const currentUser = useAppSelector(selectCurrentUser);
@@ -372,6 +362,39 @@ const LoggedInRoleHeroBanner: React.FC<LoggedInRoleHeroBannerProps> = ({
               <p className="text-[11px] leading-relaxed">{meta.boundary}</p>
             </div>
           </div>
+
+          {/* Quick peer role switcher */}
+          <div className="flex items-center gap-2 pt-1 text-xs text-stone-400">
+            <span>Lihat panduan peran lain:</span>
+            <button
+              type="button"
+              onClick={() => onSelectRoleView('owner_admin')}
+              className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white font-medium text-[11px] transition-colors"
+            >
+              Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectRoleView('po')}
+              className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white font-medium text-[11px] transition-colors"
+            >
+              PO
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectRoleView('dev')}
+              className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white font-medium text-[11px] transition-colors"
+            >
+              Dev
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectRoleView('qa')}
+              className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white font-medium text-[11px] transition-colors"
+            >
+              QA
+            </button>
+          </div>
         </div>
 
         {/* Quick Action CTAs */}
@@ -659,7 +682,8 @@ const OverviewFlowSection: React.FC<{
             </span>
             <h3 className="font-bold text-sm text-stone-900 dark:text-white">Governance</h3>
             <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-              Owner/Admin setup workspace, undang member, & tetapkan Developer Specialties (ADR-002).
+              Owner/Admin setup workspace, undang member, & tetapkan Developer Specialties
+              (ADR-002).
             </p>
           </div>
 
@@ -800,6 +824,47 @@ const OverviewFlowSection: React.FC<{
             </tbody>
           </table>
         </div>
+
+        {/* Deep-dive role shortcuts */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-stone-200 dark:border-stone-800 text-xs">
+          <span className="text-stone-500 dark:text-stone-400">
+            Pelajari panduan mendalam untuk peran:
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onSelectRole('owner_admin')}
+              className="text-xs"
+            >
+              Owner & Admin
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onSelectRole('po')}
+              className="text-xs"
+            >
+              Product Owner
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onSelectRole('dev')}
+              className="text-xs"
+            >
+              Developer
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onSelectRole('qa')}
+              className="text-xs"
+            >
+              QA Engineer
+            </Button>
+          </div>
+        </div>
       </Card>
     </div>
   );
@@ -814,7 +879,11 @@ const UserFlowSection: React.FC<{
 }> = ({ activeRole, onSelectRole }) => {
   const navigate = useNavigate();
 
-  const roleTabs: { key: RoleKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  const roleTabs: {
+    key: RoleKey;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [
     { key: 'owner_admin', label: 'Owner & Admin', icon: ShieldCheck },
     { key: 'po', label: 'Product Owner (PO)', icon: CheckCircle2 },
     { key: 'dev', label: 'Developer (Dev)', icon: Code2 },
@@ -875,9 +944,9 @@ const UserFlowSection: React.FC<{
                 1. Manajemen Keanggotaan & Developer Specialties (ADR-002)
               </span>
               <p className="text-[11px] leading-relaxed">
-                Saat mengundang atau mengedit developer, tetapkan klasifikasi spesialisasi: Frontend,
-                Backend, Mobile, dan/atau Fullstack. Penugasan subtask teknis akan divalidasi
-                terhadap data spesialisasi ini.
+                Saat mengundang atau mengedit developer, tetapkan klasifikasi spesialisasi:
+                Frontend, Backend, Mobile, dan/atau Fullstack. Penugasan subtask teknis akan
+                divalidasi terhadap data spesialisasi ini.
               </p>
             </div>
             <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
@@ -1021,7 +1090,8 @@ const UserFlowSection: React.FC<{
                 Alur Kerja: Quality Assurance (QA)
               </h2>
               <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                Pintu gerbang kualitas, import spreadsheet test cases, immutable test results & QA Sign-off.
+                Pintu gerbang kualitas, import spreadsheet test cases, immutable test results & QA
+                Sign-off.
               </p>
             </div>
             <Button

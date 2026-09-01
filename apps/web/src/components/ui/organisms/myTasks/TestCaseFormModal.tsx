@@ -404,8 +404,8 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
             Submit for Review
           </Button>
 
-          {/* Publish Active (PO/Admin/Owner only - D1) */}
-          {isPoOrAdmin && (
+          {/* Activation applies only to an existing QA review submission. New cases always start as drafts. */}
+          {isPoOrAdmin && isEditing && initialTestCase?.status === 'in_review' && (
             <Button
               variant="primary"
               onClick={() => handleSubmit('active')}

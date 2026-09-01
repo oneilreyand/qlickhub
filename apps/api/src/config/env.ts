@@ -1,7 +1,18 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import path from 'node:path';
 
-dotenv.config();
+const initialWorkingDirectory = process.env.INIT_CWD || process.cwd();
+const runsFromApiPackage =
+  path.basename(initialWorkingDirectory) === 'api' &&
+  path.basename(path.dirname(initialWorkingDirectory)) === 'apps';
+const rootEnvPath = runsFromApiPackage
+  ? path.resolve(initialWorkingDirectory, '../..', '.env')
+  : path.resolve(initialWorkingDirectory, '.env');
+
+if (!process.env.VERCEL) {
+  dotenv.config({ path: rootEnvPath });
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -10,12 +21,15 @@ const envSchema = z.object({
     .default('4000')
     .transform((val: string) => parseInt(val, 10)),
   DATABASE_URL: z.string().url().optional(),
+  MIGRATION_DATABASE_URL: z.string().url().optional(),
   TEST_DATABASE_URL: z.string().url().optional(),
   JWT_ACCESS_SECRET: z.string().min(32).optional(),
   JWT_ISSUER: z.string().min(1).default('qa-management-api'),
   JWT_AUDIENCE: z.string().min(1).default('qa-management-web'),
   JWT_ACCESS_TTL_MINUTES: z.coerce.number().int().min(5).max(1440).default(480),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),
+  VERCEL_URL: z.string().min(1).optional(),
+  VERCEL_PROJECT_PRODUCTION_URL: z.string().min(1).optional(),
   COOKIE_SAME_SITE: z.enum(['strict', 'lax', 'none']).default('lax'),
   DATABASE_SSL: z
     .enum(['true', 'false'])
@@ -29,8 +43,19 @@ const envSchema = z.object({
   FIREBASE_SERVICE_ACCOUNT_PATH: z.string().min(1).optional(),
 });
 
-const parseEnv = () => {
-  const result = envSchema.safeParse(process.env);
+export const normalizeEnvironmentInput = (input: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
+  const attachmentStorageProvider = input.ATTACHMENT_STORAGE_PROVIDER;
+
+  if (!attachmentStorageProvider) return input;
+
+  return {
+    ...input,
+    ATTACHMENT_STORAGE_PROVIDER: attachmentStorageProvider.trim(),
+  };
+};
+
+export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
+  const result = envSchema.safeParse(normalizeEnvironmentInput(input));
   if (!result.success) {
     console.error('❌ Environment validation failed:', result.error.format());
     throw new Error('Invalid environment variables for API');
@@ -75,4 +100,4 @@ const parseEnv = () => {
   };
 };
 
-export const env = parseEnv();
+export const env = parseEnvironment();

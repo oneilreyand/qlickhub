@@ -270,6 +270,28 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
     await waitFor(() => expect(getParentTaskDeliveryTraceMock).toHaveBeenCalledTimes(2));
   });
 
+  it('lets an assigned Developer open read-only QA evidence without PO controls', async () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <MyTaskDetailWorkspaceDrawer
+          task={mockSubtask}
+          userRole="dev"
+          isOpen
+          onClose={vi.fn()}
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    expect(screen.getByRole('button', { name: 'QA Evidence' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'PO Cockpit & iCards' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'QA Evidence' }));
+    expect(await screen.findByText('Canonical Test Management & Executions')).toBeInTheDocument();
+    expect(await screen.findByText('No Test Cases linked to this Feature')).toBeInTheDocument();
+  });
+
   it('maps recoverable and forbidden context failures to explicit drawer states', async () => {
     getParentTaskDeliveryTraceMock
       .mockRejectedValueOnce(new Error('Temporary context failure'))

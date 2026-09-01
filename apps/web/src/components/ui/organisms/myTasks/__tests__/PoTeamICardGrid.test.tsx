@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { PoTeamICardGrid } from '../PoTeamICardGrid';
@@ -20,8 +20,19 @@ const releaseServiceMocks = vi.hoisted(() => ({
   createReleaseDecision: vi.fn(),
 }));
 
+const taskServiceMocks = vi.hoisted(() => ({
+  listSubtasks: vi.fn().mockResolvedValue({ tasks: [], total: 0, page: 1, limit: 50 }),
+  listTaskComments: vi.fn().mockResolvedValue({ comments: [], total: 0, page: 1, limit: 50 }),
+  createTaskComment: vi.fn(),
+  deleteTask: vi.fn(),
+}));
+
 vi.mock('../../../../../lib/api/releaseDecisionService', () => ({
   releaseDecisionService: releaseServiceMocks,
+}));
+
+vi.mock('../../../../../lib/api/taskService', () => ({
+  taskService: taskServiceMocks,
 }));
 
 const createTestStore = () => {
@@ -135,6 +146,16 @@ const mockParentTask: Task = {
 };
 
 describe('PoTeamICardGrid Organism', () => {
+  beforeEach(() => {
+    taskServiceMocks.listSubtasks.mockResolvedValue({
+      tasks: mockParentTask.subtasks,
+      total: mockParentTask.subtasks?.length || 0,
+      page: 1,
+      limit: 50,
+    });
+    taskServiceMocks.deleteTask.mockResolvedValue({ success: true });
+  });
+
   it('renders executive summary and all three team iCards (Frontend, Backend, QA)', async () => {
     const store = createTestStore();
     render(
@@ -182,5 +203,35 @@ describe('PoTeamICardGrid Organism', () => {
     await waitFor(() => {
       expect(screen.getByText('Subtask Details: Build Login Form UI')).toBeInTheDocument();
     });
+  });
+
+  it('lets a planner delete a subtask from the PO Cockpit after confirmation', async () => {
+    const onDataChanged = vi.fn();
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <PoTeamICardGrid
+          task={mockParentTask}
+          workspaceId="ws-1"
+          currentUserId="u-1"
+          userRole="po"
+          onDataChanged={onDataChanged}
+        />
+      </Provider>,
+    );
+
+    fireEvent.click(await screen.findByText('Build Login Form UI'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Hapus Subtask' }));
+
+    const confirmation = await screen.findByRole('dialog', { name: 'Delete subtask?' });
+    expect(confirmation).toHaveTextContent(/immutable QA evidence/i);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Subtask' }));
+
+    await waitFor(() => {
+      expect(taskServiceMocks.deleteTask).toHaveBeenCalledWith('ws-1', 'st-fe-1');
+      expect(onDataChanged).toHaveBeenCalledOnce();
+    });
+    expect(screen.queryByText('Build Login Form UI')).not.toBeInTheDocument();
   });
 });

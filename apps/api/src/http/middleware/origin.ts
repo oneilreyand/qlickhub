@@ -2,7 +2,18 @@ import { NextFunction, Request, Response } from 'express';
 import { CorsOptions } from 'cors';
 import { env } from '../../config/env.js';
 
-const allowedOrigins = new Set(env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean));
+const configuredOrigins = env.CORS_ORIGIN.split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const vercelDeploymentOrigin = env.VERCEL_URL ? `https://${env.VERCEL_URL}` : null;
+const vercelProductionOrigin = env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : null;
+const allowedOrigins = new Set([
+  ...configuredOrigins,
+  ...(vercelDeploymentOrigin ? [vercelDeploymentOrigin] : []),
+  ...(vercelProductionOrigin ? [vercelProductionOrigin] : []),
+]);
 
 const isAllowedOrigin = (origin: string): boolean => allowedOrigins.has(origin);
 

@@ -51,7 +51,7 @@ describe('taskService', () => {
     );
   });
 
-  it('returns a useful error when a task move is forbidden', async () => {
+  it('returns human-readable permission copy when a task move is forbidden', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
@@ -62,8 +62,9 @@ describe('taskService', () => {
       }),
     );
 
-    await expect(taskService.moveTask(WORKSPACE_ID, TASK_ID, { targetFolderId: CHILD_FOLDER_ID }))
-      .rejects.toThrow('You are not allowed to move this task');
+    await expect(
+      taskService.moveTask(WORKSPACE_ID, TASK_ID, { targetFolderId: CHILD_FOLDER_ID }),
+    ).rejects.toThrow('Anda tidak memiliki izin untuk melakukan tindakan ini.');
   });
 
   it('fetches a single task by taskId', async () => {
@@ -77,7 +78,7 @@ describe('taskService', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining(`/workspaces/${WORKSPACE_ID}/tasks/${TASK_ID}`),
-      expect.any(Object)
+      expect.any(Object),
     );
     expect(result.id).toBe(TASK_ID);
   });
@@ -93,7 +94,7 @@ describe('taskService', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining(`/workspaces/${WORKSPACE_ID}/tasks/${TASK_ID}`),
-      expect.objectContaining({ method: 'DELETE' })
+      expect.objectContaining({ method: 'DELETE' }),
     );
     expect(result.success).toBe(true);
   });
@@ -112,7 +113,7 @@ describe('taskService', () => {
       expect.objectContaining({
         method: 'PATCH',
         body: JSON.stringify({ status: 'in_progress' }),
-      })
+      }),
     );
     expect(result.status).toBe('in_progress');
   });
@@ -128,14 +129,16 @@ describe('taskService', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining(`/workspaces/${WORKSPACE_ID}/tasks/${TASK_ID}/subtasks`),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
   it('creates a subtask under a parent task', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ data: { id: 'new-subtask-id', title: 'FE Implementation', deliveryArea: 'frontend' } }),
+      json: async () => ({
+        data: { id: 'new-subtask-id', title: 'FE Implementation', deliveryArea: 'frontend' },
+      }),
     });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -152,9 +155,8 @@ describe('taskService', () => {
       expect.objectContaining({
         method: 'POST',
         body: expect.stringContaining('"deliveryArea":"frontend"'),
-      })
+      }),
     );
     expect(result.deliveryArea).toBe('frontend');
   });
 });
-

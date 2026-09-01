@@ -72,7 +72,7 @@ describe('TaskReportDashboard', () => {
     );
 
     const readinessPanel = screen.getByTestId('report-release-readiness');
-    expect(readinessPanel).toHaveTextContent('Not release ready · 1 failed');
+    expect(readinessPanel).toHaveTextContent('Release blocked · 1 gates need action');
     expect(readinessPanel).toHaveTextContent('1/2 development subtasks are complete.');
   });
 

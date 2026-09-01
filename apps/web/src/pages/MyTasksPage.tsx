@@ -30,7 +30,7 @@ export const MyTasksPage: React.FC = () => {
     () => workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0],
     [workspaces, activeWorkspaceId],
   );
-  const userRole = activeWorkspace?.role || activeWorkspace?.myRole || 'dev';
+  const userRole = activeWorkspace?.role || activeWorkspace?.myRole || '';
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const queueTriggerRef = useRef<HTMLElement | null>(null);
@@ -52,6 +52,12 @@ export const MyTasksPage: React.FC = () => {
   useEffect(() => {
     reloadTasks();
   }, [activeWorkspaceId, currentUserId, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(setSelectedTaskId(null));
+    };
+  }, [dispatch]);
 
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId) || null,
@@ -121,8 +127,8 @@ export const MyTasksPage: React.FC = () => {
         onClose={handleCloseDrawer}
         onOpenFeature={(featureTaskId) => {
           if (!activeWorkspaceId) return;
-          dispatch(setSelectedTaskId(null));
-          navigate(`/projects/${activeWorkspaceId}/tasks/${featureTaskId}`, {
+          dispatch(setSelectedTaskId(featureTaskId));
+          navigate(`/work?tab=tasks&taskId=${featureTaskId}`, {
             state: { returnTo: `${location.pathname}${location.search}` },
           });
         }}

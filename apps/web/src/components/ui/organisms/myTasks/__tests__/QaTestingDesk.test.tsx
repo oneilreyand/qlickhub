@@ -13,6 +13,7 @@ import type { Task, TaskTestExecutionWorkspace, TestRun } from '@qlick/contracts
 const serviceMocks = vi.hoisted(() => ({
   getTaskTestExecutions: vi.fn(),
   createTestCase: vi.fn(),
+  updateTestCase: vi.fn(),
   createTestRun: vi.fn(),
   recordTestResult: vi.fn(),
   addTestResultEvidenceLink: vi.fn(),
@@ -234,6 +235,10 @@ describe('QaTestingDesk Organism', () => {
       title: 'QA can author the first Test Case',
       status: 'draft',
     });
+    serviceMocks.updateTestCase.mockResolvedValue({
+      ...executionWorkspace().executions[0].testCase,
+      status: 'active',
+    });
     serviceMocks.recordTestResult.mockResolvedValue({
       ...inProgressRun,
       status: 'completed',
@@ -373,6 +378,50 @@ describe('QaTestingDesk Organism', () => {
         environment: 'qa-staging',
       }),
     );
+  });
+
+  it('lets PO activate a QA Test Case that is awaiting review without granting execution access', async () => {
+    const user = userEvent.setup();
+    const reviewWorkspace = executionWorkspace();
+    reviewWorkspace.executions[0].testCase.status = 'in_review';
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(reviewWorkspace);
+
+    renderDesk('po');
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Activate Test Case Returning customer completes checkout',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(serviceMocks.updateTestCase).toHaveBeenCalledWith(ids.workspace, ids.testCase, {
+        status: 'active',
+      }),
+    );
+    expect(screen.queryByRole('button', { name: /Start Test Run for/ })).not.toBeInTheDocument();
+  });
+
+  it('lets QA submit a draft Test Case for Product Owner review without granting activation access', async () => {
+    const user = userEvent.setup();
+    const draftWorkspace = executionWorkspace();
+    draftWorkspace.executions[0].testCase.status = 'draft';
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(draftWorkspace);
+
+    renderDesk('qa');
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Submit Test Case Returning customer completes checkout for review',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(serviceMocks.updateTestCase).toHaveBeenCalledWith(ids.workspace, ids.testCase, {
+        status: 'in_review',
+      }),
+    );
+    expect(screen.queryByRole('button', { name: /Activate Test Case/ })).not.toBeInTheDocument();
   });
 
   it('records a Result for the active persisted Run with evidence links', async () => {

@@ -94,7 +94,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     (state: RootState) => state.workspace,
   );
   const currentUserId = useAppSelector(selectCurrentUserId);
-  const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
+  const effectiveWorkspaceId = activeWorkspaceId || task?.workspaceId;
+  const activeWorkspace =
+    workspaces.find((workspace) => workspace.id === effectiveWorkspaceId) || workspaces[0];
   const canPlan = Boolean(
     activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role),
   );
@@ -302,26 +304,26 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         setSubtasks([]);
         setSubtasksError(null);
 
-        if (activeWorkspaceId) {
+        if (effectiveWorkspaceId) {
           loadSubtasks();
           loadActivity(1);
           loadComments(1);
           loadProductBrief();
           loadTaskQaDocs();
-          dispatch(fetchMembers(activeWorkspaceId));
+          dispatch(fetchMembers(effectiveWorkspaceId));
         }
       }
     } else {
       prevTaskIdRef.current = null;
     }
-  }, [task?.id, activeWorkspaceId, dispatch]);
+  }, [task?.id, effectiveWorkspaceId, dispatch]);
 
   const loadProductBrief = async () => {
-    if (!activeWorkspaceId || !task) return;
+    if (!effectiveWorkspaceId || !task) return;
     setIsLoadingProductBrief(true);
     setProductBriefError(null);
     try {
-      const brief = await qaDocumentService.getProductBrief(activeWorkspaceId, task.id);
+      const brief = await qaDocumentService.getProductBrief(effectiveWorkspaceId, task.id);
       setProductBrief(brief);
       setProductBriefTitle(brief?.document.title || `${task.title} Product Brief`);
       setProductBriefContent(brief?.currentVersion.contentMarkdown || '');
@@ -499,11 +501,11 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   };
 
   const loadSubtasks = async () => {
-    if (!activeWorkspaceId || !task) return;
+    if (!effectiveWorkspaceId || !task) return;
     setIsLoadingSubtasks(true);
     setSubtasksError(null);
     try {
-      const res = await taskService.listSubtasks(activeWorkspaceId, task.id);
+      const res = await taskService.listSubtasks(effectiveWorkspaceId, task.id);
       setSubtasks(res?.tasks || (Array.isArray(res) ? res : []));
     } catch (error) {
       setSubtasksError(errorMessage(error, 'Unable to load subtasks.'));
@@ -525,11 +527,16 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   );
 
   const loadActivity = async (page = activityPage, append = false) => {
-    if (!activeWorkspaceId || !task) return;
+    if (!effectiveWorkspaceId || !task) return;
     setIsLoadingActivity(true);
     setActivityError(null);
     try {
-      const res = await taskService.listTaskActivity(activeWorkspaceId, task.id, page, PAGE_SIZE);
+      const res = await taskService.listTaskActivity(
+        effectiveWorkspaceId,
+        task.id,
+        page,
+        PAGE_SIZE,
+      );
       if (append) {
         setActivities((prev) => [...prev, ...res.activities]);
       } else {
@@ -545,11 +552,16 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   };
 
   const loadComments = async (page = commentsPage, append = false) => {
-    if (!activeWorkspaceId || !task) return;
+    if (!effectiveWorkspaceId || !task) return;
     setIsLoadingComments(true);
     setCommentsError(null);
     try {
-      const res = await taskService.listTaskComments(activeWorkspaceId, task.id, page, PAGE_SIZE);
+      const res = await taskService.listTaskComments(
+        effectiveWorkspaceId,
+        task.id,
+        page,
+        PAGE_SIZE,
+      );
       if (append) {
         setComments((prev) => [...prev, ...res.comments]);
       } else {
@@ -1107,6 +1119,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               onRequirementChanged={() => loadActivity(1)}
               members={members}
               currentUserId={currentUserId}
+              onAttachmentChanged={() => void loadActivity(1)}
             />
           )}
 
@@ -1160,6 +1173,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               }}
               onSubtaskDeleted={(subtaskId) => {
                 setSubtasks((prev) => prev.filter((item) => item.id !== subtaskId));
+                void loadActivity(1);
                 onDataChanged?.();
               }}
             />

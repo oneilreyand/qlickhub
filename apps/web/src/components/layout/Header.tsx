@@ -154,12 +154,18 @@ export const Header: React.FC<HeaderProps> = ({
   useRealtimeEvents({ workspaceId: activeWorkspaceId || undefined });
 
   useEffect(() => {
+    const isAdminOrOwner = ['owner', 'admin'].includes((currentUserRole || '').toLowerCase());
+
     if (activeWorkspaceId) {
       dispatch(fetchInAppNotifications({ workspaceId: activeWorkspaceId }));
-      dispatch(checkApproachingDeadlinesThunk(activeWorkspaceId));
+      if (isAdminOrOwner) {
+        dispatch(checkApproachingDeadlinesThunk(activeWorkspaceId));
+      }
     } else {
       dispatch(fetchInAppNotifications({}));
-      dispatch(checkApproachingDeadlinesThunk(undefined));
+      if (isAdminOrOwner) {
+        dispatch(checkApproachingDeadlinesThunk(undefined));
+      }
     }
 
     // Periodic fallback sync every 15s to guarantee fresh notification counts
@@ -170,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [dispatch, activeWorkspaceId]);
+  }, [dispatch, activeWorkspaceId, currentUserRole]);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
   const userRole = (

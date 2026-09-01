@@ -578,11 +578,35 @@ export class TaskService {
 
       for (const st of subtasks) {
         await st.destroy({ transaction }); // Note: Using paranoid destroy by default in sequelize if configured
-        await logActivity(workspaceId, st.id, actorId, 'deleted', null, transaction);
+        await logActivity(
+          workspaceId,
+          st.id,
+          actorId,
+          'deleted',
+          {
+            recordType: 'subtask',
+            title: st.title,
+            parentTaskId: task.id,
+            deliveryArea: st.deliveryArea,
+          },
+          transaction,
+        );
       }
 
       await task.destroy({ transaction });
-      await logActivity(workspaceId, taskId, actorId, 'deleted', null, transaction);
+      await logActivity(
+        workspaceId,
+        taskId,
+        actorId,
+        'deleted',
+        {
+          recordType: task.parentTaskId ? 'subtask' : 'task',
+          title: task.title,
+          parentTaskId: task.parentTaskId,
+          deliveryArea: task.deliveryArea,
+        },
+        transaction,
+      );
     });
   }
 
@@ -653,6 +677,9 @@ export class TaskService {
         const subtasks = await TaskModel.findAll({
           where: { workspaceId, parentTaskId: taskId },
           attributes: ['id'],
+          // Deletion activity belongs to the Feature audit trail even after a
+          // direct subtask is soft-deleted.
+          paranoid: false,
           transaction,
         });
         taskIds = [taskId, ...subtasks.map((st) => st.id)];
@@ -668,6 +695,9 @@ export class TaskService {
             model: TaskModel,
             as: 'task',
             attributes: ['id', 'title', 'parentTaskId', 'deliveryArea'],
+            // Keep the deleted subtask context (title, area, hierarchy) on
+            // its retained audit event.
+            paranoid: false,
           },
           {
             model: UserModel,

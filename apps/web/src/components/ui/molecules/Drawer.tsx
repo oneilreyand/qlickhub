@@ -107,13 +107,15 @@ export const Drawer: React.FC<DrawerProps> = ({
     full: 'max-w-6xl',
   };
 
+  const isBackdropVisible = isOpen && !isClosing && !isFullScreen;
+
   return (
     <div className={`fixed inset-0 overflow-hidden ${preserveAppHeader ? 'z-20' : 'z-50'}`}>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-[#22201F]/40 backdrop-blur-xs transition-opacity duration-250 ease-in-out dark:bg-black/70 ${
-          isClosing ? 'animate-fadeOut' : 'animate-fadeIn'
-        } ${isFullScreen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        className={`fixed inset-0 bg-[#22201F]/40 backdrop-blur-xs transition-opacity duration-300 ease-in-out dark:bg-black/70 ${
+          isBackdropVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
         onClick={handleInitiateClose}
         aria-hidden="true"
       />

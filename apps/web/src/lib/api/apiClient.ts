@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/v1';
 
 export interface ApiOptions extends RequestInit {
   params?: Record<string, string>;
@@ -16,6 +16,60 @@ const getRequestKey = (url: string, config: RequestInit) => {
 };
 
 let refreshPromise: Promise<boolean> | null = null;
+
+/**
+ * Converts transport errors into safe, actionable copy for the product UI.
+ * The API code and HTTP status are still kept on the Error instance so callers
+ * can render an access-specific state when that is required.
+ */
+export function getHumanReadableApiErrorMessage(
+  status: number,
+  code?: string,
+  serverMessage?: string,
+): string {
+  const normalizedCode = code?.toUpperCase();
+  const normalizedServerMessage = serverMessage?.toLowerCase() || '';
+
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('formal qa evidence is immutable')
+  ) {
+    return 'Bukti QA formal tidak dapat dihapus karena merupakan bagian dari riwayat pengujian. Unggah bukti pengganti bila diperlukan.';
+  }
+
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('unlink or remove permitted task records')
+  ) {
+    return 'Data belum dapat dihapus karena masih memiliki Requirement, dokumen, atau lampiran terkait. Lepaskan data yang diizinkan terlebih dahulu. Riwayat QA, Bug, sign-off, dan keputusan rilis tetap dipertahankan.';
+  }
+
+  if (normalizedCode === 'FORBIDDEN' || status === 403) {
+    return 'Anda tidak memiliki izin untuk melakukan tindakan ini.';
+  }
+
+  if (normalizedCode === 'NOT_FOUND' || status === 404) {
+    return 'Data yang diminta sudah tidak tersedia atau telah dihapus. Muat ulang halaman lalu coba lagi.';
+  }
+
+  if (normalizedCode === 'CONFLICT' || status === 409) {
+    return 'Tindakan tidak dapat diselesaikan karena data terkait telah berubah atau masih digunakan. Muat ulang halaman lalu coba lagi.';
+  }
+
+  if (normalizedCode === 'BAD_REQUEST' || normalizedCode === 'VALIDATION_ERROR' || status === 400) {
+    return 'Data yang diisi belum valid. Periksa kembali informasi yang diperlukan lalu coba lagi.';
+  }
+
+  if (status === 401) {
+    return 'Sesi Anda telah berakhir. Silakan masuk kembali untuk melanjutkan.';
+  }
+
+  if (status >= 500) {
+    return 'Terjadi gangguan pada layanan. Coba lagi beberapa saat.';
+  }
+
+  return 'Tindakan tidak dapat diselesaikan. Coba lagi.';
+}
 
 async function attemptTokenRefresh(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
@@ -100,7 +154,9 @@ async function sendRequest<T>(
       handleAuthFailure(errorCode);
     }
 
-    const error = new Error(errorMessage) as any;
+    const error = new Error(
+      getHumanReadableApiErrorMessage(response.status, errorCode, errorMessage),
+    ) as any;
     error.status = response.status;
     error.code = errorCode || undefined;
     if (validationErrors) {

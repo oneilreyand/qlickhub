@@ -47,26 +47,38 @@ export const ReleaseReadinessSignal: React.FC<ReleaseReadinessSignalProps> = ({
   }
 
   const evaluation = state.snapshot.evaluation;
-  const firstFailedGate = evaluation.gates.find((gate) => gate.status === 'failed');
+  const failedGates = evaluation.gates.filter((gate) => gate.status === 'failed');
 
   return (
-    <div className={`min-w-0 space-y-1 ${className}`} aria-label="Release readiness">
+    <div
+      className={`min-w-0 space-y-1 ${className}`}
+      aria-label={
+        evaluation.ready
+          ? 'Release ready: all five gates passed'
+          : `Release blocked: ${failedGates.length} gates need action`
+      }
+    >
       {evaluation.ready ? (
         <Badge variant="passed" size="sm" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
           Release ready · 5/5 gates
         </Badge>
       ) : (
         <Badge variant="blocked" size="sm" icon={<XCircle className="h-3.5 w-3.5" />}>
-          Not release ready · {evaluation.failedGateCodes.length} failed
+          Release blocked · {failedGates.length} gates need action
         </Badge>
       )}
-      {showReason && firstFailedGate && (
-        <p className="max-w-xl text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
-          <span className="font-bold text-stone-800 dark:text-stone-200">
-            {firstFailedGate.label}:{' '}
-          </span>
-          {firstFailedGate.reason}
-        </p>
+      {showReason && failedGates.length > 0 && (
+        <ul
+          className="max-w-xl space-y-1 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400"
+          aria-label="Release gates needing action"
+        >
+          {failedGates.map((gate) => (
+            <li key={gate.code}>
+              <span className="font-bold text-stone-800 dark:text-stone-200">{gate.label}: </span>
+              {gate.reason}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

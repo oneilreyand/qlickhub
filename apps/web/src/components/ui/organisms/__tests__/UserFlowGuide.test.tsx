@@ -9,7 +9,9 @@ import authReducer from '../../../../store/authSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
 
-function renderWithProviders(ui: React.ReactElement, initialAuthState?: Record<string, any>) {
+import type { AuthState } from '../../../../store/authSlice';
+
+function renderWithProviders(ui: React.ReactElement, initialAuthState?: Partial<AuthState>) {
   const store = configureStore({
     reducer: {
       auth: authReducer,
@@ -18,19 +20,18 @@ function renderWithProviders(ui: React.ReactElement, initialAuthState?: Record<s
     },
     preloadedState: {
       auth: {
-        token: 'test-token',
-        user: {
+        currentUser: {
           id: 'user-1',
           email: 'qa@qlickhub.com',
           name: 'Budi QA Lead',
           role: 'qa',
-          workspaceRole: 'qa',
-          ...initialAuthState?.user,
+          onboardingCompletedAt: '2026-08-24T00:00:00.000Z',
+          ...initialAuthState?.currentUser,
         },
         isAuthenticated: true,
-        isLoading: false,
-        isWorkspaceSelected: true,
         showOnboardingModal: false,
+        status: 'succeeded' as const,
+        error: null,
         ...initialAuthState,
       },
     },
@@ -46,17 +47,16 @@ function renderWithProviders(ui: React.ReactElement, initialAuthState?: Record<s
 describe('UserFlowGuide', () => {
   it('renders dynamic personalized banner according to logged-in user role', () => {
     renderWithProviders(<UserFlowGuide initialSection="panduan" />, {
-      user: {
+      currentUser: {
         id: 'user-qa',
         name: 'Sarah QA Engineer',
         email: 'qa@example.com',
         role: 'qa',
-        workspaceRole: 'qa',
       },
     });
 
     expect(screen.getByText(/Panduan Interaktif: Quality Assurance \(QA\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Buka QA Testing Desk/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Buka QA Testing Desk/i)[0]).toBeInTheDocument();
     expect(screen.getByText(/Sarah QA Engineer/i)).toBeInTheDocument();
     expect(screen.getByText(/Pintu gerbang kualitas sistem/i)).toBeInTheDocument();
   });
@@ -64,7 +64,9 @@ describe('UserFlowGuide', () => {
   it('renders correctly with 3 main sections: Panduan, E2E Overview, and User Flow', () => {
     renderWithProviders(<UserFlowGuide initialSection="panduan" />);
 
-    expect(screen.getAllByRole('button', { name: /Panduan Aplikasi & Simulator/i })[0]).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: /Panduan Aplikasi & Simulator/i })[0],
+    ).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /E2E Overview & RBAC/i })[0]).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Alur Kerja per Role/i })[0]).toBeInTheDocument();
     expect(screen.getByText('Struktur & Menu Utama Aplikasi')).toBeInTheDocument();
@@ -79,7 +81,9 @@ describe('UserFlowGuide', () => {
     expect(
       screen.getByText(/Siklus Lengkap Kolaborasi Tim \(End-to-End 5-Phase Lifecycle\)/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Matriks Peran & Hak Akses \(RBAC Governance Matrix\)/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Matriks Peran & Hak Akses \(RBAC Governance Matrix\)/i),
+    ).toBeInTheDocument();
 
     // Click User Flow tab
     const userFlowTab = screen.getAllByRole('button', { name: /Alur Kerja per Role/i })[0];
@@ -115,14 +119,13 @@ describe('UserFlowGuide', () => {
     expect(screen.getByText('Interactive Feature Workflow Simulator')).toBeInTheDocument();
   });
 
-  it('interacts with the Interactive Feature Workflow Simulator', () => {
+  it('interacts with the Interactive Feature Workflow Simulator with role pre-selection and switcher', () => {
     renderWithProviders(<UserFlowGuide initialSection="panduan" />, {
-      user: {
+      currentUser: {
         id: 'user-dev',
         name: 'Dev Specialist',
         email: 'dev@example.com',
         role: 'dev',
-        workspaceRole: 'dev',
       },
     });
 
@@ -145,7 +148,11 @@ describe('UserFlowGuide', () => {
     fireEvent.click(doneAttemptBtn);
     expect(screen.getByText(/Quality Gate Blocked: Anti Self-Approval/i)).toBeInTheDocument();
 
-    // Switch to QA Signoff Guide
+    // Switch filter to Semua Role
+    const allRoleFilterBtn = screen.getByRole('button', { name: /Semua Role/i });
+    fireEvent.click(allRoleFilterBtn);
+
+    // Switch to QA Signoff Guide (Guide 8)
     const qaGuideBtn = screen.getByRole('button', { name: /8\. QA: Retest Independen/i });
     fireEvent.click(qaGuideBtn);
     expect(screen.getByText(/QA Gatekeeper Verification Panel/i)).toBeInTheDocument();
@@ -160,7 +167,7 @@ describe('UserFlowGuide', () => {
     fireEvent.click(passScenarioBtn);
     expect(screen.getByText(/Status Berubah: DONE \(Approved by QA\)/i)).toBeInTheDocument();
 
-    // Switch to QA Intake Guide
+    // Switch to QA Intake Guide (Guide 6)
     const qaIntakeBtn = screen.getByRole('button', { name: /6\. QA: Test Case Intake/i });
     fireEvent.click(qaIntakeBtn);
     expect(screen.getByText(/Spreadsheet Intake Wizard Simulator/i)).toBeInTheDocument();

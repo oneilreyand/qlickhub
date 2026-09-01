@@ -395,7 +395,12 @@ export class FolderService {
    * Archives or unarchives a folder atomically.
    * Enforces that child subfolders cannot be unarchived while their parent is archived.
    */
-  async archiveFolder(workspaceId: string, folderId: string, archive = true): Promise<Folder> {
+  async archiveFolder(
+    workspaceId: string,
+    folderId: string,
+    archive = true,
+    actorId: string | null = null,
+  ): Promise<Folder> {
     return await sequelize.transaction(async (transaction) => {
       const folder = await WorkFolderModel.findOne({
         where: { id: folderId, workspaceId },
@@ -441,9 +446,9 @@ export class FolderService {
           {
             workspaceId,
             folderId: folder.id,
-            actorId: null,
+            actorId,
             action: 'archived',
-            metadataJson: null,
+            metadataJson: { folderName: folder.name },
           },
           { transaction },
         );
@@ -464,7 +469,7 @@ export class FolderService {
           {
             workspaceId,
             folderId: folder.id,
-            actorId: null,
+            actorId,
             action: 'unarchived',
             metadataJson: null,
           },

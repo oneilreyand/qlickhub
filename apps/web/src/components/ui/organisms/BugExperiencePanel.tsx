@@ -117,6 +117,17 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
       setIsLoading(false);
       return;
     }
+    if (
+      mode === 'role_queue' &&
+      role !== 'dev' &&
+      role !== 'qa' &&
+      role !== 'owner' &&
+      role !== 'admin'
+    ) {
+      setBugs([]);
+      setIsLoading(false);
+      return;
+    }
     const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);

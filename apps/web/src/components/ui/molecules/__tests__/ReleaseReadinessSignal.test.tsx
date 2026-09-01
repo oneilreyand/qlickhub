@@ -4,11 +4,42 @@ import { createReleaseReadinessViewState } from '../../../../test/releaseReadine
 import { ReleaseReadinessSignal } from '../ReleaseReadinessSignal';
 
 describe('ReleaseReadinessSignal', () => {
-  it('renders the backend evaluation and its first failed reason', () => {
-    render(<ReleaseReadinessSignal state={createReleaseReadinessViewState()} showReason />);
+  it('renders every backend-derived failed gate reason as an actionable release blocker', () => {
+    const state = createReleaseReadinessViewState();
+    const snapshot = state.snapshot!;
+    const gates = snapshot.evaluation.gates.map((gate) =>
+      gate.code === 'latest_test_results'
+        ? {
+            ...gate,
+            status: 'failed' as const,
+            reason: 'No completed Test Run is recorded for the active mapped Test Cases.',
+          }
+        : gate,
+    );
 
-    expect(screen.getByText('Not release ready · 1 failed')).toBeInTheDocument();
+    render(
+      <ReleaseReadinessSignal
+        state={{
+          ...state,
+          snapshot: {
+            ...snapshot,
+            evaluation: {
+              ...snapshot.evaluation,
+              failedGateCodes: ['latest_test_results', 'development_completion'],
+              gates,
+            },
+          },
+        }}
+        showReason
+      />,
+    );
+
+    expect(screen.getByText('Release blocked · 2 gates need action')).toBeInTheDocument();
     expect(screen.getByText(/1\/2 development subtasks are complete/)).toBeInTheDocument();
+    expect(
+      screen.getByText('No completed Test Run is recorded for the active mapped Test Cases.'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Release gates needing action')).toBeInTheDocument();
   });
 
   it('renders ready, loading, permission, and unavailable states explicitly', () => {

@@ -4,18 +4,19 @@ This file is the mandatory operating guide for every agent working in this repos
 
 ## Source of truth
 
-Read these documents before making changes:
+Read these SSoT documents before making changes:
 
-1. `docs/plans/QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md` — product, architecture, security, and delivery plan.
-2. `DESIGN_IMPLEMENTATION_PLAN.md` — Work Hub UI system and frontend implementation slices.
-3. `TODO.md` — current prioritized work.
-4. `AGENT_REPORT_TEMPLATE.md` — required handoff/report format.
+1. [`docs/1_ARCHITECTURE.md`](docs/1_ARCHITECTURE.md) — SSoT for domain model, hierarchy, RBAC, schema, and security.
+2. [`docs/2_WORKFLOW_AND_ROLES.md`](docs/2_WORKFLOW_AND_ROLES.md) — SSoT for end-to-end role workflow, subtasks, QA test management, and release gates.
+3. [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md) — SSoT for atomic UI components, Stitch design tokens, and route layout.
+4. [`docs/4_AGENT_DEV_GUIDELINES.md`](docs/4_AGENT_DEV_GUIDELINES.md) — SSoT for developer rules, PostgreSQL test evidence policy, and handoff report template.
+5. [`TODO.md`](TODO.md) — Current prioritized active backlog.
 
-When documents conflict, use this priority: explicit user instruction → security constraints → Work Hub delivery plan → design plan → TODO.
+When documents conflict, use this priority: explicit user instruction → security constraints → SSoT Architecture & Workflow (`docs/1_ARCHITECTURE.md`, `docs/2_WORKFLOW_AND_ROLES.md`) → UI Design System (`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`) → Agent Guidelines (`docs/4_AGENT_DEV_GUIDELINES.md`) → TODO.
 
 ## Core rules
 
-- For all frontend work, follow `docs/AGENT_UI_COMPONENT_POLICY.md`. Reuse the Atomic Design system before adding markup or styles to a page.
+- For all frontend work, follow [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md). Reuse the Atomic Design system before adding markup or styles to a page.
 - Work on exactly one TODO item or one tightly related subtask at a time.
 - Before editing, inspect the relevant code and identify the files likely to change.
 - Do not make silent product, role, schema, migration, or workflow assumptions. Resolve the answer from the source-of-truth documents and current implementation. If evidence conflicts or a choice materially changes behavior/data, document the conflict and request an explicit decision; mark the TODO item `Blocked` when work cannot safely continue.

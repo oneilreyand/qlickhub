@@ -155,7 +155,12 @@ export const archiveFolder = async (req: AuthenticatedRequest, res: Response) =>
     const parseResult = ArchiveFolderSchema.safeParse(req.body || {});
     const archive = parseResult.success ? parseResult.data.archive : true;
 
-    const archived = await folderService.archiveFolder(workspaceId, folderId, archive);
+    const archived = await folderService.archiveFolder(
+      workspaceId,
+      folderId,
+      archive,
+      req.user!.userId,
+    );
     return res.status(200).json({ data: archived });
   } catch (error) {
     return handleError(res, error);

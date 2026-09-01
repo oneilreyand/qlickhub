@@ -132,6 +132,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   // Modals for Intake
   const [isTestCaseFormOpen, setIsTestCaseFormOpen] = useState(false);
   const [isImportWizardOpen, setIsImportWizardOpen] = useState(false);
+  const [activatingTestCaseId, setActivatingTestCaseId] = useState<string | null>(null);
+  const [submittingTestCaseId, setSubmittingTestCaseId] = useState<string | null>(null);
 
   // Evidence Preview Modal state
   const [previewEvidence, setPreviewEvidence] = useState<EvidencePreviewItem | null>(null);
@@ -148,6 +150,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
   const canExecuteTests = ['owner', 'admin', 'qa'].includes(userRole.toLowerCase());
   const canAuthorTests = ['owner', 'admin', 'po', 'qa'].includes(userRole.toLowerCase());
+  const canActivateTestCases = ['owner', 'admin', 'po'].includes(userRole.toLowerCase());
+  const canSubmitTestCasesForReview = userRole.toLowerCase() === 'qa';
   const requirementScopeTaskId = parentTask?.id || subtask.parentTaskId || subtask.id;
 
   const bugTraceOptions = useMemo(() => {
@@ -275,6 +279,27 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     setRunFormError(null);
   };
 
+  const handleSubmitTestCaseForReview = async (testCaseId: string) => {
+    try {
+      setSubmittingTestCaseId(testCaseId);
+      await testManagementService.updateTestCase(workspaceId, testCaseId, {
+        status: 'in_review',
+      });
+      dispatch(enqueueSnackbar('Test Case submitted for Product Owner review', 'success'));
+      await loadExecutions();
+      onDataChanged();
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Unable to submit Test Case for review',
+          'error',
+        ),
+      );
+    } finally {
+      setSubmittingTestCaseId(null);
+    }
+  };
+
   const handleStartRun = async () => {
     if (!runTestCaseId) return;
     if (!runBuild.trim() || !runEnvironment.trim()) {
@@ -326,6 +351,25 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
   const handleAddEvidenceLinkInput = () => {
     setEvidenceLinksInput((prev) => [...prev, { url: '', label: '' }]);
+  };
+
+  const handleActivateTestCase = async (testCaseId: string) => {
+    setActivatingTestCaseId(testCaseId);
+    try {
+      await testManagementService.updateTestCase(workspaceId, testCaseId, { status: 'active' });
+      dispatch(enqueueSnackbar('Test Case activated and ready for QA execution', 'success'));
+      await loadExecutions();
+      onDataChanged();
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Failed to activate Test Case.',
+          'error',
+        ),
+      );
+    } finally {
+      setActivatingTestCaseId(null);
+    }
   };
 
   const handleRemoveEvidenceLinkInput = (index: number) => {
@@ -730,18 +774,46 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                     )}
                   </div>
 
-                  {canExecuteTests && (
+                  {(canExecuteTests ||
+                    (canSubmitTestCasesForReview && testCase.status === 'draft') ||
+                    (canActivateTestCases && testCase.status === 'in_review')) && (
                     <div className="flex shrink-0 flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={testCase.status !== 'active'}
-                        onClick={() => openRunModal(testCase.id)}
-                        aria-label={`Start Test Run for ${testCase.title}`}
-                      >
-                        Start Test Run
-                      </Button>
-                      {latestRun?.status === 'in_progress' && (
+                      {canSubmitTestCasesForReview && testCase.status === 'draft' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          isLoading={submittingTestCaseId === testCase.id}
+                          onClick={() => void handleSubmitTestCaseForReview(testCase.id)}
+                          aria-label={`Submit Test Case ${testCase.title} for review`}
+                          leftIcon={<CheckSquare className="h-3.5 w-3.5" />}
+                        >
+                          Submit for Review
+                        </Button>
+                      )}
+                      {canActivateTestCases && testCase.status === 'in_review' && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          isLoading={activatingTestCaseId === testCase.id}
+                          onClick={() => void handleActivateTestCase(testCase.id)}
+                          aria-label={`Activate Test Case ${testCase.title}`}
+                          leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                        >
+                          Activate Test Case
+                        </Button>
+                      )}
+                      {canExecuteTests && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={testCase.status !== 'active'}
+                          onClick={() => openRunModal(testCase.id)}
+                          aria-label={`Start Test Run for ${testCase.title}`}
+                        >
+                          Start Test Run
+                        </Button>
+                      )}
+                      {canExecuteTests && latestRun?.status === 'in_progress' && (
                         <Button
                           variant="primary"
                           size="sm"

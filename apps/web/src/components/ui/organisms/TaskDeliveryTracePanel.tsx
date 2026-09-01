@@ -66,7 +66,7 @@ function executionBadge(status: DeliveryTraceExecutionStatus) {
     DeliveryTraceExecutionStatus,
     { label: string; variant: BadgeProps['variant'] }
   > = {
-    not_run: { label: 'Tests not run', variant: 'draft' },
+    not_run: { label: 'No test results yet', variant: 'draft' },
     passing: { label: 'Tests passing', variant: 'passed' },
     failing: { label: 'Tests failing', variant: 'blocked' },
     incomplete: { label: 'Execution incomplete', variant: 'review' },

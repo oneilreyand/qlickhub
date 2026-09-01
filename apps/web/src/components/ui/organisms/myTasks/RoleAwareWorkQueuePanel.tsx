@@ -51,6 +51,15 @@ const priorityVariants = {
   low: 'draft',
 } as const;
 
+const PO_EMPTY_WORK_ILLUSTRATION =
+  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1788007862/ChatGPT_Image_Aug_18_2026_11_18_28_AM.png';
+
+const poEmptyWorkIllustrationAlt: Partial<Record<WorkQueueBucketCode, string>> = {
+  po_requirement_work: 'No requirement work illustration',
+  po_release_decision: 'No release decisions illustration',
+  po_timeline_work: 'No timeline work illustration',
+};
+
 function humanize(value: string) {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
 }
@@ -157,6 +166,8 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   }
 
   const totalItems = buckets.reduce((total, bucket) => total + bucket.total, 0);
+  const emptyBucketIllustrationAlt =
+    activeBucket.total === 0 ? poEmptyWorkIllustrationAlt[activeBucket.code] : undefined;
   const roleLabel =
     state.queue.queueRole === 'planner'
       ? 'Planner'
@@ -256,6 +267,8 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
               ? 'There is nothing requiring your attention in this bucket right now.'
               : 'Clear the search or priority filter to see the backend-prioritized work.'
           }
+          illustrationSrc={emptyBucketIllustrationAlt ? PO_EMPTY_WORK_ILLUSTRATION : undefined}
+          illustrationAlt={emptyBucketIllustrationAlt}
         />
       ) : (
         <div className="space-y-3">

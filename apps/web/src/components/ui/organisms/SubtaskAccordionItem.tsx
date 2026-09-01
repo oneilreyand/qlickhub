@@ -24,7 +24,7 @@ import { LoadingSpinner } from '../atoms/LoadingSpinner';
 import { Alert } from '../atoms/Alert';
 import { Modal } from '../molecules/Modal';
 import { taskService } from '../../../lib/api/taskService';
-import { useAppDispatch } from '../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
 
@@ -65,7 +65,13 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
     'description',
   );
 
-  const currentUserRole = members.find((m) => m.userId === currentUserId)?.role;
+  const activeWorkspace = useAppSelector((state) =>
+    state.workspace.workspaces.find(
+      (w) => w.id === (workspaceId || state.workspace.activeWorkspaceId),
+    ),
+  );
+  const currentUserRole =
+    members.find((m) => m.userId === currentUserId)?.role || activeWorkspace?.role;
   const isPlanner = Boolean(currentUserRole && ['owner', 'admin', 'po'].includes(currentUserRole));
 
   // Subtask local comments data

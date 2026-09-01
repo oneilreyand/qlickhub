@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   TrendingUp,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import type { Task, DeliveryArea, TaskComment } from '@qlick/contracts';
 import { Card } from '../../atoms/Card';
@@ -23,6 +24,7 @@ import { calculateSubtaskScheduleHealth } from '../../../../lib/utils/scheduleHe
 import { SubtaskCommentBox } from '../../molecules/SubtaskCommentBox';
 import { CreateSubtaskModal } from '../CreateSubtaskModal';
 import { ReleaseAssurancePanel } from '../ReleaseAssurancePanel';
+import { TaskDeleteConfirmationModal } from '../taskDetail';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { RootState } from '../../../../store/store';
 import { updateTask } from '../../../../store/taskSlice';
@@ -57,6 +59,9 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
   const [targetDeliveryArea, setTargetDeliveryArea] = useState<DeliveryArea>('frontend');
   const [selectedSubtask, setSelectedSubtask] = useState<Task | null>(null);
   const [subtaskComments, setSubtaskComments] = useState<TaskComment[]>([]);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+  const [isDeletingSubtask, setIsDeletingSubtask] = useState(false);
+  const canPlan = ['owner', 'admin', 'po'].includes(userRole.toLowerCase());
 
   useEffect(() => {
     if (selectedSubtask) {
@@ -146,6 +151,29 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
       dispatch(
         enqueueSnackbar(err instanceof Error ? err.message : 'Failed to reopen feature', 'error'),
       );
+    }
+  };
+
+  const handleDeleteSelectedSubtask = async () => {
+    if (!selectedSubtask || !canPlan || isDeletingSubtask) return;
+
+    setIsDeletingSubtask(true);
+    try {
+      await taskService.deleteTask(workspaceId, selectedSubtask.id);
+      setSubtasks((current) => current.filter((subtask) => subtask.id !== selectedSubtask.id));
+      dispatch(enqueueSnackbar(`Subtask “${selectedSubtask.title}” berhasil dihapus.`, 'success'));
+      setIsDeleteConfirmationOpen(false);
+      setSelectedSubtask(null);
+      onDataChanged();
+    } catch (err) {
+      dispatch(
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Subtask tidak dapat dihapus. Coba lagi.',
+          'error',
+        ),
+      );
+    } finally {
+      setIsDeletingSubtask(false);
     }
   };
 
@@ -509,6 +537,17 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                     Open Dev Working Desk
                   </Button>
                 )}
+                {canPlan && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={isDeletingSubtask}
+                    leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+                    onClick={() => setIsDeleteConfirmationOpen(true)}
+                  >
+                    Hapus Subtask
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -564,6 +603,16 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             </div>
           </div>
         </Modal>
+      )}
+
+      {selectedSubtask && (
+        <TaskDeleteConfirmationModal
+          isOpen={isDeleteConfirmationOpen}
+          onClose={() => setIsDeleteConfirmationOpen(false)}
+          task={selectedSubtask}
+          isDeleting={isDeletingSubtask}
+          onConfirmDelete={() => void handleDeleteSelectedSubtask()}
+        />
       )}
 
       {/* Create Subtask Modal */}

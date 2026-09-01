@@ -4,5 +4,14 @@ coverage/
 .env
 .env.*
 !.env.example
+!apps/web/.env.example
 *.log
 .playwright-mcp/
+.vercel
+
+# Local service-account credentials must never be committed.
+drive-production.json
+*-service-account.json
+
+# Persisted attachment/evidence files are runtime data, not source files.
+data/evidence_storage/

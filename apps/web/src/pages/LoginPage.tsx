@@ -8,7 +8,8 @@ import { Input } from '../components/ui/atoms/Input';
 import { useAppDispatch } from '../store/hooks';
 import { setSessionUser } from '../store/authSlice';
 
-const LOGIN_HERO_IMAGE_URL = 'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787126530/ChatGPT_Image_Aug_19_2026_03_01_47_PM.png';
+const LOGIN_HERO_IMAGE_URL =
+  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787848938/ChatGPT_Image_Aug_19_2026_03_01_47_PM.png';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -53,14 +54,18 @@ export const LoginPage: React.FC = () => {
       dispatch(setSessionUser(res.user));
 
       setIsLoading(false);
-      const requestedPath = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+      const requestedPath = (
+        location.state as { from?: { pathname?: string; search?: string } } | null
+      )?.from;
       const destination = requestedPath?.pathname?.startsWith('/work')
         ? `${requestedPath.pathname}${requestedPath.search || ''}`
         : '/work';
       navigate(destination, { replace: true });
     } catch (err: any) {
       setIsLoading(false);
-      setErrorMessage(err?.message || 'Otentikasi gagal. Pastikan email dan kata sandi Anda benar.');
+      setErrorMessage(
+        err?.message || 'Otentikasi gagal. Pastikan email dan kata sandi Anda benar.',
+      );
     }
   };
 
@@ -87,7 +92,9 @@ export const LoginPage: React.FC = () => {
           </div>
           <div className="leading-tight">
             <h2 className="text-base font-bold text-white tracking-wide">Qlick Hub</h2>
-            <p className="text-xs text-stone-300 font-medium">Task Management & Collaboration Hub</p>
+            <p className="text-xs text-stone-300 font-medium">
+              Task Management & Collaboration Hub
+            </p>
           </div>
         </div>
 
@@ -103,7 +110,8 @@ export const LoginPage: React.FC = () => {
           </h1>
 
           <p className="text-xs xl:text-sm text-stone-300 leading-relaxed">
-            Centralize requirements, cross-role subtask handoffs (PO ➔ Dev ➔ QA), delivery tracking, and team discussions in one unified workspace.
+            Centralize requirements, cross-role subtask handoffs (PO ➔ Dev ➔ QA), delivery tracking,
+            and team discussions in one unified workspace.
           </p>
 
           <div className="pt-2 flex items-center gap-4 text-xs font-semibold text-stone-400">
@@ -153,7 +161,9 @@ export const LoginPage: React.FC = () => {
               <div className="grid h-8 w-8 place-items-center rounded-xl bg-[#B1E743] text-[#22201F] font-black text-sm shadow-xs">
                 Q
               </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-stone-400">Qlick Hub</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+                Qlick Hub
+              </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-stone-900 dark:text-stone-100 tracking-tight">
               Selamat Datang Kembali
@@ -165,31 +175,46 @@ export const LoginPage: React.FC = () => {
 
           {/* Alert States */}
           {isSessionOverridden && (
-            <Alert tone="warning" icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} title="Sesi Tergantikan">
-              Batas sesi bersamaan untuk akun ini telah tercapai atau login baru telah menggantikan sesi ini.
+            <Alert
+              tone="warning"
+              icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+              title="Sesi Tergantikan"
+            >
+              Batas sesi bersamaan untuk akun ini telah tercapai atau login baru telah menggantikan
+              sesi ini.
             </Alert>
           )}
 
           {isIdleTimeout && (
-            <Alert tone="warning" icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} title="Sesi Habis Karena Tidak Aktif">
-              Anda telah keluar otomatis karena tidak ada aktivitas selama beberapa waktu. Silakan masuk kembali untuk melanjutkan.
+            <Alert
+              tone="warning"
+              icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+              title="Sesi Habis Karena Tidak Aktif"
+            >
+              Anda telah keluar otomatis karena tidak ada aktivitas selama beberapa waktu. Silakan
+              masuk kembali untuk melanjutkan.
             </Alert>
           )}
 
           {isSessionExpired && (
-            <Alert tone="warning" icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} title="Sesi Berakhir">
+            <Alert
+              tone="warning"
+              icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+              title="Sesi Berakhir"
+            >
               Masa berlaku sesi login telah berakhir. Silakan masuk kembali.
             </Alert>
           )}
 
-          {errorMessage && (
-            <Alert tone="error">{errorMessage}</Alert>
-          )}
+          {errorMessage && <Alert tone="error">{errorMessage}</Alert>}
 
           {/* Form Login */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label htmlFor="email-input" className="block text-xs font-bold text-stone-700 dark:text-stone-300">
+              <label
+                htmlFor="email-input"
+                className="block text-xs font-bold text-stone-700 dark:text-stone-300"
+              >
                 Email Address
               </label>
               <Input
@@ -207,7 +232,10 @@ export const LoginPage: React.FC = () => {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="password-input" className="block text-xs font-bold text-stone-700 dark:text-stone-300">
+                <label
+                  htmlFor="password-input"
+                  className="block text-xs font-bold text-stone-700 dark:text-stone-300"
+                >
                   Password
                 </label>
                 <Link

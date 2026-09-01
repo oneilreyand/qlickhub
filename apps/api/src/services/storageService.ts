@@ -78,7 +78,11 @@ class LocalAttachmentStorageAdapter implements AttachmentStorageAdapter {
     const fullPath = path.resolve(STORAGE_BASE_DIR, sanitizedRef);
     const relativePath = path.relative(STORAGE_BASE_DIR, fullPath);
 
-    if (relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
+    if (
+      relativePath === '..' ||
+      relativePath.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativePath)
+    ) {
       throw new Error('FORBIDDEN: Invalid file storage reference.');
     }
     if (!fs.existsSync(fullPath)) {
@@ -96,7 +100,9 @@ class GoogleDriveAttachmentStorageAdapter implements AttachmentStorageAdapter {
 
   constructor() {
     if (!env.GOOGLE_DRIVE_ROOT_FOLDER_ID) {
-      throw new Error('GOOGLE_DRIVE_ROOT_FOLDER_ID is required for Google Drive attachment storage.');
+      throw new Error(
+        'GOOGLE_DRIVE_ROOT_FOLDER_ID is required for Google Drive attachment storage.',
+      );
     }
 
     let credentials: Record<string, unknown> | undefined;
@@ -150,7 +156,7 @@ class GoogleDriveAttachmentStorageAdapter implements AttachmentStorageAdapter {
     const fileId = providerFileId || storageRef;
     const result = await this.drive.files.get(
       { fileId, alt: 'media', supportsAllDrives: true },
-      { responseType: 'stream' }
+      { responseType: 'stream' },
     );
     return result.data as unknown as Readable;
   }
@@ -158,7 +164,12 @@ class GoogleDriveAttachmentStorageAdapter implements AttachmentStorageAdapter {
   async delete(storageRef: string, providerFileId: string | null): Promise<void> {
     const fileId = providerFileId || storageRef;
     try {
-      await this.drive.files.delete({ fileId, supportsAllDrives: true });
+      await this.drive.files.update({
+        fileId,
+        requestBody: { trashed: true },
+        fields: 'id,trashed',
+        supportsAllDrives: true,
+      });
     } catch (error: any) {
       if (error?.code !== 404) throw error;
     }

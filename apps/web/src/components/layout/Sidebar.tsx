@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   Component,
   ShieldCheck,
+  LayoutDashboard,
   Layers,
   Building2,
   FileBarChart,
@@ -26,8 +27,13 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    name: 'Work Hub',
-    path: '/work',
+    name: 'Overview',
+    path: '/work?tab=overview',
+    icon: LayoutDashboard,
+  },
+  {
+    name: 'Task Hub',
+    path: '/work?tab=tasks',
     icon: Layers,
   },
   {
@@ -135,16 +141,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
           </div>
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
+            const searchParams = new URLSearchParams(location.search);
+            const currentTab =
+              searchParams.get('tab') || (location.pathname === '/work' ? 'overview' : '');
+            const isTaskDeepLink = /^\/projects\/[^/]+\/tasks\/[^/]+$/.test(location.pathname);
+
             const isActive =
-              item.path === '/my-tasks'
-                ? location.pathname === '/my-tasks' ||
-                  location.pathname.startsWith('/my-tasks/') ||
-                  location.pathname === '/requirements'
-                : item.path === '/work'
-                  ? location.pathname === '/work' ||
-                    /^\/projects\/[^/]+\/tasks\/[^/]+$/.test(location.pathname)
-                  : location.pathname === item.path ||
-                    location.pathname.startsWith(`${item.path}/`);
+              item.path === '/work?tab=overview'
+                ? location.pathname === '/work' && currentTab === 'overview'
+                : item.path === '/work?tab=tasks'
+                  ? (location.pathname === '/work' && currentTab === 'tasks') || isTaskDeepLink
+                  : item.path === '/my-tasks'
+                    ? location.pathname === '/my-tasks' ||
+                      location.pathname.startsWith('/my-tasks/') ||
+                      location.pathname === '/requirements'
+                    : location.pathname === item.path ||
+                      location.pathname.startsWith(`${item.path}/`);
 
             return (
               <NavLink

@@ -22,6 +22,7 @@
     "typecheck": "npm --prefix packages/contracts run typecheck && npm --prefix apps/api run typecheck && npm --prefix apps/web run typecheck",
     "test": "npm --prefix packages/contracts run test && npm --prefix apps/web run test && npm --prefix apps/api run test:integration",
     "validate": "npm run lint && npm run typecheck",
+    "env:check": "node scripts/checkEnv.mjs",
     "dev:web": "npm --prefix apps/web run dev",
     "build:web": "npm --prefix apps/web run build",
     "typecheck:web": "npm --prefix apps/web run typecheck",

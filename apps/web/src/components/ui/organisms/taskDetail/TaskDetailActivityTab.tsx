@@ -10,6 +10,8 @@ import {
   ListTodo,
   MessageSquare,
   History,
+  Paperclip,
+  Trash2,
 } from 'lucide-react';
 import type { TaskActivity } from '@qlick/contracts';
 
@@ -65,6 +67,14 @@ function getActivityIcon(action: string) {
   if (action.includes('requirement') || action.includes('brief') || action.includes('spec'))
     return <FileText className="h-3.5 w-3.5 text-emerald-500" />;
   if (action.includes('comment')) return <MessageSquare className="h-3.5 w-3.5 text-blue-500" />;
+  if (action.includes('attachment')) {
+    return action.includes('deleted') ? (
+      <Trash2 className="h-3.5 w-3.5 text-rose-500" />
+    ) : (
+      <Paperclip className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />
+    );
+  }
+  if (action === 'deleted') return <Trash2 className="h-3.5 w-3.5 text-rose-500" />;
   return <History className="h-3.5 w-3.5 text-stone-400" />;
 }
 
@@ -342,6 +352,40 @@ function renderHumanActivityDescription(act: TaskActivity) {
   }
 
   // Comments
+  if (action === 'attachment_deleted') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        deleted attachment{' '}
+        <span className="font-semibold text-stone-900 dark:text-stone-100">
+          {meta.fileName || 'file'}
+        </span>
+      </span>
+    );
+  }
+
+  if (action === 'attachment_created') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        added attachment{' '}
+        <span className="font-semibold text-stone-900 dark:text-stone-100">
+          {meta.fileName || 'file'}
+        </span>
+      </span>
+    );
+  }
+
+  if (action === 'deleted') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        removed {meta.recordType === 'subtask' ? 'a subtask' : 'this task'} from active views
+      </span>
+    );
+  }
+
+  if (action === 'comment.deleted') {
+    return <span className="text-stone-700 dark:text-stone-300">deleted a discussion message</span>;
+  }
+
   if (action.includes('comment')) {
     return (
       <span className="text-stone-700 dark:text-stone-300">posted a comment in discussion</span>

@@ -25,7 +25,7 @@ describe('DeliveryTraceSignal', () => {
 
     render(<DeliveryTraceSignal trace={trace} />);
 
-    expect(screen.getByText('Structure 1/2')).toBeInTheDocument();
+    expect(screen.getByText('Trace 1/2 reqs')).toBeInTheDocument();
     expect(screen.getByText('Tests 1 failed')).toBeInTheDocument();
     expect(
       screen.getByLabelText('Delivery trace: 1 of 2 requirements structurally covered'),
@@ -53,5 +53,25 @@ describe('DeliveryTraceSignal', () => {
 
     rerender(<DeliveryTraceSignal permissionDenied />);
     expect(screen.getByText('Trace restricted')).toBeInTheDocument();
+  });
+
+  it('presents an unexecuted test state as neutral progress, not a failed test', () => {
+    const trace = createDeliveryTraceFixture({
+      execution: {
+        ...createDeliveryTraceFixture().execution,
+        totalTestCases: 2,
+        executedTestCases: 0,
+        passedTestCases: 0,
+        failedTestCases: 0,
+        pendingTestCases: 2,
+        skippedTestCases: 0,
+        passRatePercent: null,
+      },
+    });
+
+    render(<DeliveryTraceSignal trace={trace} />);
+
+    expect(screen.getByText('No test results yet')).toBeInTheDocument();
+    expect(screen.queryByText(/failed/i)).not.toBeInTheDocument();
   });
 });

@@ -55,7 +55,7 @@ export const fetchInAppNotifications = createAsyncThunk(
   'ui/fetchInAppNotifications',
   async (
     query: { workspaceId?: string; unreadOnly?: boolean; limit?: number; offset?: number } = {},
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const data = await notificationService.listNotifications(query);
@@ -63,7 +63,7 @@ export const fetchInAppNotifications = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch notifications');
     }
-  }
+  },
 );
 
 /** Marks a single notification as read on the backend */
@@ -74,9 +74,11 @@ export const markNotificationAsReadThunk = createAsyncThunk(
       const data = await notificationService.markAsRead(notificationId);
       return data;
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to mark notification as read');
+      return rejectWithValue(
+        err instanceof Error ? err.message : 'Failed to mark notification as read',
+      );
     }
-  }
+  },
 );
 
 /** Marks all notifications as read on the backend */
@@ -89,7 +91,7 @@ export const markAllNotificationsAsReadThunk = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to mark all as read');
     }
-  }
+  },
 );
 
 /** Clears all notifications on the backend */
@@ -102,44 +104,44 @@ export const clearInAppNotificationsThunk = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to clear notifications');
     }
-  }
+  },
 );
 
 /** Triggers background scan for tasks approaching their deadline */
 export const checkApproachingDeadlinesThunk = createAsyncThunk(
   'ui/checkApproachingDeadlines',
-  async (workspaceId: string | undefined, { dispatch, rejectWithValue }) => {
+  async (workspaceId: string | undefined, { dispatch }) => {
     try {
       const data = await notificationService.checkApproachingDeadlines(workspaceId);
-      if (data.dispatchedCount > 0) {
+      if (data && data.dispatchedCount > 0) {
         dispatch(fetchInAppNotifications({ workspaceId }));
       }
       return data;
-    } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to check deadlines');
+    } catch {
+      return { success: false, dispatchedCount: 0, checkedTasksCount: 0 };
     }
-  }
+  },
 );
 
 /** Demonstrates the standard thunk lifecycle for future API-backed UI actions. */
-export const runUiDemoAction = createAsyncThunk(
-  'ui/runDemoAction',
-  async (label: string) => {
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 650));
-    return label;
-  }
-);
+export const runUiDemoAction = createAsyncThunk('ui/runDemoAction', async (label: string) => {
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 650));
+  return label;
+});
 
 /** Simulates an API call that returns a success or error response for testing global snackbars */
 export const simulateApiCallAction = createAsyncThunk(
   'ui/simulateApiCall',
-  async ({ shouldFail = false, endpoint = '/v1/tasks' }: { shouldFail?: boolean; endpoint?: string } = {}) => {
+  async ({
+    shouldFail = false,
+    endpoint = '/v1/tasks',
+  }: { shouldFail?: boolean; endpoint?: string } = {}) => {
     await new Promise<void>((resolve) => window.setTimeout(resolve, 750));
     if (shouldFail) {
       throw new Error(`HTTP 400 Bad Request: Failed to process mutation on ${endpoint}`);
     }
     return `HTTP 200 OK: Successfully executed API action on ${endpoint}`;
-  }
+  },
 );
 
 const uiSlice = createSlice({
@@ -166,7 +168,9 @@ const uiSlice = createSlice({
       }
 
       const formattedMessage =
-        detail || message || (title ? `${title}${code ? ` (${code})` : ''}` : 'API operation completed.');
+        detail ||
+        message ||
+        (title ? `${title}${code ? ` (${code})` : ''}` : 'API operation completed.');
 
       state.notifications.push({
         id: createId(),
@@ -180,7 +184,9 @@ const uiSlice = createSlice({
       }
     },
     dismissSnackbar: (state, action: PayloadAction<string>) => {
-      state.notifications = state.notifications.filter((notification) => notification.id !== action.payload);
+      state.notifications = state.notifications.filter(
+        (notification) => notification.id !== action.payload,
+      );
     },
     addInAppNotification: {
       prepare: (
@@ -189,7 +195,7 @@ const uiSlice = createSlice({
         type: NotificationType = 'system',
         taskId?: string,
         actorName?: string,
-        workspaceId?: string
+        workspaceId?: string,
       ) => ({
         payload: {
           id: createId(),
@@ -219,7 +225,6 @@ const uiSlice = createSlice({
       }
     },
     markNotificationAsRead: (state, action: PayloadAction<string>) => {
-
       const notif = state.inAppNotifications.find((n) => n.id === action.payload);
       if (notif && !notif.isRead) {
         notif.isRead = true;
@@ -291,24 +296,44 @@ const uiSlice = createSlice({
         state.pendingOperations.push({ id: action.meta.requestId, label: action.meta.arg });
       })
       .addCase(runUiDemoAction.fulfilled, (state, action) => {
-        state.pendingOperations = state.pendingOperations.filter((operation) => operation.id !== action.meta.requestId);
-        state.notifications.push({ id: createId(), message: `${action.payload} completed.`, type: 'success' });
+        state.pendingOperations = state.pendingOperations.filter(
+          (operation) => operation.id !== action.meta.requestId,
+        );
+        state.notifications.push({
+          id: createId(),
+          message: `${action.payload} completed.`,
+          type: 'success',
+        });
       })
       .addCase(runUiDemoAction.rejected, (state, action) => {
-        state.pendingOperations = state.pendingOperations.filter((operation) => operation.id !== action.meta.requestId);
+        state.pendingOperations = state.pendingOperations.filter(
+          (operation) => operation.id !== action.meta.requestId,
+        );
         const message = action.error.message || 'The operation could not be completed.';
         state.error = message;
         state.notifications.push({ id: createId(), message, type: 'error' });
       })
       .addCase(simulateApiCallAction.pending, (state, action) => {
-        state.pendingOperations.push({ id: action.meta.requestId, label: 'Simulating API Request' });
+        state.pendingOperations.push({
+          id: action.meta.requestId,
+          label: 'Simulating API Request',
+        });
       })
       .addCase(simulateApiCallAction.fulfilled, (state, action) => {
-        state.pendingOperations = state.pendingOperations.filter((operation) => operation.id !== action.meta.requestId);
-        state.notifications.push({ id: createId(), message: action.payload, type: 'success', statusCode: 200 });
+        state.pendingOperations = state.pendingOperations.filter(
+          (operation) => operation.id !== action.meta.requestId,
+        );
+        state.notifications.push({
+          id: createId(),
+          message: action.payload,
+          type: 'success',
+          statusCode: 200,
+        });
       })
       .addCase(simulateApiCallAction.rejected, (state, action) => {
-        state.pendingOperations = state.pendingOperations.filter((operation) => operation.id !== action.meta.requestId);
+        state.pendingOperations = state.pendingOperations.filter(
+          (operation) => operation.id !== action.meta.requestId,
+        );
         const message = action.error.message || 'API request failed.';
         state.error = message;
         state.notifications.push({ id: createId(), message, type: 'error', statusCode: 400 });
@@ -331,4 +356,3 @@ export const {
 } = uiSlice.actions;
 
 export default uiSlice.reducer;
-

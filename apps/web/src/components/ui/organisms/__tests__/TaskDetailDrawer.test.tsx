@@ -111,6 +111,14 @@ vi.mock('../../../../lib/api/qaDocumentService', () => ({
   },
 }));
 
+vi.mock('../../../../lib/api/attachmentService', () => ({
+  attachmentService: {
+    listAttachments: vi.fn().mockResolvedValue([]),
+    deleteAttachment: vi.fn(),
+    getDownloadUrl: vi.fn(),
+  },
+}));
+
 vi.mock('../../../../lib/api/taskService', () => ({
   taskService: {
     listTaskActivity: listTaskActivitiesMock,
@@ -164,6 +172,21 @@ function renderWithRedux(ui: React.ReactElement, role?: 'owner' | 'admin' | 'po'
       ui: uiReducer,
     },
     preloadedState: {
+      auth: {
+        currentUser: role
+          ? {
+              id: 'user-current',
+              email: `${role}@example.com`,
+              name: `Test ${role}`,
+              role,
+              onboardingCompletedAt: '2026-08-14T00:00:00.000Z',
+            }
+          : null,
+        isAuthenticated: Boolean(role),
+        showOnboardingModal: false,
+        status: role ? ('succeeded' as const) : ('idle' as const),
+        error: null,
+      },
       workspace: {
         workspaces: role
           ? [
@@ -233,6 +256,7 @@ describe('TaskDetailDrawer UI Component', () => {
   let originalEventSource: any;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     realtimeManager.disconnect();
     MockEventSource.instances = [];
     originalEventSource = (global as any).EventSource;
@@ -314,6 +338,31 @@ describe('TaskDetailDrawer UI Component', () => {
     const activityTab = screen.getByRole('button', { name: /Activity/ });
     fireEvent.click(activityTab);
     expect(await screen.findByText('Activity & Audit Trail')).toBeInTheDocument();
+  });
+
+  test('renders attachment deletion activity with a human-readable record name', async () => {
+    listTaskActivitiesMock.mockResolvedValueOnce({
+      activities: [
+        {
+          id: '123e4567-e89b-12d3-a456-426614174021',
+          workspaceId: mockTask.workspaceId,
+          taskId: mockTask.id,
+          actorName: 'Product Owner Alice',
+          action: 'attachment_deleted',
+          metadataJson: { fileName: 'obsolete-wireframe.png', category: 'general' },
+          createdAt: '2026-08-31T00:00:00.000Z',
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+
+    renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
+    fireEvent.click(screen.getByRole('button', { name: /Activity/ }));
+
+    expect(await screen.findByText('deleted attachment')).toBeInTheDocument();
+    expect(screen.getByText('obsolete-wireframe.png')).toBeInTheDocument();
   });
 
   test('opens Delivery Trace inside the existing task drawer', async () => {
@@ -577,6 +626,69 @@ describe('TaskDetailDrawer UI Component', () => {
       expect(onClose).toHaveBeenCalledOnce();
       expect(onDataChanged).toHaveBeenCalledOnce();
     });
+  });
+
+  test('refreshes parent Activity after deleting a direct Subtask', async () => {
+    const deletedSubtask: Task = {
+      ...mockTask,
+      id: '123e4567-e89b-12d3-a456-426614174097',
+      parentTaskId: mockTask.id,
+      deliveryArea: 'backend',
+      title: 'Backend task to remove',
+      subtaskSummary: undefined,
+    };
+    listSubtasksMock.mockResolvedValueOnce({
+      tasks: [deletedSubtask],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+    listTaskActivitiesMock
+      .mockResolvedValueOnce({
+        activities: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+      })
+      .mockResolvedValueOnce({
+        activities: [
+          {
+            id: '123e4567-e89b-12d3-a456-426614174096',
+            workspaceId: mockTask.workspaceId,
+            taskId: deletedSubtask.id,
+            taskTitle: deletedSubtask.title,
+            isSubtask: true,
+            deliveryArea: 'backend',
+            actorName: 'Product Owner',
+            action: 'deleted',
+            metadataJson: { recordType: 'subtask', title: deletedSubtask.title },
+            createdAt: '2026-08-31T04:30:00.000Z',
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 50,
+      });
+
+    renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
+
+    await waitFor(() => expect(listTaskActivitiesMock).toHaveBeenCalled());
+    listTaskActivitiesMock.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: /Subtasks/ }));
+    fireEvent.click((await screen.findByText(deletedSubtask.title)).closest('button')!);
+    fireEvent.click(await screen.findByRole('button', { name: /^details$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Subtask' }));
+    const confirmation = await screen.findByRole('dialog', { name: 'Delete subtask?' });
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Delete Subtask' }));
+
+    await waitFor(() =>
+      expect(deleteTaskMock).toHaveBeenCalledWith(mockTask.workspaceId, deletedSubtask.id),
+    );
+    await waitFor(() => expect(listTaskActivitiesMock).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', { name: /Activity/ }));
+    expect(await screen.findByText(/removed a subtask/i)).toBeInTheDocument();
+    expect(screen.getByText(`Subtask: ${deletedSubtask.title}`)).toBeInTheDocument();
   });
 
   test('keeps the confirmation open when the delete API fails', async () => {

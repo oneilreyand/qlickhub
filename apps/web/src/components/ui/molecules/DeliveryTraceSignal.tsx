@@ -99,7 +99,7 @@ export const DeliveryTraceSignal: React.FC<DeliveryTraceSignalProps> = ({
           structuralComplete ? <CheckCircle2 className="h-3 w-3" /> : <Route className="h-3 w-3" />
         }
       >
-        Structure {trace.structural.fullyCoveredRequirements}/{trace.structural.totalRequirements}
+        Trace {trace.structural.fullyCoveredRequirements}/{trace.structural.totalRequirements} reqs
       </Badge>
 
       {execution.failedTestCases > 0 ? (
@@ -108,7 +108,7 @@ export const DeliveryTraceSignal: React.FC<DeliveryTraceSignalProps> = ({
         </Badge>
       ) : execution.passRatePercent === null ? (
         <Badge variant="draft" size="sm" icon={<FlaskConical className="h-3 w-3" />}>
-          Tests not run
+          No test results yet
         </Badge>
       ) : (
         <Badge

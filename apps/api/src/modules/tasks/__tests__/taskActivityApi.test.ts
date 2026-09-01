@@ -88,7 +88,7 @@ describe('Task Activity Audit Trail Integration Tests (ST3)', () => {
         folderId: folder.id,
         title: 'Core System Audit',
         priority: 'high',
-      })
+      }),
     );
     parentTask = (await TaskModel.findByPk(parentCreated.id))!;
 
@@ -102,7 +102,7 @@ describe('Task Activity Audit Trail Integration Tests (ST3)', () => {
         title: 'FE Audit Component',
         assigneeId: userB.id,
         priority: 'high',
-      })
+      }),
     );
     subtaskFE = (await TaskModel.findByPk(subtaskCreated.id))!;
 
@@ -134,7 +134,7 @@ describe('Task Activity Audit Trail Integration Tests (ST3)', () => {
         workspaceId: workspace.id,
         taskId: parentTask.id,
         aggregateSubtasks: true,
-      })
+      }),
     );
 
     assert.ok(res.activities.length >= 3);
@@ -147,6 +147,41 @@ describe('Task Activity Audit Trail Integration Tests (ST3)', () => {
     assert.ok(actions.includes('subtask.created'));
   });
 
+  test('Parent task activity retains a soft-deleted subtask deletion event', async () => {
+    const deletedSubtask = await taskService.createTask(
+      userA.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        parentTaskId: parentTask.id,
+        deliveryArea: 'backend',
+        title: 'Backend activity deletion target',
+        assigneeId: userB.id,
+        priority: 'medium',
+      }),
+    );
+
+    await taskService.deleteTask(workspace.id, deletedSubtask.id, userA.id);
+
+    const res = await taskService.listTaskActivity(
+      userA.id,
+      workspace.id,
+      parentTask.id,
+      TaskActivityQuerySchema.parse({
+        workspaceId: workspace.id,
+        taskId: parentTask.id,
+        aggregateSubtasks: true,
+      }),
+    );
+
+    const deletion = res.activities.find(
+      (activity) => activity.taskId === deletedSubtask.id && activity.action === 'deleted',
+    );
+    assert.ok(deletion);
+    assert.strictEqual(deletion.isSubtask, true);
+    assert.strictEqual(deletion.taskTitle, 'Backend activity deletion target');
+    assert.strictEqual(deletion.deliveryArea, 'backend');
+  });
+
   test('Subtask activity query returns focused timeline for that subtask only', async () => {
     const res = await taskService.listTaskActivity(
       userB.id,
@@ -155,12 +190,18 @@ describe('Task Activity Audit Trail Integration Tests (ST3)', () => {
       TaskActivityQuerySchema.parse({
         workspaceId: workspace.id,
         taskId: subtaskFE.id,
-      })
+      }),
     );
 
     assert.ok(res.activities.length >= 2);
-    assert.strictEqual(res.activities.every((a) => a.taskId === subtaskFE.id), true);
-    assert.strictEqual(res.activities.every((a) => a.isSubtask === true), true);
+    assert.strictEqual(
+      res.activities.every((a) => a.taskId === subtaskFE.id),
+      true,
+    );
+    assert.strictEqual(
+      res.activities.every((a) => a.isSubtask === true),
+      true,
+    );
   });
 
   test('Non-workspace member cannot read task activity timeline', async () => {
@@ -173,13 +214,13 @@ describe('Task Activity Audit Trail Integration Tests (ST3)', () => {
           TaskActivityQuerySchema.parse({
             workspaceId: workspace.id,
             taskId: parentTask.id,
-          })
+          }),
         );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
   });
 });

@@ -3,7 +3,7 @@ import { useAppDispatch } from '../store/hooks';
 import { receiveRealtimeNotification, enqueueSnackbar } from '../store/uiSlice';
 import { InAppNotification, TaskComment } from '@qlick/contracts';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/v1';
 
 export interface RealtimeCommentCreatedPayload {
   taskId: string;
@@ -55,7 +55,7 @@ class RealtimeConnectionManager {
   public subscribe(
     workspaceId: string,
     getOptions: () => UseRealtimeEventsOptions,
-    dispatch: ReturnType<typeof useAppDispatch>
+    dispatch: ReturnType<typeof useAppDispatch>,
   ): () => void {
     const id = `sub_${this.nextSubId++}`;
     const subscriber: Subscriber = { id, workspaceId, getOptions, dispatch };
@@ -82,7 +82,7 @@ class RealtimeConnectionManager {
 
   private checkSubscribers() {
     const activeForWorkspace = Array.from(this.subscribers.values()).filter(
-      (s) => s.workspaceId === this.activeWorkspaceId
+      (s) => s.workspaceId === this.activeWorkspaceId,
     );
 
     if (activeForWorkspace.length === 0) {
@@ -123,10 +123,14 @@ class RealtimeConnectionManager {
               }
               if (opts.enableToast && !toastDispatched) {
                 if (notification.type === 'mention') {
-                  sub.dispatch(enqueueSnackbar(`📢 ${notification.title}: ${notification.message}`, 'info'));
+                  sub.dispatch(
+                    enqueueSnackbar(`📢 ${notification.title}: ${notification.message}`, 'info'),
+                  );
                   toastDispatched = true;
                 } else if (notification.type === 'discussion') {
-                  sub.dispatch(enqueueSnackbar(`💬 ${notification.title}: ${notification.message}`, 'info'));
+                  sub.dispatch(
+                    enqueueSnackbar(`💬 ${notification.title}: ${notification.message}`, 'info'),
+                  );
                   toastDispatched = true;
                 }
               }

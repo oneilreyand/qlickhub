@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { test, describe, before, after } from 'node:test';
 import { WorkFolderModel } from '../../../db/models/workFolder.js';
+import { FolderActivityModel } from '../../../db/models/folderActivity.js';
 import { WorkspaceModel } from '../../../db/models/workspace.js';
 import { UserModel } from '../../../db/models/user.js';
 import { folderService } from '../folderService.js';
@@ -63,7 +64,7 @@ describe('Folder Database & Service Robustness Tests (H3 & Pre-T1 Requirements)'
           // Verify PostgreSQL foreign key constraint violation (fk_work_folders_parent_workspace)
           assert.strictEqual(err.name, 'SequelizeForeignKeyConstraintError');
           return true;
-        }
+        },
       );
     });
   });
@@ -112,7 +113,7 @@ describe('Folder Database & Service Robustness Tests (H3 & Pre-T1 Requirements)'
         (err: any) => {
           assert.strictEqual(err.name, 'SequelizeUniqueConstraintError');
           return true;
-        }
+        },
       );
     });
 
@@ -136,7 +137,10 @@ describe('Folder Database & Service Robustness Tests (H3 & Pre-T1 Requirements)'
         order: [['position', 'ASC']],
       });
       assert.strictEqual(orderedRoots[0].id, third.id);
-      assert.deepStrictEqual(orderedRoots.map((folder) => folder.position), orderedRoots.map((_, index) => index));
+      assert.deepStrictEqual(
+        orderedRoots.map((folder) => folder.position),
+        orderedRoots.map((_, index) => index),
+      );
 
       await folderService.moveFolder(workspaceA.id, third.id, {
         parentFolderId: first.id,
@@ -147,14 +151,20 @@ describe('Folder Database & Service Robustness Tests (H3 & Pre-T1 Requirements)'
         order: [['position', 'ASC']],
       });
       assert.strictEqual(orderedChildren[0].id, third.id);
-      assert.deepStrictEqual(orderedChildren.map((folder) => folder.position), orderedChildren.map((_, index) => index));
+      assert.deepStrictEqual(
+        orderedChildren.map((folder) => folder.position),
+        orderedChildren.map((_, index) => index),
+      );
 
       const remainingRoots = await WorkFolderModel.findAll({
         where: { workspaceId: workspaceA.id, parentFolderId: null, archivedAt: null },
         order: [['position', 'ASC']],
       });
       assert.ok(remainingRoots.some((folder) => folder.id === second.id));
-      assert.deepStrictEqual(remainingRoots.map((folder) => folder.position), remainingRoots.map((_, index) => index));
+      assert.deepStrictEqual(
+        remainingRoots.map((folder) => folder.position),
+        remainingRoots.map((_, index) => index),
+      );
     });
   });
 
@@ -172,11 +182,17 @@ describe('Folder Database & Service Robustness Tests (H3 & Pre-T1 Requirements)'
       });
 
       // Archive parent
-      await folderService.archiveFolder(workspaceA.id, parent.id, true);
+      await folderService.archiveFolder(workspaceA.id, parent.id, true, user.id);
 
       // Verify child is also archived
       const childInDb = await WorkFolderModel.findByPk(child.id);
       assert.notStrictEqual(childInDb?.archivedAt, null);
+
+      const activity = await FolderActivityModel.findOne({
+        where: { workspaceId: workspaceA.id, folderId: parent.id, action: 'archived' },
+        order: [['createdAt', 'DESC']],
+      });
+      assert.strictEqual(activity?.actorId, user.id);
     });
 
     test('Unarchiving child fails when parent is still archived', async () => {
@@ -200,9 +216,11 @@ describe('Folder Database & Service Robustness Tests (H3 & Pre-T1 Requirements)'
           await folderService.archiveFolder(workspaceA.id, child.id, false);
         },
         (err: Error) => {
-          assert.ok(err.message.includes('Cannot unarchive child folder while its parent is archived'));
+          assert.ok(
+            err.message.includes('Cannot unarchive child folder while its parent is archived'),
+          );
           return true;
-        }
+        },
       );
     });
   });
@@ -228,7 +246,7 @@ describe('Folder Database & Service Robustness Tests (H3 & Pre-T1 Requirements)'
         (err: any) => {
           assert.strictEqual(err.name, 'SequelizeForeignKeyConstraintError');
           return true;
-        }
+        },
       );
     });
   });

@@ -2,6 +2,11 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "apps/web/dist",
+  "functions": {
+    "api/index.mjs": {
+      "excludeFiles": "{.env,.env.*,data/evidence_storage/**}"
+    }
+  },
   "rewrites": [
     {
       "source": "/v1/:path*",

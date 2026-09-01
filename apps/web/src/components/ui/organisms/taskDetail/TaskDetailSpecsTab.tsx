@@ -16,6 +16,7 @@ import { Skeleton } from '../../atoms/Skeleton';
 import { Alert } from '../../atoms/Alert';
 import { RichTextEditor } from '../../molecules/RichTextEditor';
 import { RequirementManager } from '../RequirementManager';
+import { TaskAttachmentsPanel } from './TaskAttachmentsPanel';
 
 export interface TaskDetailSpecsTabProps {
   task: Task;
@@ -50,6 +51,7 @@ export interface TaskDetailSpecsTabProps {
   onRequirementChanged: () => void;
   members: WorkspaceMemberItem[];
   currentUserId: string | null;
+  onAttachmentChanged?: () => void;
 }
 
 export const TaskDetailSpecsTab: React.FC<TaskDetailSpecsTabProps> = ({
@@ -85,6 +87,7 @@ export const TaskDetailSpecsTab: React.FC<TaskDetailSpecsTabProps> = ({
   onRequirementChanged,
   members,
   currentUserId,
+  onAttachmentChanged,
 }) => {
   return (
     <div className="space-y-4">
@@ -497,6 +500,16 @@ export const TaskDetailSpecsTab: React.FC<TaskDetailSpecsTabProps> = ({
               </div>
             )}
           </div>
+
+          {activeWorkspaceId && (
+            <TaskAttachmentsPanel
+              workspaceId={activeWorkspaceId}
+              taskId={task.id}
+              currentUserId={currentUserId}
+              canPlan={canPlan}
+              onAttachmentChanged={onAttachmentChanged}
+            />
+          )}
         </div>
       </Card>
     </div>

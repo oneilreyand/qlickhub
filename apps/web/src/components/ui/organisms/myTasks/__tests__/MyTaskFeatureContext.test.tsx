@@ -27,14 +27,14 @@ describe('MyTaskFeatureContext', () => {
       'Feature / Storyfrontend subtaskImplement checkout summary',
     );
     expect(screen.getByRole('heading', { name: 'Checkout Feature' })).toBeInTheDocument();
-    expect(screen.getByText('Structure 1/1')).toBeInTheDocument();
+    expect(screen.getByText('Trace 1/1 reqs')).toBeInTheDocument();
     expect(screen.getByText('Review checkout before confirmation')).toBeInTheDocument();
     expect(
       screen.getByText('Order and payment details are visible before confirmation.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Structure complete')).toBeInTheDocument();
     expect(screen.getByText('Tests passing')).toBeInTheDocument();
-    expect(screen.getByText('Not release ready · 1 failed')).toBeInTheDocument();
+    expect(screen.getByText('Release blocked · 1 gates need action')).toBeInTheDocument();
     expect(screen.getByText(/1\/2 development subtasks are complete/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Back to Feature' }));
     expect(onOpenFeature).toHaveBeenCalledWith(trace.featureTask.id);

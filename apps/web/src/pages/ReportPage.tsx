@@ -38,7 +38,10 @@ export const ReportPage: React.FC = () => {
     loadReport();
   }, [loadReport]);
 
-  const featureTaskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
+  const featureTaskIds = useMemo(
+    () => tasks.filter((task) => !task.parentTaskId).map((task) => task.id),
+    [tasks],
+  );
   const { stateByFeatureTaskId: releaseReadinessStateByFeatureId, reload: reloadReleaseReadiness } =
     useReleaseReadinessMap(activeWorkspaceId || undefined, featureTaskIds);
 

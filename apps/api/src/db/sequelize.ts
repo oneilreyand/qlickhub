@@ -1,8 +1,13 @@
 import { Sequelize } from 'sequelize';
+import pg from 'pg';
 import { env } from '../config/env.js';
+import { getSequelizePoolConfig } from './sequelizePool.js';
 
 export const sequelize = new Sequelize(env.DATABASE_URL, {
   dialect: 'postgres',
+  // Keep the PostgreSQL driver as a static dependency so serverless bundlers
+  // include it instead of relying on Sequelize's runtime require().
+  dialectModule: pg,
   dialectOptions: env.DATABASE_SSL
     ? {
         ssl: {
@@ -13,12 +18,7 @@ export const sequelize = new Sequelize(env.DATABASE_URL, {
     : undefined,
   logging:
     env.NODE_ENV === 'development' ? (msg: string) => console.log(`[Sequelize] ${msg}`) : false,
-  pool: {
-    max: 10,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
+  pool: getSequelizePoolConfig(env.NODE_ENV),
   define: {
     timestamps: true,
     underscored: true,

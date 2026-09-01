@@ -115,6 +115,38 @@ describe('MyTasksDashboard Organism', () => {
     vi.useRealTimers();
   });
 
+  it('shows the approved illustration for empty PO work buckets only', () => {
+    const plannerQueue = createRoleAwareWorkQueueFixture('planner');
+    const emptyPlannerQueue = {
+      ...plannerQueue,
+      buckets: plannerQueue.buckets.map((bucket) => ({ ...bucket, items: [], total: 0 })),
+    };
+
+    renderDashboard({
+      userRole: 'po',
+      queueState: {
+        queue: emptyPlannerQueue,
+        isLoading: false,
+        error: null,
+        permissionDenied: false,
+      },
+    });
+
+    const assertIllustration = (name: string) => {
+      const illustration = screen.getByRole('img', { name });
+      expect(illustration).toHaveAttribute(
+        'src',
+        'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1788007862/ChatGPT_Image_Aug_18_2026_11_18_28_AM.png',
+      );
+    };
+
+    assertIllustration('No requirement work illustration');
+    fireEvent.click(screen.getByRole('button', { name: /Release decisions/ }));
+    assertIllustration('No release decisions illustration');
+    fireEvent.click(screen.getByRole('button', { name: /Timeline work/ }));
+    assertIllustration('No timeline work illustration');
+  });
+
   it('moves keyboard focus to the existing Bug action workspace', async () => {
     const store = configureStore({ reducer: { ui: uiReducer } });
     render(

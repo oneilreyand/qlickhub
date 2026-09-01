@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { AppLayout } from '../components/layout/AppLayout';
 import { LoginPage } from '../pages/LoginPage';
@@ -20,6 +20,7 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <ErrorBoundary>
         <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />

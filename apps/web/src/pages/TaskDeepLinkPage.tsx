@@ -6,6 +6,7 @@ import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
 import { TaskDetailDrawer } from '../components/ui/organisms/TaskDetailDrawer';
+import { TaskHubDashboardTemplate } from '../components/ui/organisms/TaskHubDashboardTemplate';
 import { taskService } from '../lib/api/taskService';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { fetchFolderTree } from '../store/folderSlice';
@@ -158,19 +159,22 @@ export const TaskDeepLinkPage: React.FC = () => {
   }
 
   return (
-    <TaskDetailDrawer
-      task={task}
-      folders={folders}
-      parentTask={parentTask}
-      isParentTaskLoading={isParentTaskLoading}
-      releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
-      onClose={() => navigate(returnTo)}
-      onNavigateToTask={(nextTaskId) =>
-        navigate(`/projects/${projectId}/tasks/${nextTaskId}`, {
-          state: { returnTo },
-        })
-      }
-      onDataChanged={reload}
-    />
+    <>
+      <TaskHubDashboardTemplate />
+      <TaskDetailDrawer
+        task={task}
+        folders={folders}
+        parentTask={parentTask}
+        isParentTaskLoading={isParentTaskLoading}
+        releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
+        onClose={() => navigate(returnTo)}
+        onNavigateToTask={(nextTaskId) =>
+          navigate(`/projects/${projectId}/tasks/${nextTaskId}`, {
+            state: { returnTo },
+          })
+        }
+        onDataChanged={reload}
+      />
+    </>
   );
 };

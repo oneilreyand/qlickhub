@@ -207,6 +207,12 @@ describe('Task deletion HTTP API integration (AGY-2.4)', () => {
         where: { workspaceId: workspaceA.id, taskId: task.id, action: 'deleted' },
       });
       assert.strictEqual(activity?.actorId, actor.id);
+      assert.deepStrictEqual(activity?.metadataJson, {
+        recordType: 'task',
+        title: task.title,
+        parentTaskId: null,
+        deliveryArea: null,
+      });
     }
   });
 
@@ -241,6 +247,14 @@ describe('Task deletion HTTP API integration (AGY-2.4)', () => {
     });
     assert.strictEqual(activities.length, 2);
     assert.ok(activities.every((activity) => activity.actorId === owner.id));
+    assert.ok(
+      activities.some(
+        (activity) =>
+          activity.taskId === subtask.id &&
+          activity.metadataJson?.recordType === 'subtask' &&
+          activity.metadataJson?.title === subtask.title,
+      ),
+    );
   });
 
   test('deletes one direct Subtask only for Owner, Admin, and PO', async () => {

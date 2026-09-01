@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import type { FolderTreeNode, TaskDatePreset } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { DateRange } from '../molecules/DateRangePicker';
@@ -24,7 +24,7 @@ import {
   archiveFolder as archiveFolderThunk,
   setSelectedFolderId,
 } from '../../../store/folderSlice';
-import { fetchTasks, setSelectedTaskId } from '../../../store/taskSlice';
+import { fetchTasks, fetchTaskById, setSelectedTaskId } from '../../../store/taskSlice';
 import { useDebounce } from '../../../lib/hooks/useDebounce';
 import { useReleaseReadinessMap } from '../../../lib/hooks/useReleaseReadinessMap';
 import { traceabilityService } from '../../../lib/api/traceabilityService';
@@ -62,21 +62,23 @@ function findFolderInTree(folders: FolderTreeNode[], folderId: string): FolderTr
 
 export const TaskHubDashboardTemplate: React.FC = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Granular selectors to minimize unwanted re-renders
-  const activeWorkspaceId = useAppSelector((state: RootState) => state.workspace.activeWorkspaceId);
-  const workspaces = useAppSelector((state: RootState) => state.workspace.workspaces);
-  const folders = useAppSelector((state: RootState) => state.folder.folders);
-  const isFolderLoading = useAppSelector((state: RootState) => state.folder.isLoading);
-  const folderError = useAppSelector((state: RootState) => state.folder.error);
-  const selectedFolderId = useAppSelector((state: RootState) => state.folder.selectedFolderId);
-  const tasks = useAppSelector((state: RootState) => state.task.tasks);
-  const isTaskLoading = useAppSelector((state: RootState) => state.task.isLoading);
-  const taskError = useAppSelector((state: RootState) => state.task.error);
-  const selectedTaskId = useAppSelector((state: RootState) => state.task.selectedTaskId);
+  const activeWorkspaceId = useAppSelector(
+    (state: RootState) => state.workspace?.activeWorkspaceId,
+  );
+  const workspaces = useAppSelector((state: RootState) => state.workspace?.workspaces || []);
+  const folders = useAppSelector((state: RootState) => state.folder?.folders || []);
+  const isFolderLoading = useAppSelector((state: RootState) => state.folder?.isLoading || false);
+  const folderError = useAppSelector((state: RootState) => state.folder?.error || null);
+  const selectedFolderId = useAppSelector(
+    (state: RootState) => state.folder?.selectedFolderId || null,
+  );
+  const tasks = useAppSelector((state: RootState) => state.task?.tasks || []);
+  const isTaskLoading = useAppSelector((state: RootState) => state.task?.isLoading || false);
+  const taskError = useAppSelector((state: RootState) => state.task?.error || null);
+  const selectedTaskId = useAppSelector((state: RootState) => state.task?.selectedTaskId || null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 250);
@@ -101,7 +103,10 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     [tasks, selectedTaskId],
   );
   const workspaceFeatureTaskIds = useMemo(
-    () => tasks.filter((task) => task.workspaceId === activeWorkspaceId).map((task) => task.id),
+    () =>
+      tasks
+        .filter((task) => task.workspaceId === activeWorkspaceId && !task.parentTaskId)
+        .map((task) => task.id),
     [activeWorkspaceId, tasks],
   );
   const { stateByFeatureTaskId: releaseReadinessStateByTaskId, reload: reloadReleaseReadiness } =
@@ -121,10 +126,11 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     [selectedFolderNode],
   );
 
-  // Sync URL search parameter ?folderId=... & ?datePreset=... & ?view=...
+  // Sync URL search parameter ?folderId=... & ?datePreset=... & ?view=... & ?taskId=...
   const urlFolderId = searchParams.get('folderId');
   const urlDatePreset = searchParams.get('datePreset') as TaskDatePreset | null;
   const urlView = searchParams.get('view');
+  const urlTaskId = searchParams.get('taskId');
 
   useEffect(() => {
     dispatch(setSelectedFolderId(urlFolderId));
@@ -134,7 +140,22 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     if (urlView === 'timeline' || urlView === 'table') {
       setViewMode(urlView);
     }
-  }, [urlFolderId, urlDatePreset, urlView, dispatch]);
+    if (urlTaskId) {
+      dispatch(setSelectedTaskId(urlTaskId));
+    }
+  }, [urlFolderId, urlDatePreset, urlView, urlTaskId, dispatch]);
+
+  useEffect(() => {
+    if (activeWorkspaceId && selectedTaskId && !tasks.some((t) => t.id === selectedTaskId)) {
+      void dispatch(fetchTaskById({ workspaceId: activeWorkspaceId, taskId: selectedTaskId }));
+    }
+  }, [activeWorkspaceId, selectedTaskId, tasks, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(setSelectedTaskId(null));
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     if (activeWorkspaceId) {
@@ -311,10 +332,18 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   };
 
   const handleOpenTask = (taskId: string) => {
-    if (!activeWorkspaceId) return;
-    navigate(`/projects/${activeWorkspaceId}/tasks/${taskId}`, {
-      state: { returnTo: `${location.pathname}${location.search}` },
-    });
+    dispatch(setSelectedTaskId(taskId));
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('taskId', taskId);
+    newParams.set('tab', 'tasks');
+    setSearchParams(newParams);
+  };
+
+  const handleCloseTask = () => {
+    dispatch(setSelectedTaskId(null));
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('taskId');
+    setSearchParams(newParams);
   };
 
   const handleCreateFolder = async (name: string, parentFolderId?: string) => {
@@ -528,9 +557,12 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         task={selectedTask}
         folders={folders}
         releaseReadinessState={
-          selectedTask ? releaseReadinessStateByTaskId[selectedTask.id] : undefined
+          selectedTask
+            ? releaseReadinessStateByTaskId[selectedTask.parentTaskId || selectedTask.id]
+            : undefined
         }
-        onClose={() => dispatch(setSelectedTaskId(null))}
+        onClose={handleCloseTask}
+        onNavigateToTask={(nextTaskId) => handleOpenTask(nextTaskId)}
         onDataChanged={() => {
           void loadWorkspaceData();
           reloadReleaseReadiness();

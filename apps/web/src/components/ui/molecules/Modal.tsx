@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from '../atoms/Button';
@@ -32,6 +32,7 @@ export const Modal: React.FC<ModalProps> = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
+  const titleId = useId();
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -109,7 +110,7 @@ export const Modal: React.FC<ModalProps> = ({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={titleId}
         tabIndex={-1}
         className={`relative w-full ${sizeStyles[size]} max-h-[90vh] flex flex-col rounded-[20px] sm:rounded-[24px] bg-white p-4 sm:p-6 shadow-2xl ring-1 ring-stone-900/5 transition-all z-10 dark:bg-[#1C1A19] dark:border dark:border-stone-800 dark:text-stone-100`}
       >
@@ -117,7 +118,7 @@ export const Modal: React.FC<ModalProps> = ({
         <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-3 sm:pb-4 dark:border-stone-800 shrink-0">
           <div>
             <h3
-              id="modal-title"
+              id={titleId}
               className="text-base sm:text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100"
             >
               {title}

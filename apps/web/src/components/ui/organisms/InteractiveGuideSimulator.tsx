@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FolderPlus,
-  FileText,
   GitCommit,
   Code2,
   TestTube,
@@ -10,29 +9,18 @@ import {
   ArrowRight,
   ArrowLeft,
   RotateCcw,
-  Sparkles,
-  Lock,
-  CheckSquare,
   PlayCircle,
   LayoutGrid,
-  Check,
   ExternalLink,
   Lightbulb,
   Folder,
   FolderOpen,
-  ChevronRight,
-  ChevronDown,
   Plus,
   FileSpreadsheet,
-  Upload,
   FileCode2,
   Bug,
   ShieldAlert,
   ShieldCheck,
-  Video,
-  Image,
-  Eye,
-  AlertTriangle,
 } from 'lucide-react';
 import { Card } from '../atoms/Card';
 import { Badge } from '../atoms/Badge';
@@ -470,19 +458,16 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
 
   // 3. QA Simulator State
   const [simQaDecision, setSimQaDecision] = useState<'idle' | 'changes_requested' | 'done'>('idle');
-  const [simQaReviewNote, setSimQaReviewNote] = useState<string>(
-    'Validasi response error HTTP 400 belum memunculkan snackbar peringatan ke user.',
-  );
+  const simQaReviewNote =
+    'Validasi response error HTTP 400 belum memunculkan snackbar peringatan ke user.';
 
   // 4. QA Spreadsheet Intake Simulator State
   const [simSpreadsheetStage, setSimSpreadsheetStage] = useState<'upload' | 'mapping' | 'preview'>(
     'upload',
   );
-  const [simImportCount, setSimImportCount] = useState<number>(12);
 
   // 5. PO Release Decision Simulator State
   const [simPoDecision, setSimPoDecision] = useState<'idle' | 'approved' | 'rejected'>('idle');
-  const [simOverrideReason, setSimOverrideReason] = useState<string>('');
 
   const currentGuide = GUIDES.find((g) => g.id === selectedGuideId) || GUIDES[0];
   const currentStep = currentGuide.steps[activeStepIndex] || currentGuide.steps[0];
@@ -518,7 +503,6 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
     setSimQaDecision('idle');
     setSimSpreadsheetStage('upload');
     setSimPoDecision('idle');
-    setSimOverrideReason('');
     setSimShowFolderModal(false);
   };
 
@@ -629,7 +613,9 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                     : 'bg-white dark:bg-stone-900/60 text-stone-700 dark:text-stone-300 border-stone-200/80 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-[#B1E743]' : 'text-stone-400'}`} />
+                <Icon
+                  className={`w-3.5 h-3.5 ${isSelected ? 'text-[#B1E743]' : 'text-stone-400'}`}
+                />
                 <span>{guide.title}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
@@ -731,7 +717,9 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                   <Badge variant="passed">
                     Langkah {activeStepIndex + 1} dari {totalSteps}
                   </Badge>
-                  <span className="text-xs font-semibold text-stone-400">{currentGuide.roleBadge}</span>
+                  <span className="text-xs font-semibold text-stone-400">
+                    {currentGuide.roleBadge}
+                  </span>
                 </div>
                 <Button
                   size="sm"
@@ -843,7 +831,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                     Live UI Playground Simulator
                   </h3>
                 </div>
-                <Badge variant="outline">Simulasi Interaktif</Badge>
+                <Badge variant="neutral">Simulasi Interaktif</Badge>
               </div>
 
               {/* SIMULATOR 1: Folder Management */}
@@ -929,7 +917,8 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                   <div className="space-y-2">
                     <div className="p-2.5 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
                       <p className="font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1.5 mb-1">
-                        <span className="w-2 h-2 rounded-full bg-[#B1E743]" /> In Scope (Deliverable)
+                        <span className="w-2 h-2 rounded-full bg-[#B1E743]" /> In Scope
+                        (Deliverable)
                       </p>
                       <ul className="list-disc pl-5 space-y-0.5 text-stone-600 dark:text-stone-300 text-[11px]">
                         <li>Saved payment methods & charge API</li>
@@ -1022,7 +1011,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                     <div className="text-xs font-bold text-stone-900 dark:text-white">
                       QA Gatekeeper Verification Panel
                     </div>
-                    <Badge variant={simQaDecision === 'done' ? 'passed' : 'warning'}>
+                    <Badge variant={simQaDecision === 'done' ? 'passed' : 'review'}>
                       {simQaDecision === 'done'
                         ? 'Approved (DONE)'
                         : simQaDecision === 'changes_requested'
@@ -1146,14 +1135,16 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                     <span className="font-bold text-stone-900 dark:text-white">
                       PO Release Decision Desk
                     </span>
-                    <Badge variant={simPoDecision === 'approved' ? 'passed' : 'warning'}>
+                    <Badge variant={simPoDecision === 'approved' ? 'passed' : 'review'}>
                       {simPoDecision === 'approved' ? 'Release Approved' : 'Decision Pending'}
                     </Badge>
                   </div>
 
                   <div className="p-3 bg-white dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-stone-600 dark:text-stone-300">QA Sign-off Status:</span>
+                      <span className="text-stone-600 dark:text-stone-300">
+                        QA Sign-off Status:
+                      </span>
                       <Badge variant="passed">Approved by QA</Badge>
                     </div>
                     <div className="flex items-center justify-between">

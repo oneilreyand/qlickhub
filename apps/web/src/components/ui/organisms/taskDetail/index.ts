@@ -3,3 +3,4 @@ export * from './TaskDetailSpecsTab';
 export * from './TaskDetailActivityTab';
 export * from './TaskDeleteConfirmationModal';
 export * from './TaskCreateQaDocModal';
+export * from './TaskAttachmentsPanel';

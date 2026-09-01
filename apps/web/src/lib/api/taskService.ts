@@ -224,7 +224,7 @@ export const taskService = {
   },
 
   getAttachmentDownloadUrl(workspaceId: string, taskId: string, attachmentId: string): string {
-    const base = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000/v1';
+    const base = (import.meta as any).env?.VITE_API_URL || '/v1';
     return `${base}/workspaces/${workspaceId}/tasks/${taskId}/attachments/${attachmentId}/download`;
   },
 };

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 describe('WH-0 Route Inventory & Protection Audit', () => {
   const routesInventory = [
+    { path: '/', protected: false, component: 'LoginPage (redirect)' },
     { path: '/login', protected: false, component: 'LoginPage' },
     { path: '/work', protected: true, component: 'WorkHubPage' },
     { path: '/projects/:projectId/tasks/:taskId', protected: true, component: 'TaskDeepLinkPage' },
@@ -35,6 +36,14 @@ describe('WH-0 Route Inventory & Protection Audit', () => {
       path: '/projects/:projectId/tasks/:taskId',
       protected: true,
       component: 'TaskDeepLinkPage',
+    });
+  });
+
+  test('redirects the public root URL to the login page', () => {
+    expect(routesInventory).toContainEqual({
+      path: '/',
+      protected: false,
+      component: 'LoginPage (redirect)',
     });
   });
 

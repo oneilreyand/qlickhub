@@ -102,7 +102,7 @@ describe('TaskCollection Organism', () => {
       />,
     );
 
-    expect(screen.getAllByText('Structure 1/2')).toHaveLength(2);
+    expect(screen.getAllByText('Trace 1/2 reqs')).toHaveLength(2);
     expect(screen.getAllByText('Tests 1 failed')).toHaveLength(2);
     expect(screen.getAllByText('Trace restricted')).toHaveLength(2);
     expect(screen.getByRole('columnheader', { name: 'Delivery & Release' })).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('TaskCollection Organism', () => {
       />,
     );
 
-    expect(screen.getAllByText('Not release ready · 1 failed')).toHaveLength(2);
+    expect(screen.getAllByText('Release blocked · 1 gates need action')).toHaveLength(2);
     expect(screen.getByRole('columnheader', { name: 'Delivery & Release' })).toBeInTheDocument();
   });
 

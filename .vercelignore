@@ -1,0 +1,8 @@
+# Secrets are provided through Vercel Environment Variables.
+.env
+.env.*
+drive-production.json
+*-service-account.json
+
+# Production attachment storage uses Google Drive.
+data/evidence_storage/

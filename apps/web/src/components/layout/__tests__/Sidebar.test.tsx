@@ -96,12 +96,21 @@ describe('Sidebar Role-based Visibility', () => {
     unmountPo();
   });
 
-  it('keeps Work Hub active on a canonical task deep link', () => {
+  it('shows Overview, Task Hub, My Tasks, and Report for all roles', () => {
+    const { unmount } = renderSidebar('dev');
+    expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getByText('Task Hub')).toBeInTheDocument();
+    expect(screen.getByText('My Tasks')).toBeInTheDocument();
+    expect(screen.getByText('Report')).toBeInTheDocument();
+    unmount();
+  });
+
+  it('keeps Task Hub active on a canonical task deep link', () => {
     renderSidebar(
       'dev',
       '/projects/10000000-0000-4000-8000-000000000001/tasks/10000000-0000-4000-8000-000000000002',
     );
 
-    expect(screen.getByRole('link', { name: 'Work Hub' })).toHaveClass('bg-[#B1E743]');
+    expect(screen.getByRole('link', { name: 'Task Hub' })).toHaveClass('bg-[#B1E743]');
   });
 });
