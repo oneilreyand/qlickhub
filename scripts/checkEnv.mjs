@@ -84,6 +84,7 @@ if (!backend) {
   ]);
 
   validatePostgresUrl('DATABASE_URL', backend.values.get('DATABASE_URL'));
+  validatePostgresUrl('LOCAL_DATABASE_URL', backend.values.get('LOCAL_DATABASE_URL'));
   validatePostgresUrl('MIGRATION_DATABASE_URL', backend.values.get('MIGRATION_DATABASE_URL'));
   validatePostgresUrl('PRODUCTION_DATABASE_URL', backend.values.get('PRODUCTION_DATABASE_URL'));
   validatePostgresUrl('TEST_DATABASE_URL', backend.values.get('TEST_DATABASE_URL'));

@@ -9,6 +9,8 @@ import {
   getUserWorkspaces,
   getWorkspaceById,
   updateWorkspace,
+  archiveWorkspace,
+  restoreWorkspace,
   getWorkspaceMembers,
   addWorkspaceMember,
   updateMemberRole,
@@ -30,6 +32,8 @@ workspaceRoutes.post('/', requireWorkspaceCreationPermission(), createWorkspace)
 // Specific workspace routes (requires membership)
 workspaceRoutes.get('/:workspaceId', requireWorkspaceMember(), getWorkspaceById);
 workspaceRoutes.patch('/:workspaceId', requireWorkspaceMember(['owner', 'admin']), updateWorkspace);
+workspaceRoutes.post('/:workspaceId/archive', requireWorkspaceMember(['owner']), archiveWorkspace);
+workspaceRoutes.post('/:workspaceId/restore', requireWorkspaceMember(['owner']), restoreWorkspace);
 
 // Workspace Activity Feed / Audit Trail
 workspaceRoutes.get('/:workspaceId/activities', requireWorkspaceMember(), getWorkspaceActivities);

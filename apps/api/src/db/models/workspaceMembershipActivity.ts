@@ -2,7 +2,12 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../sequelize.js';
 
 export type WorkspaceMembershipActivityAction =
-  'member_removed' | 'member_restored' | 'member_role_updated' | 'member_specialties_updated';
+  | 'member_removed'
+  | 'member_restored'
+  | 'member_role_updated'
+  | 'member_specialties_updated'
+  | 'workspace_archived'
+  | 'workspace_restored';
 
 export interface WorkspaceMembershipActivityAttributes {
   id: string;

@@ -123,6 +123,32 @@ export const updateWorkspace = async (req: AuthenticatedRequest, res: Response) 
   }
 };
 
+export const archiveWorkspace = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const workspace = await workspaceService.setWorkspaceArchived(
+      req.params.workspaceId,
+      req.user!.userId,
+      true,
+    );
+    return res.status(200).json({ data: workspace });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export const restoreWorkspace = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const workspace = await workspaceService.setWorkspaceArchived(
+      req.params.workspaceId,
+      req.user!.userId,
+      false,
+    );
+    return res.status(200).json({ data: workspace });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
 export const getWorkspaceMembers = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { workspaceId } = req.params;

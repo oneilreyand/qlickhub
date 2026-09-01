@@ -115,7 +115,7 @@ export class ReleaseDecisionService {
           id: { [Op.in]: uniqueFeatureTaskIds },
           parentTaskId: null,
         },
-        attributes: ['id'],
+        attributes: ['id', 'title', 'status', 'updatedAt'],
         transaction,
       });
       if (featureTasks.length !== uniqueFeatureTaskIds.length) {
@@ -141,19 +141,17 @@ export class ReleaseDecisionService {
       }
 
       const capturedAt = new Date();
-      const items: WorkspaceReleaseReadiness['items'] = [];
-      for (const featureTaskId of uniqueFeatureTaskIds) {
-        items.push({
-          featureTaskId,
-          currentReadinessSnapshot: await this.captureReadinessSnapshot(
-            workspaceId,
-            featureTaskId,
-            capturedAt,
-            latestSignOffByFeatureId.get(featureTaskId) || null,
-            transaction,
-          ),
-        });
-      }
+      const snapshotsByFeatureId = await this.captureWorkspaceReadinessSnapshots(
+        workspaceId,
+        featureTasks,
+        capturedAt,
+        latestSignOffByFeatureId,
+        transaction,
+      );
+      const items = uniqueFeatureTaskIds.map((featureTaskId) => ({
+        featureTaskId,
+        currentReadinessSnapshot: snapshotsByFeatureId.get(featureTaskId)!,
+      }));
 
       return { workspaceId, items };
     });
@@ -640,6 +638,181 @@ export class ReleaseDecisionService {
     return featureTask;
   }
 
+  private async captureWorkspaceReadinessSnapshots(
+    workspaceId: string,
+    featureTasks: TaskModel[],
+    capturedAt: Date,
+    latestSignOffByFeatureId: Map<string, QaSignOffModel>,
+    transaction: Transaction,
+  ): Promise<Map<string, ReadinessSnapshotV2>> {
+    const featureTaskIds = featureTasks.map((task) => task.id);
+    const subtasks = await TaskModel.findAll({
+      where: { workspaceId, parentTaskId: { [Op.in]: featureTaskIds } },
+      attributes: ['id', 'parentTaskId', 'status', 'deliveryArea'],
+      transaction,
+    });
+    const featureIdByTaskId = new Map<string, string>(featureTaskIds.map((id) => [id, id]));
+    const subtasksByFeatureId = new Map<string, TaskModel[]>();
+    for (const subtask of subtasks) {
+      if (!subtask.parentTaskId) continue;
+      featureIdByTaskId.set(subtask.id, subtask.parentTaskId);
+      const items = subtasksByFeatureId.get(subtask.parentTaskId) || [];
+      items.push(subtask);
+      subtasksByFeatureId.set(subtask.parentTaskId, items);
+    }
+
+    const taskRequirementLinks = await TaskRequirementModel.findAll({
+      where: { workspaceId, taskId: { [Op.in]: [...featureIdByTaskId.keys()] } },
+      attributes: ['taskId', 'requirementId'],
+      transaction,
+    });
+    const requirementIdsByFeatureId = new Map<string, Set<string>>();
+    for (const link of taskRequirementLinks) {
+      const featureTaskId = featureIdByTaskId.get(link.taskId);
+      if (!featureTaskId) continue;
+      const ids = requirementIdsByFeatureId.get(featureTaskId) || new Set<string>();
+      ids.add(link.requirementId);
+      requirementIdsByFeatureId.set(featureTaskId, ids);
+    }
+    const allRequirementIds = [...new Set(taskRequirementLinks.map((link) => link.requirementId))];
+    const testCaseLinks =
+      allRequirementIds.length > 0
+        ? await TestCaseRequirementModel.findAll({
+            where: { workspaceId, requirementId: { [Op.in]: allRequirementIds } },
+            attributes: ['testCaseId', 'requirementId'],
+            transaction,
+          })
+        : [];
+    const linkedTestCaseIds = [...new Set(testCaseLinks.map((link) => link.testCaseId))];
+    const activeTestCases =
+      linkedTestCaseIds.length > 0
+        ? await TestCaseModel.findAll({
+            where: { workspaceId, id: { [Op.in]: linkedTestCaseIds }, status: 'active' },
+            attributes: ['id'],
+            transaction,
+          })
+        : [];
+    const activeTestCaseIds = new Set(activeTestCases.map((testCase) => testCase.id));
+    const activeTestCaseIdsByRequirementId = new Map<string, Set<string>>();
+    for (const link of testCaseLinks) {
+      if (!activeTestCaseIds.has(link.testCaseId)) continue;
+      const ids = activeTestCaseIdsByRequirementId.get(link.requirementId) || new Set<string>();
+      ids.add(link.testCaseId);
+      activeTestCaseIdsByRequirementId.set(link.requirementId, ids);
+    }
+
+    const runs =
+      activeTestCaseIds.size > 0
+        ? ((await TestRunModel.findAll({
+            where: { workspaceId, testCaseId: { [Op.in]: [...activeTestCaseIds] } },
+            include: [{ model: TestResultModel, as: 'result', required: false }],
+            order: [
+              ['startedAt', 'DESC'],
+              ['createdAt', 'DESC'],
+              ['id', 'DESC'],
+            ],
+            transaction,
+          })) as RunWithResult[])
+        : [];
+    const latestRunByTestCaseId = new Map<string, RunWithResult>();
+    for (const run of runs) {
+      if (!latestRunByTestCaseId.has(run.testCaseId))
+        latestRunByTestCaseId.set(run.testCaseId, run);
+    }
+
+    const bugs = await BugModel.findAll({
+      where: { workspaceId, featureTaskId: { [Op.in]: featureTaskIds } },
+      attributes: ['featureTaskId', 'severity', 'status'],
+      transaction,
+    });
+    const bugsByFeatureId = new Map<string, BugModel[]>();
+    for (const bug of bugs) {
+      const items = bugsByFeatureId.get(bug.featureTaskId) || [];
+      items.push(bug);
+      bugsByFeatureId.set(bug.featureTaskId, items);
+    }
+
+    return new Map(
+      featureTasks.map((featureTask) => {
+        const featureTaskId = featureTask.id;
+        const featureSubtasks = subtasksByFeatureId.get(featureTaskId) || [];
+        const requirementIds = requirementIdsByFeatureId.get(featureTaskId) || new Set<string>();
+        const testCaseIds = new Set<string>();
+        const coveredRequirementIds = new Set<string>();
+        for (const requirementId of requirementIds) {
+          const requirementTestCaseIds = activeTestCaseIdsByRequirementId.get(requirementId);
+          if (!requirementTestCaseIds || requirementTestCaseIds.size === 0) continue;
+          coveredRequirementIds.add(requirementId);
+          for (const testCaseId of requirementTestCaseIds) testCaseIds.add(testCaseId);
+        }
+        const latestResults = [...testCaseIds]
+          .map((testCaseId) => latestRunByTestCaseId.get(testCaseId)?.result || null)
+          .filter((result): result is TestResultModel => Boolean(result));
+        const featureBugs = bugsByFeatureId.get(featureTaskId) || [];
+        const bugCount = (status: string) =>
+          featureBugs.filter((bug) => bug.status === status).length;
+        const developmentSubtasks = featureSubtasks.filter(
+          (subtask) => subtask.deliveryArea && subtask.deliveryArea !== 'qa',
+        );
+        const qaSignOff = latestSignOffByFeatureId.get(featureTaskId) || null;
+        const snapshotFacts = {
+          development: {
+            total: developmentSubtasks.length,
+            completed: developmentSubtasks.filter((subtask) => subtask.status === 'done').length,
+          },
+          requirements: {
+            total: requirementIds.size,
+            coveredByActiveTestCases: coveredRequirementIds.size,
+          },
+          testExecution: {
+            totalTestCases: testCaseIds.size,
+            passed: latestResults.filter((result) => result.status === 'passed').length,
+            failed: latestResults.filter((result) => result.status === 'failed').length,
+            blocked: latestResults.filter((result) => result.status === 'blocked').length,
+            skipped: latestResults.filter((result) => result.status === 'skipped').length,
+            unexecuted: testCaseIds.size - latestResults.length,
+          },
+          bugs: {
+            total: featureBugs.length,
+            open: bugCount('open'),
+            inProgress: bugCount('in_progress'),
+            resolved: bugCount('resolved'),
+            verified: bugCount('verified'),
+            reopened: bugCount('reopened'),
+            criticalOrHighUnverified: featureBugs.filter(
+              (bug) => ['critical', 'high'].includes(bug.severity) && bug.status !== 'verified',
+            ).length,
+          },
+          qaSignOff: qaSignOff
+            ? {
+                id: qaSignOff.id,
+                decision: qaSignOff.decision,
+                signedBy: qaSignOff.signedBy,
+                signedAt: iso(qaSignOff.signedAt),
+              }
+            : null,
+        };
+        const snapshot: ReadinessSnapshotV2 = {
+          schemaVersion: 2,
+          capturedAt: iso(capturedAt),
+          featureTask: {
+            id: featureTask.id,
+            title: featureTask.title,
+            status: featureTask.status,
+            updatedAt: iso(featureTask.updatedAt),
+          },
+          subtasks: {
+            total: featureSubtasks.length,
+            completed: featureSubtasks.filter((subtask) => subtask.status === 'done').length,
+          },
+          ...snapshotFacts,
+          evaluation: evaluateReadinessGates(snapshotFacts),
+        };
+        return [featureTaskId, snapshot] as const;
+      }),
+    );
+  }
+
   private async captureReadinessSnapshot(
     workspaceId: string,
     featureTaskId: string,
@@ -665,7 +838,7 @@ export class ReleaseDecisionService {
       requirementIds.length > 0
         ? await TestCaseRequirementModel.findAll({
             where: { workspaceId, requirementId: { [Op.in]: requirementIds } },
-            attributes: ['testCaseId'],
+            attributes: ['testCaseId', 'requirementId'],
             transaction,
           })
         : [];

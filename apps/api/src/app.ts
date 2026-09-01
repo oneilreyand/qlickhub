@@ -20,6 +20,7 @@ import { metaRoutes } from './modules/meta/metaRoutes.js';
 import { workQueueRoutes } from './modules/workQueue/workQueueRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
+import { rejectArchivedWorkspaceMutation } from './http/middleware/workspaceArchive.js';
 
 export const createApp = () => {
   const app = express();
@@ -57,6 +58,7 @@ export const createApp = () => {
 
   // Authentication, Workspace, Folder & Task APIs
   app.use('/v1', apiRateLimiter);
+  app.use('/v1', rejectArchivedWorkspaceMutation);
   app.use('/v1/auth', authRouter);
   app.use('/v1', workQueueRoutes);
   app.use('/v1/workspaces', workspaceRoutes);

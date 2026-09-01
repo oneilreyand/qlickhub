@@ -1,19 +1,45 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
-import { AppLayout } from '../components/layout/AppLayout';
 import { LoginPage } from '../pages/LoginPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/ResetPasswordPage';
-import { ComponentGalleryPage } from '../pages/ComponentGalleryPage';
-import { WorkHubPage } from '../pages/WorkHubPage';
-import { WorkspaceSettingsPage } from '../pages/WorkspaceSettingsPage';
-import { MyTasksPage } from '../pages/MyTasksPage';
-import { ReportPage } from '../pages/ReportPage';
-import { UserFlowPage } from '../pages/UserFlowPage';
-import { TaskDeepLinkPage } from '../pages/TaskDeepLinkPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { ErrorBoundary } from '../components/ui/organisms/ErrorBoundary';
+
+const AppLayout = lazy(async () => ({
+  default: (await import('../components/layout/AppLayout')).AppLayout,
+}));
+const ComponentGalleryPage = lazy(async () => ({
+  default: (await import('../pages/ComponentGalleryPage')).ComponentGalleryPage,
+}));
+const WorkHubPage = lazy(async () => ({
+  default: (await import('../pages/WorkHubPage')).WorkHubPage,
+}));
+const WorkspaceSettingsPage = lazy(async () => ({
+  default: (await import('../pages/WorkspaceSettingsPage')).WorkspaceSettingsPage,
+}));
+const MyTasksPage = lazy(async () => ({
+  default: (await import('../pages/MyTasksPage')).MyTasksPage,
+}));
+const ReportPage = lazy(async () => ({
+  default: (await import('../pages/ReportPage')).ReportPage,
+}));
+const UserFlowPage = lazy(async () => ({
+  default: (await import('../pages/UserFlowPage')).UserFlowPage,
+}));
+const TaskDeepLinkPage = lazy(async () => ({
+  default: (await import('../pages/TaskDeepLinkPage')).TaskDeepLinkPage,
+}));
+
+const protectedPageFallback = (
+  <div
+    className="min-h-screen w-screen bg-[#FBFCF7] dark:bg-[#141413] flex items-center justify-center"
+    aria-label="Loading workspace"
+  >
+    <div className="h-8 w-8 rounded-full border-2 border-stone-300 border-t-stone-800 dark:border-stone-700 dark:border-t-[#B1E743] animate-spin" />
+  </div>
+);
 
 export const App: React.FC = () => {
   return (
@@ -28,9 +54,11 @@ export const App: React.FC = () => {
             path="/work"
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <WorkHubPage />
-                </AppLayout>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <WorkHubPage />
+                  </AppLayout>
+                </Suspense>
               </ProtectedRoute>
             }
           />
@@ -38,9 +66,11 @@ export const App: React.FC = () => {
             path="/projects/:projectId/tasks/:taskId"
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <TaskDeepLinkPage />
-                </AppLayout>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <TaskDeepLinkPage />
+                  </AppLayout>
+                </Suspense>
               </ProtectedRoute>
             }
           />
@@ -48,9 +78,11 @@ export const App: React.FC = () => {
             path="/workspaces/settings"
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <WorkspaceSettingsPage />
-                </AppLayout>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <WorkspaceSettingsPage />
+                  </AppLayout>
+                </Suspense>
               </ProtectedRoute>
             }
           />
@@ -58,9 +90,11 @@ export const App: React.FC = () => {
             path="/requirements"
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <MyTasksPage />
-                </AppLayout>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <MyTasksPage />
+                  </AppLayout>
+                </Suspense>
               </ProtectedRoute>
             }
           />
@@ -68,9 +102,11 @@ export const App: React.FC = () => {
             path="/my-tasks"
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <MyTasksPage />
-                </AppLayout>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <MyTasksPage />
+                  </AppLayout>
+                </Suspense>
               </ProtectedRoute>
             }
           />
@@ -78,9 +114,11 @@ export const App: React.FC = () => {
             path="/tests"
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <WorkHubPage />
-                </AppLayout>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <WorkHubPage />
+                  </AppLayout>
+                </Suspense>
               </ProtectedRoute>
             }
           />
@@ -88,9 +126,11 @@ export const App: React.FC = () => {
             path="/reports"
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <ReportPage />
-                </AppLayout>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <ReportPage />
+                  </AppLayout>
+                </Suspense>
               </ProtectedRoute>
             }
           />
@@ -98,9 +138,11 @@ export const App: React.FC = () => {
             path="/user-flows"
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <UserFlowPage />
-                </AppLayout>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <UserFlowPage />
+                  </AppLayout>
+                </Suspense>
               </ProtectedRoute>
             }
           />
@@ -108,9 +150,11 @@ export const App: React.FC = () => {
             path="/components"
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <ComponentGalleryPage />
-                </AppLayout>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <ComponentGalleryPage />
+                  </AppLayout>
+                </Suspense>
               </ProtectedRoute>
             }
           />

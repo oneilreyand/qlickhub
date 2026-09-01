@@ -6,7 +6,6 @@ import { store } from './store/store';
 import { ThemeProvider } from './lib/theme/ThemeContext';
 import { ErrorBoundary } from './components/ui/organisms/ErrorBoundary';
 import './index.css';
-import "./config/firebase";
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -17,6 +16,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </ThemeProvider>
       </Provider>
     </ErrorBoundary>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
-
