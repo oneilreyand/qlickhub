@@ -47,3 +47,23 @@ export const notificationRateLimiter = rateLimit({
     message: 'Too many requests to this endpoint. Please wait before trying again.',
   },
 }) as unknown as RequestHandler;
+
+/**
+ * Rate limiter for link preview and URL metadata resolution endpoint (/v1/meta/link-preview).
+ * Allows 30 requests per minute per authenticated user (or IP fallback).
+ */
+export const linkPreviewRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  limit: env.NODE_ENV === 'production' ? 30 : 500,
+  skip: () => env.NODE_ENV === 'test',
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const user = (req as typeof req & { user?: { userId?: string } }).user;
+    return user?.userId || ipKeyGenerator(req.ip || 'unknown');
+  },
+  message: {
+    code: 'RATE_LIMITED',
+    message: 'Too many link preview requests. Please wait before trying again.',
+  },
+}) as unknown as RequestHandler;
