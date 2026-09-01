@@ -4,7 +4,10 @@ coverage/
 .env
 .env.*
 !.env.example
+!.env.development.example
+!.env.production.example
 !apps/web/.env.example
+!apps/web/.env.production.example
 *.log
 .playwright-mcp/
 .vercel
