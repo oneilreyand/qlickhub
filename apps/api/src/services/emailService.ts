@@ -18,7 +18,7 @@ export class EmailService {
   private appUrl: string;
 
   constructor() {
-    this.appUrl = process.env.APP_URL || 'http://localhost:5173';
+    this.appUrl = process.env.APP_URL || 'http://localhost:3000';
     this.initializeTransporter();
   }
 
