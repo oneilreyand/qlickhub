@@ -105,11 +105,24 @@ metaRoutes.get(
 
         if (fetchRes.ok && fetchRes.html) {
           result = extractHtmlMetadata(fetchRes.html, fetchRes.finalUrl || targetUrl);
-        } else if (fetchRes.error === 'UNSAFE_REDIRECT' || fetchRes.error === 'UNSAFE_URL') {
+        } else if (
+          fetchRes.error === 'UNSAFE_REDIRECT' ||
+          fetchRes.error === 'UNSAFE_URL' ||
+          fetchRes.error === 'TOO_MANY_REDIRECTS' ||
+          fetchRes.error === 'INVALID_REDIRECT_LOCATION'
+        ) {
           res.status(400).json({
             error: {
               code: 'UNSAFE_URL',
               message: 'The provided URL is not supported or allowed.',
+            },
+          });
+          return;
+        } else if (fetchRes.error === 'RESPONSE_TOO_LARGE') {
+          res.status(400).json({
+            error: {
+              code: 'RESPONSE_TOO_LARGE',
+              message: 'The requested resource exceeds the maximum permitted size.',
             },
           });
           return;
