@@ -78,14 +78,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
     currentUserRole ||
     ''
   ).toLowerCase();
-  const canAccessSettingsAndUI = ['owner', 'admin', 'po'].includes(userRole);
+  const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
+  const canAccessUISystem = userRole === 'owner';
 
   // Mobile drawers always render expanded navigation.
   const isExpanded = isHovered || Boolean(onCloseMobile);
 
   const visibleNavItems = navItems.filter((item) => {
-    if (item.path === '/workspaces/settings' || item.path === '/components') {
-      return canAccessSettingsAndUI;
+    if (item.path === '/workspaces/settings') {
+      return canAccessSettings;
+    }
+    if (item.path === '/components') {
+      return canAccessUISystem;
     }
     return true;
   });

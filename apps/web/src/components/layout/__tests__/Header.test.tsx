@@ -212,62 +212,20 @@ describe('Header', () => {
     expect(screen.queryByRole('button', { name: 'UI System' })).toBeNull();
   });
 
-  it('shows Workspace Settings and UI System buttons for owner, admin, and po roles', () => {
-    const store = configureStore({
-      reducer: {
-        auth: authReducer,
-        ui: uiReducer,
-        workspace: workspaceReducer,
-        folder: folderReducer,
-        task: taskReducer,
-      },
-      preloadedState: {
-        auth: {
-          currentUser: {
-            id: 'u2',
-            name: 'PO User',
-            email: 'po@example.com',
-            role: 'po',
-            onboardingCompletedAt: '2026-08-01',
-          },
-          isAuthenticated: true,
-          showOnboardingModal: false,
-          status: 'succeeded' as const,
-          error: null,
-        },
-        workspace: {
-          workspaces: [
-            {
-              id: 'w2',
-              name: 'PO Workspace',
-              slug: 'po-ws',
-              ownerId: 'other',
-              allowQaTaskCreation: true,
-              createdAt: '',
-              updatedAt: '',
-              role: 'po' as const,
-            },
-          ],
-          activeWorkspaceId: 'w2',
-          members: [],
-          isLoading: false,
-          isMembersLoading: false,
-          isInitialized: true,
-          error: null,
-        },
-      },
-    });
+  it('shows Workspace Settings for PO and Admin roles while hiding UI System', () => {
+    const { unmount: unmountPo } = renderHeaderForRole('po');
+    expect(screen.getByRole('button', { name: 'Workspace Settings' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'UI System' })).toBeNull();
+    unmountPo();
 
-    render(
-      <Provider store={store}>
-        <ThemeProvider>
-          <MemoryRouter initialEntries={['/work']}>
-            <Header onToggleMobileSidebar={vi.fn()} />
-          </MemoryRouter>
-        </ThemeProvider>
-      </Provider>,
-    );
+    const { unmount: unmountAdmin } = renderHeaderForRole('admin');
+    expect(screen.getByRole('button', { name: 'Workspace Settings' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'UI System' })).toBeNull();
+    unmountAdmin();
+  });
 
+  it('shows both Workspace Settings and UI System buttons for owner role', () => {
+    renderHeaderForRole('owner');
     expect(screen.getByRole('button', { name: 'Workspace Settings' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'UI System' })).toBeInTheDocument();
   });

@@ -107,14 +107,14 @@ export const ComponentGalleryPage: React.FC = () => {
     currentUserRole ||
     ''
   ).toLowerCase();
-  const canAccessUI = ['owner', 'admin', 'po'].includes(userRole);
+  const canAccessUI = userRole === 'owner';
 
   if (!canAccessUI) {
     return (
       <AccessRestricted
         workspaceName={activeWorkspace?.name}
         title="UI System Access Restricted"
-        description="Hanya Workspace Owner, Admin, dan Product Owner (PO) yang dapat mengakses UI System & Component Gallery."
+        description="Hanya Workspace Owner yang dapat mengakses UI System & Component Gallery."
         actionHref="/work"
         actionLabel="Return to Work Hub"
       />

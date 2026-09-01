@@ -79,21 +79,40 @@ describe('Sidebar Role-based Visibility', () => {
     expect(screen.queryByText('Component Gallery')).toBeNull();
   });
 
-  it('shows Workspace Settings and Component Gallery for owner, admin, and po roles', () => {
+  it('shows Workspace Settings for owner, admin, and po roles', () => {
     const { unmount: unmountOwner } = renderSidebar('owner');
     expect(screen.getByText('Workspace Settings')).toBeInTheDocument();
-    expect(screen.getByText('Component Gallery')).toBeInTheDocument();
     unmountOwner();
 
     const { unmount: unmountAdmin } = renderSidebar('admin');
     expect(screen.getByText('Workspace Settings')).toBeInTheDocument();
-    expect(screen.getByText('Component Gallery')).toBeInTheDocument();
     unmountAdmin();
 
     const { unmount: unmountPo } = renderSidebar('po');
     expect(screen.getByText('Workspace Settings')).toBeInTheDocument();
-    expect(screen.getByText('Component Gallery')).toBeInTheDocument();
     unmountPo();
+  });
+
+  it('shows Component Gallery only for owner role and hides for others', () => {
+    const { unmount: unmountOwner } = renderSidebar('owner');
+    expect(screen.getByText('Component Gallery')).toBeInTheDocument();
+    unmountOwner();
+
+    const { unmount: unmountAdmin } = renderSidebar('admin');
+    expect(screen.queryByText('Component Gallery')).toBeNull();
+    unmountAdmin();
+
+    const { unmount: unmountPo } = renderSidebar('po');
+    expect(screen.queryByText('Component Gallery')).toBeNull();
+    unmountPo();
+
+    const { unmount: unmountDev } = renderSidebar('dev');
+    expect(screen.queryByText('Component Gallery')).toBeNull();
+    unmountDev();
+
+    const { unmount: unmountQa } = renderSidebar('qa');
+    expect(screen.queryByText('Component Gallery')).toBeNull();
+    unmountQa();
   });
 
   it('shows Overview, Task Hub, My Tasks, and Report for all roles', () => {

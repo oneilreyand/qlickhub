@@ -185,7 +185,8 @@ export const Header: React.FC<HeaderProps> = ({
     currentUserRole ||
     ''
   ).toLowerCase();
-  const canAccessSettingsAndUI = ['owner', 'admin', 'po'].includes(userRole);
+  const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
+  const canAccessUISystem = userRole === 'owner';
   const canManageTaskPolicy = ['owner', 'admin'].includes(userRole);
 
   const handleOpenCreateModal = () => {
@@ -373,30 +374,30 @@ export const Header: React.FC<HeaderProps> = ({
           Report
         </button>
 
-        {canAccessSettingsAndUI && (
-          <>
-            <button
-              onClick={() => navigate('/workspaces/settings')}
-              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-                isSettingsActive
-                  ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-              }`}
-            >
-              Workspace Settings
-            </button>
+        {canAccessSettings && (
+          <button
+            onClick={() => navigate('/workspaces/settings')}
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              isSettingsActive
+                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+            }`}
+          >
+            Workspace Settings
+          </button>
+        )}
 
-            <button
-              onClick={() => navigate('/components')}
-              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-                isComponentsActive
-                  ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-              }`}
-            >
-              UI System
-            </button>
-          </>
+        {canAccessUISystem && (
+          <button
+            onClick={() => navigate('/components')}
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              isComponentsActive
+                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+            }`}
+          >
+            UI System
+          </button>
         )}
       </nav>
 
@@ -756,7 +757,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>Mulai Ulang Onboarding</span>
                 </button>
 
-                {canAccessSettingsAndUI && (
+                {canAccessSettings && (
                   <button
                     type="button"
                     onClick={() => {
