@@ -1,12 +1,7 @@
 import { Router, Response } from 'express';
 import { authenticate, AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { linkPreviewRateLimiter } from '../../http/middleware/rateLimit.js';
-import {
-  validateUrlSafety,
-  safeFetch,
-  extractHtmlMetadata,
-  ExtractedMetadata,
-} from './ssrfProtection.js';
+import { safeFetch, extractHtmlMetadata, ExtractedMetadata } from './ssrfProtection.js';
 
 export const metaRoutes = Router();
 
@@ -20,8 +15,12 @@ const previewCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const MAX_CACHE_SIZE = 500;
 
+export function clearPreviewCache(): void {
+  previewCache.clear();
+}
+
 /**
- * Fetch Pinterest oEmbed data safely
+ * Fetch Pinterest oEmbed data safely with socket pinning
  */
 async function fetchPinterestOembed(pinUrl: string): Promise<ExtractedMetadata | null> {
   const oembedUrl = `https://www.pinterest.com/oembed.json?url=${encodeURIComponent(pinUrl)}`;
@@ -66,9 +65,21 @@ metaRoutes.get(
       return;
     }
 
-    // Comprehensive SSRF Pre-Validation (Protocol, Credentials, Internal/Private/Cloud-Metadata IP)
-    const safetyCheck = await validateUrlSafety(targetUrl);
-    if (!safetyCheck.safe) {
+    // 1. Syntactic URL validation (protocol, credentials, hostname)
+    let parsedTarget: URL;
+    try {
+      parsedTarget = new URL(targetUrl);
+    } catch {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_URL',
+          message: 'The provided URL is invalid.',
+        },
+      });
+      return;
+    }
+
+    if (parsedTarget.protocol !== 'http:' && parsedTarget.protocol !== 'https:') {
       res.status(400).json({
         error: {
           code: 'UNSAFE_URL',
@@ -78,18 +89,35 @@ metaRoutes.get(
       return;
     }
 
-    // Check in-memory cache
+    if (parsedTarget.username || parsedTarget.password) {
+      res.status(400).json({
+        error: {
+          code: 'UNSAFE_URL',
+          message: 'The provided URL is not supported or allowed.',
+        },
+      });
+      return;
+    }
+
+    // 2. Check in-memory cache before executing network request
     const cached = previewCache.get(targetUrl);
     if (cached && cached.expiresAt > Date.now()) {
       res.status(200).json({ data: cached.data });
       return;
     }
 
+    // 3. Strict Pinterest hostname detection
+    const targetHostname = parsedTarget.hostname.toLowerCase();
+    const isPinterest =
+      targetHostname === 'pinterest.com' ||
+      targetHostname.endsWith('.pinterest.com') ||
+      targetHostname === 'pin.it' ||
+      targetHostname.endsWith('.pin.it');
+
     try {
       let result: ExtractedMetadata | null = null;
 
-      // 1. Pinterest detection
-      if (targetUrl.includes('pinterest.com') || targetUrl.includes('pin.it')) {
+      if (isPinterest) {
         try {
           result = await fetchPinterestOembed(targetUrl);
         } catch {
@@ -97,7 +125,7 @@ metaRoutes.get(
         }
       }
 
-      // 2. Generic HTML meta fetch
+      // 4. Fetch target URL metadata with single-hop DNS resolution & IP pinning
       if (!result) {
         const fetchRes = await safeFetch(targetUrl, {
           allowedContentTypes: ['text/html', 'application/xhtml+xml'],
@@ -108,6 +136,11 @@ metaRoutes.get(
         } else if (
           fetchRes.error === 'UNSAFE_REDIRECT' ||
           fetchRes.error === 'UNSAFE_URL' ||
+          fetchRes.error === 'INTERNAL_HOSTNAME_BLOCKED' ||
+          fetchRes.error === 'PRIVATE_IP_BLOCKED' ||
+          fetchRes.error === 'RESOLVED_TO_PRIVATE_IP' ||
+          fetchRes.error === 'UNSUPPORTED_PROTOCOL' ||
+          fetchRes.error === 'CREDENTIALS_NOT_ALLOWED' ||
           fetchRes.error === 'TOO_MANY_REDIRECTS' ||
           fetchRes.error === 'INVALID_REDIRECT_LOCATION'
         ) {
@@ -127,14 +160,13 @@ metaRoutes.get(
           });
           return;
         } else {
-          // Safe fallback for unreachable or non-HTML pages
-          const parsed = new URL(targetUrl);
-          const hostname = parsed.hostname.replace(/^www\./, '');
+          // Safe fallback for unreachable, non-HTML, or timeout pages without leaking internal details
+          const cleanHostname = parsedTarget.hostname.replace(/^www\./, '');
           result = {
             url: targetUrl,
-            title: hostname,
-            siteName: hostname,
-            favicon: `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`,
+            title: cleanHostname,
+            siteName: cleanHostname,
+            favicon: `https://www.google.com/s2/favicons?domain=${cleanHostname}&sz=32`,
           };
         }
       }
@@ -154,7 +186,7 @@ metaRoutes.get(
     } catch {
       let fallbackHostname = 'link';
       try {
-        fallbackHostname = new URL(targetUrl).hostname.replace(/^www\./, '');
+        fallbackHostname = parsedTarget.hostname.replace(/^www\./, '');
       } catch {
         // Safe default
       }

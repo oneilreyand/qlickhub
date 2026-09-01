@@ -48,22 +48,41 @@ export const notificationRateLimiter = rateLimit({
   },
 }) as unknown as RequestHandler;
 
+export const DEFAULT_LINK_PREVIEW_RATE_LIMIT = 30;
+export const DEFAULT_LINK_PREVIEW_WINDOW_MS = 60 * 1000;
+
+export interface LinkPreviewRateLimiterOptions {
+  windowMs?: number;
+  limit?: number;
+  skip?: (req: any, res: any) => boolean;
+}
+
 /**
- * Rate limiter for link preview and URL metadata resolution endpoint (/v1/meta/link-preview).
+ * Factory to create link preview rate limiter instances.
+ * Enables behavioral testing without mutating production instances or global state.
+ */
+export function createLinkPreviewRateLimiter(
+  options: LinkPreviewRateLimiterOptions = {},
+): RequestHandler {
+  return rateLimit({
+    windowMs: options.windowMs ?? DEFAULT_LINK_PREVIEW_WINDOW_MS,
+    limit: options.limit ?? (env.NODE_ENV === 'production' ? DEFAULT_LINK_PREVIEW_RATE_LIMIT : 500),
+    skip: options.skip ?? (() => env.NODE_ENV === 'test'),
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const user = (req as typeof req & { user?: { userId?: string } }).user;
+      return user?.userId || ipKeyGenerator(req.ip || 'unknown');
+    },
+    message: {
+      code: 'RATE_LIMITED',
+      message: 'Too many link preview requests. Please wait before trying again.',
+    },
+  }) as unknown as RequestHandler;
+}
+
+/**
+ * Production rate limiter for link preview and URL metadata resolution endpoint (/v1/meta/link-preview).
  * Allows 30 requests per minute per authenticated user (or IP fallback).
  */
-export const linkPreviewRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  limit: env.NODE_ENV === 'production' ? 30 : 500,
-  skip: () => env.NODE_ENV === 'test',
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    const user = (req as typeof req & { user?: { userId?: string } }).user;
-    return user?.userId || ipKeyGenerator(req.ip || 'unknown');
-  },
-  message: {
-    code: 'RATE_LIMITED',
-    message: 'Too many link preview requests. Please wait before trying again.',
-  },
-}) as unknown as RequestHandler;
+export const linkPreviewRateLimiter = createLinkPreviewRateLimiter();

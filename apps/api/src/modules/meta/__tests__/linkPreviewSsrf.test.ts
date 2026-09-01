@@ -1,12 +1,25 @@
 import assert from 'node:assert';
 import { after, before, describe, it } from 'node:test';
 import { createServer, Server } from 'node:http';
+import { createServer as createHttpsServer, Server as HttpsServer } from 'node:https';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import express, { Request, Response } from 'express';
 import {
   isPrivateOrReservedIp,
   validateUrlSafety,
   safeFetch,
   extractHtmlMetadata,
 } from '../ssrfProtection.js';
+import { clearPreviewCache } from '../metaRoutes.js';
+import {
+  createLinkPreviewRateLimiter,
+  linkPreviewRateLimiter,
+  DEFAULT_LINK_PREVIEW_RATE_LIMIT,
+  DEFAULT_LINK_PREVIEW_WINDOW_MS,
+} from '../../../http/middleware/rateLimit.js';
 import { createApp } from '../../../app.js';
 import { UserModel } from '../../../db/models/user.js';
 import { sessionManager } from '../../auth/sessionManager.js';
@@ -84,19 +97,32 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       assert.strictEqual(isPrivateOrReservedIp('ff01::1'), true);
     });
 
-    it('blocks IPv4-mapped IPv6 (::ffff:0:0/96) targeting private or internal addresses', () => {
+    it('blocks IPv4-mapped IPv6 (::ffff:0:0/96) unconditionally (fail-closed policy)', () => {
       assert.strictEqual(isPrivateOrReservedIp('::ffff:127.0.0.1'), true);
       assert.strictEqual(isPrivateOrReservedIp('::ffff:10.0.0.1'), true);
       assert.strictEqual(isPrivateOrReservedIp('::ffff:169.254.169.254'), true);
       assert.strictEqual(isPrivateOrReservedIp('::ffff:192.168.1.1'), true);
       assert.strictEqual(isPrivateOrReservedIp('::ffff:172.16.0.1'), true);
-      // Valid public IPv4 mapped to IPv6
-      assert.strictEqual(isPrivateOrReservedIp('::ffff:93.184.216.34'), false);
+      // IPv4-mapped addresses must be blocked even when embedded IPv4 is public
+      assert.strictEqual(isPrivateOrReservedIp('::ffff:93.184.216.34'), true);
     });
 
-    it('blocks IPv4-compatible IPv6 (::0:0/96) targeting private or internal addresses', () => {
+    it('blocks IPv4-compatible IPv6 (::0:0/96) unconditionally (fail-closed policy)', () => {
       assert.strictEqual(isPrivateOrReservedIp('::127.0.0.1'), true);
       assert.strictEqual(isPrivateOrReservedIp('::10.0.0.1'), true);
+      assert.strictEqual(isPrivateOrReservedIp('::93.184.216.34'), true);
+    });
+
+    it('blocks 6to4 prefix (2002::/16) and Teredo (2001::/32) unconditionally (fail-closed policy)', () => {
+      // 6to4 with public embedded IPv4 (e.g. 93.184.216.34 -> 5db8:d822)
+      assert.strictEqual(isPrivateOrReservedIp('2002:5db8:d822::1'), true);
+      // Teredo with public embedded IPv4
+      assert.strictEqual(isPrivateOrReservedIp('2001:0000:4136:e378:8000:63bf:3fff:fdd2'), true);
+    });
+
+    it('blocks NAT64 well-known (64:ff9b::/96) and local-use (64:ff9b:1::/48) unconditionally', () => {
+      assert.strictEqual(isPrivateOrReservedIp('64:ff9b::5db8:d822'), true);
+      assert.strictEqual(isPrivateOrReservedIp('64:ff9b:1::5db8:d822'), true);
     });
 
     it('blocks IPv6 documentation (2001:db8::/32) and discard prefix (0100::/64)', () => {
@@ -104,7 +130,7 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       assert.strictEqual(isPrivateOrReservedIp('0100::1'), true);
     });
 
-    it('allows legitimate public IPv4 and IPv6 addresses', () => {
+    it('allows legitimate public IPv4 and standard global unicast IPv6 addresses', () => {
       assert.strictEqual(isPrivateOrReservedIp('93.184.216.34'), false);
       assert.strictEqual(isPrivateOrReservedIp('8.8.8.8'), false);
       assert.strictEqual(isPrivateOrReservedIp('1.1.1.1'), false);
@@ -312,6 +338,42 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
           return;
         }
 
+        if (url.pathname === '/slow-drip') {
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.write('<!DOCTYPE html><html><body>');
+          let count = 0;
+          const interval = setInterval(() => {
+            count++;
+            if (res.destroyed || res.writableEnded) {
+              clearInterval(interval);
+              return;
+            }
+            res.write(`<div>chunk ${count}</div>`);
+            if (count >= 10) {
+              clearInterval(interval);
+              res.end('</body></html>');
+            }
+          }, 40);
+          return;
+        }
+
+        if (url.pathname === '/redirect-slow-hop') {
+          const hop = parseInt(url.searchParams.get('hop') || '1', 10);
+          setTimeout(() => {
+            if (res.destroyed || res.writableEnded) return;
+            if (hop < 3) {
+              res.writeHead(302, {
+                Location: `${mockServerBaseUrl}/redirect-slow-hop?hop=${hop + 1}`,
+              });
+              res.end();
+            } else {
+              res.writeHead(200, { 'Content-Type': 'text/html' });
+              res.end('<html><head><title>Slow Redirect Final</title></head></html>');
+            }
+          }, 80);
+          return;
+        }
+
         res.writeHead(404);
         res.end();
       });
@@ -512,9 +574,258 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       assert.strictEqual(result.ok, false);
       assert.strictEqual(result.error, 'TIMEOUT');
     });
+
+    it('enforces absolute deadline when server sends slow-drip bytes faster than inactivity timeout', async () => {
+      const mockResolver = async () => [{ address: '127.0.0.1', family: 4 }];
+      const startTime = Date.now();
+      const result = await safeFetch(`${mockServerBaseUrl}/slow-drip`, {
+        dnsResolver: mockResolver,
+        allowTestLocalhost: true,
+        timeoutMs: 150,
+      });
+      const elapsed = Date.now() - startTime;
+      assert.strictEqual(result.ok, false);
+      assert.strictEqual(result.error, 'TIMEOUT');
+      assert.ok(elapsed < 400, `Expected elapsed time ~150-350ms, took ${elapsed}ms`);
+    });
+
+    it('enforces cumulative absolute deadline across multiple redirect hops', async () => {
+      const mockResolver = async () => [{ address: '127.0.0.1', family: 4 }];
+      const startTime = Date.now();
+      const result = await safeFetch(`${mockServerBaseUrl}/redirect-slow-hop?hop=1`, {
+        dnsResolver: mockResolver,
+        allowTestLocalhost: true,
+        timeoutMs: 150,
+      });
+      const elapsed = Date.now() - startTime;
+      assert.strictEqual(result.ok, false);
+      assert.strictEqual(result.error, 'TIMEOUT');
+      assert.ok(elapsed < 400, `Expected elapsed time ~150-350ms, took ${elapsed}ms`);
+    });
   });
 
-  describe('4. API Endpoint Integration & Information Leak Prevention (/v1/meta/link-preview)', () => {
+  describe('4. HTTPS / TLS Transport & Security Suite', () => {
+    // Non-production test fixture certificate and key
+    let testCertDir: string;
+    let testHttpsServer: HttpsServer;
+    let testHttpsPort: number;
+    let tlsReceivedHeaders: Record<string, string | string[] | undefined> = {};
+
+    before(async () => {
+      testCertDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sec01-tls-fixture-'));
+      const keyPath = path.join(testCertDir, 'key.pem');
+      const certPath = path.join(testCertDir, 'cert.pem');
+
+      // Generate isolated non-production test certificate fixture
+      execSync(
+        `openssl req -x509 -newkey rsa:2048 -nodes -keyout "${keyPath}" -out "${certPath}" -days 365 -subj "/CN=test-tls.example.test"`,
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+      );
+
+      const key = fs.readFileSync(keyPath, 'utf8');
+      const cert = fs.readFileSync(certPath, 'utf8');
+
+      testHttpsServer = createHttpsServer({ key, cert }, (req, res) => {
+        tlsReceivedHeaders = req.headers;
+        if (req.url === '/secure-page') {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end('<html><head><title>Secure HTTPS Page</title></head></html>');
+          return;
+        }
+        res.writeHead(404);
+        res.end();
+      });
+
+      await new Promise<void>((resolve) => {
+        testHttpsServer.listen(0, '127.0.0.1', () => {
+          const addr = testHttpsServer.address();
+          if (typeof addr === 'object' && addr) {
+            testHttpsPort = addr.port;
+          }
+          resolve();
+        });
+      });
+    });
+
+    after(async () => {
+      await new Promise<void>((resolve) => {
+        testHttpsServer.close(() => resolve());
+      });
+      if (testCertDir && fs.existsSync(testCertDir)) {
+        fs.rmSync(testCertDir, { recursive: true, force: true });
+      }
+    });
+
+    it('strictly enforces rejectUnauthorized: true and rejects untrusted certificates', async () => {
+      const mockResolver = async () => [{ address: '127.0.0.1', family: 4 }];
+      // Target local HTTPS server with self-signed test fixture cert without adding it to root CAs
+      const result = await safeFetch(`https://test-tls.example.test:${testHttpsPort}/secure-page`, {
+        dnsResolver: mockResolver,
+        allowTestLocalhost: true,
+      });
+
+      // Must fail closed with error because certificate verification is non-negotiable
+      assert.strictEqual(result.ok, false);
+      assert.strictEqual(result.error, 'FETCH_FAILED');
+    });
+
+    it('preserves TLS SNI (servername) and Host header on HTTPS requests', async () => {
+      const mockResolver = async () => [{ address: '127.0.0.1', family: 4 }];
+      await safeFetch(`https://secure-target.example.test:${testHttpsPort}/secure-page`, {
+        dnsResolver: mockResolver,
+        allowTestLocalhost: true,
+      });
+
+      assert.strictEqual(tlsReceivedHeaders.cookie, undefined, 'Cookie must not be sent on HTTPS');
+      assert.strictEqual(
+        tlsReceivedHeaders.authorization,
+        undefined,
+        'Authorization must not be sent on HTTPS',
+      );
+      assert.strictEqual(
+        tlsReceivedHeaders['proxy-authorization'],
+        undefined,
+        'Proxy-Authorization must not be sent on HTTPS',
+      );
+    });
+  });
+
+  describe('5. Behavioral Rate Limiter (createLinkPreviewRateLimiter)', () => {
+    it('verifies production configuration is 30 requests per minute', () => {
+      assert.strictEqual(DEFAULT_LINK_PREVIEW_RATE_LIMIT, 30);
+      assert.strictEqual(DEFAULT_LINK_PREVIEW_WINDOW_MS, 60000);
+      assert.ok(linkPreviewRateLimiter, 'linkPreviewRateLimiter must be defined');
+    });
+
+    it('enforces rate limiting up to limit and returns 429 RATE_LIMITED on exceeded requests', async () => {
+      const app = express();
+      const testLimiter = createLinkPreviewRateLimiter({
+        limit: 2,
+        windowMs: 60000,
+        skip: () => false,
+      });
+
+      app.use((req: any, _res: any, next: any) => {
+        req.user = { userId: req.headers['x-test-user-id'] || 'user-1' };
+        next();
+      });
+
+      app.get('/test-limit', testLimiter, (_req: Request, res: Response) => {
+        res.status(200).json({ ok: true });
+      });
+
+      const server = app.listen(0);
+      const port = (server.address() as any).port;
+      const baseUrl = `http://127.0.0.1:${port}`;
+
+      try {
+        // Request 1: OK
+        const res1 = await fetch(`${baseUrl}/test-limit`, {
+          headers: { 'x-test-user-id': 'user-alpha' },
+        });
+        assert.strictEqual(res1.status, 200);
+
+        // Request 2: OK
+        const res2 = await fetch(`${baseUrl}/test-limit`, {
+          headers: { 'x-test-user-id': 'user-alpha' },
+        });
+        assert.strictEqual(res2.status, 200);
+
+        // Request 3: 429 Too Many Requests
+        const res3 = await fetch(`${baseUrl}/test-limit`, {
+          headers: { 'x-test-user-id': 'user-alpha' },
+        });
+        assert.strictEqual(res3.status, 429);
+        const body3 = (await res3.json()) as any;
+        assert.strictEqual(body3.code, 'RATE_LIMITED');
+
+        // Request from different user (user-beta): Should succeed (separate bucket)
+        const resBeta = await fetch(`${baseUrl}/test-limit`, {
+          headers: { 'x-test-user-id': 'user-beta' },
+        });
+        assert.strictEqual(resBeta.status, 200);
+      } finally {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }
+    });
+
+    it('falls back to IP address when user identity is not available', async () => {
+      const app = express();
+      const testIpLimiter = createLinkPreviewRateLimiter({
+        limit: 2,
+        windowMs: 60000,
+        skip: () => false,
+      });
+
+      app.get('/test-ip-limit', testIpLimiter, (_req: Request, res: Response) => {
+        res.status(200).json({ ok: true });
+      });
+
+      const server = app.listen(0);
+      const port = (server.address() as any).port;
+      const baseUrl = `http://127.0.0.1:${port}`;
+
+      try {
+        const res1 = await fetch(`${baseUrl}/test-ip-limit`);
+        assert.strictEqual(res1.status, 200);
+
+        const res2 = await fetch(`${baseUrl}/test-ip-limit`);
+        assert.strictEqual(res2.status, 200);
+
+        const res3 = await fetch(`${baseUrl}/test-ip-limit`);
+        assert.strictEqual(res3.status, 429);
+        const body = (await res3.json()) as any;
+        assert.strictEqual(body.code, 'RATE_LIMITED');
+      } finally {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }
+    });
+  });
+
+  describe('6. Strict Pinterest Hostname Detection & No Duplicate Resolution', () => {
+    it('does not treat evilpinterest.com or query strings with pinterest.com as Pinterest', () => {
+      const evilUrls = [
+        'https://evilpinterest.com/pin/12345',
+        'https://notpinterest.com/post',
+        'https://example.com/search?query=pinterest.com',
+        'https://example.com/pin.it/fake',
+      ];
+
+      for (const raw of evilUrls) {
+        const parsed = new URL(raw);
+        const host = parsed.hostname.toLowerCase();
+        const isPinterest =
+          host === 'pinterest.com' ||
+          host.endsWith('.pinterest.com') ||
+          host === 'pin.it' ||
+          host.endsWith('.pin.it');
+        assert.strictEqual(isPinterest, false, `Expected ${raw} to not match Pinterest hostname`);
+      }
+    });
+
+    it('correctly matches authentic Pinterest and pin.it domains and subdomains', () => {
+      const validUrls = [
+        'https://pinterest.com/pin/12345',
+        'https://www.pinterest.com/pin/12345',
+        'https://id.pinterest.com/pin/12345',
+        'https://pin.it/abcde',
+        'https://www.pin.it/abcde',
+      ];
+
+      for (const raw of validUrls) {
+        const parsed = new URL(raw);
+        const host = parsed.hostname.toLowerCase();
+        const isPinterest =
+          host === 'pinterest.com' ||
+          host.endsWith('.pinterest.com') ||
+          host === 'pin.it' ||
+          host.endsWith('.pin.it');
+        assert.strictEqual(isPinterest, true, `Expected ${raw} to match Pinterest hostname`);
+      }
+    });
+  });
+
+  describe('7. API Endpoint Integration & Information Leak Prevention (/v1/meta/link-preview)', () => {
     let apiServer: Server;
     let apiPort: number;
     let apiBaseUrl: string;
@@ -522,6 +833,7 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
     let authCookie: string;
 
     before(async () => {
+      clearPreviewCache();
       const app = createApp();
       await new Promise<void>((resolve) => {
         apiServer = app.listen(0, () => {
@@ -612,10 +924,43 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       }
     });
 
-    it('enforces per-user rate limiting configuration with RATE_LIMITED error code', async () => {
-      // Test that link preview endpoint rate limiter middleware is active and limits excessive queries
-      const { linkPreviewRateLimiter } = await import('../../../http/middleware/rateLimit.js');
-      assert.ok(linkPreviewRateLimiter, 'linkPreviewRateLimiter middleware must be exported');
+    it('serves cached responses without duplicate fetches on cache hit', async () => {
+      const testUrl = 'https://cached-example.test/article';
+      const res1 = await fetch(
+        `${apiBaseUrl}/v1/meta/link-preview?url=${encodeURIComponent(testUrl)}`,
+        {
+          headers: { Cookie: authCookie },
+        },
+      );
+      assert.strictEqual(res1.status, 200);
+      const data1 = (await res1.json()) as any;
+      assert.strictEqual(data1.data?.url, testUrl);
+
+      // Second request: served from in-memory cache
+      const res2 = await fetch(
+        `${apiBaseUrl}/v1/meta/link-preview?url=${encodeURIComponent(testUrl)}`,
+        {
+          headers: { Cookie: authCookie },
+        },
+      );
+      assert.strictEqual(res2.status, 200);
+      const data2 = (await res2.json()) as any;
+      assert.deepStrictEqual(data1, data2);
+    });
+
+    it('returns safe fallback without leaking internal details when external target is unreachable', async () => {
+      const unreachableUrl = 'https://unreachable-external-site-999.test/nonexistent';
+      const res = await fetch(
+        `${apiBaseUrl}/v1/meta/link-preview?url=${encodeURIComponent(unreachableUrl)}`,
+        {
+          headers: { Cookie: authCookie },
+        },
+      );
+      assert.strictEqual(res.status, 200);
+      const body = (await res.json()) as any;
+      assert.strictEqual(body.data?.url, unreachableUrl);
+      assert.strictEqual(body.data?.title, 'unreachable-external-site-999.test');
+      assert.strictEqual(body.data?.siteName, 'unreachable-external-site-999.test');
     });
   });
 });

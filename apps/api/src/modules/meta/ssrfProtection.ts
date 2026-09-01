@@ -196,80 +196,64 @@ export function isPrivateOrReservedIp(ip: string): boolean {
       return true;
     }
 
-    // ::ffff:0:0/96 - IPv4-mapped IPv6 (RFC 4291)
+    // 3. ::ffff:0:0/96 - IPv4-mapped IPv6 (RFC 4291) - Fail closed: reject unconditionally
     if (w0 === 0 && w1 === 0 && w2 === 0 && w3 === 0 && w4 === 0 && w5 === 0xffff) {
-      const embeddedV4 = ((w6 << 16) | w7) >>> 0;
-      return isPrivateOrReservedIpv4Int(embeddedV4);
+      return true;
     }
 
-    // ::0:0/96 - IPv4-compatible IPv6 (deprecated RFC 4291)
-    if (
-      w0 === 0 &&
-      w1 === 0 &&
-      w2 === 0 &&
-      w3 === 0 &&
-      w4 === 0 &&
-      w5 === 0 &&
-      (w6 !== 0 || w7 > 1)
-    ) {
-      const embeddedV4 = ((w6 << 16) | w7) >>> 0;
-      return isPrivateOrReservedIpv4Int(embeddedV4);
+    // 4. ::0:0/96 - IPv4-compatible IPv6 (deprecated RFC 4291) - Fail closed: reject unconditionally
+    if (w0 === 0 && w1 === 0 && w2 === 0 && w3 === 0 && w4 === 0 && w5 === 0) {
+      return true;
     }
 
-    // 64:ff9b::/96 - IPv4/IPv6 translation well-known prefix (RFC 6052)
+    // 5. 64:ff9b::/96 - Well-known NAT64 prefix (RFC 6052) - Fail closed: reject unconditionally
     if (w0 === 0x0064 && w1 === 0xff9b && w2 === 0 && w3 === 0 && w4 === 0 && w5 === 0) {
-      const embeddedV4 = ((w6 << 16) | w7) >>> 0;
-      return isPrivateOrReservedIpv4Int(embeddedV4);
+      return true;
     }
 
-    // 64:ff9b:1::/48 - Local-Use IPv4/IPv6 translation (RFC 8215)
+    // 6. 64:ff9b:1::/48 - Local-Use NAT64 (RFC 8215) - Fail closed: reject unconditionally
     if (w0 === 0x0064 && w1 === 0xff9b && w2 === 0x0001) {
       return true;
     }
 
-    // 0100::/64 - Discard-only prefix (RFC 6666)
+    // 7. 0100::/64 - Discard-only prefix (RFC 6666)
     if (w0 === 0x0100 && w1 === 0 && w2 === 0 && w3 === 0) return true;
 
-    // 2001:0000::/32 - Teredo prefix (RFC 4380)
+    // 8. 2001:0000::/32 - Teredo prefix (RFC 4380) - Fail closed: reject unconditionally
     if (w0 === 0x2001 && w1 === 0x0000) {
-      const serverV4 = ((w2 << 16) | w3) >>> 0;
-      const clientV4 = ~((w6 << 16) | w7) >>> 0;
-      if (isPrivateOrReservedIpv4Int(serverV4) || isPrivateOrReservedIpv4Int(clientV4)) {
-        return true;
-      }
+      return true;
     }
 
-    // 2001:2::/48 - BMWG Benchmarking (RFC 5180)
+    // 9. 2001:2::/48 - BMWG Benchmarking (RFC 5180)
     if (w0 === 0x2001 && w1 === 0x0002) return true;
 
-    // 2001:10::/28 - ORCHIDv2 (RFC 7343)
+    // 10. 2001:10::/28 - ORCHIDv2 (RFC 7343)
     if (w0 === 0x2001 && (w1 & 0xfff0) === 0x0010) return true;
 
-    // 2001:20::/28 - Drone Remote ID (RFC 9385)
+    // 11. 2001:20::/28 - Drone Remote ID (RFC 9385)
     if (w0 === 0x2001 && (w1 & 0xfff0) === 0x0020) return true;
 
-    // 2001:db8::/32 - Documentation (RFC 3849)
+    // 12. 2001:db8::/32 - Documentation (RFC 3849)
     if (w0 === 0x2001 && w1 === 0x0db8) return true;
 
-    // 2002::/16 - 6to4 prefix (RFC 3056)
+    // 13. 2002::/16 - 6to4 prefix (RFC 3056) - Fail closed: reject unconditionally
     if (w0 === 0x2002) {
-      const embeddedV4 = ((w1 << 16) | w2) >>> 0;
-      if (isPrivateOrReservedIpv4Int(embeddedV4)) return true;
+      return true;
     }
 
-    // fc00::/7 - Unique Local Unicast (ULA: fc00:: to fdff::, RFC 4193)
+    // 14. fc00::/7 - Unique Local Unicast (ULA: fc00:: to fdff::, RFC 4193)
     if ((w0 & 0xfe00) === 0xfc00) return true;
 
-    // fe80::/10 - Link-Local Unicast (fe80:: to febf::, RFC 4291)
+    // 15. fe80::/10 - Link-Local Unicast (fe80:: to febf::, RFC 4291)
     if ((w0 & 0xffc0) === 0xfe80) return true;
 
-    // fec0::/10 - Site-Local (deprecated RFC 3879)
+    // 16. fec0::/10 - Site-Local (deprecated RFC 3879)
     if ((w0 & 0xffc0) === 0xfec0) return true;
 
-    // ff00::/8 - Multicast (RFC 4291)
+    // 17. ff00::/8 - Multicast (RFC 4291)
     if ((w0 & 0xff00) === 0xff00) return true;
 
-    // Fail-closed check: Ensure the address is within Global Unicast space (2000::/3)
+    // 18. Fail-closed check: Ensure the address is strictly within Global Unicast space (2000::/3)
     if ((w0 & 0xe000) !== 0x2000) {
       return true;
     }
@@ -542,10 +526,16 @@ export async function safeFetch(
   const maxBodyBytes = options.maxBodyBytes ?? MAX_BODY_BYTES;
   const allowedContentTypes = options.allowedContentTypes ?? ['text/html', 'application/xhtml+xml'];
 
+  const deadline = Date.now() + timeoutMs;
   let currentUrl = targetUrl;
   let hops = 0;
 
   while (hops <= maxRedirects) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      return { ok: false, error: 'TIMEOUT' };
+    }
+
     // 1. Single DNS resolution and comprehensive safety validation for current hop
     const safetyCheck = await validateUrlSafety(currentUrl, {
       dnsResolver: options.dnsResolver,
@@ -588,14 +578,42 @@ export async function safeFetch(
       }
     };
 
+    const hopRemainingMs = deadline - Date.now();
+    if (hopRemainingMs <= 0) {
+      return { ok: false, error: 'TIMEOUT' };
+    }
+
     const requestResult = await new Promise<SafeFetchResponse>((resolve) => {
       let settled = false;
+      let timer: NodeJS.Timeout | null = null;
+      let activeReq: http.ClientRequest | null = null;
+      let activeRes: http.IncomingMessage | null = null;
+
+      const cleanup = () => {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      };
+
       const safeResolve = (val: SafeFetchResponse) => {
         if (!settled) {
           settled = true;
+          cleanup();
           resolve(val);
         }
       };
+
+      // Set global absolute deadline timer for this hop
+      timer = setTimeout(() => {
+        if (activeRes) {
+          activeRes.destroy(new Error('TIMEOUT'));
+        }
+        if (activeReq) {
+          activeReq.destroy(new Error('TIMEOUT'));
+        }
+        safeResolve({ ok: false, error: 'TIMEOUT' });
+      }, hopRemainingMs);
 
       try {
         const req = httpModule.request(
@@ -621,6 +639,7 @@ export async function safeFetch(
             ...(isHttps ? { servername: parsedUrl.hostname } : {}),
           },
           (res) => {
+            activeRes = res;
             const statusCode = res.statusCode || 0;
 
             // Handle Redirects (301, 302, 303, 307, 308)
@@ -744,13 +763,20 @@ export async function safeFetch(
               });
             });
 
-            res.on('error', () => {
-              safeResolve({ ok: false, error: 'STREAM_READ_FAILED' });
+            res.on('error', (err: any) => {
+              if (err?.message === 'TIMEOUT' || err?.code === 'ETIMEDOUT') {
+                safeResolve({ ok: false, error: 'TIMEOUT' });
+              } else {
+                safeResolve({ ok: false, error: 'STREAM_READ_FAILED' });
+              }
             });
           },
         );
 
-        req.setTimeout(timeoutMs, () => {
+        activeReq = req;
+
+        // Inactivity timeout as secondary defense
+        req.setTimeout(hopRemainingMs, () => {
           req.destroy(new Error('TIMEOUT'));
           safeResolve({ ok: false, error: 'TIMEOUT' });
         });
