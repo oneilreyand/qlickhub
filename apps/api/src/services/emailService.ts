@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { env } from '../config/env.js';
 
 export interface SendEmailOptions {
   to: string;
@@ -10,24 +11,25 @@ export interface SendEmailOptions {
 export interface EmailSendResult {
   sent: boolean;
   messageId?: string;
-  fallbackLink?: string;
 }
 
 export class EmailService {
   private transporter: nodemailer.Transporter | null = null;
   private appUrl: string;
 
-  constructor() {
-    this.appUrl = process.env.APP_URL || 'http://localhost:3000';
+  constructor(private readonly config: typeof env = env) {
+    this.appUrl = config.APP_URL;
     this.initializeTransporter();
   }
 
   private initializeTransporter() {
-    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const port = Number(process.env.SMTP_PORT) || 465;
-    const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    const {
+      SMTP_HOST: host,
+      SMTP_PORT: port,
+      SMTP_SECURE: secure,
+      SMTP_USER: user,
+      SMTP_PASS: pass,
+    } = this.config;
 
     if (user && pass) {
       this.transporter = nodemailer.createTransport({
@@ -41,14 +43,12 @@ export class EmailService {
     }
   }
 
-  /**
-   * Sends an email via configured SMTP (e.g. Gmail 0-cost SMTP) or logs as safe fallback.
-   */
+  /** Sends an email when SMTP is configured. Email bodies are never logged. */
   async sendEmail(options: SendEmailOptions): Promise<EmailSendResult> {
     const from =
-      process.env.SMTP_FROM || `"Qlick Hub" <${process.env.SMTP_USER || 'noreply@qlickhub.local'}>`;
+      this.config.SMTP_FROM || `"Qlick Hub" <${this.config.SMTP_USER || 'noreply@qlickhub.local'}>`;
 
-    if (this.transporter && process.env.NODE_ENV !== 'test') {
+    if (this.transporter && this.config.NODE_ENV !== 'test') {
       try {
         const info = await this.transporter.sendMail({
           from,
@@ -59,18 +59,13 @@ export class EmailService {
         });
         return { sent: true, messageId: info.messageId };
       } catch (error) {
-        console.error('[EmailService] SMTP error, falling back to local link:', error);
+        console.error('[EmailService] SMTP delivery failed.', error);
+        return { sent: false };
       }
     }
 
-    // Fallback in development/test/unconfigured environments
-    console.log(`\n================== [EMAIL DISPATCHED] ==================`);
-    console.log(`To: ${options.to}`);
-    console.log(`Subject: ${options.subject}`);
-    console.log(`Content:\n${options.text || options.html.replace(/<[^>]+>/g, '')}`);
-    console.log(`========================================================\n`);
-
-    return { sent: true };
+    console.warn('[EmailService] SMTP is not configured; email was not sent.');
+    return { sent: false };
   }
 
   /**
@@ -123,15 +118,18 @@ export class EmailService {
     workspaceNames: string[],
     inviterName: string,
     role: string,
-    isNewUser?: boolean,
+    setPasswordToken?: string,
   ): Promise<EmailSendResult> {
     const loginUrl = `${this.appUrl}/login`;
+    const setPasswordUrl = setPasswordToken
+      ? `${this.appUrl}/reset-password?token=${encodeURIComponent(setPasswordToken)}`
+      : null;
     const workspacesList = workspaceNames
       .map((name) => `<li style="margin-bottom: 6px; font-weight: 600;">${name}</li>`)
       .join('');
-    const credentialsNote = isNewUser
+    const setPasswordNote = setPasswordUrl
       ? `<p style="font-size: 13px; line-height: 20px; color: #475569; margin-bottom: 16px;">
-          Your initial password is <code style="background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 600;">Password123!</code>. You can sign in and change your password at any time.
+          Set your password before signing in. This one-time link is valid for 1 hour.
         </p>`
       : '';
 
@@ -153,7 +151,16 @@ export class EmailService {
         <ul style="font-size: 14px; color: #334155; margin-bottom: 24px; padding-left: 20px;">
           ${workspacesList}
         </ul>
-        ${credentialsNote}
+        ${setPasswordNote}
+        ${
+          setPasswordUrl
+            ? `<div style="margin-bottom: 16px;">
+          <a href="${setPasswordUrl}" style="display: inline-block; background-color: #22201F; color: #ffffff; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 12px; text-decoration: none;">
+            Set Password
+          </a>
+        </div>`
+            : ''
+        }
         <div style="margin-bottom: 24px;">
           <a href="${loginUrl}" style="display: inline-block; background-color: #22201F; color: #ffffff; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 12px; text-decoration: none;">
             Open Work Hub

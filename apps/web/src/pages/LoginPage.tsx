@@ -8,8 +8,11 @@ import { Input } from '../components/ui/atoms/Input';
 import { useAppDispatch } from '../store/hooks';
 import { setSessionUser } from '../store/authSlice';
 
-const LOGIN_HERO_IMAGE_URL =
-  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787848938/ChatGPT_Image_Aug_19_2026_03_01_47_PM.png';
+const LOGIN_HERO_IMAGE_BASE_URL = 'https://res.cloudinary.com/dxgnzhn8l/image/upload/f_auto,q_auto';
+const LOGIN_HERO_IMAGE_PATH = '/v1787848938/ChatGPT_Image_Aug_19_2026_03_01_47_PM.png';
+const loginHeroImageUrl = (width: number) =>
+  `${LOGIN_HERO_IMAGE_BASE_URL},w_${width}${LOGIN_HERO_IMAGE_PATH}`;
+const loginHeroImageSrcSet = `${loginHeroImageUrl(768)} 768w, ${loginHeroImageUrl(1200)} 1200w, ${loginHeroImageUrl(1600)} 1600w`;
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -76,7 +79,9 @@ export const LoginPage: React.FC = () => {
         {/* Background Image with Ambient Gradient Overlay */}
         <div className="absolute inset-0 z-0">
           <img
-            src={LOGIN_HERO_IMAGE_URL}
+            src={loginHeroImageUrl(1200)}
+            srcSet={loginHeroImageSrcSet}
+            sizes="(min-width: 1280px) 50vw, (min-width: 1024px) 50vw, 100vw"
             alt="QA Management Platform Illustration"
             className="w-full h-full object-cover object-center transform transition-transform duration-700 hover:scale-105"
           />
@@ -136,7 +141,9 @@ export const LoginPage: React.FC = () => {
         {/* Mobile-Only Hero Banner (Shown only on small screens < lg) */}
         <div className="lg:hidden w-full max-w-md mb-4 sm:mb-6 rounded-2xl overflow-hidden shadow-lg border border-stone-200/80 dark:border-stone-800 relative h-36 sm:h-44 shrink-0">
           <img
-            src={LOGIN_HERO_IMAGE_URL}
+            src={loginHeroImageUrl(768)}
+            srcSet={loginHeroImageSrcSet}
+            sizes="100vw"
             alt="Qlick Hub Platform"
             className="w-full h-full object-cover object-center"
           />

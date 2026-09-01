@@ -173,14 +173,15 @@ describe('Workspace member addition and auto-provisioning HTTP API integration (
     assert.ok(body.data.userId);
     createdUserIds.push(body.data.userId);
 
-    // Verify user was persisted in users table with default credentials
+    // Newly provisioned accounts have no reusable default password. They must set one
+    // using the one-time token whose hash is persisted server-side.
     const createdUser = await UserModel.findByPk(body.data.userId);
     assert.ok(createdUser);
     assert.strictEqual(createdUser.email, newEmail);
     assert.strictEqual(createdUser.role, 'qa');
-    assert.ok(createdUser.passwordHash);
-    const passMatch = await bcrypt.compare('Password123!', createdUser.passwordHash);
-    assert.strictEqual(passMatch, true);
+    assert.strictEqual(createdUser.passwordHash, null);
+    assert.match(createdUser.passwordResetToken || '', /^[a-f0-9]{64}$/);
+    assert.ok(createdUser.passwordResetExpiresAt);
 
     // Verify membership was persisted in workspace_members table
     const membership = await WorkspaceMemberModel.findOne({

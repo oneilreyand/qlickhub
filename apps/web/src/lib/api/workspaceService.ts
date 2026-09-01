@@ -15,6 +15,7 @@ export interface WorkspaceItem {
   description?: string | null;
   ownerId: string;
   allowQaTaskCreation?: boolean;
+  archivedAt?: string | null;
   role: WorkspaceRole;
   myRole?: WorkspaceRole;
   joinedAt?: string;
@@ -55,6 +56,20 @@ export const workspaceService = {
     const res = await apiClient<{ data: WorkspaceItem }>(`/workspaces/${workspaceId}`, {
       method: 'PATCH',
       body: JSON.stringify(input),
+    });
+    return res.data;
+  },
+
+  async archiveWorkspace(workspaceId: string): Promise<WorkspaceItem> {
+    const res = await apiClient<{ data: WorkspaceItem }>(`/workspaces/${workspaceId}/archive`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
+  async restoreWorkspace(workspaceId: string): Promise<WorkspaceItem> {
+    const res = await apiClient<{ data: WorkspaceItem }>(`/workspaces/${workspaceId}/restore`, {
+      method: 'POST',
     });
     return res.data;
   },

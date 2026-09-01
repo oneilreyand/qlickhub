@@ -7,6 +7,8 @@ import {
   addMember,
   updateMemberRole,
   removeMember,
+  archiveWorkspace,
+  restoreWorkspace,
 } from '../store/workspaceSlice';
 import { AssignableWorkspaceRole, DeveloperSpecialty } from '@qlick/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
@@ -20,6 +22,7 @@ import { WorkspaceTaskPolicyCard } from '../components/ui/organisms/WorkspaceTas
 import { WorkspaceMembersTable } from '../components/ui/organisms/WorkspaceMembersTable';
 import { InviteMemberModal } from '../components/ui/organisms/InviteMemberModal';
 import { AdminResetPasswordModal } from '../components/ui/organisms/AdminResetPasswordModal';
+import { Button } from '../components/ui/atoms/Button';
 
 export const WorkspaceSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -75,6 +78,24 @@ export const WorkspaceSettingsPage: React.FC = () => {
   ).toLowerCase();
   const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
   const canManageMembers = userRole === 'owner' || userRole === 'admin';
+  const isArchived = Boolean(activeWorkspace?.archivedAt);
+  const canArchiveWorkspace = userRole === 'owner';
+
+  const handleWorkspaceArchive = async () => {
+    if (!activeWorkspace) return;
+    const action = isArchived ? 'restore' : 'archive';
+    if (!window.confirm(`Are you sure you want to ${action} ${activeWorkspace.name}?`)) return;
+    try {
+      await dispatch(
+        isArchived ? restoreWorkspace(activeWorkspace.id) : archiveWorkspace(activeWorkspace.id),
+      ).unwrap();
+      dispatch(enqueueSnackbar(`Workspace ${isArchived ? 'restored' : 'archived'}`, 'success'));
+    } catch (err) {
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Workspace action failed', 'error'),
+      );
+    }
+  };
 
   const handleToggleQaPolicy = async (newValue: boolean) => {
     if (!activeWorkspace || !canManageMembers) return;
@@ -275,6 +296,11 @@ export const WorkspaceSettingsPage: React.FC = () => {
         <p className="mt-1 text-xs text-stone-500 sm:text-sm dark:text-stone-400">
           Manage your team workspace preferences, roles, and member invitations.
         </p>
+        {isArchived && (
+          <p className="mt-3 text-sm font-semibold text-amber-700 dark:text-amber-300">
+            This Workspace is archived and read-only.
+          </p>
+        )}
       </div>
 
       {/* Grid: Details & Members */}
@@ -288,15 +314,23 @@ export const WorkspaceSettingsPage: React.FC = () => {
             onDescChange={setWorkspaceDesc}
             onSubmit={handleSaveDetails}
             isSaving={isSavingDetails}
-            canManage={canManageMembers}
+            canManage={canManageMembers && !isArchived}
           />
 
           <WorkspaceTaskPolicyCard
             allowQaTaskCreation={allowQaTaskCreation}
-            canManage={canManageMembers}
+            canManage={canManageMembers && !isArchived}
             isUpdating={isUpdatingPolicy}
             onToggle={(checked) => void handleToggleQaPolicy(checked)}
           />
+          {canArchiveWorkspace && (
+            <Button
+              variant={isArchived ? 'secondary' : 'destructive'}
+              onClick={() => void handleWorkspaceArchive()}
+            >
+              {isArchived ? 'Restore Workspace' : 'Archive Workspace'}
+            </Button>
+          )}
         </div>
 
         {/* Right Column: Member Management Table */}
@@ -304,8 +338,8 @@ export const WorkspaceSettingsPage: React.FC = () => {
           <WorkspaceMembersTable
             members={members}
             isLoading={isMembersLoading}
-            canManageMembers={canManageMembers}
-            managerRole={canManageMembers ? (userRole as 'owner' | 'admin') : null}
+            canManageMembers={canManageMembers && !isArchived}
+            managerRole={canManageMembers && !isArchived ? (userRole as 'owner' | 'admin') : null}
             searchQuery={searchMember}
             onSearchChange={setSearchMember}
             onInviteClick={() => setShowInviteModal(true)}

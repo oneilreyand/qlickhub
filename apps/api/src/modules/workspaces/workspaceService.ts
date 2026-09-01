@@ -14,7 +14,6 @@ import { TestCaseActivityModel } from '../../db/models/testCaseActivity.js';
 import { WorkFolderModel } from '../../db/models/workFolder.js';
 import { FolderActivityModel } from '../../db/models/folderActivity.js';
 import { Op, type Transaction } from 'sequelize';
-import bcrypt from 'bcryptjs';
 import {
   AddWorkspaceMemberInput,
   AssignableWorkspaceRole,
@@ -29,6 +28,7 @@ import {
 import { emailService } from '../../services/emailService.js';
 import { fcmService } from '../../services/fcmService.js';
 import { canCreateWorkspace } from '../../policies/workspacePolicy.js';
+import { createPasswordResetToken } from '../auth/passwordResetToken.js';
 
 function slugify(text: string): string {
   return text
@@ -156,6 +156,7 @@ export class WorkspaceService {
           joinedAt: m.joinedAt,
           createdAt: ws.createdAt,
           updatedAt: ws.updatedAt,
+          archivedAt: ws.archivedAt ? ws.archivedAt.toISOString() : null,
         };
       })
       .filter((ws): ws is NonNullable<typeof ws> => ws !== null);
@@ -180,7 +181,51 @@ export class WorkspaceService {
       allowQaTaskCreation: workspace.allowQaTaskCreation ?? true,
       role: membership.role,
       myRole: membership.role,
+      archivedAt: workspace.archivedAt ? workspace.archivedAt.toISOString() : null,
     };
+  }
+
+  async setWorkspaceArchived(workspaceId: string, actorId: string, archived: boolean) {
+    return sequelize.transaction(async (transaction) => {
+      const workspace = await WorkspaceModel.findByPk(workspaceId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!workspace) throw new Error('NOT_FOUND: Workspace not found');
+      const membership = await WorkspaceMemberModel.findOne({
+        where: { workspaceId, userId: actorId, role: 'owner' },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!membership || workspace.ownerId !== actorId) {
+        throw new Error(
+          'FORBIDDEN: Only the Workspace Owner may archive or restore this Workspace.',
+        );
+      }
+      if (archived && workspace.archivedAt) {
+        throw new Error('CONFLICT: Workspace is already archived.');
+      }
+      if (!archived && !workspace.archivedAt) {
+        throw new Error('CONFLICT: Workspace is already active.');
+      }
+
+      workspace.archivedAt = archived ? new Date() : null;
+      await workspace.save({ transaction });
+      await WorkspaceMembershipActivityModel.create(
+        {
+          workspaceId,
+          actorId,
+          targetUserId: actorId,
+          action: archived ? 'workspace_archived' : 'workspace_restored',
+          metadata: { archivedAt: workspace.archivedAt?.toISOString() || null },
+        },
+        { transaction },
+      );
+      return {
+        ...workspace.toJSON(),
+        archivedAt: workspace.archivedAt ? workspace.archivedAt.toISOString() : null,
+      };
+    });
   }
 
   async updateWorkspace(workspaceId: string, input: UpdateWorkspaceInput) {
@@ -248,26 +293,10 @@ export class WorkspaceService {
     }
 
     const normalizedEmail = input.email.trim().toLowerCase();
-    let isNewUser = false;
     let user = await UserModel.findOne({
       where: { email: { [Op.iLike]: normalizedEmail } },
       paranoid: false,
     });
-
-    if (user && user.deletedAt) {
-      await user.restore();
-    }
-
-    if (!user) {
-      const defaultPasswordHash = await bcrypt.hash('Password123!', 10);
-      user = await UserModel.create({
-        email: normalizedEmail,
-        name: normalizedEmail.split('@')[0],
-        role: input.role || 'dev',
-        passwordHash: defaultPasswordHash,
-      });
-      isNewUser = true;
-    }
 
     const targetWorkspaceIds = Array.from(new Set([workspaceId, ...(input.workspaceIds || [])]));
 
@@ -298,6 +327,30 @@ export class WorkspaceService {
           'FORBIDDEN: Owner or Admin access is required for every selected Workspace.',
         );
       }
+    }
+
+    let setPasswordToken: string | undefined;
+    if (user?.deletedAt) {
+      await user.restore();
+    }
+
+    if (!user) {
+      const reset = createPasswordResetToken();
+      user = await UserModel.create({
+        email: normalizedEmail,
+        name: normalizedEmail.split('@')[0],
+        role: input.role || 'dev',
+        passwordHash: null,
+        passwordResetToken: reset.tokenHash,
+        passwordResetExpiresAt: reset.expiresAt,
+      });
+      setPasswordToken = reset.token;
+    } else if (!user.passwordHash) {
+      const reset = createPasswordResetToken();
+      user.passwordResetToken = reset.tokenHash;
+      user.passwordResetExpiresAt = reset.expiresAt;
+      await user.save();
+      setPasswordToken = reset.token;
     }
 
     let primaryMember: WorkspaceMemberModel | null = null;
@@ -393,7 +446,7 @@ export class WorkspaceService {
         addedWorkspaceNames,
         inviterName,
         input.role || 'dev',
-        isNewUser,
+        setPasswordToken,
       );
 
       fcmService

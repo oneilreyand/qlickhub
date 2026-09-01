@@ -45,6 +45,20 @@ export const updateWorkspace = createAsyncThunk(
   },
 );
 
+export const archiveWorkspace = createAsyncThunk(
+  'workspace/archiveWorkspace',
+  async (workspaceId: string) => {
+    return await workspaceService.archiveWorkspace(workspaceId);
+  },
+);
+
+export const restoreWorkspace = createAsyncThunk(
+  'workspace/restoreWorkspace',
+  async (workspaceId: string) => {
+    return await workspaceService.restoreWorkspace(workspaceId);
+  },
+);
+
 export const fetchMembers = createAsyncThunk(
   'workspace/fetchMembers',
   async (workspaceId: string) => {
@@ -136,6 +150,16 @@ const workspaceSlice = createSlice({
         if (index !== -1) {
           state.workspaces[index] = { ...state.workspaces[index], ...action.payload };
         }
+      })
+      .addCase(archiveWorkspace.fulfilled, (state, action) => {
+        const index = state.workspaces.findIndex((w) => w.id === action.payload.id);
+        if (index !== -1)
+          state.workspaces[index] = { ...state.workspaces[index], ...action.payload };
+      })
+      .addCase(restoreWorkspace.fulfilled, (state, action) => {
+        const index = state.workspaces.findIndex((w) => w.id === action.payload.id);
+        if (index !== -1)
+          state.workspaces[index] = { ...state.workspaces[index], ...action.payload };
       })
       .addCase(fetchMembers.pending, (state) => {
         state.isMembersLoading = true;

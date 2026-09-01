@@ -16,6 +16,7 @@ export const WorkspaceSchema = z.object({
   description: z.string().nullable().optional(),
   ownerId: z.string().uuid(),
   allowQaTaskCreation: z.boolean().default(true),
+  archivedAt: z.string().datetime().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
