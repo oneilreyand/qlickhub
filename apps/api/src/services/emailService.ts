@@ -45,7 +45,8 @@ export class EmailService {
    * Sends an email via configured SMTP (e.g. Gmail 0-cost SMTP) or logs as safe fallback.
    */
   async sendEmail(options: SendEmailOptions): Promise<EmailSendResult> {
-    const from = process.env.SMTP_FROM || `"Qlick Hub" <${process.env.SMTP_USER || 'noreply@qlickhub.local'}>`;
+    const from =
+      process.env.SMTP_FROM || `"Qlick Hub" <${process.env.SMTP_USER || 'noreply@qlickhub.local'}>`;
 
     if (this.transporter && process.env.NODE_ENV !== 'test') {
       try {
@@ -75,7 +76,11 @@ export class EmailService {
   /**
    * Sends password reset link email.
    */
-  async sendPasswordResetEmail(toEmail: string, token: string, userName?: string): Promise<EmailSendResult> {
+  async sendPasswordResetEmail(
+    toEmail: string,
+    token: string,
+    userName?: string,
+  ): Promise<EmailSendResult> {
     const resetUrl = `${this.appUrl}/reset-password?token=${encodeURIComponent(token)}`;
     const greeting = userName ? `Hello ${userName},` : 'Hello,';
 
@@ -117,10 +122,18 @@ export class EmailService {
     toEmail: string,
     workspaceNames: string[],
     inviterName: string,
-    role: string
+    role: string,
+    isNewUser?: boolean,
   ): Promise<EmailSendResult> {
     const loginUrl = `${this.appUrl}/login`;
-    const workspacesList = workspaceNames.map((name) => `<li style="margin-bottom: 6px; font-weight: 600;">${name}</li>`).join('');
+    const workspacesList = workspaceNames
+      .map((name) => `<li style="margin-bottom: 6px; font-weight: 600;">${name}</li>`)
+      .join('');
+    const credentialsNote = isNewUser
+      ? `<p style="font-size: 13px; line-height: 20px; color: #475569; margin-bottom: 16px;">
+          Your initial password is <code style="background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 600;">Password123!</code>. You can sign in and change your password at any time.
+        </p>`
+      : '';
 
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
@@ -134,6 +147,7 @@ export class EmailService {
         <ul style="font-size: 14px; color: #334155; margin-bottom: 24px; padding-left: 20px;">
           ${workspacesList}
         </ul>
+        ${credentialsNote}
         <div style="margin-bottom: 24px;">
           <a href="${loginUrl}" style="display: inline-block; background-color: #22201F; color: #ffffff; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 12px; text-decoration: none;">
             Open Work Hub

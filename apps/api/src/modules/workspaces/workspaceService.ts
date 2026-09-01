@@ -14,6 +14,7 @@ import { TestCaseActivityModel } from '../../db/models/testCaseActivity.js';
 import { WorkFolderModel } from '../../db/models/workFolder.js';
 import { FolderActivityModel } from '../../db/models/folderActivity.js';
 import { Op, type Transaction } from 'sequelize';
+import bcrypt from 'bcryptjs';
 import {
   AddWorkspaceMemberInput,
   AssignableWorkspaceRole,
@@ -246,9 +247,26 @@ export class WorkspaceService {
       throw new Error('FORBIDDEN: Assigning the owner role requires an ownership transfer.');
     }
 
-    const user = await UserModel.findOne({ where: { email: input.email.trim().toLowerCase() } });
+    const normalizedEmail = input.email.trim().toLowerCase();
+    let isNewUser = false;
+    let user = await UserModel.findOne({
+      where: { email: { [Op.iLike]: normalizedEmail } },
+      paranoid: false,
+    });
+
+    if (user && user.deletedAt) {
+      await user.restore();
+    }
+
     if (!user) {
-      throw new Error('NOT_FOUND: User with this email does not exist.');
+      const defaultPasswordHash = await bcrypt.hash('Password123!', 10);
+      user = await UserModel.create({
+        email: normalizedEmail,
+        name: normalizedEmail.split('@')[0],
+        role: input.role || 'dev',
+        passwordHash: defaultPasswordHash,
+      });
+      isNewUser = true;
     }
 
     const targetWorkspaceIds = Array.from(new Set([workspaceId, ...(input.workspaceIds || [])]));
@@ -353,7 +371,7 @@ export class WorkspaceService {
       }
     }
 
-    if (!primaryMember && addedWorkspaceNames.length === 0) {
+    if (addedWorkspaceNames.length === 0) {
       throw new Error('CONFLICT: User is already a member of all selected workspaces.');
     }
 
@@ -375,6 +393,7 @@ export class WorkspaceService {
         addedWorkspaceNames,
         inviterName,
         input.role || 'dev',
+        isNewUser,
       );
 
       fcmService
