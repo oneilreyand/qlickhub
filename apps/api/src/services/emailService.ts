@@ -135,8 +135,14 @@ export class EmailService {
         </p>`
       : '';
 
+    const inviteImageUrl =
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1788252213/ChatGPT_Image_Sep_1_2026_03_43_08_PM.png';
+
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
+        <div style="margin-bottom: 24px; text-align: center;">
+          <img src="${inviteImageUrl}" alt="Workspace Invitation" style="width: 100%; max-width: 512px; height: auto; border-radius: 12px; display: block; margin: 0 auto;" />
+        </div>
         <div style="margin-bottom: 24px;">
           <span style="font-size: 18px; font-weight: bold; color: #0f172a;">Qlick Hub</span>
         </div>
