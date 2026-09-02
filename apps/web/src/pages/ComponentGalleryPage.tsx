@@ -9,6 +9,7 @@ import {
   Trash2,
   Edit3,
   Inbox,
+  Lock,
 } from 'lucide-react';
 
 // Import Atomic Design System Components
@@ -297,6 +298,13 @@ export const ComponentGalleryPage: React.FC = () => {
                 leftIcon={<Search className="h-4 w-4 text-stone-400" />}
                 shortcut="⌘K"
                 placeholder="Search anything..."
+              />
+              <Input
+                label="Password (with Toggle)"
+                type="password"
+                leftIcon={<Lock className="h-4 w-4 text-stone-400" />}
+                placeholder="Enter password"
+                defaultValue="SecretPass123!"
               />
               <Input
                 label="Task Title"

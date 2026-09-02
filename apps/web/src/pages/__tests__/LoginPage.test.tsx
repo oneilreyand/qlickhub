@@ -38,19 +38,21 @@ describe('LoginPage Component', () => {
             <Route path="/login" element={<LoginPage />} />
           </Routes>
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     // Checks hero image src
     const images = screen.getAllByRole('img');
     const heroImage = images.find((img) =>
-      img.getAttribute('src')?.includes('ChatGPT_Image_Aug_19_2026_03_01_47_PM.png')
+      img.getAttribute('src')?.includes('ChatGPT_Image_Aug_19_2026_03_01_47_PM.png'),
     );
     expect(heroImage).toBeDefined();
 
     // Checks header & copy
     expect(screen.getByText('Selamat Datang Kembali')).toBeInTheDocument();
-    expect(screen.getByText(/Sign in to access your workspaces, tasks, and reports\./i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sign in to access your workspaces, tasks, and reports\./i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Task Management & Collaboration Platform/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Qlick Hub/i).length).toBeGreaterThan(0);
 
@@ -70,7 +72,7 @@ describe('LoginPage Component', () => {
             <Route path="/login" element={<LoginPage />} />
           </Routes>
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.getByText('Sesi Berakhir')).toBeInTheDocument();
@@ -86,7 +88,7 @@ describe('LoginPage Component', () => {
             <Route path="/login" element={<LoginPage />} />
           </Routes>
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.getByText('Sesi Habis Karena Tidak Aktif')).toBeInTheDocument();
@@ -114,7 +116,7 @@ describe('LoginPage Component', () => {
             <Route path="/work" element={<div>WorkHub Destination</div>} />
           </Routes>
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     fireEvent.change(screen.getByPlaceholderText('Masukkan alamat email'), {
@@ -147,7 +149,7 @@ describe('LoginPage Component', () => {
             <Route path="/login" element={<LoginPage />} />
           </Routes>
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     fireEvent.change(screen.getByPlaceholderText('Masukkan alamat email'), {
@@ -162,5 +164,29 @@ describe('LoginPage Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Invalid email or password')).toBeInTheDocument();
     });
+  });
+
+  it('allows toggling password visibility on the password field', () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/login']}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    const passwordInput = screen.getByPlaceholderText('Masukkan kata sandi');
+    expect(passwordInput).toHaveAttribute('type', 'password');
+
+    const toggleButton = screen.getByRole('button', { name: /show password/i });
+    fireEvent.click(toggleButton);
+    expect(passwordInput).toHaveAttribute('type', 'text');
+
+    const hideButton = screen.getByRole('button', { name: /hide password/i });
+    fireEvent.click(hideButton);
+    expect(passwordInput).toHaveAttribute('type', 'password');
   });
 });
