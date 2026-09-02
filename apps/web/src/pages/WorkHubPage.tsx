@@ -1,9 +1,9 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '../store/hooks';
-import { OverviewStoreDashboard } from '../components/ui/organisms/OverviewStoreDashboard';
-import { TaskHubDashboardTemplate } from '../components/ui/organisms/TaskHubDashboardTemplate';
-import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
+import { OverviewStoreDashboard } from '../features/reports';
+import { TaskHubDashboardTemplate } from '../features/tasks';
+import { EmptyWorkspaceOnboarding } from '../features/workspaces';
 import { Task } from '@qlick/contracts';
 
 export type { Task as TaskItem };

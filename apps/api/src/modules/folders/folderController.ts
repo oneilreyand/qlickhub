@@ -7,48 +7,7 @@ import {
   MoveFolderSchema,
   ArchiveFolderSchema,
 } from '@qlick/contracts';
-
-function handleError(res: Response, error: unknown) {
-  const message = error instanceof Error ? error.message : 'An error occurred';
-
-  if (message.startsWith('NOT_FOUND')) {
-    return res.status(404).json({
-      type: 'https://api.qa-hub.com/errors/not-found',
-      title: 'Not Found',
-      status: 404,
-      detail: message.replace('NOT_FOUND: ', ''),
-      code: 'NOT_FOUND',
-    });
-  }
-
-  if (message.startsWith('BAD_REQUEST')) {
-    return res.status(400).json({
-      type: 'https://api.qa-hub.com/errors/bad-request',
-      title: 'Bad Request',
-      status: 400,
-      detail: message.replace('BAD_REQUEST: ', ''),
-      code: 'BAD_REQUEST',
-    });
-  }
-
-  if (message.startsWith('FORBIDDEN')) {
-    return res.status(403).json({
-      type: 'https://api.qa-hub.com/errors/forbidden',
-      title: 'Forbidden',
-      status: 403,
-      detail: message.replace('FORBIDDEN: ', ''),
-      code: 'FORBIDDEN',
-    });
-  }
-
-  return res.status(500).json({
-    type: 'https://api.qa-hub.com/errors/internal-error',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: message,
-    code: 'INTERNAL_ERROR',
-  });
-}
+import { sendProblemDetails } from '../../http/problemDetails.js';
 
 export const getFolderTree = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -58,7 +17,7 @@ export const getFolderTree = async (req: AuthenticatedRequest, res: Response) =>
     const folders = await folderService.getFolderTree(workspaceId, includeArchived);
     return res.status(200).json({ data: { workspaceId, folders } });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -73,23 +32,15 @@ export const createFolder = async (req: AuthenticatedRequest, res: Response) => 
     });
 
     if (!parseResult.success) {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Validation Error',
-        status: 400,
-        detail: 'Invalid folder creation parameters.',
-        code: 'BAD_REQUEST',
-        errors: parseResult.error.errors.map((err) => ({
-          field: err.path.join('.') || 'body',
-          message: err.message,
-        })),
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Invalid folder creation parameters.',
       });
     }
 
     const folder = await folderService.createFolder(userId, parseResult.data);
     return res.status(201).json({ data: folder });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -100,23 +51,15 @@ export const updateFolder = async (req: AuthenticatedRequest, res: Response) => 
 
     const parseResult = UpdateFolderSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Validation Error',
-        status: 400,
-        detail: 'Invalid folder update parameters.',
-        code: 'BAD_REQUEST',
-        errors: parseResult.error.errors.map((err) => ({
-          field: err.path.join('.') || 'body',
-          message: err.message,
-        })),
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Invalid folder update parameters.',
       });
     }
 
     const updated = await folderService.updateFolder(workspaceId, folderId, parseResult.data);
     return res.status(200).json({ data: updated });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -127,23 +70,15 @@ export const moveFolder = async (req: AuthenticatedRequest, res: Response) => {
 
     const parseResult = MoveFolderSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Validation Error',
-        status: 400,
-        detail: 'Invalid folder move parameters.',
-        code: 'BAD_REQUEST',
-        errors: parseResult.error.errors.map((err) => ({
-          field: err.path.join('.') || 'body',
-          message: err.message,
-        })),
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Invalid folder move parameters.',
       });
     }
 
     const moved = await folderService.moveFolder(workspaceId, folderId, parseResult.data);
     return res.status(200).json({ data: moved });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -163,6 +98,6 @@ export const archiveFolder = async (req: AuthenticatedRequest, res: Response) =>
     );
     return res.status(200).json({ data: archived });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };

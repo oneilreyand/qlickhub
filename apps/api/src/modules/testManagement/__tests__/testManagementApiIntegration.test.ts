@@ -248,6 +248,25 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       await TestCaseRequirementModel.count({ where: { workspaceId: workspaceA.id, testCaseId } }),
       2,
     );
+
+    const reviewRes = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({ status: 'in_review' }),
+      },
+    );
+    assert.strictEqual(reviewRes.status, 200);
+    const publishRes = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({ status: 'active' }),
+      },
+    );
+    assert.strictEqual(publishRes.status, 200);
   });
 
   test('preserves a pass in one build and a fail in a later build as separate immutable history', async () => {
@@ -421,6 +440,8 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       body.activity.map((item) => item.action),
       [
         'test_case_created',
+        'test_case_updated',
+        'test_case_updated',
         'test_run_started',
         'test_result_recorded',
         'test_run_started',

@@ -6,10 +6,9 @@ import { RootState } from '../store/store';
 import { selectCurrentUserId } from '../store/authSlice';
 import { fetchTasks, fetchTaskById, setSelectedTaskId } from '../store/taskSlice';
 import { enqueueSnackbar } from '../store/uiSlice';
-import { MyTaskDetailWorkspaceDrawer } from '../components/ui/organisms/myTasks/MyTaskDetailWorkspaceDrawer';
-import { CreateTaskModal } from '../components/ui/organisms/CreateTaskModal';
-import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
-import { MyTasksDashboard } from '../components/ui/organisms/MyTasksDashboard';
+import { MyTaskDetailWorkspaceDrawer, MyTasksDashboard } from '../features/myTasks';
+import { CreateTaskModal } from '../features/tasks';
+import { EmptyWorkspaceOnboarding } from '../features/workspaces';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { useRoleAwareWorkQueue } from '../lib/hooks/useRoleAwareWorkQueue';
 

@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 import {
   CommitTestCaseImportSchema,
   CreateEvidenceLinkInputSchema,
@@ -12,35 +12,7 @@ import {
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { testManagementService } from './testManagementService.js';
 import { testCaseImportService } from './testCaseImportService.js';
-
-function problem(res: Response, status: number, code: string, detail: string) {
-  return res.status(status).json({
-    type: `https://api.qa-hub.com/errors/${code.toLowerCase().replaceAll('_', '-')}`,
-    title: code
-      .split('_')
-      .map((word) => word[0] + word.slice(1).toLowerCase())
-      .join(' '),
-    status,
-    detail,
-    code,
-  });
-}
-
-function handleError(res: Response, error: unknown) {
-  if (error instanceof ZodError) {
-    return problem(res, 400, 'BAD_REQUEST', error.errors.map((issue) => issue.message).join('; '));
-  }
-  const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-  if (message.startsWith('NOT_FOUND:'))
-    return problem(res, 404, 'NOT_FOUND', message.slice(10).trim());
-  if (message.startsWith('FORBIDDEN:'))
-    return problem(res, 403, 'FORBIDDEN', message.slice(10).trim());
-  if (message.startsWith('BAD_REQUEST:'))
-    return problem(res, 400, 'BAD_REQUEST', message.slice(12).trim());
-  if (message.startsWith('CONFLICT:'))
-    return problem(res, 409, 'CONFLICT', message.slice(9).trim());
-  return problem(res, 500, 'INTERNAL_SERVER_ERROR', message);
-}
+import { sendProblemDetails } from '../../http/problemDetails.js';
 
 export async function getTaskTestExecutions(req: AuthenticatedRequest, res: Response) {
   try {
@@ -52,7 +24,7 @@ export async function getTaskTestExecutions(req: AuthenticatedRequest, res: Resp
     );
     return res.status(200).json({ executionWorkspace });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -66,7 +38,7 @@ export async function listTestCases(req: AuthenticatedRequest, res: Response) {
     );
     return res.status(200).json({ testCases });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -79,7 +51,7 @@ export async function getTestCase(req: AuthenticatedRequest, res: Response) {
     );
     return res.status(200).json({ testCase });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -89,7 +61,7 @@ export async function createTestCase(req: AuthenticatedRequest, res: Response) {
     const testCase = await testManagementService.createTestCase(req.user!.userId, input);
     return res.status(201).json({ testCase });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -103,7 +75,7 @@ export async function updateTestCase(req: AuthenticatedRequest, res: Response) {
     const testCase = await testManagementService.updateTestCase(req.user!.userId, input);
     return res.status(200).json({ testCase });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -117,7 +89,7 @@ export async function createTestRun(req: AuthenticatedRequest, res: Response) {
     const testRun = await testManagementService.createTestRun(req.user!.userId, input);
     return res.status(201).json({ testRun });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -132,7 +104,7 @@ export async function recordTestResult(req: AuthenticatedRequest, res: Response)
     const testRun = await testManagementService.recordTestResult(req.user!.userId, input);
     return res.status(201).json({ testRun });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -148,7 +120,7 @@ export async function addTestResultEvidenceLink(req: AuthenticatedRequest, res: 
     );
     return res.status(201).json({ evidenceLink });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -161,7 +133,7 @@ export async function listTestRuns(req: AuthenticatedRequest, res: Response) {
     );
     return res.status(200).json({ testRuns });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -174,7 +146,7 @@ export async function listTestCaseActivity(req: AuthenticatedRequest, res: Respo
     );
     return res.status(200).json({ activity });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -186,7 +158,7 @@ export async function downloadTestCaseTemplate(_req: AuthenticatedRequest, res: 
     res.setHeader('Content-Disposition', 'attachment; filename="test_cases_template.csv"');
     return res.status(200).send(csv);
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -195,11 +167,9 @@ export async function previewTestCaseImport(req: AuthenticatedRequest, res: Resp
     const { fileName, fileContent, fileBase64, mimeType, sheetName, columnMapping } =
       req.body || {};
     if (!fileName || (!fileContent && !fileBase64)) {
-      return problem(
+      return sendProblemDetails(
         res,
-        400,
-        'BAD_REQUEST',
-        'File name and file content (or base64) are required.',
+        new Error('BAD_REQUEST: File name and file content (or base64) are required.'),
       );
     }
 
@@ -217,7 +187,7 @@ export async function previewTestCaseImport(req: AuthenticatedRequest, res: Resp
     );
     return res.status(200).json({ preview });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -230,7 +200,7 @@ export async function commitTestCaseImport(req: AuthenticatedRequest, res: Respo
     const result = await testCaseImportService.commitImport(req.user!.userId, input);
     return res.status(201).json({ result });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -242,7 +212,7 @@ export async function listTestCaseImportAudits(req: AuthenticatedRequest, res: R
     );
     return res.status(200).json({ audits });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }
 
@@ -260,6 +230,6 @@ export async function getTestCaseImportErrorsCsv(req: AuthenticatedRequest, res:
     );
     return res.status(200).send(csv);
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 }

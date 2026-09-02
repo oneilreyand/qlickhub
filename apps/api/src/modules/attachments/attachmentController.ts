@@ -2,54 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { attachmentService } from './attachmentService.js';
 import { UploadTaskAttachmentSchema } from '@qlick/contracts';
-import { ZodError } from 'zod';
-
-function handleError(res: Response, error: unknown) {
-  if (error instanceof ZodError) {
-    return res.status(400).json({
-      type: 'https://api.qa-hub.com/errors/bad-request',
-      title: 'Bad Request',
-      status: 400,
-      detail: error.issues.map((issue) => issue.message).join('; '),
-      code: 'BAD_REQUEST',
-    });
-  }
-  const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-  if (message.startsWith('NOT_FOUND:')) {
-    return res.status(404).json({
-      type: 'https://api.qa-hub.com/errors/not-found',
-      title: 'Not Found',
-      status: 404,
-      detail: message.replace('NOT_FOUND:', '').trim(),
-      code: 'NOT_FOUND',
-    });
-  }
-  if (message.startsWith('FORBIDDEN:')) {
-    return res.status(403).json({
-      type: 'https://api.qa-hub.com/errors/forbidden',
-      title: 'Forbidden',
-      status: 403,
-      detail: message.replace('FORBIDDEN:', '').trim(),
-      code: 'FORBIDDEN',
-    });
-  }
-  if (message.startsWith('CONFLICT:')) {
-    return res.status(409).json({
-      type: 'https://api.qa-hub.com/errors/conflict',
-      title: 'Conflict',
-      status: 409,
-      detail: message.replace('CONFLICT:', '').trim(),
-      code: 'IMMUTABLE_EVIDENCE',
-    });
-  }
-  return res.status(500).json({
-    type: 'https://api.qa-hub.com/errors/internal-error',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: message,
-    code: 'INTERNAL_SERVER_ERROR',
-  });
-}
+import { sendProblemDetails } from '../../http/problemDetails.js';
 
 export const listTaskAttachments = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -58,7 +11,7 @@ export const listTaskAttachments = async (req: AuthenticatedRequest, res: Respon
     const attachments = await attachmentService.listTaskAttachments(workspaceId, taskId, actorId);
     return res.status(200).json({ attachments });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error, { conflictCode: 'IMMUTABLE_EVIDENCE' });
   }
 };
 
@@ -86,13 +39,7 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
     } else if (req.body && typeof req.body === 'object' && req.body.fileBufferBase64) {
       buffer = Buffer.from(req.body.fileBufferBase64, 'base64');
     } else {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Bad Request',
-        status: 400,
-        detail: 'File content payload is required.',
-        code: 'BAD_REQUEST',
-      });
+      return sendProblemDetails(res, new Error('BAD_REQUEST: File content payload is required.'));
     }
 
     const mimeType = (req.headers['content-type'] as string) || 'application/octet-stream';
@@ -119,7 +66,7 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
 
     return res.status(201).json({ attachment });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error, { conflictCode: 'IMMUTABLE_EVIDENCE' });
   }
 };
 
@@ -142,12 +89,13 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     );
 
     stream.on('error', (error) => {
-      if (!res.headersSent) return handleError(res, error);
+      if (!res.headersSent)
+        return sendProblemDetails(res, error, { conflictCode: 'IMMUTABLE_EVIDENCE' });
       res.destroy(error);
     });
     return stream.pipe(res);
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error, { conflictCode: 'IMMUTABLE_EVIDENCE' });
   }
 };
 
@@ -164,6 +112,6 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     );
     return res.status(200).json(result);
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error, { conflictCode: 'IMMUTABLE_EVIDENCE' });
   }
 };

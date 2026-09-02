@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TaskReportDashboard } from '../components/ui/organisms/TaskReportDashboard';
-import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
+import { TaskReportDashboard } from '../features/reports';
+import { EmptyWorkspaceOnboarding } from '../features/workspaces';
 import type { DateRange } from '../components/ui/molecules/DateRangePicker';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchTaskReport } from '../store/reportSlice';

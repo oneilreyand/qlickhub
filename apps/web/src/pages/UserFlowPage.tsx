@@ -1,6 +1,6 @@
 import React from 'react';
-import { UserFlowGuide } from '../components/ui/organisms/UserFlowGuide';
-import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
+import { UserFlowGuide } from '../features/reports';
+import { EmptyWorkspaceOnboarding } from '../features/workspaces';
 import { useAppSelector } from '../store/hooks';
 
 export const UserFlowPage: React.FC = () => {

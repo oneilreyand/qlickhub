@@ -9,60 +9,7 @@ import {
 import { notificationService } from './notificationService.js';
 import { fcmService } from '../../services/fcmService.js';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
-
-function formatProblemDetails(err: unknown, res: Response): Response {
-  if (err instanceof ZodError) {
-    return res.status(400).json({
-      type: 'https://tools.ietf.org/html/rfc9457',
-      title: 'Validation Error',
-      status: 400,
-      detail: 'Input validation failed',
-      code: 'BAD_REQUEST',
-      errors: err.errors.map((e) => ({
-        field: e.path.join('.'),
-        message: e.message,
-      })),
-    });
-  }
-
-  if (err instanceof Error) {
-    if (err.message.startsWith('NOT_FOUND:')) {
-      return res.status(404).json({
-        type: 'https://tools.ietf.org/html/rfc9457',
-        title: 'Not Found',
-        status: 404,
-        detail: err.message.replace('NOT_FOUND:', '').trim(),
-        code: 'NOT_FOUND',
-      });
-    }
-    if (err.message.startsWith('BAD_REQUEST:')) {
-      return res.status(400).json({
-        type: 'https://tools.ietf.org/html/rfc9457',
-        title: 'Bad Request',
-        status: 400,
-        detail: err.message.replace('BAD_REQUEST:', '').trim(),
-        code: 'BAD_REQUEST',
-      });
-    }
-    if (err.message.startsWith('FORBIDDEN:')) {
-      return res.status(403).json({
-        type: 'https://tools.ietf.org/html/rfc9457',
-        title: 'Forbidden',
-        status: 403,
-        detail: err.message.replace('FORBIDDEN:', '').trim(),
-        code: 'FORBIDDEN',
-      });
-    }
-  }
-
-  return res.status(500).json({
-    type: 'https://tools.ietf.org/html/rfc9457',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: err instanceof Error ? err.message : 'Unknown internal server error',
-    code: 'INTERNAL_SERVER_ERROR',
-  });
-}
+import { formatProblemDetails } from '../../http/problemDetails.js';
 
 export class NotificationController {
   /**

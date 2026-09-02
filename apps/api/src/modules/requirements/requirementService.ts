@@ -600,7 +600,7 @@ export class RequirementService {
           taskId,
           requirementId: { [Op.in]: input.requirementIds },
         },
-        include: [{ model: RequirementModel, as: 'requirement' }],
+        include: [{ model: RequirementModel, as: 'requirement', required: true }],
         transaction,
         lock: transaction.LOCK.UPDATE,
       });

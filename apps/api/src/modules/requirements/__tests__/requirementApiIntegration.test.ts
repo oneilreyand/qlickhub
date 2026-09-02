@@ -388,8 +388,9 @@ describe('Requirement HTTP API Integration Tests (AGY-1.1 and AGY-1.2)', () => {
   });
 
   test('PO can bulk unlink or deprecate only Requirements currently linked to the selected Feature', async () => {
+    const stamp = Date.now();
     const [first, second, unlinked] = await Promise.all(
-      ['REQ-BULK-01', 'REQ-BULK-02', 'REQ-BULK-03'].map((code, index) =>
+      [`REQ-BULK-01-${stamp}`, `REQ-BULK-02-${stamp}`, `REQ-BULK-03-${stamp}`].map((code, index) =>
         RequirementModel.create({
           workspaceId: workspace1.id,
           code,

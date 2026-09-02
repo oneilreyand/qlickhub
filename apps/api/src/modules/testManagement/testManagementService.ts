@@ -337,6 +337,11 @@ export class TestManagementService {
     const testCase = await sequelize.transaction(async (transaction) => {
       const membership = await getMembership(input.workspaceId, actorId, transaction);
       assertCanCreateTestCase(membership.role);
+      if (membership.role === 'qa' && input.status && input.status !== 'draft') {
+        throw new Error(
+          'FORBIDDEN: QA can create only draft Test Cases and may submit them for review; only Product Owner, Admin, or Owner can publish or archive.',
+        );
+      }
       if (input.status && input.status !== 'draft') {
         throw new Error(
           'BAD_REQUEST: New Test Cases must start as draft and follow the review lifecycle.',

@@ -15,13 +15,15 @@ import { enqueueSnackbar } from '../store/uiSlice';
 import { selectCurrentUserRole } from '../store/authSlice';
 import { authService } from '../lib/api/authService';
 import { Building2 } from 'lucide-react';
-import { EmptyWorkspaceOnboarding } from '../components/ui/organisms/EmptyWorkspaceOnboarding';
+import {
+  EmptyWorkspaceOnboarding,
+  WorkspaceGeneralSettingsForm,
+  WorkspaceTaskPolicyCard,
+  WorkspaceMembersTable,
+  InviteMemberModal,
+  AdminResetPasswordModal,
+} from '../features/workspaces';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
-import { WorkspaceGeneralSettingsForm } from '../components/ui/organisms/WorkspaceGeneralSettingsForm';
-import { WorkspaceTaskPolicyCard } from '../components/ui/organisms/WorkspaceTaskPolicyCard';
-import { WorkspaceMembersTable } from '../components/ui/organisms/WorkspaceMembersTable';
-import { InviteMemberModal } from '../components/ui/organisms/InviteMemberModal';
-import { AdminResetPasswordModal } from '../components/ui/organisms/AdminResetPasswordModal';
 import { Button } from '../components/ui/atoms/Button';
 import { Modal } from '../components/ui/molecules/Modal';
 import { Alert } from '../components/ui/atoms/Alert';
@@ -427,9 +429,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
           if (!isArchiving) setIsArchiveModalOpen(false);
         }}
         title={
-          isArchived
-            ? `Restore "${activeWorkspace.name}"?`
-            : `Archive "${activeWorkspace.name}"?`
+          isArchived ? `Restore "${activeWorkspace.name}"?` : `Archive "${activeWorkspace.name}"?`
         }
         description={
           isArchived

@@ -9,63 +9,14 @@ import {
   GrantTaskCreationPermissionSchema,
   WorkspaceActivityQuerySchema,
 } from '@qlick/contracts';
-
-function handleError(res: Response, error: unknown) {
-  const message = error instanceof Error ? error.message : 'An error occurred';
-
-  if (message.startsWith('NOT_FOUND')) {
-    return res.status(404).json({
-      type: 'https://api.qa-hub.com/errors/not-found',
-      title: 'Not Found',
-      status: 404,
-      detail: message.replace('NOT_FOUND: ', ''),
-      code: 'NOT_FOUND',
-    });
-  }
-
-  if (message.startsWith('FORBIDDEN')) {
-    return res.status(403).json({
-      type: 'https://api.qa-hub.com/errors/forbidden',
-      title: 'Forbidden',
-      status: 403,
-      detail: message.replace('FORBIDDEN: ', ''),
-      code: 'FORBIDDEN',
-    });
-  }
-
-  if (message.startsWith('CONFLICT')) {
-    return res.status(409).json({
-      type: 'https://api.qa-hub.com/errors/conflict',
-      title: 'Conflict',
-      status: 409,
-      detail: message.replace('CONFLICT: ', ''),
-      code: 'CONFLICT',
-    });
-  }
-
-  return res.status(500).json({
-    type: 'https://api.qa-hub.com/errors/internal-error',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: message,
-    code: 'INTERNAL_ERROR',
-  });
-}
+import { sendProblemDetails } from '../../http/problemDetails.js';
 
 export const createWorkspace = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const parseResult = CreateWorkspaceSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Validation Error',
-        status: 400,
-        detail: 'Invalid workspace creation parameters.',
-        code: 'BAD_REQUEST',
-        errors: parseResult.error.errors.map((err) => ({
-          field: err.path.join('.') || 'body',
-          message: err.message,
-        })),
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Invalid workspace creation parameters.',
       });
     }
 
@@ -73,7 +24,7 @@ export const createWorkspace = async (req: AuthenticatedRequest, res: Response) 
     const workspace = await workspaceService.createWorkspace(userId, parseResult.data);
     return res.status(201).json({ data: workspace });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -83,7 +34,7 @@ export const getUserWorkspaces = async (req: AuthenticatedRequest, res: Response
     const workspaces = await workspaceService.getUserWorkspaces(userId);
     return res.status(200).json({ data: workspaces });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -94,7 +45,7 @@ export const getWorkspaceById = async (req: AuthenticatedRequest, res: Response)
     const workspace = await workspaceService.getWorkspaceById(workspaceId, userId);
     return res.status(200).json({ data: workspace });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -103,23 +54,15 @@ export const updateWorkspace = async (req: AuthenticatedRequest, res: Response) 
     const { workspaceId } = req.params;
     const parseResult = UpdateWorkspaceSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Validation Error',
-        status: 400,
-        detail: 'Invalid workspace update parameters.',
-        code: 'BAD_REQUEST',
-        errors: parseResult.error.errors.map((err) => ({
-          field: err.path.join('.') || 'body',
-          message: err.message,
-        })),
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Invalid workspace update parameters.',
       });
     }
 
     const updated = await workspaceService.updateWorkspace(workspaceId, parseResult.data);
     return res.status(200).json({ data: updated });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -132,7 +75,7 @@ export const archiveWorkspace = async (req: AuthenticatedRequest, res: Response)
     );
     return res.status(200).json({ data: workspace });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -145,7 +88,7 @@ export const restoreWorkspace = async (req: AuthenticatedRequest, res: Response)
     );
     return res.status(200).json({ data: workspace });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -155,7 +98,7 @@ export const getWorkspaceMembers = async (req: AuthenticatedRequest, res: Respon
     const members = await workspaceService.getWorkspaceMembers(workspaceId);
     return res.status(200).json({ data: members });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -164,16 +107,8 @@ export const addWorkspaceMember = async (req: AuthenticatedRequest, res: Respons
     const { workspaceId } = req.params;
     const parseResult = AddWorkspaceMemberSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Validation Error',
-        status: 400,
-        detail: 'Invalid member addition parameters.',
-        code: 'BAD_REQUEST',
-        errors: parseResult.error.errors.map((err) => ({
-          field: err.path.join('.') || 'body',
-          message: err.message,
-        })),
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Invalid member addition parameters.',
       });
     }
 
@@ -184,7 +119,7 @@ export const addWorkspaceMember = async (req: AuthenticatedRequest, res: Respons
     );
     return res.status(201).json({ data: member });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -193,16 +128,8 @@ export const updateMemberRole = async (req: AuthenticatedRequest, res: Response)
     const { workspaceId, memberUserId } = req.params;
     const parseResult = UpdateMemberRoleSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Validation Error',
-        status: 400,
-        detail: 'Invalid role update parameters.',
-        code: 'BAD_REQUEST',
-        errors: parseResult.error.errors.map((err) => ({
-          field: err.path.join('.') || 'body',
-          message: err.message,
-        })),
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Invalid role update parameters.',
       });
     }
 
@@ -214,7 +141,7 @@ export const updateMemberRole = async (req: AuthenticatedRequest, res: Response)
     );
     return res.status(200).json({ data: updated });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -224,7 +151,7 @@ export const removeWorkspaceMember = async (req: AuthenticatedRequest, res: Resp
     await workspaceService.removeWorkspaceMember(workspaceId, memberUserId, req.user!.userId);
     return res.status(200).json({ data: { success: true } });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -234,7 +161,7 @@ export const listTaskCreationPermissions = async (req: AuthenticatedRequest, res
     const permissions = await workspaceService.listTaskCreationPermissions(workspaceId);
     return res.status(200).json({ data: { permissions } });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -243,16 +170,8 @@ export const grantTaskCreationPermission = async (req: AuthenticatedRequest, res
     const { workspaceId } = req.params;
     const parseResult = GrantTaskCreationPermissionSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Validation Error',
-        status: 400,
-        detail: 'Invalid permission grant parameters.',
-        code: 'BAD_REQUEST',
-        errors: parseResult.error.errors.map((err) => ({
-          field: err.path.join('.') || 'body',
-          message: err.message,
-        })),
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Invalid permission grant parameters.',
       });
     }
 
@@ -263,7 +182,7 @@ export const grantTaskCreationPermission = async (req: AuthenticatedRequest, res
     );
     return res.status(201).json({ data: permission });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -273,7 +192,7 @@ export const revokeTaskCreationPermission = async (req: AuthenticatedRequest, re
     await workspaceService.revokeTaskCreationPermission(workspaceId, targetUserId);
     return res.status(200).json({ data: { success: true } });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
 
@@ -282,12 +201,9 @@ export const getWorkspaceActivities = async (req: AuthenticatedRequest, res: Res
     const { workspaceId } = req.params;
     const parseResult = WorkspaceActivityQuerySchema.safeParse(req.query);
     if (!parseResult.success) {
-      return res.status(400).json({
-        type: 'https://api.qa-hub.com/errors/bad-request',
-        title: 'Validation Error',
-        status: 400,
-        detail: parseResult.error.errors[0]?.message || 'Invalid query parameters',
-        code: 'VALIDATION_ERROR',
+      return sendProblemDetails(res, parseResult.error, {
+        zodCode: 'VALIDATION_ERROR',
+        zodDetail: parseResult.error.errors[0]?.message || 'Invalid query parameters',
       });
     }
     const activities = await workspaceService.listWorkspaceActivities(
@@ -297,6 +213,6 @@ export const getWorkspaceActivities = async (req: AuthenticatedRequest, res: Res
     );
     return res.status(200).json({ data: activities });
   } catch (error) {
-    return handleError(res, error);
+    return sendProblemDetails(res, error);
   }
 };
