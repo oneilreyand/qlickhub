@@ -1,10 +1,7 @@
 import { WorkspaceRole } from '@qlick/contracts';
+import { isPlanner } from './shared.js';
 
-const plannerRoles: readonly WorkspaceRole[] = ['owner', 'admin', 'po'];
-
-export function isPlanner(role: WorkspaceRole): boolean {
-  return plannerRoles.includes(role);
-}
+export { isPlanner };
 
 export function assertCanReadQaDocuments(role: WorkspaceRole): void {
   if (!role) {

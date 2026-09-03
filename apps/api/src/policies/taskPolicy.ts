@@ -1,10 +1,7 @@
 import { WorkspaceRole, UpdateTaskInput, TaskStatus, DeliveryArea } from '@qlick/contracts';
+import { isPlanner } from './shared.js';
 
-const plannerRoles: readonly WorkspaceRole[] = ['owner', 'admin', 'po'];
-
-export function isPlanner(role: WorkspaceRole): boolean {
-  return plannerRoles.includes(role);
-}
+export { isPlanner };
 
 /**
  * Applies the Work Hub task policy to task / subtask creation.

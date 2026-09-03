@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronDown, X } from 'lucide-react';
 import { useDismissableLayer } from '../../../hooks/useDismissableLayer';
+import { normalizeDateStr } from '../../../lib/utils/scheduleHealth';
 
 export interface DateRange {
   startDate: string; // YYYY-MM-DD
@@ -43,25 +44,24 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   const getPresetDates = (preset: 'today' | '7days' | '30days' | 'thisMonth') => {
     const today = new Date();
-    const formatDate = (d: Date) => d.toISOString().split('T')[0];
 
     if (preset === 'today') {
-      const t = formatDate(today);
+      const t = normalizeDateStr(today);
       return { startDate: t, endDate: t };
     }
     if (preset === '7days') {
       const past = new Date(today);
       past.setDate(past.getDate() - 6);
-      return { startDate: formatDate(past), endDate: formatDate(today) };
+      return { startDate: normalizeDateStr(past), endDate: normalizeDateStr(today) };
     }
     if (preset === '30days') {
       const past = new Date(today);
       past.setDate(past.getDate() - 29);
-      return { startDate: formatDate(past), endDate: formatDate(today) };
+      return { startDate: normalizeDateStr(past), endDate: normalizeDateStr(today) };
     }
     if (preset === 'thisMonth') {
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { startDate: formatDate(firstDay), endDate: formatDate(today) };
+      return { startDate: normalizeDateStr(firstDay), endDate: normalizeDateStr(today) };
     }
     return undefined;
   };

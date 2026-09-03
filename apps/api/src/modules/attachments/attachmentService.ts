@@ -4,7 +4,6 @@ import {
   TaskModel,
   TaskActivityModel,
   TestResultEvidenceModel,
-  WorkspaceMemberModel,
   WorkspaceModel,
 } from '../../db/models/index.js';
 import { storageService } from '../../services/storageService.js';
@@ -13,6 +12,7 @@ import {
   assertCanUploadAttachment,
   assertCanDeleteAttachment,
 } from '../../policies/attachmentPolicy.js';
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import { AttachmentCategory, TaskAttachment } from '@qlick/contracts';
 
 function formatAttachment(a: TaskAttachmentModel): TaskAttachment {
@@ -33,23 +33,13 @@ function formatAttachment(a: TaskAttachmentModel): TaskAttachment {
   };
 }
 
-async function getActorMembership(workspaceId: string, actorId: string) {
-  const member = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-  });
-  if (!member) {
-    throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  }
-  return member;
-}
-
 export class AttachmentService {
   async listTaskAttachments(
     workspaceId: string,
     taskId: string,
     actorId: string,
   ): Promise<TaskAttachment[]> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadAttachments(member.role);
 
     const task = await TaskModel.findOne({
@@ -80,7 +70,7 @@ export class AttachmentService {
       caption?: string;
     },
   ): Promise<TaskAttachment> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     const workspace = await WorkspaceModel.findByPk(workspaceId);
     const task = await TaskModel.findOne({
       where: { id: taskId, workspaceId },
@@ -160,7 +150,7 @@ export class AttachmentService {
     attachmentId: string,
     actorId: string,
   ): Promise<{ attachment: TaskAttachment; stream: import('node:stream').Readable }> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadAttachments(member.role);
 
     const attachment = await TaskAttachmentModel.findOne({
@@ -189,7 +179,7 @@ export class AttachmentService {
     attachmentId: string,
     actorId: string,
   ): Promise<{ success: boolean; storageCleanupPending: boolean }> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     const storageTarget = await sequelize.transaction(async (transaction) => {
       const attachment = await TaskAttachmentModel.findOne({
         where: { id: attachmentId, workspaceId, taskId },

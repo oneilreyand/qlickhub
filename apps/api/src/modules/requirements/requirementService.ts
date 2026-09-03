@@ -5,7 +5,6 @@ import {
   TaskRequirementModel,
   TaskModel,
   TaskActivityModel,
-  WorkspaceMemberModel,
 } from '../../db/models/index.js';
 import {
   assertCanReadRequirements,
@@ -13,6 +12,7 @@ import {
   assertCanUpdateRequirement,
   assertCanLinkRequirement,
 } from '../../policies/requirementPolicy.js';
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import {
   Requirement,
   CreateRequirementInput,
@@ -76,16 +76,6 @@ function formatLink(l: TaskRequirementModel): TaskRequirementLink {
   };
 }
 
-async function getActorMembership(workspaceId: string, actorId: string) {
-  const member = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-  });
-  if (!member) {
-    throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  }
-  return member;
-}
-
 function generateAutoRequirementCode(url?: string | null): string {
   let prefix = 'REF';
   if (url) {
@@ -120,7 +110,7 @@ function generateAutoRequirementCode(url?: string | null): string {
 
 export class RequirementService {
   async listWorkspaceRequirements(workspaceId: string, actorId: string): Promise<Requirement[]> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadRequirements(member.role);
 
     const requirements = await RequirementModel.findAll({
@@ -136,7 +126,7 @@ export class RequirementService {
     requirementId: string,
     actorId: string,
   ): Promise<RequirementDetailResponse> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadRequirements(member.role);
 
     const requirement = await RequirementModel.findOne({
@@ -180,7 +170,7 @@ export class RequirementService {
     requirementId: string,
     actorId: string,
   ): Promise<AcceptanceCriterion[]> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadRequirements(member.role);
 
     const requirement = await RequirementModel.findOne({
@@ -203,7 +193,7 @@ export class RequirementService {
     actorId: string,
     input: Omit<CreateAcceptanceCriterionInput, 'workspaceId' | 'requirementId'>,
   ): Promise<AcceptanceCriterion> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanUpdateRequirement(member.role);
 
     return sequelize.transaction(async (transaction) => {
@@ -274,7 +264,7 @@ export class RequirementService {
     actorId: string,
     input: UpdateAcceptanceCriterionInput,
   ): Promise<AcceptanceCriterion> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanUpdateRequirement(member.role);
 
     return sequelize.transaction(async (transaction) => {
@@ -337,7 +327,7 @@ export class RequirementService {
     actorId: string,
     input: Omit<CreateRequirementInput, 'workspaceId'>,
   ): Promise<Requirement> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanCreateRequirement(member.role);
 
     let finalCode = input.code?.trim().toUpperCase();
@@ -388,7 +378,7 @@ export class RequirementService {
     actorId: string,
     input: UpdateRequirementInput,
   ): Promise<Requirement> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanUpdateRequirement(member.role);
 
     const requirement = await RequirementModel.findOne({
@@ -439,7 +429,7 @@ export class RequirementService {
     taskId: string,
     actorId: string,
   ): Promise<TaskRequirementLink[]> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadRequirements(member.role);
 
     const task = await TaskModel.findOne({
@@ -464,7 +454,7 @@ export class RequirementService {
     actorId: string,
     requirementId: string,
   ): Promise<TaskRequirementLink> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanLinkRequirement(member.role);
 
     const task = await TaskModel.findOne({
@@ -532,7 +522,7 @@ export class RequirementService {
     actorId: string,
     requirementId: string,
   ): Promise<{ success: boolean }> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanLinkRequirement(member.role);
 
     const task = await TaskModel.findOne({
@@ -581,7 +571,7 @@ export class RequirementService {
     actorId: string,
     input: BulkCorrectTaskRequirementsInput,
   ): Promise<BulkCorrectTaskRequirementsResponse> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanLinkRequirement(member.role);
 
     return sequelize.transaction(async (transaction) => {

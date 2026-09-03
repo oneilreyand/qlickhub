@@ -6,37 +6,17 @@ import {
   DeveloperSpecialty,
   UpdateMemberRoleInput,
   WorkspaceRole,
+  WorkspaceWithRole,
+  WorkspaceMember,
 } from '@qlick/contracts';
 
-export interface WorkspaceItem {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string | null;
-  ownerId: string;
+export type WorkspaceItem = Omit<WorkspaceWithRole, 'allowQaTaskCreation' | 'role'> & {
   allowQaTaskCreation?: boolean;
-  archivedAt?: string | null;
   role: WorkspaceRole;
-  myRole?: WorkspaceRole;
-  joinedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface WorkspaceMemberItem {
-  id: string;
-  workspaceId: string;
-  userId: string;
-  role: WorkspaceRole;
+};
+export type WorkspaceMemberItem = Omit<WorkspaceMember, 'specialties'> & {
   specialties?: DeveloperSpecialty[];
-  joinedAt: string;
-  user?: {
-    id: string;
-    email: string;
-    name: string;
-    avatarUrl?: string | null;
-  };
-}
+};
 
 export const workspaceService = {
   async getWorkspaces(): Promise<WorkspaceItem[]> {

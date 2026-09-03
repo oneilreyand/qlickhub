@@ -26,7 +26,6 @@ import {
   TestResultModel,
   TestRunModel,
   UserModel,
-  WorkspaceMemberModel,
 } from '../../db/models/index.js';
 import {
   assertCanCancelQaSignOff,
@@ -37,10 +36,8 @@ import {
 } from '../../policies/releaseDecisionPolicy.js';
 import { evaluateReadinessGates } from './readinessGateEvaluator.js';
 import { fcmService } from '../../services/fcmService.js';
-
-function iso(value: Date): string {
-  return new Date(value).toISOString();
-}
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { iso } from '../../utils/dateUtils.js';
 
 function formatQaSignOff(signOff: QaSignOffModel): QaSignOff {
   return {
@@ -88,15 +85,6 @@ function formatReleaseDecision(decision: ReleaseDecisionModel): ReleaseDecision 
   };
 }
 
-async function getMembership(workspaceId: string, actorId: string, transaction?: Transaction) {
-  const membership = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-    transaction,
-  });
-  if (!membership) throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  return membership;
-}
-
 type RunWithResult = TestRunModel & { result?: TestResultModel | null };
 type QaSignOffSnapshotReference = Pick<QaSignOffModel, 'id' | 'decision' | 'signedBy' | 'signedAt'>;
 
@@ -107,7 +95,7 @@ export class ReleaseDecisionService {
     actorId: string,
   ): Promise<WorkspaceReleaseReadiness> {
     return sequelize.transaction(async (transaction) => {
-      await getMembership(workspaceId, actorId, transaction);
+      await requireActiveMember(workspaceId, actorId, transaction);
       const uniqueFeatureTaskIds = [...new Set(featureTaskIds)];
       const featureTasks = await TaskModel.findAll({
         where: {
@@ -163,7 +151,7 @@ export class ReleaseDecisionService {
     actorId: string,
   ): Promise<FeatureReleaseRecords> {
     return sequelize.transaction(async (transaction) => {
-      await getMembership(workspaceId, actorId, transaction);
+      await requireActiveMember(workspaceId, actorId, transaction);
       await this.getFeatureTask(workspaceId, featureTaskId, transaction);
 
       const [qaSignOffs, releaseDecisions] = await Promise.all([
@@ -209,7 +197,7 @@ export class ReleaseDecisionService {
 
   async createQaSignOff(actorId: string, input: CreateQaSignOffInput): Promise<QaSignOff> {
     const signOff = await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanCreateQaSignOff(membership.role);
 
       const id = randomUUID();
@@ -291,7 +279,7 @@ export class ReleaseDecisionService {
 
   async cancelQaSignOff(actorId: string, input: CancelQaSignOffInput): Promise<QaSignOff> {
     const signOffWithCancellation = await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       await this.getFeatureTask(input.workspaceId, input.featureTaskId, transaction);
 
       const signOff = await QaSignOffModel.findOne({
@@ -396,7 +384,7 @@ export class ReleaseDecisionService {
     input: CreateReleaseDecisionInput,
   ): Promise<ReleaseDecision> {
     const releaseDecision = await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanCreateReleaseDecision(membership.role);
       await this.getFeatureTask(input.workspaceId, input.featureTaskId, transaction);
 
@@ -551,7 +539,7 @@ export class ReleaseDecisionService {
     input: CancelReleaseDecisionInput,
   ): Promise<ReleaseDecision> {
     const decisionWithCancellation = await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       await this.getFeatureTask(input.workspaceId, input.featureTaskId, transaction);
 
       const decision = await ReleaseDecisionModel.findOne({

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DateStringSchema, TaskDatePresetSchema } from './dateFilter.js';
+import { DateStringSchema, TaskDatePresetSchema, refineDateFilter } from './dateFilter.js';
 
 export const TaskStatusSchema = z.enum([
   'todo',
@@ -242,23 +242,7 @@ export const TaskListQuerySchema = z
       .optional()
       .default(50),
   })
-  .superRefine((data, ctx) => {
-    if (data.datePreset && (data.startDate || data.endDate)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Cannot combine datePreset with explicit startDate or endDate',
-        path: ['datePreset'],
-      });
-    }
-
-    if (data.startDate && data.endDate && data.startDate > data.endDate) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'startDate cannot be after endDate',
-        path: ['endDate'],
-      });
-    }
-  });
+  .superRefine(refineDateFilter);
 
 export type TaskListQuery = z.infer<typeof TaskListQuerySchema>;
 

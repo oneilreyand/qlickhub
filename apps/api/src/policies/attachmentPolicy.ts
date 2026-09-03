@@ -1,10 +1,7 @@
 import { AttachmentCategory, WorkspaceRole } from '@qlick/contracts';
+import { isPlanner } from './shared.js';
 
-const plannerRoles: readonly WorkspaceRole[] = ['owner', 'admin', 'po'];
-
-export function isPlanner(role: WorkspaceRole): boolean {
-  return plannerRoles.includes(role);
-}
+export { isPlanner };
 
 export function assertCanReadAttachments(role: WorkspaceRole): void {
   // All workspace members can read/list/download task attachments in their workspace
