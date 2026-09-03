@@ -17,8 +17,9 @@ The current source of truth defines Supabase PostgreSQL as the application datab
 1. Authentication runs before the link-preview limiter, so the canonical key can remain the authenticated `userId`; IP is only a fallback.
 2. The endpoint must preserve the existing `429` response contract and standard rate-limit headers.
 3. Vercel WAF rate limiting is available on all plans, but Hobby and Pro counting keys are IP and JA4. Arbitrary header counting is an Enterprise capability, so WAF alone does not preserve the current per-user application boundary. It remains useful as a separate IP-level edge defense.
-4. Upstash provides an HTTP/REST Redis client and rate-limit SDK designed for serverless functions and supports per-identifier fixed or sliding windows.
+4. Upstash provides an HTTP/REST Redis client designed for serverless functions and atomic Lua execution for per-identifier counters.
 5. Using PostgreSQL as the counter store would add a database operation to every link-preview request and compete with application work for the deliberately constrained Vercel connection pool.
+6. Preview boundary testing showed that the SDK's weighted two-bucket `slidingWindow` approximation can accept more than 30 requests in a rolling 60-second interval when a burst crosses a fixed-minute boundary. The canonical 30-per-60-second contract therefore requires an exact rolling window.
 
 Official references:
 
@@ -31,7 +32,7 @@ Official references:
 ## Decision
 
 1. Use one single-region Upstash Redis database connected to the Vercel project through the Marketplace integration.
-2. Apply a sliding-window limit of 30 requests per 60 seconds to link preview only. Keep the existing API, login, and notification limiters out of this task.
+2. Apply an exact rolling-window limit of 30 requests per 60 seconds to link preview only. Execute one atomic Redis script that removes expired markers, checks the active count, conditionally records the request, and returns the remaining/reset state. Keep the existing API, login, and notification limiters out of this task.
 3. Use an opaque HMAC-derived Redis identifier rather than storing a raw user UUID or IP in Redis keys. Add a dedicated backend-only secret rather than exposing or reusing a browser variable.
 4. Require the Redis REST URL, Redis REST token, and identifier secret when Production selects the distributed store. Missing Production configuration fails startup instead of silently reverting to a per-instance store.
 5. On a transient Redis timeout or provider error, fall back to the existing local in-memory limiter for that instance and emit a sanitized warning. This preserves availability while retaining partial protection, but the limit is temporarily no longer globally consistent. The owner explicitly approved this availability-oriented behavior on 2026-09-03.
@@ -54,7 +55,7 @@ Provides the strictest cost protection but turns a rate-limit provider incident 
 
 ## Files likely to change after approval
 
-- `apps/api/package.json` and `package-lock.json` — add the selected Redis/rate-limit clients.
+- `apps/api/package.json` and `package-lock.json` — add the selected Redis client.
 - `apps/api/src/config/env.ts` and configuration tests — validate store selection and required backend-only credentials.
 - `.env.example` and `.env.production.example` — document placeholder names only.
 - `apps/api/src/http/middleware/rateLimit.ts` and a focused internal adapter — use the distributed store while retaining an injected test seam and local fallback.
@@ -92,7 +93,7 @@ None. The limiter consumes authenticated identity after the existing authenticat
 On 2026-09-03, the owner approved:
 
 1. Upstash Redis single-region as the external distributed counter store.
-2. A sliding-window limit of 30 requests per minute.
+2. An exact rolling-window limit of 30 requests per minute.
 3. Local in-memory fallback during transient Redis timeout or provider failure.
 
 Implementation may proceed only after the affected canonical SSoT records this accepted decision.

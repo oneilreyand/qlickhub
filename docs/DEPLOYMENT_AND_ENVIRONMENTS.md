@@ -100,7 +100,9 @@ Preview dan Production wajib memakai resource Upstash yang terpisah dan terhubun
 Vercel masing-masing. Runtime Production/Preview harus gagal startup bila store dipilih sebagai
 `upstash` tetapi URL, token, atau secret identifier tidak tersedia. Gangguan sementara provider
 akan memakai limiter memory lokal per instance dan warning tersanitasi; keadaan degradasi ini
-tidak boleh dilaporkan sebagai enforcement global yang sehat.
+tidak boleh dilaporkan sebagai enforcement global yang sehat. Limiter memakai rolling window
+60 detik yang eksak melalui satu operasi Redis atomik; jangan menggantinya dengan weighted
+two-bucket window karena burst yang melewati batas menit dapat melampaui batas 30 request.
 
 ### Browser-public
 

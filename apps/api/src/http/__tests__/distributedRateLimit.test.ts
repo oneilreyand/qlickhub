@@ -6,7 +6,41 @@ import type {
   DistributedRateLimiter,
   DistributedRateLimitResult,
 } from '../middleware/distributedRateLimitStore.js';
+import {
+  ExactSlidingWindowRateLimiter,
+  SlidingWindowRedis,
+} from '../middleware/exactSlidingWindowRateLimiter.js';
 import { createLinkPreviewRateLimiter } from '../middleware/rateLimit.js';
+
+class InMemorySlidingWindowRedis implements SlidingWindowRedis {
+  private readonly entries = new Map<string, Array<{ member: string; timestamp: number }>>();
+
+  async eval<TResult = unknown>(
+    _script: string,
+    keys: string[],
+    args: Array<string | number>,
+  ): Promise<TResult> {
+    const [key] = keys;
+    const [nowValue, windowValue, limitValue, memberValue] = args;
+    assert.ok(key);
+    const now = Number(nowValue);
+    const windowMs = Number(windowValue);
+    const limit = Number(limitValue);
+    const member = String(memberValue);
+    const active = (this.entries.get(key) ?? []).filter(
+      (entry) => entry.timestamp > now - windowMs,
+    );
+    const allowed = active.length < limit;
+    if (allowed) active.push({ member, timestamp: now });
+    this.entries.set(key, active);
+    const reset = active.length > 0 ? active[0]!.timestamp + windowMs : now + windowMs;
+    return [allowed ? 1 : 0, Math.max(0, limit - active.length), reset] as TResult;
+  }
+
+  async del(...keys: string[]): Promise<number> {
+    return keys.reduce((deleted, key) => deleted + Number(this.entries.delete(key)), 0);
+  }
+}
 
 class SharedDistributedLimiter implements DistributedRateLimiter {
   readonly seenIdentifiers: string[] = [];
@@ -62,6 +96,33 @@ async function listen(app: express.Express): Promise<{
 }
 
 describe('distributed link-preview rate limiting (SEC-001)', () => {
+  test('keeps request 31 blocked when traffic crosses a fixed-minute boundary', async () => {
+    let now = 59_990;
+    let memberSequence = 0;
+    const limiter = new ExactSlidingWindowRateLimiter(new InMemorySlidingWindowRedis(), {
+      limit: 30,
+      windowMs: 60_000,
+      timeoutMs: 0,
+      now: () => now,
+      createMember: () => `member-${memberSequence++}`,
+    });
+
+    for (let index = 0; index < 3; index += 1) {
+      assert.strictEqual((await limiter.limit('opaque-user')).success, true);
+    }
+
+    now = 60_000;
+    for (let index = 0; index < 27; index += 1) {
+      assert.strictEqual((await limiter.limit('opaque-user')).success, true);
+    }
+
+    now = 72_000;
+    const blocked = await limiter.limit('opaque-user');
+    assert.strictEqual(blocked.success, false);
+    assert.strictEqual(blocked.remaining, 0);
+    assert.strictEqual(blocked.reset, 119_990);
+  });
+
   test('shares an opaque per-user bucket across independent middleware instances', async () => {
     const distributedLimiter = new SharedDistributedLimiter(30);
     const commonOptions = {

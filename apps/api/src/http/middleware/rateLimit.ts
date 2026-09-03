@@ -1,10 +1,10 @@
 import { createHmac } from 'node:crypto';
-import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import type { RequestHandler } from 'express';
 import { env } from '../../config/env.js';
 import { DistributedRateLimiter, DistributedRateLimitStore } from './distributedRateLimitStore.js';
+import { ExactSlidingWindowRateLimiter } from './exactSlidingWindowRateLimiter.js';
 
 const rateLimitMessage = {
   code: 'RATE_LIMITED',
@@ -73,13 +73,10 @@ function createUpstashLimiter(limit: number, windowMs: number): DistributedRateL
     url: env.UPSTASH_REDIS_REST_URL!,
     token: env.UPSTASH_REDIS_REST_TOKEN!,
   });
-  return new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(limit, `${windowMs} ms`),
-    analytics: false,
-    ephemeralCache: false,
-    prefix: 'qlickhub:link-preview',
-    timeout: UPSTASH_TIMEOUT_MS,
+  return new ExactSlidingWindowRateLimiter(redis, {
+    limit,
+    windowMs,
+    timeoutMs: UPSTASH_TIMEOUT_MS,
   });
 }
 

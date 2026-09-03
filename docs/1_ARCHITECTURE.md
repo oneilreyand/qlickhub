@@ -157,7 +157,7 @@ graph TD
 ### Perlindungan Link Preview Terdistribusi
 
 - Endpoint `GET /v1/meta/link-preview` tetap terotentikasi dan dibatasi **30 request per 60 detik per pengguna**. Alamat IP hanya menjadi fallback ketika identitas pengguna tidak tersedia.
-- Production dan Preview Vercel memakai satu Upstash Redis single-region melalui REST sebagai counter store bersama dengan algoritma sliding window. Batas tersebut berlaku lintas instance serverless; memory store per proses bukan sumber enforcement Production.
+- Production dan Preview Vercel memakai satu Upstash Redis single-region melalui REST sebagai counter store bersama dengan rolling window 60 detik yang eksak dan atomik. Implementasinya menyimpan maksimal 30 marker sementara per identifier dalam Redis sorted set; pendekatan weighted two-bucket yang dapat membuka slot tambahan ketika batas menit terlewati tidak memenuhi kontrak ini. Batas tersebut berlaku lintas instance serverless; memory store per proses bukan sumber enforcement Production.
 - Identifier counter disamarkan menggunakan HMAC dan secret backend khusus. UUID pengguna, alamat IP mentah, URL target, credential, dan secret tidak boleh disimpan sebagai Redis key atau dikirim ke browser.
 - Konfigurasi Upstash dan secret identifier wajib tersedia pada runtime Production/Preview. Konfigurasi yang hilang harus menggagalkan startup agar deployment tidak diam-diam kembali ke limiter per-instance.
 - Gangguan sementara atau timeout Upstash memakai fallback limiter memory lokal untuk menjaga ketersediaan, disertai warning tersanitasi. Selama degradasi ini perlindungan per-instance tetap aktif, tetapi konsistensi global tidak diklaim.
