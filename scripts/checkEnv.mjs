@@ -117,11 +117,16 @@ if (!backend) {
     );
   }
   if (linkPreviewRateLimitStore === 'upstash') {
-    requireKeys('backend', backend, [
-      'UPSTASH_REDIS_REST_URL',
-      'UPSTASH_REDIS_REST_TOKEN',
-      'RATE_LIMIT_KEY_SECRET',
-    ]);
+    if (!backend.values.get('UPSTASH_REDIS_REST_URL') && !backend.values.get('KV_REST_API_URL')) {
+      errors.push('backend: UPSTASH_REDIS_REST_URL or KV_REST_API_URL is required');
+    }
+    if (
+      !backend.values.get('UPSTASH_REDIS_REST_TOKEN') &&
+      !backend.values.get('KV_REST_API_TOKEN')
+    ) {
+      errors.push('backend: UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN is required');
+    }
+    requireKeys('backend', backend, ['RATE_LIMIT_KEY_SECRET']);
     if ((backend.values.get('RATE_LIMIT_KEY_SECRET') || '').length < 32) {
       errors.push('backend: RATE_LIMIT_KEY_SECRET must contain at least 32 characters');
     }

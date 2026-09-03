@@ -58,6 +58,8 @@ const envSchema = z.object({
   LINK_PREVIEW_RATE_LIMIT_STORE: z.enum(['memory', 'upstash']).optional(),
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  KV_REST_API_URL: z.string().url().optional(),
+  KV_REST_API_TOKEN: z.string().min(1).optional(),
   RATE_LIMIT_KEY_SECRET: z.string().min(32).optional(),
 });
 
@@ -88,6 +90,8 @@ export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
   const linkPreviewRateLimitStore =
     values.LINK_PREVIEW_RATE_LIMIT_STORE ||
     (requiresDistributedLinkPreviewLimit ? 'upstash' : 'memory');
+  const upstashRestUrl = values.UPSTASH_REDIS_REST_URL || values.KV_REST_API_URL;
+  const upstashRestToken = values.UPSTASH_REDIS_REST_TOKEN || values.KV_REST_API_TOKEN;
   const attachmentStorageProvider =
     values.ATTACHMENT_STORAGE_PROVIDER || (isProduction ? 'google_drive' : 'local');
   const databaseUrl =
@@ -124,11 +128,15 @@ export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
   }
 
   if (linkPreviewRateLimitStore === 'upstash') {
-    if (!values.UPSTASH_REDIS_REST_URL) {
-      throw new Error('UPSTASH_REDIS_REST_URL must be configured for the Upstash rate limiter.');
+    if (!upstashRestUrl) {
+      throw new Error(
+        'UPSTASH_REDIS_REST_URL or KV_REST_API_URL must be configured for the Upstash rate limiter.',
+      );
     }
-    if (!values.UPSTASH_REDIS_REST_TOKEN) {
-      throw new Error('UPSTASH_REDIS_REST_TOKEN must be configured for the Upstash rate limiter.');
+    if (!upstashRestToken) {
+      throw new Error(
+        'UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN must be configured for the Upstash rate limiter.',
+      );
     }
     if (!values.RATE_LIMIT_KEY_SECRET) {
       throw new Error('RATE_LIMIT_KEY_SECRET must be configured for the Upstash rate limiter.');
@@ -144,6 +152,8 @@ export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
     JWT_ACCESS_SECRET: jwtAccessSecret,
     ATTACHMENT_STORAGE_PROVIDER: attachmentStorageProvider,
     LINK_PREVIEW_RATE_LIMIT_STORE: linkPreviewRateLimitStore,
+    UPSTASH_REDIS_REST_URL: upstashRestUrl,
+    UPSTASH_REDIS_REST_TOKEN: upstashRestToken,
   };
 };
 

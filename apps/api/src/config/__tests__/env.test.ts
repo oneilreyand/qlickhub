@@ -50,7 +50,7 @@ test('requires the distributed Upstash store and credentials in production', () 
 
   assert.throws(
     () => parseEnvironment(validProductionEnvironment({ UPSTASH_REDIS_REST_TOKEN: undefined })),
-    /UPSTASH_REDIS_REST_TOKEN must be configured/,
+    /UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN must be configured/,
   );
 });
 
@@ -58,13 +58,15 @@ test('requires and defaults to Upstash for Vercel Preview', () => {
   const previewEnvironment: NodeJS.ProcessEnv = {
     NODE_ENV: 'development',
     VERCEL_ENV: 'preview',
-    UPSTASH_REDIS_REST_URL: 'https://example.upstash.io',
-    UPSTASH_REDIS_REST_TOKEN: 'test-only-upstash-token',
+    KV_REST_API_URL: 'https://example.upstash.io',
+    KV_REST_API_TOKEN: 'test-only-upstash-token',
     RATE_LIMIT_KEY_SECRET: 'test-only-rate-limit-key-secret-32-chars',
   };
 
   const parsed = parseEnvironment(previewEnvironment);
   assert.strictEqual(parsed.LINK_PREVIEW_RATE_LIMIT_STORE, 'upstash');
+  assert.strictEqual(parsed.UPSTASH_REDIS_REST_URL, 'https://example.upstash.io');
+  assert.strictEqual(parsed.UPSTASH_REDIS_REST_TOKEN, 'test-only-upstash-token');
 
   assert.throws(
     () =>

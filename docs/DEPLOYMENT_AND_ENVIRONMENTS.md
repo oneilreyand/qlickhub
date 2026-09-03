@@ -89,6 +89,8 @@ atau akun layanan Production untuk Preview.
 - Distributed link-preview limit: `LINK_PREVIEW_RATE_LIMIT_STORE=upstash`,
   `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, dan `RATE_LIMIT_KEY_SECRET`. Semua
   variabel ini backend-only; token dan secret tidak boleh memakai prefix `VITE_*`.
+  Integrasi Vercel Marketplace dapat menyediakan URL/token ekuivalen sebagai `KV_REST_API_URL`
+  dan `KV_REST_API_TOKEN`; backend menerima alias tersebut agar credential tidak perlu disalin.
 
 Untuk Vercel serverless, `DATABASE_URL` harus memakai Supabase Transaction Pooler dan
 `DATABASE_POOL_MAX=1`. `DATABASE_SSL=true` wajib di Production. Gunakan origin HTTPS eksplisit
