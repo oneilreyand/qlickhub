@@ -5,6 +5,7 @@ import type { Server } from 'node:http';
 import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
+  NotificationModel,
   TaskModel,
   UserModel,
   WorkspaceMemberModel,
@@ -192,6 +193,20 @@ describe('Developer specialty and delivery-area HTTP API integration (DEV-1.1)',
       },
     );
     assert.strictEqual(mobileResponse.status, 201);
+    const mobileTask = (await mobileResponse.json()) as { data: { id: string } };
+
+    const assignmentNotification = await NotificationModel.findOne({
+      where: {
+        userId: developer.id,
+        workspaceId: workspace.id,
+        taskId: mobileTask.data.id,
+        type: 'assignment',
+      },
+    });
+    assert.ok(
+      assignmentNotification,
+      'assignment notification must be persisted before the successful response completes',
+    );
 
     const audit = await WorkspaceMembershipActivityModel.findOne({
       where: {
