@@ -7,15 +7,33 @@ import {
   EmptyWorkspaceOnboarding,
   CREATE_WORKSPACE_ILLUSTRATION_URL,
 } from '../EmptyWorkspaceOnboarding';
+import authReducer from '../../../../store/authSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
 
-const renderWithProviders = (ui: React.ReactElement) => {
+const renderWithProviders = (ui: React.ReactElement, role = '') => {
   const store = configureStore({
     reducer: {
+      auth: authReducer,
       workspace: workspaceReducer,
       ui: uiReducer,
     },
+    preloadedState: role
+      ? {
+          auth: {
+            currentUser: {
+              id: 'user-1',
+              email: 'test@company.com',
+              name: 'Test User',
+              role,
+            },
+            isAuthenticated: true,
+            showOnboardingModal: false,
+            status: 'succeeded' as const,
+            error: null,
+          },
+        }
+      : undefined,
   });
 
   return render(<Provider store={store}>{ui}</Provider>);
@@ -23,8 +41,7 @@ const renderWithProviders = (ui: React.ReactElement) => {
 
 describe('EmptyWorkspaceOnboarding Organism', () => {
   it('renders create workspace illustration image and welcome message for admin/lead/po roles', () => {
-    localStorage.setItem('user_role', 'admin');
-    renderWithProviders(<EmptyWorkspaceOnboarding />);
+    renderWithProviders(<EmptyWorkspaceOnboarding />, 'admin');
 
     const img = screen.getByAltText('Create Workspace Illustration');
     expect(img).toBeInTheDocument();
@@ -40,8 +57,7 @@ describe('EmptyWorkspaceOnboarding Organism', () => {
   });
 
   it('opens create workspace modal when button is clicked by a permitted role', () => {
-    localStorage.setItem('user_role', 'po');
-    renderWithProviders(<EmptyWorkspaceOnboarding />);
+    renderWithProviders(<EmptyWorkspaceOnboarding />, 'po');
 
     const createBtn = screen.getByRole('button', { name: /create workspace/i });
     fireEvent.click(createBtn);
@@ -50,8 +66,7 @@ describe('EmptyWorkspaceOnboarding Organism', () => {
   });
 
   it('does not offer workspace creation to QA', () => {
-    localStorage.setItem('user_role', 'qa');
-    renderWithProviders(<EmptyWorkspaceOnboarding />);
+    renderWithProviders(<EmptyWorkspaceOnboarding />, 'qa');
 
     expect(screen.getByRole('heading', { name: /no workspace assigned yet/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
@@ -59,11 +74,18 @@ describe('EmptyWorkspaceOnboarding Organism', () => {
   });
 
   it('renders no workspace assigned state for member/dev roles without create button', () => {
-    localStorage.setItem('user_role', 'dev');
-    renderWithProviders(<EmptyWorkspaceOnboarding />);
+    renderWithProviders(<EmptyWorkspaceOnboarding />, 'dev');
 
     expect(screen.getByRole('heading', { name: /no workspace assigned yet/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /check again/i })).toBeInTheDocument();
+  });
+
+  it('ignores spoofed user_role in localStorage and relies only on Redux role', () => {
+    localStorage.setItem('user_role', 'admin');
+    renderWithProviders(<EmptyWorkspaceOnboarding />, 'dev');
+
+    expect(screen.getByRole('heading', { name: /no workspace assigned yet/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
   });
 });

@@ -15,6 +15,7 @@ import {
   selectCurrentUser,
 } from '../../../store/authSlice';
 import { enqueueSnackbar } from '../../../store/uiSlice';
+import { setOnboardingDismissed } from '../../../lib/storage/browserStorage';
 import { User } from '../../../lib/api/authService';
 
 export interface RoleOnboardingModalProps {
@@ -58,10 +59,7 @@ export const RoleOnboardingModal: React.FC<RoleOnboardingModalProps> = ({
   };
 
   const handleDismiss = () => {
-    if (user?.id) {
-      sessionStorage.setItem(`onboarding_dismissed_${user.id}`, 'true');
-    }
-    sessionStorage.setItem('onboarding_dismissed', 'true');
+    setOnboardingDismissed(true);
     dispatch(setShowOnboardingModal(false));
     onClose();
   };
@@ -70,10 +68,7 @@ export const RoleOnboardingModal: React.FC<RoleOnboardingModalProps> = ({
     setIsSubmitting(true);
     try {
       await dispatch(completeOnboarding()).unwrap();
-      if (user?.id) {
-        sessionStorage.setItem(`onboarding_dismissed_${user.id}`, 'true');
-      }
-      sessionStorage.setItem('onboarding_dismissed', 'true');
+      setOnboardingDismissed(true);
       dispatch(enqueueSnackbar('Selamat! Anda telah menyelesaikan onboarding.', 'success'));
       dispatch(setShowOnboardingModal(false));
       onClose();
@@ -83,10 +78,7 @@ export const RoleOnboardingModal: React.FC<RoleOnboardingModalProps> = ({
       }
     } catch {
       // If network fails, still allow user to proceed
-      if (user?.id) {
-        sessionStorage.setItem(`onboarding_dismissed_${user.id}`, 'true');
-      }
-      sessionStorage.setItem('onboarding_dismissed', 'true');
+      setOnboardingDismissed(true);
       dispatch(setShowOnboardingModal(false));
       onClose();
       if (destinationPath) {

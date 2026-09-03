@@ -15,6 +15,7 @@ import {
 import { IconButton } from '../ui/atoms/IconButton';
 import { SessionTimeoutModal } from '../auth/SessionTimeoutModal';
 import { RoleOnboardingModal } from '../ui/organisms/RoleOnboardingModal';
+import { isOnboardingDismissed } from '../../lib/storage/browserStorage';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -27,16 +28,12 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
   const currentUser = useAppSelector(selectCurrentUser);
   const showOnboardingModal = useAppSelector(selectShowOnboardingModal);
 
-  const userEmail =
-    currentUser?.email || localStorage.getItem('user_email') || 'qa.lead@company.com';
+  const userEmail = currentUser?.email || '';
 
-  // Trigger onboarding on first-time login if not yet completed and not dismissed in current browser session for this user
+  // Trigger onboarding on first-time login if not yet completed and not dismissed in current browser session
   useEffect(() => {
     if (currentUser && !currentUser.onboardingCompletedAt) {
-      const isDismissedForUser =
-        sessionStorage.getItem(`onboarding_dismissed_${currentUser.id}`) === 'true';
-
-      if (!isDismissedForUser) {
+      if (!isOnboardingDismissed()) {
         dispatch(setShowOnboardingModal(true));
       }
     }

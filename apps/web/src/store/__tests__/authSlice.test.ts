@@ -136,5 +136,30 @@ describe('authSlice Redux store', () => {
     expect(selectShowOnboardingModal(emptyRootState)).toBe(false);
     expect(selectAuthStatus(emptyRootState)).toBe('idle');
   });
+
+  it('starts unauthenticated even if localStorage has injected profile and role data', () => {
+    window.localStorage.setItem('user_id', 'attacker-id');
+    window.localStorage.setItem('user_role', 'owner');
+    window.localStorage.setItem('user_email', 'attacker@evil.com');
+    window.localStorage.setItem('user_name', 'Attacker');
+
+    const state = authReducer(undefined, { type: '@@INIT' });
+
+    expect(state.currentUser).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.showOnboardingModal).toBe(false);
+    expect(state.status).toBe('idle');
+  });
+
+  it('does not write user profile or onboarding status to localStorage when setting session user or completing onboarding', () => {
+    authReducer(undefined, setSessionUser(mockUser));
+    expect(window.localStorage.getItem('user_id')).toBeNull();
+    expect(window.localStorage.getItem('user_role')).toBeNull();
+    expect(window.localStorage.getItem('user_email')).toBeNull();
+    expect(window.localStorage.getItem('user_onboarding_completed_at')).toBeNull();
+
+    authReducer(undefined, setOnboardingCompleted('2026-09-03T00:00:00.000Z'));
+    expect(window.localStorage.getItem('user_onboarding_completed_at')).toBeNull();
+  });
 });
 

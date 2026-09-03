@@ -14,13 +14,15 @@ import workspaceReducer, { setActiveWorkspaceId } from '../workspaceSlice';
 describe('workspace and UI state', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
-  it('stores the active workspace selection for the next session', () => {
+  it('stores the active workspace selection for the current tab session in sessionStorage', () => {
     const state = workspaceReducer(undefined, setActiveWorkspaceId('workspace-1'));
 
     expect(state.activeWorkspaceId).toBe('workspace-1');
-    expect(window.localStorage.getItem('active_workspace_id')).toBe('workspace-1');
+    expect(window.sessionStorage.getItem('active_workspace_id')).toBe('workspace-1');
+    expect(window.localStorage.getItem('active_workspace_id')).toBeNull();
   });
 
   it('shows a server mutation failure as an error notification', () => {

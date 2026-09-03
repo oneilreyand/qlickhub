@@ -6,6 +6,10 @@ import {
   AddWorkspaceMemberInput,
   UpdateMemberRoleInput,
 } from '@qlick/contracts';
+import {
+  getActiveWorkspaceId as getStoredActiveWorkspaceId,
+  setActiveWorkspaceId as setStoredActiveWorkspaceId,
+} from '../lib/storage/browserStorage';
 
 interface WorkspaceState {
   workspaces: WorkspaceItem[];
@@ -19,7 +23,7 @@ interface WorkspaceState {
 
 const initialState: WorkspaceState = {
   workspaces: [],
-  activeWorkspaceId: localStorage.getItem('active_workspace_id') || null,
+  activeWorkspaceId: getStoredActiveWorkspaceId(),
   members: [],
   isLoading: false,
   isMembersLoading: false,
@@ -102,11 +106,7 @@ const workspaceSlice = createSlice({
   reducers: {
     setActiveWorkspaceId: (state, action: PayloadAction<string | null>) => {
       state.activeWorkspaceId = action.payload;
-      if (action.payload) {
-        localStorage.setItem('active_workspace_id', action.payload);
-      } else {
-        localStorage.removeItem('active_workspace_id');
-      }
+      setStoredActiveWorkspaceId(action.payload);
     },
     clearWorkspaceError: (state) => {
       state.error = null;
@@ -128,10 +128,10 @@ const workspaceSlice = createSlice({
         if (!isValidActive) {
           if (action.payload.length > 0) {
             state.activeWorkspaceId = action.payload[0].id;
-            localStorage.setItem('active_workspace_id', action.payload[0].id);
+            setStoredActiveWorkspaceId(action.payload[0].id);
           } else {
             state.activeWorkspaceId = null;
-            localStorage.removeItem('active_workspace_id');
+            setStoredActiveWorkspaceId(null);
           }
         }
       })
@@ -143,7 +143,7 @@ const workspaceSlice = createSlice({
       .addCase(createWorkspace.fulfilled, (state, action) => {
         state.workspaces.unshift(action.payload);
         state.activeWorkspaceId = action.payload.id;
-        localStorage.setItem('active_workspace_id', action.payload.id);
+        setStoredActiveWorkspaceId(action.payload.id);
       })
       .addCase(updateWorkspace.fulfilled, (state, action) => {
         const index = state.workspaces.findIndex((w) => w.id === action.payload.id);

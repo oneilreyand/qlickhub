@@ -133,7 +133,11 @@ describe('LoginPage Component', () => {
         email: 'lead@company.com',
         password: 'password123',
       });
-      expect(localStorage.getItem('user_email')).toBe('lead@company.com');
+      expect(localStorage.getItem('user_email')).toBeNull();
+      expect(localStorage.getItem('user_role')).toBeNull();
+      expect(localStorage.getItem('user_id')).toBeNull();
+      expect(store.getState().auth.currentUser?.email).toBe('lead@company.com');
+      expect(store.getState().auth.isAuthenticated).toBe(true);
       expect(screen.getByText('WorkHub Destination')).toBeInTheDocument();
     });
   });

@@ -46,7 +46,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleMobileSidebar,
-  userEmail = 'qa.lead@company.com',
+  userEmail = '',
   onLogout,
 }) => {
   const dispatch = useAppDispatch();
@@ -368,7 +368,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <p className="text-xs font-semibold text-stone-900 capitalize dark:text-stone-100">
                   {userName}
                 </p>
-                <p className="truncate text-xs text-stone-500 dark:text-stone-400">{userEmail}</p>
+                <p className="truncate text-xs text-stone-500 dark:text-stone-400">{effectiveEmail}</p>
               </div>
 
               <div className="py-1">

@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import { clearSessionScopedData } from '../storage/browserStorage';
 
 export interface User {
   id: string;
@@ -78,7 +79,6 @@ export const authService = {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
-    if (payload.name) localStorage.setItem('user_name', payload.name);
     return response.data.user;
   },
 
@@ -142,18 +142,9 @@ export const authService = {
     try {
       await apiClient('/auth/logout', { method: 'POST' });
     } catch {
-      // Clear the browser's non-sensitive UI profile even if the session already expired.
+      // Clear session-scoped browser state even if the session already expired.
     }
-    localStorage.removeItem('user_role');
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('user_name');
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('user_onboarding_completed_at');
-    try {
-      sessionStorage.clear();
-    } catch {
-      // ignore
-    }
+    clearSessionScopedData();
     if (window.location.pathname !== '/login') {
       window.location.href = '/login';
     }

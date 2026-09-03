@@ -5,8 +5,9 @@ import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
 import { Textarea } from '../atoms/Textarea';
 import { Modal } from '../molecules/Modal';
-import { useAppDispatch } from '../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { createWorkspace, fetchWorkspaces } from '../../../store/workspaceSlice';
+import { selectCurrentUserRole } from '../../../store/authSlice';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { canCreateWorkspace } from '../../../lib/permissions/workspacePermissions';
 
@@ -21,7 +22,7 @@ export const EmptyWorkspaceOnboarding: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const userRole = (localStorage.getItem('user_role') || '').toLowerCase();
+  const userRole = useAppSelector(selectCurrentUserRole);
   const canCreate = canCreateWorkspace(userRole);
 
   const handleRefresh = async () => {

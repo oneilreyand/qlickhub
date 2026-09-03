@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { authService, User } from '../lib/api/authService';
+import { clearSessionScopedData, isOnboardingDismissed } from '../lib/storage/browserStorage';
 import type { RootState } from './store';
 
 export interface AuthState {
@@ -10,35 +11,12 @@ export interface AuthState {
   error: string | null;
 }
 
-// Initial state hydrated from memory or cached profile if present
-const getInitialUser = (): User | null => {
-  try {
-    const id = localStorage.getItem('user_id');
-    const email = localStorage.getItem('user_email');
-    const name = localStorage.getItem('user_name');
-    const role = localStorage.getItem('user_role');
-    const onboardingCompletedAt = localStorage.getItem('user_onboarding_completed_at');
-    if (id && email && role) {
-      return {
-        id,
-        email,
-        name: name || email.split('@')[0],
-        role,
-        onboardingCompletedAt: onboardingCompletedAt || null,
-      };
-    }
-  } catch {
-    // localStorage may not be available in test/SSR
-  }
-  return null;
-};
-
-const initialUser = getInitialUser();
-
+// Initial state starts unauthenticated and empty in memory.
+// Profile and role hydration must strictly originate from /v1/auth/session.
 const initialState: AuthState = {
-  currentUser: initialUser,
-  isAuthenticated: Boolean(initialUser),
-  showOnboardingModal: Boolean(initialUser && !initialUser.onboardingCompletedAt),
+  currentUser: null,
+  isAuthenticated: false,
+  showOnboardingModal: false,
   status: 'idle',
   error: null,
 };
@@ -74,19 +52,13 @@ const authSlice = createSlice({
       state.status = 'succeeded';
       state.error = null;
       if (action.payload) {
-        try {
-          if (action.payload.onboardingCompletedAt) {
-            localStorage.setItem('user_onboarding_completed_at', action.payload.onboardingCompletedAt);
-          } else {
-            localStorage.removeItem('user_onboarding_completed_at');
-          }
-          const isDismissed = sessionStorage.getItem(`onboarding_dismissed_${action.payload.id}`) === 'true';
-          if (!action.payload.onboardingCompletedAt && !isDismissed) {
-            state.showOnboardingModal = true;
-          }
-        } catch {
-          // ignore
+        if (!action.payload.onboardingCompletedAt && !isOnboardingDismissed()) {
+          state.showOnboardingModal = true;
+        } else {
+          state.showOnboardingModal = false;
         }
+      } else {
+        state.showOnboardingModal = false;
       }
     },
     setShowOnboardingModal: (state, action: PayloadAction<boolean>) => {
@@ -96,14 +68,8 @@ const authSlice = createSlice({
       if (state.currentUser) {
         state.currentUser.onboardingCompletedAt = action.payload;
       }
-      try {
-        if (action.payload) {
-          localStorage.setItem('user_onboarding_completed_at', action.payload);
-        } else {
-          localStorage.removeItem('user_onboarding_completed_at');
-        }
-      } catch {
-        // ignore
+      if (action.payload) {
+        state.showOnboardingModal = false;
       }
     },
     clearAuth: (state) => {
@@ -112,16 +78,7 @@ const authSlice = createSlice({
       state.showOnboardingModal = false;
       state.status = 'idle';
       state.error = null;
-      try {
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('user_email');
-        localStorage.removeItem('user_name');
-        localStorage.removeItem('user_role');
-        localStorage.removeItem('user_onboarding_completed_at');
-        sessionStorage.removeItem('onboarding_dismissed');
-      } catch {
-        // ignore
-      }
+      clearSessionScopedData();
     },
   },
   extraReducers: (builder) => {
@@ -133,21 +90,13 @@ const authSlice = createSlice({
       .addCase(fetchSession.fulfilled, (state, action) => {
         state.status = 'succeeded';
         state.currentUser = action.payload;
-        state.isAuthenticated = true;
+        state.isAuthenticated = Boolean(action.payload);
         state.error = null;
         if (action.payload) {
-          try {
-            if (action.payload.onboardingCompletedAt) {
-              localStorage.setItem('user_onboarding_completed_at', action.payload.onboardingCompletedAt);
-            } else {
-              localStorage.removeItem('user_onboarding_completed_at');
-            }
-            const isDismissed = sessionStorage.getItem(`onboarding_dismissed_${action.payload.id}`) === 'true';
-            if (!action.payload.onboardingCompletedAt && !isDismissed) {
-              state.showOnboardingModal = true;
-            }
-          } catch {
-            // ignore
+          if (!action.payload.onboardingCompletedAt && !isOnboardingDismissed()) {
+            state.showOnboardingModal = true;
+          } else {
+            state.showOnboardingModal = false;
           }
         }
       })
@@ -155,6 +104,7 @@ const authSlice = createSlice({
         state.status = 'failed';
         state.currentUser = null;
         state.isAuthenticated = false;
+        state.showOnboardingModal = false;
         state.error = action.error.message || 'Failed to fetch session';
       })
       .addCase(completeOnboarding.fulfilled, (state, action) => {
@@ -162,24 +112,12 @@ const authSlice = createSlice({
           state.currentUser.onboardingCompletedAt = action.payload.onboardingCompletedAt;
         }
         state.showOnboardingModal = false;
-        try {
-          if (action.payload.onboardingCompletedAt) {
-            localStorage.setItem('user_onboarding_completed_at', action.payload.onboardingCompletedAt);
-          }
-        } catch {
-          // ignore
-        }
       })
       .addCase(resetOnboarding.fulfilled, (state) => {
         if (state.currentUser) {
           state.currentUser.onboardingCompletedAt = null;
         }
         state.showOnboardingModal = true;
-        try {
-          localStorage.removeItem('user_onboarding_completed_at');
-        } catch {
-          // ignore
-        }
       });
   },
 });

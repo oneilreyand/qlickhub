@@ -92,11 +92,10 @@ async function attemptTokenRefresh(): Promise<boolean> {
   return refreshPromise;
 }
 
+import { clearSessionScopedData } from '../storage/browserStorage';
+
 function handleAuthFailure(errorCode?: string) {
-  localStorage.removeItem('user_role');
-  localStorage.removeItem('user_email');
-  localStorage.removeItem('user_name');
-  localStorage.removeItem('user_id');
+  clearSessionScopedData();
   if (window.location.pathname !== '/login') {
     const reason = errorCode === 'SESSION_OVERRIDDEN' ? '?reason=session_overridden' : '';
     window.location.href = `/login${reason}`;

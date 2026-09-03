@@ -25,7 +25,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
 
   // Profile Form State
-  const [name, setName] = useState(currentUser?.name || localStorage.getItem('user_name') || '');
+  const [name, setName] = useState(currentUser?.name || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl || '');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   // Sync state only on open transition so typed edits are not wiped
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current && currentUser) {
-      setName(currentUser.name || localStorage.getItem('user_name') || '');
+      setName(currentUser.name || '');
       setAvatarUrl(currentUser.avatarUrl || '');
       setProfileError(null);
       setPasswordError(null);
@@ -149,7 +149,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 Email Address (Read-only)
               </label>
               <Input
-                value={currentUser?.email || localStorage.getItem('user_email') || ''}
+                value={currentUser?.email || ''}
                 disabled
                 className="opacity-70 bg-stone-100 dark:bg-stone-800"
               />

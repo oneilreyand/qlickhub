@@ -7,6 +7,7 @@ import { Button } from '../components/ui/atoms/Button';
 import { Input } from '../components/ui/atoms/Input';
 import { useAppDispatch } from '../store/hooks';
 import { setSessionUser } from '../store/authSlice';
+import { clearOnboardingDismissed } from '../lib/storage/browserStorage';
 
 const LOGIN_HERO_IMAGE_BASE_URL = 'https://res.cloudinary.com/dxgnzhn8l/image/upload/f_auto,q_auto';
 const LOGIN_HERO_IMAGE_PATH = '/v1787848938/ChatGPT_Image_Aug_19_2026_03_01_47_PM.png';
@@ -38,21 +39,8 @@ export const LoginPage: React.FC = () => {
       // Call Backend API POST /v1/auth/login
       const res = await authService.login({ email: email.trim(), password });
 
-      localStorage.setItem('user_role', res.user.role || 'dev');
-      localStorage.setItem('user_email', res.user.email || email);
-      localStorage.setItem('user_name', res.user.name || 'User');
-      localStorage.setItem('user_id', res.user.id);
-      if (res.user.onboardingCompletedAt) {
-        localStorage.setItem('user_onboarding_completed_at', res.user.onboardingCompletedAt);
-      } else {
-        localStorage.removeItem('user_onboarding_completed_at');
-      }
-
       // Clear any previous session dismissal flags so freshly logged-in user gets their onboarding
-      sessionStorage.removeItem('onboarding_dismissed');
-      if (res.user.id) {
-        sessionStorage.removeItem(`onboarding_dismissed_${res.user.id}`);
-      }
+      clearOnboardingDismissed();
 
       dispatch(setSessionUser(res.user));
 
