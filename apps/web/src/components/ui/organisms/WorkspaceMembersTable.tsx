@@ -186,14 +186,14 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
 
             return (
               <Card key={member.id} className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar name={u?.name || u?.email || 'User'} size="md" />
-                    <div>
-                      <p className="font-semibold text-stone-900 dark:text-stone-100 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Avatar name={u?.name || u?.email || 'User'} size="md" className="shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-stone-900 dark:text-stone-100 text-xs truncate">
                         {u?.name || 'Workspace User'}
                       </p>
-                      <p className="text-[11px] text-stone-400 dark:text-stone-500">{u?.email}</p>
+                      <p className="text-[11px] text-stone-400 dark:text-stone-500 truncate">{u?.email}</p>
                     </div>
                   </div>
 
@@ -300,9 +300,9 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                 return (
                   <tr key={member.id} className="hover:bg-stone-50/60 dark:hover:bg-stone-800/40">
                     <td className="py-3.5 px-3">
-                      <div className="flex items-center gap-2.5">
-                        <Avatar name={u?.name || u?.email || 'User'} size="sm" />
-                        <div>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Avatar name={u?.name || u?.email || 'User'} size="sm" className="shrink-0" />
+                        <div className="min-w-0">
                           <p className="font-semibold text-stone-900 dark:text-stone-100">
                             {u?.name || 'Workspace User'}
                           </p>
