@@ -212,6 +212,32 @@ async function moveDirectSubtasksToFolder(
   );
 }
 
+async function persistTaskAssignmentNotification(params: {
+  assigneeId: string;
+  actorId: string;
+  taskTitle: string;
+  taskId: string;
+  workspaceId: string;
+}): Promise<void> {
+  try {
+    const actorUser = await UserModel.findByPk(params.actorId);
+    const actorName = actorUser?.name || actorUser?.email || 'Workspace Member';
+    await fcmService.sendTaskAssignmentNotification({
+      assigneeId: params.assigneeId,
+      assignerName: actorName,
+      assignerId: params.actorId,
+      taskTitle: params.taskTitle,
+      taskId: params.taskId,
+      workspaceId: params.workspaceId,
+    });
+  } catch (error) {
+    console.warn(
+      'Failed to persist task assignment notification:',
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Create task / subtask
 // ---------------------------------------------------------------------------
@@ -379,23 +405,13 @@ export async function createTaskImpl(actorId: string, input: CreateTaskInput): P
 
   // Trigger 1: User di-assign task on creation
   if (createdResult.assigneeId && createdResult.assigneeId !== actorId) {
-    UserModel.findByPk(actorId)
-      .then((actorUser) => {
-        const actorName = actorUser?.name || actorUser?.email || 'Workspace Member';
-        fcmService
-          .sendTaskAssignmentNotification({
-            assigneeId: createdResult.assigneeId!,
-            assignerName: actorName,
-            assignerId: actorId,
-            taskTitle: createdResult.title,
-            taskId: createdResult.id,
-            workspaceId: input.workspaceId,
-          })
-          .catch((err) =>
-            console.warn('Failed to dispatch FCM task assignment notification:', err),
-          );
-      })
-      .catch(() => {});
+    await persistTaskAssignmentNotification({
+      assigneeId: createdResult.assigneeId,
+      actorId,
+      taskTitle: createdResult.title,
+      taskId: createdResult.id,
+      workspaceId: input.workspaceId,
+    });
   }
 
   return createdResult.formatted;
@@ -687,23 +703,13 @@ export async function updateTaskImpl(
     updatedResult.assigneeId &&
     updatedResult.assigneeId !== actorId
   ) {
-    UserModel.findByPk(actorId)
-      .then((actorUser) => {
-        const actorName = actorUser?.name || actorUser?.email || 'Workspace Member';
-        fcmService
-          .sendTaskAssignmentNotification({
-            assigneeId: updatedResult.assigneeId!,
-            assignerName: actorName,
-            assignerId: actorId,
-            taskTitle: updatedResult.title,
-            taskId: updatedResult.id,
-            workspaceId,
-          })
-          .catch((err) =>
-            console.warn('Failed to dispatch FCM task assignment notification:', err),
-          );
-      })
-      .catch(() => {});
+    await persistTaskAssignmentNotification({
+      assigneeId: updatedResult.assigneeId,
+      actorId,
+      taskTitle: updatedResult.title,
+      taskId: updatedResult.id,
+      workspaceId,
+    });
   }
 
   // Trigger 2: User update status task -> notify assignee & reporter

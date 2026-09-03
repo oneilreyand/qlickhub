@@ -33,7 +33,7 @@ Bulk Requirement correction now locks the selected Task–Requirement links and 
 ## Risks or follow-up
 
 - No known functional gap remains in bulk Requirement correction.
-- The full test runner can emit a non-fatal notification insert warning when asynchronous work outlives Task fixture cleanup. It did not affect the 342 passing assertions but should be corrected separately.
+- The asynchronous assignment-notification cleanup warning observed in this run was resolved and verified under `TASK-ASSIGNMENT-NOTIFICATION-AWAIT` on 2026-09-03.
 
 ## TODO update
 

@@ -35,7 +35,7 @@ Canonical Test Cases used for execution now move through authenticated `draft â†
 ## Risks or follow-up
 
 - The unrelated Requirement bulk-correction endpoint failure was resolved and verified separately.
-- The full test runner permits asynchronous notification work to outlive a fixture Task during cleanup, producing a non-fatal warning; this requires separate lifecycle cleanup analysis if it becomes a release gate.
+- The asynchronous assignment-notification cleanup warning observed in this run was resolved and verified under `TASK-ASSIGNMENT-NOTIFICATION-AWAIT` on 2026-09-03.
 - No debug instrumentation or throwaway files were added.
 
 ## TODO update

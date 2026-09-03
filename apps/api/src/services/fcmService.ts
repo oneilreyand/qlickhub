@@ -242,8 +242,9 @@ export class FcmService {
       console.warn('⚠️ Failed to save in-app assignment notification in DB:', err);
     }
 
-    // 2. Dispatch FCM Push
-    await this.sendToUser(assigneeId, {
+    // 2. Dispatch FCM Push without delaying the Task mutation response. The persisted
+    // notification above is the internal delivery record; external push remains best-effort.
+    void this.sendToUser(assigneeId, {
       title,
       body: message,
       data: { type: 'assignment', taskId, workspaceId },

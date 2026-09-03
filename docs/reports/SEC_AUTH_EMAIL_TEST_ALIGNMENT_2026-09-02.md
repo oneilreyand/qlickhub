@@ -40,7 +40,7 @@ The invitation-email unit test now exercises the current security contract: it s
 ## Risks or follow-up
 
 - The seven unrelated integration failures discovered by the first complete regression were resolved and verified in separately scoped work.
-- The full test runner can emit a non-fatal notification cleanup warning; this does not fail the suite but remains a reliability follow-up.
+- The asynchronous assignment-notification cleanup warning observed in this run was resolved and verified under `TASK-ASSIGNMENT-NOTIFICATION-AWAIT` on 2026-09-03.
 - No debug instrumentation or throwaway files were added.
 
 ## TODO update

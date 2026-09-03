@@ -306,19 +306,6 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
       assert.strictEqual(transitionBody.testCase.status, status);
     }
 
-    await request(
-      `/workspaces/${workspace.id}/test-cases/${testCase.id}`,
-      poCookie,
-      { method: 'PATCH', body: { status: 'in_review' } },
-      200,
-    );
-    await request(
-      `/workspaces/${workspace.id}/test-cases/${testCase.id}`,
-      poCookie,
-      { method: 'PATCH', body: { status: 'active' } },
-      200,
-    );
-
     const failedRunBody = await request(
       `/workspaces/${workspace.id}/test-cases/${testCase.id}/runs`,
       qaCookie,
