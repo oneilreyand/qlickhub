@@ -13,7 +13,7 @@ import {
   safeFetch,
   extractHtmlMetadata,
 } from '../ssrfProtection.js';
-import { clearPreviewCache } from '../metaRoutes.js';
+import { clearPreviewCache, createMetaRoutes, isPinterestHostname } from '../metaRoutes.js';
 import {
   createLinkPreviewRateLimiter,
   linkPreviewRateLimiter,
@@ -221,6 +221,23 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       assert.strictEqual(res.safe, true);
       assert.strictEqual(res.pinnedAddress, '93.184.216.34');
     });
+  });
+
+  describe('Absolute Deadline Coverage', () => {
+    it(
+      'returns TIMEOUT when DNS resolution does not settle before the global deadline',
+      { timeout: 500 },
+      async () => {
+        const startedAt = Date.now();
+        const result = await safeFetch('https://dns-stall.example.test/article', {
+          timeoutMs: 50,
+          dnsResolver: async () => await new Promise(() => {}),
+        });
+
+        assert.deepStrictEqual(result, { ok: false, error: 'TIMEOUT' });
+        assert.ok(Date.now() - startedAt < 300, 'DNS resolution must obey the global deadline');
+      },
+    );
   });
 
   describe('3. Pinned Socket Transport & TOCTOU/DNS Rebinding Prevention (safeFetch)', () => {
@@ -437,6 +454,28 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       assert.strictEqual(resolveCount, 1, 'DNS lookup should only be executed once per hop');
     });
 
+    it('reuses an existing safe first-hop validation without resolving the target twice', async () => {
+      let resolveCount = 0;
+      const resolver = async () => {
+        resolveCount++;
+        return [{ address: '127.0.0.1', family: 4 }];
+      };
+      const targetUrl = `http://prevalidated.example.test:${mockServerPort}/valid-page`;
+      const initialSafetyCheck = await validateUrlSafety(targetUrl, {
+        dnsResolver: resolver,
+        allowTestLocalhost: true,
+      });
+
+      const result = await safeFetch(targetUrl, {
+        dnsResolver: resolver,
+        allowTestLocalhost: true,
+        initialSafetyCheck,
+      });
+
+      assert.strictEqual(result.ok, true);
+      assert.strictEqual(resolveCount, 1, 'The validated first hop must not be resolved again');
+    });
+
     it('preserves Host header and does not forward cookies or credentials', async () => {
       const mockResolver = async () => [{ address: '127.0.0.1', family: 4 }];
       const result = await safeFetch(
@@ -609,6 +648,8 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
     let testCertDir: string;
     let testHttpsServer: HttpsServer;
     let testHttpsPort: number;
+    let testCertificate: string;
+    let tlsServername: string | false | null | undefined;
     let tlsReceivedHeaders: Record<string, string | string[] | undefined> = {};
 
     before(async () => {
@@ -618,14 +659,14 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
 
       // Generate isolated non-production test certificate fixture
       execSync(
-        `openssl req -x509 -newkey rsa:2048 -nodes -keyout "${keyPath}" -out "${certPath}" -days 365 -subj "/CN=test-tls.example.test"`,
+        `openssl req -x509 -newkey rsa:2048 -nodes -keyout "${keyPath}" -out "${certPath}" -days 365 -subj "/CN=secure-target.example.test" -addext "subjectAltName=DNS:secure-target.example.test,DNS:test-tls.example.test"`,
         { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
       );
 
       const key = fs.readFileSync(keyPath, 'utf8');
-      const cert = fs.readFileSync(certPath, 'utf8');
+      testCertificate = fs.readFileSync(certPath, 'utf8');
 
-      testHttpsServer = createHttpsServer({ key, cert }, (req, res) => {
+      testHttpsServer = createHttpsServer({ key, cert: testCertificate }, (req, res) => {
         tlsReceivedHeaders = req.headers;
         if (req.url === '/secure-page') {
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -634,6 +675,9 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
         }
         res.writeHead(404);
         res.end();
+      });
+      testHttpsServer.on('secureConnection', (socket) => {
+        tlsServername = socket.servername;
       });
 
       await new Promise<void>((resolve) => {
@@ -671,11 +715,22 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
 
     it('preserves TLS SNI (servername) and Host header on HTTPS requests', async () => {
       const mockResolver = async () => [{ address: '127.0.0.1', family: 4 }];
-      await safeFetch(`https://secure-target.example.test:${testHttpsPort}/secure-page`, {
-        dnsResolver: mockResolver,
-        allowTestLocalhost: true,
-      });
+      tlsReceivedHeaders = {};
+      tlsServername = undefined;
 
+      const result = await safeFetch(
+        `https://secure-target.example.test:${testHttpsPort}/secure-page`,
+        {
+          dnsResolver: mockResolver,
+          allowTestLocalhost: true,
+          testTlsCa: testCertificate,
+        },
+      );
+
+      assert.strictEqual(result.ok, true);
+      assert.strictEqual(result.pinnedIpUsed, '127.0.0.1');
+      assert.strictEqual(tlsServername, 'secure-target.example.test');
+      assert.strictEqual(tlsReceivedHeaders.host, `secure-target.example.test:${testHttpsPort}`);
       assert.strictEqual(tlsReceivedHeaders.cookie, undefined, 'Cookie must not be sent on HTTPS');
       assert.strictEqual(
         tlsReceivedHeaders.authorization,
@@ -691,10 +746,36 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
   });
 
   describe('5. Behavioral Rate Limiter (createLinkPreviewRateLimiter)', () => {
-    it('verifies production configuration is 30 requests per minute', () => {
+    it('enforces the production default of 30 requests per minute without global env mutation', async () => {
       assert.strictEqual(DEFAULT_LINK_PREVIEW_RATE_LIMIT, 30);
       assert.strictEqual(DEFAULT_LINK_PREVIEW_WINDOW_MS, 60000);
       assert.ok(linkPreviewRateLimiter, 'linkPreviewRateLimiter must be defined');
+
+      const app = express();
+      const productionLimiter = createLinkPreviewRateLimiter({ environment: 'production' });
+      app.use((req: any, _res: any, next: any) => {
+        req.user = { userId: 'production-user' };
+        next();
+      });
+      app.get('/production-limit', productionLimiter, (_req: Request, res: Response) => {
+        res.status(200).json({ ok: true });
+      });
+
+      const server = app.listen(0);
+      const port = (server.address() as any).port;
+      try {
+        for (let requestNumber = 1; requestNumber <= 30; requestNumber++) {
+          const response = await fetch(`http://127.0.0.1:${port}/production-limit`);
+          assert.strictEqual(response.status, 200, `Request ${requestNumber} should be allowed`);
+        }
+
+        const limitedResponse = await fetch(`http://127.0.0.1:${port}/production-limit`);
+        assert.strictEqual(limitedResponse.status, 429);
+        const body = (await limitedResponse.json()) as { code?: string };
+        assert.strictEqual(body.code, 'RATE_LIMITED');
+      } finally {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }
     });
 
     it('enforces rate limiting up to limit and returns 429 RATE_LIMITED on exceeded requests', async () => {
@@ -792,14 +873,11 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       ];
 
       for (const raw of evilUrls) {
-        const parsed = new URL(raw);
-        const host = parsed.hostname.toLowerCase();
-        const isPinterest =
-          host === 'pinterest.com' ||
-          host.endsWith('.pinterest.com') ||
-          host === 'pin.it' ||
-          host.endsWith('.pin.it');
-        assert.strictEqual(isPinterest, false, `Expected ${raw} to not match Pinterest hostname`);
+        assert.strictEqual(
+          isPinterestHostname(new URL(raw).hostname),
+          false,
+          `Expected ${raw} to not match Pinterest hostname`,
+        );
       }
     });
 
@@ -813,22 +891,23 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       ];
 
       for (const raw of validUrls) {
-        const parsed = new URL(raw);
-        const host = parsed.hostname.toLowerCase();
-        const isPinterest =
-          host === 'pinterest.com' ||
-          host.endsWith('.pinterest.com') ||
-          host === 'pin.it' ||
-          host.endsWith('.pin.it');
-        assert.strictEqual(isPinterest, true, `Expected ${raw} to match Pinterest hostname`);
+        assert.strictEqual(
+          isPinterestHostname(new URL(raw).hostname),
+          true,
+          `Expected ${raw} to match Pinterest hostname`,
+        );
       }
     });
   });
 
   describe('7. API Endpoint Integration & Information Leak Prevention (/v1/meta/link-preview)', () => {
     let apiServer: Server;
+    let injectedApiServer: Server;
+    let targetServer: Server;
     let apiPort: number;
     let apiBaseUrl: string;
+    let injectedApiBaseUrl: string;
+    let targetPort: number;
     let testUser: UserModel;
     let authCookie: string;
 
@@ -864,6 +943,52 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
         role: testUser.role,
         sessionId,
       })}`;
+
+      targetServer = createServer((req, res) => {
+        if (req.url === '/oversized') {
+          res.writeHead(200, {
+            'Content-Type': 'text/html',
+            'Content-Length': String(512 * 1024 + 1),
+          });
+          res.end('blocked');
+          return;
+        }
+        if (req.url === '/timeout') {
+          return;
+        }
+        if (req.url === '/redirect-private') {
+          res.writeHead(302, { Location: 'http://169.254.169.254/latest/meta-data' });
+          res.end();
+          return;
+        }
+        res.writeHead(404);
+        res.end();
+      });
+      await new Promise<void>((resolve) => {
+        targetServer.listen(0, '127.0.0.1', () => {
+          targetPort = (targetServer.address() as any).port;
+          resolve();
+        });
+      });
+
+      const injectedApp = express();
+      injectedApp.use(
+        '/v1',
+        createMetaRoutes({
+          safeFetchOptions: {
+            dnsResolver: async () => [{ address: '127.0.0.1', family: 4 }],
+            allowTestLocalhost: true,
+            timeoutMs: 100,
+          },
+        }),
+      );
+      await new Promise<void>((resolve) => {
+        injectedApiServer = injectedApp.listen(0, '127.0.0.1', () => {
+          const port = (injectedApiServer.address() as any).port;
+          injectedApiBaseUrl = `http://127.0.0.1:${port}`;
+          resolve();
+        });
+      });
     });
 
     after(async () => {
@@ -872,6 +997,12 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       }
       await new Promise<void>((resolve) => {
         apiServer.close(() => resolve());
+      });
+      await new Promise<void>((resolve) => {
+        injectedApiServer.close(() => resolve());
+      });
+      await new Promise<void>((resolve) => {
+        targetServer.close(() => resolve());
       });
     });
 
@@ -924,6 +1055,46 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       }
     });
 
+    it('validates a Pinterest target IP and stops before oEmbed when DNS resolves privately', async () => {
+      let resolverCalls = 0;
+      const pinterestApp = express();
+      pinterestApp.use(
+        '/v1',
+        createMetaRoutes({
+          safeFetchOptions: {
+            dnsResolver: async () => {
+              resolverCalls += 1;
+              return [{ address: '169.254.169.254', family: 4 }];
+            },
+          },
+        }),
+      );
+      const pinterestServer = pinterestApp.listen(0, '127.0.0.1');
+      await new Promise<void>((resolve) => pinterestServer.once('listening', resolve));
+      const port = (pinterestServer.address() as any).port;
+
+      try {
+        const target = 'https://www.pinterest.com/pin/123456789/';
+        const res = await fetch(
+          `http://127.0.0.1:${port}/v1/meta/link-preview?url=${encodeURIComponent(target)}`,
+          { headers: { Cookie: authCookie } },
+        );
+
+        assert.strictEqual(res.status, 400);
+        const body = (await res.json()) as any;
+        assert.deepStrictEqual(body, {
+          error: {
+            code: 'UNSAFE_URL',
+            message: 'The provided URL is not supported or allowed.',
+          },
+        });
+        assert.strictEqual(resolverCalls, 1);
+        assert.ok(!JSON.stringify(body).includes('169.254.169.254'));
+      } finally {
+        await new Promise<void>((resolve) => pinterestServer.close(() => resolve()));
+      }
+    });
+
     it('serves cached responses without duplicate fetches on cache hit', async () => {
       const testUrl = 'https://cached-example.test/article';
       const res1 = await fetch(
@@ -961,6 +1132,58 @@ describe('SEC-01: SSRF Prevention & Link Preview Security', () => {
       assert.strictEqual(body.data?.url, unreachableUrl);
       assert.strictEqual(body.data?.title, 'unreachable-external-site-999.test');
       assert.strictEqual(body.data?.siteName, 'unreachable-external-site-999.test');
+    });
+
+    it('returns a safe RESPONSE_TOO_LARGE endpoint error without leaking the pinned address', async () => {
+      const target = `http://public-target.example.test:${targetPort}/oversized`;
+      const res = await fetch(
+        `${injectedApiBaseUrl}/v1/meta/link-preview?url=${encodeURIComponent(target)}`,
+        { headers: { Cookie: authCookie } },
+      );
+
+      assert.strictEqual(res.status, 400);
+      const body = (await res.json()) as any;
+      assert.deepStrictEqual(body, {
+        error: {
+          code: 'RESPONSE_TOO_LARGE',
+          message: 'The requested resource exceeds the maximum permitted size.',
+        },
+      });
+      assert.ok(!JSON.stringify(body).includes('127.0.0.1'));
+    });
+
+    it('returns a safe fallback on endpoint timeout without leaking transport details', async () => {
+      const target = `http://public-timeout.example.test:${targetPort}/timeout`;
+      const res = await fetch(
+        `${injectedApiBaseUrl}/v1/meta/link-preview?url=${encodeURIComponent(target)}`,
+        { headers: { Cookie: authCookie } },
+      );
+
+      assert.strictEqual(res.status, 200);
+      const body = (await res.json()) as any;
+      assert.strictEqual(body.data?.url, target);
+      assert.strictEqual(body.data?.title, 'public-timeout.example.test');
+      const serialized = JSON.stringify(body);
+      assert.ok(!serialized.includes('127.0.0.1'));
+      assert.ok(!serialized.includes('TIMEOUT'));
+    });
+
+    it('returns generic UNSAFE_URL when a public target redirects to cloud metadata', async () => {
+      const target = `http://public-redirect.example.test:${targetPort}/redirect-private`;
+      const res = await fetch(
+        `${injectedApiBaseUrl}/v1/meta/link-preview?url=${encodeURIComponent(target)}`,
+        { headers: { Cookie: authCookie } },
+      );
+
+      assert.strictEqual(res.status, 400);
+      const body = (await res.json()) as any;
+      assert.deepStrictEqual(body, {
+        error: {
+          code: 'UNSAFE_URL',
+          message: 'The provided URL is not supported or allowed.',
+        },
+      });
+      assert.ok(!JSON.stringify(body).includes('169.254.169.254'));
     });
   });
 });

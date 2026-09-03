@@ -11,6 +11,14 @@ Use this format at the end of every task.
 
 <What now works or what was decided.>
 
+## Source of truth and impact
+
+- **Applicable SSoT:** <links or N/A with reason>
+- **Policy IDs:** <IDs from docs/POLICY_REGISTRY.md or N/A with reason>
+- **Data/interface impact:** <describe or None>
+- **Authorization impact:** <describe or None>
+- **Migration risk:** <describe or None>
+
 ## Changed files
 
 - `<path>` — <purpose>
@@ -18,6 +26,7 @@ Use this format at the end of every task.
 ## Validation
 
 - `<command or check>` — <pass/fail result>
+- Include exact pass/fail counts, skipped tests, warnings, environment, and known gaps.
 
 ## Risks or follow-up
 
@@ -57,4 +66,3 @@ The API now validates its database configuration and exposes a health check that
 
 - Configure PostgreSQL, Sequelize connection, migrations, seeders, and health check → In progress
 ```
-

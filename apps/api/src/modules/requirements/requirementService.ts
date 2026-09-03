@@ -596,11 +596,9 @@ export class RequirementService {
 
       const links = await TaskRequirementModel.findAll({
         where: {
-          workspaceId,
           taskId,
           requirementId: { [Op.in]: input.requirementIds },
         },
-        include: [{ model: RequirementModel, as: 'requirement', required: true }],
         transaction,
         lock: transaction.LOCK.UPDATE,
       });
@@ -611,11 +609,26 @@ export class RequirementService {
         );
       }
 
-      const requirementSummaries = links.map((link) => ({
-        id: link.requirementId,
-        code: link.requirement?.code || '',
-        title: link.requirement?.title || '',
-      }));
+      const requirements = await RequirementModel.findAll({
+        where: { id: { [Op.in]: input.requirementIds }, workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (requirements.length !== input.requirementIds.length) {
+        throw new Error('BAD_REQUEST: Every selected Requirement must belong to this workspace.');
+      }
+
+      const requirementById = new Map(
+        requirements.map((requirement) => [requirement.id, requirement]),
+      );
+      const requirementSummaries = input.requirementIds.map((requirementId) => {
+        const requirement = requirementById.get(requirementId)!;
+        return {
+          id: requirement.id,
+          code: requirement.code,
+          title: requirement.title,
+        };
+      });
 
       if (input.action === 'unlink') {
         await TaskRequirementModel.destroy({

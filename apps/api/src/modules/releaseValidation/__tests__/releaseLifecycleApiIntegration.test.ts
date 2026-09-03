@@ -293,7 +293,18 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
       },
       201,
     );
-    const testCase = testCaseBody.testCase as { id: string };
+    const testCase = testCaseBody.testCase as { id: string; status: string };
+    assert.strictEqual(testCase.status, 'draft');
+
+    for (const status of ['in_review', 'active']) {
+      const transitionBody = await request(
+        `/workspaces/${workspace.id}/test-cases/${testCase.id}`,
+        poCookie,
+        { method: 'PATCH', body: { status } },
+        200,
+      );
+      assert.strictEqual(transitionBody.testCase.status, status);
+    }
 
     await request(
       `/workspaces/${workspace.id}/test-cases/${testCase.id}`,

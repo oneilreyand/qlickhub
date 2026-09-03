@@ -20,13 +20,19 @@ The authoritative documentation for this repository is organized into 4 core SSo
 
 1. Install Node 24 with your version manager (`nvm use` reads `.nvmrc`).
 2. Install the locked dependency set with `npm ci`.
-3. Copy `.env.example` to `.env`, then provide local PostgreSQL and Firebase values as needed.
-   Never commit `.env` or credentials.
-4. Apply local migrations with `npm run db:migrate`.
-5. In separate terminals, start the API with `npm run dev:api` and the web app with
+3. Run `npm run env:setup:local` to create the two ignored local env files without overwriting
+   existing configuration.
+4. Update `.env` and `apps/web/.env.local` as needed, then run `npm run env:check`. Never commit
+   credentials.
+5. Apply local migrations with `npm run db:migrate`.
+6. In separate terminals, start the API with `npm run dev:api` and the web app with
    `npm run dev:web`.
 
 The web app runs at `http://localhost:3000`; the API defaults to port `4000`.
+
+For the complete Local → Preview → Production configuration, URL routing, secret boundaries,
+migration safety, deployment, and rollback flow, read
+[`docs/DEPLOYMENT_AND_ENVIRONMENTS.md`](docs/DEPLOYMENT_AND_ENVIRONMENTS.md).
 
 ## Quality checks
 

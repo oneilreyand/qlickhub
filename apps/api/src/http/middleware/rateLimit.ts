@@ -55,6 +55,7 @@ export interface LinkPreviewRateLimiterOptions {
   windowMs?: number;
   limit?: number;
   skip?: (req: any, res: any) => boolean;
+  environment?: 'development' | 'production' | 'test';
 }
 
 /**
@@ -64,10 +65,11 @@ export interface LinkPreviewRateLimiterOptions {
 export function createLinkPreviewRateLimiter(
   options: LinkPreviewRateLimiterOptions = {},
 ): RequestHandler {
+  const environment = options.environment ?? env.NODE_ENV;
   return rateLimit({
     windowMs: options.windowMs ?? DEFAULT_LINK_PREVIEW_WINDOW_MS,
-    limit: options.limit ?? (env.NODE_ENV === 'production' ? DEFAULT_LINK_PREVIEW_RATE_LIMIT : 500),
-    skip: options.skip ?? (() => env.NODE_ENV === 'test'),
+    limit: options.limit ?? (environment === 'production' ? DEFAULT_LINK_PREVIEW_RATE_LIMIT : 500),
+    skip: options.skip ?? (() => environment === 'test'),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     keyGenerator: (req) => {

@@ -433,7 +433,8 @@ export class TestManagementService {
         throw new Error('NOT_FOUND: Test Case not found in this workspace.');
       }
 
-      assertCanUpdateTestCase(membership.role, testCase.status, input.status);
+      const previousStatus = testCase.status;
+      assertCanUpdateTestCase(membership.role, previousStatus, input.status);
 
       if (input.externalReference && input.externalReference !== testCase.externalReference) {
         const existingRef = await TestCaseModel.findOne({
@@ -499,12 +500,12 @@ export class TestManagementService {
           testCaseId: input.testCaseId,
           actorId,
           action:
-            input.status && input.status !== testCase.status
+            input.status && input.status !== previousStatus
               ? 'test_case_status_changed'
               : 'test_case_updated',
           metadata: {
-            previousStatus: testCase.status,
-            newStatus: input.status || testCase.status,
+            previousStatus,
+            newStatus: input.status || previousStatus,
             updatedFields: Object.keys(updates),
           },
         },

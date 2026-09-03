@@ -328,6 +328,7 @@ export function parseNonStandardIpv4(host: string): number | null {
 export interface ValidateUrlSafetyOptions {
   dnsResolver?: DnsLookupFn;
   allowTestLocalhost?: boolean;
+  deadlineAt?: number;
 }
 
 export interface ValidateUrlSafetyResult {
@@ -460,7 +461,32 @@ export async function validateUrlSafety(
 
   // 6. Perform DNS resolution exactly once and verify all returned addresses
   try {
-    const lookups = await dnsResolver(hostname);
+    const lookupPromise = dnsResolver(hostname);
+    let deadlineTimer: NodeJS.Timeout | undefined;
+    const remainingMs = options.deadlineAt ? options.deadlineAt - Date.now() : undefined;
+
+    if (remainingMs !== undefined && remainingMs <= 0) {
+      return { safe: false, error: 'TIMEOUT' };
+    }
+
+    const lookupResult = await Promise.race([
+      lookupPromise.then((lookups) => ({ status: 'resolved' as const, lookups })),
+      ...(remainingMs === undefined
+        ? []
+        : [
+            new Promise<{ status: 'timeout' }>((resolve) => {
+              deadlineTimer = setTimeout(() => resolve({ status: 'timeout' }), remainingMs);
+            }),
+          ]),
+    ]).finally(() => {
+      if (deadlineTimer) clearTimeout(deadlineTimer);
+    });
+
+    if (lookupResult.status === 'timeout') {
+      return { safe: false, error: 'TIMEOUT' };
+    }
+
+    const lookups = lookupResult.lookups;
     if (!lookups || lookups.length === 0) {
       return { safe: false, error: 'DNS_LOOKUP_EMPTY' };
     }
@@ -494,6 +520,9 @@ export interface SafeFetchOptions {
   allowedContentTypes?: string[];
   dnsResolver?: DnsLookupFn;
   allowTestLocalhost?: boolean;
+  initialSafetyCheck?: ValidateUrlSafetyResult;
+  /** Test-only trust anchor; ignored unless NODE_ENV=test and localhost testing is enabled. */
+  testTlsCa?: string | Buffer;
 }
 
 export interface SafeFetchResponse {
@@ -505,6 +534,30 @@ export interface SafeFetchResponse {
   contentType?: string;
   error?: string;
   pinnedIpUsed?: string;
+}
+
+function canReuseInitialSafetyCheck(
+  targetUrl: string,
+  safetyCheck: ValidateUrlSafetyResult | undefined,
+  allowTestLocalhost: boolean | undefined,
+): safetyCheck is ValidateUrlSafetyResult & {
+  safe: true;
+  parsedUrl: URL;
+  pinnedAddress: string;
+} {
+  if (!safetyCheck?.safe || !safetyCheck.parsedUrl || !safetyCheck.pinnedAddress) return false;
+
+  try {
+    if (safetyCheck.parsedUrl.href !== new URL(targetUrl).href) return false;
+  } catch {
+    return false;
+  }
+
+  const addresses = safetyCheck.resolvedAddresses || [safetyCheck.pinnedAddress];
+  return addresses.every(
+    (address) =>
+      !isPrivateOrReservedIp(address) || Boolean(allowTestLocalhost && isLoopback(address)),
+  );
 }
 
 /**
@@ -529,6 +582,7 @@ export async function safeFetch(
   const deadline = Date.now() + timeoutMs;
   let currentUrl = targetUrl;
   let hops = 0;
+  let initialSafetyCheck = options.initialSafetyCheck;
 
   while (hops <= maxRedirects) {
     const remainingMs = deadline - Date.now();
@@ -537,15 +591,28 @@ export async function safeFetch(
     }
 
     // 1. Single DNS resolution and comprehensive safety validation for current hop
-    const safetyCheck = await validateUrlSafety(currentUrl, {
-      dnsResolver: options.dnsResolver,
-      allowTestLocalhost: options.allowTestLocalhost,
-    });
+    const safetyCheck = canReuseInitialSafetyCheck(
+      currentUrl,
+      initialSafetyCheck,
+      options.allowTestLocalhost,
+    )
+      ? initialSafetyCheck
+      : await validateUrlSafety(currentUrl, {
+          dnsResolver: options.dnsResolver,
+          allowTestLocalhost: options.allowTestLocalhost,
+          deadlineAt: deadline,
+        });
+    initialSafetyCheck = undefined;
 
     if (!safetyCheck.safe || !safetyCheck.parsedUrl || !safetyCheck.pinnedAddress) {
       return {
         ok: false,
-        error: hops === 0 ? safetyCheck.error || 'UNSAFE_URL' : 'UNSAFE_REDIRECT',
+        error:
+          safetyCheck.error === 'TIMEOUT'
+            ? 'TIMEOUT'
+            : hops === 0
+              ? safetyCheck.error || 'UNSAFE_URL'
+              : 'UNSAFE_REDIRECT',
       };
     }
 
@@ -636,7 +703,16 @@ export async function safeFetch(
             // TLS verification is strictly enabled
             rejectUnauthorized: true,
             // Ensure SNI matches the target hostname
-            ...(isHttps ? { servername: parsedUrl.hostname } : {}),
+            ...(isHttps
+              ? {
+                  servername: parsedUrl.hostname,
+                  ...(process.env.NODE_ENV === 'test' &&
+                  options.allowTestLocalhost &&
+                  options.testTlsCa
+                    ? { ca: options.testTlsCa }
+                    : {}),
+                }
+              : {}),
           },
           (res) => {
             activeRes = res;

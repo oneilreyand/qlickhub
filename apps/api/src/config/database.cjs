@@ -4,9 +4,8 @@ const dotenv = require('dotenv');
 const rootEnvPath = path.resolve(__dirname, '../../../../.env');
 dotenv.config({ path: rootEnvPath });
 
-const migrationConnectionUrl = new URL(
-  process.env.MIGRATION_DATABASE_URL ||
-    process.env.PRODUCTION_DATABASE_URL ||
+const developmentConnectionUrl = new URL(
+  process.env.LOCAL_DATABASE_URL ||
     process.env.DATABASE_URL ||
     'postgres://postgres:postgres@localhost:5432/qa_management_dev',
 );
@@ -33,7 +32,7 @@ const toDatabaseConfig = (connectionUrl, useSsl = false) => ({
 });
 
 module.exports = {
-  development: toDatabaseConfig(migrationConnectionUrl, process.env.DATABASE_SSL === 'true'),
+  development: toDatabaseConfig(developmentConnectionUrl, process.env.DATABASE_SSL === 'true'),
   test: toDatabaseConfig(testConnectionUrl),
   production: {
     use_env_variable: process.env.MIGRATION_DATABASE_URL

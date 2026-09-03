@@ -7,6 +7,11 @@
 
 ## 1. Hirarki Kebenaran (_Source of Truth Hierarchy_)
 
+Every contributor and AI agent starts at
+[`0_PRODUCT_KNOWLEDGE_MAP.md`](0_PRODUCT_KNOWLEDGE_MAP.md) to select the applicable sources. The
+map and [`POLICY_REGISTRY.md`](POLICY_REGISTRY.md) are navigation/index layers; they do not change
+the precedence below.
+
 ```mermaid
 graph LR
     User["1. Instruksi Langsung Pengguna"] --> Security["2. Batasan Keamanan (Security Constraints)"]
@@ -29,6 +34,25 @@ graph LR
     class Guidelines c5;
     class Backlog c6;
 ```
+
+---
+
+### Documentation Governance Gate
+
+1. Cite stable Policy IDs when a Feature Card, plan, test, or report crosses a policy boundary.
+2. Change policy through an ADR and the affected canonical SSoT before changing implementation.
+3. Use [`features/FEATURE_TEMPLATE.md`](features/FEATURE_TEMPLATE.md) for cross-role or
+   cross-layer feature knowledge.
+4. Treat shared contracts as the executable interface boundary; do not restate their field shapes
+   in multiple documents.
+5. Treat reports as observed evidence, never as a source of new product policy.
+6. Run `npm run docs:check`; `npm run validate` and CI enforce this structural gate.
+7. Stop and surface conflicts between policy, contracts, implementation, and evidence.
+8. Never include values from `.env` or another secret store in documentation or evidence.
+
+The automated gate verifies required entry points, local links, unique Policy IDs, known policy
+references, Feature Card structure, and CI integration. Human semantic review remains mandatory
+for product behavior, authorization, destructive migrations, and release policy.
 
 ---
 
@@ -137,35 +161,7 @@ graph TD
 
 ## 5. Template Laporan Serah Terima (_Agent Report Template_)
 
-Gunakan format baku berikut saat membuat laporan di `docs/reports/`:
-
-```markdown
-# [KODE_TASK] Laporan Eksekusi Fitur — YYYY-MM-DD
-
-- **Pelaksana:** Nama Agen / Pengembang
-- **Tanggal:** YYYY-MM-DD
-- **Status:** Done / Blocked
-- **Referensi Task:** TODO.md — [NAMA_TASK]
-
-## 1. Ringkasan Perubahan
-
-Jelaskan secara singkat apa yang diimplementasikan atau diperbaiki.
-
-## 2. Berkas yang Diubah / Dibuat
-
-- `[NEW/MODIFY]` path/to/file.ts
-- `[NEW/MODIFY]` path/to/file.tsx
-
-## 3. Bukti Verifikasi Pengujian (Test Evidence)
-
-Cantumkan perintah pengujian yang dijalankan beserta hasilnya:
-
-- **API Tests:** `npm run test:api` (XX passing, 0 failing)
-- **Web Tests:** `npm run test:web` (XX passing, 0 failing)
-- **Typecheck & Build:** `npm run typecheck` & `npm run build` (Exit 0)
-- **Database Migrations:** Status migrasi PostgreSQL bersih.
-
-## 4. Catatan Khusus & Handoff
-
-Catatan penting untuk rilis, deployment, atau tugas lanjutan.
-```
+Gunakan satu template kanonikal di
+[`AGENT_REPORT_TEMPLATE.md`](../AGENT_REPORT_TEMPLATE.md) saat membuat laporan di
+`docs/reports/`. Jangan menyimpan salinan template lain karena salinan dapat berkembang menjadi
+kontrak pelaporan yang berbeda.

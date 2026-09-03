@@ -238,8 +238,11 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     });
 
     assert.strictEqual(response.status, 201);
-    const body = (await response.json()) as { testCase: { id: string; requirementIds: string[] } };
+    const body = (await response.json()) as {
+      testCase: { id: string; requirementIds: string[]; status: string };
+    };
     testCaseId = body.testCase.id;
+    assert.strictEqual(body.testCase.status, 'draft');
     assert.deepStrictEqual(
       new Set(body.testCase.requirementIds),
       new Set([requirementA.id, requirementB.id]),
@@ -249,24 +252,21 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       2,
     );
 
-    const reviewRes = await fetch(
-      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
-        body: JSON.stringify({ status: 'in_review' }),
-      },
-    );
-    assert.strictEqual(reviewRes.status, 200);
-    const publishRes = await fetch(
-      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
-        body: JSON.stringify({ status: 'active' }),
-      },
-    );
-    assert.strictEqual(publishRes.status, 200);
+    for (const status of ['in_review', 'active']) {
+      const publishResponse = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({ status }),
+        },
+      );
+      assert.strictEqual(publishResponse.status, 200);
+      const publishBody = (await publishResponse.json()) as {
+        testCase: { status: string };
+      };
+      assert.strictEqual(publishBody.testCase.status, status);
+    }
   });
 
   test('preserves a pass in one build and a fail in a later build as separate immutable history', async () => {
@@ -440,8 +440,8 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       body.activity.map((item) => item.action),
       [
         'test_case_created',
-        'test_case_updated',
-        'test_case_updated',
+        'test_case_status_changed',
+        'test_case_status_changed',
         'test_run_started',
         'test_result_recorded',
         'test_run_started',
@@ -451,16 +451,37 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
   });
 
   test('enforces the explicit definition/execution role split', async () => {
-    const qaCreate = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
+    const qaCreateResponse = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
       body: JSON.stringify({
         title: 'QA definition',
-        status: 'active',
+        status: 'draft',
         requirementIds: [requirementA.id],
       }),
     });
-    assert.strictEqual(qaCreate.status, 403);
+    assert.strictEqual(qaCreateResponse.status, 201);
+    const qaCreateBody = (await qaCreateResponse.json()) as { testCase: { id: string } };
+
+    const qaReviewResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaCreateBody.testCase.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ status: 'in_review' }),
+      },
+    );
+    assert.strictEqual(qaReviewResponse.status, 200);
+
+    const qaPublishResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaCreateBody.testCase.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ status: 'active' }),
+      },
+    );
+    assert.strictEqual(qaPublishResponse.status, 403);
 
     const poRun = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,

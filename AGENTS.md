@@ -4,13 +4,15 @@ This file is the mandatory operating guide for every agent working in this repos
 
 ## Source of truth
 
-Read these SSoT documents before making changes:
+Start with the navigation map, then read every applicable SSoT before making changes:
 
-1. [`docs/1_ARCHITECTURE.md`](docs/1_ARCHITECTURE.md) — SSoT for domain model, hierarchy, RBAC, schema, and security.
-2. [`docs/2_WORKFLOW_AND_ROLES.md`](docs/2_WORKFLOW_AND_ROLES.md) — SSoT for end-to-end role workflow, subtasks, QA test management, and release gates.
-3. [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md) — SSoT for atomic UI components, Stitch design tokens, and route layout.
-4. [`docs/4_AGENT_DEV_GUIDELINES.md`](docs/4_AGENT_DEV_GUIDELINES.md) — SSoT for developer rules, PostgreSQL test evidence policy, and handoff report template.
-5. [`TODO.md`](TODO.md) — Current prioritized active backlog.
+1. [`docs/0_PRODUCT_KNOWLEDGE_MAP.md`](docs/0_PRODUCT_KNOWLEDGE_MAP.md) — mandatory entry point and role-specific reading paths; it is an index, not a competing policy source.
+2. [`docs/1_ARCHITECTURE.md`](docs/1_ARCHITECTURE.md) — SSoT for domain model, hierarchy, RBAC, schema, and security.
+3. [`docs/2_WORKFLOW_AND_ROLES.md`](docs/2_WORKFLOW_AND_ROLES.md) — SSoT for end-to-end role workflow, subtasks, QA test management, and release gates.
+4. [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md) — SSoT for atomic UI components, Stitch design tokens, and route layout.
+5. [`docs/4_AGENT_DEV_GUIDELINES.md`](docs/4_AGENT_DEV_GUIDELINES.md) — SSoT for developer rules, PostgreSQL test evidence policy, and handoff report template.
+6. [`docs/POLICY_REGISTRY.md`](docs/POLICY_REGISTRY.md) — stable identifiers pointing to approved SSoT rules; it never overrides the source document.
+7. [`TODO.md`](TODO.md) — Current prioritized active backlog.
 
 When documents conflict, use this priority: explicit user instruction → security constraints → SSoT Architecture & Workflow (`docs/1_ARCHITECTURE.md`, `docs/2_WORKFLOW_AND_ROLES.md`) → UI Design System (`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`) → Agent Guidelines (`docs/4_AGENT_DEV_GUIDELINES.md`) → TODO.
 
@@ -18,6 +20,7 @@ When documents conflict, use this priority: explicit user instruction → securi
 
 - For all frontend work, follow [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md). Reuse the Atomic Design system before adding markup or styles to a page.
 - Work on exactly one TODO item or one tightly related subtask at a time.
+- Cite applicable Policy IDs from `docs/POLICY_REGISTRY.md` in Feature Knowledge Cards, plans, and reports when a policy boundary is involved.
 - Before editing, inspect the relevant code and identify the files likely to change.
 - Do not make silent product, role, schema, migration, or workflow assumptions. Resolve the answer from the source-of-truth documents and current implementation. If evidence conflicts or a choice materially changes behavior/data, document the conflict and request an explicit decision; mark the TODO item `Blocked` when work cannot safely continue.
 - Every plan must state confirmed facts, unresolved decisions, files likely to change, data/interface impact, authorization impact, migration risk, and validation evidence. Do not present guesses as repository facts.
@@ -28,6 +31,15 @@ When documents conflict, use this priority: explicit user instruction → securi
 - Enforce authorization in backend policy/services. UI visibility is not authorization.
 - Never expose `DATABASE_URL`, JWT secrets, Google Drive service-account credentials, or AI keys to the browser.
 - Keep the Stitch design contract intact: Inter, primary brand lime `#B1E743` (with `#141413` charcoal contrast text for WCAG AAA compliance), emerald `#10B981`, amber `#F59E0B`, neutral `#64748B`, sidebar navy `#0B1C30`, 16px cards, and accessible dark mode.
+
+## Documentation compliance
+
+- Use `docs/features/FEATURE_TEMPLATE.md` for a user-visible workflow that spans roles or application layers, changes shared contracts/persistence, or introduces an authorization, QA evidence, or release-readiness boundary.
+- A policy change must be recorded in an ADR and applied to the canonical SSoT before implementation. Reports and TODO entries are evidence/status, not policy sources.
+- Keep one canonical definition and link to it. Do not copy policy prose into model-specific instruction files or feature documents.
+- Run `npm run docs:check` for every documentation or policy change. It is part of `npm run validate` and the CI gate.
+- If policy, contract, implementation, or evidence conflicts, stop and report the conflict instead of choosing one silently.
+- Never copy `.env` values, credentials, tokens, connection strings, or service-account material into documents, TODO entries, reports, fixtures, or logs.
 
 ## Data and test evidence
 

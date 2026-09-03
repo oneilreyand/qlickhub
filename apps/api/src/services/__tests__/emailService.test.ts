@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 import { EmailService, SendEmailOptions } from '../emailService.js';
 
 describe('EmailService', () => {
-  test('sendWorkspaceInvitationEmail includes banner image, workspace list, and login URL', async () => {
+  test('sendWorkspaceInvitationEmail includes banner, workspace list, and one-time set-password link', async () => {
     const service = new EmailService();
     let sentOptions: SendEmailOptions | null = null;
 
@@ -18,7 +18,7 @@ describe('EmailService', () => {
       ['Core Platform', 'Analytics Hub'],
       'Alice Admin',
       'dev',
-      true,
+      'set-password-token-xyz',
     );
 
     assert.strictEqual(result.sent, true);
@@ -37,7 +37,9 @@ describe('EmailService', () => {
     assert.ok(options.html.includes('DEV'));
     assert.ok(options.html.includes('Core Platform'));
     assert.ok(options.html.includes('Analytics Hub'));
-    assert.ok(options.html.includes('Password123!'));
+    assert.ok(options.html.includes('reset-password?token=set-password-token-xyz'));
+    assert.ok(options.html.includes('Set Password'));
+    assert.ok(!options.html.includes('Password123!'));
     assert.ok(options.html.includes('/login'));
   });
 
