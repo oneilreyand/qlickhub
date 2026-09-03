@@ -33,6 +33,7 @@ const envSchema = z.object({
   VERCEL_URL: z.string().min(1).optional(),
   VERCEL_PROJECT_PRODUCTION_URL: z.string().min(1).optional(),
   VERCEL: z.string().min(1).optional(),
+  VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(10).optional(),
   COOKIE_SAME_SITE: z.enum(['strict', 'lax', 'none']).default('lax'),
   SMTP_HOST: z.string().min(1).default('smtp.gmail.com'),
@@ -54,6 +55,10 @@ const envSchema = z.object({
   FIREBASE_PROJECT_ID: z.string().min(1).default('ndeks-fcm'),
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
   FIREBASE_SERVICE_ACCOUNT_PATH: z.string().min(1).optional(),
+  LINK_PREVIEW_RATE_LIMIT_STORE: z.enum(['memory', 'upstash']).optional(),
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  RATE_LIMIT_KEY_SECRET: z.string().min(32).optional(),
 });
 
 export const normalizeEnvironmentInput = (input: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
@@ -78,6 +83,11 @@ export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
     'postgres://postgres:postgres@localhost:5432/qa_management_dev';
   const defaultTestDatabaseUrl = 'postgres://postgres:postgres@localhost:5432/qa_management_test';
   const isProduction = values.NODE_ENV === 'production';
+  const requiresDistributedLinkPreviewLimit =
+    isProduction || values.VERCEL_ENV === 'production' || values.VERCEL_ENV === 'preview';
+  const linkPreviewRateLimitStore =
+    values.LINK_PREVIEW_RATE_LIMIT_STORE ||
+    (requiresDistributedLinkPreviewLimit ? 'upstash' : 'memory');
   const attachmentStorageProvider =
     values.ATTACHMENT_STORAGE_PROVIDER || (isProduction ? 'google_drive' : 'local');
   const databaseUrl =
@@ -107,6 +117,24 @@ export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
     }
   }
 
+  if (requiresDistributedLinkPreviewLimit && linkPreviewRateLimitStore !== 'upstash') {
+    throw new Error(
+      'LINK_PREVIEW_RATE_LIMIT_STORE=upstash is required in production and Vercel Preview.',
+    );
+  }
+
+  if (linkPreviewRateLimitStore === 'upstash') {
+    if (!values.UPSTASH_REDIS_REST_URL) {
+      throw new Error('UPSTASH_REDIS_REST_URL must be configured for the Upstash rate limiter.');
+    }
+    if (!values.UPSTASH_REDIS_REST_TOKEN) {
+      throw new Error('UPSTASH_REDIS_REST_TOKEN must be configured for the Upstash rate limiter.');
+    }
+    if (!values.RATE_LIMIT_KEY_SECRET) {
+      throw new Error('RATE_LIMIT_KEY_SECRET must be configured for the Upstash rate limiter.');
+    }
+  }
+
   const databaseSsl = values.NODE_ENV === 'test' ? false : values.DATABASE_SSL;
 
   return {
@@ -115,6 +143,7 @@ export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
     DATABASE_SSL: databaseSsl,
     JWT_ACCESS_SECRET: jwtAccessSecret,
     ATTACHMENT_STORAGE_PROVIDER: attachmentStorageProvider,
+    LINK_PREVIEW_RATE_LIMIT_STORE: linkPreviewRateLimitStore,
   };
 };
 

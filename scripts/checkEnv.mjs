@@ -98,6 +98,34 @@ if (!backend) {
   ) {
     errors.push('backend: DATABASE_SSL=true is required in production');
   }
+  const linkPreviewRateLimitStore =
+    backend.values.get('LINK_PREVIEW_RATE_LIMIT_STORE') ||
+    (backend.values.get('NODE_ENV') === 'production' ||
+    ['production', 'preview'].includes(backend.values.get('VERCEL_ENV'))
+      ? 'upstash'
+      : 'memory');
+  if (!['memory', 'upstash'].includes(linkPreviewRateLimitStore)) {
+    errors.push('backend: LINK_PREVIEW_RATE_LIMIT_STORE must be memory or upstash');
+  }
+  if (
+    (backend.values.get('NODE_ENV') === 'production' ||
+      ['production', 'preview'].includes(backend.values.get('VERCEL_ENV'))) &&
+    linkPreviewRateLimitStore !== 'upstash'
+  ) {
+    errors.push(
+      'backend: LINK_PREVIEW_RATE_LIMIT_STORE=upstash is required in production and Vercel Preview',
+    );
+  }
+  if (linkPreviewRateLimitStore === 'upstash') {
+    requireKeys('backend', backend, [
+      'UPSTASH_REDIS_REST_URL',
+      'UPSTASH_REDIS_REST_TOKEN',
+      'RATE_LIMIT_KEY_SECRET',
+    ]);
+    if ((backend.values.get('RATE_LIMIT_KEY_SECRET') || '').length < 32) {
+      errors.push('backend: RATE_LIMIT_KEY_SECRET must contain at least 32 characters');
+    }
+  }
   if ((backend.values.get('CORS_ORIGIN') || '').split(',').some((value) => value.trim() === '*')) {
     errors.push('backend: CORS_ORIGIN must not contain a wildcard');
   }
