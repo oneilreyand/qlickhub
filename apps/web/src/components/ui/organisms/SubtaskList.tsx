@@ -22,7 +22,8 @@ import { Alert } from '../atoms/Alert';
 import { ProgressBar } from '../atoms/ProgressBar';
 
 export const EMPTY_SUBTASKS_ILLUSTRATION_URL =
-  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024045/ChatGPT_Image_Aug_18_2026_10_32_51_AM.png';
+  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024043/ChatGPT_Image_Aug_18_2026_10_33_31_AM.png';
+export const LOCAL_EMPTY_SUBTASKS_ILLUSTRATION_URL = '/illustrations/empty-subtasks.png';
 
 export interface SubtaskListProps {
   subtasks: Task[];
@@ -70,6 +71,10 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
   const [selectedArea, setSelectedArea] = useState<DeliveryArea | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [emptyIllustrationSrc, setEmptyIllustrationSrc] = useState(
+    EMPTY_SUBTASKS_ILLUSTRATION_URL,
+  );
+  const [emptyIllustrationFailed, setEmptyIllustrationFailed] = useState(false);
 
   React.useEffect(() => {
     setExpandedIds([]);
@@ -418,16 +423,31 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
           {subtasks.length === 0 ? (
             <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
               <div className="flex justify-center">
-                <img
-                  src={EMPTY_SUBTASKS_ILLUSTRATION_URL}
-                  alt="No subtasks created"
-                  className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
-                  loading="lazy"
-                />
-                <div className="hidden dark:flex items-center justify-center py-2">
-                  <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
+                {!emptyIllustrationFailed && (
+                  <img
+                    src={emptyIllustrationSrc}
+                    alt="No subtasks created"
+                    className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
+                    loading="lazy"
+                    onError={() => {
+                      if (emptyIllustrationSrc !== LOCAL_EMPTY_SUBTASKS_ILLUSTRATION_URL) {
+                        setEmptyIllustrationSrc(LOCAL_EMPTY_SUBTASKS_ILLUSTRATION_URL);
+                      } else {
+                        setEmptyIllustrationFailed(true);
+                      }
+                    }}
+                  />
+                )}
+                <div
+                  className={
+                    emptyIllustrationFailed
+                      ? 'flex items-center justify-center py-2'
+                      : 'hidden dark:flex items-center justify-center py-2'
+                  }
+                >
+                  <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-inner">
                     <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
-                    <ListTodo className="h-7 w-7 text-[#B1E743]" />
+                    <ListTodo className="h-7 w-7 text-stone-700 dark:text-[#B1E743]" />
                   </div>
                 </div>
               </div>

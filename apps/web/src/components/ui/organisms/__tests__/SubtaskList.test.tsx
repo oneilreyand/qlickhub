@@ -4,7 +4,11 @@ import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { SubtaskList } from '../SubtaskList';
+import {
+  SubtaskList,
+  EMPTY_SUBTASKS_ILLUSTRATION_URL,
+  LOCAL_EMPTY_SUBTASKS_ILLUSTRATION_URL,
+} from '../SubtaskList';
 import { taskService } from '../../../../lib/api/taskService';
 import taskReducer from '../../../../store/taskSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
@@ -189,11 +193,30 @@ describe('SubtaskList Organism Component', () => {
     );
 
     expect(screen.getByText(/No subtasks created under this task/i)).toBeInTheDocument();
+    const img = screen.getByAltText('No subtasks created');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('src', EMPTY_SUBTASKS_ILLUSTRATION_URL);
+
     const planBtn = screen.getByRole('button', { name: /Plan First Subtask/i });
     expect(planBtn).toBeInTheDocument();
 
     fireEvent.click(planBtn);
     expect(onOpenCreateModal).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to local illustration and then fallback icon when image loading fails', () => {
+    renderWithStore(<SubtaskList subtasks={[]} workspaceId="ws-1" />);
+
+    const img = screen.getByAltText('No subtasks created');
+    expect(img).toHaveAttribute('src', EMPTY_SUBTASKS_ILLUSTRATION_URL);
+
+    // Trigger first error -> should fall back to local illustration (Option A)
+    fireEvent.error(img);
+    expect(img).toHaveAttribute('src', LOCAL_EMPTY_SUBTASKS_ILLUSTRATION_URL);
+
+    // Trigger second error -> should fall back to icon (Option C)
+    fireEvent.error(img);
+    expect(screen.queryByAltText('No subtasks created')).not.toBeInTheDocument();
   });
 
   it('expands accordion item when clicking subtask row and reveals inner workspace', async () => {
