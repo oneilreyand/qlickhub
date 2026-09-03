@@ -791,7 +791,7 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute(
       'src',
-      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024045/ChatGPT_Image_Aug_18_2026_10_32_51_AM.png',
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787024043/ChatGPT_Image_Aug_18_2026_10_33_31_AM.png',
     );
   });
 
