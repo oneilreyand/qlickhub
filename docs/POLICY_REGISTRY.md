@@ -2,7 +2,7 @@
 
 **Status:** Active policy index  
 **Owner:** Product and Engineering  
-**Last reviewed:** 2026-09-02  
+**Last reviewed:** 2026-09-03
 **Scope:** Stable identifiers for rules already approved in Qlick Hub SSoT documents.
 
 This registry gives humans, tests, Feature Knowledge Cards, reports, and AI agents a stable way
@@ -26,6 +26,12 @@ then update this index.
 | AUTH-002  | Authorization is enforced by backend policy/services; UI visibility is not authorization. | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                         |
 | AUTH-003  | Developer or QA parent-Task creation requires active, expiring owner/admin delegation.    | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)   |
 | AUTH-004  | Parent-Task delegation never grants permission to plan Subtasks.                          | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)   |
+
+## Application Security
+
+| Policy ID | Rule summary                                                                                                                 | Canonical source                                                             |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| SEC-001   | Link preview is limited to 30 requests/minute per user across serverless instances, with sanitized local fallback on outage. | [Architecture §5](1_ARCHITECTURE.md#perlindungan-link-preview-terdistribusi) |
 
 ## Delivery Workflow
 

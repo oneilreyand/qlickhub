@@ -86,10 +86,19 @@ atau akun layanan Production untuk Preview.
   `SMTP_PASS`, `SMTP_FROM`.
 - Backend notifications: `FIREBASE_PROJECT_ID` dan salah satu credential service-account yang
   didukung.
+- Distributed link-preview limit: `LINK_PREVIEW_RATE_LIMIT_STORE=upstash`,
+  `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, dan `RATE_LIMIT_KEY_SECRET`. Semua
+  variabel ini backend-only; token dan secret tidak boleh memakai prefix `VITE_*`.
 
 Untuk Vercel serverless, `DATABASE_URL` harus memakai Supabase Transaction Pooler dan
 `DATABASE_POOL_MAX=1`. `DATABASE_SSL=true` wajib di Production. Gunakan origin HTTPS eksplisit
 pada `CORS_ORIGIN`; wildcard dilarang.
+
+Preview dan Production wajib memakai resource Upstash yang terpisah dan terhubung ke scope
+Vercel masing-masing. Runtime Production/Preview harus gagal startup bila store dipilih sebagai
+`upstash` tetapi URL, token, atau secret identifier tidak tersedia. Gangguan sementara provider
+akan memakai limiter memory lokal per instance dan warning tersanitasi; keadaan degradasi ini
+tidak boleh dilaporkan sebagai enforcement global yang sehat.
 
 ### Browser-public
 
@@ -118,6 +127,8 @@ URL, password, private key, JWT secret, atau service-account JSON.
 4. Buka URL yang diberikan Vercel, lalu periksa root/login dan `/v1/health`.
 5. Verifikasi request tanpa sesi ke endpoint terlindungi ditolak, lalu lakukan perjalanan peran
    terotentikasi pada Workspace validasi Preview.
+6. Verifikasi link preview ke-31 untuk satu pengguna menerima `429 RATE_LIMITED`, pengguna lain
+   memiliki bucket terpisah, dan header rate-limit tersedia. Jangan mencatat URL/token Redis.
 
 Vercel menyediakan `VERCEL_URL`; middleware API memasukkan deployment origin tersebut ke
 allowlist. `CORS_ORIGIN` tetap harus berisi origin stabil yang memang diizinkan.

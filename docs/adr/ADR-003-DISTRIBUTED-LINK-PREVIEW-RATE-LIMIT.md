@@ -1,7 +1,8 @@
 # ADR-003 — Distributed link-preview rate limiting
 
-- **Status:** Proposed — owner decision required
+- **Status:** Accepted
 - **Date:** 2026-09-03
+- **Accepted by owner:** 2026-09-03
 - **Decision owner:** Product owner / Production infrastructure owner
 - **Scope:** SEC-02-DISTRIBUTED-LINK-PREVIEW-RATE-LIMIT
 
@@ -27,13 +28,13 @@ Official references:
 - [Upstash rate-limit algorithms](https://upstash.com/docs/redis/sdks/ratelimit-ts/algorithms)
 - [Upstash timeout and caching behavior](https://upstash.com/docs/redis/sdks/ratelimit-ts/features)
 
-## Proposed decision
+## Decision
 
 1. Use one single-region Upstash Redis database connected to the Vercel project through the Marketplace integration.
 2. Apply a sliding-window limit of 30 requests per 60 seconds to link preview only. Keep the existing API, login, and notification limiters out of this task.
 3. Use an opaque HMAC-derived Redis identifier rather than storing a raw user UUID or IP in Redis keys. Add a dedicated backend-only secret rather than exposing or reusing a browser variable.
 4. Require the Redis REST URL, Redis REST token, and identifier secret when Production selects the distributed store. Missing Production configuration fails startup instead of silently reverting to a per-instance store.
-5. On a transient Redis timeout or provider error, fall back to the existing local in-memory limiter for that instance and emit a sanitized warning. This preserves availability while retaining partial protection, but the limit is temporarily no longer globally consistent.
+5. On a transient Redis timeout or provider error, fall back to the existing local in-memory limiter for that instance and emit a sanitized warning. This preserves availability while retaining partial protection, but the limit is temporarily no longer globally consistent. The owner explicitly approved this availability-oriented behavior on 2026-09-03.
 6. Do not enable provider analytics in this slice. This minimizes stored request metadata and Redis command cost.
 7. Preserve the existing `429 RATE_LIMITED` response body and standards-based rate-limit headers.
 
@@ -86,9 +87,12 @@ None. The limiter consumes authenticated identity after the existing authenticat
 4. API typecheck/build, focused lint, full API regression, docs check, and clean diff check.
 5. Preview smoke evidence against a real linked Redis resource without disclosing credentials.
 
-## Owner decisions required
+## Owner approval
 
-1. Approve or reject Upstash Redis as a new external Production dependency with usage-based cost.
-2. Approve local in-memory fallback during transient Redis failure, or require fail-closed link-preview responses instead.
+On 2026-09-03, the owner approved:
 
-Implementation must not begin until these decisions are accepted and the affected canonical SSoT is updated.
+1. Upstash Redis single-region as the external distributed counter store.
+2. A sliding-window limit of 30 requests per minute.
+3. Local in-memory fallback during transient Redis timeout or provider failure.
+
+Implementation may proceed only after the affected canonical SSoT records this accepted decision.

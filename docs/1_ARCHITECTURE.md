@@ -154,6 +154,16 @@ graph TD
 - `owner` atau `admin` dapat memberikan delegasi izin pembuatan parent-Task yang bersifat aktif dan berbatas waktu (_expiring delegation_) kepada anggota `dev` atau `qa`.
 - **Batasan Mutlak**: Delegasi izin ini **hanya** berlaku untuk parent-Task dan **tidak pernah** mengizinkan perencanaan subtask.
 
+### Perlindungan Link Preview Terdistribusi
+
+- Endpoint `GET /v1/meta/link-preview` tetap terotentikasi dan dibatasi **30 request per 60 detik per pengguna**. Alamat IP hanya menjadi fallback ketika identitas pengguna tidak tersedia.
+- Production dan Preview Vercel memakai satu Upstash Redis single-region melalui REST sebagai counter store bersama dengan algoritma sliding window. Batas tersebut berlaku lintas instance serverless; memory store per proses bukan sumber enforcement Production.
+- Identifier counter disamarkan menggunakan HMAC dan secret backend khusus. UUID pengguna, alamat IP mentah, URL target, credential, dan secret tidak boleh disimpan sebagai Redis key atau dikirim ke browser.
+- Konfigurasi Upstash dan secret identifier wajib tersedia pada runtime Production/Preview. Konfigurasi yang hilang harus menggagalkan startup agar deployment tidak diam-diam kembali ke limiter per-instance.
+- Gangguan sementara atau timeout Upstash memakai fallback limiter memory lokal untuk menjaga ketersediaan, disertai warning tersanitasi. Selama degradasi ini perlindungan per-instance tetap aktif, tetapi konsistensi global tidak diklaim.
+- Respons penolakan tetap `429` dengan kode `RATE_LIMITED` dan header rate-limit standar. Analytics provider tidak diaktifkan untuk slice ini.
+- Vercel WAF dapat ditambahkan sebagai pertahanan IP di edge, tetapi tidak menggantikan enforcement per pengguna ini. Keputusan lengkap tercatat di [ADR-003](adr/ADR-003-DISTRIBUTED-LINK-PREVIEW-RATE-LIMIT.md).
+
 ---
 
 ## 6. Arsitektur Teknis & Database
