@@ -9,48 +9,7 @@ import {
   GrantTaskCreationPermissionSchema,
   WorkspaceActivityQuerySchema,
 } from '@qlick/contracts';
-
-function handleError(res: Response, error: unknown) {
-  const message = error instanceof Error ? error.message : 'An error occurred';
-
-  if (message.startsWith('NOT_FOUND')) {
-    return res.status(404).json({
-      type: 'https://api.qa-hub.com/errors/not-found',
-      title: 'Not Found',
-      status: 404,
-      detail: message.replace('NOT_FOUND: ', ''),
-      code: 'NOT_FOUND',
-    });
-  }
-
-  if (message.startsWith('FORBIDDEN')) {
-    return res.status(403).json({
-      type: 'https://api.qa-hub.com/errors/forbidden',
-      title: 'Forbidden',
-      status: 403,
-      detail: message.replace('FORBIDDEN: ', ''),
-      code: 'FORBIDDEN',
-    });
-  }
-
-  if (message.startsWith('CONFLICT')) {
-    return res.status(409).json({
-      type: 'https://api.qa-hub.com/errors/conflict',
-      title: 'Conflict',
-      status: 409,
-      detail: message.replace('CONFLICT: ', ''),
-      code: 'CONFLICT',
-    });
-  }
-
-  return res.status(500).json({
-    type: 'https://api.qa-hub.com/errors/internal-error',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: message,
-    code: 'INTERNAL_ERROR',
-  });
-}
+import { handleError } from '../../http/errors/handleError.js';
 
 export const createWorkspace = async (req: AuthenticatedRequest, res: Response) => {
   try {

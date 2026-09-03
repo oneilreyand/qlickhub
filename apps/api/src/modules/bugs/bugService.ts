@@ -37,21 +37,8 @@ import {
 } from '../../policies/bugPolicy.js';
 import { normalizeEvidenceUrl } from '../testManagement/evidenceNormalizer.js';
 import { fcmService } from '../../services/fcmService.js';
-
-async function getMembership(workspaceId: string, actorId: string, transaction?: Transaction) {
-  const membership = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-    transaction,
-  });
-  if (!membership) throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  return membership;
-}
-
-function iso(value?: Date | string | null): string {
-  if (!value) return new Date().toISOString();
-  const d = new Date(value);
-  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
-}
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { iso } from '../../utils/dateUtils.js';
 
 function formatBug(bug: BugModel): Bug {
   return {
@@ -230,7 +217,7 @@ export class BugService {
     actorId: string,
     query: ListBugsQuery = {},
   ): Promise<BugWithContext[]> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     const where: WhereOptions = { workspaceId };
 
     if (query.featureTaskId) where.featureTaskId = query.featureTaskId;
@@ -266,7 +253,7 @@ export class BugService {
   }
 
   async getBug(workspaceId: string, bugId: string, actorId: string): Promise<BugWithContext> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     const bug = await BugModel.findOne({
       where: { id: bugId, workspaceId },
       include: bugContextIncludes,
@@ -279,7 +266,7 @@ export class BugService {
 
   async createBug(actorId: string, input: CreateBugInput): Promise<BugWithContext> {
     const bug = await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanCreateBug(membership.role);
 
       await this.assertValidTrace(input, transaction);
@@ -375,7 +362,7 @@ export class BugService {
 
   async updateBug(actorId: string, input: UpdateBugInput): Promise<BugWithContext> {
     await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       const bug = await BugModel.findOne({
         where: { id: input.bugId, workspaceId: input.workspaceId },
         transaction,
@@ -556,7 +543,7 @@ export class BugService {
     input: CreateBugEvidenceLinkInput,
     kind: 'triage' | 'resolution' = 'triage',
   ): Promise<BugEvidenceLink> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     const bug = await BugModel.findOne({ where: { id: bugId, workspaceId } });
     if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
 
@@ -641,7 +628,7 @@ export class BugService {
     bugId: string,
     actorId: string,
   ): Promise<BugActivity[]> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     const bug = await BugModel.findOne({ where: { id: bugId, workspaceId } });
     if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
 

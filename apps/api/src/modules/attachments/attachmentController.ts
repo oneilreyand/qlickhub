@@ -2,54 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { attachmentService } from './attachmentService.js';
 import { UploadTaskAttachmentSchema } from '@qlick/contracts';
-import { ZodError } from 'zod';
-
-function handleError(res: Response, error: unknown) {
-  if (error instanceof ZodError) {
-    return res.status(400).json({
-      type: 'https://api.qa-hub.com/errors/bad-request',
-      title: 'Bad Request',
-      status: 400,
-      detail: error.issues.map((issue) => issue.message).join('; '),
-      code: 'BAD_REQUEST',
-    });
-  }
-  const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-  if (message.startsWith('NOT_FOUND:')) {
-    return res.status(404).json({
-      type: 'https://api.qa-hub.com/errors/not-found',
-      title: 'Not Found',
-      status: 404,
-      detail: message.replace('NOT_FOUND:', '').trim(),
-      code: 'NOT_FOUND',
-    });
-  }
-  if (message.startsWith('FORBIDDEN:')) {
-    return res.status(403).json({
-      type: 'https://api.qa-hub.com/errors/forbidden',
-      title: 'Forbidden',
-      status: 403,
-      detail: message.replace('FORBIDDEN:', '').trim(),
-      code: 'FORBIDDEN',
-    });
-  }
-  if (message.startsWith('CONFLICT:')) {
-    return res.status(409).json({
-      type: 'https://api.qa-hub.com/errors/conflict',
-      title: 'Conflict',
-      status: 409,
-      detail: message.replace('CONFLICT:', '').trim(),
-      code: 'IMMUTABLE_EVIDENCE',
-    });
-  }
-  return res.status(500).json({
-    type: 'https://api.qa-hub.com/errors/internal-error',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: message,
-    code: 'INTERNAL_SERVER_ERROR',
-  });
-}
+import { handleError } from '../../http/errors/handleError.js';
 
 export const listTaskAttachments = async (req: AuthenticatedRequest, res: Response) => {
   try {

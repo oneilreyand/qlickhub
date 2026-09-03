@@ -30,6 +30,30 @@ export const TaskDatePresetSchema = z.enum([
 export type TaskDatePreset = z.infer<typeof TaskDatePresetSchema>;
 
 /**
+ * Common refinement function for validating date preset and start/end dates.
+ */
+export function refineDateFilter(
+  data: { datePreset?: TaskDatePreset; startDate?: string; endDate?: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (data.datePreset && (data.startDate || data.endDate)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Cannot combine datePreset with explicit startDate or endDate',
+      path: ['datePreset'],
+    });
+  }
+
+  if (data.startDate && data.endDate && data.startDate > data.endDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'startDate cannot be after endDate',
+      path: ['endDate'],
+    });
+  }
+}
+
+/**
  * Base date filter input schema with combination refinements.
  */
 export const TaskDateFilterSchema = z
@@ -38,22 +62,6 @@ export const TaskDateFilterSchema = z
     startDate: DateStringSchema.optional(),
     endDate: DateStringSchema.optional(),
   })
-  .superRefine((data, ctx) => {
-    if (data.datePreset && (data.startDate || data.endDate)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Cannot combine datePreset with explicit startDate or endDate',
-        path: ['datePreset'],
-      });
-    }
-
-    if (data.startDate && data.endDate && data.startDate > data.endDate) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'startDate cannot be after endDate',
-        path: ['endDate'],
-      });
-    }
-  });
+  .superRefine(refineDateFilter);
 
 export type TaskDateFilter = z.infer<typeof TaskDateFilterSchema>;

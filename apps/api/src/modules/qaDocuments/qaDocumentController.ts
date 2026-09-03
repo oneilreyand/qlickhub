@@ -7,54 +7,7 @@ import {
   LinkDocumentSchema,
   UpsertProductBriefSchema,
 } from '@qlick/contracts';
-import { ZodError } from 'zod';
-
-function handleError(res: Response, error: unknown) {
-  if (error instanceof ZodError) {
-    return res.status(400).json({
-      type: 'https://api.qa-hub.com/errors/bad-request',
-      title: 'Bad Request',
-      status: 400,
-      detail: error.issues.map((issue) => issue.message).join('; '),
-      code: 'BAD_REQUEST',
-    });
-  }
-  const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-  if (message.startsWith('NOT_FOUND:')) {
-    return res.status(404).json({
-      type: 'https://api.qa-hub.com/errors/not-found',
-      title: 'Not Found',
-      status: 404,
-      detail: message.replace('NOT_FOUND:', '').trim(),
-      code: 'NOT_FOUND',
-    });
-  }
-  if (message.startsWith('FORBIDDEN:')) {
-    return res.status(403).json({
-      type: 'https://api.qa-hub.com/errors/forbidden',
-      title: 'Forbidden',
-      status: 403,
-      detail: message.replace('FORBIDDEN:', '').trim(),
-      code: 'FORBIDDEN',
-    });
-  }
-  if (message.startsWith('BAD_REQUEST:')) {
-    return res.status(400).json({
-      type: 'https://api.qa-hub.com/errors/bad-request',
-      title: 'Bad Request',
-      status: 400,
-      detail: message.replace('BAD_REQUEST:', '').trim(),
-      code: 'BAD_REQUEST',
-    });
-  }
-  return res.status(500).json({
-    type: 'https://api.qa-hub.com/errors/internal-error',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: message,
-    code: 'INTERNAL_SERVER_ERROR',
-  });
-}
+import { handleError } from '../../http/errors/handleError.js';
 
 export const listWorkspaceDocuments = async (req: AuthenticatedRequest, res: Response) => {
   try {

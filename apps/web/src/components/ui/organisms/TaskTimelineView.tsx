@@ -22,7 +22,7 @@ import { Skeleton } from '../atoms/Skeleton';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { TaskScheduleHealthBadge } from '../molecules/TaskScheduleHealthBadge';
 import { taskService } from '../../../lib/api/taskService';
-import { calculateSubtaskScheduleHealth } from '../../../lib/utils/scheduleHealth';
+import { calculateSubtaskScheduleHealth, normalizeDateStr } from '../../../lib/utils/scheduleHealth';
 
 export const EMPTY_TASKS_ILLUSTRATION_URL =
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787027457/ChatGPT_Image_Aug_18_2026_11_30_28_AM.png';
@@ -44,13 +44,6 @@ function parseDate(dateStr?: string | null): Date | null {
   if (!dateStr) return null;
   const d = new Date(dateStr + 'T00:00:00');
   return isNaN(d.getTime()) ? null : d;
-}
-
-function formatDateKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
 
 function formatShortDate(date: Date): string {
@@ -150,7 +143,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 
   const folderMap = useMemo(() => buildFolderMap(folders), [folders]);
   const today = useMemo(() => new Date(), []);
-  const todayKey = useMemo(() => formatDateKey(today), [today]);
+  const todayKey = useMemo(() => normalizeDateStr(today), [today]);
 
   const toggleTaskSubtasks = async (task: Task, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -281,7 +274,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 
       const cur = new Date(start);
       while (cur <= end) {
-        const key = formatDateKey(cur);
+        const key = normalizeDateStr(cur);
         const dayOfWeek = cur.toLocaleDateString('en-US', { weekday: 'narrow' });
         const dayNum = cur.getDate();
         const isSunOrSat = cur.getDay() === 0 || cur.getDay() === 6;
@@ -306,7 +299,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 
       const cur = new Date(start);
       while (cur <= end) {
-        const weekStartKey = formatDateKey(cur);
+        const weekStartKey = normalizeDateStr(cur);
         const weekEnd = new Date(cur);
         weekEnd.setDate(weekEnd.getDate() + 6);
         const label = `${cur.toLocaleDateString('en-US', { month: 'short' })} ${cur.getDate()}`;

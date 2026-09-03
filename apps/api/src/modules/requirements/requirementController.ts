@@ -1,6 +1,4 @@
 import { Response } from 'express';
-import { ZodError } from 'zod';
-import { UniqueConstraintError } from 'sequelize';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { requirementService } from './requirementService.js';
 import {
@@ -11,68 +9,7 @@ import {
   LinkRequirementSchema,
   BulkCorrectTaskRequirementsSchema,
 } from '@qlick/contracts';
-
-function handleError(res: Response, error: unknown) {
-  if (error instanceof ZodError) {
-    return res.status(400).json({
-      type: 'https://api.qa-hub.com/errors/bad-request',
-      title: 'Bad Request',
-      status: 400,
-      detail: error.errors.map((e) => `${e.path.join('.') || 'body'}: ${e.message}`).join(', '),
-      code: 'VALIDATION_ERROR',
-    });
-  }
-
-  if (
-    error instanceof UniqueConstraintError ||
-    (error as any)?.name === 'SequelizeUniqueConstraintError'
-  ) {
-    return res.status(400).json({
-      type: 'https://api.qa-hub.com/errors/bad-request',
-      title: 'Bad Request',
-      status: 400,
-      detail:
-        'A unique Requirement or Acceptance Criterion value already exists in this workspace.',
-      code: 'BAD_REQUEST',
-    });
-  }
-
-  const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-  if (message.startsWith('NOT_FOUND:')) {
-    return res.status(404).json({
-      type: 'https://api.qa-hub.com/errors/not-found',
-      title: 'Not Found',
-      status: 404,
-      detail: message.replace('NOT_FOUND:', '').trim(),
-      code: 'NOT_FOUND',
-    });
-  }
-  if (message.startsWith('FORBIDDEN:')) {
-    return res.status(403).json({
-      type: 'https://api.qa-hub.com/errors/forbidden',
-      title: 'Forbidden',
-      status: 403,
-      detail: message.replace('FORBIDDEN:', '').trim(),
-      code: 'FORBIDDEN',
-    });
-  }
-  if (message.startsWith('BAD_REQUEST:')) {
-    return res.status(400).json({
-      type: 'https://api.qa-hub.com/errors/bad-request',
-      title: 'Bad Request',
-      status: 400,
-      detail: message.replace('BAD_REQUEST:', '').trim(),
-      code: 'BAD_REQUEST',
-    });
-  }
-  return res.status(500).json({
-    type: 'https://api.qa-hub.com/errors/internal-error',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: message,
-    code: 'INTERNAL_SERVER_ERROR',
-  });
-}
+import { handleError } from '../../http/errors/handleError.js';
 
 export const listWorkspaceRequirements = async (req: AuthenticatedRequest, res: Response) => {
   try {

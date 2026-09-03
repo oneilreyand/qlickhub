@@ -14,6 +14,7 @@ import {
   assertCanLinkQaDocument,
   assertCanManageProductBrief,
 } from '../../policies/qaDocumentPolicy.js';
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import {
   QaDocument,
   QaDocumentVersion,
@@ -76,16 +77,6 @@ function formatTaskDocumentLink(l: TaskDocumentModel): TaskDocumentLink {
   };
 }
 
-async function getActorMembership(workspaceId: string, actorId: string) {
-  const member = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-  });
-  if (!member) {
-    throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  }
-  return member;
-}
-
 function normalizeScopeItems(
   items: Array<{ id?: string; text: string; position: number }> | undefined
 ): ProductBriefScopeItem[] {
@@ -111,7 +102,7 @@ export class QaDocumentService {
     folderId: string | undefined,
     actorId: string
   ): Promise<QaDocument[]> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadQaDocuments(member.role);
 
     const where: Record<string, any> = { workspaceId };
@@ -132,7 +123,7 @@ export class QaDocumentService {
     documentId: string,
     actorId: string
   ): Promise<{ document: QaDocument; versions: QaDocumentVersion[]; currentVersion: QaDocumentVersion }> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadQaDocuments(member.role);
 
     const doc = await QaDocumentModel.findOne({
@@ -162,7 +153,7 @@ export class QaDocumentService {
     actorId: string,
     input: Omit<CreateQaDocumentInput, 'workspaceId'>
   ): Promise<{ document: QaDocument; version: QaDocumentVersion }> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanCreateQaDocument(member.role);
     if (input.docType === 'product_brief') {
       throw new Error('BAD_REQUEST: Create a Product Brief through its task endpoint.');
@@ -225,7 +216,7 @@ export class QaDocumentService {
     actorId: string,
     input: Omit<CreateQaDocumentVersionInput, 'workspaceId' | 'documentId'>
   ): Promise<{ document: QaDocument; version: QaDocumentVersion }> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanCreateQaDocument(member.role);
 
     return await sequelize.transaction(async (transaction) => {
@@ -277,7 +268,7 @@ export class QaDocumentService {
     taskId: string,
     actorId: string
   ): Promise<ProductBrief | null> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadQaDocuments(member.role);
 
     const task = await TaskModel.findOne({ where: { id: taskId, workspaceId } });
@@ -319,7 +310,7 @@ export class QaDocumentService {
     actorId: string,
     input: Omit<UpsertProductBriefInput, 'workspaceId' | 'taskId'>
   ): Promise<ProductBrief> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanManageProductBrief(member.role);
 
     const task = await TaskModel.findOne({ where: { id: taskId, workspaceId } });
@@ -442,7 +433,7 @@ export class QaDocumentService {
     taskId: string,
     actorId: string
   ): Promise<TaskDocumentLink[]> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadQaDocuments(member.role);
 
     const task = await TaskModel.findOne({
@@ -467,7 +458,7 @@ export class QaDocumentService {
     actorId: string,
     documentId: string
   ): Promise<TaskDocumentLink> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     const task = await TaskModel.findOne({
       where: { id: taskId, workspaceId },
     });
@@ -543,7 +534,7 @@ export class QaDocumentService {
     actorId: string,
     documentId: string
   ): Promise<{ success: boolean }> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     const task = await TaskModel.findOne({
       where: { id: taskId, workspaceId },
     });

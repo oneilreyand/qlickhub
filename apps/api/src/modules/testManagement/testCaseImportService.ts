@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { Transaction } from 'sequelize';
 import type {
   CommitTestCaseImportInput,
   TestCaseImportAudit,
@@ -20,7 +19,6 @@ import {
   TestCaseModel,
   TestCaseRequirementModel,
   UserModel,
-  WorkspaceMemberModel,
 } from '../../db/models/index.js';
 import { assertCanImportTestCases } from '../../policies/testManagementPolicy.js';
 import {
@@ -30,21 +28,8 @@ import {
   parseCsvContent,
   parseXlsxContent,
 } from './spreadsheetParser.js';
-
-async function getMembership(workspaceId: string, actorId: string, transaction?: Transaction) {
-  const membership = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-    transaction,
-  });
-  if (!membership) {
-    throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  }
-  return membership;
-}
-
-function iso(value: Date): string {
-  return new Date(value).toISOString();
-}
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { iso } from '../../utils/dateUtils.js';
 
 const SESSION_TTL_MS = 3600 * 1000; // 1 hour
 
@@ -103,7 +88,7 @@ export class TestCaseImportService {
     sheetName?: string,
     columnMapping?: Record<string, string>,
   ): Promise<TestCaseImportPreviewResponse> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     assertCanImportTestCases(membership.role);
 
     const isBuffer = Buffer.isBuffer(fileBuffer);
@@ -347,7 +332,7 @@ export class TestCaseImportService {
 
     const result = await sequelize.transaction(
       async (transaction): Promise<TestCaseImportResult | 'expired'> => {
-        const membership = await getMembership(workspaceId, actorId, transaction);
+        const membership = await requireActiveMember(workspaceId, actorId, transaction);
         assertCanImportTestCases(membership.role, mode);
 
         // Verify server-side staged session with row lock
@@ -739,7 +724,7 @@ export class TestCaseImportService {
   }
 
   async listImportAudits(workspaceId: string, actorId: string): Promise<TestCaseImportAudit[]> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     assertCanImportTestCases(membership.role);
 
     const imports = await TestCaseImportModel.findAll({
@@ -777,7 +762,7 @@ export class TestCaseImportService {
     importId: string,
     actorId: string,
   ): Promise<string> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     assertCanImportTestCases(membership.role);
 
     const importRecord = await TestCaseImportModel.findOne({

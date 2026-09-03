@@ -19,15 +19,12 @@ import {
   RequirementModel,
   TaskModel,
   TaskRequirementModel,
-  WorkspaceMemberModel,
 } from '../../db/models/index.js';
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { iso } from '../../utils/dateUtils.js';
 
 const BUCKET_LIMIT = 100;
 const priorityRank = { urgent: 0, high: 1, medium: 2, low: 3 } as const;
-
-function iso(value: Date): string {
-  return new Date(value).toISOString();
-}
 
 function queueRoleFor(role: WorkspaceRole): WorkQueueRole {
   if (role === 'dev') return 'developer';
@@ -66,19 +63,6 @@ function sortItems(items: WorkQueueItem[]): WorkQueueItem[] {
 function bucket(code: WorkQueueBucketCode, label: string, items: WorkQueueItem[]): WorkQueueBucket {
   const sorted = sortItems(items);
   return { code, label, total: sorted.length, items: sorted.slice(0, BUCKET_LIMIT) };
-}
-
-async function getMembership(
-  workspaceId: string,
-  actorId: string,
-  transaction: Transaction,
-): Promise<WorkspaceMemberModel> {
-  const membership = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-    transaction,
-  });
-  if (!membership) throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  return membership;
 }
 
 async function plannerBuckets(
@@ -458,7 +442,7 @@ async function qaBuckets(
 export class WorkQueueService {
   async getRoleAwareQueue(workspaceId: string, actorId: string): Promise<RoleAwareWorkQueue> {
     return sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(workspaceId, actorId, transaction);
       const queueRole = queueRoleFor(membership.role);
       const buckets =
         queueRole === 'planner'

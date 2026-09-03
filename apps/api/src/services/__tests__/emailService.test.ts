@@ -18,7 +18,7 @@ describe('EmailService', () => {
       ['Core Platform', 'Analytics Hub'],
       'Alice Admin',
       'dev',
-      true,
+      'mock-token',
     );
 
     assert.strictEqual(result.sent, true);
@@ -37,7 +37,8 @@ describe('EmailService', () => {
     assert.ok(options.html.includes('DEV'));
     assert.ok(options.html.includes('Core Platform'));
     assert.ok(options.html.includes('Analytics Hub'));
-    assert.ok(options.html.includes('Password123!'));
+    assert.ok(options.html.includes('Set Password'));
+    assert.ok(options.html.includes('reset-password?token=mock-token'));
     assert.ok(options.html.includes('/login'));
   });
 

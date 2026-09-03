@@ -1,5 +1,4 @@
 import { Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
 import {
   TaskListQuerySchema,
   CreateTaskSchema,
@@ -15,69 +14,7 @@ import {
 import { taskService } from './taskService.js';
 import { taskDiscussionService } from './taskDiscussionService.js';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
-
-function formatProblemDetails(err: unknown, res: Response): Response {
-  if (err instanceof ZodError) {
-    return res.status(400).json({
-      type: 'https://tools.ietf.org/html/rfc9457',
-      title: 'Validation Error',
-      status: 400,
-      detail: 'Input validation failed',
-      code: 'BAD_REQUEST',
-      errors: err.errors.map((e) => ({
-        field: e.path.join('.'),
-        message: e.message,
-      })),
-    });
-  }
-
-  if (err instanceof Error) {
-    if (err.message.startsWith('NOT_FOUND:')) {
-      return res.status(404).json({
-        type: 'https://tools.ietf.org/html/rfc9457',
-        title: 'Not Found',
-        status: 404,
-        detail: err.message.replace('NOT_FOUND:', '').trim(),
-        code: 'NOT_FOUND',
-      });
-    }
-    if (err.message.startsWith('BAD_REQUEST:')) {
-      return res.status(400).json({
-        type: 'https://tools.ietf.org/html/rfc9457',
-        title: 'Bad Request',
-        status: 400,
-        detail: err.message.replace('BAD_REQUEST:', '').trim(),
-        code: 'BAD_REQUEST',
-      });
-    }
-    if (err.message.startsWith('FORBIDDEN:')) {
-      return res.status(403).json({
-        type: 'https://tools.ietf.org/html/rfc9457',
-        title: 'Forbidden',
-        status: 403,
-        detail: err.message.replace('FORBIDDEN:', '').trim(),
-        code: 'FORBIDDEN',
-      });
-    }
-    if (err.message.startsWith('CONFLICT:')) {
-      return res.status(409).json({
-        type: 'https://tools.ietf.org/html/rfc9457',
-        title: 'Conflict',
-        status: 409,
-        detail: err.message.replace('CONFLICT:', '').trim(),
-        code: 'CONFLICT',
-      });
-    }
-  }
-
-  return res.status(500).json({
-    type: 'https://tools.ietf.org/html/rfc9457',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: err instanceof Error ? err.message : 'An unexpected error occurred',
-    code: 'INTERNAL_ERROR',
-  });
-}
+import { handleError } from '../../http/errors/handleError.js';
 
 export class TaskController {
   async listTasks(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
@@ -97,7 +34,7 @@ export class TaskController {
       );
       res.status(200).json({ data: result });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -119,7 +56,7 @@ export class TaskController {
       );
       res.status(200).json({ data: result });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -145,7 +82,7 @@ export class TaskController {
       );
       res.status(200).json({ data: result });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -171,7 +108,7 @@ export class TaskController {
       );
       res.status(200).json({ data: result });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -197,7 +134,7 @@ export class TaskController {
       );
       res.status(201).json({ data: comment });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -221,7 +158,7 @@ export class TaskController {
       );
       res.status(200).json({ data: comment });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -243,7 +180,7 @@ export class TaskController {
       );
       res.status(200).json({ data: comment });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -259,7 +196,7 @@ export class TaskController {
       const task = await taskService.createTask(userId, input);
       res.status(201).json({ data: task });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -281,7 +218,7 @@ export class TaskController {
       const subtask = await taskService.createTask(userId, input);
       res.status(201).json({ data: subtask });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -294,7 +231,7 @@ export class TaskController {
       const task = await taskService.updateTask(req.user!.userId, workspaceId, taskId, input);
       res.status(200).json({ data: task });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -307,7 +244,7 @@ export class TaskController {
       const task = await taskService.moveTask(req.user!.userId, workspaceId, taskId, input);
       res.status(200).json({ data: task });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -320,7 +257,7 @@ export class TaskController {
       const task = await taskService.completeTask(req.user!.userId, workspaceId, taskId, input);
       res.status(200).json({ data: task });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -338,7 +275,7 @@ export class TaskController {
       );
       res.status(200).json({ data: task });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -350,7 +287,7 @@ export class TaskController {
       await taskService.deleteTask(workspaceId, taskId, req.user!.userId);
       res.status(200).json({ data: { success: true } });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 
@@ -367,7 +304,7 @@ export class TaskController {
       const task = await taskService.updateTask(req.user!.userId, workspaceId, taskId, input);
       res.status(200).json({ data: task });
     } catch (err) {
-      formatProblemDetails(err, res);
+      handleError(res, err);
     }
   }
 }

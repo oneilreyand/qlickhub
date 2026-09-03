@@ -24,6 +24,7 @@ import {
   assertCanAccessTask,
   isPlanner,
 } from '../../policies/taskPolicy.js';
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import { fcmService } from '../../services/fcmService.js';
 import {
   CreateTaskInput,
@@ -97,7 +98,8 @@ async function assertRoleMatchesDeliveryArea(
   const specialties = (
     (membership as unknown as { specialties?: WorkspaceMemberSpecialtyModel[] }).specialties || []
   ).map((row) => row.specialty);
-  const isPlannerRole = ['owner', 'admin', 'po'].includes(targetRole);
+  const isPlannerRole = isPlanner(targetRole as WorkspaceRole);
+
   const isDevArea =
     deliveryArea === 'frontend' ||
     deliveryArea === 'backend' ||
@@ -260,23 +262,6 @@ async function assertAssigneeBelongsToWorkspace(
   if (!membership) {
     throw new Error('BAD_REQUEST: Assignee must be a member of this workspace.');
   }
-}
-
-async function getActorMembership(
-  workspaceId: string,
-  actorId: string,
-  transaction: Transaction,
-): Promise<WorkspaceMemberModel> {
-  const membership = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-    transaction,
-  });
-
-  if (!membership) {
-    throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  }
-
-  return membership;
 }
 
 export class TaskService {
@@ -672,7 +657,7 @@ export class TaskService {
     const offset = (page - 1) * limit;
 
     return await sequelize.transaction(async (transaction) => {
-      await getActorMembership(workspaceId, actorId, transaction);
+      await requireActiveMember(workspaceId, actorId, transaction);
 
       const task = await TaskModel.findOne({
         where: { id: taskId, workspaceId },
@@ -772,7 +757,7 @@ export class TaskService {
         startDate,
         dueDate,
       } = input;
-      const membership = await getActorMembership(workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(workspaceId, actorId, transaction);
 
       let hasSpecialPermission = false;
       if (!parentTaskId && !isPlanner(membership.role)) {
@@ -961,7 +946,7 @@ export class TaskService {
         throw new Error('NOT_FOUND: Task not found in this workspace.');
       }
 
-      const membership = await getActorMembership(workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(workspaceId, actorId, transaction);
       assertCanMutateTask(
         membership.role,
         actorId,
@@ -1305,7 +1290,7 @@ export class TaskService {
         throw new Error('NOT_FOUND: Task not found in this workspace.');
       }
 
-      const membership = await getActorMembership(workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(workspaceId, actorId, transaction);
       assertCanMoveTask(membership.role, Boolean(task.parentTaskId));
 
       if (input.targetFolderId !== null) {

@@ -1,4 +1,4 @@
-import { Op, type Transaction } from 'sequelize';
+import { Op } from 'sequelize';
 import {
   CreateEvidenceLinkInput,
   CreateTestCaseInput,
@@ -30,7 +30,6 @@ import {
   TestResultModel,
   TestRunModel,
   UserModel,
-  WorkspaceMemberModel,
 } from '../../db/models/index.js';
 import { assertCanAccessTask } from '../../policies/taskPolicy.js';
 import {
@@ -42,6 +41,8 @@ import {
 } from '../../policies/testManagementPolicy.js';
 import { normalizeEvidenceUrl } from './evidenceNormalizer.js';
 import { fcmService } from '../../services/fcmService.js';
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { iso } from '../../utils/dateUtils.js';
 
 type TestCaseWithLinks = TestCaseModel & { requirementLinks?: TestCaseRequirementModel[] };
 type EvidenceLinkWithAttachment = TestResultEvidenceModel & { attachment?: TaskAttachmentModel };
@@ -50,21 +51,6 @@ type TestResultWithEvidence = TestResultModel & {
   externalEvidenceLinks?: TestResultEvidenceLinkModel[];
 };
 type TestRunWithResult = TestRunModel & { result?: TestResultWithEvidence | null };
-
-async function getMembership(workspaceId: string, actorId: string, transaction?: Transaction) {
-  const membership = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-    transaction,
-  });
-  if (!membership) {
-    throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  }
-  return membership;
-}
-
-function iso(value: Date): string {
-  return new Date(value).toISOString();
-}
 
 function formatTestCase(testCase: TestCaseWithLinks): TestCase {
   return {
@@ -186,7 +172,7 @@ export class TestManagementService {
     taskId: string,
     actorId: string,
   ): Promise<TaskTestExecutionWorkspace> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     assertCanReadTestManagement(membership.role);
 
     const requestedTask = await TaskModel.findOne({ where: { id: taskId, workspaceId } });
@@ -283,7 +269,7 @@ export class TestManagementService {
     actorId: string,
     query?: ListTestCasesQuery,
   ): Promise<TestCase[]> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     assertCanReadTestManagement(membership.role);
 
     const where: Record<string, unknown> = { workspaceId };
@@ -315,7 +301,7 @@ export class TestManagementService {
   }
 
   async getTestCase(workspaceId: string, testCaseId: string, actorId: string): Promise<TestCase> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     assertCanReadTestManagement(membership.role);
 
     const testCase = await TestCaseModel.findOne({
@@ -335,7 +321,7 @@ export class TestManagementService {
     }
 
     const testCase = await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanCreateTestCase(membership.role);
       if (input.status && input.status !== 'draft') {
         throw new Error(
@@ -418,7 +404,7 @@ export class TestManagementService {
 
   async updateTestCase(actorId: string, input: UpdateTestCaseInput): Promise<TestCase> {
     await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       const testCase = await TestCaseModel.findOne({
         where: { id: input.testCaseId, workspaceId: input.workspaceId },
         transaction,
@@ -512,7 +498,7 @@ export class TestManagementService {
 
   async createTestRun(actorId: string, input: CreateTestRunInput): Promise<TestRun> {
     const run = await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanExecuteTestRun(membership.role);
 
       const testCase = await TestCaseModel.findOne({
@@ -571,7 +557,7 @@ export class TestManagementService {
     }
 
     await sequelize.transaction(async (transaction) => {
-      const membership = await getMembership(input.workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanExecuteTestRun(membership.role);
 
       const run = await TestRunModel.findOne({
@@ -822,7 +808,7 @@ export class TestManagementService {
     testRunId: string,
     input: CreateEvidenceLinkInput,
   ): Promise<TestResultEvidenceLink> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     assertCanAddTestResultEvidence(membership.role);
 
     const run = (await TestRunModel.findOne({
@@ -896,7 +882,7 @@ export class TestManagementService {
   }
 
   async listTestRuns(workspaceId: string, testCaseId: string, actorId: string): Promise<TestRun[]> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     assertCanReadTestManagement(membership.role);
 
     const testCase = await TestCaseModel.findOne({ where: { id: testCaseId, workspaceId } });
@@ -917,7 +903,7 @@ export class TestManagementService {
     testCaseId: string,
     actorId: string,
   ): Promise<TestCaseActivity[]> {
-    const membership = await getMembership(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId);
     assertCanReadTestManagement(membership.role);
 
     const testCase = await TestCaseModel.findOne({ where: { id: testCaseId, workspaceId } });

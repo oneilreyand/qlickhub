@@ -1,4 +1,4 @@
-import { Op, Transaction } from 'sequelize';
+import { Op } from 'sequelize';
 import { sequelize } from '../../db/sequelize.js';
 import {
   TaskModel,
@@ -17,23 +17,7 @@ import {
 } from '@qlick/contracts';
 import { fcmService } from '../../services/fcmService.js';
 import { realtimeEventBus } from '../../services/realtimeEventBus.js';
-
-async function getActorMembership(
-  workspaceId: string,
-  actorId: string,
-  transaction?: Transaction,
-): Promise<WorkspaceMemberModel> {
-  const membership = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-    transaction,
-  });
-
-  if (!membership) {
-    throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  }
-
-  return membership;
-}
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 
 function formatComment(commentInstance: TaskCommentModel): TaskComment {
   const json = commentInstance.toJSON() as any;
@@ -103,7 +87,7 @@ export class TaskDiscussionService {
     const offset = (page - 1) * limit;
 
     return await sequelize.transaction(async (transaction) => {
-      await getActorMembership(workspaceId, actorId, transaction);
+      await requireActiveMember(workspaceId, actorId, transaction);
 
       const task = await TaskModel.findOne({
         where: { id: taskId, workspaceId },
@@ -190,7 +174,7 @@ export class TaskDiscussionService {
     input: CreateTaskCommentInput,
   ): Promise<TaskComment> {
     const commentResult = await sequelize.transaction(async (transaction) => {
-      await getActorMembership(workspaceId, actorId, transaction);
+      await requireActiveMember(workspaceId, actorId, transaction);
 
       const task = await TaskModel.findOne({
         where: { id: taskId, workspaceId },
@@ -408,7 +392,7 @@ export class TaskDiscussionService {
     input: UpdateTaskCommentInput,
   ): Promise<TaskComment> {
     const updated = await sequelize.transaction(async (transaction) => {
-      const membership = await getActorMembership(workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(workspaceId, actorId, transaction);
 
       const comment = await TaskCommentModel.findOne({
         where: { id: commentId, taskId, workspaceId },
@@ -489,7 +473,7 @@ export class TaskDiscussionService {
     commentId: string,
   ): Promise<TaskComment> {
     const deleted = await sequelize.transaction(async (transaction) => {
-      const membership = await getActorMembership(workspaceId, actorId, transaction);
+      const membership = await requireActiveMember(workspaceId, actorId, transaction);
 
       const comment = await TaskCommentModel.findOne({
         where: { id: commentId, taskId, workspaceId },

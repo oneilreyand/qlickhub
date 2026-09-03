@@ -7,8 +7,8 @@ import {
   TaskRequirementModel,
   QaDocumentModel,
   TaskDocumentModel,
-  WorkspaceMemberModel,
 } from '../../db/models/index.js';
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import {
   RequirementTestCase,
   CreateRequirementTestCaseInput,
@@ -142,23 +142,13 @@ function formatDocument(d: QaDocumentModel | Record<string, any>): QaDocument {
   };
 }
 
-async function getActorMembership(workspaceId: string, actorId: string) {
-  const member = await WorkspaceMemberModel.findOne({
-    where: { workspaceId, userId: actorId },
-  });
-  if (!member) {
-    throw new Error('FORBIDDEN: You are not a member of this workspace.');
-  }
-  return member;
-}
-
 export class TraceabilityService {
   async getParentTaskDeliveryTrace(
     workspaceId: string,
     requestedTaskId: string,
     actorId: string,
   ): Promise<ParentTaskDeliveryTrace> {
-    await getActorMembership(workspaceId, actorId);
+    await requireActiveMember(workspaceId, actorId);
 
     const requestedTask = await TaskModel.findOne({
       where: { id: requestedTaskId, workspaceId },
@@ -330,7 +320,7 @@ export class TraceabilityService {
     requirementId: string,
     actorId: string,
   ): Promise<RequirementTestCase[]> {
-    await getActorMembership(workspaceId, actorId);
+    await requireActiveMember(workspaceId, actorId);
 
     const testCases = await RequirementTestCaseModel.findAll({
       where: { workspaceId, requirementId },
@@ -345,7 +335,7 @@ export class TraceabilityService {
     actorId: string,
     input: Omit<CreateRequirementTestCaseInput, 'workspaceId'>,
   ): Promise<RequirementTestCase> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     if (!['owner', 'admin', 'po', 'qa'].includes(member.role)) {
       throw new Error(
         'FORBIDDEN: Only Product Owner, Admin, Owner, or QA members can create test cases.',
@@ -380,7 +370,7 @@ export class TraceabilityService {
     status: 'passed' | 'failed' | 'pending' | 'skipped',
     executionDetails?: string,
   ): Promise<RequirementTestCase> {
-    const member = await getActorMembership(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId);
     if (!['owner', 'admin', 'po', 'qa'].includes(member.role)) {
       throw new Error(
         'FORBIDDEN: Only Product Owner, Admin, Owner, or QA members can update test case status.',
@@ -408,7 +398,7 @@ export class TraceabilityService {
     workspaceId: string,
     actorId: string,
   ): Promise<WorkspaceTraceabilitySummary> {
-    await getActorMembership(workspaceId, actorId);
+    await requireActiveMember(workspaceId, actorId);
 
     // Fetch requirements with their test cases
     const requirements = await RequirementModel.findAll({

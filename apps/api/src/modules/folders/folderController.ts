@@ -7,48 +7,7 @@ import {
   MoveFolderSchema,
   ArchiveFolderSchema,
 } from '@qlick/contracts';
-
-function handleError(res: Response, error: unknown) {
-  const message = error instanceof Error ? error.message : 'An error occurred';
-
-  if (message.startsWith('NOT_FOUND')) {
-    return res.status(404).json({
-      type: 'https://api.qa-hub.com/errors/not-found',
-      title: 'Not Found',
-      status: 404,
-      detail: message.replace('NOT_FOUND: ', ''),
-      code: 'NOT_FOUND',
-    });
-  }
-
-  if (message.startsWith('BAD_REQUEST')) {
-    return res.status(400).json({
-      type: 'https://api.qa-hub.com/errors/bad-request',
-      title: 'Bad Request',
-      status: 400,
-      detail: message.replace('BAD_REQUEST: ', ''),
-      code: 'BAD_REQUEST',
-    });
-  }
-
-  if (message.startsWith('FORBIDDEN')) {
-    return res.status(403).json({
-      type: 'https://api.qa-hub.com/errors/forbidden',
-      title: 'Forbidden',
-      status: 403,
-      detail: message.replace('FORBIDDEN: ', ''),
-      code: 'FORBIDDEN',
-    });
-  }
-
-  return res.status(500).json({
-    type: 'https://api.qa-hub.com/errors/internal-error',
-    title: 'Internal Server Error',
-    status: 500,
-    detail: message,
-    code: 'INTERNAL_ERROR',
-  });
-}
+import { handleError } from '../../http/errors/handleError.js';
 
 export const getFolderTree = async (req: AuthenticatedRequest, res: Response) => {
   try {

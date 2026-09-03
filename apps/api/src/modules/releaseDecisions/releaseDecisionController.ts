@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 import {
   CancelQaSignOffInputSchema,
   CancelReleaseDecisionInputSchema,
@@ -9,35 +9,7 @@ import {
 } from '@qlick/contracts';
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { releaseDecisionService } from './releaseDecisionService.js';
-
-function problem(res: Response, status: number, code: string, detail: string) {
-  return res.status(status).json({
-    type: `https://api.qa-hub.com/errors/${code.toLowerCase().replaceAll('_', '-')}`,
-    title: code
-      .split('_')
-      .map((word) => word[0] + word.slice(1).toLowerCase())
-      .join(' '),
-    status,
-    detail,
-    code,
-  });
-}
-
-function handleError(res: Response, error: unknown) {
-  if (error instanceof ZodError) {
-    return problem(res, 400, 'BAD_REQUEST', error.errors.map((issue) => issue.message).join('; '));
-  }
-  const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-  if (message.startsWith('NOT_FOUND:'))
-    return problem(res, 404, 'NOT_FOUND', message.slice(10).trim());
-  if (message.startsWith('FORBIDDEN:'))
-    return problem(res, 403, 'FORBIDDEN', message.slice(10).trim());
-  if (message.startsWith('BAD_REQUEST:'))
-    return problem(res, 400, 'BAD_REQUEST', message.slice(12).trim());
-  if (message.startsWith('CONFLICT:'))
-    return problem(res, 409, 'CONFLICT', message.slice(9).trim());
-  return problem(res, 500, 'INTERNAL_SERVER_ERROR', message);
-}
+import { handleError } from '../../http/errors/handleError.js';
 
 export async function listFeatureReleaseRecords(req: AuthenticatedRequest, res: Response) {
   try {
