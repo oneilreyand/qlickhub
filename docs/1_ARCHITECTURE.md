@@ -162,6 +162,7 @@ graph TD
 - Konfigurasi Upstash dan secret identifier wajib tersedia pada runtime Production/Preview. Konfigurasi yang hilang harus menggagalkan startup agar deployment tidak diam-diam kembali ke limiter per-instance.
 - Gangguan sementara atau timeout Upstash memakai fallback limiter memory lokal untuk menjaga ketersediaan, disertai warning tersanitasi. Selama degradasi ini perlindungan per-instance tetap aktif, tetapi konsistensi global tidak diklaim.
 - Respons penolakan tetap `429` dengan kode `RATE_LIMITED` dan header rate-limit standar. Analytics provider tidak diaktifkan untuk slice ini.
+- Runtime Vercel mengatur Express untuk mempercayai tepat satu proxy hop. Vercel menimpa `X-Forwarded-For` dengan IP klien sebelum fungsi dipanggil; konfigurasi permisif `trust proxy = true` dilarang karena dapat melemahkan limiter berbasis IP.
 - Vercel WAF dapat ditambahkan sebagai pertahanan IP di edge, tetapi tidak menggantikan enforcement per pengguna ini. Keputusan lengkap tercatat di [ADR-003](adr/ADR-003-DISTRIBUTED-LINK-PREVIEW-RATE-LIMIT.md).
 
 ---

@@ -21,9 +21,11 @@ import { workQueueRoutes } from './modules/workQueue/workQueueRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
 import { rejectArchivedWorkspaceMutation } from './http/middleware/workspaceArchive.js';
+import { configureProxyTrust } from './http/middleware/proxyTrust.js';
 
 export const createApp = () => {
   const app = express();
+  configureProxyTrust(app, Boolean(env.VERCEL));
 
   // Security & Middleware
   app.use(helmet({ referrerPolicy: { policy: 'no-referrer' } }));
