@@ -53,6 +53,9 @@ import {
   UserSchema,
   CompleteOnboardingResponseSchema,
   AdminResetPasswordRequestSchema,
+  AuthSecurityEventQuerySchema,
+  AuthSecurityEventSchema,
+  AuthSecurityEventListResponseSchema,
   CreateTestCaseSchema,
   CreateTestRunSchema,
   CreateTestResultSchema,
@@ -107,6 +110,65 @@ describe('Contracts Validation Suite', () => {
           newPassword: 'Replacement-password-123!',
         }),
       );
+    });
+  });
+
+  describe('Credential security audit contracts', () => {
+    const eventId = '123e4567-e89b-12d3-a456-426614174000';
+    const userId = '223e4567-e89b-12d3-a456-426614174001';
+    const workspaceId = '323e4567-e89b-12d3-a456-426614174002';
+
+    test('bounds self and Workspace security-event queries', () => {
+      assert.deepStrictEqual(AuthSecurityEventQuerySchema.parse({}), { limit: 50 });
+      assert.deepStrictEqual(AuthSecurityEventQuerySchema.parse({ workspaceId, limit: '100' }), {
+        workspaceId,
+        limit: 100,
+      });
+      assert.throws(() => AuthSecurityEventQuerySchema.parse({ limit: '101' }));
+      assert.throws(() => AuthSecurityEventQuerySchema.parse({ workspaceId: 'invalid' }));
+    });
+
+    test('accepts bounded audit metadata and rejects secret-bearing fields', () => {
+      const event = AuthSecurityEventSchema.parse({
+        id: eventId,
+        eventType: 'member_password_reset',
+        workspaceId,
+        actorId: userId,
+        subjectUserId: eventId,
+        metadata: {
+          revokedSessionCount: 2,
+          actorWorkspaceRole: 'owner',
+          targetWorkspaceRole: 'admin',
+        },
+        createdAt: '2026-09-04T04:00:00.000Z',
+      });
+      assert.strictEqual(event.metadata.revokedSessionCount, 2);
+
+      assert.throws(() =>
+        AuthSecurityEventSchema.parse({
+          ...event,
+          metadata: { ...event.metadata, resetToken: 'must-not-be-returned' },
+        }),
+      );
+      assert.throws(() => AuthSecurityEventSchema.parse({ ...event, email: 'user@example.com' }));
+    });
+
+    test('validates the bounded security-event list response', () => {
+      const response = AuthSecurityEventListResponseSchema.parse({
+        events: [
+          {
+            id: eventId,
+            eventType: 'password_changed',
+            workspaceId: null,
+            actorId: userId,
+            subjectUserId: userId,
+            metadata: { revokedSessionCount: 1 },
+            createdAt: '2026-09-04T04:00:00.000Z',
+          },
+        ],
+        limit: 50,
+      });
+      assert.strictEqual(response.events.length, 1);
     });
   });
 

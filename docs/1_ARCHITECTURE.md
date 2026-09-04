@@ -167,9 +167,17 @@ graph TD
 - Perubahan hash password, penghapusan token reset yang masih berlaku, dan pencabutan sesi terkait
   harus berada dalam satu transaksi database. Tautan reset satu kali mengunci record pengguna saat
   dikonsumsi agar permintaan bersamaan tidak dapat memakai token yang sama dua kali.
+- Setiap reset password yang berhasil, perubahan password mandiri, dan reset oleh pengelola harus
+  menghasilkan event audit autentikasi append-only dalam transaksi yang sama. Event hanya menyimpan
+  identifier internal, jenis aksi, role Workspace yang relevan, jumlah sesi tercabut, dan waktu;
+  password, token, cookie, email, URL, user-agent, alamat IP, dan secret tidak boleh disimpan.
+- Pengguna dapat membaca event yang melibatkan dirinya. Pembacaan berdasarkan Workspace memerlukan
+  membership aktif `owner` atau `admin` pada Workspace yang sama. Audit read authorization tetap
+  ditegakkan backend.
 
 Keputusan ini dijelaskan dalam
-[ADR-004](adr/ADR-004-CREDENTIAL-RESET-SESSION-REVOCATION.md).
+[ADR-004](adr/ADR-004-CREDENTIAL-RESET-SESSION-REVOCATION.md) dan
+[ADR-005](adr/ADR-005-CREDENTIAL-SECURITY-AUDIT.md).
 
 ### Perlindungan Link Preview Terdistribusi
 

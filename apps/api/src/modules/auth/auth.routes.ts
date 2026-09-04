@@ -11,6 +11,7 @@ import {
   ChangePasswordRequestSchema,
   UpdateProfileRequestSchema,
   AdminResetPasswordRequestSchema,
+  AuthSecurityEventQuerySchema,
 } from '@qlick/contracts';
 import { UserModel, WorkspaceMemberModel } from '../../db/models/index.js';
 import { AuthenticatedRequest, authenticate } from '../../http/middleware/authenticate.js';
@@ -19,6 +20,7 @@ import { env } from '../../config/env.js';
 import { emailService } from '../../services/emailService.js';
 import { createPasswordResetToken, hashPasswordResetToken } from './passwordResetToken.js';
 import { sequelize } from '../../db/sequelize.js';
+import { authSecurityEventService } from './authSecurityEventService.js';
 
 export const authRouter = Router();
 
@@ -168,7 +170,12 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
       user.passwordResetToken = null;
       user.passwordResetExpiresAt = null;
       await user.save({ transaction });
-      await sessionManager.revokeAllSessions(user.id, transaction);
+      const revokedSessionCount = await sessionManager.revokeAllSessions(user.id, transaction);
+      await authSecurityEventService.recordPasswordResetCompleted(
+        user.id,
+        revokedSessionCount,
+        transaction,
+      );
       return true;
     });
 
@@ -207,7 +214,16 @@ authRouter.post(
         user.passwordResetToken = null;
         user.passwordResetExpiresAt = null;
         await user.save({ transaction });
-        await sessionManager.revokeOtherSessions(user.id, req.user!.sessionId!, transaction);
+        const revokedSessionCount = await sessionManager.revokeOtherSessions(
+          user.id,
+          req.user!.sessionId!,
+          transaction,
+        );
+        await authSecurityEventService.recordPasswordChanged(
+          user.id,
+          revokedSessionCount,
+          transaction,
+        );
         return 'updated' as const;
       });
 
@@ -307,7 +323,21 @@ authRouter.post(
         targetUser.passwordResetToken = null;
         targetUser.passwordResetExpiresAt = null;
         await targetUser.save({ transaction });
-        await sessionManager.revokeAllSessions(targetUser.id, transaction);
+        const revokedSessionCount = await sessionManager.revokeAllSessions(
+          targetUser.id,
+          transaction,
+        );
+        await authSecurityEventService.recordMemberPasswordReset(
+          {
+            workspaceId,
+            actorId,
+            subjectUserId: targetUser.id,
+            actorWorkspaceRole: actorMembership.role as 'owner' | 'admin',
+            targetWorkspaceRole: targetMembership.role,
+            revokedSessionCount,
+          },
+          transaction,
+        );
         return 'updated' as const;
       });
 
@@ -327,6 +357,42 @@ authRouter.post(
       });
     } catch (error) {
       return sendCredentialRouteError(res, error);
+    }
+  },
+);
+
+authRouter.get(
+  '/security-events',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const parsedQuery = AuthSecurityEventQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      return res.status(400).json({
+        error: { code: 'BAD_REQUEST', message: 'Invalid security-event query.' },
+      });
+    }
+
+    try {
+      const result = await authSecurityEventService.listForActor(
+        req.user!.userId,
+        parsedQuery.data,
+      );
+      if (!result) {
+        return res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'You cannot read security events for the selected Workspace.',
+          },
+        });
+      }
+      return res.status(200).json({ data: result });
+    } catch {
+      return res.status(500).json({
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Unable to load security events.',
+        },
+      });
     }
   },
 );

@@ -1,5 +1,6 @@
 export * from './user.js';
 export * from './authSession.js';
+export * from './authSecurityEvent.js';
 export * from './workspace.js';
 export * from './workspaceMember.js';
 export * from './workspaceMembershipActivity.js';

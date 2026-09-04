@@ -27,6 +27,7 @@ then update this index.
 | AUTH-003  | Developer or QA parent-Task creation requires active, expiring owner/admin delegation.    | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
 | AUTH-004  | Parent-Task delegation never grants permission to plan Subtasks.                          | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
 | AUTH-005  | Credential reset is exact-Workspace scoped and atomically revokes superseded sessions.    | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
+| AUTH-006  | Successful credential changes create secret-free append-only events with scoped reads.    | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
 
 ## Application Security
 

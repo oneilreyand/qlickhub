@@ -3,7 +3,7 @@ import { after, before, describe, test } from 'node:test';
 import type { Server } from 'node:http';
 import bcrypt from 'bcryptjs';
 import { createApp } from '../../../app.js';
-import { AuthSessionModel, UserModel } from '../../../db/models/index.js';
+import { AuthSecurityEventModel, AuthSessionModel, UserModel } from '../../../db/models/index.js';
 import { emailService } from '../../../services/emailService.js';
 import { hashPasswordResetToken } from '../passwordResetToken.js';
 import { sessionManager } from '../sessionManager.js';
@@ -40,6 +40,7 @@ describe('Password reset HTTP/PostgreSQL integration', () => {
     emailService.sendPasswordResetEmail = originalSendPasswordResetEmail;
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
     if (user) {
+      await AuthSecurityEventModel.destroy({ where: { subjectUserId: user.id } });
       await AuthSessionModel.destroy({ where: { userId: user.id } });
       await user.destroy({ force: true });
     }
@@ -95,6 +96,14 @@ describe('Password reset HTTP/PostgreSQL integration', () => {
     for (const sessionId of activeSessionIds) {
       assert.strictEqual((await sessionManager.isSessionActive(user.id, sessionId)).active, false);
     }
+
+    const auditEvent = await AuthSecurityEventModel.findOne({
+      where: { eventType: 'password_reset_completed', subjectUserId: user.id },
+    });
+    assert.ok(auditEvent);
+    assert.strictEqual(auditEvent.workspaceId, null);
+    assert.strictEqual(auditEvent.actorId, null);
+    assert.deepStrictEqual(auditEvent.metadata, { revokedSessionCount: 2 });
 
     const replay = await fetch(`${baseUrl}/auth/reset-password`, {
       method: 'POST',

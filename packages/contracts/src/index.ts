@@ -1,4 +1,5 @@
 export * from './user.js';
+export * from './authSecurity.js';
 export * from './workspace.js';
 export * from './folder.js';
 export * from './task.js';

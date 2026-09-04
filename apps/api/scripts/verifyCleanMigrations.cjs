@@ -55,7 +55,8 @@ async function main() {
          '20260819000048-drop-task-attachments.cjs',
          '20260821000049-recover-task-attachments.cjs',
          '20260821000052-migrate-legacy-requirement-test-cases.cjs',
-         '20260824000057-create-workspace-member-specialties.cjs'
+         '20260824000057-create-workspace-member-specialties.cjs',
+         '20260904000064-create-auth-security-events.cjs'
        )
        ORDER BY name;`,
     );
@@ -66,6 +67,7 @@ async function main() {
         '20260821000049-recover-task-attachments.cjs',
         '20260821000052-migrate-legacy-requirement-test-cases.cjs',
         '20260824000057-create-workspace-member-specialties.cjs',
+        '20260904000064-create-auth-security-events.cjs',
       ],
     );
 
@@ -73,11 +75,13 @@ async function main() {
       `SELECT
          to_regclass('public.task_attachments') AS attachment_table,
          to_regclass('public.legacy_requirement_test_case_migrations') AS migration_map_table,
-         to_regclass('public.workspace_member_specialties') AS member_specialty_table;`,
+         to_regclass('public.workspace_member_specialties') AS member_specialty_table,
+         to_regclass('public.auth_security_events') AS auth_security_event_table;`,
     );
     assert.strictEqual(tableRows[0].attachment_table, 'task_attachments');
     assert.strictEqual(tableRows[0].migration_map_table, 'legacy_requirement_test_case_migrations');
     assert.strictEqual(tableRows[0].member_specialty_table, 'workspace_member_specialties');
+    assert.strictEqual(tableRows[0].auth_security_event_table, 'auth_security_events');
 
     const [specialtyGuardRows] = await verificationDatabase.query(
       `SELECT
@@ -93,6 +97,21 @@ async function main() {
     );
     assert.strictEqual(specialtyGuardRows[0].has_value_constraint, true);
     assert.strictEqual(specialtyGuardRows[0].has_integrity_trigger, true);
+
+    const [securityEventGuardRows] = await verificationDatabase.query(
+      `SELECT
+         EXISTS (
+           SELECT 1 FROM pg_constraint
+           WHERE conname = 'ck_auth_security_events_metadata_shape'
+         ) AS has_metadata_shape_constraint,
+         EXISTS (
+           SELECT 1 FROM pg_trigger
+           WHERE tgname = 'trg_auth_security_events_immutable'
+             AND NOT tgisinternal
+         ) AS has_immutable_trigger;`,
+    );
+    assert.strictEqual(securityEventGuardRows[0].has_metadata_shape_constraint, true);
+    assert.strictEqual(securityEventGuardRows[0].has_immutable_trigger, true);
 
     const [enumRows] = await verificationDatabase.query(
       `SELECT e.enumlabel

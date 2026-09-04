@@ -2,10 +2,21 @@ import { UserModel } from '../user.js';
 import { WorkspaceModel } from '../workspace.js';
 import { WorkspaceMemberModel } from '../workspaceMember.js';
 import { WorkspaceMembershipActivityModel } from '../workspaceMembershipActivity.js';
+import { AuthSecurityEventModel } from '../authSecurityEvent.js';
 import { WorkspaceMemberSpecialtyModel } from '../workspaceMemberSpecialty.js';
 import { TaskCreationPermissionModel } from '../taskCreationPermission.js';
 
 export function setupWorkspaceAssociations() {
+  WorkspaceModel.hasMany(AuthSecurityEventModel, {
+    foreignKey: 'workspaceId',
+    as: 'authSecurityEvents',
+    onDelete: 'RESTRICT',
+  });
+  AuthSecurityEventModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'RESTRICT',
+  });
   UserModel.hasMany(WorkspaceModel, {
     foreignKey: 'ownerId',
     as: 'ownedWorkspaces',

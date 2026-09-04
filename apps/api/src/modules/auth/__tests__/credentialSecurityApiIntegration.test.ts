@@ -2,10 +2,12 @@ import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 import type { Server } from 'node:http';
 import bcrypt from 'bcryptjs';
+import { Op } from 'sequelize';
 
 import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
+  AuthSecurityEventModel,
   AuthSessionModel,
   UserModel,
   WorkspaceMemberModel,
@@ -13,8 +15,9 @@ import {
 } from '../../../db/models/index.js';
 import { accessTokenCookieName, signToken } from '../jwt.js';
 import { sessionManager } from '../sessionManager.js';
+import { authSecurityEventService } from '../authSecurityEventService.js';
 
-describe('Credential security HTTP/PostgreSQL integration (AUTH-005)', () => {
+describe('Credential security HTTP/PostgreSQL integration (AUTH-005, AUTH-006)', () => {
   const originalPassword = 'Original-password-123!';
   let server: Server;
   let baseUrl: string;
@@ -163,6 +166,15 @@ describe('Credential security HTTP/PostgreSQL integration (AUTH-005)', () => {
   after(async () => {
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
     const userIds = users.map((user) => user.id);
+    await AuthSecurityEventModel.destroy({
+      where: {
+        [Op.or]: [
+          { actorId: userIds },
+          { subjectUserId: userIds },
+          { workspaceId: [workspace.id, otherWorkspace.id] },
+        ],
+      },
+    });
     await AuthSessionModel.destroy({ where: { userId: userIds } });
     await WorkspaceMemberModel.destroy({
       where: { workspaceId: [workspace.id, otherWorkspace.id] },
@@ -204,6 +216,21 @@ describe('Credential security HTTP/PostgreSQL integration (AUTH-005)', () => {
         false,
       );
     }
+
+    const auditEvent = await AuthSecurityEventModel.findOne({
+      where: {
+        eventType: 'member_password_reset',
+        workspaceId: workspace.id,
+        actorId: owner.id,
+        subjectUserId: peerAdmin.id,
+      },
+    });
+    assert.ok(auditEvent);
+    assert.deepStrictEqual(auditEvent.metadata, {
+      revokedSessionCount: 2,
+      actorWorkspaceRole: 'owner',
+      targetWorkspaceRole: 'admin',
+    });
   });
 
   test('Admin can reset PO, Developer, and QA and revokes each target session', async () => {
@@ -282,6 +309,169 @@ describe('Credential security HTTP/PostgreSQL integration (AUTH-005)', () => {
     assert.strictEqual(
       (await sessionManager.isSessionActive(selfServiceUser.id, otherSessionId)).active,
       false,
+    );
+
+    const auditEvent = await AuthSecurityEventModel.findOne({
+      where: {
+        eventType: 'password_changed',
+        actorId: selfServiceUser.id,
+        subjectUserId: selfServiceUser.id,
+      },
+    });
+    assert.ok(auditEvent);
+    assert.strictEqual(auditEvent.workspaceId, null);
+    assert.deepStrictEqual(auditEvent.metadata, { revokedSessionCount: 1 });
+  });
+
+  test('authenticated self reads return only events involving that user', async () => {
+    cookies.set(peerAdmin.id, await createCookie(peerAdmin));
+    const response = await fetch(`${baseUrl}/auth/security-events?limit=10`, {
+      headers: { Cookie: cookies.get(peerAdmin.id)! },
+    });
+    assert.strictEqual(response.status, 200);
+    const body = (await response.json()) as {
+      data: { events: Array<Record<string, unknown>>; limit: number };
+    };
+    assert.strictEqual(body.data.limit, 10);
+    assert.ok(body.data.events.length >= 1);
+    assert.ok(
+      body.data.events.every(
+        (event) => event.actorId === peerAdmin.id || event.subjectUserId === peerAdmin.id,
+      ),
+    );
+    const serialized = JSON.stringify(body).toLowerCase();
+    for (const prohibited of [
+      'passwordhash',
+      'resettoken',
+      'authorization',
+      'cookie',
+      'useragent',
+      'ipaddress',
+      '@example.com',
+    ]) {
+      assert.ok(!serialized.includes(prohibited), `response must not contain ${prohibited}`);
+    }
+  });
+
+  test('Workspace reads require exact active Owner/Admin membership', async () => {
+    for (const actor of [owner, admin]) {
+      const response = await fetch(
+        `${baseUrl}/auth/security-events?workspaceId=${workspace.id}&limit=100`,
+        { headers: { Cookie: cookies.get(actor.id)! } },
+      );
+      assert.strictEqual(response.status, 200);
+      const body = (await response.json()) as {
+        data: { events: Array<{ workspaceId: string; createdAt: string }> };
+      };
+      assert.ok(body.data.events.length >= 4);
+      assert.ok(body.data.events.every((event) => event.workspaceId === workspace.id));
+      const timestamps = body.data.events.map((event) => Date.parse(event.createdAt));
+      assert.deepStrictEqual(
+        timestamps,
+        [...timestamps].sort((a, b) => b - a),
+      );
+    }
+
+    for (const actor of [po, globalAdminWithoutMembership, otherWorkspaceOwner]) {
+      const response = await fetch(`${baseUrl}/auth/security-events?workspaceId=${workspace.id}`, {
+        headers: { Cookie: cookies.get(actor.id)! },
+      });
+      assert.strictEqual(response.status, 403);
+    }
+  });
+
+  test('security-event reads require authentication and valid bounded input', async () => {
+    assert.strictEqual((await fetch(`${baseUrl}/auth/security-events`)).status, 401);
+    const invalid = await fetch(`${baseUrl}/auth/security-events?limit=101`, {
+      headers: { Cookie: cookies.get(owner.id)! },
+    });
+    assert.strictEqual(invalid.status, 400);
+  });
+
+  test('PostgreSQL rejects updates to credential security events', async () => {
+    const event = await AuthSecurityEventModel.findOne({
+      where: { workspaceId: workspace.id },
+      order: [['createdAt', 'DESC']],
+    });
+    assert.ok(event);
+    await assert.rejects(
+      event.update({ metadata: { revokedSessionCount: 999 } }),
+      /append-only and cannot be updated/,
+    );
+  });
+
+  test('PostgreSQL rejects unapproved or secret-bearing audit metadata', async () => {
+    await assert.rejects(
+      AuthSecurityEventModel.create({
+        eventType: 'password_changed',
+        workspaceId: null,
+        actorId: owner.id,
+        subjectUserId: owner.id,
+        metadata: {
+          revokedSessionCount: 0,
+          resetToken: 'must-never-be-persisted',
+        } as never,
+      }),
+      /ck_auth_security_events_metadata_shape/,
+    );
+  });
+
+  test('PostgreSQL rejects null audit identity and role values', async () => {
+    await assert.rejects(
+      AuthSecurityEventModel.create({
+        eventType: 'password_changed',
+        workspaceId: null,
+        actorId: owner.id,
+        subjectUserId: null,
+        metadata: { revokedSessionCount: 0 },
+      }),
+      /ck_auth_security_events_identity/,
+    );
+    for (const roleField of ['actorWorkspaceRole', 'targetWorkspaceRole']) {
+      await assert.rejects(
+        AuthSecurityEventModel.create({
+          eventType: 'member_password_reset',
+          workspaceId: workspace.id,
+          actorId: owner.id,
+          subjectUserId: peerAdmin.id,
+          metadata: {
+            revokedSessionCount: 0,
+            actorWorkspaceRole: 'owner',
+            targetWorkspaceRole: 'admin',
+            [roleField]: null,
+          } as never,
+        }),
+        /ck_auth_security_events_metadata_shape/,
+      );
+    }
+  });
+
+  test('audit write failure rolls back credential and session mutations', async () => {
+    await owner.reload();
+    const originalHash = owner.passwordHash;
+    const sessionId = sessionIds.get(owner.id)!;
+    assert.strictEqual((await sessionManager.isSessionActive(owner.id, sessionId)).active, true);
+    const eventCount = await AuthSecurityEventModel.count({ where: { subjectUserId: owner.id } });
+
+    await assert.rejects(
+      sequelize.transaction(async (transaction) => {
+        await owner.update(
+          { passwordHash: await bcrypt.hash('Rollback-only-password!', 4) },
+          { transaction },
+        );
+        await sessionManager.revokeAllSessions(owner.id, transaction);
+        // A deliberately invalid count exercises the real PostgreSQL constraint, not a mock.
+        await authSecurityEventService.recordPasswordChanged(owner.id, -1, transaction);
+      }),
+      /ck_auth_security_events_metadata_shape/,
+    );
+
+    await owner.reload();
+    assert.strictEqual(owner.passwordHash, originalHash);
+    assert.strictEqual((await sessionManager.isSessionActive(owner.id, sessionId)).active, true);
+    assert.strictEqual(
+      await AuthSecurityEventModel.count({ where: { subjectUserId: owner.id } }),
+      eventCount,
     );
   });
 });
