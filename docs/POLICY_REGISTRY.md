@@ -20,12 +20,13 @@ then update this index.
 
 ## Authentication and Authorization
 
-| Policy ID | Rule summary                                                                              | Canonical source                                                      |
-| --------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| AUTH-001  | Workspace access requires an authenticated user with active Workspace membership.         | [Architecture §5](1_ARCHITECTURE.md#5-model-keamanan--otorisasi-rbac) |
-| AUTH-002  | Authorization is enforced by backend policy/services; UI visibility is not authorization. | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                         |
-| AUTH-003  | Developer or QA parent-Task creation requires active, expiring owner/admin delegation.    | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)   |
-| AUTH-004  | Parent-Task delegation never grants permission to plan Subtasks.                          | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)   |
+| Policy ID | Rule summary                                                                              | Canonical source                                                          |
+| --------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| AUTH-001  | Workspace access requires an authenticated user with active Workspace membership.         | [Architecture §5](1_ARCHITECTURE.md#5-model-keamanan--otorisasi-rbac)     |
+| AUTH-002  | Authorization is enforced by backend policy/services; UI visibility is not authorization. | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                             |
+| AUTH-003  | Developer or QA parent-Task creation requires active, expiring owner/admin delegation.    | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
+| AUTH-004  | Parent-Task delegation never grants permission to plan Subtasks.                          | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
+| AUTH-005  | Credential reset is exact-Workspace scoped and atomically revokes superseded sessions.    | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
 
 ## Application Security
 

@@ -1,5 +1,6 @@
 import { apiClient } from './apiClient';
 import { clearSessionScopedData } from '../storage/browserStorage';
+import type { AdminResetPasswordRequest } from '@qlick/contracts';
 
 export interface User {
   id: string;
@@ -36,15 +37,23 @@ export const authService = {
     return response.data.user;
   },
 
-  async completeOnboarding(): Promise<{ success: boolean; onboardingCompletedAt: string; user: User }> {
-    const response = await apiClient<{ data: { success: boolean; onboardingCompletedAt: string; user: User } }>('/auth/onboarding/complete', {
+  async completeOnboarding(): Promise<{
+    success: boolean;
+    onboardingCompletedAt: string;
+    user: User;
+  }> {
+    const response = await apiClient<{
+      data: { success: boolean; onboardingCompletedAt: string; user: User };
+    }>('/auth/onboarding/complete', {
       method: 'POST',
     });
     return response.data;
   },
 
   async resetOnboarding(): Promise<{ success: boolean; onboardingCompletedAt: null; user: User }> {
-    const response = await apiClient<{ data: { success: boolean; onboardingCompletedAt: null; user: User } }>('/auth/onboarding/reset', {
+    const response = await apiClient<{
+      data: { success: boolean; onboardingCompletedAt: null; user: User };
+    }>('/auth/onboarding/reset', {
       method: 'POST',
     });
     return response.data;
@@ -58,7 +67,10 @@ export const authService = {
     return response.data;
   },
 
-  async resetPassword(payload: { token: string; newPassword: string }): Promise<{ message: string }> {
+  async resetPassword(payload: {
+    token: string;
+    newPassword: string;
+  }): Promise<{ message: string }> {
     const response = await apiClient<{ data: { message: string } }>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -66,7 +78,10 @@ export const authService = {
     return response.data;
   },
 
-  async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<{ message: string }> {
+  async changePassword(payload: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ message: string }> {
     const response = await apiClient<{ data: { message: string } }>('/auth/change-password', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -82,11 +97,14 @@ export const authService = {
     return response.data.user;
   },
 
-  async adminResetMemberPassword(payload: { targetUserId: string; newPassword: string }): Promise<{ message: string }> {
-    const response = await apiClient<{ data: { message: string } }>('/auth/admin/reset-member-password', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+  async adminResetMemberPassword(payload: AdminResetPasswordRequest): Promise<{ message: string }> {
+    const response = await apiClient<{ data: { message: string } }>(
+      '/auth/admin/reset-member-password',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
     return response.data;
   },
 
@@ -97,16 +115,18 @@ export const authService = {
     return response.data;
   },
 
-  async listSessions(): Promise<Array<{
-    id: string;
-    userId: string;
-    userAgent: string | null;
-    ipAddress: string | null;
-    expiresAt: string;
-    createdAt: string;
-    updatedAt: string;
-    isCurrent?: boolean;
-  }>> {
+  async listSessions(): Promise<
+    Array<{
+      id: string;
+      userId: string;
+      userAgent: string | null;
+      ipAddress: string | null;
+      expiresAt: string;
+      createdAt: string;
+      updatedAt: string;
+      isCurrent?: boolean;
+    }>
+  > {
     const response = await apiClient<{
       data: {
         sessions: Array<{
@@ -125,9 +145,12 @@ export const authService = {
   },
 
   async revokeSession(sessionId: string): Promise<{ message: string; isCurrent?: boolean }> {
-    const response = await apiClient<{ data: { message: string; isCurrent?: boolean } }>(`/auth/sessions/${sessionId}`, {
-      method: 'DELETE',
-    });
+    const response = await apiClient<{ data: { message: string; isCurrent?: boolean } }>(
+      `/auth/sessions/${sessionId}`,
+      {
+        method: 'DELETE',
+      },
+    );
     return response.data;
   },
 
@@ -150,4 +173,3 @@ export const authService = {
     }
   },
 };
-

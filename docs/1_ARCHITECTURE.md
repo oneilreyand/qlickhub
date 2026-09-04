@@ -154,6 +154,23 @@ graph TD
 - `owner` atau `admin` dapat memberikan delegasi izin pembuatan parent-Task yang bersifat aktif dan berbatas waktu (_expiring delegation_) kepada anggota `dev` atau `qa`.
 - **Batasan Mutlak**: Delegasi izin ini **hanya** berlaku untuk parent-Task dan **tidak pernah** mengizinkan perencanaan subtask.
 
+### Reset Kredensial dan Pencabutan Sesi
+
+- Reset password administratif selalu menyebut `workspaceId` secara eksplisit dan hanya dapat
+  dijalankan oleh anggota aktif dengan peran `owner` atau `admin` pada Workspace yang sama dengan
+  anggota target. Global role pada `users` tidak pernah menggantikan pemeriksaan membership ini.
+- Owner dapat mereset anggota non-Owner. Admin hanya dapat mereset `po`, `dev`, atau `qa`; Admin
+  tidak dapat mereset Owner, Admin lain, atau dirinya sendiri melalui jalur administratif.
+- Reset melalui tautan satu kali atau oleh Owner/Admin mencabut seluruh sesi aktif pengguna target.
+  Perubahan password mandiri yang telah memverifikasi password lama mempertahankan sesi saat ini
+  dan mencabut seluruh sesi lainnya.
+- Perubahan hash password, penghapusan token reset yang masih berlaku, dan pencabutan sesi terkait
+  harus berada dalam satu transaksi database. Tautan reset satu kali mengunci record pengguna saat
+  dikonsumsi agar permintaan bersamaan tidak dapat memakai token yang sama dua kali.
+
+Keputusan ini dijelaskan dalam
+[ADR-004](adr/ADR-004-CREDENTIAL-RESET-SESSION-REVOCATION.md).
+
 ### Perlindungan Link Preview Terdistribusi
 
 - Endpoint `GET /v1/meta/link-preview` tetap terotentikasi dan dibatasi **30 request per 60 detik per pengguna**. Alamat IP hanya menjadi fallback ketika identitas pengguna tidak tersedia.

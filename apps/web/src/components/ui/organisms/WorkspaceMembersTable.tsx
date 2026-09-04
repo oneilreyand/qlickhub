@@ -70,6 +70,12 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
     return false;
   };
 
+  const canResetMemberPassword = (memberRole: WorkspaceMemberItem['role']) => {
+    if (managerRole === 'owner') return memberRole !== 'owner';
+    if (managerRole === 'admin') return !['owner', 'admin'].includes(memberRole);
+    return false;
+  };
+
   const renderSpecialties = (member: WorkspaceMemberItem) => {
     if (member.role !== 'dev')
       return <span className="text-[11px] text-stone-400">Not applicable</span>;
@@ -193,20 +199,41 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                       <p className="font-semibold text-stone-900 dark:text-stone-100 text-xs truncate">
                         {u?.name || 'Workspace User'}
                       </p>
-                      <p className="text-[11px] text-stone-400 dark:text-stone-500 truncate">{u?.email}</p>
+                      <p className="text-[11px] text-stone-400 dark:text-stone-500 truncate">
+                        {u?.email}
+                      </p>
                     </div>
                   </div>
 
-                  {canRemoveMember(member.role) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRemoveMember(member.userId, u?.email || 'this member')}
-                      aria-label="Remove member"
-                    >
-                      <Trash2 className="h-4 w-4 text-rose-500" />
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {canResetMemberPassword(member.role) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          onResetPasswordClick({
+                            id: member.userId,
+                            name: u?.name || 'Workspace User',
+                            email: u?.email || '',
+                          })
+                        }
+                        title="Reset Member Password"
+                        aria-label="Reset Member Password"
+                      >
+                        <Key className="h-4 w-4 text-amber-500" />
+                      </Button>
+                    )}
+                    {canRemoveMember(member.role) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveMember(member.userId, u?.email || 'this member')}
+                        aria-label="Remove member"
+                      >
+                        <Trash2 className="h-4 w-4 text-rose-500" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between border-t border-stone-100 pt-2 text-xs dark:border-stone-800">
@@ -301,7 +328,11 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                   <tr key={member.id} className="hover:bg-stone-50/60 dark:hover:bg-stone-800/40">
                     <td className="py-3.5 px-3">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <Avatar name={u?.name || u?.email || 'User'} size="sm" className="shrink-0" />
+                        <Avatar
+                          name={u?.name || u?.email || 'User'}
+                          size="sm"
+                          className="shrink-0"
+                        />
                         <div className="min-w-0">
                           <p className="font-semibold text-stone-900 dark:text-stone-100">
                             {u?.name || 'Workspace User'}
@@ -345,23 +376,25 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                     </td>
 
                     <td className="py-3.5 px-3 text-right">
-                      {canManageMembers && member.role !== 'owner' && (
+                      {canResetMemberPassword(member.role) || canRemoveMember(member.role) ? (
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              onResetPasswordClick({
-                                id: member.userId,
-                                name: u?.name || 'Workspace User',
-                                email: u?.email || '',
-                              });
-                            }}
-                            title="Reset Member Password"
-                            aria-label="Reset Member Password"
-                          >
-                            <Key className="h-4 w-4 text-amber-500" />
-                          </Button>
+                          {canResetMemberPassword(member.role) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                onResetPasswordClick({
+                                  id: member.userId,
+                                  name: u?.name || 'Workspace User',
+                                  email: u?.email || '',
+                                });
+                              }}
+                              title="Reset Member Password"
+                              aria-label="Reset Member Password"
+                            >
+                              <Key className="h-4 w-4 text-amber-500" />
+                            </Button>
+                          )}
                           {canRemoveMember(member.role) && (
                             <Button
                               variant="ghost"
@@ -376,7 +409,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                             </Button>
                           )}
                         </div>
-                      )}
+                      ) : null}
                     </td>
                   </tr>
                 );

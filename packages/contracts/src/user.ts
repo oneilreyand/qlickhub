@@ -58,6 +58,7 @@ export const UpdateProfileRequestSchema = z.object({
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;
 
 export const AdminResetPasswordRequestSchema = z.object({
+  workspaceId: z.string().uuid(),
   targetUserId: z.string().uuid(),
   newPassword: z.string().min(6),
 });

@@ -7,7 +7,12 @@ import { WorkspaceSettingsPage } from '../WorkspaceSettingsPage';
 import workspaceReducer from '../../store/workspaceSlice';
 import authReducer from '../../store/authSlice';
 import uiReducer from '../../store/uiSlice';
-import { workspaceService, WorkspaceItem, WorkspaceMemberItem } from '../../lib/api/workspaceService';
+import {
+  workspaceService,
+  WorkspaceItem,
+  WorkspaceMemberItem,
+} from '../../lib/api/workspaceService';
+import { authService } from '../../lib/api/authService';
 
 vi.mock('../../lib/api/workspaceService', () => ({
   workspaceService: {
@@ -26,6 +31,7 @@ vi.mock('../../lib/api/workspaceService', () => ({
 vi.mock('../../lib/api/authService', () => ({
   authService: {
     getCsrfToken: vi.fn().mockResolvedValue('csrf-token'),
+    adminResetMemberPassword: vi.fn(),
   },
 }));
 
@@ -125,14 +131,18 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     const modal = screen.getByRole('dialog', { name: /Archive "Acme Core Project"\?/i });
     expect(modal).toBeInTheDocument();
     expect(
-      within(modal).getByText(/All tasks, subtasks, test cases, evidence, and audit logs will remain intact/i),
+      within(modal).getByText(
+        /All tasks, subtasks, test cases, evidence, and audit logs will remain intact/i,
+      ),
     ).toBeInTheDocument();
 
     // Click Cancel
     const cancelBtn = within(modal).getByRole('button', { name: 'Cancel' });
     fireEvent.click(cancelBtn);
 
-    expect(screen.queryByRole('dialog', { name: /Archive "Acme Core Project"\?/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('dialog', { name: /Archive "Acme Core Project"\?/i }),
+    ).not.toBeInTheDocument();
     expect(workspaceService.archiveWorkspace).not.toHaveBeenCalled();
   });
 
@@ -160,7 +170,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     });
 
     expect(workspaceService.archiveWorkspace).toHaveBeenCalledWith('ws-1');
-    expect(screen.queryByRole('dialog', { name: /Archive "Acme Core Project"\?/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('dialog', { name: /Archive "Acme Core Project"\?/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('opens restore confirmation modal on archived workspace and restores on confirm', async () => {
@@ -189,7 +201,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     });
 
     expect(workspaceService.restoreWorkspace).toHaveBeenCalledWith('ws-archived');
-    expect(screen.queryByRole('dialog', { name: /Restore "Archived Core Project"\?/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('dialog', { name: /Restore "Archived Core Project"\?/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('opens remove member confirmation modal and removes member on confirm', async () => {
@@ -218,6 +232,37 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     });
 
     expect(workspaceService.removeMember).toHaveBeenCalledWith('ws-1', 'user-dev');
-    expect(screen.queryByRole('dialog', { name: /Remove Member from Workspace\?/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('dialog', { name: /Remove Member from Workspace\?/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('submits an administrative reset for the exact active Workspace', async () => {
+    vi.mocked(authService.adminResetMemberPassword).mockResolvedValue({
+      message: 'Member password reset successfully.',
+    });
+    const store = createMockStore();
+    render(
+      <Provider store={store}>
+        <WorkspaceSettingsPage />
+      </Provider>,
+    );
+
+    const resetButtons = await screen.findAllByRole('button', { name: 'Reset Member Password' });
+    fireEvent.click(resetButtons[0]);
+
+    const modal = screen.getByRole('dialog', { name: 'Reset Member Password' });
+    fireEvent.change(within(modal).getByPlaceholderText('Minimum 6 characters'), {
+      target: { value: 'Replacement-password-123!' },
+    });
+    await act(async () => {
+      fireEvent.click(within(modal).getByRole('button', { name: 'Reset Password' }));
+    });
+
+    expect(authService.adminResetMemberPassword).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      targetUserId: 'user-dev',
+      newPassword: 'Replacement-password-123!',
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { CookieOptions, Router, Request, Response } from 'express';
 import { Op } from 'sequelize';
 import bcrypt from 'bcryptjs';
+import { ZodError } from 'zod';
 import { accessTokenCookieName, signToken } from './jwt.js';
 import { sessionManager } from './sessionManager.js';
 import {
@@ -17,6 +18,7 @@ import { loginRateLimiter } from '../../http/middleware/rateLimit.js';
 import { env } from '../../config/env.js';
 import { emailService } from '../../services/emailService.js';
 import { createPasswordResetToken, hashPasswordResetToken } from './passwordResetToken.js';
+import { sequelize } from '../../db/sequelize.js';
 
 export const authRouter = Router();
 
@@ -25,6 +27,17 @@ const accessCookieOptions: CookieOptions = {
   secure: env.NODE_ENV === 'production',
   sameSite: env.COOKIE_SAME_SITE,
   path: '/',
+};
+
+const sendCredentialRouteError = (res: Response, error: unknown) => {
+  if (error instanceof ZodError) {
+    return res.status(400).json({
+      error: { code: 'BAD_REQUEST', message: 'Invalid credential request.' },
+    });
+  }
+  return res.status(500).json({
+    error: { code: 'INTERNAL_SERVER_ERROR', message: 'Unable to process credential request.' },
+  });
 };
 
 const toAuthenticatedUser = (user: UserModel) => ({
@@ -139,36 +152,37 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
 authRouter.post('/reset-password', async (req: Request, res: Response) => {
   try {
     const { token, newPassword } = ResetPasswordRequestSchema.parse(req.body);
+    const tokenHash = hashPasswordResetToken(token);
+    const resetApplied = await sequelize.transaction(async (transaction) => {
+      const user = await UserModel.findOne({
+        where: {
+          passwordResetToken: tokenHash,
+          passwordResetExpiresAt: { [Op.gt]: new Date() },
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!user) return false;
 
-    const user = await UserModel.findOne({
-      where: {
-        passwordResetToken: hashPasswordResetToken(token),
-        passwordResetExpiresAt: { [Op.gt]: new Date() },
-      },
+      user.passwordHash = await bcrypt.hash(newPassword, await bcrypt.genSalt(10));
+      user.passwordResetToken = null;
+      user.passwordResetExpiresAt = null;
+      await user.save({ transaction });
+      await sessionManager.revokeAllSessions(user.id, transaction);
+      return true;
     });
 
-    if (!user) {
+    if (!resetApplied) {
       return res.status(400).json({
         error: { code: 'INVALID_TOKEN', message: 'Password reset link is invalid or has expired.' },
       });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.passwordHash = await bcrypt.hash(newPassword, salt);
-    user.passwordResetToken = null;
-    user.passwordResetExpiresAt = null;
-    await user.save();
-
     return res.status(200).json({
       data: { message: 'Your password has been successfully reset. You can now log in.' },
     });
   } catch (error) {
-    return res.status(400).json({
-      error: {
-        code: 'BAD_REQUEST',
-        message: error instanceof Error ? error.message : 'Invalid request.',
-      },
-    });
+    return sendCredentialRouteError(res, error);
   }
 });
 
@@ -179,16 +193,30 @@ authRouter.post(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { currentPassword, newPassword } = ChangePasswordRequestSchema.parse(req.body);
-      const user = await UserModel.findByPk(req.user!.userId);
+      const outcome = await sequelize.transaction(async (transaction) => {
+        const user = await UserModel.findByPk(req.user!.userId, {
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!user || !user.passwordHash) return 'missing' as const;
 
-      if (!user || !user.passwordHash) {
+        const passwordMatches = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!passwordMatches) return 'invalid-password' as const;
+
+        user.passwordHash = await bcrypt.hash(newPassword, await bcrypt.genSalt(10));
+        user.passwordResetToken = null;
+        user.passwordResetExpiresAt = null;
+        await user.save({ transaction });
+        await sessionManager.revokeOtherSessions(user.id, req.user!.sessionId!, transaction);
+        return 'updated' as const;
+      });
+
+      if (outcome === 'missing') {
         return res
           .status(401)
           .json({ error: { code: 'UNAUTHORIZED', message: 'User not found.' } });
       }
-
-      const passwordMatches = await bcrypt.compare(currentPassword, user.passwordHash);
-      if (!passwordMatches) {
+      if (outcome === 'invalid-password') {
         return res.status(400).json({
           error: {
             code: 'INVALID_CURRENT_PASSWORD',
@@ -197,20 +225,11 @@ authRouter.post(
         });
       }
 
-      const salt = await bcrypt.genSalt(10);
-      user.passwordHash = await bcrypt.hash(newPassword, salt);
-      await user.save();
-
       return res.status(200).json({
         data: { message: 'Your password has been updated successfully.' },
       });
     } catch (error) {
-      return res.status(400).json({
-        error: {
-          code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Invalid request.',
-        },
-      });
+      return sendCredentialRouteError(res, error);
     }
   },
 );
@@ -246,72 +265,68 @@ authRouter.post(
   authenticate,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { targetUserId, newPassword } = AdminResetPasswordRequestSchema.parse(req.body);
+      const { workspaceId, targetUserId, newPassword } = AdminResetPasswordRequestSchema.parse(
+        req.body,
+      );
       const actorId = req.user!.userId;
-
-      // Verify actor is admin/owner in at least one shared workspace or global admin
-      const actorUser = await UserModel.findByPk(actorId);
-      if (!actorUser) {
-        return res
-          .status(401)
-          .json({ error: { code: 'UNAUTHORIZED', message: 'Actor user not found.' } });
-      }
-
-      let isAuthorized = actorUser.role === 'admin';
-      if (!isAuthorized) {
-        // Check shared workspace admin/owner role
-        const sharedAdminMembership = await WorkspaceMemberModel.findOne({
+      const outcome = await sequelize.transaction(async (transaction) => {
+        const memberships = await WorkspaceMemberModel.findAll({
           where: {
-            userId: actorId,
-            role: { [Op.in]: ['owner', 'admin'] },
+            workspaceId,
+            userId: { [Op.in]: [actorId, targetUserId] },
           },
+          order: [['userId', 'ASC']],
+          transaction,
+          lock: transaction.LOCK.UPDATE,
         });
-        if (sharedAdminMembership) {
-          // Verify target member is in that workspace
-          const targetInWorkspace = await WorkspaceMemberModel.findOne({
-            where: {
-              workspaceId: sharedAdminMembership.workspaceId,
-              userId: targetUserId,
-            },
-          });
-          if (targetInWorkspace) isAuthorized = true;
+        const actorMembership = memberships.find((membership) => membership.userId === actorId);
+        const targetMembership = memberships.find(
+          (membership) => membership.userId === targetUserId,
+        );
+        const actorCanManage = actorMembership && ['owner', 'admin'].includes(actorMembership.role);
+        const targetRoleAllowed =
+          targetMembership &&
+          targetMembership.role !== 'owner' &&
+          (actorMembership?.role === 'owner' || targetMembership.role !== 'admin');
+        if (
+          actorId === targetUserId ||
+          !actorCanManage ||
+          !targetMembership ||
+          !targetRoleAllowed
+        ) {
+          return 'forbidden' as const;
         }
-      }
 
-      if (!isAuthorized) {
+        const targetUser = await UserModel.findByPk(targetUserId, {
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!targetUser) return 'forbidden' as const;
+
+        targetUser.passwordHash = await bcrypt.hash(newPassword, await bcrypt.genSalt(10));
+        targetUser.passwordResetToken = null;
+        targetUser.passwordResetExpiresAt = null;
+        await targetUser.save({ transaction });
+        await sessionManager.revokeAllSessions(targetUser.id, transaction);
+        return 'updated' as const;
+      });
+
+      if (outcome === 'forbidden') {
         return res.status(403).json({
           error: {
             code: 'FORBIDDEN',
-            message: 'Only workspace administrators or owners can reset member passwords.',
+            message: 'You cannot reset this member password in the selected Workspace.',
           },
         });
       }
 
-      const targetUser = await UserModel.findByPk(targetUserId);
-      if (!targetUser) {
-        return res
-          .status(404)
-          .json({ error: { code: 'NOT_FOUND', message: 'Target member user not found.' } });
-      }
-
-      const salt = await bcrypt.genSalt(10);
-      targetUser.passwordHash = await bcrypt.hash(newPassword, salt);
-      targetUser.passwordResetToken = null;
-      targetUser.passwordResetExpiresAt = null;
-      await targetUser.save();
-
       return res.status(200).json({
         data: {
-          message: `Password for ${targetUser.name} (${targetUser.email}) has been reset successfully.`,
+          message: 'Member password reset successfully. All active sessions were signed out.',
         },
       });
     } catch (error) {
-      return res.status(400).json({
-        error: {
-          code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Invalid request.',
-        },
-      });
+      return sendCredentialRouteError(res, error);
     }
   },
 );

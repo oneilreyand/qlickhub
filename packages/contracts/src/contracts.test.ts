@@ -52,6 +52,7 @@ import {
   ListNotificationsResponseSchema,
   UserSchema,
   CompleteOnboardingResponseSchema,
+  AdminResetPasswordRequestSchema,
   CreateTestCaseSchema,
   CreateTestRunSchema,
   CreateTestResultSchema,
@@ -81,6 +82,34 @@ import {
 } from './index.js';
 
 describe('Contracts Validation Suite', () => {
+  describe('Credential reset contracts', () => {
+    const validWorkspaceId = '123e4567-e89b-12d3-a456-426614174000';
+    const validTargetUserId = '223e4567-e89b-12d3-a456-426614174001';
+
+    test('requires an exact Workspace ID for administrative password reset', () => {
+      const parsed = AdminResetPasswordRequestSchema.parse({
+        workspaceId: validWorkspaceId,
+        targetUserId: validTargetUserId,
+        newPassword: 'Replacement-password-123!',
+      });
+      assert.strictEqual(parsed.workspaceId, validWorkspaceId);
+
+      assert.throws(() =>
+        AdminResetPasswordRequestSchema.parse({
+          targetUserId: validTargetUserId,
+          newPassword: 'Replacement-password-123!',
+        }),
+      );
+      assert.throws(() =>
+        AdminResetPasswordRequestSchema.parse({
+          workspaceId: 'not-a-workspace-id',
+          targetUserId: validTargetUserId,
+          newPassword: 'Replacement-password-123!',
+        }),
+      );
+    });
+  });
+
   describe('Workspace Contracts', () => {
     test('validates valid workspace creation', () => {
       const input = { name: '  Engineering QA  ', description: 'QA Hub' };

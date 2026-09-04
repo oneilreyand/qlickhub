@@ -84,6 +84,15 @@ describe('WorkspaceMembersTable deletion hierarchy', () => {
     expect(screen.getAllByRole('button', { name: 'Remove member' })).toHaveLength(6);
   });
 
+  it('mirrors the approved reset hierarchy on desktop and mobile actions', () => {
+    const { unmount } = renderTable('owner');
+    expect(screen.getAllByRole('button', { name: 'Reset Member Password' })).toHaveLength(8);
+
+    unmount();
+    renderTable('admin');
+    expect(screen.getAllByRole('button', { name: 'Reset Member Password' })).toHaveLength(6);
+  });
+
   it('hides all removal actions from roles that cannot manage members', () => {
     renderTable(null, false);
 

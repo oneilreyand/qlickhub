@@ -225,6 +225,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
     setIsResettingPassword(true);
     try {
       const res = await authService.adminResetMemberPassword({
+        workspaceId: activeWorkspace.id,
         targetUserId: resetTargetUser.id,
         newPassword: newMemberPassword,
       });

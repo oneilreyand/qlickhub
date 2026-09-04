@@ -3,7 +3,7 @@
  * Supports concurrent sessions (up to MAX_CONCURRENT_SESSIONS),
  * proactive renewal/sliding extension, and selective revocation.
  */
-import { Op } from 'sequelize';
+import { Op, type Transaction } from 'sequelize';
 import { env } from '../../config/env.js';
 import { AuthSessionModel } from '../../db/models/authSession.js';
 import { sequelize } from '../../db/sequelize.js';
@@ -35,7 +35,7 @@ export const sessionManager = {
         const toRevokeIds = activeSessions.slice(0, excessCount).map((s) => s.id);
         await AuthSessionModel.update(
           { revokedAt: now },
-          { where: { id: { [Op.in]: toRevokeIds } }, transaction }
+          { where: { id: { [Op.in]: toRevokeIds } }, transaction },
         );
       }
 
@@ -47,7 +47,7 @@ export const sessionManager = {
           expiresAt: new Date(Date.now() + env.JWT_ACCESS_TTL_MINUTES * 60 * 1000),
           revokedAt: null,
         },
-        { transaction }
+        { transaction },
       );
 
       return session.id;
@@ -59,8 +59,12 @@ export const sessionManager = {
    */
   async isSessionActive(
     userId: string,
-    sessionId: string
-  ): Promise<{ active: boolean; reason?: 'DOUBLE_LOGIN' | 'LOGOUT' | 'EXPIRED'; session?: AuthSessionModel }> {
+    sessionId: string,
+  ): Promise<{
+    active: boolean;
+    reason?: 'DOUBLE_LOGIN' | 'LOGOUT' | 'EXPIRED';
+    session?: AuthSessionModel;
+  }> {
     const session = await AuthSessionModel.findOne({ where: { id: sessionId, userId } });
     if (!session) return { active: false, reason: 'LOGOUT' };
     if (session.revokedAt) return { active: false, reason: 'DOUBLE_LOGIN' };
@@ -76,10 +80,7 @@ export const sessionManager = {
     const where: any = { id: sessionId, revokedAt: null };
     if (userId) where.userId = userId;
 
-    await AuthSessionModel.update(
-      { expiresAt: newExpiresAt },
-      { where }
-    );
+    await AuthSessionModel.update({ expiresAt: newExpiresAt }, { where });
     return newExpiresAt;
   },
 
@@ -116,16 +117,17 @@ export const sessionManager = {
     const where: any = { id: sessionId, revokedAt: { [Op.is]: null } };
     if (userId) where.userId = userId;
 
-    await AuthSessionModel.update(
-      { revokedAt: new Date() },
-      { where }
-    );
+    await AuthSessionModel.update({ revokedAt: new Date() }, { where });
   },
 
   /**
    * Revoke all other active sessions for a user except the current one.
    */
-  async revokeOtherSessions(userId: string, currentSessionId: string): Promise<number> {
+  async revokeOtherSessions(
+    userId: string,
+    currentSessionId: string,
+    transaction?: Transaction,
+  ): Promise<number> {
     const [count] = await AuthSessionModel.update(
       { revokedAt: new Date() },
       {
@@ -134,9 +136,26 @@ export const sessionManager = {
           id: { [Op.ne]: currentSessionId },
           revokedAt: null,
         },
-      }
+        transaction,
+      },
+    );
+    return count;
+  },
+
+  /**
+   * Revoke every active session after a credential reset.
+   */
+  async revokeAllSessions(userId: string, transaction?: Transaction): Promise<number> {
+    const [count] = await AuthSessionModel.update(
+      { revokedAt: new Date() },
+      {
+        where: {
+          userId,
+          revokedAt: null,
+        },
+        transaction,
+      },
     );
     return count;
   },
 };
-
