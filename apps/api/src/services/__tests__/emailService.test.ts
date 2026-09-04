@@ -37,7 +37,8 @@ describe('EmailService', () => {
     assert.ok(options.html.includes('DEV'));
     assert.ok(options.html.includes('Core Platform'));
     assert.ok(options.html.includes('Analytics Hub'));
-    assert.ok(options.html.includes('reset-password?token=set-password-token-xyz'));
+    assert.ok(options.html.includes('reset-password#token=set-password-token-xyz'));
+    assert.ok(!options.html.includes('reset-password?token='));
     assert.ok(options.html.includes('Set Password'));
     assert.ok(!options.html.includes('Password123!'));
     assert.ok(options.html.includes('/login'));
@@ -65,6 +66,7 @@ describe('EmailService', () => {
     const options: SendEmailOptions = sentOptions;
     assert.strictEqual(options.to, 'user@example.com');
     assert.ok(options.html.includes('Hello Bob Builder,'));
-    assert.ok(options.html.includes('reset-password?token=reset-token-xyz'));
+    assert.ok(options.html.includes('reset-password#token=reset-token-xyz'));
+    assert.ok(!options.html.includes('reset-password?token='));
   });
 });

@@ -76,7 +76,7 @@ export class EmailService {
     token: string,
     userName?: string,
   ): Promise<EmailSendResult> {
-    const resetUrl = `${this.appUrl}/reset-password?token=${encodeURIComponent(token)}`;
+    const resetUrl = `${this.appUrl}/reset-password#token=${encodeURIComponent(token)}`;
     const greeting = userName ? `Hello ${userName},` : 'Hello,';
 
     const html = `
@@ -122,7 +122,7 @@ export class EmailService {
   ): Promise<EmailSendResult> {
     const loginUrl = `${this.appUrl}/login`;
     const setPasswordUrl = setPasswordToken
-      ? `${this.appUrl}/reset-password?token=${encodeURIComponent(setPasswordToken)}`
+      ? `${this.appUrl}/reset-password#token=${encodeURIComponent(setPasswordToken)}`
       : null;
     const workspacesList = workspaceNames
       .map((name) => `<li style="margin-bottom: 6px; font-weight: 600;">${name}</li>`)

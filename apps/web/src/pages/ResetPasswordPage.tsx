@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authService } from '../lib/api/authService';
 import { Lock, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Alert } from '../components/ui/atoms/Alert';
@@ -7,9 +7,48 @@ import { Button } from '../components/ui/atoms/Button';
 import { Input } from '../components/ui/atoms/Input';
 
 export const ResetPasswordPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const location = useLocation();
   const navigate = useNavigate();
+  const [token] = useState(() => {
+    const fragmentParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const queryParams = new URLSearchParams(location.search);
+    return fragmentParams.get('token') || queryParams.get('token') || '';
+  });
+
+  const sanitizedLocation = useMemo(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const fragmentParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const hasQueryToken = queryParams.has('token');
+    const hasFragmentToken = fragmentParams.has('token');
+
+    if (!hasQueryToken && !hasFragmentToken) return null;
+
+    queryParams.delete('token');
+    fragmentParams.delete('token');
+    const sanitizedQuery = queryParams.toString();
+    const sanitizedFragment = fragmentParams.toString();
+
+    return {
+      pathname: location.pathname,
+      search: sanitizedQuery ? `?${sanitizedQuery}` : '',
+      hash: sanitizedFragment ? `#${sanitizedFragment}` : '',
+    };
+  }, [location.hash, location.pathname, location.search]);
+
+  useLayoutEffect(() => {
+    if (!sanitizedLocation) return;
+
+    const browserLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const routerLocation = `${location.pathname}${location.search}${location.hash}`;
+    if (browserLocation !== routerLocation) return;
+
+    const sanitizedUrl = `${sanitizedLocation.pathname}${sanitizedLocation.search}${sanitizedLocation.hash}`;
+    window.history.replaceState(window.history.state, '', sanitizedUrl);
+  }, [location.hash, location.pathname, location.search, sanitizedLocation]);
+
+  useEffect(() => {
+    if (sanitizedLocation) navigate(sanitizedLocation, { replace: true });
+  }, [navigate, sanitizedLocation]);
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -57,9 +96,7 @@ export const ResetPasswordPage: React.FC = () => {
       <div className="w-full max-w-md bg-white p-8 rounded-[24px] border border-stone-200/80 shadow-xl shadow-stone-200/60 space-y-6 relative z-10">
         <div className="text-center space-y-1">
           <h1 className="text-xl font-bold text-stone-900">Set New Password</h1>
-          <p className="text-sm text-stone-500">
-            Please enter and confirm your new password.
-          </p>
+          <p className="text-sm text-stone-500">Please enter and confirm your new password.</p>
         </div>
 
         {!token && (
