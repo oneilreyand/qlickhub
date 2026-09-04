@@ -1,5 +1,5 @@
-import { createApp } from '../apps/api/dist/app.js';
+import { createVercelHandler } from '../apps/api/dist/http/vercelHandler.js';
 
-const app = createApp();
+const app = createVercelHandler();
 
 export default app;

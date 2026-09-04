@@ -1,10 +1,10 @@
 import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
-import type { Server } from 'node:http';
+import { createServer, type Server } from 'node:http';
 import bcrypt from 'bcryptjs';
 import { Op } from 'sequelize';
 
-import { createApp } from '../../../app.js';
+import { createVercelHandler } from '../../../http/vercelHandler.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
   AuthSecurityEventModel,
@@ -85,7 +85,7 @@ describe('Credential security HTTP/PostgreSQL integration (AUTH-005, AUTH-006)',
 
   before(async () => {
     await sequelize.authenticate();
-    const app = createApp();
+    const app = createServer(createVercelHandler());
     await new Promise<void>((resolve) => {
       server = app.listen(0, () => {
         const address = server.address();
@@ -386,6 +386,27 @@ describe('Credential security HTTP/PostgreSQL integration (AUTH-005, AUTH-006)',
       headers: { Cookie: cookies.get(owner.id)! },
     });
     assert.strictEqual(invalid.status, 400);
+  });
+
+  test('Vercel rewrite metadata does not break strict audit queries', async () => {
+    const response = await fetch(
+      `${baseUrl}/auth/security-events?path=auth%2Fsecurity-events&workspaceId=${workspace.id}&limit=1`,
+      { headers: { Cookie: cookies.get(owner.id)! } },
+    );
+    assert.strictEqual(response.status, 200);
+    const body = (await response.json()) as { data: { events: Array<{ workspaceId: string }> } };
+    assert.strictEqual(body.data.events.length, 1);
+    assert.strictEqual(body.data.events[0].workspaceId, workspace.id);
+    for (const suffix of [
+      'path=not-the-route',
+      'path=auth%2Fsecurity-events&unexpected=1',
+      'path=auth%2Fsecurity-events&path=auth%2Fsecurity-events',
+    ]) {
+      const invalid = await fetch(`${baseUrl}/auth/security-events?${suffix}`, {
+        headers: { Cookie: cookies.get(owner.id)! },
+      });
+      assert.strictEqual(invalid.status, 400);
+    }
   });
 
   test('PostgreSQL rejects updates to credential security events', async () => {
