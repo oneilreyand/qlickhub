@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 import { createServer, type Server } from 'node:http';
+import { parse as parseQuery } from 'node:querystring';
 import bcrypt from 'bcryptjs';
 import { Op } from 'sequelize';
 
@@ -85,7 +86,18 @@ describe('Credential security HTTP/PostgreSQL integration (AUTH-005, AUTH-006)',
 
   before(async () => {
     await sequelize.authenticate();
-    const app = createServer(createVercelHandler());
+    const handler = createVercelHandler();
+    const app = createServer((req, res) => {
+      // External Vercel helper fixture: its own lazy query property captures the
+      // incoming URL before our handler runs, shadowing Express's query getter.
+      const queryString = (req.url || '').split('?')[1] || '';
+      Object.defineProperty(req, 'query', {
+        configurable: true,
+        enumerable: true,
+        get: () => parseQuery(queryString),
+      });
+      return handler(req, res);
+    });
     await new Promise<void>((resolve) => {
       server = app.listen(0, () => {
         const address = server.address();

@@ -55,7 +55,8 @@ only SEC-07 audit data; it must not be run outside an approved rollback.
 - Invalid input returns `400`; missing authentication returns `401`; insufficient membership/role
   returns `403` without revealing unrelated event existence.
 - The Vercel transport adapter removes only a single `path` rewrite capture matching the current
-  `/v1/` route before domain query validation. Unknown, mismatched, or duplicate query parameters
+  `/v1/` route before domain query validation, removing Vercel's own cached query helper so Express
+  parses the normalized URL. Unknown, mismatched, or duplicate query parameters
   still fail the strict audit query contract; no authorization rule is relaxed.
 
 ## 6. Authorization

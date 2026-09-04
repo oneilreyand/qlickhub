@@ -4,6 +4,9 @@ import { createApp } from '../app.js';
 export const createVercelHandler = () => {
   const app = createApp();
   return (req: IncomingMessage, res: ServerResponse) => {
+    // Vercel's own query helper captures the original URL and shadows Express's
+    // getter. Let Express parse the normalized URL, including duplicate keys.
+    Reflect.deleteProperty(req, 'query');
     // Vercel's /v1/:path* rewrite forwards its capture as query metadata.
     // Remove only an unambiguous matching capture; domain query validation stays strict.
     const url = req.url || '';
