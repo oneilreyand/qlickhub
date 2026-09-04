@@ -38,15 +38,13 @@ export const accessTokenFromRequest = (req: Request): string | undefined => {
   const authorization = req.headers.authorization;
   if (authorization?.startsWith('Bearer ')) return authorization.slice('Bearer '.length);
 
-  if (typeof req.query?.token === 'string' && req.query.token.trim().length > 0) {
-    return req.query.token.trim();
-  }
-
   const cookie = req.headers.cookie;
   if (!cookie) return undefined;
-  const tokenPair = cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${accessTokenCookieName}=`));
+  const tokenPair = cookie
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${accessTokenCookieName}=`));
   if (!tokenPair) return undefined;
 
   return decodeURIComponent(tokenPair.slice(accessTokenCookieName.length + 1));
 };
-

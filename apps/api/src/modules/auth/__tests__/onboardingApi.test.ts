@@ -11,6 +11,7 @@ describe('User Onboarding API Suite', () => {
   let baseUrl: string;
 
   let testUser: UserModel;
+  let userToken: string;
   let userCookie: string;
 
   before(async () => {
@@ -34,13 +35,13 @@ describe('User Onboarding API Suite', () => {
     });
 
     const sessionId = await sessionManager.createSession(testUser.id, 'TestAgent', '127.0.0.1');
-    const token = signToken({
+    userToken = signToken({
       userId: testUser.id,
       email: testUser.email,
       role: testUser.role,
       sessionId,
     });
-    userCookie = `${accessTokenCookieName}=${token}`;
+    userCookie = `${accessTokenCookieName}=${userToken}`;
   });
 
   after(async () => {
@@ -60,6 +61,12 @@ describe('User Onboarding API Suite', () => {
     const body = (await res.json()) as any;
     assert.strictEqual(body.data.user.id, testUser.id);
     assert.strictEqual(body.data.user.onboardingCompletedAt, null);
+  });
+
+  test('GET /v1/auth/session rejects a JWT supplied only through the URL query', async () => {
+    const res = await fetch(`${baseUrl}/auth/session?token=${encodeURIComponent(userToken)}`);
+
+    assert.strictEqual(res.status, 401);
   });
 
   test('POST /v1/auth/onboarding/complete requires authentication', async () => {
@@ -91,7 +98,10 @@ describe('User Onboarding API Suite', () => {
       },
     });
     const sessionBody = (await sessionRes.json()) as any;
-    assert.strictEqual(sessionBody.data.user.onboardingCompletedAt, body.data.onboardingCompletedAt);
+    assert.strictEqual(
+      sessionBody.data.user.onboardingCompletedAt,
+      body.data.onboardingCompletedAt,
+    );
   });
 
   test('POST /v1/auth/onboarding/reset sets onboardingCompletedAt back to null', async () => {
