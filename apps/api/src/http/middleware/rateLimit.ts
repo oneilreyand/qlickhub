@@ -5,6 +5,8 @@ import type { RequestHandler } from 'express';
 import { env } from '../../config/env.js';
 import { DistributedRateLimiter, DistributedRateLimitStore } from './distributedRateLimitStore.js';
 import { ExactSlidingWindowRateLimiter } from './exactSlidingWindowRateLimiter.js';
+import { PostgresRateLimiter } from './postgresRateLimiter.js';
+import { sequelize } from '../../db/sequelize.js';
 
 const rateLimitMessage = {
   code: 'RATE_LIMITED',
@@ -60,7 +62,7 @@ export interface LinkPreviewRateLimiterOptions {
   limit?: number;
   skip?: (req: any, res: any) => boolean;
   environment?: 'development' | 'production' | 'test';
-  store?: 'memory' | 'upstash';
+  store?: 'memory' | 'upstash' | 'postgres';
   distributedLimiter?: DistributedRateLimiter;
   identifierSecret?: string;
   onStoreFailure?: () => void;
@@ -94,16 +96,21 @@ export function createLinkPreviewRateLimiter(
   const environment = options.environment ?? env.NODE_ENV;
   const windowMs = options.windowMs ?? DEFAULT_LINK_PREVIEW_WINDOW_MS;
   const limit =
-    options.limit ?? (environment === 'production' ? DEFAULT_LINK_PREVIEW_RATE_LIMIT : 500);
+    options.limit ??
+    (environment === 'production' || env.VERCEL_ENV === 'preview' || env.VERCEL_ENV === 'production'
+      ? DEFAULT_LINK_PREVIEW_RATE_LIMIT
+      : 500);
   const storeType = options.store ?? env.LINK_PREVIEW_RATE_LIMIT_STORE;
   const identifierSecret = options.identifierSecret ?? env.RATE_LIMIT_KEY_SECRET;
   const distributedLimiter =
     storeType === 'upstash'
       ? (options.distributedLimiter ?? createUpstashLimiter(limit, windowMs))
-      : undefined;
+      : storeType === 'postgres'
+        ? (options.distributedLimiter ?? new PostgresRateLimiter(sequelize, { limit, windowMs }))
+        : undefined;
 
-  if (storeType === 'upstash' && !identifierSecret) {
-    throw new Error('RATE_LIMIT_KEY_SECRET is required for the Upstash rate limiter.');
+  if (storeType !== 'memory' && !identifierSecret) {
+    throw new Error('RATE_LIMIT_KEY_SECRET is required for the distributed rate limiter.');
   }
 
   return rateLimit({
@@ -117,7 +124,7 @@ export function createLinkPreviewRateLimiter(
       const rawIdentifier = user?.userId
         ? `user:${user.userId}`
         : `ip:${ipKeyGenerator(req.ip || 'unknown')}`;
-      return storeType === 'upstash'
+      return storeType !== 'memory'
         ? opaqueRateLimitKey(rawIdentifier, identifierSecret!)
         : rawIdentifier;
     },

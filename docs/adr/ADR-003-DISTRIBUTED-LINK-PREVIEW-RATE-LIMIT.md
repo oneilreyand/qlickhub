@@ -1,6 +1,6 @@
 # ADR-003 — Distributed link-preview rate limiting
 
-- **Status:** Accepted
+- **Status:** Provider choice superseded by [ADR-006](ADR-006-POSTGRESQL-LINK-PREVIEW-RATE-LIMIT.md); remaining security/fallback decisions retained
 - **Date:** 2026-09-03
 - **Accepted by owner:** 2026-09-03
 - **Decision owner:** Product owner / Production infrastructure owner

@@ -37,7 +37,7 @@ test('defaults link-preview rate limiting to memory outside production', () => {
   assert.strictEqual(parsed.LINK_PREVIEW_RATE_LIMIT_STORE, 'memory');
 });
 
-test('requires the distributed Upstash store and credentials in production', () => {
+test('retains explicit Upstash credentials and rejects memory in production', () => {
   const parsed = parseEnvironment(validProductionEnvironment());
 
   assert.strictEqual(parsed.LINK_PREVIEW_RATE_LIMIT_STORE, 'upstash');
@@ -45,7 +45,7 @@ test('requires the distributed Upstash store and credentials in production', () 
 
   assert.throws(
     () => parseEnvironment(validProductionEnvironment({ LINK_PREVIEW_RATE_LIMIT_STORE: 'memory' })),
-    /LINK_PREVIEW_RATE_LIMIT_STORE=upstash is required in production and Vercel Preview/,
+    /A distributed LINK_PREVIEW_RATE_LIMIT_STORE/,
   );
 
   assert.throws(
@@ -54,10 +54,11 @@ test('requires the distributed Upstash store and credentials in production', () 
   );
 });
 
-test('requires and defaults to Upstash for Vercel Preview', () => {
+test('retains explicit Upstash KV aliases for Vercel Preview', () => {
   const previewEnvironment: NodeJS.ProcessEnv = {
     NODE_ENV: 'development',
     VERCEL_ENV: 'preview',
+    LINK_PREVIEW_RATE_LIMIT_STORE: 'upstash',
     KV_REST_API_URL: 'https://example.upstash.io',
     KV_REST_API_TOKEN: 'test-only-upstash-token',
     RATE_LIMIT_KEY_SECRET: 'test-only-rate-limit-key-secret-32-chars',
@@ -74,6 +75,22 @@ test('requires and defaults to Upstash for Vercel Preview', () => {
         ...previewEnvironment,
         LINK_PREVIEW_RATE_LIMIT_STORE: 'memory',
       }),
-    /LINK_PREVIEW_RATE_LIMIT_STORE=upstash is required in production and Vercel Preview/,
+    /A distributed LINK_PREVIEW_RATE_LIMIT_STORE/,
   );
+});
+
+test('Production and Preview default to PostgreSQL without Redis credentials (ADR-006)', () => {
+  const production = validProductionEnvironment({
+    LINK_PREVIEW_RATE_LIMIT_STORE: undefined,
+    UPSTASH_REDIS_REST_URL: undefined,
+    UPSTASH_REDIS_REST_TOKEN: undefined,
+  });
+  assert.strictEqual(parseEnvironment(production).LINK_PREVIEW_RATE_LIMIT_STORE, 'postgres');
+  const preview = { ...production, NODE_ENV: 'development', VERCEL_ENV: 'preview' };
+  assert.strictEqual(parseEnvironment(preview).LINK_PREVIEW_RATE_LIMIT_STORE, 'postgres');
+  assert.throws(
+    () => parseEnvironment({ ...production, RATE_LIMIT_KEY_SECRET: undefined }),
+    /RATE_LIMIT_KEY_SECRET/,
+  );
+  assert.throws(() => parseEnvironment({ ...preview, DATABASE_URL: undefined }), /database URL/);
 });

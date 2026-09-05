@@ -55,7 +55,7 @@ const envSchema = z.object({
   FIREBASE_PROJECT_ID: z.string().min(1).default('ndeks-fcm'),
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
   FIREBASE_SERVICE_ACCOUNT_PATH: z.string().min(1).optional(),
-  LINK_PREVIEW_RATE_LIMIT_STORE: z.enum(['memory', 'upstash']).optional(),
+  LINK_PREVIEW_RATE_LIMIT_STORE: z.enum(['memory', 'upstash', 'postgres']).optional(),
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
   KV_REST_API_URL: z.string().url().optional(),
@@ -89,7 +89,7 @@ export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
     isProduction || values.VERCEL_ENV === 'production' || values.VERCEL_ENV === 'preview';
   const linkPreviewRateLimitStore =
     values.LINK_PREVIEW_RATE_LIMIT_STORE ||
-    (requiresDistributedLinkPreviewLimit ? 'upstash' : 'memory');
+    (requiresDistributedLinkPreviewLimit ? 'postgres' : 'memory');
   const upstashRestUrl = values.UPSTASH_REDIS_REST_URL || values.KV_REST_API_URL;
   const upstashRestToken = values.UPSTASH_REDIS_REST_TOKEN || values.KV_REST_API_TOKEN;
   const attachmentStorageProvider =
@@ -121,9 +121,9 @@ export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
     }
   }
 
-  if (requiresDistributedLinkPreviewLimit && linkPreviewRateLimitStore !== 'upstash') {
+  if (requiresDistributedLinkPreviewLimit && linkPreviewRateLimitStore === 'memory') {
     throw new Error(
-      'LINK_PREVIEW_RATE_LIMIT_STORE=upstash is required in production and Vercel Preview.',
+      'A distributed LINK_PREVIEW_RATE_LIMIT_STORE (postgres or upstash) is required in production and Vercel Preview.',
     );
   }
 
@@ -138,9 +138,22 @@ export const parseEnvironment = (input: NodeJS.ProcessEnv = process.env) => {
         'UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN must be configured for the Upstash rate limiter.',
       );
     }
-    if (!values.RATE_LIMIT_KEY_SECRET) {
-      throw new Error('RATE_LIMIT_KEY_SECRET must be configured for the Upstash rate limiter.');
-    }
+  }
+
+  if (linkPreviewRateLimitStore !== 'memory' && !values.RATE_LIMIT_KEY_SECRET) {
+    throw new Error('RATE_LIMIT_KEY_SECRET must be configured for the distributed rate limiter.');
+  }
+  if (
+    linkPreviewRateLimitStore === 'postgres' &&
+    !values.DATABASE_URL &&
+    !(values.NODE_ENV === 'test' && values.TEST_DATABASE_URL) &&
+    !(
+      values.NODE_ENV === 'development' &&
+      !requiresDistributedLinkPreviewLimit &&
+      values.LOCAL_DATABASE_URL
+    )
+  ) {
+    throw new Error('A database URL must be configured for the PostgreSQL rate limiter.');
   }
 
   const databaseSsl = values.NODE_ENV === 'test' ? false : values.DATABASE_SSL;

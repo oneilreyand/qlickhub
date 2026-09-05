@@ -19,3 +19,7 @@ The bug module is the reference implementation. Models and migrations remain und
 Run `npm run db:migrate` before starting the API. The server only verifies the database connection; it never changes the schema automatically.
 
 For production, set `DATABASE_URL`, `JWT_ACCESS_SECRET` (32+ characters), a comma-separated `CORS_ORIGIN` allowlist, and `DATABASE_SSL=true`. See the repository `.env.example`; the API fails to start if these production controls are absent.
+
+For the complete environment requirements and the PostgreSQL link-preview limiter's migration,
+identifier-secret, provider-cutover, and Preview verification gates, follow the
+[deployment guide](../../docs/DEPLOYMENT_AND_ENVIRONMENTS.md#4-batas-secret-dan-variabel-production).

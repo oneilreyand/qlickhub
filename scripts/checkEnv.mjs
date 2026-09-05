@@ -102,18 +102,18 @@ if (!backend) {
     backend.values.get('LINK_PREVIEW_RATE_LIMIT_STORE') ||
     (backend.values.get('NODE_ENV') === 'production' ||
     ['production', 'preview'].includes(backend.values.get('VERCEL_ENV'))
-      ? 'upstash'
+      ? 'postgres'
       : 'memory');
-  if (!['memory', 'upstash'].includes(linkPreviewRateLimitStore)) {
-    errors.push('backend: LINK_PREVIEW_RATE_LIMIT_STORE must be memory or upstash');
+  if (!['memory', 'upstash', 'postgres'].includes(linkPreviewRateLimitStore)) {
+    errors.push('backend: LINK_PREVIEW_RATE_LIMIT_STORE must be memory, postgres or upstash');
   }
   if (
     (backend.values.get('NODE_ENV') === 'production' ||
       ['production', 'preview'].includes(backend.values.get('VERCEL_ENV'))) &&
-    linkPreviewRateLimitStore !== 'upstash'
+    linkPreviewRateLimitStore === 'memory'
   ) {
     errors.push(
-      'backend: LINK_PREVIEW_RATE_LIMIT_STORE=upstash is required in production and Vercel Preview',
+      'backend: a distributed LINK_PREVIEW_RATE_LIMIT_STORE (postgres or upstash) is required in production and Vercel Preview',
     );
   }
   if (linkPreviewRateLimitStore === 'upstash') {
@@ -126,6 +126,8 @@ if (!backend) {
     ) {
       errors.push('backend: UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN is required');
     }
+  }
+  if (['postgres', 'upstash'].includes(linkPreviewRateLimitStore)) {
     requireKeys('backend', backend, ['RATE_LIMIT_KEY_SECRET']);
     if ((backend.values.get('RATE_LIMIT_KEY_SECRET') || '').length < 32) {
       errors.push('backend: RATE_LIMIT_KEY_SECRET must contain at least 32 characters');

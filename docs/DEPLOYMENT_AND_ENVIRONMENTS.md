@@ -86,23 +86,36 @@ atau akun layanan Production untuk Preview.
   `SMTP_PASS`, `SMTP_FROM`.
 - Backend notifications: `FIREBASE_PROJECT_ID` dan salah satu credential service-account yang
   didukung.
-- Distributed link-preview limit: `LINK_PREVIEW_RATE_LIMIT_STORE=upstash`,
-  `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, dan `RATE_LIMIT_KEY_SECRET`. Semua
-  variabel ini backend-only; token dan secret tidak boleh memakai prefix `VITE_*`.
-  Integrasi Vercel Marketplace dapat menyediakan URL/token ekuivalen sebagai `KV_REST_API_URL`
-  dan `KV_REST_API_TOKEN`; backend menerima alias tersebut agar credential tidak perlu disalin.
+- Distributed link-preview limit: `LINK_PREVIEW_RATE_LIMIT_STORE=postgres` dan
+  `RATE_LIMIT_KEY_SECRET`; provider PostgreSQL memakai `DATABASE_URL` yang sudah ada setelah
+  migrasi kanonikal 65 diterapkan. Tidak memerlukan URL/token Redis. Semua variabel backend-only.
+  Untuk kompatibilitas, pilihan eksplisit `upstash` masih memerlukan `UPSTASH_REDIS_REST_URL`
+  dan `UPSTASH_REDIS_REST_TOKEN` (atau alias Marketplace `KV_REST_API_URL`/`KV_REST_API_TOKEN`).
 
 Untuk Vercel serverless, `DATABASE_URL` harus memakai Supabase Transaction Pooler dan
 `DATABASE_POOL_MAX=1`. `DATABASE_SSL=true` wajib di Production. Gunakan origin HTTPS eksplisit
 pada `CORS_ORIGIN`; wildcard dilarang.
 
-Preview dan Production wajib memakai resource Upstash yang terpisah dan terhubung ke scope
-Vercel masing-masing. Runtime Production/Preview harus gagal startup bila store dipilih sebagai
-`upstash` tetapi URL, token, atau secret identifier tidak tersedia. Gangguan sementara provider
-akan memakai limiter memory lokal per instance dan warning tersanitasi; keadaan degradasi ini
-tidak boleh dilaporkan sebagai enforcement global yang sehat. Limiter memakai rolling window
-60 detik yang eksak melalui satu operasi Redis atomik; jangan menggantinya dengan weighted
-two-bucket window karena burst yang melewati batas menit dapat melampaui batas 30 request.
+Preview dan Production wajib memakai database masing-masing dan secret identifier terpisah.
+Default Production/Preview adalah PostgreSQL; jangan mengaktifkannya sebelum migrasi 65.
+Verifikasi bahwa role koneksi runtime memiliki akses sebagai pemilik tabel/function hasil migrasi.
+Role non-owner memerlukan review grants/RLS backend terlebih dahulu; jangan memberikan akses ke
+`anon`/`authenticated` atau menonaktifkan RLS untuk membuat smoke test lolos.
+Konfigurasi database/secret yang wajib harus tersedia; bila memilih Upstash secara eksplisit,
+resource Redis juga harus terpisah per environment. Jangan memakai memory sebagai provider utama
+Production. Gangguan provider mempertahankan fallback lokal yang disetujui, dengan warning
+tersanitasi; konsistensi global tidak diklaim selama degradasi.
+
+PostgreSQL memakai transaksi per identifier dan waktu database untuk rolling window eksak, bukan
+weighted two-bucket. Cleanup menghapus paling banyak 100 bucket kedaluwarsa per request;
+bucket idle dapat tertinggal sampai traffic berikutnya. Pool aplikasi tetap max 1 di Vercel;
+pantau antrean pool, latency dan warning karena counter berbagi sumber daya dengan data aplikasi.
+PostgreSQL bukan jaminan bebas biaya: pemakaian tetap mengikuti kapasitas/paket database.
+Saat cutover Upstash/PostgreSQL atau rollback provider, pause/drain request link-preview sekurangnya
+60 detik dan hindari deployment campuran; counter tidak dibagi antar-provider. Rotasi
+`RATE_LIMIT_KEY_SECRET` juga menghasilkan identifier bucket baru dan memakai prosedur pause/drain
+yang sama. Lihat
+[ADR-006](adr/ADR-006-POSTGRESQL-LINK-PREVIEW-RATE-LIMIT.md).
 
 ### Browser-public
 
@@ -132,7 +145,9 @@ URL, password, private key, JWT secret, atau service-account JSON.
 5. Verifikasi request tanpa sesi ke endpoint terlindungi ditolak, lalu lakukan perjalanan peran
    terotentikasi pada Workspace validasi Preview.
 6. Verifikasi link preview ke-31 untuk satu pengguna menerima `429 RATE_LIMITED`, pengguna lain
-   memiliki bucket terpisah, dan header rate-limit tersedia. Jangan mencatat URL/token Redis.
+   memiliki bucket terpisah, dan header rate-limit tersedia. Pastikan counter benar-benar tersimpan
+   di provider terpilih dan tidak ada warning fallback; respons 429 saja belum membuktikan enforcement
+   lintas-instance. Jangan mencatat connection string, secret identifier, atau URL/token Redis.
 
 Vercel menyediakan `VERCEL_URL`; middleware API memasukkan deployment origin tersebut ke
 allowlist. `CORS_ORIGIN` tetap harus berisi origin stabil yang memang diizinkan.

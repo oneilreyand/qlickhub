@@ -56,7 +56,8 @@ async function main() {
          '20260821000049-recover-task-attachments.cjs',
          '20260821000052-migrate-legacy-requirement-test-cases.cjs',
          '20260824000057-create-workspace-member-specialties.cjs',
-         '20260904000064-create-auth-security-events.cjs'
+         '20260904000064-create-auth-security-events.cjs',
+         '20260904000065-create-link-preview-rate-limit-buckets.cjs'
        )
        ORDER BY name;`,
     );
@@ -68,6 +69,7 @@ async function main() {
         '20260821000052-migrate-legacy-requirement-test-cases.cjs',
         '20260824000057-create-workspace-member-specialties.cjs',
         '20260904000064-create-auth-security-events.cjs',
+        '20260904000065-create-link-preview-rate-limit-buckets.cjs',
       ],
     );
 
@@ -112,6 +114,19 @@ async function main() {
     );
     assert.strictEqual(securityEventGuardRows[0].has_metadata_shape_constraint, true);
     assert.strictEqual(securityEventGuardRows[0].has_immutable_trigger, true);
+
+    const [rateLimitRows] = await verificationDatabase.query(
+      `SELECT c.relrowsecurity AS rls, p.prosecdef AS security_definer,
+         EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public'
+           AND indexname = 'idx_link_preview_rate_limit_expiry') AS expiry_index,
+         (SELECT count(*)::integer FROM public.consume_link_preview_rate_limit(repeat('a', 64), 30, 60000)) AS consumed
+       FROM pg_class c, pg_proc p
+       WHERE c.oid = 'public.link_preview_rate_limit_buckets'::regclass
+         AND p.oid = 'public.consume_link_preview_rate_limit(text,integer,integer)'::regprocedure;`,
+    );
+    assert.deepStrictEqual(rateLimitRows, [
+      { rls: true, security_definer: false, expiry_index: true, consumed: 1 },
+    ]);
 
     const [enumRows] = await verificationDatabase.query(
       `SELECT e.enumlabel
