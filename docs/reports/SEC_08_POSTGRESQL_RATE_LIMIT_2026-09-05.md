@@ -95,3 +95,44 @@ setting, remote database, Preview/Production deployment, or Production data was 
 - `SEC-08-POSTGRESQL-LINK-PREVIEW-RATE-LIMIT` → `Done` locally and verified.
 - `SEC-07-PRODUCTION-RELEASE` → `Blocked`; PostgreSQL removes the future Redis prerequisite but does
   not satisfy recovery, migration, deployment, or Production verification gates.
+
+## Preview release follow-up — 2026-09-07
+
+- Local implementation was committed as `dcfb683`. A protected one-use Preview runtime migration
+  path audited the target before mutation: migration 64 was up, migration 65 was pending, and users
+  and Workspaces were both zero. The database fingerprint was bound to the migration request.
+- Migration 65 applied successfully on Preview: applied migrations moved from 48 to 49, the table
+  and function were present, and user/Workspace counts stayed zero. Preview-only
+  `LINK_PREVIEW_RATE_LIMIT_STORE` was changed from `upstash` to `postgres`; Production settings were
+  not accessed or modified. A 60-second pause/drain was observed before the first final deployment.
+- The first full-concurrency smoke found a real serverless contention issue: all 31 requests reached
+  SSRF validation and sampled logs contained sanitized local-fallback warnings. Cleanup still removed
+  its two users, two sessions, and counters. No passing claim was made for that run.
+- The limiter's default transaction-local lock and statement timeouts were raised from 750/1,500 ms
+  to 5,000/8,000 ms so normal multi-instance serialization can complete on the remote Transaction
+  Pooler. Tests retain injected 100/300 ms timeouts to prove rollback/fallback promptly. The hotfix
+  was committed as `24fe40e`; local PostgreSQL integration passed 8/8 afterward.
+- Final Preview deployment `dpl_4WLyp1ELDrWa1bUZLEdwTRMdzJnx`
+  (`https://qlickhub-nnnjae1la-oneilreyands-projects.vercel.app`) reached Ready and contains only the
+  normal `api/index` function—no operational endpoint.
+- Live hotfix smoke passed: health/database connected; unauthenticated link preview returned 401;
+  31 authenticated requests completed within 55,363 ms with exactly 30 `400 UNSAFE_URL` responses
+  and one `429 RATE_LIMITED`; retry/rate-limit headers were present. PostgreSQL inspection showed 30
+  accepted markers for user one and one for isolated user two.
+- Cleanup removed the final two users, two sessions, and two counters. An exact-marker global audit
+  reported zero remaining users/sessions/counters, including two users/two sessions/one counter
+  recovered after a transient local HTTPS timeout on an earlier attempt.
+- A bounded 100-record log sample from the final deployment contained 98 link-preview requests,
+  zero distributed-store fallback warnings, and zero 5xx responses. This is bounded smoke evidence,
+  not a sustained load test.
+- Full local API regression passed 393/393 across 93 suites in 73.634 s. `npm run validate` passed
+  docs 5/5, all typechecks, and lint with zero errors/27 existing warnings. Full build passed with
+  1,695 web modules transformed.
+- Four intermediate deployments, the temporary sensitive Vercel variable, all operational endpoint
+  source, and the exact temporary directory containing pulled Preview environment data, secrets,
+  fingerprint, and smoke ID were deleted. Preview metadata no longer lists the temporary variable;
+  the final deployment remains Ready. Local git working tree was clean before this documentation
+  update.
+- Production remains blocked on its own recovery, migrations 64/65, SMTP verification, provider
+  cutover, health, and authenticated smoke gates. Preview success does not authorize or prove the
+  Production release.
