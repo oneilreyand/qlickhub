@@ -293,7 +293,12 @@ describe('PostgreSQL rate limit integration (SEC-001, TEST-001)', () => {
         store: 'postgres',
         limit: 2,
         skip: () => false,
-        distributedLimiter: limiter(sequelize, 2),
+        distributedLimiter: new PostgresRateLimiter(sequelize, {
+          limit: 2,
+          windowMs: 60_000,
+          lockTimeoutMs: 100,
+          statementTimeoutMs: 300,
+        }),
         identifierSecret,
         onStoreFailure: () => {
           warningCount += 1;
@@ -308,7 +313,13 @@ describe('PostgreSQL rate limit integration (SEC-001, TEST-001)', () => {
         "SELECT pg_advisory_xact_lock(hashtextextended('qlickhub:link-preview:' || $1, 0))",
         { bind: [identifier], transaction: lock },
       );
-      await assert.rejects(limiter().limit(identifier), (error: unknown) => {
+      const timeoutLimiter = new PostgresRateLimiter(sequelize, {
+        limit: 30,
+        windowMs: 60_000,
+        lockTimeoutMs: 100,
+        statementTimeoutMs: 300,
+      });
+      await assert.rejects(timeoutLimiter.limit(identifier), (error: unknown) => {
         assert.equal((error as { parent?: { code?: string } }).parent?.code, '55P03');
         return true;
       });

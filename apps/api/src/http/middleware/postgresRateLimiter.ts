@@ -5,9 +5,17 @@ import type {
 } from './distributedRateLimitStore.js';
 
 export class PostgresRateLimiter implements DistributedRateLimiter {
+  private readonly lockTimeoutMs: number;
+  private readonly statementTimeoutMs: number;
+
   constructor(
     private readonly database: Sequelize,
-    private readonly options: { limit: number; windowMs: number },
+    private readonly options: {
+      limit: number;
+      windowMs: number;
+      lockTimeoutMs?: number;
+      statementTimeoutMs?: number;
+    },
   ) {
     if (
       !Number.isInteger(options.limit) ||
@@ -18,6 +26,16 @@ export class PostgresRateLimiter implements DistributedRateLimiter {
       options.windowMs > 86_400_000
     ) {
       throw new Error('Invalid PostgreSQL rate-limit options');
+    }
+    this.lockTimeoutMs = options.lockTimeoutMs ?? 5_000;
+    this.statementTimeoutMs = options.statementTimeoutMs ?? 8_000;
+    if (
+      !Number.isInteger(this.lockTimeoutMs) ||
+      this.lockTimeoutMs < 1 ||
+      !Number.isInteger(this.statementTimeoutMs) ||
+      this.statementTimeoutMs <= this.lockTimeoutMs
+    ) {
+      throw new Error('Invalid PostgreSQL rate-limit timeout options');
     }
   }
 
@@ -32,8 +50,9 @@ export class PostgresRateLimiter implements DistributedRateLimiter {
       },
       async (transaction) => {
         await this.database.query(
-          "SET LOCAL lock_timeout = '750ms'; SET LOCAL statement_timeout = '1500ms';",
+          "SELECT set_config('lock_timeout', $1, true), set_config('statement_timeout', $2, true)",
           {
+            bind: [`${this.lockTimeoutMs}ms`, `${this.statementTimeoutMs}ms`],
             transaction,
             logging: false,
           },
