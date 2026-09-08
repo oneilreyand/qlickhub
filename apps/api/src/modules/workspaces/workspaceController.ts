@@ -8,6 +8,7 @@ import {
   UpdateMemberRoleSchema,
   GrantTaskCreationPermissionSchema,
   WorkspaceActivityQuerySchema,
+  DeleteWorkspaceSchema,
 } from '@qlick/contracts';
 import { sendProblemDetails } from '../../http/problemDetails.js';
 
@@ -87,6 +88,25 @@ export const restoreWorkspace = async (req: AuthenticatedRequest, res: Response)
       false,
     );
     return res.status(200).json({ data: workspace });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+};
+
+export const deleteWorkspace = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const parseResult = DeleteWorkspaceSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Type the exact Workspace name to permanently delete it.',
+      });
+    }
+    const deleted = await workspaceService.permanentlyDeleteWorkspace(
+      req.params.workspaceId,
+      req.user!.userId,
+      parseResult.data.confirmationName,
+    );
+    return res.status(200).json({ data: deleted });
   } catch (error) {
     return sendProblemDetails(res, error);
   }

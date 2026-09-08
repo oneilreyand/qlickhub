@@ -477,7 +477,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
   });
 
   describe('5. Trigger 3: Discussion Update on Working Task persists DB records', () => {
-    test('persists discussion notification to assigned user and mentions', async () => {
+    test('persists discussion notification before the comment operation resolves', async () => {
       const task = await taskService.createTask(
         ownerUser.id,
         CreateTaskSchema.parse({
@@ -492,8 +492,6 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         body: 'Found an edge case with multi-currency tokens @dev',
         mentionedUserIds: [devUser.id],
       });
-
-      await new Promise((r) => setTimeout(r, 250));
 
       const devNotif = await NotificationModel.findOne({
         where: {
@@ -556,8 +554,6 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         mentionedUserIds: [],
       });
 
-      await new Promise((r) => setTimeout(r, 250));
-
       const devNotif = await NotificationModel.findOne({
         where: {
           userId: devUser.id,
@@ -604,6 +600,7 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
           parentTaskId: parentTask.id,
           deliveryArea: 'backend',
           title: 'Payment Gateway Integration Due Soon',
+          startDate: todayStr,
           dueDate: todayStr,
           assigneeId: devUser.id,
         }),

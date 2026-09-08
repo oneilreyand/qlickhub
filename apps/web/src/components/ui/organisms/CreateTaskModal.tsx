@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { TaskPriority, FolderTreeNode } from '@qlick/contracts';
+import { TaskPriority, FolderTreeNode, getTaskScheduleValidationIssue } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
@@ -67,6 +67,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   };
 
   const flatFolders = flattenFolders(folders);
+  const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,8 +78,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       return;
     }
 
-    if (startDate && dueDate && startDate > dueDate) {
-      dispatch(enqueueSnackbar('Start date cannot be after due date', 'error'));
+    if (scheduleIssue) {
+      dispatch(enqueueSnackbar(scheduleIssue.message, 'error'));
       return;
     }
 
@@ -220,18 +221,47 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="grid grid-cols-2 gap-2 sm:col-span-2">
             <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                Start Date
+              <label
+                htmlFor="task-start-date"
+                className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+              >
+                Start Date (Optional pair)
               </label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input
+                id="task-start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                aria-invalid={Boolean(scheduleIssue)}
+                aria-describedby={scheduleIssue ? 'task-schedule-error' : undefined}
+              />
             </div>
             <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                Due Date
+              <label
+                htmlFor="task-due-date"
+                className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+              >
+                Due Date (Optional pair)
               </label>
-              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <Input
+                id="task-due-date"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                aria-invalid={Boolean(scheduleIssue)}
+                aria-describedby={scheduleIssue ? 'task-schedule-error' : undefined}
+              />
             </div>
           </div>
+          {scheduleIssue && (
+            <p
+              id="task-schedule-error"
+              role="alert"
+              className="text-xs text-rose-600 dark:text-rose-400 sm:col-span-2"
+            >
+              {scheduleIssue.message}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-stone-100 dark:border-stone-800 pt-4 mt-6">

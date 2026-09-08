@@ -2,6 +2,8 @@ import { apiClient } from './apiClient';
 import {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
+  DeleteWorkspaceInput,
+  DeleteWorkspaceResponse,
   AddWorkspaceMemberInput,
   DeveloperSpecialty,
   UpdateMemberRoleInput,
@@ -50,6 +52,17 @@ export const workspaceService = {
   async restoreWorkspace(workspaceId: string): Promise<WorkspaceItem> {
     const res = await apiClient<{ data: WorkspaceItem }>(`/workspaces/${workspaceId}/restore`, {
       method: 'POST',
+    });
+    return res.data;
+  },
+
+  async deleteWorkspace(
+    workspaceId: string,
+    input: DeleteWorkspaceInput,
+  ): Promise<DeleteWorkspaceResponse> {
+    const res = await apiClient<{ data: DeleteWorkspaceResponse }>(`/workspaces/${workspaceId}`, {
+      method: 'DELETE',
+      body: JSON.stringify(input),
     });
     return res.data;
   },

@@ -22,7 +22,11 @@ import { Skeleton } from '../atoms/Skeleton';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { TaskScheduleHealthBadge } from '../molecules/TaskScheduleHealthBadge';
 import { taskService } from '../../../lib/api/taskService';
-import { calculateSubtaskScheduleHealth, normalizeDateStr } from '../../../lib/utils/scheduleHealth';
+import {
+  calculateSubtaskScheduleHealth,
+  diffDays,
+  normalizeDateStr,
+} from '../../../lib/utils/scheduleHealth';
 
 export const EMPTY_TASKS_ILLUSTRATION_URL =
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787027457/ChatGPT_Image_Aug_18_2026_11_30_28_AM.png';
@@ -39,7 +43,6 @@ interface TaskTimelineViewProps {
   onToggleExpand?: () => void;
 }
 
-
 function parseDate(dateStr?: string | null): Date | null {
   if (!dateStr) return null;
   const d = new Date(dateStr + 'T00:00:00');
@@ -48,6 +51,14 @@ function parseDate(dateStr?: string | null): Date | null {
 
 function formatShortDate(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatRangeDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 function buildFolderMap(nodes: FolderTreeNode[]): Map<string, string> {
@@ -123,7 +134,6 @@ function getDeliveryAreaBadge(area?: DeliveryArea | null) {
   }
 }
 
-
 export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
   tasks,
   folders = [],
@@ -139,7 +149,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
   const [taskSubtasksMap, setTaskSubtasksMap] = useState<Map<string, Task[]>>(new Map());
   const [loadingSubtasksMap, setLoadingSubtasksMap] = useState<Map<string, boolean>>(new Map());
   const [isUnscheduledExpanded, setIsUnscheduledExpanded] = useState(false);
-  const [dateOffset, setDateOffset] = useState(0); // Offset in weeks/days from anchor
+  const [dateOffset, setDateOffset] = useState(0);
 
   const folderMap = useMemo(() => buildFolderMap(folders), [folders]);
   const today = useMemo(() => new Date(), []);
@@ -180,11 +190,10 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 
   const handleToggleExpandAll = async () => {
     const tasksWithSubtasks = scheduledTasks.filter(
-      (t) => t.subtaskSummary && t.subtaskSummary.total > 0
+      (t) => t.subtaskSummary && t.subtaskSummary.total > 0,
     );
     const areAllTasksExpanded =
-      tasksWithSubtasks.length > 0 &&
-      tasksWithSubtasks.every((t) => expandedTaskIds.has(t.id));
+      tasksWithSubtasks.length > 0 && tasksWithSubtasks.every((t) => expandedTaskIds.has(t.id));
 
     if (areAllTasksExpanded) {
       // Collapse all tasks
@@ -210,7 +219,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               const res = await taskService.listSubtasks(t.workspaceId, t.id);
               const subList = res?.tasks || (Array.isArray(res) ? res : []);
               return { id: t.id, subtasks: subList };
-            })
+            }),
           );
           setTaskSubtasksMap((prev) => {
             const next = new Map(prev);
@@ -232,7 +241,6 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     }
   };
 
-
   // Separate tasks with dates vs unscheduled tasks
   const { scheduledTasks, unscheduledTasks } = useMemo(() => {
     const scheduled: Task[] = [];
@@ -252,9 +260,9 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     // Anchor with offset
     const anchor = new Date(today);
     if (scale === 'day') {
-      anchor.setDate(anchor.getDate() + dateOffset * 7);
+      anchor.setDate(anchor.getDate() + dateOffset);
     } else if (scale === 'week') {
-      anchor.setDate(anchor.getDate() + dateOffset * 14);
+      anchor.setDate(anchor.getDate() + dateOffset * 7);
     } else {
       anchor.setMonth(anchor.getMonth() + dateOffset);
     }
@@ -263,14 +271,21 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     let start: Date;
     let end: Date;
     let colWidth: number;
-    const cols: { key: string; label: string; subLabel?: string; isToday?: boolean; isWeekend?: boolean; date: Date }[] = [];
+    const cols: {
+      key: string;
+      label: string;
+      subLabel?: string;
+      isToday?: boolean;
+      isWeekend?: boolean;
+      date: Date;
+    }[] = [];
 
     if (scale === 'day') {
       colWidth = 48;
       start = new Date(anchor);
       start.setDate(start.getDate() - 7);
-      end = new Date(anchor);
-      end.setDate(end.getDate() + 21);
+      end = new Date(start);
+      end.setDate(end.getDate() + 28);
 
       const cur = new Date(start);
       while (cur <= end) {
@@ -294,8 +309,8 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       start.setDate(start.getDate() - 14);
       // Align to start of week (Sunday)
       start.setDate(start.getDate() - start.getDay());
-      end = new Date(anchor);
-      end.setDate(end.getDate() + 42);
+      end = new Date(start);
+      end.setDate(end.getDate() + 62);
 
       const cur = new Date(start);
       while (cur <= end) {
@@ -304,7 +319,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
         weekEnd.setDate(weekEnd.getDate() + 6);
         const label = `${cur.toLocaleDateString('en-US', { month: 'short' })} ${cur.getDate()}`;
         const subLabel = `– ${weekEnd.getDate()}`;
-        
+
         // Check if today falls in this week
         const curTime = cur.getTime();
         const endTime = weekEnd.getTime();
@@ -330,7 +345,8 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       while (cur <= end) {
         const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`;
         const label = cur.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        const isTodayMonth = cur.getMonth() === today.getMonth() && cur.getFullYear() === today.getFullYear();
+        const isTodayMonth =
+          cur.getMonth() === today.getMonth() && cur.getFullYear() === today.getFullYear();
 
         cols.push({
           key,
@@ -348,7 +364,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       columns: cols,
       columnWidthPx: colWidth,
     };
-  }, [scheduledTasks, scale, dateOffset, today, todayKey]);
+  }, [scale, dateOffset, today, todayKey]);
 
   // Group tasks by folder
   const groupedFolderTasks = useMemo(() => {
@@ -395,44 +411,40 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
   };
 
   const canvasWidthPx = columns.length * columnWidthPx;
+  const visibleRangeLabel = `${formatRangeDate(startDateRange)} – ${formatRangeDate(endDateRange)}`;
+  const rangeEndExclusive = useMemo(() => {
+    const value = new Date(endDateRange);
+    value.setDate(value.getDate() + 1);
+    return value;
+  }, [endDateRange]);
 
-  // Helper to compute task bar position & width percentage/pixels
-  const computeTaskBarStyles = (task: Task) => {
-    const totalDurationMs = Math.max(endDateRange.getTime() - startDateRange.getTime(), 1);
-    
-    let taskStart = parseDate(task.startDate);
-    let taskEnd = parseDate(task.dueDate);
-
-    if (!taskStart && taskEnd) {
-      // Fallback: 2 days before due date
-      taskStart = new Date(taskEnd);
-      taskStart.setDate(taskStart.getDate() - 2);
-    } else if (taskStart && !taskEnd) {
-      // Fallback: 3 days after start date
-      taskEnd = new Date(taskStart);
-      taskEnd.setDate(taskEnd.getDate() + 3);
-    }
-
-    if (!taskStart || !taskEnd) {
+  // Clip a date-only interval to the visible window and keep each end date inclusive.
+  const computeDateRangeBarStyles = (startDate?: string | null, endDate?: string | null) => {
+    const itemStart = parseDate(startDate);
+    const itemEnd = parseDate(endDate);
+    if (!itemStart || !itemEnd) {
       return { style: { display: 'none' as const }, widthPx: 0, isCompact: true };
     }
 
-    // End date should include the full end day (23:59:59)
-    const taskEndDay = new Date(taskEnd);
-    taskEndDay.setHours(23, 59, 59, 999);
+    const itemEndExclusive = new Date(itemEnd);
+    itemEndExclusive.setDate(itemEndExclusive.getDate() + 1);
+    const visibleStartMs = Math.max(itemStart.getTime(), startDateRange.getTime());
+    const visibleEndMs = Math.min(itemEndExclusive.getTime(), rangeEndExclusive.getTime());
+    const totalDurationMs = Math.max(rangeEndExclusive.getTime() - startDateRange.getTime(), 1);
 
-    const startOffsetMs = Math.max(0, taskStart.getTime() - startDateRange.getTime());
-    const durationMs = Math.max(86400000, taskEndDay.getTime() - taskStart.getTime());
+    if (visibleStartMs >= visibleEndMs) {
+      return { style: { display: 'none' as const }, widthPx: 0, isCompact: true };
+    }
 
-    const leftPercent = (startOffsetMs / totalDurationMs) * 100;
-    const widthPercent = Math.min((durationMs / totalDurationMs) * 100, 100 - leftPercent);
+    const leftPercent = ((visibleStartMs - startDateRange.getTime()) / totalDurationMs) * 100;
+    const widthPercent = ((visibleEndMs - visibleStartMs) / totalDurationMs) * 100;
     const approxWidthPx = (widthPercent / 100) * canvasWidthPx;
     const isCompact = approxWidthPx < 160;
 
     return {
       style: {
-        left: `${Math.max(0, Math.min(100, leftPercent))}%`,
-        width: `${Math.max(2, Math.min(100, widthPercent))}%`,
+        left: `${leftPercent}%`,
+        width: `${widthPercent}%`,
         minWidth: '26px',
       },
       widthPx: approxWidthPx,
@@ -440,20 +452,49 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     };
   };
 
+  const getDelayExtension = (task: Task) => {
+    if (!task.dueDate || task.status === 'canceled') return null;
+
+    let actualEndDate: string | null = null;
+    let completionLabel = '';
+    if (task.status === 'done') {
+      if (!task.completedAt) return null;
+      const completedDate = new Date(task.completedAt);
+      if (Number.isNaN(completedDate.getTime())) return null;
+      actualEndDate = normalizeDateStr(completedDate);
+      completionLabel = `completed ${formatShortDate(completedDate)}`;
+    } else if (task.dueDate < todayKey) {
+      actualEndDate = todayKey;
+      completionLabel = `still open through ${formatShortDate(today)}`;
+    }
+
+    if (!actualEndDate || actualEndDate <= task.dueDate) return null;
+
+    const extensionStart = parseDate(task.dueDate);
+    if (!extensionStart) return null;
+    extensionStart.setDate(extensionStart.getDate() + 1);
+    const extensionStartDate = normalizeDateStr(extensionStart);
+    const daysLate = diffDays(actualEndDate, task.dueDate);
+
+    return {
+      style: computeDateRangeBarStyles(extensionStartDate, actualEndDate).style,
+      daysLate,
+      label: `${task.title} delay extension: ${daysLate} day${daysLate === 1 ? '' : 's'} beyond plan, ${completionLabel}`,
+    };
+  };
+
   // Compute Today vertical marker line position
   const todayMarkerPercent = useMemo(() => {
-    const totalDurationMs = Math.max(endDateRange.getTime() - startDateRange.getTime(), 1);
-    const todayOffsetMs = today.getTime() - startDateRange.getTime();
+    const totalDurationMs = Math.max(rangeEndExclusive.getTime() - startDateRange.getTime(), 1);
+    const todayStart = parseDate(todayKey);
+    if (!todayStart) return null;
+    const todayOffsetMs = todayStart.getTime() - startDateRange.getTime();
     if (todayOffsetMs < 0 || todayOffsetMs > totalDurationMs) return null;
     return (todayOffsetMs / totalDurationMs) * 100;
-  }, [startDateRange, endDateRange, today]);
+  }, [startDateRange, rangeEndExclusive, todayKey]);
 
   // Bar colour helper for parent tasks
   const getTaskBarStyle = (task: Task) => {
-    const isOverdue = task.dueDate && task.dueDate < todayKey && task.status !== 'done' && task.status !== 'canceled';
-    if (isOverdue) {
-      return 'bg-rose-500 hover:bg-rose-600 text-white shadow-xs ring-1 ring-rose-600/40';
-    }
     switch (task.status) {
       case 'done':
         return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
@@ -472,9 +513,6 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
   // Bar colour helper for role subtasks
   const getSubtaskBarStyle = (st: Task) => {
     const health = calculateSubtaskScheduleHealth(st, today);
-    if (health.status === 'delayed') {
-      return 'bg-rose-500 hover:bg-rose-600 text-white shadow-xs ring-1 ring-rose-600/40';
-    }
     if (health.status === 'completed') {
       return 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs';
     }
@@ -494,7 +532,6 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
         return 'bg-stone-500 hover:bg-stone-600 text-white shadow-xs';
     }
   };
-
 
   if (isLoading) {
     return (
@@ -529,7 +566,9 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
           </div>
         </div>
         <div className="space-y-1">
-          <p className="text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100">No tasks in current view</p>
+          <p className="text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100">
+            No tasks in current view
+          </p>
           <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 max-w-sm mx-auto leading-relaxed">
             Create or adjust filters to view scheduled tasks in the timeline.
           </p>
@@ -543,8 +582,10 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       {/* Timeline Controls Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-stone-50/70 dark:bg-stone-900/60 p-3 rounded-2xl border border-stone-200/80 dark:border-stone-800">
         {/* Scale Zoom Switcher */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-bold text-stone-500 dark:text-stone-400 mr-1">Time Scale:</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-bold text-stone-500 dark:text-stone-400 mr-1">
+            Time Scale:
+          </span>
           {(['day', 'week', 'month'] as TimeScale[]).map((s) => (
             <button
               key={s}
@@ -553,7 +594,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                 setScale(s);
                 setDateOffset(0);
               }}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all capitalize ${
+              className={`min-h-11 px-3 text-xs font-bold rounded-xl transition-all capitalize focus:outline-none focus:ring-2 focus:ring-[#B1E743]/50 ${
                 scale === s
                   ? 'bg-[#B1E743] text-[#141413] shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                   : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 border border-stone-200/80 dark:border-stone-700/80'
@@ -562,6 +603,9 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               {s}
             </button>
           ))}
+          <span className="text-[11px] font-semibold text-stone-500 dark:text-stone-400 sm:ml-1">
+            {visibleRangeLabel}
+          </span>
         </div>
 
         {/* Date Window Navigation & Full Width / Expand All Controls */}
@@ -570,6 +614,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
             <Button
               variant="outline"
               size="sm"
+              className="min-h-11"
               onClick={() => setDateOffset((prev) => prev - 1)}
               aria-label="Previous time frame"
               leftIcon={<ChevronLeft className="h-3.5 w-3.5" />}
@@ -579,6 +624,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
             <Button
               variant="outline"
               size="sm"
+              className="min-h-11"
               onClick={() => setDateOffset(0)}
               aria-label="Jump to Today"
             >
@@ -587,6 +633,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
             <Button
               variant="outline"
               size="sm"
+              className="min-h-11"
               onClick={() => setDateOffset((prev) => prev + 1)}
               aria-label="Next time frame"
               rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
@@ -601,6 +648,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
           <Button
             variant="outline"
             size="sm"
+            className="min-h-11"
             onClick={() => void handleToggleExpandAll()}
             aria-label="Expand or collapse all subtask streams"
             leftIcon={<ChevronsUpDown className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />}
@@ -609,9 +657,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
             <span className="hidden sm:inline">
               {expandedTaskIds.size > 0 ? 'Collapse Subtasks' : 'Expand All Subtasks'}
             </span>
-            <span className="sm:hidden">
-              {expandedTaskIds.size > 0 ? 'Collapse' : 'Expand'}
-            </span>
+            <span className="sm:hidden">{expandedTaskIds.size > 0 ? 'Collapse' : 'Expand'}</span>
           </Button>
 
           {/* Full Width Mode Button */}
@@ -619,6 +665,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
             <Button
               variant={isExpanded ? 'primary' : 'outline'}
               size="sm"
+              className="min-h-11"
               onClick={onToggleExpand}
               aria-label={isExpanded ? 'Exit full width timeline' : 'Expand full width timeline'}
               leftIcon={
@@ -643,11 +690,34 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
         </div>
       </div>
 
+      <div
+        className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-[11px] font-semibold text-stone-600 dark:text-stone-300"
+        aria-label="Timeline legend"
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="h-2.5 w-7 rounded-full bg-stone-600 dark:bg-stone-400"
+            aria-hidden="true"
+          />
+          Planned
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="h-2.5 w-7 rounded-full border border-rose-500/60 bg-rose-400/40 dark:bg-rose-400/30"
+            aria-hidden="true"
+          />
+          Delay extension
+        </span>
+        <span className="font-normal text-stone-500 dark:text-stone-400">
+          Late work extends to completion, or to today while still open.
+        </span>
+      </div>
+
       {/* Main 2-Pane Timeline Container */}
       <div className="rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#1C1A19] overflow-hidden shadow-xs">
         <div className="flex overflow-x-auto">
           {/* Left Sticky Column: Task & Folder Labels */}
-          <div className="w-80 sm:w-96 md:w-[380px] shrink-0 sticky left-0 z-20 bg-white dark:bg-[#1C1A19] border-r border-stone-200 dark:border-stone-800 shadow-sm">
+          <div className="w-56 sm:w-80 md:w-[380px] shrink-0 sticky left-0 z-20 bg-white dark:bg-[#1C1A19] border-r border-stone-200 dark:border-stone-800 shadow-sm">
             {/* Header */}
             <div className="h-14 px-4 flex items-center justify-between border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
               <span>Task & Subtasks by Role</span>
@@ -660,7 +730,10 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
             {groupedFolderTasks.map((group) => {
               const isCollapsed = collapsedFolders.has(group.id);
               return (
-                <div key={group.id} className="border-b border-stone-100 dark:border-stone-800/80 last:border-b-0">
+                <div
+                  key={group.id}
+                  className="border-b border-stone-100 dark:border-stone-800/80 last:border-b-0"
+                >
                   {/* Folder Group Header */}
                   <button
                     type="button"
@@ -669,7 +742,10 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                   >
                     <div className="flex items-center gap-2 min-w-0 pr-2">
                       <Folder className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                      <span className="text-xs font-bold text-stone-800 dark:text-stone-200 truncate" title={group.name}>
+                      <span
+                        className="text-xs font-bold text-stone-800 dark:text-stone-200 truncate"
+                        title={group.name}
+                      >
                         {group.name}
                       </span>
                     </div>
@@ -687,7 +763,9 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                   {!isCollapsed &&
                     group.tasks.map((task) => {
                       const isSelected = selectedTaskId === task.id;
-                      const hasSubtasks = Boolean(task.subtaskSummary && task.subtaskSummary.total > 0);
+                      const hasSubtasks = Boolean(
+                        task.subtaskSummary && task.subtaskSummary.total > 0,
+                      );
                       const isTaskExpanded = expandedTaskIds.has(task.id);
                       const subtasks = taskSubtasksMap.get(task.id) || [];
                       const isLoadingSubtasks = loadingSubtasksMap.get(task.id) || false;
@@ -707,7 +785,9 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                   type="button"
                                   onClick={(e) => toggleTaskSubtasks(task, e)}
                                   className="p-1 rounded hover:bg-stone-200/80 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-all shrink-0"
-                                  title={isTaskExpanded ? 'Collapse subtasks' : 'Expand role subtasks'}
+                                  title={
+                                    isTaskExpanded ? 'Collapse subtasks' : 'Expand role subtasks'
+                                  }
                                 >
                                   <ChevronRight
                                     className={`h-3.5 w-3.5 transition-transform ${isTaskExpanded ? 'rotate-90 text-stone-900 dark:text-[#B1E743]' : ''}`}
@@ -726,7 +806,8 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                   <span className="font-mono">{task.id.slice(0, 8)}</span>
                                   {task.subtaskSummary && task.subtaskSummary.total > 0 && (
                                     <span className="text-stone-900 dark:text-[#B1E743] font-semibold">
-                                      • {task.subtaskSummary.completed}/{task.subtaskSummary.total} subtasks
+                                      • {task.subtaskSummary.completed}/{task.subtaskSummary.total}{' '}
+                                      subtasks
                                     </span>
                                   )}
                                 </div>
@@ -758,11 +839,18 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                     >
                                       <div className="flex items-center gap-1.5 min-w-0 pr-2">
                                         {getDeliveryAreaBadge(st.deliveryArea)}
-                                        <span className="text-[11px] font-medium text-stone-700 dark:text-stone-300 truncate" title={st.title}>
+                                        <span
+                                          className="text-[11px] font-medium text-stone-700 dark:text-stone-300 truncate"
+                                          title={st.title}
+                                        >
                                           {st.title}
                                         </span>
                                       </div>
-                                      <TaskScheduleHealthBadge status={health.status} label={health.label} compact={true} />
+                                      <TaskScheduleHealthBadge
+                                        status={health.status}
+                                        label={health.label}
+                                        compact={true}
+                                      />
                                     </div>
                                   );
                                 })
@@ -787,7 +875,11 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                     key={col.key}
                     style={{ width: `${columnWidthPx}px` }}
                     className={`h-full border-r border-stone-200/70 dark:border-stone-800/70 flex flex-col items-center justify-center text-center shrink-0 ${
-                      col.isToday ? 'bg-amber-50/60 dark:bg-amber-950/30' : col.isWeekend ? 'bg-stone-100/40 dark:bg-stone-900/30' : ''
+                      col.isToday
+                        ? 'bg-amber-50/60 dark:bg-amber-950/30'
+                        : col.isWeekend
+                          ? 'bg-stone-100/40 dark:bg-stone-900/30'
+                          : ''
                     }`}
                   >
                     <span
@@ -815,7 +907,11 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                     key={`grid-${col.key}`}
                     style={{ width: `${columnWidthPx}px` }}
                     className={`h-full border-r border-stone-100 dark:border-stone-800/40 shrink-0 ${
-                      col.isToday ? 'bg-amber-50/20 dark:bg-amber-950/10' : col.isWeekend ? 'bg-stone-50/30 dark:bg-stone-900/20' : ''
+                      col.isToday
+                        ? 'bg-amber-50/20 dark:bg-amber-950/10'
+                        : col.isWeekend
+                          ? 'bg-stone-50/30 dark:bg-stone-900/20'
+                          : ''
                     }`}
                   />
                 ))}
@@ -837,17 +933,24 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               {groupedFolderTasks.map((group) => {
                 const isCollapsed = collapsedFolders.has(group.id);
                 return (
-                  <div key={`canvas-${group.id}`} className="border-b border-stone-100 dark:border-stone-800/80 last:border-b-0">
+                  <div
+                    key={`canvas-${group.id}`}
+                    className="border-b border-stone-100 dark:border-stone-800/80 last:border-b-0"
+                  >
                     {/* Empty Folder Header row spacer */}
                     <div className="h-10 bg-stone-50/30 dark:bg-stone-900/20 border-b border-transparent" />
 
                     {/* Task Timeline Bars */}
                     {!isCollapsed &&
                       group.tasks.map((task) => {
-                        const barData = computeTaskBarStyles(task);
+                        const barData = computeDateRangeBarStyles(task.startDate, task.dueDate);
+                        const delayExtension = getDelayExtension(task);
                         const isSelected = selectedTaskId === task.id;
                         const isOverdue =
-                          task.dueDate && task.dueDate < todayKey && task.status !== 'done' && task.status !== 'canceled';
+                          task.dueDate &&
+                          task.dueDate < todayKey &&
+                          task.status !== 'done' &&
+                          task.status !== 'canceled';
                         const isTaskExpanded = expandedTaskIds.has(task.id);
                         const subtasks = taskSubtasksMap.get(task.id) || [];
                         const isLoadingSubtasks = loadingSubtasksMap.get(task.id) || false;
@@ -857,9 +960,16 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                         return (
                           <React.Fragment key={`bar-group-${task.id}`}>
                             {/* Parent Task Bar */}
-                            <div
-                              className="h-12 border-t border-stone-100 dark:border-stone-800/50 relative flex items-center"
-                            >
+                            <div className="h-12 border-t border-stone-100 dark:border-stone-800/50 relative flex items-center">
+                              {delayExtension && (
+                                <div
+                                  style={delayExtension.style}
+                                  role="img"
+                                  aria-label={delayExtension.label}
+                                  title={delayExtension.label}
+                                  className="absolute h-7 rounded-r-xl border border-l-0 border-rose-500/60 bg-rose-400/40 dark:bg-rose-400/30 z-[5]"
+                                />
+                              )}
                               <div
                                 style={barData.style}
                                 role="button"
@@ -874,7 +984,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                   }
                                 }}
                                 className={`absolute h-7 rounded-xl px-2 flex items-center justify-between text-xs font-semibold cursor-pointer transition-all duration-150 z-10 hover:scale-[1.01] hover:z-30 ${getTaskBarStyle(
-                                  task
+                                  task,
                                 )} ${isSelected ? 'ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-[#1C1A19]' : ''}`}
                               >
                                 <div className="flex items-center gap-1.5 min-w-0 pr-0.5 overflow-hidden">
@@ -886,16 +996,22 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                     <Clock className="h-3.5 w-3.5 shrink-0 opacity-80" />
                                   )}
                                   {!barData.isCompact && (
-                                    <span className="truncate text-[11px] font-bold">{task.title}</span>
+                                    <span className="truncate text-[11px] font-bold">
+                                      {task.title}
+                                    </span>
                                   )}
                                 </div>
 
                                 {barData.widthPx > 220 && (
                                   <div className="flex items-center gap-1 shrink-0 text-[10px] opacity-90 ml-1">
                                     <span>
-                                      {task.startDate ? formatShortDate(new Date(task.startDate + 'T00:00:00')) : ''}
+                                      {task.startDate
+                                        ? formatShortDate(new Date(task.startDate + 'T00:00:00'))
+                                        : ''}
                                       {task.startDate && task.dueDate ? ' → ' : ''}
-                                      {task.dueDate ? formatShortDate(new Date(task.dueDate + 'T00:00:00')) : ''}
+                                      {task.dueDate
+                                        ? formatShortDate(new Date(task.dueDate + 'T00:00:00'))
+                                        : ''}
                                     </span>
                                   </div>
                                 )}
@@ -912,9 +1028,13 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                       {task.title}
                                     </span>
                                     <span className="text-[10px] font-medium text-stone-500 dark:text-stone-400 bg-stone-100/90 dark:bg-stone-800/90 px-1.5 py-0.5 rounded border border-stone-200/60 dark:border-stone-700/60 shadow-xs">
-                                      {task.startDate ? formatShortDate(new Date(task.startDate + 'T00:00:00')) : ''}
+                                      {task.startDate
+                                        ? formatShortDate(new Date(task.startDate + 'T00:00:00'))
+                                        : ''}
                                       {task.startDate && task.dueDate ? ' → ' : ''}
-                                      {task.dueDate ? formatShortDate(new Date(task.dueDate + 'T00:00:00')) : ''}
+                                      {task.dueDate
+                                        ? formatShortDate(new Date(task.dueDate + 'T00:00:00'))
+                                        : ''}
                                     </span>
                                   </div>
                                 )}
@@ -930,7 +1050,11 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                   <div className="h-9 border-t border-stone-100/80 dark:border-stone-800/30 bg-stone-50/20 dark:bg-stone-900/10" />
                                 ) : (
                                   subtasks.map((st) => {
-                                    const stBarData = computeTaskBarStyles(st);
+                                    const stBarData = computeDateRangeBarStyles(
+                                      st.startDate,
+                                      st.dueDate,
+                                    );
+                                    const delayExtension = getDelayExtension(st);
                                     const health = calculateSubtaskScheduleHealth(st, today);
                                     const isSubOverdue = health.status === 'delayed';
 
@@ -939,13 +1063,22 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                         key={`canvas-sub-${st.id}`}
                                         className="h-9 border-t border-stone-100/80 dark:border-stone-800/30 relative flex items-center bg-stone-50/20 dark:bg-stone-900/10"
                                       >
+                                        {delayExtension && (
+                                          <div
+                                            style={delayExtension.style}
+                                            role="img"
+                                            aria-label={delayExtension.label}
+                                            title={delayExtension.label}
+                                            className="absolute h-5 rounded-r-md border border-l-0 border-rose-500/60 bg-rose-400/40 dark:bg-rose-400/30 z-[5]"
+                                          />
+                                        )}
                                         {st.startDate || st.dueDate ? (
                                           <div
                                             style={stBarData.style}
                                             onClick={() => onSelect(task)}
                                             title={`${st.title} (${st.deliveryArea?.toUpperCase() || 'SUBTASK'}) • ${st.startDate || '—'} → ${st.dueDate || '—'} [${health.label}]`}
                                             className={`absolute h-5 rounded-md px-1.5 flex items-center justify-between text-[10px] font-semibold cursor-pointer transition-all duration-150 z-10 hover:scale-[1.01] hover:z-30 ${getSubtaskBarStyle(
-                                              st
+                                              st,
                                             )}`}
                                           >
                                             <div className="flex items-center gap-1 min-w-0 pr-0.5 overflow-hidden">
@@ -1024,7 +1157,9 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                   className="py-2.5 px-3 flex items-center justify-between rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800/60 cursor-pointer transition-colors"
                 >
                   <div className="min-w-0 pr-3">
-                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">{t.title}</p>
+                    <p className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">
+                      {t.title}
+                    </p>
                     <span className="text-[10px] font-mono text-stone-400">{t.id.slice(0, 8)}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

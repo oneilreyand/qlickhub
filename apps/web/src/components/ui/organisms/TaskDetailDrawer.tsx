@@ -24,6 +24,7 @@ import type {
   ProductBriefScopeItem,
   ProductBriefAcceptanceCriterion,
 } from '@qlick/contracts';
+import { getTaskScheduleValidationIssue } from '@qlick/contracts';
 
 import { Drawer } from '../molecules/Drawer';
 import { Button } from '../atoms/Button';
@@ -607,6 +608,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     return result;
   };
   const flatFolders = flattenFolders(folders);
+  const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
 
   const handleSave = async () => {
     if (!activeWorkspaceId || !task) return;
@@ -619,8 +621,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       return;
     }
 
-    if (startDate && dueDate && startDate > dueDate) {
-      dispatch(enqueueSnackbar('Start date cannot be after due date', 'error'));
+    if (scheduleIssue) {
+      dispatch(enqueueSnackbar(scheduleIssue.message, 'error'));
       return;
     }
 

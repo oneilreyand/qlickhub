@@ -154,6 +154,19 @@ graph TD
 - `owner` atau `admin` dapat memberikan delegasi izin pembuatan parent-Task yang bersifat aktif dan berbatas waktu (_expiring delegation_) kepada anggota `dev` atau `qa`.
 - **Batasan Mutlak**: Delegasi izin ini **hanya** berlaku untuk parent-Task dan **tidak pernah** mengizinkan perencanaan subtask.
 
+### Penghapusan Permanen Workspace
+
+- Hanya persisted Workspace Owner yang dapat menghapus permanen Workspace; global role atau
+  membership Admin tidak cukup.
+- Workspace wajib sudah diarsipkan dan Owner wajib mengonfirmasi nama Workspace saat ini secara
+  persis. Aksi tidak dapat dibatalkan.
+- Penghapusan menghapus seluruh record milik Workspace dan direktori attachment pada storage,
+  sementara akun pengguna tetap dipertahankan.
+- Backend mengunci dan memvalidasi Workspace di dalam transaksi. Kegagalan cleanup storage
+  membatalkan penghapusan database dan tidak boleh dilaporkan sebagai sukses.
+- Keputusan dan pengecualian retensi audit ini dijelaskan dalam
+  [ADR-008](adr/ADR-008-WORKSPACE-PERMANENT-DELETION.md).
+
 ### Reset Kredensial dan Pencabutan Sesi
 
 - Reset password administratif selalu menyebut `workspaceId` secara eksplisit dan hanya dapat

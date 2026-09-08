@@ -11,6 +11,7 @@ import {
   createWorkspace,
   getUserWorkspaces,
   getWorkspaceById,
+  permanentlyDeleteWorkspace,
   setWorkspaceArchived,
   updateWorkspace,
 } from './internal/workspaceLifecycle.js';
@@ -42,6 +43,10 @@ export class WorkspaceService {
 
   async setWorkspaceArchived(workspaceId: string, actorId: string, archived: boolean) {
     return setWorkspaceArchived(workspaceId, actorId, archived);
+  }
+
+  async permanentlyDeleteWorkspace(workspaceId: string, actorId: string, confirmationName: string) {
+    return permanentlyDeleteWorkspace(workspaceId, actorId, confirmationName);
   }
 
   async updateWorkspace(workspaceId: string, input: UpdateWorkspaceInput) {

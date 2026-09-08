@@ -21,6 +21,7 @@ vi.mock('../../lib/api/workspaceService', () => ({
     updateWorkspace: vi.fn(),
     archiveWorkspace: vi.fn(),
     restoreWorkspace: vi.fn(),
+    deleteWorkspace: vi.fn(),
     getMembers: vi.fn(),
     addMember: vi.fn(),
     updateMemberRole: vi.fn(),
@@ -204,6 +205,42 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     expect(
       screen.queryByRole('dialog', { name: /Restore "Archived Core Project"\?/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('requires exact Workspace name before permanent deletion', async () => {
+    vi.mocked(workspaceService.deleteWorkspace).mockResolvedValue({
+      workspaceId: mockArchivedWorkspace.id,
+      deleted: true,
+    });
+    const store = createMockStore(mockArchivedWorkspace);
+    render(
+      <Provider store={store}>
+        <WorkspaceSettingsPage />
+      </Provider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Permanently' }));
+    const modal = screen.getByRole('dialog', {
+      name: /Delete "Archived Core Project" permanently\?/i,
+    });
+    const confirmButton = within(modal).getByRole('button', { name: 'Delete Permanently' });
+    expect(confirmButton).toBeDisabled();
+
+    fireEvent.change(within(modal).getByLabelText(/Type "Archived Core Project" to confirm/i), {
+      target: { value: 'Archived Core Projec' },
+    });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(within(modal).getByLabelText(/Type "Archived Core Project" to confirm/i), {
+      target: { value: 'Archived Core Project ' },
+    });
+    expect(confirmButton).not.toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(confirmButton);
+    });
+    expect(workspaceService.deleteWorkspace).toHaveBeenCalledWith('ws-archived', {
+      confirmationName: 'Archived Core Project',
+    });
   });
 
   it('opens remove member confirmation modal and removes member on confirm', async () => {

@@ -24,11 +24,18 @@ export interface StoredAttachment {
   fileSize: number;
 }
 
+export interface WorkspaceStorageAttachment {
+  storageProvider: AttachmentStorageProvider;
+  storageRef: string;
+  providerFileId: string | null;
+}
+
 interface AttachmentStorageAdapter {
   readonly provider: AttachmentStorageProvider;
   store(input: StoreAttachmentInput): Promise<StoredAttachment>;
   open(storageRef: string, providerFileId: string | null): Promise<Readable>;
   delete(storageRef: string, providerFileId: string | null): Promise<void>;
+  deleteWorkspace(workspaceId: string): Promise<void>;
 }
 
 class LocalAttachmentStorageAdapter implements AttachmentStorageAdapter {
@@ -71,6 +78,21 @@ class LocalAttachmentStorageAdapter implements AttachmentStorageAdapter {
     } catch {
       // Deletion is idempotent. A removed local file must not block record cleanup.
     }
+  }
+
+  async deleteWorkspace(workspaceId: string): Promise<void> {
+    const safeWorkspaceId = workspaceId.replace(/[^a-zA-Z0-9-]/g, '');
+    const workspaceDir = path.resolve(STORAGE_BASE_DIR, safeWorkspaceId);
+    const relativePath = path.relative(STORAGE_BASE_DIR, workspaceDir);
+    if (
+      !safeWorkspaceId ||
+      relativePath === '..' ||
+      relativePath.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativePath)
+    ) {
+      throw new Error('FORBIDDEN: Invalid Workspace storage reference.');
+    }
+    await fs.promises.rm(workspaceDir, { recursive: true, force: true });
   }
 
   private getFilePath(storageRef: string): string {
@@ -175,6 +197,41 @@ class GoogleDriveAttachmentStorageAdapter implements AttachmentStorageAdapter {
     }
   }
 
+  async deleteWorkspace(workspaceId: string): Promise<void> {
+    const folderId = await this.findWorkspaceFolderId(workspaceId);
+    if (!folderId) return;
+    try {
+      await this.drive.files.delete({ fileId: folderId, supportsAllDrives: true });
+    } catch (error: any) {
+      if (error?.code !== 404) throw error;
+    } finally {
+      this.workspaceFolderIds.delete(workspaceId);
+    }
+  }
+
+  private async findWorkspaceFolderId(workspaceId: string): Promise<string | null> {
+    const cached = this.workspaceFolderIds.get(workspaceId);
+    if (cached) return cached;
+
+    const folderName = `workspace-${workspaceId}`;
+    const query = [
+      `name = '${folderName.replace(/'/g, "\\'")}'`,
+      `mimeType = 'application/vnd.google-apps.folder'`,
+      `'${this.rootFolderId}' in parents`,
+      'trashed = false',
+    ].join(' and ');
+    const existing = await this.drive.files.list({
+      q: query,
+      pageSize: 1,
+      fields: 'files(id)',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+    const folderId = existing.data.files?.[0]?.id || null;
+    if (folderId) this.workspaceFolderIds.set(workspaceId, folderId);
+    return folderId;
+  }
+
   private async getWorkspaceFolderId(workspaceId: string): Promise<string> {
     const cached = this.workspaceFolderIds.get(workspaceId);
     if (cached) return cached;
@@ -250,6 +307,19 @@ export class StorageService {
     providerFileId: string | null;
   }): Promise<void> {
     await this.getAdapter(input.provider).delete(input.storageRef, input.providerFileId);
+  }
+
+  async deleteWorkspace(
+    workspaceId: string,
+    attachments: WorkspaceStorageAttachment[] = [],
+  ): Promise<void> {
+    const providers = new Set<AttachmentStorageProvider>([
+      this.activeProvider,
+      ...attachments.map((attachment) => attachment.storageProvider),
+    ]);
+    for (const provider of providers) {
+      await this.getAdapter(provider).deleteWorkspace(workspaceId);
+    }
   }
 
   private getAdapter(provider: AttachmentStorageProvider): AttachmentStorageAdapter {

@@ -16,6 +16,49 @@ export const TaskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 
 export type TaskPriority = z.infer<typeof TaskPrioritySchema>;
 
+export const TASK_SCHEDULE_PAIR_MESSAGE = 'Start Date and Due Date must be provided together.';
+export const TASK_SCHEDULE_ORDER_MESSAGE = 'Start Date cannot be after Due Date.';
+
+export type TaskScheduleValidationIssue = {
+  field: 'startDate' | 'dueDate';
+  message: string;
+};
+
+export function getTaskScheduleValidationIssue(
+  startDate: string | null | undefined,
+  dueDate: string | null | undefined,
+): TaskScheduleValidationIssue | null {
+  const hasStartDate = Boolean(startDate);
+  const hasDueDate = Boolean(dueDate);
+
+  if (hasStartDate !== hasDueDate) {
+    return {
+      field: hasStartDate ? 'dueDate' : 'startDate',
+      message: TASK_SCHEDULE_PAIR_MESSAGE,
+    };
+  }
+
+  if (startDate && dueDate && startDate > dueDate) {
+    return { field: 'dueDate', message: TASK_SCHEDULE_ORDER_MESSAGE };
+  }
+
+  return null;
+}
+
+function refineCompleteTaskSchedule(
+  data: { startDate?: string | null; dueDate?: string | null },
+  ctx: z.RefinementCtx,
+): void {
+  const issue = getTaskScheduleValidationIssue(data.startDate, data.dueDate);
+  if (issue) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: issue.message,
+      path: [issue.field],
+    });
+  }
+}
+
 export const DeliveryAreaSchema = z.enum(['frontend', 'backend', 'mobile', 'fullstack', 'qa']);
 
 export type DeliveryArea = z.infer<typeof DeliveryAreaSchema>;
@@ -118,13 +161,7 @@ export const CreateTaskSchema = z
       });
     }
 
-    if (data.startDate && data.dueDate && data.startDate > data.dueDate) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'startDate cannot be after dueDate',
-        path: ['dueDate'],
-      });
-    }
+    refineCompleteTaskSchedule(data, ctx);
   });
 
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
@@ -154,7 +191,7 @@ export const UpdateTaskSchema = z
     if (data.startDate && data.dueDate && data.startDate > data.dueDate) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'startDate cannot be after dueDate',
+        message: TASK_SCHEDULE_ORDER_MESSAGE,
         path: ['dueDate'],
       });
     }

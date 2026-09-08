@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrendingUp, AlertTriangle, Code2, Layers, Smartphone, Cpu, Bug } from 'lucide-react';
 import type { Task, TaskStatus, TaskPriority, ProductBrief } from '@qlick/contracts';
+import { getTaskScheduleValidationIssue } from '@qlick/contracts';
 import type { WorkspaceMemberItem } from '../../../../lib/api/workspaceService';
 
 import { Card } from '../../atoms/Card';
@@ -64,6 +65,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
   members,
   onSelectTab,
 }) => {
+  const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
   const subtaskMetrics = React.useMemo(() => {
     const feTotal = subtasks.filter((s) => s.deliveryArea === 'frontend').length;
     const feDone = subtasks.filter(
@@ -355,6 +357,8 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
               disabled={!canEditPlanning}
+              aria-invalid={Boolean(scheduleIssue)}
+              aria-describedby={scheduleIssue ? 'task-detail-schedule-error' : undefined}
             />
           </div>
           <div>
@@ -370,9 +374,20 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
               value={dueDate}
               onChange={(e) => onDueDateChange(e.target.value)}
               disabled={!canEditPlanning}
+              aria-invalid={Boolean(scheduleIssue)}
+              aria-describedby={scheduleIssue ? 'task-detail-schedule-error' : undefined}
             />
           </div>
         </div>
+        {scheduleIssue && canEditPlanning && (
+          <p
+            id="task-detail-schedule-error"
+            role="alert"
+            className="text-xs text-rose-600 dark:text-rose-400"
+          >
+            {scheduleIssue.message}
+          </p>
+        )}
       </Card>
     </div>
   );

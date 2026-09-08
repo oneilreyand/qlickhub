@@ -260,30 +260,39 @@ export async function listTasksImpl(
 
   // Date filtering
   const todayStr = new Date().toISOString().split('T')[0];
+  const addScheduleOverlap = (rangeStart: string, rangeEnd: string) => {
+    where[Op.and] = [
+      ...(where[Op.and] || []),
+      {
+        startDate: { [Op.lte]: rangeEnd },
+        dueDate: { [Op.gte]: rangeStart },
+      },
+    ];
+  };
 
   if (query.datePreset) {
     const now = new Date();
     if (query.datePreset === 'today') {
-      where.dueDate = todayStr;
+      addScheduleOverlap(todayStr, todayStr);
     } else if (query.datePreset === 'this_week' || query.datePreset === 'week') {
       const day = now.getDay();
       const diffToMon = now.getDate() - day + (day === 0 ? -6 : 1);
       const monday = new Date(now.setDate(diffToMon)).toISOString().split('T')[0];
       const sunday = new Date(now.setDate(diffToMon + 6)).toISOString().split('T')[0];
-      where.dueDate = { [Op.between]: [monday, sunday] };
+      addScheduleOverlap(monday, sunday);
     } else if (query.datePreset === 'this_month' || query.datePreset === 'month') {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
         .toISOString()
         .split('T')[0];
-      where.dueDate = { [Op.between]: [firstDay, lastDay] };
+      addScheduleOverlap(firstDay, lastDay);
     } else if (query.datePreset === 'overdue') {
       where.dueDate = { [Op.lt]: todayStr };
       where.status = { [Op.notIn]: ['done', 'canceled'] };
     }
   } else if (query.startDate || query.endDate) {
     if (query.startDate && query.endDate) {
-      where.dueDate = { [Op.between]: [query.startDate, query.endDate] };
+      addScheduleOverlap(query.startDate, query.endDate);
     } else if (query.startDate) {
       where.dueDate = { [Op.gte]: query.startDate };
     } else if (query.endDate) {

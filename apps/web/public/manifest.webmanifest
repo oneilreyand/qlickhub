@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "Qlick Hub — QA & Engineering Work Hub",
+  "short_name": "Qlick Hub",
+  "description": "Task management and collaboration hub for Product, Development, and QA.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FBFCF7",
+  "theme_color": "#0B1C30",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

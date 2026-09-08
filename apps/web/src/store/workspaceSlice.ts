@@ -5,6 +5,7 @@ import {
   UpdateWorkspaceInput,
   AddWorkspaceMemberInput,
   UpdateMemberRoleInput,
+  DeleteWorkspaceInput,
 } from '@qlick/contracts';
 import {
   getActiveWorkspaceId as getStoredActiveWorkspaceId,
@@ -60,6 +61,13 @@ export const restoreWorkspace = createAsyncThunk(
   'workspace/restoreWorkspace',
   async (workspaceId: string) => {
     return await workspaceService.restoreWorkspace(workspaceId);
+  },
+);
+
+export const deleteWorkspace = createAsyncThunk(
+  'workspace/deleteWorkspace',
+  async ({ workspaceId, input }: { workspaceId: string; input: DeleteWorkspaceInput }) => {
+    return await workspaceService.deleteWorkspace(workspaceId, input);
   },
 );
 
@@ -160,6 +168,15 @@ const workspaceSlice = createSlice({
         const index = state.workspaces.findIndex((w) => w.id === action.payload.id);
         if (index !== -1)
           state.workspaces[index] = { ...state.workspaces[index], ...action.payload };
+      })
+      .addCase(deleteWorkspace.fulfilled, (state, action) => {
+        const deletedId = action.payload.workspaceId;
+        state.workspaces = state.workspaces.filter((workspace) => workspace.id !== deletedId);
+        if (state.activeWorkspaceId === deletedId) {
+          state.activeWorkspaceId = state.workspaces[0]?.id || null;
+          setStoredActiveWorkspaceId(state.activeWorkspaceId);
+        }
+        state.members = [];
       })
       .addCase(fetchMembers.pending, (state) => {
         state.isMembersLoading = true;

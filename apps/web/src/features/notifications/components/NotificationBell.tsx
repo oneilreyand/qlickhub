@@ -32,6 +32,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className = 
     isSupported: isFcmSupported,
     requestPermission: requestFcmPermission,
     isRegistering: isFcmRegistering,
+    registrationStatus: fcmRegistrationStatus,
+    registrationError: fcmRegistrationError,
   } = useFcmNotifications();
 
   useDismissableLayer(notificationRef, showNotifications, () => setShowNotifications(false));
@@ -78,6 +80,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className = 
           isFcmSupported={isFcmSupported}
           fcmPermission={fcmPermission}
           isFcmRegistering={isFcmRegistering}
+          fcmRegistrationStatus={fcmRegistrationStatus}
+          fcmRegistrationError={fcmRegistrationError}
           onRequestFcmPermission={requestFcmPermission}
           onMarkAllAsRead={handleMarkAllAsRead}
           onClearAll={handleClearAll}

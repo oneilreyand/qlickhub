@@ -12,6 +12,7 @@ import {
   MoveTaskSchema,
   CompleteTaskSchema,
   TaskListQuerySchema,
+  type CreateTaskInput,
 } from '@qlick/contracts';
 
 describe('Task API Integration & Business Rules Tests (T3)', () => {
@@ -164,6 +165,52 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         title: '',
       });
       assert.strictEqual(invalidTitle.success, false);
+    });
+
+    test('rejects incomplete Task and Subtask timelines through the shared create contract', () => {
+      for (const input of [
+        {
+          workspaceId: workspaceA.id,
+          title: 'Task with Start Date only',
+          startDate: '2026-09-07',
+        },
+        {
+          workspaceId: workspaceA.id,
+          parentTaskId: crypto.randomUUID(),
+          deliveryArea: 'frontend',
+          title: 'Subtask with Due Date only',
+          dueDate: '2026-09-08',
+        },
+      ]) {
+        assert.strictEqual(CreateTaskSchema.safeParse(input).success, false);
+      }
+    });
+
+    test('defensively rejects incomplete timelines in the service and PostgreSQL', async () => {
+      const serviceInput: CreateTaskInput = {
+        workspaceId: workspaceA.id,
+        title: 'Service-level Start Date only',
+        status: 'todo',
+        priority: 'medium',
+        startDate: '2026-09-07',
+      };
+      await assert.rejects(
+        () => taskService.createTask(user.id, serviceInput),
+        /BAD_REQUEST: Start Date and Due Date must be provided together/,
+      );
+
+      await assert.rejects(
+        () =>
+          TaskModel.create({
+            workspaceId: workspaceA.id,
+            title: 'Database-level Due Date only',
+            status: 'todo',
+            priority: 'medium',
+            reporterId: user.id,
+            dueDate: '2026-09-08',
+          }),
+        /tasks_schedule_date_pair_check|violates check constraint/,
+      );
     });
 
     test('TaskListQuerySchema parses date presets and status arrays', () => {
@@ -586,6 +633,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
 
       // Overdue date: 5 days ago
       const pastDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const futureDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       // Create Today task
       const todayTask = await taskService.createTask(
@@ -593,7 +641,19 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'Today Task',
+          startDate: todayStr,
           dueDate: todayStr,
+        }),
+      );
+
+      // A schedule spanning today must remain visible even when its Due Date is later.
+      const spanningTodayTask = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          title: 'Task Spanning Today',
+          startDate: pastDate,
+          dueDate: futureDate,
         }),
       );
 
@@ -603,6 +663,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'Overdue Task',
+          startDate: pastDate,
           dueDate: pastDate,
           status: 'todo',
         }),
@@ -614,6 +675,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'Completed Past Task',
+          startDate: pastDate,
           dueDate: pastDate,
           status: 'done',
         }),
@@ -626,6 +688,15 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       });
       const todayList = await taskService.listTasks(workspaceA.id, todayQuery);
       assert.ok(todayList.tasks.some((t) => t.id === todayTask.id));
+      assert.ok(todayList.tasks.some((t) => t.id === spanningTodayTask.id));
+
+      for (const datePreset of ['this_week', 'this_month'] as const) {
+        const calendarList = await taskService.listTasks(
+          workspaceA.id,
+          TaskListQuerySchema.parse({ workspaceId: workspaceA.id, datePreset }),
+        );
+        assert.ok(calendarList.tasks.some((t) => t.id === spanningTodayTask.id));
+      }
 
       // Test 'overdue' preset
       const overdueQuery = TaskListQuerySchema.parse({
@@ -649,6 +720,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'In Range Task',
+          startDate: '2026-09-05',
           dueDate: '2026-09-05',
         }),
       );
@@ -658,7 +730,18 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
         CreateTaskSchema.parse({
           workspaceId: workspaceA.id,
           title: 'Out of Range Task',
+          startDate: '2026-09-20',
           dueDate: '2026-09-20',
+        }),
+      );
+
+      const spanningRangeTask = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          title: 'Task Spanning Explicit Range',
+          startDate: '2026-08-25',
+          dueDate: '2026-09-15',
         }),
       );
 
@@ -670,6 +753,7 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       const rangeResult = await taskService.listTasks(workspaceA.id, rangeQuery);
 
       assert.ok(rangeResult.tasks.some((t) => t.id === inRangeTask.id));
+      assert.ok(rangeResult.tasks.some((t) => t.id === spanningRangeTask.id));
       assert.strictEqual(
         rangeResult.tasks.some((t) => t.id === outOfRangeTask.id),
         false,
@@ -678,6 +762,27 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
   });
 
   describe('7. Task Status & Completion Lifecycle', () => {
+    test('rejects an update that clears one date and rolls the Task back unchanged', async () => {
+      const task = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          title: 'Scheduled task update guard',
+          startDate: '2026-09-07',
+          dueDate: '2026-09-08',
+        }),
+      );
+
+      await assert.rejects(
+        () => taskService.updateTask(user.id, workspaceA.id, task.id, { dueDate: null }),
+        /BAD_REQUEST: Start Date and Due Date must be provided together/,
+      );
+
+      const persisted = await TaskModel.findByPk(task.id);
+      assert.strictEqual(persisted?.startDate, '2026-09-07');
+      assert.strictEqual(persisted?.dueDate, '2026-09-08');
+    });
+
     test('Completing task sets status = "done" and updates completedAt', async () => {
       const task = await taskService.createTask(
         user.id,

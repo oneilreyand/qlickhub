@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, test, expect, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -79,5 +79,14 @@ describe('CreateSubtaskModal UI Component', () => {
     expect(screen.getByRole('button', { name: /QA Testing/ })).toBeInTheDocument();
     expect(screen.getByLabelText('Assignee')).toBeInTheDocument();
     expect(screen.getByText('Create Subtask')).toBeInTheDocument();
+
+    const startDate = screen.getByLabelText('Start Date (Optional pair)');
+    const dueDate = screen.getByLabelText('Due Date (Optional pair)');
+    fireEvent.change(dueDate, { target: { value: '2026-09-08' } });
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Start Date and Due Date must be provided together.',
+    );
+    expect(startDate).toHaveAttribute('aria-invalid', 'true');
+    expect(dueDate).toHaveAttribute('aria-invalid', 'true');
   });
 });

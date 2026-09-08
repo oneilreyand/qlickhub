@@ -1,11 +1,46 @@
 import { sequelize } from '../../../db/sequelize.js';
-import { WorkspaceModel } from '../../../db/models/workspace.js';
-import { WorkspaceMemberModel } from '../../../db/models/workspaceMember.js';
-import { UserModel } from '../../../db/models/user.js';
-import { WorkspaceMembershipActivityModel } from '../../../db/models/workspaceMembershipActivity.js';
-import { WorkspaceMemberSpecialtyModel } from '../../../db/models/workspaceMemberSpecialty.js';
+import {
+  AcceptanceCriterionModel,
+  AuthSecurityEventModel,
+  BugActivityModel,
+  BugEvidenceLinkModel,
+  BugModel,
+  FolderActivityModel,
+  NotificationModel,
+  QaDocumentModel,
+  QaDocumentVersionModel,
+  QaSignOffCancellationModel,
+  QaSignOffModel,
+  ReleaseDecisionCancellationModel,
+  ReleaseDecisionModel,
+  RequirementModel,
+  RequirementTestCaseModel,
+  TaskActivityModel,
+  TaskAttachmentModel,
+  TaskCommentMentionModel,
+  TaskCommentModel,
+  TaskCreationPermissionModel,
+  TaskDocumentModel,
+  TaskModel,
+  TaskRequirementModel,
+  TestCaseActivityModel,
+  TestCaseImportModel,
+  TestCaseModel,
+  TestCaseRequirementModel,
+  TestResultEvidenceLinkModel,
+  TestResultEvidenceModel,
+  TestResultModel,
+  TestRunModel,
+  UserModel,
+  WorkFolderModel,
+  WorkspaceMemberModel,
+  WorkspaceMemberSpecialtyModel,
+  WorkspaceMembershipActivityModel,
+  WorkspaceModel,
+} from '../../../db/models/index.js';
 import { CreateWorkspaceInput, UpdateWorkspaceInput } from '@qlick/contracts';
 import { canCreateWorkspace } from '../../../policies/workspacePolicy.js';
+import { storageService } from '../../../services/storageService.js';
 
 export function slugify(text: string): string {
   return text
@@ -173,6 +208,115 @@ export async function setWorkspaceArchived(
       ...workspace.toJSON(),
       archivedAt: workspace.archivedAt ? workspace.archivedAt.toISOString() : null,
     };
+  });
+}
+
+export async function permanentlyDeleteWorkspace(
+  workspaceId: string,
+  actorId: string,
+  confirmationName: string,
+) {
+  return sequelize.transaction(async (transaction) => {
+    const workspace = await WorkspaceModel.findByPk(workspaceId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!workspace) throw new Error('NOT_FOUND: Workspace not found');
+
+    const membership = await WorkspaceMemberModel.findOne({
+      where: { workspaceId, userId: actorId, role: 'owner', deletedAt: null },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!membership || workspace.ownerId !== actorId) {
+      throw new Error('FORBIDDEN: Only the Workspace Owner may permanently delete this Workspace.');
+    }
+    if (!workspace.archivedAt) {
+      throw new Error('CONFLICT: Workspace must be archived before permanent deletion.');
+    }
+    if (workspace.name !== confirmationName.trim()) {
+      throw new Error('BAD_REQUEST: Workspace name confirmation does not match.');
+    }
+
+    const attachments = await TaskAttachmentModel.findAll({
+      where: { workspaceId },
+      attributes: ['storageProvider', 'storageRef', 'providerFileId'],
+      transaction,
+    });
+
+    // Cleanup is performed before commit. A failure throws and rolls back database deletion.
+    await storageService.deleteWorkspace(
+      workspaceId,
+      attachments.map((attachment) => ({
+        storageProvider: attachment.storageProvider,
+        storageRef: attachment.storageRef,
+        providerFileId: attachment.providerFileId ?? null,
+      })),
+    );
+    await AuthSecurityEventModel.destroy({ where: { workspaceId }, transaction });
+
+    // This migration-preservation table intentionally uses RESTRICT and has no Sequelize model.
+    await sequelize.query(
+      'DELETE FROM legacy_requirement_test_case_migrations WHERE workspace_id = :workspaceId',
+      { replacements: { workspaceId }, transaction },
+    );
+
+    // Remove restricted children explicitly before the Workspace root. The remaining direct
+    // Workspace foreign keys use the canonical cascade graph.
+    await ReleaseDecisionCancellationModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
+    await ReleaseDecisionModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await QaSignOffCancellationModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await QaSignOffModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await BugEvidenceLinkModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await BugActivityModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await BugModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TestResultEvidenceLinkModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TestResultEvidenceModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TestCaseActivityModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TestResultModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TestRunModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TestCaseRequirementModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await RequirementTestCaseModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TestCaseImportModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TestCaseModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TaskDocumentModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await QaDocumentVersionModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await QaDocumentModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TaskCommentMentionModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TaskCommentModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TaskActivityModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TaskAttachmentModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TaskRequirementModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await AcceptanceCriterionModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TaskModel.update(
+      { parentTaskId: null },
+      { where: { workspaceId }, transaction, paranoid: false },
+    );
+    await TaskModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await RequirementModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await FolderActivityModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await WorkFolderModel.update({ parentFolderId: null }, { where: { workspaceId }, transaction });
+    await WorkFolderModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await NotificationModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await WorkspaceMemberSpecialtyModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
+    await TaskCreationPermissionModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await WorkspaceMembershipActivityModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
+    await WorkspaceMemberModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await workspace.destroy({ force: true, transaction });
+
+    return { workspaceId, deleted: true as const };
   });
 }
 

@@ -42,6 +42,7 @@ import {
   Task,
   WorkspaceRole,
   DeveloperSpecialty,
+  getTaskScheduleValidationIssue,
 } from '@qlick/contracts';
 import { formatTask } from './taskQuery.js';
 
@@ -327,6 +328,11 @@ export async function createTaskImpl(actorId: string, input: CreateTaskInput): P
     );
 
     const completedAt = status === 'done' ? new Date() : null;
+
+    const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
+    if (scheduleIssue) {
+      throw new Error(`BAD_REQUEST: ${scheduleIssue.message}`);
+    }
 
     const task = await TaskModel.create(
       {
@@ -646,8 +652,9 @@ export async function updateTaskImpl(
       }
     }
 
-    if (task.startDate && task.dueDate && task.startDate > task.dueDate) {
-      throw new Error('BAD_REQUEST: Start date cannot be after due date.');
+    const scheduleIssue = getTaskScheduleValidationIssue(task.startDate, task.dueDate);
+    if (scheduleIssue) {
+      throw new Error(`BAD_REQUEST: ${scheduleIssue.message}`);
     }
 
     await task.save({ transaction });

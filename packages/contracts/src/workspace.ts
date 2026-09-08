@@ -66,6 +66,17 @@ export const UpdateWorkspaceSchema = z.object({
 
 export type UpdateWorkspaceInput = z.infer<typeof UpdateWorkspaceSchema>;
 
+export const DeleteWorkspaceSchema = z.object({
+  confirmationName: z.string().trim().min(1, 'Workspace name confirmation is required').max(100),
+});
+export type DeleteWorkspaceInput = z.infer<typeof DeleteWorkspaceSchema>;
+
+export const DeleteWorkspaceResponseSchema = z.object({
+  workspaceId: z.string().uuid(),
+  deleted: z.literal(true),
+});
+export type DeleteWorkspaceResponse = z.infer<typeof DeleteWorkspaceResponseSchema>;
+
 export const AddWorkspaceMemberSchema = z
   .object({
     email: z.string().email(),

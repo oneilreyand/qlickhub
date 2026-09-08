@@ -9,7 +9,8 @@ export const rejectArchivedWorkspaceMutation = async (
   next: NextFunction,
 ) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-  if (/\/workspaces\/[0-9a-f-]{36}\/(archive|restore)$/i.test(req.path)) return next();
+  if (/\/workspaces\/[0-9a-f-]{36}\/(archive|restore)\/?$/i.test(req.path)) return next();
+  if (req.method === 'DELETE' && /\/workspaces\/[0-9a-f-]{36}\/?$/i.test(req.path)) return next();
 
   const workspaceId = workspacePath.exec(req.path)?.[1] || req.body?.workspaceId;
   if (typeof workspaceId !== 'string') return next();

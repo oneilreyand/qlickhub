@@ -63,7 +63,7 @@ describe('TaskCommentBox Molecule Component', () => {
         members={mockMembers}
         title="Subtask Collaboration Discussion"
         onPostComment={vi.fn()}
-      />
+      />,
     );
 
     // Title and total comments count
@@ -90,7 +90,7 @@ describe('TaskCommentBox Molecule Component', () => {
         members={mockMembers}
         showMentionChips={true}
         onPostComment={handlePostComment}
-      />
+      />,
     );
 
     // @channel broadcast chip click
@@ -107,26 +107,88 @@ describe('TaskCommentBox Molecule Component', () => {
     expect(memberChip).toHaveClass('bg-[#B1E743]');
   });
 
-  it('allows quick prompt for adding Image and Video links', () => {
-    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('https://example.com/demo.mp4');
-
+  it('adds image and video links to a root comment through application modals', () => {
+    const promptSpy = vi.spyOn(window, 'prompt');
     render(
       <TaskCommentBox
         comments={[]}
         currentUserId="user-1"
         members={mockMembers}
         onPostComment={vi.fn()}
-      />
+      />,
     );
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ Image Link/i }));
+
+    const imageDialog = screen.getByRole('dialog', { name: /Tambahkan tautan gambar/i });
+    fireEvent.change(within(imageDialog).getByLabelText(/URL gambar/i), {
+      target: { value: 'https://example.com/screenshot.png' },
+    });
+    fireEvent.click(within(imageDialog).getByRole('button', { name: /Tambahkan gambar/i }));
+
+    const input = screen.getByPlaceholderText(/Write a message to your team/i);
+    expect(input).toHaveValue('https://example.com/screenshot.png');
 
     const videoBtn = screen.getByRole('button', { name: /\+ Video Link/i });
     fireEvent.click(videoBtn);
 
-    expect(promptSpy).toHaveBeenCalledWith(expect.stringContaining('Video'));
-    const input = screen.getByPlaceholderText(/Write a message to your team/i);
-    expect(input).toHaveValue('https://example.com/demo.mp4');
+    const videoDialog = screen.getByRole('dialog', { name: /Tambahkan tautan video/i });
+    fireEvent.change(within(videoDialog).getByLabelText(/URL video/i), {
+      target: { value: 'https://example.com/demo.mp4' },
+    });
+    fireEvent.click(within(videoDialog).getByRole('button', { name: /Tambahkan video/i }));
+
+    expect(input).toHaveValue('https://example.com/screenshot.png\nhttps://example.com/demo.mp4');
+    expect(promptSpy).not.toHaveBeenCalled();
 
     promptSpy.mockRestore();
+  });
+
+  it('adds a video link through the bubble discussion modal', () => {
+    render(
+      <TaskCommentBox
+        variant="bubble"
+        comments={[]}
+        currentUserId="user-1"
+        members={mockMembers}
+        onPostComment={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ Video Link/i }));
+    const dialog = screen.getByRole('dialog', { name: /Tambahkan tautan video/i });
+    fireEvent.change(within(dialog).getByLabelText(/URL video/i), {
+      target: { value: 'https://example.com/bubble-demo.mp4' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: /Tambahkan video/i }));
+
+    expect(screen.getByPlaceholderText(/Tulis pesan untuk tim/i)).toHaveValue(
+      'https://example.com/bubble-demo.mp4',
+    );
+  });
+
+  it('adds an image link to an inline reply through the application modal', () => {
+    render(
+      <TaskCommentBox
+        comments={mockComments}
+        currentUserId="user-1"
+        members={mockMembers}
+        onPostComment={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Balas/i }));
+    fireEvent.click(screen.getByRole('button', { name: /\+ Gambar/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /Tambahkan tautan gambar/i });
+    fireEvent.change(within(dialog).getByLabelText(/URL gambar/i), {
+      target: { value: 'https://example.com/reply-screenshot.png' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: /Tambahkan gambar/i }));
+
+    expect(screen.getByPlaceholderText(/Tulis balasan langsung untuk @Bob Developer/i)).toHaveValue(
+      'https://example.com/reply-screenshot.png',
+    );
   });
 
   it('opens contextual inline reply box under parent comment and handles reply submit', async () => {
@@ -137,7 +199,7 @@ describe('TaskCommentBox Molecule Component', () => {
         currentUserId="user-1"
         members={mockMembers}
         onPostComment={handlePostComment}
-      />
+      />,
     );
 
     // Click "Balas" button on Bob's comment
@@ -166,7 +228,7 @@ describe('TaskCommentBox Molecule Component', () => {
         members={mockMembers}
         onPostComment={vi.fn()}
         onUpdateComment={handleUpdateComment}
-      />
+      />,
     );
 
     // Click edit on Bob's own message
@@ -184,7 +246,10 @@ describe('TaskCommentBox Molecule Component', () => {
       fireEvent.click(saveBtn);
     });
 
-    expect(handleUpdateComment).toHaveBeenCalledWith('comm-1', 'Updated API draft response with schema');
+    expect(handleUpdateComment).toHaveBeenCalledWith(
+      'comm-1',
+      'Updated API draft response with schema',
+    );
   });
 
   it('renders bubble variant with WhatsApp-style layout (self right, other left) and bottom input bar', async () => {
@@ -196,7 +261,7 @@ describe('TaskCommentBox Molecule Component', () => {
         currentUserId="user-2"
         members={mockMembers}
         onPostComment={handlePostComment}
-      />
+      />,
     );
 
     // Title and total comments count badge
@@ -232,7 +297,7 @@ describe('TaskCommentBox Molecule Component', () => {
         members={mockMembers}
         onPostComment={vi.fn()}
         onDeleteComment={handleDeleteComment}
-      />
+      />,
     );
 
     // Click delete button on user-2's comment
@@ -242,7 +307,9 @@ describe('TaskCommentBox Molecule Component', () => {
     // Modal dialog should appear
     const dialog = screen.getByRole('dialog', { name: /Delete comment\?/i });
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByText(/Are you sure you want to delete this comment\?/i)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/Are you sure you want to delete this comment\?/i),
+    ).toBeInTheDocument();
 
     // Click cancel button
     const cancelBtn = within(dialog).getByRole('button', { name: /Cancel/i });
@@ -262,7 +329,7 @@ describe('TaskCommentBox Molecule Component', () => {
         members={mockMembers}
         onPostComment={vi.fn()}
         onDeleteComment={handleDeleteComment}
-      />
+      />,
     );
 
     // Click delete button

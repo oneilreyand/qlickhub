@@ -1,62 +1,35 @@
 /* eslint-disable no-undef */
-// Firebase Messaging Service Worker for Background Push Notifications
-// Firebase config is sent to this SW via a postMessage from the main thread
-// (see useFcmNotifications.ts → registerToken) to avoid hardcoding secrets here.
+// Firebase Messaging Service Worker for background Web Push notifications.
+// The public Firebase config is encoded in the registered script URL so the
+// worker can initialise again after Chrome or iOS restarts its process.
 
-importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-messaging-compat.js');
+const serviceWorkerUrl = new URL(self.location.href);
+const firebaseConfig = Object.fromEntries(
+  [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId',
+    'measurementId',
+  ]
+    .map((key) => [key, serviceWorkerUrl.searchParams.get(key)])
+    .filter(([, value]) => Boolean(value)),
+);
 
-let messaging = null;
+const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'messagingSenderId', 'appId'];
+const missingKeys = requiredKeys.filter((key) => !firebaseConfig[key]);
 
-/**
- * Receives Firebase config from the main thread and initialises the app.
- * This avoids hardcoding credentials in a publicly-served file.
- */
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'FIREBASE_CONFIG') {
-    const firebaseConfig = event.data.config;
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-    messaging = firebase.messaging();
+if (missingKeys.length === 0) {
+  importScripts('https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging-compat.js');
 
-    // Handle background messages once messaging is ready
-    messaging.onBackgroundMessage((payload) => {
-      const notificationTitle =
-        payload.notification?.title || payload.data?.title || 'Qlick Hub';
-      const notificationOptions = {
-        body: payload.notification?.body || payload.data?.body || 'Anda memiliki pemberitahuan baru.',
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
-        data: payload.data || {},
-      };
-      self.registration.showNotification(notificationTitle, notificationOptions);
-    });
-  }
-});
+  firebase.initializeApp(firebaseConfig);
+  firebase.messaging();
+} else {
+  console.error(`[FCM worker] Missing public Firebase config: ${missingKeys.join(', ')}`);
+}
 
-// Handle notification click to open / focus window
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  const data = event.notification.data || {};
-  let targetUrl = '/my-tasks';
-  if (data.taskId) {
-    targetUrl = `/work?tab=tasks&taskId=${data.taskId}`;
-  }
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (const client of windowClients) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(targetUrl);
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
-    })
-  );
-});
-
+// Notification payloads are displayed by Firebase itself. The backend-provided
+// webpush.fcmOptions.link controls the destination when the notification is tapped.

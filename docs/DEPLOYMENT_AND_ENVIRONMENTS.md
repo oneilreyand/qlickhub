@@ -122,7 +122,8 @@ yang sama. Lihat
 - `VITE_API_URL=/v1`
 - `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
   `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`,
-  dan opsional `VITE_FIREBASE_MEASUREMENT_ID`.
+  `VITE_FIREBASE_VAPID_KEY`, dan opsional `VITE_FIREBASE_MEASUREMENT_ID`. VAPID key adalah public
+  Web Push credential; private key pasangannya dan service-account Firebase tetap backend-only.
 
 Semua `VITE_*` tertanam di JavaScript browser. Jangan pernah memakai prefix itu untuk database
 URL, password, private key, JWT secret, atau service-account JSON.

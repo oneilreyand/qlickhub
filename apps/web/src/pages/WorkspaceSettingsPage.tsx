@@ -9,6 +9,7 @@ import {
   removeMember,
   archiveWorkspace,
   restoreWorkspace,
+  deleteWorkspace,
 } from '../store/workspaceSlice';
 import { AssignableWorkspaceRole, DeveloperSpecialty } from '@qlick/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
@@ -25,6 +26,7 @@ import {
 } from '../features/workspaces';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { Button } from '../components/ui/atoms/Button';
+import { Input } from '../components/ui/atoms/Input';
 import { Modal } from '../components/ui/molecules/Modal';
 import { Alert } from '../components/ui/atoms/Alert';
 
@@ -63,6 +65,9 @@ export const WorkspaceSettingsPage: React.FC = () => {
   // Workspace Archive / Restore Modal State
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [isDeleteWorkspaceModalOpen, setIsDeleteWorkspaceModalOpen] = useState(false);
+  const [deleteWorkspaceName, setDeleteWorkspaceName] = useState('');
+  const [isDeletingWorkspace, setIsDeletingWorkspace] = useState(false);
 
   // Member Removal Modal State
   const [memberPendingRemoval, setMemberPendingRemoval] = useState<{
@@ -95,6 +100,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const canManageMembers = userRole === 'owner' || userRole === 'admin';
   const isArchived = Boolean(activeWorkspace?.archivedAt);
   const canArchiveWorkspace = userRole === 'owner';
+  const canDeleteWorkspace = canArchiveWorkspace && isArchived;
 
   const handleConfirmArchiveToggle = async () => {
     if (!activeWorkspace) return;
@@ -111,6 +117,29 @@ export const WorkspaceSettingsPage: React.FC = () => {
       );
     } finally {
       setIsArchiving(false);
+    }
+  };
+
+  const handlePermanentDeleteWorkspace = async () => {
+    const confirmedWorkspaceName = deleteWorkspaceName.trim();
+    if (!activeWorkspace || confirmedWorkspaceName !== activeWorkspace.name) return;
+    setIsDeletingWorkspace(true);
+    try {
+      await dispatch(
+        deleteWorkspace({
+          workspaceId: activeWorkspace.id,
+          input: { confirmationName: confirmedWorkspaceName },
+        }),
+      ).unwrap();
+      dispatch(enqueueSnackbar('Workspace permanently deleted.', 'success'));
+      setDeleteWorkspaceName('');
+      setIsDeleteWorkspaceModalOpen(false);
+    } catch (err) {
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete workspace', 'error'),
+      );
+    } finally {
+      setIsDeletingWorkspace(false);
     }
   };
 
@@ -347,12 +376,19 @@ export const WorkspaceSettingsPage: React.FC = () => {
             onToggle={(checked) => void handleToggleQaPolicy(checked)}
           />
           {canArchiveWorkspace && (
-            <Button
-              variant={isArchived ? 'secondary' : 'destructive'}
-              onClick={() => setIsArchiveModalOpen(true)}
-            >
-              {isArchived ? 'Restore Workspace' : 'Archive Workspace'}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={isArchived ? 'secondary' : 'destructive'}
+                onClick={() => setIsArchiveModalOpen(true)}
+              >
+                {isArchived ? 'Restore Workspace' : 'Archive Workspace'}
+              </Button>
+              {canDeleteWorkspace && (
+                <Button variant="destructive" onClick={() => setIsDeleteWorkspaceModalOpen(true)}>
+                  Delete Permanently
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
@@ -470,6 +506,57 @@ export const WorkspaceSettingsPage: React.FC = () => {
               isLoading={isArchiving}
             >
               {isArchived ? 'Restore Workspace' : 'Archive Workspace'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: Permanent Workspace Deletion Confirmation */}
+      <Modal
+        isOpen={isDeleteWorkspaceModalOpen}
+        onClose={() => {
+          if (!isDeletingWorkspace) {
+            setIsDeleteWorkspaceModalOpen(false);
+            setDeleteWorkspaceName('');
+          }
+        }}
+        title={`Delete "${activeWorkspace.name}" permanently?`}
+        description="This action cannot be undone."
+        size="md"
+      >
+        <div className="space-y-4">
+          <Alert tone="error" title="Permanent deletion">
+            All Workspace folders, tasks, QA records, release records, audit history, members, and
+            stored attachments will be permanently removed. User accounts will remain.
+          </Alert>
+          <Input
+            label={`Type "${activeWorkspace.name}" to confirm`}
+            value={deleteWorkspaceName}
+            onChange={(event) => setDeleteWorkspaceName(event.target.value)}
+            placeholder={activeWorkspace.name}
+            autoComplete="off"
+            disabled={isDeletingWorkspace}
+          />
+          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsDeleteWorkspaceModalOpen(false);
+                setDeleteWorkspaceName('');
+              }}
+              disabled={isDeletingWorkspace}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void handlePermanentDeleteWorkspace()}
+              isLoading={isDeletingWorkspace}
+              disabled={deleteWorkspaceName.trim() !== activeWorkspace.name}
+            >
+              Delete Permanently
             </Button>
           </div>
         </div>

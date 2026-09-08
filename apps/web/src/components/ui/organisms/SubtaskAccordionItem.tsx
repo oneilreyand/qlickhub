@@ -7,6 +7,7 @@ import type {
   DeliveryArea,
   DeveloperSpecialty,
 } from '@qlick/contracts';
+import { getTaskScheduleValidationIssue } from '@qlick/contracts';
 import {
   AccordionItem,
   AccordionTrigger,
@@ -186,6 +187,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [isDeletingSubtask, setIsDeletingSubtask] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
 
   useEffect(() => {
     setPriority(subtask.priority);
@@ -336,8 +338,8 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   };
 
   const handleSaveMeta = async () => {
-    if (startDate && dueDate && startDate > dueDate) {
-      dispatch(enqueueSnackbar('Start date cannot be after due date', 'error'));
+    if (scheduleIssue) {
+      dispatch(enqueueSnackbar(scheduleIssue.message, 'error'));
       return;
     }
     setIsSavingMeta(true);
@@ -559,29 +561,54 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-stone-600 dark:text-stone-400 font-bold mb-1">
+                    <label
+                      htmlFor={`subtask-start-date-${subtask.id}`}
+                      className="block text-stone-600 dark:text-stone-400 font-bold mb-1"
+                    >
                       Start Date
                     </label>
                     <Input
                       type="date"
+                      id={`subtask-start-date-${subtask.id}`}
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                       disabled={!canMutate || !isPlanner}
+                      aria-invalid={Boolean(scheduleIssue)}
+                      aria-describedby={
+                        scheduleIssue ? `subtask-schedule-error-${subtask.id}` : undefined
+                      }
                     />
                   </div>
 
                   <div>
-                    <label className="block text-stone-600 dark:text-stone-400 font-bold mb-1">
+                    <label
+                      htmlFor={`subtask-due-date-${subtask.id}`}
+                      className="block text-stone-600 dark:text-stone-400 font-bold mb-1"
+                    >
                       Due Date
                     </label>
                     <Input
                       type="date"
+                      id={`subtask-due-date-${subtask.id}`}
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
                       disabled={!canMutate || !isPlanner}
+                      aria-invalid={Boolean(scheduleIssue)}
+                      aria-describedby={
+                        scheduleIssue ? `subtask-schedule-error-${subtask.id}` : undefined
+                      }
                     />
                   </div>
                 </div>
+                {scheduleIssue && isPlanner && (
+                  <p
+                    id={`subtask-schedule-error-${subtask.id}`}
+                    role="alert"
+                    className="text-xs text-rose-600 dark:text-rose-400"
+                  >
+                    {scheduleIssue.message}
+                  </p>
+                )}
 
                 <div>
                   <label className="block text-stone-600 dark:text-stone-400 font-bold mb-1">

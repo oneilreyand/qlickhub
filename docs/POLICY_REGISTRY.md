@@ -20,14 +20,15 @@ then update this index.
 
 ## Authentication and Authorization
 
-| Policy ID | Rule summary                                                                              | Canonical source                                                          |
-| --------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| AUTH-001  | Workspace access requires an authenticated user with active Workspace membership.         | [Architecture §5](1_ARCHITECTURE.md#5-model-keamanan--otorisasi-rbac)     |
-| AUTH-002  | Authorization is enforced by backend policy/services; UI visibility is not authorization. | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                             |
-| AUTH-003  | Developer or QA parent-Task creation requires active, expiring owner/admin delegation.    | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
-| AUTH-004  | Parent-Task delegation never grants permission to plan Subtasks.                          | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
-| AUTH-005  | Credential reset is exact-Workspace scoped and atomically revokes superseded sessions.    | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
-| AUTH-006  | Successful credential changes create secret-free append-only events with scoped reads.    | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
+| Policy ID | Rule summary                                                                                         | Canonical source                                                          |
+| --------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| AUTH-001  | Workspace access requires an authenticated user with active Workspace membership.                    | [Architecture §5](1_ARCHITECTURE.md#5-model-keamanan--otorisasi-rbac)     |
+| AUTH-002  | Authorization is enforced by backend policy/services; UI visibility is not authorization.            | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                             |
+| AUTH-003  | Developer or QA parent-Task creation requires active, expiring owner/admin delegation.               | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
+| AUTH-004  | Parent-Task delegation never grants permission to plan Subtasks.                                     | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
+| AUTH-005  | Credential reset is exact-Workspace scoped and atomically revokes superseded sessions.               | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
+| AUTH-006  | Successful credential changes create secret-free append-only events with scoped reads.               | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
+| AUTH-007  | Only the persisted Owner may permanently delete an archived Workspace after exact-name confirmation. | [Architecture §5](1_ARCHITECTURE.md#penghapusan-permanen-workspace)       |
 
 ## Application Security
 
@@ -42,6 +43,7 @@ then update this index.
 | FLOW-001  | Developers execute assigned Subtasks through the approved transition sequence. | [Workflow §4](2_WORKFLOW_AND_ROLES.md#4-siklus-hidup-subtask-subtask-state-machine) |
 | FLOW-002  | Planning fields remain controlled by owner, admin, or PO.                      | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                      |
 | FLOW-003  | Developer assignment must match Workspace specialty and Subtask delivery area. | [Workflow §3](2_WORKFLOW_AND_ROLES.md#3-spesialisasi-developer--penugasan-subtask)  |
+| FLOW-004  | Task/Subtask timelines are either blank or contain an ordered Start/Due pair.  | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                      |
 
 ## QA and Release
 
@@ -55,15 +57,16 @@ then update this index.
 
 ## Data, Interface, UI, and AI
 
-| Policy ID    | Rule summary                                                                                                 | Canonical source                                                                                                 |
-| ------------ | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| DATA-001     | Production workflow data must be persisted and returned through authenticated backend interfaces.            | [Agent Guidelines §3](4_AGENT_DEV_GUIDELINES.md#3-kebijakan-basis-data--bukti-pengujian-database--test-evidence) |
-| DATA-002     | Schema changes use canonical Sequelize migrations and PostgreSQL validation.                                 | [Architecture §6](1_ARCHITECTURE.md#6-arsitektur-teknis--database)                                               |
-| CONTRACT-001 | `packages/contracts` is the shared API contract boundary between frontend and backend.                       | [Architecture §6](1_ARCHITECTURE.md#6-arsitektur-teknis--database)                                               |
-| UI-001       | Frontend work reuses the Atomic Design system and approved Stitch tokens.                                    | [UI Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                                                 |
-| UI-002       | Data-driven UI covers loading, empty, error, disabled, and permission-denied states when applicable.         | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                                                                    |
-| AI-001       | AI produces cited drafts and may not autonomously mutate production data without explicit user Apply action. | [Architecture §6](1_ARCHITECTURE.md#d-batasan-tata-kelola-ai-ai-governance)                                      |
-| TEST-001     | Database/interface integration tests use disposable PostgreSQL with canonical migrations.                    | [Agent Guidelines §3](4_AGENT_DEV_GUIDELINES.md#3-kebijakan-basis-data--bukti-pengujian-database--test-evidence) |
+| Policy ID    | Rule summary                                                                                                   | Canonical source                                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| DATA-001     | Production workflow data must be persisted and returned through authenticated backend interfaces.              | [Agent Guidelines §3](4_AGENT_DEV_GUIDELINES.md#3-kebijakan-basis-data--bukti-pengujian-database--test-evidence) |
+| DATA-002     | Schema changes use canonical Sequelize migrations and PostgreSQL validation.                                   | [Architecture §6](1_ARCHITECTURE.md#6-arsitektur-teknis--database)                                               |
+| DATA-003     | Permanent Workspace deletion removes all Workspace-owned records and stored attachments while retaining users. | [Architecture §5](1_ARCHITECTURE.md#penghapusan-permanen-workspace)                                              |
+| CONTRACT-001 | `packages/contracts` is the shared API contract boundary between frontend and backend.                         | [Architecture §6](1_ARCHITECTURE.md#6-arsitektur-teknis--database)                                               |
+| UI-001       | Frontend work reuses the Atomic Design system and approved Stitch tokens.                                      | [UI Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                                                 |
+| UI-002       | Data-driven UI covers loading, empty, error, disabled, and permission-denied states when applicable.           | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                                                                    |
+| AI-001       | AI produces cited drafts and may not autonomously mutate production data without explicit user Apply action.   | [Architecture §6](1_ARCHITECTURE.md#d-batasan-tata-kelola-ai-ai-governance)                                      |
+| TEST-001     | Database/interface integration tests use disposable PostgreSQL with canonical migrations.                      | [Agent Guidelines §3](4_AGENT_DEV_GUIDELINES.md#3-kebijakan-basis-data--bukti-pengujian-database--test-evidence) |
 
 ## Documentation Governance
 

@@ -142,10 +142,10 @@ export class FcmService {
 
       if (tokensRecords.length === 0) {
         if (env.NODE_ENV !== 'production') {
-          console.log(
-            `[FCM Notification Simulated] To users ${distinctUserIds.join(', ')} (no active device tokens):`,
-            payload,
-          );
+          console.log('[FCM dispatch skipped: no active device tokens]', {
+            recipientCount: distinctUserIds.length,
+            notificationType: payload.data?.type || 'system',
+          });
         }
         return;
       }
@@ -200,11 +200,21 @@ export class FcmService {
           where: { id: { [Op.in]: staleTokenIds } },
         });
       }
+
+      console.log('[FCM dispatch completed]', {
+        recipientCount: distinctUserIds.length,
+        tokenCount: tokens.length,
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+        staleTokenCount: staleTokenIds.length,
+        notificationType: payload.data?.type || 'system',
+      });
     } catch (error) {
-      console.warn(
-        '⚠️ Error sending FCM multicast message:',
-        error instanceof Error ? error.message : error,
-      );
+      console.warn('⚠️ Error sending FCM multicast message:', {
+        recipientCount: distinctUserIds.length,
+        notificationType: payload.data?.type || 'system',
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

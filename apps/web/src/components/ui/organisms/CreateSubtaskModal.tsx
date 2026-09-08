@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import type { Task, DeliveryArea, TaskPriority } from '@qlick/contracts';
+import {
+  getTaskScheduleValidationIssue,
+  type Task,
+  type DeliveryArea,
+  type TaskPriority,
+} from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
 import { Textarea } from '../atoms/Textarea';
@@ -95,6 +100,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
 
   if (!parentTask || !canPlan) return null;
 
+  const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeWorkspaceId || !parentTask) return;
@@ -109,8 +116,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       return;
     }
 
-    if (startDate && dueDate && startDate > dueDate) {
-      dispatch(enqueueSnackbar('Start date cannot be after due date', 'error'));
+    if (scheduleIssue) {
+      dispatch(enqueueSnackbar(scheduleIssue.message, 'error'));
       return;
     }
 
@@ -337,13 +344,15 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               htmlFor="subtask-start-date"
               className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
             >
-              Start Date (Optional)
+              Start Date (Optional pair)
             </label>
             <Input
               type="date"
               id="subtask-start-date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              aria-invalid={Boolean(scheduleIssue)}
+              aria-describedby={scheduleIssue ? 'subtask-schedule-error' : undefined}
             />
           </div>
 
@@ -352,16 +361,27 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               htmlFor="subtask-due-date"
               className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
             >
-              Due Date (Optional)
+              Due Date (Optional pair)
             </label>
             <Input
               type="date"
               id="subtask-due-date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
+              aria-invalid={Boolean(scheduleIssue)}
+              aria-describedby={scheduleIssue ? 'subtask-schedule-error' : undefined}
             />
           </div>
         </div>
+        {scheduleIssue && (
+          <p
+            id="subtask-schedule-error"
+            role="alert"
+            className="text-xs text-rose-600 dark:text-rose-400"
+          >
+            {scheduleIssue.message}
+          </p>
+        )}
 
         {/* Modal Actions */}
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-stone-100 dark:border-stone-800">

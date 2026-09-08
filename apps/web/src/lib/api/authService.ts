@@ -1,5 +1,6 @@
 import { apiClient } from './apiClient';
 import { clearSessionScopedData } from '../storage/browserStorage';
+import { unregisterCurrentFcmDevice } from '../firebase/fcmDevice';
 import type { AdminResetPasswordRequest } from '@qlick/contracts';
 
 export interface User {
@@ -162,6 +163,12 @@ export const authService = {
   },
 
   async logout() {
+    try {
+      await unregisterCurrentFcmDevice();
+    } catch {
+      // Logout must remain available when the external Web Push seam is unavailable.
+    }
+
     try {
       await apiClient('/auth/logout', { method: 'POST' });
     } catch {

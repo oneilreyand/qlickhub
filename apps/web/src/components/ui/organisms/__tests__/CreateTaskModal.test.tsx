@@ -102,4 +102,27 @@ describe('CreateTaskModal Organism', () => {
     expect(titleInput).toHaveValue('My Typed Title');
     expect(folderSelect).toHaveValue('f-1');
   });
+
+  it('shows an accessible validation error when only one timeline date is filled', () => {
+    const store = createTestStore();
+
+    render(
+      <Provider store={store}>
+        <CreateTaskModal isOpen={true} onClose={vi.fn()} folders={[]} />
+      </Provider>,
+    );
+
+    const startDate = screen.getByLabelText('Start Date (Optional pair)');
+    const dueDate = screen.getByLabelText('Due Date (Optional pair)');
+    fireEvent.change(startDate, { target: { value: '2026-09-07' } });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Start Date and Due Date must be provided together.',
+    );
+    expect(startDate).toHaveAttribute('aria-invalid', 'true');
+    expect(dueDate).toHaveAttribute('aria-invalid', 'true');
+
+    fireEvent.change(dueDate, { target: { value: '2026-09-08' } });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });

@@ -254,6 +254,7 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       priority: 'high',
       reporterId: po.id,
       assigneeId: dev.id,
+      startDate: '2099-01-10',
       dueDate: '2099-01-10',
     });
     blockedSubtask = await TaskModel.create({
@@ -266,6 +267,7 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       reporterId: po.id,
       assigneeId: dev.id,
       reviewNotes: 'Preserve server validation messages.',
+      startDate: '2099-01-09',
       dueDate: '2099-01-09',
     });
     qaSubtask = await TaskModel.create({
@@ -277,6 +279,7 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       priority: 'high',
       reporterId: po.id,
       assigneeId: qa.id,
+      startDate: '2099-01-12',
       dueDate: '2099-01-12',
     });
     reviewSubtask = await TaskModel.create({
@@ -288,6 +291,7 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       priority: 'medium',
       reporterId: po.id,
       assigneeId: dev.id,
+      startDate: '2099-01-13',
       dueDate: '2099-01-13',
     });
 

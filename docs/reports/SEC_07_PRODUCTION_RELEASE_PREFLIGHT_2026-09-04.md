@@ -129,3 +129,93 @@ above remain accurate for the earlier preflight: the current remote setting was 
 SEC-08 and still explicitly selects credential-less Upstash. Production recovery, migrations 64/65,
 SMTP verification, provider cutover, health recovery, and authenticated smoke remain mandatory.
 See `docs/reports/SEC_08_POSTGRESQL_RATE_LIMIT_2026-09-05.md` for local implementation evidence.
+
+## Production release execution — 2026-09-07
+
+The owner explicitly authorized the Production release, a temporary full database backup, and a
+transactional data reset that retains one Owner account matching the local Owner. The release is
+live and verified; permanent deletion of the temporary backup is the only remaining blocked cleanup
+step.
+
+### Recovery, target, and migration evidence
+
+- The target was re-audited before mutation: PostgreSQL 17 was reachable through the dedicated
+  Production connection, 47 migrations were applied, migrations 64/65 were pending, and aggregate
+  counts were 2 users, 4 Workspaces, and 0 Tasks. The local database contained exactly one active
+  global Owner, and Production contained exactly one active Owner with the same email/name.
+- PostgreSQL client 17.11 was installed because the existing version-16 client could not safely dump
+  a version-17 server. A custom-format pre-change backup was created in a private temporary directory
+  with mode `600`, validated through `pg_restore --list`, and contained 733 catalog entries in
+  397,310 bytes. Its SHA-256 checksum was verified again immediately before the reset. No backup
+  content or credential was printed or copied into repository evidence.
+- SMTP authentication succeeded without sending an email.
+- `npm run db:migrate:prod` applied only
+  `20260904000064-create-auth-security-events.cjs` and
+  `20260904000065-create-link-preview-rate-limit-buckets.cjs`. The resulting status is 49 applied
+  migrations; both tables and the PostgreSQL rate-limit function exist, and `PUBLIC` has neither
+  table nor function access.
+
+### Provider cutover, deployment, and data reset
+
+- Production `LINK_PREVIEW_RATE_LIMIT_STORE` was replaced with `postgres` after migration 65. The
+  subsequent build/deploy exceeded the required 60-second drain interval; the previous deployment
+  retained its own configuration until the Production alias switched.
+- `vercel --prod --yes --scope oneilreyands-projects` produced Ready deployment
+  `dpl_9VRqKrfhkGT6YbCJQjkjt3FmXfrL` at
+  `https://qlickhub-qqf7kxw1f-oneilreyands-projects.vercel.app`, aliased to
+  `https://qlickhub.vercel.app`. It contains only the normal `api/index` serverless function.
+- The authorized reset ran in one PostgreSQL transaction under an advisory lock. All 41 application
+  tables other than `users` and `SequelizeMeta` were truncated, all users except the exact matching
+  active Production Owner were deleted, and all sessions were revoked. The Production password hash
+  was deliberately retained rather than copied from development.
+- The post-reset read-only audit initially proved one active Owner matching the local fixture identity,
+  49 migrations, and zero rows across all other 41 application tables. A subsequent explicit owner
+  instruction replaced the Production account email with the user-specified real address while
+  preserving its name, Owner role, and separate Production password. Production is therefore no
+  longer expected to match the local fixture email.
+
+### Runtime verification and diagnosis
+
+- Release gates passed: documentation 5/5, lint 0 errors with 27 existing warnings, all package
+  typechecks, environment validation with zero warnings and no values printed, and the full
+  Production build with 1,695 frontend modules.
+- Health returned `200` with `database=connected`; root, login, and `/v1` loaded; an unauthenticated
+  protected request returned `401`; a state-changing request without Origin returned
+  `403 UNTRUSTED_ORIGIN`; Production CORS preflight returned `204` with the exact allowed origin,
+  while an untrusted origin received no allow-origin header.
+- The first long smoke harness kept an audit connection open across HTTP work and reached its timeout;
+  cleanup was subsequently verified at zero. A minimized retry initially returned the expected
+  `403 UNTRUSTED_ORIGIN` because it intentionally lacked the Production Origin header, then passed
+  with the required header and persisted one PostgreSQL marker. A five-request batching attempt took
+  longer than the 60-second rolling window, so request 31 was correctly accepted after expiry; its
+  fixtures were fully cleaned. These were harness findings, not runtime-policy failures.
+- The final bounded authenticated smoke used two temporary users and 15-request batches. It completed
+  in 36,201 ms: unauthenticated access returned `401`; both logins returned `200`; exactly 30 requests
+  reached SSRF rejection as `400 UNSAFE_URL`; request 31 returned `429 RATE_LIMITED` with RateLimit,
+  RateLimit-Policy, and Retry-After headers; the second user independently received
+  `400 UNSAFE_URL`; PostgreSQL stored marker counts `[1,30]`. Cleanup left one real Owner, zero smoke
+  users, zero sessions, and zero counters.
+- A bounded 200-record deployment-log sample contained 172 link-preview records, zero distributed
+  fallback warnings, and zero 5xx responses. It included expected 429, 401, and 200 traffic from the
+  release checks.
+
+### Remaining cleanup blocker
+
+The only verified local backup of the pre-reset state remains in private temporary storage. An
+attempt to remove it after successful verification was rejected by the safety gate because permanent
+deletion removes this recovery path. No workaround was attempted. The owner must explicitly
+acknowledge that loss before the archive is permanently deleted. Until then,
+`SEC-07-PRODUCTION-RELEASE` remains `Blocked` only on this cleanup item; Production itself is live,
+healthy, migrated, reset, and smoke-verified.
+
+### Production Owner email correction — 2026-09-07
+
+- The owner explicitly identified the retained fixture-style email as non-real and requested its
+  replacement with a specific real address. The address itself is not duplicated into repository
+  evidence.
+- The mutation ran in one transaction under a dedicated advisory lock. Preconditions required exactly
+  one Production user, exactly one active Owner, and no duplicate target email. The update preserved
+  the existing password hash and Owner role while clearing any stale password-reset token and expiry.
+- Read-only verification found exactly one active Owner with the requested address, null reset-token
+  fields, and no additional users. Production `/v1/health` remained `200` with
+  `database=connected`. No email was sent and no session was created.

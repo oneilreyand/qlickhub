@@ -15,6 +15,7 @@ import type { TaskComment } from '@qlick/contracts';
 import { Button } from '../atoms/Button';
 import { IconButton } from '../atoms/IconButton';
 import { Avatar } from '../atoms/Avatar';
+import { Input } from '../atoms/Input';
 import { Textarea } from '../atoms/Textarea';
 import { LoadingSpinner } from '../atoms/LoadingSpinner';
 import { Skeleton } from '../atoms/Skeleton';
@@ -29,7 +30,11 @@ export interface TaskCommentBoxProps {
   comments?: TaskComment[];
   currentUserId?: string;
   members?: Array<{ userId: string; role: string; user?: { name?: string; email?: string } }>;
-  onPostComment: (body: string, parentCommentId?: string | null, mentionedUserIds?: string[]) => Promise<void> | void;
+  onPostComment: (
+    body: string,
+    parentCommentId?: string | null,
+    mentionedUserIds?: string[],
+  ) => Promise<void> | void;
   onUpdateComment?: (commentId: string, body: string) => Promise<void> | void;
   onDeleteComment?: (commentId: string) => Promise<void> | void;
   canManageComments?: boolean;
@@ -69,11 +74,17 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
   maxHeight = 'max-h-[340px]',
 }) => {
   const isBubble = variant === 'bubble';
-  const defaultTitle = title || (isBubble ? 'Subtask Collaboration Discussion' : 'Working Task Discussion');
+  const defaultTitle =
+    title || (isBubble ? 'Subtask Collaboration Discussion' : 'Working Task Discussion');
 
   const [commentText, setCommentText] = useState('');
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mediaLinkDialog, setMediaLinkDialog] = useState<{
+    kind: 'image' | 'video';
+    target: 'comment' | 'reply';
+  } | null>(null);
+  const [mediaLinkUrl, setMediaLinkUrl] = useState('');
 
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -91,10 +102,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    if (
-      messagesEndRef.current &&
-      typeof messagesEndRef.current.scrollIntoView === 'function'
-    ) {
+    if (messagesEndRef.current && typeof messagesEndRef.current.scrollIntoView === 'function') {
       messagesEndRef.current.scrollIntoView({ behavior });
     }
   };
@@ -211,6 +219,76 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
     setCommentToDelete({ id: commentId, isBubble });
   };
 
+  const openMediaLinkDialog = (kind: 'image' | 'video', target: 'comment' | 'reply') => {
+    setMediaLinkUrl('');
+    setMediaLinkDialog({ kind, target });
+  };
+
+  const closeMediaLinkDialog = () => {
+    setMediaLinkDialog(null);
+    setMediaLinkUrl('');
+  };
+
+  const handleInsertMediaLink = (event: React.FormEvent) => {
+    event.preventDefault();
+    const url = mediaLinkUrl.trim();
+    if (!url || !mediaLinkDialog) return;
+
+    const appendUrl = (current: string) => (current ? `${current}\n${url}` : url);
+    if (mediaLinkDialog.target === 'reply') {
+      setReplyText(appendUrl);
+    } else {
+      setCommentText(appendUrl);
+    }
+    closeMediaLinkDialog();
+  };
+
+  const renderMediaLinkModal = () => {
+    if (!mediaLinkDialog) return null;
+
+    const isImage = mediaLinkDialog.kind === 'image';
+    const mediaLabel = isImage ? 'gambar' : 'video';
+    return (
+      <Modal
+        isOpen
+        onClose={closeMediaLinkDialog}
+        title={`Tambahkan tautan ${mediaLabel}`}
+        description={
+          isImage
+            ? 'Tempel URL gambar atau screenshot yang dapat diakses melalui HTTPS.'
+            : 'Tempel URL video YouTube, Loom, MP4, atau WebM yang dapat diakses melalui HTTPS.'
+        }
+        size="sm"
+      >
+        <form onSubmit={handleInsertMediaLink} className="space-y-4">
+          <Input
+            id={`discussion-${mediaLinkDialog.kind}-url`}
+            type="url"
+            label={`URL ${mediaLabel}`}
+            value={mediaLinkUrl}
+            onChange={(event) => setMediaLinkUrl(event.target.value)}
+            placeholder={
+              isImage ? 'https://example.com/screenshot.png' : 'https://example.com/demo.mp4'
+            }
+            autoFocus
+            required
+          />
+          <p className="text-xs text-stone-500 dark:text-stone-400">
+            Tautan akan ditambahkan ke draft dan dipratinjau setelah pesan dikirim.
+          </p>
+          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={closeMediaLinkDialog}>
+              Batal
+            </Button>
+            <Button type="submit" variant="primary" size="sm" disabled={!mediaLinkUrl.trim()}>
+              Tambahkan {mediaLabel}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    );
+  };
+
   const handleConfirmDelete = async () => {
     if (!commentToDelete || !onDeleteComment) return;
     const targetId = commentToDelete.id;
@@ -308,7 +386,9 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
               return (
                 <div key={comment.id} className="space-y-2">
                   {/* Bubble Container: isMe (Kanan / Self) vs Others (Kiri) */}
-                  <div className={`flex items-start gap-2.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div
+                    className={`flex items-start gap-2.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                  >
                     {!isMe && (
                       <Avatar
                         name={authorName}
@@ -317,7 +397,9 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                       />
                     )}
 
-                    <div className={`flex flex-col max-w-[82%] sm:max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
+                    <div
+                      className={`flex flex-col max-w-[82%] sm:max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}
+                    >
                       {/* Header Info Above Bubble */}
                       <div className="flex items-center gap-1.5 px-1 pb-1 text-[10px] text-stone-500 dark:text-stone-400">
                         {isMe ? (
@@ -475,15 +557,20 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                               />
                             )}
 
-                            <div className={`flex flex-col max-w-[85%] ${isReplyMe ? 'items-end' : 'items-start'}`}>
+                            <div
+                              className={`flex flex-col max-w-[85%] ${isReplyMe ? 'items-end' : 'items-start'}`}
+                            >
                               <div className="flex items-center gap-1 px-1 pb-0.5 text-[9px] text-stone-500 dark:text-stone-400">
                                 {isReplyMe ? (
                                   <>
                                     <span>
-                                      {new Date(reply.createdAt || Date.now()).toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      })}
+                                      {new Date(reply.createdAt || Date.now()).toLocaleTimeString(
+                                        [],
+                                        {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        },
+                                      )}
                                     </span>
                                     <span>•</span>
                                     <span className="px-1 py-0.2 rounded-xs text-[8px] font-extrabold bg-[#B1E743] text-[#141413]">
@@ -500,10 +587,13 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                     </span>
                                     <span>•</span>
                                     <span>
-                                      {new Date(reply.createdAt || Date.now()).toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      })}
+                                      {new Date(reply.createdAt || Date.now()).toLocaleTimeString(
+                                        [],
+                                        {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        },
+                                      )}
                                     </span>
                                   </>
                                 )}
@@ -661,12 +751,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
             <button
               type="button"
-              onClick={() => {
-                const url = window.prompt('Masukkan URL Gambar / Screenshot (https://...):');
-                if (url && url.trim()) {
-                  setCommentText((prev) => (prev ? `${prev}\n${url.trim()}` : url.trim()));
-                }
-              }}
+              onClick={() => openMediaLinkDialog('image', 'comment')}
               className="text-[10px] px-2.5 py-1 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1"
             >
               <ImageIcon className="h-3 w-3 text-stone-600 dark:text-stone-300" />
@@ -675,12 +760,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
             <button
               type="button"
-              onClick={() => {
-                const url = window.prompt('Masukkan URL Video YouTube / Loom / MP4 (https://...):');
-                if (url && url.trim()) {
-                  setCommentText((prev) => (prev ? `${prev}\n${url.trim()}` : url.trim()));
-                }
-              }}
+              onClick={() => openMediaLinkDialog('video', 'comment')}
               className="text-[10px] px-2.5 py-1 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1"
             >
               <VideoIcon className="h-3 w-3 text-stone-600 dark:text-stone-300" />
@@ -714,6 +794,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
             </Button>
           </form>
         </div>
+        {renderMediaLinkModal()}
       </div>
     );
   }
@@ -738,7 +819,6 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
       {/* Main Comment Input Area */}
       <div className="space-y-3">
-
         {/* Mention Members Toolbar (Optional for Task Level) */}
         {showMentionChips && members.length > 0 && (
           <div className="space-y-1.5">
@@ -770,7 +850,8 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
               {members.map((member) => {
                 const isSelected = mentionedUserIds.includes(member.userId);
-                const name = member.user?.name || member.user?.email || member.userId.substring(0, 6);
+                const name =
+                  member.user?.name || member.user?.email || member.userId.substring(0, 6);
                 return (
                   <button
                     key={member.userId}
@@ -829,12 +910,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
           <button
             type="button"
-            onClick={() => {
-              const url = window.prompt('Masukkan URL Gambar / Screenshot (https://...):');
-              if (url && url.trim()) {
-                setCommentText((prev) => (prev ? `${prev}\n${url.trim()}` : url.trim()));
-              }
-            }}
+            onClick={() => openMediaLinkDialog('image', 'comment')}
             className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1"
             title="Insert image link (auto-previewed in chat)"
           >
@@ -844,12 +920,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
           <button
             type="button"
-            onClick={() => {
-              const url = window.prompt('Masukkan URL Video YouTube / Loom / MP4 (https://...):');
-              if (url && url.trim()) {
-                setCommentText((prev) => (prev ? `${prev}\n${url.trim()}` : url.trim()));
-              }
-            }}
+            onClick={() => openMediaLinkDialog('video', 'comment')}
             className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1"
             title="Insert video link (auto-previewed in chat)"
           >
@@ -871,7 +942,8 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-stone-400 italic">
-              Tips: Paste link gambar, screenshot, video (YouTube/Loom), Figma, Drive, atau web link untuk preview otomatis.
+              Tips: Paste link gambar, screenshot, video (YouTube/Loom), Figma, Drive, atau web link
+              untuk preview otomatis.
             </span>
 
             <Button
@@ -915,7 +987,9 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                 loading="lazy"
               />
             ) : null}
-            <div className={`${emptyIllustrationUrl ? 'hidden dark:flex' : 'flex'} items-center justify-center py-2`}>
+            <div
+              className={`${emptyIllustrationUrl ? 'hidden dark:flex' : 'flex'} items-center justify-center py-2`}
+            >
               <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
                 <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
                 <MessageSquare className="h-7 w-7 text-[#B1E743]" />
@@ -949,7 +1023,9 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <Avatar name={authorName} size="sm" className="h-5 w-5 text-[10px]" />
-                      <span className="font-bold text-stone-900 dark:text-stone-100 truncate">{authorName}</span>
+                      <span className="font-bold text-stone-900 dark:text-stone-100 truncate">
+                        {authorName}
+                      </span>
                       {isMe ? (
                         <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-[#B1E743] text-[#141413] shadow-xs">
                           Anda ({authorRole})
@@ -1056,7 +1132,10 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                     <div className="flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400 font-medium pt-1">
                       <span>Mentions:</span>
                       {comment.mentions.map((m) => (
-                        <span key={m.userId} className="bg-amber-100 dark:bg-amber-950/60 px-1 rounded">
+                        <span
+                          key={m.userId}
+                          className="bg-amber-100 dark:bg-amber-950/60 px-1 rounded"
+                        >
                           @{m.userName}
                         </span>
                       ))}
@@ -1107,7 +1186,11 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                           <div className="flex items-center justify-between gap-2 mb-1">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <CornerDownRight className="h-3 w-3 text-stone-400 shrink-0" />
-                              <Avatar name={replyAuthorName} size="sm" className="h-4 w-4 text-[9px]" />
+                              <Avatar
+                                name={replyAuthorName}
+                                size="sm"
+                                className="h-4 w-4 text-[9px]"
+                              />
                               <span className="font-bold text-stone-900 dark:text-stone-100 truncate">
                                 {replyAuthorName}
                               </span>
@@ -1245,12 +1328,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            onClick={() => {
-                              const url = window.prompt('Masukkan URL Gambar (https://...):');
-                              if (url && url.trim()) {
-                                setReplyText((prev) => (prev ? `${prev}\n${url.trim()}` : url.trim()));
-                              }
-                            }}
+                            onClick={() => openMediaLinkDialog('image', 'reply')}
                             className="text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-semibold hover:text-amber-600 flex items-center gap-1"
                             title="Insert image link"
                           >
@@ -1260,12 +1338,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
                           <button
                             type="button"
-                            onClick={() => {
-                              const url = window.prompt('Masukkan URL Video YouTube / Loom (https://...):');
-                              if (url && url.trim()) {
-                                setReplyText((prev) => (prev ? `${prev}\n${url.trim()}` : url.trim()));
-                              }
-                            }}
+                            onClick={() => openMediaLinkDialog('video', 'reply')}
                             className="text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-semibold hover:text-amber-600 flex items-center gap-1"
                             title="Insert video link"
                           >
@@ -1323,6 +1396,8 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
         </div>
       )}
 
+      {renderMediaLinkModal()}
+
       {/* Modal: Delete Comment Confirmation */}
       <Modal
         isOpen={Boolean(commentToDelete)}
@@ -1339,7 +1414,8 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
       >
         <div className="space-y-4">
           <p className="text-xs text-stone-600 dark:text-stone-300">
-            Are you sure you want to delete this {commentToDelete?.isBubble ? 'message' : 'comment'}? This action cannot be undone.
+            Are you sure you want to delete this {commentToDelete?.isBubble ? 'message' : 'comment'}
+            ? This action cannot be undone.
           </p>
           <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
             <Button

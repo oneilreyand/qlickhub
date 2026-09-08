@@ -42,6 +42,7 @@ import {
   WorkspaceSchema,
   CreateWorkspaceSchema,
   UpdateWorkspaceSchema,
+  DeleteWorkspaceSchema,
   AddWorkspaceMemberSchema,
   UpdateMemberRoleSchema,
   RegisterFcmTokenSchema,
@@ -182,6 +183,13 @@ describe('Contracts Validation Suite', () => {
     test('rejects invalid workspace creation input', () => {
       assert.throws(() => CreateWorkspaceSchema.parse({ name: 'A' }));
       assert.throws(() => CreateWorkspaceSchema.parse({ name: '' }));
+    });
+
+    test('requires a non-empty exact-name confirmation for permanent deletion', () => {
+      assert.deepStrictEqual(DeleteWorkspaceSchema.parse({ confirmationName: 'Acme Core' }), {
+        confirmationName: 'Acme Core',
+      });
+      assert.throws(() => DeleteWorkspaceSchema.parse({ confirmationName: '  ' }));
     });
 
     test('validates workspace member addition', () => {
@@ -357,6 +365,24 @@ describe('Contracts Validation Suite', () => {
           title: 'Invalid Task',
           startDate: '2026-08-20',
           dueDate: '2026-08-10',
+        }),
+      );
+    });
+
+    test('rejects task creation when only one timeline date is provided', () => {
+      assert.throws(() =>
+        CreateTaskSchema.parse({
+          workspaceId: validUuid,
+          title: 'Start only',
+          startDate: '2026-08-10',
+        }),
+      );
+
+      assert.throws(() =>
+        CreateTaskSchema.parse({
+          workspaceId: validUuid,
+          title: 'Due only',
+          dueDate: '2026-08-20',
         }),
       );
     });

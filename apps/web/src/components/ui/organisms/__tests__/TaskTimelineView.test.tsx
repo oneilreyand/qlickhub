@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Task, FolderTreeNode } from '@qlick/contracts';
 import { TaskTimelineView } from '../TaskTimelineView';
 
@@ -91,35 +91,29 @@ const mockTasks: Task[] = [
 ];
 
 describe('TaskTimelineView', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders loading skeleton when isLoading is true', () => {
-    render(
-      <TaskTimelineView
-        tasks={[]}
-        isLoading={true}
-        onSelect={vi.fn()}
-      />
-    );
+    render(<TaskTimelineView tasks={[]} isLoading={true} onSelect={vi.fn()} />);
     expect(screen.queryByText('Time Scale:')).not.toBeInTheDocument();
   });
 
   it('renders empty message and illustration when tasks array is empty and not loading', () => {
-    render(
-      <TaskTimelineView
-        tasks={[]}
-        isLoading={false}
-        onSelect={vi.fn()}
-      />
-    );
+    render(<TaskTimelineView tasks={[]} isLoading={false} onSelect={vi.fn()} />);
     expect(screen.getByText('No tasks in current view')).toBeInTheDocument();
     const img = screen.getByAltText('No Tasks in Timeline Illustration');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute(
       'src',
-      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787027457/ChatGPT_Image_Aug_18_2026_11_30_28_AM.png'
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787027457/ChatGPT_Image_Aug_18_2026_11_30_28_AM.png',
     );
   });
 
   it('renders scheduled tasks in folder groups and supports time scale switching', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-07T12:00:00.000Z'));
     const handleSelect = vi.fn();
     render(
       <TaskTimelineView
@@ -127,7 +121,7 @@ describe('TaskTimelineView', () => {
         folders={mockFolders}
         isLoading={false}
         onSelect={handleSelect}
-      />
+      />,
     );
 
     // Check Folder Names
@@ -142,11 +136,74 @@ describe('TaskTimelineView', () => {
     const dayBtn = screen.getByRole('button', { name: /^day$/i });
     const monthBtn = screen.getByRole('button', { name: /^month$/i });
 
+    expect(screen.getByText('Aug 23, 2026 – Oct 24, 2026')).toBeInTheDocument();
     fireEvent.click(dayBtn);
     expect(dayBtn.className).toContain('bg-[#B1E743]');
+    expect(screen.getByText('Aug 31, 2026 – Sep 28, 2026')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /next time frame/i }));
+    expect(screen.getByText('Sep 1, 2026 – Sep 29, 2026')).toBeInTheDocument();
 
     fireEvent.click(monthBtn);
     expect(monthBtn.className).toContain('bg-[#B1E743]');
+    expect(screen.getByText('Jul 1, 2026 – Feb 28, 2027')).toBeInTheDocument();
+  });
+
+  it('separates the persisted plan from open and completed delay extensions', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-07T12:00:00.000Z'));
+
+    const delayedTasks: Task[] = [
+      {
+        ...mockTasks[0],
+        id: 'open-delayed-task',
+        title: 'Open delayed delivery',
+        startDate: '2026-09-01',
+        dueDate: '2026-09-05',
+        status: 'in_progress',
+      },
+      {
+        ...mockTasks[1],
+        id: 'completed-delayed-task',
+        title: 'Completed delayed delivery',
+        startDate: '2026-09-01',
+        dueDate: '2026-09-03',
+        completedAt: '2026-09-06T12:00:00.000Z',
+        status: 'done',
+      },
+      {
+        ...mockTasks[1],
+        id: 'completed-on-time-task',
+        title: 'Completed on time',
+        startDate: '2026-09-01',
+        dueDate: '2026-09-03',
+        completedAt: '2026-09-03T12:00:00.000Z',
+        status: 'done',
+      },
+    ];
+
+    render(
+      <TaskTimelineView
+        tasks={delayedTasks}
+        folders={mockFolders}
+        isLoading={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('img', { name: /open delayed delivery.*2 days beyond plan.*still open/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {
+        name: /completed delayed delivery.*3 days beyond plan.*completed sep 6/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: /completed on time.*beyond plan/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Planned')).toBeInTheDocument();
+    expect(screen.getByText('Delay extension')).toBeInTheDocument();
   });
 
   it('triggers onSelect when clicking a task bar or label', () => {
@@ -157,7 +214,7 @@ describe('TaskTimelineView', () => {
         folders={mockFolders}
         isLoading={false}
         onSelect={handleSelect}
-      />
+      />,
     );
 
     const taskElements = screen.getAllByText('Implement OAuth Flow');
@@ -167,7 +224,7 @@ describe('TaskTimelineView', () => {
       expect.objectContaining({
         id: 'task-1',
         title: 'Implement OAuth Flow',
-      })
+      }),
     );
   });
 
@@ -179,7 +236,7 @@ describe('TaskTimelineView', () => {
         folders={mockFolders}
         isLoading={false}
         onSelect={handleSelect}
-      />
+      />,
     );
 
     // Check unscheduled header
@@ -196,7 +253,7 @@ describe('TaskTimelineView', () => {
       expect.objectContaining({
         id: 'task-3',
         title: 'Unscheduled Security Review',
-      })
+      }),
     );
   });
 
@@ -210,7 +267,7 @@ describe('TaskTimelineView', () => {
         onSelect={vi.fn()}
         isExpanded={false}
         onToggleExpand={handleToggleExpand}
-      />
+      />,
     );
 
     const fullWidthBtn = screen.getByRole('button', { name: /expand full width timeline/i });
@@ -226,10 +283,12 @@ describe('TaskTimelineView', () => {
         folders={mockFolders}
         isLoading={false}
         onSelect={vi.fn()}
-      />
+      />,
     );
 
-    const expandAllBtn = screen.getByRole('button', { name: /expand or collapse all subtask streams/i });
+    const expandAllBtn = screen.getByRole('button', {
+      name: /expand or collapse all subtask streams/i,
+    });
     expect(expandAllBtn).toBeInTheDocument();
     expect(screen.getByText('Expand All Subtasks')).toBeInTheDocument();
 

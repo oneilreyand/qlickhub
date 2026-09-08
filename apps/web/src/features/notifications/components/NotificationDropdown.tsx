@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Bell, CheckCheck, Trash2, Sparkles, Loader2, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { InAppNotification } from '@qlick/contracts';
+import type { FcmRegistrationStatus } from '../../../hooks/useFcmNotifications';
 import { NotificationItem } from './NotificationItem';
 
 interface NotificationDropdownProps {
@@ -11,6 +12,8 @@ interface NotificationDropdownProps {
   isFcmSupported: boolean;
   fcmPermission: NotificationPermission | 'default';
   isFcmRegistering: boolean;
+  fcmRegistrationStatus: FcmRegistrationStatus;
+  fcmRegistrationError: string | null;
   onRequestFcmPermission: () => void;
   onMarkAllAsRead: () => void;
   onClearAll: () => void;
@@ -25,6 +28,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   isFcmSupported,
   fcmPermission,
   isFcmRegistering,
+  fcmRegistrationStatus,
+  fcmRegistrationError,
   onRequestFcmPermission,
   onMarkAllAsRead,
   onClearAll,
@@ -109,26 +114,70 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       </div>
 
       {/* FCM Push Notification Status / Prompt Banner */}
-      {isFcmSupported && fcmPermission !== 'granted' && (
-        <div className="my-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2 dark:bg-amber-950/40 dark:border-amber-800/60 dark:text-amber-200">
-          <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+      {fcmRegistrationStatus === 'installation_required' && (
+        <div className="my-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <div className="flex items-start gap-2">
+            <Bell className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span className="text-[11px] font-medium leading-tight">
-              Aktifkan notifikasi FCM untuk update tugas real-time.
+              Di iPhone, tambahkan Qlick Hub ke Layar Utama lalu buka dari ikon tersebut untuk
+              mengaktifkan notifikasi.
             </span>
           </div>
+        </div>
+      )}
+
+      {isFcmSupported &&
+        (fcmRegistrationStatus === 'permission_required' ||
+          fcmRegistrationStatus === 'registering') && (
+          <div className="my-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2 dark:bg-amber-950/40 dark:border-amber-800/60 dark:text-amber-200">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span className="text-[11px] font-medium leading-tight">
+                Aktifkan notifikasi FCM untuk update tugas real-time.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onRequestFcmPermission}
+              disabled={isFcmRegistering}
+              className="min-h-11 shrink-0 rounded-lg bg-amber-600 px-3 py-1 text-[10px] font-bold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-amber-500 dark:text-stone-900"
+            >
+              {isFcmRegistering ? 'Memproses...' : 'Izinkan'}
+            </button>
+          </div>
+        )}
+
+      {fcmRegistrationStatus === 'denied' && (
+        <div className="my-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-[11px] font-medium leading-tight text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
+          Izin notifikasi diblokir. Aktifkan kembali melalui pengaturan situs Chrome atau pengaturan
+          notifikasi perangkat.
+        </div>
+      )}
+
+      {fcmRegistrationStatus === 'unsupported' && (
+        <div className="my-2 rounded-xl border border-stone-200 bg-stone-50 p-2.5 text-[11px] font-medium leading-tight text-stone-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300">
+          Web Push tidak tersedia. Gunakan HTTPS dan browser yang mendukung notifikasi serta service
+          worker.
+        </div>
+      )}
+
+      {fcmRegistrationStatus === 'error' && (
+        <div className="my-2 flex items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50 p-2.5 text-red-900 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+          <span className="text-[11px] font-medium leading-tight">
+            {fcmRegistrationError || 'Perangkat belum berhasil didaftarkan untuk Web Push.'}
+          </span>
           <button
             type="button"
             onClick={onRequestFcmPermission}
-            disabled={isFcmRegistering}
-            className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] shrink-0 transition-colors dark:bg-amber-500 dark:text-stone-900"
+            disabled={isFcmRegistering || fcmPermission !== 'granted'}
+            className="min-h-11 shrink-0 rounded-lg bg-red-700 px-3 py-1 text-[10px] font-bold text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-500 dark:text-stone-950"
           >
-            {isFcmRegistering ? 'Memproses...' : 'Izinkan'}
+            Coba lagi
           </button>
         </div>
       )}
 
-      {isFcmSupported && fcmPermission === 'granted' && (
+      {fcmRegistrationStatus === 'registered' && (
         <div className="flex items-center px-1 py-1.5 border-b border-stone-100 dark:border-stone-800 text-[10px]">
           <span className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />

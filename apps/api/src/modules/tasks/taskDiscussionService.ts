@@ -345,24 +345,25 @@ export class TaskDiscussionService {
     );
 
     if (recipientIds.length > 0) {
-      UserModel.findByPk(actorId)
-        .then((actorUser) => {
-          const authorName = actorUser?.name || actorUser?.email || 'Workspace Member';
-          fcmService
-            .sendDiscussionUpdateNotification({
-              recipientUserIds: recipientIds,
-              authorName,
-              authorId: actorId,
-              taskTitle: commentResult.taskTitle,
-              taskId,
-              workspaceId,
-              commentId: commentResult.commentId,
-              commentSnippet: input.body,
-              isChannel: commentResult.isChannelMention,
-            })
-            .catch((err) => console.warn('Failed to dispatch FCM discussion notification:', err));
-        })
-        .catch(() => {});
+      try {
+        const actorUser = await UserModel.findByPk(actorId);
+        const authorName = actorUser?.name || actorUser?.email || 'Workspace Member';
+        await fcmService.sendDiscussionUpdateNotification({
+          recipientUserIds: recipientIds,
+          authorName,
+          authorId: actorId,
+          taskTitle: commentResult.taskTitle,
+          taskId,
+          workspaceId,
+          commentId: commentResult.commentId,
+          commentSnippet: input.body,
+          isChannel: commentResult.isChannelMention,
+        });
+      } catch (err) {
+        // The comment is already committed. Notification delivery remains best-effort,
+        // but the attempt must finish before a serverless request can be suspended.
+        console.warn('Failed to dispatch FCM discussion notification:', err);
+      }
     }
 
     // Realtime SSE event dispatch to workspace

@@ -60,6 +60,13 @@ sequenceDiagram
 | **Developer (`dev`)**  | Eksekusi teknis subtask sesuai spesialisasi.                          | Mengubah status subtask miliknya (`todo → in_progress → in_review`), memperbaiki Bug, mengunggah bukti teknis.                         | Dilarang merencanakan subtask baru, dilarang menutup Bug sendiri tanpa verifikasi QA, dilarang mengedit field planning (target date/points). |
 | **QA (`qa`)**          | Menjamin kualitas, verifikasi requirement, dan mitigasi regresi.      | Membuat draf Test Case, mengimpor spreadsheet test case, menjalankan Test Run, mencatat Bug, mereview subtask, mengajukan QA Sign-off. | Dilarang mempublikasikan Test Case ke status `active` secara sepihak, dilarang mengambil keputusan rilis akhir PO.                           |
 
+### Siklus Akhir Workspace
+
+Workspace aktif harus diarsipkan sebelum dapat dihapus permanen. Hanya persisted Owner yang dapat
+melakukan kedua aksi. Permanent deletion memerlukan konfirmasi nama persis, menghapus seluruh data
+dan attachment Workspace, mempertahankan akun pengguna, serta tidak memiliki jalur undo. Admin,
+PO, Developer, dan QA tidak dapat menjalankan permanent deletion.
+
 ---
 
 ## 3. Spesialisasi Developer & Penugasan Subtask
@@ -108,6 +115,7 @@ stateDiagram-v2
 1. **Developer Flow**: Developer menggerakkan subtask dari `todo → in_progress → in_review`.
 2. **Review Independen**: Anggota QA atau sesama developer mereview pekerjaan. Jika belum lolos, status dialihkan ke `changes_requested`.
 3. **Proteksi Field Perencanaan**: Field estimasi poin, tanggal target rilis, dan tautan Requirement hanya dapat diubah oleh Planner (`owner`, `admin`, `po`).
+4. **Kelengkapan Timeline Task dan Subtask**: Jadwal boleh tidak ditentukan dengan mengosongkan `startDate` dan `dueDate`. Jika jadwal ditentukan, kedua tanggal wajib diisi dan `startDate` tidak boleh melewati `dueDate`. Aturan ini berlaku saat pembuatan maupun perubahan Task dan Subtask serta ditegakkan kembali oleh backend dan database.
 
 ---
 

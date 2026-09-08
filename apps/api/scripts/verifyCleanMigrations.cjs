@@ -57,7 +57,8 @@ async function main() {
          '20260821000052-migrate-legacy-requirement-test-cases.cjs',
          '20260824000057-create-workspace-member-specialties.cjs',
          '20260904000064-create-auth-security-events.cjs',
-         '20260904000065-create-link-preview-rate-limit-buckets.cjs'
+         '20260904000065-create-link-preview-rate-limit-buckets.cjs',
+         '20260907000066-enforce-task-schedule-date-pair.cjs'
        )
        ORDER BY name;`,
     );
@@ -70,6 +71,7 @@ async function main() {
         '20260824000057-create-workspace-member-specialties.cjs',
         '20260904000064-create-auth-security-events.cjs',
         '20260904000065-create-link-preview-rate-limit-buckets.cjs',
+        '20260907000066-enforce-task-schedule-date-pair.cjs',
       ],
     );
 
@@ -127,6 +129,15 @@ async function main() {
     assert.deepStrictEqual(rateLimitRows, [
       { rls: true, security_definer: false, expiry_index: true, consumed: 1 },
     ]);
+
+    const [taskScheduleGuardRows] = await verificationDatabase.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM pg_constraint
+         WHERE conname = 'tasks_schedule_date_pair_check'
+           AND conrelid = 'public.tasks'::regclass
+       ) AS has_task_schedule_constraint;`,
+    );
+    assert.deepStrictEqual(taskScheduleGuardRows, [{ has_task_schedule_constraint: true }]);
 
     const [enumRows] = await verificationDatabase.query(
       `SELECT e.enumlabel
