@@ -15,7 +15,8 @@ duplicating background notification display.
 The notification dropdown now distinguishes permission required, registration in progress,
 registered, denied, unsupported, configuration/registration failure, and iOS Home Screen
 installation-required states. A standalone Web App Manifest and application icons support the iOS
-Home Screen prerequisite. Production and Preview were not changed.
+Home Screen prerequisite. The implementation and matching public VAPID setting were deployed to
+Production on 2026-09-08; Preview was not changed.
 
 ## Source of truth and impact
 
@@ -89,16 +90,16 @@ Home Screen prerequisite. Production and Preview were not changed.
 
 ## Risks or follow-up
 
-- Every deployed environment still needs its Firebase-project-matching
-  `VITE_FIREBASE_VAPID_KEY`; no Firebase Console or deployment environment was mutated or verified
-  in this task.
+- Production now has its Firebase-project-matching `VITE_FIREBASE_VAPID_KEY`; the live bundle,
+  restart-safe worker, and valid Web App Manifest were verified without printing the key. Other
+  deployment environments still require their own matching configuration before use.
 - External delivery still requires real-device UAT with two authenticated users: Android Chrome over
   HTTPS, and iPhone/iPad after adding Qlick Hub to the Home Screen and opening it standalone. Verify
   foreground, background, closed-app, notification-tap deep link, logout, and re-login behavior.
-- Until those environment and device checks pass, this work must not be claimed as live mobile push
+- Until the device checks pass, this work must not be claimed as proven end-to-end mobile push
   delivery evidence.
 
 ## TODO update
 
-- `FIX-MOBILE-WEB-PUSH-RELIABILITY` → `Blocked` pending environment VAPID configuration and
-  real-device UAT.
+- `FIX-MOBILE-WEB-PUSH-RELIABILITY` → `Blocked` pending real-device UAT only. Production
+  configuration and artifact checks passed in deployment `dpl_3s4dRPodmwEtwuKLijxG4F4uvZgD`.

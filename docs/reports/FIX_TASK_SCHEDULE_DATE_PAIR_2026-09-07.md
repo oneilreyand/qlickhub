@@ -28,7 +28,7 @@ the pair. Failed updates roll back without changing the stored schedule.
 - **Migration risk:** Low for audited environments. Aggregate read-only audits found zero invalid
   rows among 3 local Tasks and 5 Production Tasks. Migration 66 is additive, stops rather than
   rewriting historical invalid data, and its rollback removes only the check constraint. It was
-  applied locally; Production was not migrated or deployed.
+  applied locally and to Production; the application was deployed on 2026-09-08.
 
 ## Changed files
 
@@ -87,8 +87,8 @@ merged-state behavior needed by partial update requests.
 
 ## Risks or follow-up
 
-- Production contains no invalid timeline data but still lacks migration 66 and the new application
-  build. Apply both through the normal backup, migration, deployment, and smoke-test release gate.
+- Production migration 66 and the new application build are live. Post-release status showed all
+  50 migrations `up`, and health returned `200` with database `connected`.
 - The disposable test database contained 84 historical one-sided fixture rows from earlier runs.
   They were repaired only in `qa_management_test` by copying the existing date to its missing pair so
   migration 66 could apply; no local-development or Production task data was modified.
