@@ -110,11 +110,11 @@ describe('SubtaskRoleTimeline Molecule', () => {
       />,
     );
 
-    expect(screen.getByText('Role & Handoff Timeline')).toBeInTheDocument();
+    expect(screen.getByText('Timeline Peran & Handoff')).toBeInTheDocument();
 
     // Primary Bottleneck banner
-    expect(screen.getByText(/Dev Backend Bottleneck/i)).toBeInTheDocument();
-    expect(screen.getByText(/Backend subtasks are/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hambatan Dev Backend/i)).toBeInTheDocument();
+    expect(screen.getByText(/Subtask Backend terlambat/i)).toBeInTheDocument();
 
     // Cross-role handoff pipeline stage cards
     expect(screen.getByText('PO Specs')).toBeInTheDocument();
@@ -179,7 +179,7 @@ describe('SubtaskRoleTimeline Molecule', () => {
       screen.getByRole('columnheader', { name: /sabtu, 1 agustus 2026/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('img', { name: /Payment Gateway API Integration.*Aug 1.*Aug 10/i }),
+      screen.getByRole('img', { name: /Payment Gateway API Integration.*1 Agu.*10 Agu/i }),
     ).toBeInTheDocument();
   });
 });

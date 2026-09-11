@@ -134,7 +134,7 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
     );
   });
 
-  it('renders drawer with role switcher tabs (PO Cockpit, Dev Workstation, QA Testing Desk)', () => {
+  it('renders drawer with role switcher tabs (PO Cockpit, Dev Workstation, Area Pengujian QA)', () => {
     const store = createTestStore();
     render(
       <Provider store={store}>
@@ -148,22 +148,22 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByText('PO Cockpit & iCards')).toBeInTheDocument();
-    expect(screen.getByText('Dev Working Desk')).toBeInTheDocument();
-    expect(screen.getByText('QA Testing Desk')).toBeInTheDocument();
-    expect(screen.getByText('Role: po')).toBeInTheDocument();
-    expect(screen.getByText('PO Management Cockpit')).toBeInTheDocument();
+    expect(screen.getByText('Kokpit PO & iCard')).toBeInTheDocument();
+    expect(screen.getByText('Area Kerja Dev')).toBeInTheDocument();
+    expect(screen.getByText('Area Pengujian QA')).toBeInTheDocument();
+    expect(screen.getByText('Peran: po')).toBeInTheDocument();
+    expect(screen.getByText('Kokpit Pengelolaan PO')).toBeInTheDocument();
 
     const drawerToolbar = screen.getByRole('toolbar', {
       name: 'Payment Integration Milestone navigation and controls',
     });
     expect(drawerToolbar).toContainElement(
-      screen.getByRole('button', { name: 'PO Cockpit & iCards' }),
+      screen.getByRole('button', { name: 'Kokpit PO & iCard' }),
     );
     expect(drawerToolbar).toContainElement(
-      screen.getByRole('button', { name: 'Restore normal view' }),
+      screen.getByRole('button', { name: 'Kembali ke tampilan normal' }),
     );
-    expect(drawerToolbar).toContainElement(screen.getByRole('button', { name: 'Close drawer' }));
+    expect(drawerToolbar).toContainElement(screen.getByRole('button', { name: 'Tutup panel' }));
 
     const drawerContent = screen.getByRole('region', {
       name: 'Payment Integration Milestone content',
@@ -185,15 +185,13 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    const devTab = screen.getByText('Dev Working Desk');
+    const devTab = screen.getByText('Area Kerja Dev');
     fireEvent.click(devTab);
-    expect(
-      screen.getByText(/Dev Deliverables & Technical Implementation Notes/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Hasil Kerja & Catatan Implementasi Teknis/i)).toBeInTheDocument();
 
-    const qaTab = screen.getByText('QA Testing Desk');
+    const qaTab = screen.getByText('Area Pengujian QA');
     fireEvent.click(qaTab);
-    expect(screen.getByText(/Canonical Test Management & Executions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pengelolaan & Eksekusi Test Case/i)).toBeInTheDocument();
   });
 
   it('loads persisted parent context for an assigned subtask and keeps it across persona navigation', async () => {
@@ -212,7 +210,7 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByLabelText('Loading Feature context')).toBeInTheDocument();
+    expect(screen.getByLabelText('Memuat konteks Feature')).toBeInTheDocument();
     expect(
       await screen.findByRole('heading', { name: 'Payment Selection Feature' }),
     ).toBeInTheDocument();
@@ -222,11 +220,13 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
     ).toBeInTheDocument();
     expect(getParentTaskDeliveryTraceMock).toHaveBeenCalledWith('ws-1', mockSubtask.id);
 
-    fireEvent.click(screen.getByText('QA Testing Desk'));
-    expect(await screen.findByText('Canonical Test Management & Executions')).toBeInTheDocument();
-    expect(await screen.findByText('No Test Cases linked to this Feature')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Area Pengujian QA'));
+    expect(await screen.findByText('Pengelolaan & Eksekusi Test Case')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Payment Selection Feature' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Feature context breadcrumb')).toHaveTextContent(
+    expect(screen.getByLabelText('Jejak navigasi konteks Feature')).toHaveTextContent(
       'Implement payment selector',
     );
   });
@@ -284,12 +284,14 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByRole('button', { name: 'QA Evidence' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'PO Cockpit & iCards' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bukti QA' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kokpit PO & iCard' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'QA Evidence' }));
-    expect(await screen.findByText('Canonical Test Management & Executions')).toBeInTheDocument();
-    expect(await screen.findByText('No Test Cases linked to this Feature')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Bukti QA' }));
+    expect(await screen.findByText('Pengelolaan & Eksekusi Test Case')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
+    ).toBeInTheDocument();
   });
 
   it('maps recoverable and forbidden context failures to explicit drawer states', async () => {
@@ -310,8 +312,8 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    expect(await screen.findByText('Feature context unavailable')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry loading Feature context' }));
+    expect(await screen.findByText('Konteks Feature tidak tersedia')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi memuat konteks Feature' }));
     expect(
       await screen.findByRole('heading', { name: 'Payment Selection Feature' }),
     ).toBeInTheDocument();
@@ -333,7 +335,7 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    expect(await screen.findByText('Feature context access restricted')).toBeInTheDocument();
+    expect(await screen.findByText('Akses konteks Feature dibatasi')).toBeInTheDocument();
     expect(screen.queryByText('Payment Selection Feature')).not.toBeInTheDocument();
   });
 });

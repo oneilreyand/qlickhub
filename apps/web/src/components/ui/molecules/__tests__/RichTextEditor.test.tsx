@@ -8,52 +8,45 @@ describe('RichTextEditor Molecule', () => {
     render(
       <RichTextEditor
         id="task-desc"
-        label="Task Description"
+        label="Task Deskripsi"
         required
         value="Hello world"
         onChange={handleChange}
       />,
     );
 
-    expect(screen.getByText('Task Description')).toBeInTheDocument();
+    expect(screen.getByText('Task Deskripsi')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Hello world')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /preview/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /write/i })).toBeInTheDocument();
-    expect(screen.getByTitle('Expand Fullscreen / Focus Mode')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /pratinjau/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /tulis/i })).toBeInTheDocument();
+    expect(screen.getByTitle('Buka Layar Penuh / Mode Fokus')).toBeInTheDocument();
   });
 
-  it('switches between Preview and Write tabs and defaults to preview', () => {
+  it('switches between Preview and Write tabs and defaults to pratinjau', () => {
     const handleChange = vi.fn();
-    render(
-      <RichTextEditor label="Task Description" value="# Big Heading" onChange={handleChange} />,
-    );
+    render(<RichTextEditor label="Task Deskripsi" value="# Big Heading" onChange={handleChange} />);
 
     // Starts in Preview mode by default
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Big Heading');
 
-    const writeButton = screen.getByRole('button', { name: /write/i });
+    const writeButton = screen.getByRole('button', { name: /tulis/i });
     fireEvent.click(writeButton);
 
     expect(screen.getByDisplayValue('# Big Heading')).toBeInTheDocument();
 
-    const previewButton = screen.getByRole('button', { name: /preview/i });
+    const previewButton = screen.getByRole('button', { name: /pratinjau/i });
     fireEvent.click(previewButton);
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Big Heading');
   });
 
-  it('applies bold formatting when bold button is clicked in write mode', () => {
+  it('applies bold formatting when bold button is clicked in tulis mode', () => {
     const handleChange = vi.fn();
     render(
-      <RichTextEditor
-        label="Task Description"
-        value=""
-        onChange={handleChange}
-        defaultTab="write"
-      />,
+      <RichTextEditor label="Task Deskripsi" value="" onChange={handleChange} defaultTab="write" />,
     );
 
-    const boldButton = screen.getByTitle('Bold (Ctrl+B)');
+    const boldButton = screen.getByTitle('Tebal (Ctrl+B)');
     fireEvent.click(boldButton);
 
     expect(handleChange).toHaveBeenCalledWith('**bold**');
@@ -62,29 +55,27 @@ describe('RichTextEditor Molecule', () => {
   it('toggles fullscreen mode on and off', () => {
     const handleChange = vi.fn();
     render(
-      <RichTextEditor label="Task Description" value="Long text here..." onChange={handleChange} />,
+      <RichTextEditor label="Task Deskripsi" value="Long text here..." onChange={handleChange} />,
     );
 
-    const expandButton = screen.getByTitle('Expand Fullscreen / Focus Mode');
+    const expandButton = screen.getByTitle('Buka Layar Penuh / Mode Fokus');
     fireEvent.click(expandButton);
 
-    expect(screen.getByTitle('Exit Fullscreen (Esc)')).toBeInTheDocument();
-    expect(screen.getByText('Press Esc to exit Fullscreen')).toBeInTheDocument();
+    expect(screen.getByTitle('Keluar dari Layar Penuh (Esc)')).toBeInTheDocument();
+    expect(screen.getByText('Tekan Esc untuk keluar dari layar penuh')).toBeInTheDocument();
 
-    const minimizeButton = screen.getByTitle('Exit Fullscreen (Esc)');
+    const minimizeButton = screen.getByTitle('Keluar dari Layar Penuh (Esc)');
     fireEvent.click(minimizeButton);
 
-    expect(screen.getByTitle('Expand Fullscreen / Focus Mode')).toBeInTheDocument();
+    expect(screen.getByTitle('Buka Layar Penuh / Mode Fokus')).toBeInTheDocument();
   });
 
   it('keeps focus mode inside the application content below the sticky header', () => {
-    render(
-      <RichTextEditor label="Task Description" value="Long text here..." onChange={vi.fn()} />,
-    );
+    render(<RichTextEditor label="Task Deskripsi" value="Long text here..." onChange={vi.fn()} />);
 
-    fireEvent.click(screen.getByTitle('Expand Fullscreen / Focus Mode'));
+    fireEvent.click(screen.getByTitle('Buka Layar Penuh / Mode Fokus'));
 
-    const focusModePanel = screen.getByTitle('Exit Fullscreen (Esc)').closest('.fixed');
+    const focusModePanel = screen.getByTitle('Keluar dari Layar Penuh (Esc)').closest('.fixed');
 
     expect(focusModePanel).toHaveClass('top-24', 'inset-x-4', 'bottom-4');
     expect(focusModePanel).not.toHaveClass('inset-4');
@@ -93,25 +84,25 @@ describe('RichTextEditor Molecule', () => {
   it('fills an available column height without changing the default editor behavior', () => {
     render(
       <RichTextEditor
-        label="Task Description"
+        label="Task Deskripsi"
         value="Column-aligned content"
         onChange={vi.fn()}
         fillHeight
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /write/i }));
+    fireEvent.click(screen.getByRole('button', { name: /tulis/i }));
     const textarea = screen.getByDisplayValue('Column-aligned content');
     expect(textarea).toHaveClass('flex-1', 'resize-none');
     expect(textarea.parentElement).toHaveClass('flex-1', 'flex-col');
   });
 
-  it('disables textarea and formatting buttons when disabled is true without dimming the preview', () => {
+  it('disables textarea and formatting buttons when disabled is true without dimming the pratinjau', () => {
     const handleChange = vi.fn();
     render(
       <RichTextEditor
         id="task-desc"
-        label="Task Description"
+        label="Task Deskripsi"
         value="![Sample](https://example.com/test.png)"
         onChange={handleChange}
         disabled
@@ -123,64 +114,54 @@ describe('RichTextEditor Molecule', () => {
     expect(img).toBeInTheDocument();
 
     // Switch to write tab and verify textarea is disabled
-    const writeButton = screen.getByRole('button', { name: /write/i });
+    const writeButton = screen.getByRole('button', { name: /tulis/i });
     fireEvent.click(writeButton);
 
     const textarea = screen.getByDisplayValue('![Sample](https://example.com/test.png)');
     expect(textarea).toBeDisabled();
 
     // Formatting buttons are disabled
-    const boldButton = screen.getByTitle('Bold (Ctrl+B)');
+    const boldButton = screen.getByTitle('Tebal (Ctrl+B)');
     expect(boldButton).toBeDisabled();
   });
 
   it('inserts image link via Image Link modal', () => {
     const handleChange = vi.fn();
     render(
-      <RichTextEditor
-        label="Task Description"
-        value=""
-        onChange={handleChange}
-        defaultTab="write"
-      />,
+      <RichTextEditor label="Task Deskripsi" value="" onChange={handleChange} defaultTab="write" />,
     );
 
-    const imageBtn = screen.getByTitle(/Insert Image Link/i);
+    const imageBtn = screen.getByTitle(/Sisipkan Tautan Gambar/i);
     fireEvent.click(imageBtn);
 
-    expect(screen.getAllByText('Insert Image Link').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Sisipkan Tautan Gambar').length).toBeGreaterThan(0);
 
     const urlInput = screen.getByPlaceholderText('https://example.com/screenshot.png');
-    fireEvent.change(urlInput, { target: { value: 'https://example.com/ui-preview.png' } });
+    fireEvent.change(urlInput, { target: { value: 'https://example.com/ui-pratinjau.png' } });
 
-    const insertBtn = screen.getByRole('button', { name: 'Insert Image Link' });
+    const insertBtn = screen.getByRole('button', { name: 'Sisipkan Tautan Gambar' });
     fireEvent.click(insertBtn);
 
     expect(handleChange).toHaveBeenCalledWith(
-      expect.stringContaining('https://example.com/ui-preview.png'),
+      expect.stringContaining('https://example.com/ui-pratinjau.png'),
     );
   });
 
   it('inserts video link via Video Link modal', () => {
     const handleChange = vi.fn();
     render(
-      <RichTextEditor
-        label="Task Description"
-        value=""
-        onChange={handleChange}
-        defaultTab="write"
-      />,
+      <RichTextEditor label="Task Deskripsi" value="" onChange={handleChange} defaultTab="write" />,
     );
 
-    const videoBtn = screen.getByTitle(/Insert Video Link/i);
+    const videoBtn = screen.getByTitle(/Sisipkan Tautan Video/i);
     fireEvent.click(videoBtn);
 
-    expect(screen.getAllByText('Insert Video Link').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Sisipkan Tautan Video').length).toBeGreaterThan(0);
 
-    const urlInput = screen.getByPlaceholderText(/demo\.mp4 or YouTube/i);
+    const urlInput = screen.getByPlaceholderText(/demo\.mp4 atau tautan YouTube/i);
     fireEvent.change(urlInput, { target: { value: 'https://cdn.example.com/demo.mp4' } });
 
-    const insertBtn = screen.getByRole('button', { name: 'Insert Video Link' });
+    const insertBtn = screen.getByRole('button', { name: 'Sisipkan Tautan Video' });
     fireEvent.click(insertBtn);
 
     expect(handleChange).toHaveBeenCalledWith(

@@ -174,7 +174,7 @@ export const Drawer: React.FC<DrawerProps> = ({
                 {allowFullScreen && (
                   <IconButton
                     onClick={handleToggleFullScreen}
-                    label={isFullScreen ? 'Restore normal view' : 'Expand to full page'}
+                    label={isFullScreen ? 'Kembali ke tampilan normal' : 'Perluas ke halaman penuh'}
                     size="md"
                     variant="ghost"
                     className="text-stone-500 hover:text-[#22201F] dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-[#B1E743]"
@@ -189,7 +189,7 @@ export const Drawer: React.FC<DrawerProps> = ({
 
                 <IconButton
                   onClick={handleInitiateClose}
-                  label="Close drawer"
+                  label="Tutup panel"
                   size="md"
                   variant="ghost"
                   className="text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"

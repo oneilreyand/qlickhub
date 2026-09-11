@@ -113,15 +113,15 @@ describe('RequirementManager Organism', () => {
     expect(screen.getByTestId('create-requirement-btn')).toBeInTheDocument();
   });
 
-  test('keeps a new task count at zero and separates available Workspace Requirements', async () => {
+  test('keeps a new task count at zero and separates available Workspace Requirement', async () => {
     listTaskRequirementLinksMock.mockResolvedValueOnce([]);
 
     render(<RequirementManager workspaceId="ws-1" taskId="new-task" userRole="po" />);
 
     expect(await screen.findByText('Checkout Flow UI Spec')).toBeInTheDocument();
-    expect(screen.getByText('Linked Requirements (0)')).toBeInTheDocument();
-    expect(screen.getByText('No requirement linked')).toBeInTheDocument();
-    expect(screen.getByText('Available Workspace Requirements (2)')).toBeInTheDocument();
+    expect(screen.getByText('Requirement Tertaut (0)')).toBeInTheDocument();
+    expect(screen.getByText('Belum ada Requirement tertaut')).toBeInTheDocument();
+    expect(screen.getByText('Requirement Workspace yang Tersedia (2)')).toBeInTheDocument();
   });
 
   test('suggests the next unused Requirement code from the current Task code series', async () => {
@@ -140,9 +140,9 @@ describe('RequirementManager Organism', () => {
 
     fireEvent.click(await screen.findByTestId('create-requirement-btn'));
 
-    expect(screen.getByLabelText('Requirement Code (Suggested)')).toHaveValue('REQ-103');
+    expect(screen.getByLabelText('Kode Requirement (Saran)')).toHaveValue('REQ-103');
     expect(
-      screen.getByText(/Suggested from the Requirement codes linked to this Task/i),
+      screen.getByText(/Disarankan dari kode Requirement yang terhubung ke Task ini/i),
     ).toBeInTheDocument();
   });
 
@@ -174,10 +174,10 @@ describe('RequirementManager Organism', () => {
     );
 
     fireEvent.click(await screen.findByTestId('create-requirement-btn'));
-    fireEvent.change(screen.getByLabelText(/Requirement Title/i), {
+    fireEvent.change(screen.getByLabelText(/Judul Requirement/i), {
       target: { value: createdRequirement.title },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Create & Plan Subtask' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Buat & Rencanakan Subtask' }));
 
     await waitFor(() => {
       expect(createRequirementMock).toHaveBeenCalledWith(
@@ -189,7 +189,7 @@ describe('RequirementManager Organism', () => {
     });
   });
 
-  test('shows Dev only Requirements linked to the selected task', async () => {
+  test('shows Dev only Requirement linked to the selected task', async () => {
     listTaskRequirementLinksMock.mockResolvedValueOnce([
       {
         id: 'link-1',
@@ -204,12 +204,12 @@ describe('RequirementManager Organism', () => {
     render(<RequirementManager workspaceId="ws-1" taskId="task-1" userRole="dev" />);
 
     expect(await screen.findByText('Checkout Flow UI Spec')).toBeInTheDocument();
-    expect(screen.getByText('Linked Requirements (1)')).toBeInTheDocument();
+    expect(screen.getByText('Requirement Tertaut (1)')).toBeInTheDocument();
     expect(screen.queryByText('Tax Calculation Formula')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Available Workspace Requirements/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Requirement Workspace yang Tersedia/)).not.toBeInTheDocument();
   });
 
-  test('moves Requirements between linked and available sections without stale counts', async () => {
+  test('moves Requirement between linked and available sections without stale counts', async () => {
     listTaskRequirementLinksMock.mockResolvedValueOnce([
       {
         id: 'link-1',
@@ -232,26 +232,26 @@ describe('RequirementManager Organism', () => {
 
     render(<RequirementManager workspaceId="ws-1" taskId="task-1" userRole="po" />);
 
-    expect(await screen.findByText('Linked Requirements (1)')).toBeInTheDocument();
-    expect(screen.getByText('Available Workspace Requirements (1)')).toBeInTheDocument();
+    expect(await screen.findByText('Requirement Tertaut (1)')).toBeInTheDocument();
+    expect(screen.getByText('Requirement Workspace yang Tersedia (1)')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /^Link$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Tautkan$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('Linked Requirements (2)')).toBeInTheDocument();
-      expect(screen.getByText('Available Workspace Requirements (0)')).toBeInTheDocument();
+      expect(screen.getByText('Requirement Tertaut (2)')).toBeInTheDocument();
+      expect(screen.getByText('Requirement Workspace yang Tersedia (0)')).toBeInTheDocument();
     });
 
-    const unlinkButtons = screen.getAllByRole('button', { name: /^Unlink$/i });
+    const unlinkButtons = screen.getAllByRole('button', { name: /^Lepas Tautan$/i });
     fireEvent.click(unlinkButtons[1]);
 
     await waitFor(() => {
-      expect(screen.getByText('Linked Requirements (1)')).toBeInTheDocument();
-      expect(screen.getByText('Available Workspace Requirements (1)')).toBeInTheDocument();
+      expect(screen.getByText('Requirement Tertaut (1)')).toBeInTheDocument();
+      expect(screen.getByText('Requirement Workspace yang Tersedia (1)')).toBeInTheDocument();
     });
   });
 
-  test('lets a planner confirm a bulk unlink for Requirements linked to the current Feature', async () => {
+  test('lets a planner confirm a bulk unlink for Requirement linked to the current Feature', async () => {
     listTaskRequirementLinksMock.mockResolvedValueOnce([
       {
         id: 'link-1',
@@ -274,18 +274,14 @@ describe('RequirementManager Organism', () => {
 
     render(<RequirementManager workspaceId="ws-1" taskId="task-1" userRole="po" />);
 
-    expect(await screen.findByText('Linked Requirements (2)')).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('Select all 2 linked Requirements'));
+    expect(await screen.findByText('Requirement Tertaut (2)')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Pilih semua 2 Requirement tertaut'));
     fireEvent.click(screen.getByTestId('bulk-correct-requirements-btn'));
 
-    expect(screen.getByRole('dialog', { name: /Correct 2 Requirements/i })).toBeInTheDocument();
-    expect(
-      screen.getByText(/Choose how to correct only the selected Requirements/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Existing Test Case, Bug, and activity history are retained/i),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Unlink selected' }));
+    expect(screen.getByRole('dialog', { name: /Perbaiki 2 Requirement/i })).toBeInTheDocument();
+    expect(screen.getByText(/Pilih cara memperbaiki Requirement terpilih/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mempertahankan semua tautan dan riwayat/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Lepas tautan pilihan' }));
 
     await waitFor(() => {
       expect(bulkCorrectTaskRequirementsMock).toHaveBeenCalledWith('ws-1', 'task-1', {
@@ -295,7 +291,7 @@ describe('RequirementManager Organism', () => {
     });
   });
 
-  test('requires typed confirmation before permanently deleting selected mistaken Requirements', async () => {
+  test('requires typed confirmation before permanently deleting selected mistaken Requirement', async () => {
     listTaskRequirementLinksMock.mockResolvedValue([
       {
         id: 'link-1',
@@ -318,13 +314,13 @@ describe('RequirementManager Organism', () => {
 
     render(<RequirementManager workspaceId="ws-1" taskId="task-1" userRole="po" />);
 
-    fireEvent.click(await screen.findByLabelText('Select all 2 linked Requirements'));
+    fireEvent.click(await screen.findByLabelText('Pilih semua 2 Requirement tertaut'));
     fireEvent.click(screen.getByTestId('bulk-correct-requirements-btn'));
-    fireEvent.click(screen.getByRole('button', { name: /Delete mistaken Requirements/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Hapus permanen/i }));
 
-    const confirmButton = screen.getByRole('button', { name: 'Delete permanently' });
+    const confirmButton = screen.getByRole('button', { name: 'Hapus permanen' });
     expect(confirmButton).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Type DELETE to confirm'), {
+    fireEvent.change(screen.getByLabelText('Ketik DELETE untuk mengonfirmasi'), {
       target: { value: 'DELETE' },
     });
     expect(confirmButton).toBeEnabled();
@@ -351,23 +347,25 @@ describe('RequirementManager Organism', () => {
       },
     ]);
     bulkCorrectTaskRequirementsMock.mockRejectedValueOnce(
-      new Error('Requirement is used by a Test Case. Mark it as deprecated instead.'),
+      new Error('Requirement digunakan oleh Test Case. Tandai sebagai tidak berlaku.'),
     );
 
     render(<RequirementManager workspaceId="ws-1" taskId="task-1" userRole="po" />);
 
-    fireEvent.click(await screen.findByLabelText(/Select REQ-101/i));
+    fireEvent.click(await screen.findByLabelText(/Pilih REQ-101/i));
     fireEvent.click(screen.getByTestId('bulk-correct-requirements-btn'));
-    fireEvent.click(screen.getByRole('button', { name: /Delete mistaken Requirements/i }));
-    fireEvent.change(screen.getByLabelText('Type DELETE to confirm'), {
+    fireEvent.click(screen.getByRole('button', { name: /Hapus permanen/i }));
+    fireEvent.change(screen.getByLabelText('Ketik DELETE untuk mengonfirmasi'), {
       target: { value: 'DELETE' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Delete permanently' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hapus permanen' }));
 
     expect(
-      await screen.findByText(/Requirement is used by a Test Case. Mark it as deprecated instead/i),
+      await screen.findByText(
+        /Requirement digunakan oleh Test Case. Tandai sebagai tidak berlaku/i,
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('dialog', { name: /Correct 1 Requirement/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /Perbaiki 1 Requirement/i })).toBeInTheDocument();
   });
 
   test('renders read-only badge and hides New Requirement button for Dev and QA roles', async () => {
@@ -375,11 +373,11 @@ describe('RequirementManager Organism', () => {
 
     expect(await screen.findByText('Checkout Flow UI Spec')).toBeInTheDocument();
     expect(screen.queryByTestId('create-requirement-btn')).not.toBeInTheDocument();
-    expect(screen.getByText('Read-Only')).toBeInTheDocument();
+    expect(screen.getByText('Hanya Baca')).toBeInTheDocument();
 
     rerender(<RequirementManager workspaceId="ws-1" userRole="qa" />);
     expect(screen.queryByTestId('create-requirement-btn')).not.toBeInTheDocument();
-    expect(screen.getByText('Read-Only')).toBeInTheDocument();
+    expect(screen.getByText('Hanya Baca')).toBeInTheDocument();
   });
 
   test('filters requirements using search query', async () => {
@@ -388,7 +386,7 @@ describe('RequirementManager Organism', () => {
     expect(await screen.findByText('Checkout Flow UI Spec')).toBeInTheDocument();
     expect(screen.getByText('Tax Calculation Formula')).toBeInTheDocument();
 
-    const searchInput = screen.getByPlaceholderText(/Search requirements by code/i);
+    const searchInput = screen.getByPlaceholderText(/Cari Requirement berdasarkan kode/i);
     fireEvent.change(searchInput, { target: { value: 'Tax' } });
 
     expect(screen.queryByText('Checkout Flow UI Spec')).not.toBeInTheDocument();
@@ -400,7 +398,7 @@ describe('RequirementManager Organism', () => {
 
     expect(await screen.findByText('Checkout Flow UI Spec')).toBeInTheDocument();
 
-    const expandButtons = screen.getAllByRole('button', { name: /Expand details/i });
+    const expandButtons = screen.getAllByRole('button', { name: /Buka detail/i });
     fireEvent.click(expandButtons[0]);
 
     await waitFor(() => {
@@ -423,7 +421,7 @@ describe('RequirementManager Organism', () => {
 
     render(<RequirementManager workspaceId="ws-1" userRole="po" />);
 
-    fireEvent.click((await screen.findAllByRole('button', { name: /Expand details/i }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: /Buka detail/i }))[0]);
 
     expect(await screen.findByText('Critical rule')).toHaveClass('font-bold');
     expect(screen.getByRole('link', { name: /policy/i })).toHaveAttribute(
@@ -433,18 +431,18 @@ describe('RequirementManager Organism', () => {
     expect(screen.queryByText(/\*\*Critical rule\*\*/)).not.toBeInTheDocument();
   });
 
-  test('lets a planner create and deactivate a stable Acceptance Criterion', async () => {
+  test('lets a planner create and deactivate a stable Kriteria Penerimaan', async () => {
     render(<RequirementManager workspaceId="ws-1" userRole="po" />);
 
-    fireEvent.click((await screen.findAllByRole('button', { name: /Expand details/i }))[0]);
-    expect(await screen.findByText('Acceptance Criteria (1)')).toBeInTheDocument();
+    fireEvent.click((await screen.findAllByRole('button', { name: /Buka detail/i }))[0]);
+    expect(await screen.findByText('Kriteria Penerimaan (1)')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add Acceptance Criterion' }));
-    const criterionInput = screen.getByLabelText('Acceptance Criterion');
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah Kriteria Penerimaan' }));
+    const criterionInput = screen.getByLabelText('Kriteria Penerimaan');
     fireEvent.change(criterionInput, {
       target: { value: 'A failed payment keeps the cart intact.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Criterion' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Buat Kriteria' }));
 
     await waitFor(() => {
       expect(createAcceptanceCriterionMock).toHaveBeenCalledWith('ws-1', 'req-1', {
@@ -453,7 +451,7 @@ describe('RequirementManager Organism', () => {
     });
     expect(await screen.findByText('AC-2')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Deactivate AC-1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nonaktifkan AC-1' }));
     await waitFor(() => {
       expect(updateAcceptanceCriterionMock).toHaveBeenCalledWith('ws-1', 'req-1', 'criterion-1', {
         status: 'deprecated',
@@ -461,18 +459,18 @@ describe('RequirementManager Organism', () => {
     });
   });
 
-  test('shows Acceptance Criteria read-only to QA members', async () => {
+  test('shows Kriteria Penerimaan read-only to QA members', async () => {
     render(<RequirementManager workspaceId="ws-1" userRole="qa" />);
 
-    fireEvent.click((await screen.findAllByRole('button', { name: /Expand details/i }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: /Buka detail/i }))[0]);
 
     expect(
       await screen.findByText('Payment details are shown before confirmation.'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Add Acceptance Criterion' }),
+      screen.queryByRole('button', { name: 'Tambah Kriteria Penerimaan' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Deactivate AC-1' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nonaktifkan AC-1' })).not.toBeInTheDocument();
   });
 
   test('shows empty state when no requirements exist', async () => {
@@ -480,6 +478,6 @@ describe('RequirementManager Organism', () => {
 
     render(<RequirementManager workspaceId="ws-1" userRole="po" />);
 
-    expect(await screen.findByText('No requirements found')).toBeInTheDocument();
+    expect(await screen.findByText('Belum ada Requirement')).toBeInTheDocument();
   });
 });

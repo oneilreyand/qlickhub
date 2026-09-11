@@ -23,7 +23,7 @@ export const ForgotPasswordPage: React.FC = () => {
       await authService.forgotPassword(email.trim());
       setIsSubmitted(true);
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to request password reset. Please try again.');
+      setErrorMessage(err?.message || 'Gagal meminta tautan atur ulang. Coba lagi.');
     } finally {
       setIsLoading(false);
     }
@@ -38,9 +38,10 @@ export const ForgotPasswordPage: React.FC = () => {
       <div className="w-full max-w-md bg-white p-8 rounded-[24px] border border-stone-200/80 shadow-xl shadow-stone-200/60 space-y-6 relative z-10">
         {/* Header */}
         <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-stone-900">Reset Password</h1>
+          <h1 className="text-xl font-bold text-stone-900">Atur Ulang Kata Sandi</h1>
           <p className="text-sm text-stone-500">
-            Enter your email address and we'll send you a link to reset your password.
+            Masukkan alamat email Anda. Kami akan mengirimkan tautan untuk mengatur ulang kata
+            sandi.
           </p>
         </div>
 
@@ -52,15 +53,20 @@ export const ForgotPasswordPage: React.FC = () => {
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-semibold text-stone-900">Check your inbox</h3>
+              <h3 className="text-base font-semibold text-stone-900">Periksa kotak masuk Anda</h3>
               <p className="text-xs text-stone-500 leading-relaxed max-w-xs mx-auto">
-                If an account exists for <strong className="text-stone-700">{email}</strong>, we've dispatched a password reset link.
+                Jika akun untuk <strong className="text-stone-700">{email}</strong> tersedia, kami
+                telah mengirimkan tautan atur ulang kata sandi.
               </p>
             </div>
             <div className="pt-2">
               <Link to="/login">
-                <Button variant="outline" className="w-full" leftIcon={<ArrowLeft className="h-4 w-4" />}>
-                  Back to Sign In
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  leftIcon={<ArrowLeft className="h-4 w-4" />}
+                >
+                  Kembali ke Halaman Masuk
                 </Button>
               </Link>
             </div>
@@ -71,7 +77,7 @@ export const ForgotPasswordPage: React.FC = () => {
               id="forgot-email-input"
               leftIcon={<Mail className="h-3.5 w-3.5 text-stone-400" />}
               type="email"
-              placeholder="Enter your registered email"
+              placeholder="Masukkan email yang terdaftar"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400"
@@ -85,12 +91,12 @@ export const ForgotPasswordPage: React.FC = () => {
                 isLoading={isLoading}
                 rightIcon={<Send className="h-4 w-4" />}
               >
-                {isLoading ? 'Sending Link…' : 'Send Reset Link'}
+                {isLoading ? 'Mengirim tautan…' : 'Kirim Tautan Atur Ulang'}
               </Button>
 
               <Link to="/login" className="block text-center pt-2">
                 <span className="text-xs text-stone-500 hover:text-stone-800 font-medium inline-flex items-center gap-1">
-                  <ArrowLeft className="h-3 w-3" /> Back to Sign In
+                  <ArrowLeft className="h-3 w-3" /> Kembali ke Halaman Masuk
                 </span>
               </Link>
             </div>

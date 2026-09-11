@@ -23,20 +23,20 @@ describe('MyTaskFeatureContext', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Feature context breadcrumb')).toHaveTextContent(
-      'Feature / Storyfrontend subtaskImplement checkout summary',
+    expect(screen.getByLabelText('Jejak navigasi konteks Feature')).toHaveTextContent(
+      'Feature / StorySubtask frontendImplement checkout summary',
     );
     expect(screen.getByRole('heading', { name: 'Checkout Feature' })).toBeInTheDocument();
-    expect(screen.getByText('Trace 1/1 reqs')).toBeInTheDocument();
+    expect(screen.getByText('Cakupan 1/1 Requirement')).toBeInTheDocument();
     expect(screen.getByText('Review checkout before confirmation')).toBeInTheDocument();
     expect(
       screen.getByText('Order and payment details are visible before confirmation.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Structure complete')).toBeInTheDocument();
-    expect(screen.getByText('Tests passing')).toBeInTheDocument();
-    expect(screen.getByText('Release blocked · 1 gates need action')).toBeInTheDocument();
+    expect(screen.getByText('Struktur lengkap')).toBeInTheDocument();
+    expect(screen.getByText('Pengujian lulus')).toBeInTheDocument();
+    expect(screen.getByText('Rilis terblokir · 1 gate perlu ditindaklanjuti')).toBeInTheDocument();
     expect(screen.getByText(/1\/2 development subtasks are complete/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Back to Feature' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Kembali ke Feature' }));
     expect(onOpenFeature).toHaveBeenCalledWith(trace.featureTask.id);
   });
 
@@ -45,7 +45,7 @@ describe('MyTaskFeatureContext', () => {
     const unlinkedTask = {
       ...trace.featureSubtasks[0],
       id: '20000000-0000-4000-8000-000000000099',
-      title: 'Unlinked execution task',
+      title: 'Lepas Tautaned eksekusi task',
     };
 
     render(
@@ -59,8 +59,10 @@ describe('MyTaskFeatureContext', () => {
       />,
     );
 
-    expect(screen.getByText('No Requirement directly linked to this subtask')).toBeInTheDocument();
-    expect(screen.getByText('Feature total: 1 Requirement(s)')).toBeInTheDocument();
+    expect(
+      screen.getByText('Belum ada Requirement yang langsung tertaut ke Subtask ini'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Total Feature: 1 Requirement')).toBeInTheDocument();
     expect(screen.queryByText('Review checkout before confirmation')).not.toBeInTheDocument();
   });
 
@@ -78,7 +80,7 @@ describe('MyTaskFeatureContext', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Loading Feature context')).toBeInTheDocument();
+    expect(screen.getByLabelText('Memuat konteks Feature')).toBeInTheDocument();
 
     rerender(
       <MyTaskFeatureContext
@@ -91,7 +93,7 @@ describe('MyTaskFeatureContext', () => {
       />,
     );
 
-    expect(screen.getByText('Feature context access restricted')).toBeInTheDocument();
+    expect(screen.getByText('Akses konteks Feature dibatasi')).toBeInTheDocument();
     expect(screen.queryByText('Checkout Feature')).not.toBeInTheDocument();
   });
 
@@ -110,7 +112,7 @@ describe('MyTaskFeatureContext', () => {
       />,
     );
 
-    const retry = screen.getByRole('button', { name: 'Retry loading Feature context' });
+    const retry = screen.getByRole('button', { name: 'Coba lagi memuat konteks Feature' });
     retry.focus();
     fireEvent.keyDown(retry, { key: 'Enter' });
     fireEvent.click(retry);

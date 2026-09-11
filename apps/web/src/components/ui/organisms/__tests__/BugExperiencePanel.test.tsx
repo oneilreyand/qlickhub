@@ -46,7 +46,7 @@ const bugFixture = (status: BugStatus = 'open'): BugWithContext => ({
   createdAt: '2026-08-22T08:00:00.000Z',
   updatedAt: '2026-08-22T09:00:00.000Z',
   featureTask: { id: ids.feature, title: 'Returning Customer Checkout' },
-  requirement: { id: ids.requirement, code: 'REQ-CHECKOUT', title: 'Saved card payment' },
+  requirement: { id: ids.requirement, code: 'REQ-CHECKOUT', title: 'Simpand card payment' },
   assignee: { id: ids.dev, name: 'Checkout Developer', email: 'dev@example.com' },
   bugEvidenceLinks: [],
 
@@ -100,16 +100,18 @@ describe('BugExperiencePanel', () => {
         }),
     );
     renderPanel();
-    expect(screen.getByLabelText('Loading Linked Bugs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Memuat Bug Tertaut')).toBeInTheDocument();
     resolveRequest([]);
-    expect(await screen.findByText('No Bugs linked to this Feature')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Belum ada Bug yang tertaut ke Feature ini'),
+    ).toBeInTheDocument();
   });
 
   it('shows a permission state without exposing Bug data', async () => {
     const denied = Object.assign(new Error('Forbidden'), { status: 403 });
     bugMocks.listBugs.mockRejectedValueOnce(denied);
     renderPanel();
-    expect(await screen.findByText('Bug access denied')).toBeInTheDocument();
+    expect(await screen.findByText('Akses Bug ditolak')).toBeInTheDocument();
     expect(screen.queryByText('Checkout request returns 500')).not.toBeInTheDocument();
   });
 
@@ -120,21 +122,25 @@ describe('BugExperiencePanel', () => {
       .mockResolvedValueOnce([]);
     renderPanel();
 
-    expect(await screen.findByText('Unable to load Bugs')).toBeInTheDocument();
+    expect(await screen.findByText('Bug tidak dapat dimuat')).toBeInTheDocument();
     expect(screen.getByText('Bug service unavailable')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByText('No Bugs linked to this Feature')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Coba lagi' }));
+    expect(
+      await screen.findByText('Belum ada Bug yang tertaut ke Feature ini'),
+    ).toBeInTheDocument();
   });
 
-  it('renders contextual linked Bugs with text and icon status labels', async () => {
+  it('renders contextual linked Bug with text and icon status labels', async () => {
     bugMocks.listBugs.mockResolvedValueOnce([bugFixture('resolved')]);
     renderPanel({ userRole: 'po' });
 
     expect(await screen.findByText('Checkout request returns 500')).toBeInTheDocument();
-    expect(screen.getByText('Resolved · Retest needed')).toBeInTheDocument();
-    expect(screen.getByText('REQ-CHECKOUT · Saved card payment')).toBeInTheDocument();
+    expect(screen.getByText('Selesai Diperbaiki · Perlu Retest')).toBeInTheDocument();
+    expect(screen.getByText('REQ-CHECKOUT · Simpand card payment')).toBeInTheDocument();
     expect(screen.getByText('checkout-web-2026.08.22.1 · staging')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Verify after retest:/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^Verifikasi setelah retest:/ }),
+    ).not.toBeInTheDocument();
     expect(bugMocks.listBugs).toHaveBeenCalledWith(ids.workspace, { featureTaskId: ids.feature });
   });
 
@@ -144,7 +150,9 @@ describe('BugExperiencePanel', () => {
     renderPanel({ mode: 'role_queue', featureTaskId: undefined, userRole: 'dev' });
 
     await user.click(
-      await screen.findByRole('button', { name: 'Start Bug work: Checkout request returns 500' }),
+      await screen.findByRole('button', {
+        name: 'Mulai pengerjaan Bug: Checkout request returns 500',
+      }),
     );
     await waitFor(() =>
       expect(bugMocks.updateBug).toHaveBeenCalledWith(ids.workspace, ids.bug, {
@@ -152,7 +160,7 @@ describe('BugExperiencePanel', () => {
       }),
     );
     expect(bugMocks.listBugs).toHaveBeenNthCalledWith(1, ids.workspace, { queue: 'assigned_work' });
-    expect(await screen.findByText('No assigned Bug work')).toBeInTheDocument();
+    expect(await screen.findByText('Belum ada pekerjaan Bug')).toBeInTheDocument();
   });
 
   it('requires Developer resolution notes before sending a Bug to retest', async () => {
@@ -162,14 +170,14 @@ describe('BugExperiencePanel', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Resolve for retest: Checkout request returns 500',
+        name: 'Selesaikan untuk retest: Checkout request returns 500',
       }),
     );
-    const dialog = screen.getByRole('dialog', { name: 'Resolve Bug for retest' });
+    const dialog = screen.getByRole('dialog', { name: 'Selesaikan Bug untuk Retest' });
     const submit = within(dialog).getByRole('button', { name: 'Resolve and send to retest' });
     expect(submit).toBeDisabled();
     await user.type(
-      within(dialog).getByLabelText('Resolution notes'),
+      within(dialog).getByLabelText('Catatan resolusi'),
       'Corrected the payment mapping.',
     );
     await user.click(submit);
@@ -188,7 +196,7 @@ describe('BugExperiencePanel', () => {
     renderPanel({ mode: 'role_queue', featureTaskId: undefined, userRole: 'qa' });
 
     const verifyButton = await screen.findByRole('button', {
-      name: 'Verify after retest: Checkout request returns 500',
+      name: 'Verifikasi setelah retest: Checkout request returns 500',
     });
     verifyButton.focus();
     expect(verifyButton).toHaveFocus();
@@ -199,6 +207,6 @@ describe('BugExperiencePanel', () => {
       }),
     );
     expect(bugMocks.listBugs).toHaveBeenNthCalledWith(1, ids.workspace, { queue: 'retest' });
-    expect(await screen.findByText('No Bugs awaiting retest')).toBeInTheDocument();
+    expect(await screen.findByText('Belum ada Bug yang menunggu retest')).toBeInTheDocument();
   });
 });

@@ -46,7 +46,7 @@ export const OverviewBannerCarousel: React.FC = () => {
 
   return (
     <section
-      aria-label="Overview highlights"
+      aria-label="Sorotan ikhtisar"
       aria-roledescription="carousel"
       className="relative overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-xs dark:border-stone-800 dark:bg-[#1C1A19]"
     >

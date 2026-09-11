@@ -28,6 +28,7 @@ import { taskService } from '../../../lib/api/taskService';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
+import { getIndonesianTaskScheduleMessage } from '../../../lib/i18n/indonesianCopy';
 
 export interface SubtaskAccordionItemProps {
   subtask: Task;
@@ -234,7 +235,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       setHasLoadedData(true);
     } catch (err) {
       console.error('Failed to load subtask workspace data', err);
-      setLoadError('Failed to load subtask details.');
+      setLoadError('Detail Subtask gagal dimuat.');
     } finally {
       setIsLoadingData(false);
     }
@@ -251,11 +252,11 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       const updated = await taskService.updateTask(workspaceId, subtask.id, {
         description: newDescription,
       });
-      dispatch(enqueueSnackbar('Subtask description saved', 'success'));
+      dispatch(enqueueSnackbar('Deskripsi Subtask berhasil disimpan', 'success'));
       onSubtaskUpdated?.(updated);
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to save description', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Deskripsi gagal disimpan', 'error'),
       );
       throw err;
     }
@@ -276,7 +277,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       dispatch(enqueueSnackbar('Note added to subtask', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to post note', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Catatan gagal dikirim', 'error'),
       );
       throw err;
     }
@@ -318,7 +319,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       dispatch(enqueueSnackbar('Comment updated', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update comment', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Komentar gagal diperbarui', 'error'),
       );
       throw err;
     }
@@ -331,15 +332,17 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       dispatch(enqueueSnackbar('Comment deleted', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete comment', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Komentar gagal dihapus', 'error'),
       );
       throw err;
     }
   };
 
+  const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
+
   const handleSaveMeta = async () => {
     if (scheduleIssue) {
-      dispatch(enqueueSnackbar(scheduleIssue.message, 'error'));
+      dispatch(enqueueSnackbar(scheduleIssueMessage || 'Jadwal Subtask belum valid.', 'error'));
       return;
     }
     setIsSavingMeta(true);
@@ -352,11 +355,11 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
         reviewNotes: reviewNotes || null,
         deliveryArea: deliveryArea === '' ? undefined : deliveryArea,
       });
-      dispatch(enqueueSnackbar('Subtask details updated', 'success'));
+      dispatch(enqueueSnackbar('Detail Subtask berhasil diperbarui', 'success'));
       onSubtaskUpdated?.(updated);
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update details', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Detail gagal diperbarui', 'error'),
       );
     } finally {
       setIsSavingMeta(false);
@@ -374,7 +377,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       onSubtaskDeleted?.(subtask.id);
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete subtask', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Subtask gagal dihapus', 'error'),
       );
     } finally {
       setIsDeletingSubtask(false);
@@ -414,12 +417,12 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   const tabs: TabItem[] = [
     {
       id: 'description',
-      label: 'Description',
+      label: 'Deskripsi',
       icon: <FileText className="h-3.5 w-3.5" />,
     },
     {
       id: 'discussion',
-      label: 'Discussion',
+      label: 'Diskusi',
       icon: <MessageSquare className="h-3.5 w-3.5" />,
       count: totalCommentsCount > 0 ? totalCommentsCount : undefined,
       badge: hasUnreadComment ? (
@@ -433,7 +436,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
     },
     {
       id: 'settings',
-      label: 'Details',
+      label: 'Detail',
       icon: <Settings className="h-3.5 w-3.5" />,
     },
   ];
@@ -456,7 +459,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
         {isLoadingData && !hasLoadedData ? (
           <div className="flex items-center justify-center py-6 gap-2 text-xs text-stone-500">
             <LoadingSpinner size="sm" />
-            <span>Loading subtask workspace...</span>
+            <span>Memuat workspace Subtask...</span>
           </div>
         ) : loadError ? (
           <div className="p-3 text-rose-500 text-xs">{loadError}</div>
@@ -517,7 +520,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                       onChange={(e) => setDeliveryArea(e.target.value as DeliveryArea | '')}
                       disabled={!canMutate || !isPlanner}
                     >
-                      <option value="">None</option>
+                      <option value="">Tidak ada</option>
                       <option value="frontend">Frontend</option>
                       <option value="backend">Backend</option>
                       <option value="mobile">Mobile</option>
@@ -535,7 +538,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                       onChange={(e) => setAssigneeId(e.target.value)}
                       disabled={!canMutate || !isPlanner}
                     >
-                      <option value="">Unassigned</option>
+                      <option value="">Belum ditugaskan</option>
                       {filteredMembers.map((m) => (
                         <option key={m.userId} value={m.userId}>
                           {m.user?.name || m.user?.email || m.userId} ({m.role.toUpperCase()})
@@ -546,17 +549,17 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
 
                   <div>
                     <label className="block text-stone-600 dark:text-stone-400 font-bold mb-1">
-                      Priority
+                      Prioritas
                     </label>
                     <Select
                       value={priority}
                       onChange={(e) => setPriority(e.target.value as TaskPriority)}
                       disabled={!canMutate || !isPlanner}
                     >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
+                      <option value="low">Rendah</option>
+                      <option value="medium">Sedang</option>
+                      <option value="high">Tinggi</option>
+                      <option value="urgent">Mendesak</option>
                     </Select>
                   </div>
 
@@ -606,7 +609,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     role="alert"
                     className="text-xs text-rose-600 dark:text-rose-400"
                   >
-                    {scheduleIssue.message}
+                    {scheduleIssueMessage}
                   </p>
                 )}
 
@@ -633,7 +636,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                         disabled={isSavingMeta || isDeletingSubtask}
                         leftIcon={<Trash2 className="h-3.5 w-3.5" />}
                       >
-                        Delete Subtask
+                        Hapus Subtask
                       </Button>
                     )}
                     <Button
@@ -642,7 +645,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                       onClick={handleSaveMeta}
                       isLoading={isSavingMeta}
                     >
-                      Save Details
+                      Simpan Detail
                     </Button>
                   </div>
                 )}
@@ -657,18 +660,18 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
         onClose={() => {
           if (!isDeletingSubtask) setIsDeleteConfirmationOpen(false);
         }}
-        title="Delete subtask?"
-        description="This action removes the subtask from active Feature views."
+        title="Hapus Subtask?"
+        description="Tindakan ini menghapus subtask dari tampilan Feature aktif."
         size="sm"
       >
         <div className="space-y-4">
-          <Alert tone="warning" title="This subtask will be soft-deleted">
-            Existing activity and discussion history is retained. Requirement/document links and
-            removable attachments must be cleared first; immutable QA evidence, Bugs, QA Sign-offs,
-            and Release Decisions permanently block deletion.
+          <Alert tone="warning" title="Subtask ini akan dihapus secara soft delete">
+            Riwayat aktivitas dan diskusi tetap tersimpan. Tautan Requirement/dokumen dan lampiran
+            yang dapat dihapus harus dibersihkan terlebih dahulu; evidence QA, Bug, QA Sign-off, dan
+            Keputusan Rilis yang tidak dapat diubah akan memblokir penghapusan.
           </Alert>
           <p className="text-xs leading-5 text-stone-600 dark:text-stone-300">
-            Delete{' '}
+            Hapus{' '}
             <span className="font-bold text-stone-900 dark:text-stone-100">{subtask.title}</span>?
           </p>
           <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
@@ -678,7 +681,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
               onClick={() => setIsDeleteConfirmationOpen(false)}
               disabled={isDeletingSubtask}
             >
-              Keep Subtask
+              Pertahankan Subtask
             </Button>
             <Button
               variant="destructive"
@@ -687,7 +690,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
               isLoading={isDeletingSubtask}
               leftIcon={<Trash2 className="h-3.5 w-3.5" />}
             >
-              Delete Subtask
+              Hapus Subtask
             </Button>
           </div>
         </div>

@@ -11,10 +11,15 @@ import {
   restoreWorkspace,
   deleteWorkspace,
 } from '../store/workspaceSlice';
-import { AssignableWorkspaceRole, DeveloperSpecialty } from '@qlick/contracts';
+import {
+  AssignableWorkspaceRole,
+  DeveloperSpecialty,
+  WorkspaceMemberAssignment,
+} from '@qlick/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { selectCurrentUserRole } from '../store/authSlice';
 import { authService } from '../lib/api/authService';
+import { workspaceService, WorkspaceMemberItem } from '../lib/api/workspaceService';
 import { Building2 } from 'lucide-react';
 import {
   EmptyWorkspaceOnboarding,
@@ -47,10 +52,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
 
   const [searchMember, setSearchMember] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<AssignableWorkspaceRole>('dev');
-  const [inviteSpecialties, setInviteSpecialties] = useState<DeveloperSpecialty[]>([]);
-  const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<string[]>([]);
+  const [accessWizardMode, setAccessWizardMode] = useState<'invite' | 'manage'>('invite');
+  const [accessWizardEmail, setAccessWizardEmail] = useState('');
+  const [accessWizardMemberships, setAccessWizardMemberships] = useState<WorkspaceMemberItem[]>([]);
+  const [isLoadingAccessMemberships, setIsLoadingAccessMemberships] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
 
   // Admin Reset Member Password State
@@ -85,7 +90,6 @@ export const WorkspaceSettingsPage: React.FC = () => {
       setWorkspaceName(activeWorkspace.name);
       setWorkspaceDesc(activeWorkspace.description || '');
       setAllowQaTaskCreation(activeWorkspace.allowQaTaskCreation ?? true);
-      setSelectedWorkspaceIds([activeWorkspace.id]);
       dispatch(fetchMembers(activeWorkspace.id));
     }
   }, [activeWorkspace?.id, dispatch]);
@@ -109,11 +113,16 @@ export const WorkspaceSettingsPage: React.FC = () => {
       await dispatch(
         isArchived ? restoreWorkspace(activeWorkspace.id) : archiveWorkspace(activeWorkspace.id),
       ).unwrap();
-      dispatch(enqueueSnackbar(`Workspace ${isArchived ? 'restored' : 'archived'}`, 'success'));
+      dispatch(
+        enqueueSnackbar(
+          `Workspace berhasil ${isArchived ? 'dipulihkan' : 'diarsipkan'}.`,
+          'success',
+        ),
+      );
       setIsArchiveModalOpen(false);
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Workspace action failed', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Aksi workspace gagal.', 'error'),
       );
     } finally {
       setIsArchiving(false);
@@ -131,12 +140,12 @@ export const WorkspaceSettingsPage: React.FC = () => {
           input: { confirmationName: confirmedWorkspaceName },
         }),
       ).unwrap();
-      dispatch(enqueueSnackbar('Workspace permanently deleted.', 'success'));
+      dispatch(enqueueSnackbar('Workspace dihapus permanen.', 'success'));
       setDeleteWorkspaceName('');
       setIsDeleteWorkspaceModalOpen(false);
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete workspace', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Workspace gagal dihapus.', 'error'),
       );
     } finally {
       setIsDeletingWorkspace(false);
@@ -164,7 +173,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
       );
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update policy', 'error'),
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Kebijakan gagal diperbarui.',
+          'error',
+        ),
       );
     } finally {
       setIsUpdatingPolicy(false);
@@ -182,63 +194,88 @@ export const WorkspaceSettingsPage: React.FC = () => {
           input: { name: workspaceName, description: workspaceDesc },
         }),
       ).unwrap();
-      dispatch(enqueueSnackbar('Workspace details updated successfully', 'success'));
+      dispatch(enqueueSnackbar('Detail workspace berhasil diperbarui.', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update workspace', 'error'),
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Workspace gagal diperbarui.',
+          'error',
+        ),
       );
     } finally {
       setIsSavingDetails(false);
     }
   };
 
-  const handleToggleWorkspaceSelection = (wsId: string) => {
-    setSelectedWorkspaceIds((prev) =>
-      prev.includes(wsId) ? prev.filter((id) => id !== wsId) : [...prev, wsId],
-    );
+  const manageableWorkspaces = workspaces.filter((workspace) => {
+    const role = (workspace.role || workspace.myRole || '').toLowerCase();
+    return ['owner', 'admin'].includes(role) && !workspace.archivedAt;
+  });
+
+  const handleOpenInviteWizard = () => {
+    setAccessWizardMode('invite');
+    setAccessWizardEmail('');
+    setAccessWizardMemberships([]);
+    setShowInviteModal(true);
   };
 
-  const handleSelectAllWorkspaces = () => {
-    if (selectedWorkspaceIds.length === workspaces.length) {
-      setSelectedWorkspaceIds([activeWorkspace?.id || '']);
-    } else {
-      setSelectedWorkspaceIds(workspaces.map((w) => w.id));
+  const handleOpenManageAccess = async (member: WorkspaceMemberItem) => {
+    setAccessWizardMode('manage');
+    setAccessWizardEmail(member.user?.email || '');
+    setAccessWizardMemberships([]);
+    setShowInviteModal(true);
+    setIsLoadingAccessMemberships(true);
+    try {
+      const membershipsByWorkspace = await Promise.all(
+        manageableWorkspaces.map((workspace) => workspaceService.getMembers(workspace.id)),
+      );
+      setAccessWizardMemberships(
+        membershipsByWorkspace.flat().filter((item) => item.userId === member.userId),
+      );
+    } catch (err) {
+      dispatch(
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Akses Workspace pengguna gagal dimuat. Coba lagi.',
+          'error',
+        ),
+      );
+      setShowInviteModal(false);
+    } finally {
+      setIsLoadingAccessMemberships(false);
     }
   };
 
-  const handleInviteMember = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!activeWorkspace || !inviteEmail) return;
-    if (inviteRole === 'dev' && inviteSpecialties.length === 0) {
-      dispatch(enqueueSnackbar('Select at least one Developer specialty.', 'error'));
-      return;
-    }
+  const handleAccessWizardSubmit = async (
+    email: string,
+    assignments: WorkspaceMemberAssignment[],
+  ) => {
+    if (!activeWorkspace) return;
     setIsInviting(true);
     try {
-      await dispatch(
+      const result = await dispatch(
         addMember({
           workspaceId: activeWorkspace.id,
           input: {
-            email: inviteEmail,
-            role: inviteRole,
-            specialties: inviteRole === 'dev' ? inviteSpecialties : [],
-            workspaceIds:
-              selectedWorkspaceIds.length > 0 ? selectedWorkspaceIds : [activeWorkspace.id],
+            email,
+            assignments,
           },
         }),
       ).unwrap();
+      const changedCount = result.assignmentResults.filter(
+        (assignment) => assignment.status !== 'already_member',
+      ).length;
       dispatch(
         enqueueSnackbar(
-          `Successfully assigned ${inviteEmail} to ${selectedWorkspaceIds.length || 1} workspace(s) as ${inviteRole}`,
+          `${email} berhasil mendapatkan akses ke ${changedCount} Workspace.`,
           'success',
         ),
       );
-      setInviteEmail('');
-      setInviteSpecialties([]);
+      setAccessWizardEmail('');
+      setAccessWizardMemberships([]);
       setShowInviteModal(false);
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to add member', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Anggota gagal ditambahkan.', 'error'),
       );
     } finally {
       setIsInviting(false);
@@ -248,7 +285,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const handleAdminResetPassword = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!resetTargetUser || newMemberPassword.length < 6) {
-      dispatch(enqueueSnackbar('Password must be at least 6 characters.', 'error'));
+      dispatch(enqueueSnackbar('Kata sandi minimal terdiri dari 6 karakter.', 'error'));
       return;
     }
     setIsResettingPassword(true);
@@ -262,7 +299,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       setResetTargetUser(null);
       setNewMemberPassword('');
     } catch (err: any) {
-      dispatch(enqueueSnackbar(err?.message || 'Failed to reset member password', 'error'));
+      dispatch(enqueueSnackbar(err?.message || 'Kata sandi anggota gagal diatur ulang.', 'error'));
     } finally {
       setIsResettingPassword(false);
     }
@@ -282,10 +319,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
           input: { role: newRole, specialties: newRole === 'dev' ? specialties : [] },
         }),
       ).unwrap();
-      dispatch(enqueueSnackbar('Member role and specialties updated successfully', 'success'));
+      dispatch(enqueueSnackbar('Peran dan spesialisasi anggota berhasil diperbarui.', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update member', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Anggota gagal diperbarui.', 'error'),
       );
     }
   };
@@ -305,11 +342,11 @@ export const WorkspaceSettingsPage: React.FC = () => {
           memberUserId: userId,
         }),
       ).unwrap();
-      dispatch(enqueueSnackbar(`Removed ${email} from workspace`, 'info'));
+      dispatch(enqueueSnackbar(`${email} telah dihapus dari workspace.`, 'info'));
       setMemberPendingRemoval(null);
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to remove member', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Anggota gagal dihapus.', 'error'),
       );
     } finally {
       setIsRemovingMember(false);
@@ -326,10 +363,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
     return (
       <AccessRestricted
         workspaceName={activeWorkspace.name}
-        title="Workspace Settings Access Restricted"
-        description={`Hanya Workspace Owner, Admin, dan Product Owner (PO) yang dapat mengakses Workspace Settings untuk "${activeWorkspace.name}".`}
+        title="Akses Pengaturan Workspace Dibatasi"
+        description={`Hanya Owner, Admin, dan Product Owner (PO) yang dapat mengakses pengaturan workspace "${activeWorkspace.name}".`}
         actionHref="/work"
-        actionLabel="Return to Work Hub"
+        actionLabel="Kembali ke Work Hub"
       />
     );
   }
@@ -340,17 +377,17 @@ export const WorkspaceSettingsPage: React.FC = () => {
       <div className="border-b border-stone-200 pb-5 dark:border-stone-800">
         <div className="flex items-center gap-2 text-xs font-semibold text-stone-700 dark:text-[#B1E743]">
           <Building2 className="h-4 w-4" />
-          <span>Workspace Management</span>
+          <span>Pengelolaan Workspace</span>
         </div>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl dark:text-stone-100">
-          {activeWorkspace ? activeWorkspace.name : 'Workspace Settings'}
+          {activeWorkspace ? activeWorkspace.name : 'Pengaturan Workspace'}
         </h1>
         <p className="mt-1 text-xs text-stone-500 sm:text-sm dark:text-stone-400">
-          Manage your team workspace preferences, roles, and member invitations.
+          Kelola preferensi workspace, peran, dan undangan anggota tim.
         </p>
         {isArchived && (
           <p className="mt-3 text-sm font-semibold text-amber-700 dark:text-amber-300">
-            This Workspace is archived and read-only.
+            Workspace ini telah diarsipkan dan hanya dapat dilihat.
           </p>
         )}
       </div>
@@ -381,11 +418,11 @@ export const WorkspaceSettingsPage: React.FC = () => {
                 variant={isArchived ? 'secondary' : 'destructive'}
                 onClick={() => setIsArchiveModalOpen(true)}
               >
-                {isArchived ? 'Restore Workspace' : 'Archive Workspace'}
+                {isArchived ? 'Pulihkan Workspace' : 'Arsipkan Workspace'}
               </Button>
               {canDeleteWorkspace && (
                 <Button variant="destructive" onClick={() => setIsDeleteWorkspaceModalOpen(true)}>
-                  Delete Permanently
+                  Hapus Permanen
                 </Button>
               )}
             </div>
@@ -401,7 +438,8 @@ export const WorkspaceSettingsPage: React.FC = () => {
             managerRole={canManageMembers && !isArchived ? (userRole as 'owner' | 'admin') : null}
             searchQuery={searchMember}
             onSearchChange={setSearchMember}
-            onInviteClick={() => setShowInviteModal(true)}
+            onInviteClick={handleOpenInviteWizard}
+            onManageAccess={(member) => void handleOpenManageAccess(member)}
             onRoleChange={(memberUserId, role) => {
               const member = members.find((item) => item.userId === memberUserId);
               void handleMemberUpdate(
@@ -426,27 +464,14 @@ export const WorkspaceSettingsPage: React.FC = () => {
       <InviteMemberModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        inviteEmail={inviteEmail}
-        inviteRole={inviteRole}
-        inviteSpecialties={inviteSpecialties}
-        selectedWorkspaceIds={selectedWorkspaceIds}
-        workspaces={workspaces}
-        isInviting={isInviting}
-        onEmailChange={setInviteEmail}
-        onRoleChange={(role) => {
-          setInviteRole(role);
-          if (role !== 'dev') setInviteSpecialties([]);
-        }}
-        onToggleSpecialty={(specialty) => {
-          setInviteSpecialties((current) =>
-            current.includes(specialty)
-              ? current.filter((item) => item !== specialty)
-              : [...current, specialty],
-          );
-        }}
-        onToggleWorkspaceSelection={handleToggleWorkspaceSelection}
-        onSelectAllWorkspaces={handleSelectAllWorkspaces}
-        onSubmit={handleInviteMember}
+        mode={accessWizardMode}
+        initialEmail={accessWizardEmail}
+        currentWorkspaceId={activeWorkspace.id}
+        workspaces={manageableWorkspaces}
+        existingMemberships={accessWizardMemberships}
+        isExistingMembershipsLoading={isLoadingAccessMemberships}
+        isSubmitting={isInviting}
+        onSubmit={(email, assignments) => void handleAccessWizardSubmit(email, assignments)}
       />
 
       {/* Admin Reset Member Password Modal */}
@@ -466,28 +491,28 @@ export const WorkspaceSettingsPage: React.FC = () => {
           if (!isArchiving) setIsArchiveModalOpen(false);
         }}
         title={
-          isArchived ? `Restore "${activeWorkspace.name}"?` : `Archive "${activeWorkspace.name}"?`
+          isArchived ? `Pulihkan "${activeWorkspace.name}"?` : `Arsipkan "${activeWorkspace.name}"?`
         }
         description={
           isArchived
-            ? 'Restoring this workspace will make it active and allow mutations again.'
-            : 'Archiving this workspace will make it read-only and block workspace mutations while preserving all delivery and audit records.'
+            ? 'Memulihkan workspace akan mengaktifkannya dan mengizinkan perubahan kembali.'
+            : 'Mengarsipkan workspace akan membuatnya hanya dapat dilihat. Seluruh data delivery dan audit tetap tersimpan.'
         }
         size="md"
       >
         <div className="space-y-4">
           {isArchived ? (
             <p className="text-xs text-stone-600 dark:text-stone-300">
-              Are you sure you want to restore{' '}
+              Yakin ingin memulihkan{' '}
               <span className="font-semibold text-stone-900 dark:text-stone-100">
                 {activeWorkspace.name}
               </span>
-              ? Members will be able to collaborate and make updates again.
+              ? Anggota dapat kembali berkolaborasi dan membuat perubahan.
             </p>
           ) : (
-            <Alert tone="warning" title="Workspace will become read-only">
-              All tasks, subtasks, test cases, evidence, and audit logs will remain intact, but
-              creating or editing items in this workspace will be blocked until restored.
+            <Alert tone="warning" title="Workspace akan menjadi hanya-baca">
+              Seluruh Task, Subtask, Test Case, bukti, dan log audit tetap tersimpan, tetapi item
+              tidak dapat dibuat atau diedit hingga workspace dipulihkan.
             </Alert>
           )}
           <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
@@ -497,7 +522,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
               onClick={() => setIsArchiveModalOpen(false)}
               disabled={isArchiving}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               variant={isArchived ? 'primary' : 'destructive'}
@@ -505,7 +530,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
               onClick={() => void handleConfirmArchiveToggle()}
               isLoading={isArchiving}
             >
-              {isArchived ? 'Restore Workspace' : 'Archive Workspace'}
+              {isArchived ? 'Pulihkan Workspace' : 'Arsipkan Workspace'}
             </Button>
           </div>
         </div>
@@ -520,17 +545,17 @@ export const WorkspaceSettingsPage: React.FC = () => {
             setDeleteWorkspaceName('');
           }
         }}
-        title={`Delete "${activeWorkspace.name}" permanently?`}
-        description="This action cannot be undone."
+        title={`Hapus "${activeWorkspace.name}" secara permanen?`}
+        description="Tindakan ini tidak dapat dibatalkan."
         size="md"
       >
         <div className="space-y-4">
-          <Alert tone="error" title="Permanent deletion">
-            All Workspace folders, tasks, QA records, release records, audit history, members, and
-            stored attachments will be permanently removed. User accounts will remain.
+          <Alert tone="error" title="Penghapusan permanen">
+            Seluruh folder, Task, data QA, data rilis, riwayat audit, anggota, dan lampiran dalam
+            Workspace akan dihapus permanen. Akun pengguna tetap dipertahankan.
           </Alert>
           <Input
-            label={`Type "${activeWorkspace.name}" to confirm`}
+            label={`Ketik "${activeWorkspace.name}" untuk mengonfirmasi`}
             value={deleteWorkspaceName}
             onChange={(event) => setDeleteWorkspaceName(event.target.value)}
             placeholder={activeWorkspace.name}
@@ -547,7 +572,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
               }}
               disabled={isDeletingWorkspace}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               variant="destructive"
@@ -556,7 +581,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
               isLoading={isDeletingWorkspace}
               disabled={deleteWorkspaceName.trim() !== activeWorkspace.name}
             >
-              Delete Permanently
+              Hapus Permanen
             </Button>
           </div>
         </div>
@@ -568,17 +593,17 @@ export const WorkspaceSettingsPage: React.FC = () => {
         onClose={() => {
           if (!isRemovingMember) setMemberPendingRemoval(null);
         }}
-        title="Remove Member from Workspace?"
-        description={`Remove ${memberPendingRemoval?.email || 'this member'} from ${activeWorkspace.name}.`}
+        title="Hapus Anggota dari Workspace?"
+        description={`Hapus ${memberPendingRemoval?.email || 'anggota ini'} dari ${activeWorkspace.name}.`}
         size="sm"
       >
         <div className="space-y-4">
-          <Alert tone="warning" title="Member Access Revocation">
-            This member will lose access to this workspace immediately. Their historical task
-            activities and delivery trace contributions will be retained.
+          <Alert tone="warning" title="Pencabutan Akses Anggota">
+            Anggota ini akan langsung kehilangan akses ke workspace. Riwayat aktivitas Task dan
+            kontribusi delivery mereka tetap tersimpan.
           </Alert>
           <p className="text-xs text-stone-600 dark:text-stone-300">
-            Are you sure you want to remove{' '}
+            Yakin ingin menghapus{' '}
             <span className="font-semibold text-stone-900 dark:text-stone-100">
               {memberPendingRemoval?.email}
             </span>
@@ -591,7 +616,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
               onClick={() => setMemberPendingRemoval(null)}
               disabled={isRemovingMember}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               variant="destructive"
@@ -599,7 +624,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
               onClick={() => void handleConfirmRemoveMember()}
               isLoading={isRemovingMember}
             >
-              Remove Member
+              Hapus Anggota
             </Button>
           </div>
         </div>

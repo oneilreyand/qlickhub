@@ -17,8 +17,8 @@ export interface ErrorBoundaryFallbackProps {
 export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
   error,
   resetErrorBoundary,
-  title = 'Something went wrong',
-  description = 'An unexpected error occurred while rendering this section. You can try refreshing or returning to the Work Hub.',
+  title = 'Terjadi Kesalahan',
+  description = 'Terjadi kendala saat menampilkan bagian ini. Coba muat ulang atau kembali ke Work Hub.',
   showHomeButton = true,
 }) => {
   const handleReload = () => {
@@ -39,7 +39,7 @@ export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
         <div className="flex justify-center">
           <img
             src={ERROR_BOUNDARY_ILLUSTRATION_URL}
-            alt="Error Illustration"
+            alt="Ilustrasi kesalahan"
             className="dark:hidden w-full max-w-[280px] sm:max-w-[360px] md:max-w-[420px] h-auto max-h-64 sm:max-h-76 object-contain mx-auto transition-transform duration-300 hover:scale-[1.02] drop-shadow-xs"
             loading="lazy"
           />
@@ -54,11 +54,9 @@ export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 text-[11px] font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900">
             <AlertTriangle className="h-3.5 w-3.5" />
-            <span>Error Boundary</span>
+            <span>Penanganan Kesalahan</span>
           </div>
-          <h2 className="text-2xl font-extrabold text-stone-900 dark:text-stone-100">
-            {title}
-          </h2>
+          <h2 className="text-2xl font-extrabold text-stone-900 dark:text-stone-100">{title}</h2>
           <p className="text-sm text-stone-500 dark:text-stone-400 max-w-md mx-auto leading-relaxed">
             {description}
           </p>
@@ -67,7 +65,7 @@ export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
         {error && (
           <details className="text-left bg-stone-50 dark:bg-stone-900 rounded-xl p-3 border border-stone-200 dark:border-stone-800 text-xs">
             <summary className="cursor-pointer font-medium text-stone-700 dark:text-stone-300 select-none">
-              Technical details
+              Detail teknis
             </summary>
             <pre className="mt-2 overflow-x-auto text-[11px] text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
               {error.message}
@@ -82,7 +80,7 @@ export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
             variant="primary"
             leftIcon={<RefreshCw className="h-4 w-4" />}
           >
-            Try Again
+            Coba Lagi
           </Button>
           {showHomeButton && (
             <Button
@@ -90,7 +88,7 @@ export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
               variant="outline"
               leftIcon={<Home className="h-4 w-4" />}
             >
-              Back to Work Hub
+              Kembali ke Work Hub
             </Button>
           )}
         </div>
@@ -147,10 +145,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         return this.props.fallback;
       }
       return (
-        <ErrorBoundaryFallback
-          error={this.state.error}
-          resetErrorBoundary={this.handleReset}
-        />
+        <ErrorBoundaryFallback error={this.state.error} resetErrorBoundary={this.handleReset} />
       );
     }
     return this.props.children;

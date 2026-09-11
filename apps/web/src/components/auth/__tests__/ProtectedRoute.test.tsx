@@ -50,7 +50,7 @@ describe('ProtectedRoute Security Guard', () => {
       </Provider>,
     );
 
-    expect(screen.getByLabelText('Checking session')).toBeInTheDocument();
+    expect(screen.getByLabelText('Memeriksa sesi')).toBeInTheDocument();
     expect(screen.queryByText('Confidential Protected Workhub')).not.toBeInTheDocument();
   });
 

@@ -13,9 +13,9 @@ describe('SearchInput', () => {
 
   it('handles typing and reports value changes', () => {
     const onChange = vi.fn();
-    render(<SearchInput value="" onChange={onChange} placeholder="Search..." />);
+    render(<SearchInput value="" onChange={onChange} placeholder="Cari..." />);
 
-    const input = screen.getByPlaceholderText('Search...');
+    const input = screen.getByPlaceholderText('Cari...');
     fireEvent.change(input, { target: { value: 'QA' } });
 
     expect(onChange).toHaveBeenCalledTimes(1);
@@ -26,23 +26,28 @@ describe('SearchInput', () => {
     const onChange = vi.fn();
 
     const { rerender } = render(
-      <SearchInput value="test query" onChange={onChange} onClear={onClear} placeholder="Search..." />
+      <SearchInput
+        value="test query"
+        onChange={onChange}
+        onClear={onClear}
+        placeholder="Cari..."
+      />,
     );
 
-    const clearBtn = screen.getByRole('button', { name: 'Clear search' });
+    const clearBtn = screen.getByRole('button', { name: 'Hapus pencarian' });
     expect(clearBtn).toBeInTheDocument();
 
     fireEvent.click(clearBtn);
     expect(onClear).toHaveBeenCalledTimes(1);
 
     // If onClear is not provided, it falls back to calling onChange with empty string
-    rerender(<SearchInput value="another query" onChange={onChange} placeholder="Search..." />);
-    const clearBtn2 = screen.getByRole('button', { name: 'Clear search' });
+    rerender(<SearchInput value="another query" onChange={onChange} placeholder="Cari..." />);
+    const clearBtn2 = screen.getByRole('button', { name: 'Hapus pencarian' });
     fireEvent.click(clearBtn2);
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         target: expect.objectContaining({ value: '' }),
-      })
+      }),
     );
   });
 

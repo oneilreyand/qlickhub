@@ -51,7 +51,7 @@ const mockActiveWorkspace: WorkspaceItem = {
 
 const mockArchivedWorkspace: WorkspaceItem = {
   ...mockActiveWorkspace,
-  id: 'ws-archived',
+  id: 'ws-diarsipkan',
   name: 'Archived Core Project',
   archivedAt: '2026-08-15T00:00:00.000Z',
 };
@@ -117,7 +117,7 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     vi.mocked(workspaceService.getMembers).mockResolvedValue(mockMembers);
   });
 
-  it('opens confirmation modal when Archive Workspace button is clicked and cancels on cancel', () => {
+  it('opens confirmation modal when Arsipkan Workspace button is clicked and cancels on cancel', () => {
     const store = createMockStore();
     render(
       <Provider store={store}>
@@ -125,24 +125,24 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
       </Provider>,
     );
 
-    const archiveBtn = screen.getByRole('button', { name: 'Archive Workspace' });
+    const archiveBtn = screen.getByRole('button', { name: 'Arsipkan Workspace' });
     fireEvent.click(archiveBtn);
 
     // Confirmation Modal should open
-    const modal = screen.getByRole('dialog', { name: /Archive "Acme Core Project"\?/i });
+    const modal = screen.getByRole('dialog', { name: /Arsipkan "Acme Core Project"\?/i });
     expect(modal).toBeInTheDocument();
     expect(
       within(modal).getByText(
-        /All tasks, subtasks, test cases, evidence, and audit logs will remain intact/i,
+        /Seluruh Task, Subtask, Test Case, bukti, dan log audit tetap tersimpan/i,
       ),
     ).toBeInTheDocument();
 
     // Click Cancel
-    const cancelBtn = within(modal).getByRole('button', { name: 'Cancel' });
+    const cancelBtn = within(modal).getByRole('button', { name: 'Batal' });
     fireEvent.click(cancelBtn);
 
     expect(
-      screen.queryByRole('dialog', { name: /Archive "Acme Core Project"\?/i }),
+      screen.queryByRole('dialog', { name: /Arsipkan "Acme Core Project"\?/i }),
     ).not.toBeInTheDocument();
     expect(workspaceService.archiveWorkspace).not.toHaveBeenCalled();
   });
@@ -160,11 +160,11 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
       </Provider>,
     );
 
-    const archiveBtn = screen.getByRole('button', { name: 'Archive Workspace' });
+    const archiveBtn = screen.getByRole('button', { name: 'Arsipkan Workspace' });
     fireEvent.click(archiveBtn);
 
-    const modal = screen.getByRole('dialog', { name: /Archive "Acme Core Project"\?/i });
-    const confirmBtn = within(modal).getByRole('button', { name: 'Archive Workspace' });
+    const modal = screen.getByRole('dialog', { name: /Arsipkan "Acme Core Project"\?/i });
+    const confirmBtn = within(modal).getByRole('button', { name: 'Arsipkan Workspace' });
 
     await act(async () => {
       fireEvent.click(confirmBtn);
@@ -172,11 +172,11 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
 
     expect(workspaceService.archiveWorkspace).toHaveBeenCalledWith('ws-1');
     expect(
-      screen.queryByRole('dialog', { name: /Archive "Acme Core Project"\?/i }),
+      screen.queryByRole('dialog', { name: /Arsipkan "Acme Core Project"\?/i }),
     ).not.toBeInTheDocument();
   });
 
-  it('opens restore confirmation modal on archived workspace and restores on confirm', async () => {
+  it('opens restore confirmation modal on diarsipkan workspace and restores on confirm', async () => {
     vi.mocked(workspaceService.getWorkspaces).mockResolvedValue([mockArchivedWorkspace]);
     vi.mocked(workspaceService.restoreWorkspace).mockResolvedValue({
       ...mockArchivedWorkspace,
@@ -190,20 +190,20 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
       </Provider>,
     );
 
-    const restoreBtn = screen.getByRole('button', { name: 'Restore Workspace' });
+    const restoreBtn = screen.getByRole('button', { name: 'Pulihkan Workspace' });
     fireEvent.click(restoreBtn);
 
-    const modal = screen.getByRole('dialog', { name: /Restore "Archived Core Project"\?/i });
+    const modal = screen.getByRole('dialog', { name: /Pulihkan "Archived Core Project"\?/i });
     expect(modal).toBeInTheDocument();
 
-    const confirmBtn = within(modal).getByRole('button', { name: 'Restore Workspace' });
+    const confirmBtn = within(modal).getByRole('button', { name: 'Pulihkan Workspace' });
     await act(async () => {
       fireEvent.click(confirmBtn);
     });
 
-    expect(workspaceService.restoreWorkspace).toHaveBeenCalledWith('ws-archived');
+    expect(workspaceService.restoreWorkspace).toHaveBeenCalledWith('ws-diarsipkan');
     expect(
-      screen.queryByRole('dialog', { name: /Restore "Archived Core Project"\?/i }),
+      screen.queryByRole('dialog', { name: /Pulihkan "Archived Core Project"\?/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -219,26 +219,32 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
       </Provider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Permanently' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hapus Permanen' }));
     const modal = screen.getByRole('dialog', {
-      name: /Delete "Archived Core Project" permanently\?/i,
+      name: /Hapus "Archived Core Project" secara permanen\?/i,
     });
-    const confirmButton = within(modal).getByRole('button', { name: 'Delete Permanently' });
+    const confirmButton = within(modal).getByRole('button', { name: 'Hapus Permanen' });
     expect(confirmButton).toBeDisabled();
 
-    fireEvent.change(within(modal).getByLabelText(/Type "Archived Core Project" to confirm/i), {
-      target: { value: 'Archived Core Projec' },
-    });
+    fireEvent.change(
+      within(modal).getByLabelText(/Ketik "Archived Core Project" untuk mengonfirmasi/i),
+      {
+        target: { value: 'Archived Core Projec' },
+      },
+    );
     expect(confirmButton).toBeDisabled();
-    fireEvent.change(within(modal).getByLabelText(/Type "Archived Core Project" to confirm/i), {
-      target: { value: 'Archived Core Project ' },
-    });
+    fireEvent.change(
+      within(modal).getByLabelText(/Ketik "Archived Core Project" untuk mengonfirmasi/i),
+      {
+        target: { value: 'Archived Core Project ' },
+      },
+    );
     expect(confirmButton).not.toBeDisabled();
 
     await act(async () => {
       fireEvent.click(confirmButton);
     });
-    expect(workspaceService.deleteWorkspace).toHaveBeenCalledWith('ws-archived', {
+    expect(workspaceService.deleteWorkspace).toHaveBeenCalledWith('ws-diarsipkan', {
       confirmationName: 'Archived Core Project',
     });
   });
@@ -254,23 +260,23 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     );
 
     // Click remove member button
-    const removeBtns = await screen.findAllByRole('button', { name: /Remove member/i });
+    const removeBtns = await screen.findAllByRole('button', { name: /Hapus anggota/i });
     fireEvent.click(removeBtns[0]);
 
     // Modal dialog should open
-    const modal = screen.getByRole('dialog', { name: /Remove Member from Workspace\?/i });
+    const modal = screen.getByRole('dialog', { name: /Hapus Anggota dari Workspace\?/i });
     expect(modal).toBeInTheDocument();
     expect(within(modal).getAllByText(/bob@qlick\.test/i).length).toBeGreaterThan(0);
 
     // Confirm removal
-    const confirmBtn = within(modal).getByRole('button', { name: 'Remove Member' });
+    const confirmBtn = within(modal).getByRole('button', { name: 'Hapus Anggota' });
     await act(async () => {
       fireEvent.click(confirmBtn);
     });
 
     expect(workspaceService.removeMember).toHaveBeenCalledWith('ws-1', 'user-dev');
     expect(
-      screen.queryByRole('dialog', { name: /Remove Member from Workspace\?/i }),
+      screen.queryByRole('dialog', { name: /Hapus Anggota dari Workspace\?/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -285,15 +291,17 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
       </Provider>,
     );
 
-    const resetButtons = await screen.findAllByRole('button', { name: 'Reset Member Password' });
+    const resetButtons = await screen.findAllByRole('button', {
+      name: 'Atur ulang kata sandi anggota',
+    });
     fireEvent.click(resetButtons[0]);
 
-    const modal = screen.getByRole('dialog', { name: 'Reset Member Password' });
-    fireEvent.change(within(modal).getByPlaceholderText('Minimum 6 characters'), {
+    const modal = screen.getByRole('dialog', { name: 'Atur Ulang Kata Sandi Anggota' });
+    fireEvent.change(within(modal).getByPlaceholderText('Minimal 6 karakter'), {
       target: { value: 'Replacement-password-123!' },
     });
     await act(async () => {
-      fireEvent.click(within(modal).getByRole('button', { name: 'Reset Password' }));
+      fireEvent.click(within(modal).getByRole('button', { name: 'Atur Ulang Kata Sandi' }));
     });
 
     expect(authService.adminResetMemberPassword).toHaveBeenCalledWith({

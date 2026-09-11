@@ -43,11 +43,11 @@ const structuralLabels: Record<
   DeliveryTraceStructuralStatus,
   { label: string; variant: BadgeProps['variant'] }
 > = {
-  complete: { label: 'Structure complete', variant: 'passed' },
-  missing_implementation: { label: 'Implementation missing', variant: 'blocked' },
-  missing_tests: { label: 'Tests missing', variant: 'review' },
+  complete: { label: 'Struktur lengkap', variant: 'passed' },
+  missing_implementation: { label: 'Implementasi belum ada', variant: 'blocked' },
+  missing_tests: { label: 'Pengujian belum ada', variant: 'review' },
   missing_implementation_and_tests: {
-    label: 'Implementation and tests missing',
+    label: 'Implementasi dan pengujian belum ada',
     variant: 'blocked',
   },
 };
@@ -56,10 +56,10 @@ const executionLabels: Record<
   DeliveryTraceExecutionStatus,
   { label: string; variant: BadgeProps['variant'] }
 > = {
-  not_run: { label: 'Tests not run', variant: 'draft' },
-  passing: { label: 'Tests passing', variant: 'passed' },
-  failing: { label: 'Tests failing', variant: 'blocked' },
-  incomplete: { label: 'Execution incomplete', variant: 'review' },
+  not_run: { label: 'Pengujian belum dijalankan', variant: 'draft' },
+  passing: { label: 'Pengujian lulus', variant: 'passed' },
+  failing: { label: 'Pengujian gagal', variant: 'blocked' },
+  incomplete: { label: 'Eksekusi belum lengkap', variant: 'review' },
 };
 
 function RequirementContext({ node }: { node: DeliveryTraceRequirementNode }) {
@@ -95,10 +95,10 @@ function RequirementContext({ node }: { node: DeliveryTraceRequirementNode }) {
       <div className="mt-3 border-t border-stone-200 pt-3 dark:border-stone-800">
         <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-500">
           <ListChecks className="h-3.5 w-3.5" />
-          Acceptance Criteria ({node.totalAcceptanceCriteria})
+          Kriteria Penerimaan ({node.totalAcceptanceCriteria})
         </p>
         {node.acceptanceCriteria.length === 0 ? (
-          <p className="mt-2 text-xs italic text-stone-500">No Acceptance Criteria defined.</p>
+          <p className="mt-2 text-xs italic text-stone-500">Belum ada Kriteria Penerimaan.</p>
         ) : (
           <ul className="mt-2 space-y-2">
             {node.acceptanceCriteria.map((criterion) => (
@@ -136,7 +136,7 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
 }) => {
   if (isLoading && !trace) {
     return (
-      <Card className="space-y-3 p-4 sm:p-5" aria-label="Loading Feature context">
+      <Card className="space-y-3 p-4 sm:p-5" aria-label="Memuat konteks Feature">
         <Skeleton className="h-5 w-48 rounded-lg" />
         <Skeleton className="h-16 w-full rounded-xl" />
         <Skeleton className="h-28 w-full rounded-xl" />
@@ -148,10 +148,10 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
     return (
       <Alert
         tone="error"
-        title="Feature context access restricted"
+        title="Akses konteks Feature dibatasi"
         icon={<LockKeyhole className="h-4 w-4" />}
       >
-        You do not have permission to read the parent Feature&apos;s traceability context.
+        Anda tidak memiliki izin untuk melihat konteks keterlacakan Feature induk.
       </Alert>
     );
   }
@@ -160,11 +160,11 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
     return (
       <Alert
         tone="error"
-        title="Feature context unavailable"
+        title="Konteks Feature tidak tersedia"
         icon={<AlertTriangle className="h-4 w-4" />}
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <span>{error || 'The persisted Feature context could not be loaded.'}</span>
+          <span>{error || 'Konteks Feature yang tersimpan tidak dapat dimuat.'}</span>
           <Button
             variant="outline"
             size="sm"
@@ -172,9 +172,9 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
             disabled={isLoading}
             isLoading={isLoading}
             leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-            aria-label="Retry loading Feature context"
+            aria-label="Coba lagi memuat konteks Feature"
           >
-            Retry
+            Coba lagi
           </Button>
         </div>
       </Alert>
@@ -188,12 +188,12 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
   return (
     <Card className="space-y-4 p-4 sm:p-5" data-testid="my-task-feature-context">
       <nav
-        aria-label="Feature context breadcrumb"
+        aria-label="Jejak navigasi konteks Feature"
         className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-stone-500"
       >
         <span>Feature / Story</span>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="capitalize">{task.deliveryArea || 'execution'} subtask</span>
+        <span className="capitalize">Subtask {task.deliveryArea || 'eksekusi'}</span>
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="max-w-full truncate text-stone-700 dark:text-stone-300">{task.title}</span>
       </nav>
@@ -203,7 +203,7 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <Layers3 className="h-5 w-5 text-stone-700 dark:text-[#B1E743]" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-              Parent Feature / Story
+              Feature / Story Induk
             </p>
             <TaskStatusBadge state={trace.featureTask.status} />
           </div>
@@ -229,7 +229,7 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
               leftIcon={<ArrowLeft className="h-3.5 w-3.5" />}
               onClick={() => onOpenFeature(trace.featureTask.id)}
             >
-              Back to Feature
+              Kembali ke Feature
             </Button>
           )}
         </div>
@@ -238,10 +238,10 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
       <div className="border-t border-stone-200 pt-4 dark:border-stone-800">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h4 className="text-xs font-bold text-stone-900 dark:text-stone-100">
-            Linked Requirements & Acceptance Criteria ({linkedRequirements.length})
+            Requirement &amp; Kriteria Penerimaan Tertaut ({linkedRequirements.length})
           </h4>
           <span className="text-[10px] text-stone-500">
-            Feature total: {trace.structural.totalRequirements} Requirement(s)
+            Total Feature: {trace.structural.totalRequirements} Requirement
           </span>
         </div>
 
@@ -249,11 +249,11 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
           <div className="mt-3">
             <Alert
               tone="warning"
-              title="No Requirement directly linked to this subtask"
+              title="Belum ada Requirement yang langsung tertaut ke Subtask ini"
               icon={<Link2Off className="h-4 w-4" />}
             >
-              Link this execution subtask to a persisted Requirement before treating it as
-              structurally covered.
+              Tautkan Subtask eksekusi ini ke Requirement yang tersimpan agar cakupan strukturnya
+              dapat dinilai.
             </Alert>
           </div>
         ) : (

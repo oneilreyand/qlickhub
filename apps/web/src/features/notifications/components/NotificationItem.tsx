@@ -114,7 +114,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         </p>
         {notif.actorName && (
           <p className="text-[10px] font-semibold text-stone-400 dark:text-stone-500">
-            From: {notif.actorName}
+            Dari: {notif.actorName}
           </p>
         )}
       </div>

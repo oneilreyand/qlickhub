@@ -17,17 +17,14 @@ const ProblemChild: React.FC<{ shouldThrow?: boolean }> = ({ shouldThrow }) => {
 describe('ErrorBoundary & ErrorBoundaryFallback Organism', () => {
   it('renders illustration with the correct 404 image url', () => {
     render(
-      <ErrorBoundaryFallback
-        title="Custom Error Title"
-        description="Custom error description"
-      />
+      <ErrorBoundaryFallback title="Custom Error Title" description="Custom error description" />,
     );
 
-    const img = screen.getByAltText('Error Illustration');
+    const img = screen.getByAltText('Ilustrasi kesalahan');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', ERROR_BOUNDARY_ILLUSTRATION_URL);
     expect(ERROR_BOUNDARY_ILLUSTRATION_URL).toBe(
-      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020942/404.png'
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020942/404.png',
     );
     expect(screen.getByText('Custom Error Title')).toBeInTheDocument();
     expect(screen.getByText('Custom error description')).toBeInTheDocument();
@@ -40,14 +37,14 @@ describe('ErrorBoundary & ErrorBoundaryFallback Organism', () => {
     render(
       <ErrorBoundary>
         <ProblemChild shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-    const img = screen.getByAltText('Error Illustration');
+    expect(screen.getByText('Terjadi Kesalahan')).toBeInTheDocument();
+    const img = screen.getByAltText('Ilustrasi kesalahan');
     expect(img).toHaveAttribute(
       'src',
-      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020942/404.png'
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020942/404.png',
     );
 
     spy.mockRestore();
@@ -56,13 +53,10 @@ describe('ErrorBoundary & ErrorBoundaryFallback Organism', () => {
   it('handles reset callback when Try Again button is clicked', () => {
     const handleReset = vi.fn();
     render(
-      <ErrorBoundaryFallback
-        error={new Error('Sample error')}
-        resetErrorBoundary={handleReset}
-      />
+      <ErrorBoundaryFallback error={new Error('Sample error')} resetErrorBoundary={handleReset} />,
     );
 
-    const tryAgainButton = screen.getByRole('button', { name: /try again/i });
+    const tryAgainButton = screen.getByRole('button', { name: /coba lagi/i });
     fireEvent.click(tryAgainButton);
     expect(handleReset).toHaveBeenCalledTimes(1);
   });

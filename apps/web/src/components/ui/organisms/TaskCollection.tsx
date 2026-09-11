@@ -29,11 +29,11 @@ interface TaskCollectionProps {
 }
 
 const statusGroups: { status: TaskStatus; label: string }[] = [
-  { status: 'todo', label: 'To Do' },
-  { status: 'in_progress', label: 'In Progress' },
-  { status: 'in_review', label: 'In Review' },
-  { status: 'done', label: 'Done' },
-  { status: 'canceled', label: 'Canceled' },
+  { status: 'todo', label: 'Belum Dikerjakan' },
+  { status: 'in_progress', label: 'Sedang Dikerjakan' },
+  { status: 'in_review', label: 'Dalam Review' },
+  { status: 'done', label: 'Selesai' },
+  { status: 'canceled', label: 'Dibatalkan' },
 ];
 
 function isActivationKey(event: React.KeyboardEvent) {
@@ -181,9 +181,9 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
             onClick={toggleCollapseAll}
             className="h-7 text-xs px-2.5 text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
             leftIcon={<ChevronsUpDown className="h-3.5 w-3.5" />}
-            aria-label={isAllCollapsed ? 'Expand all status groups' : 'Collapse all status groups'}
+            aria-label={isAllCollapsed ? 'Buka semua grup status' : 'Tutup semua grup status'}
           >
-            {isAllCollapsed ? 'Expand All' : 'Collapse All'}
+            {isAllCollapsed ? 'Buka Semua' : 'Tutup Semua'}
           </Button>
         </div>
       )}
@@ -271,7 +271,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                             <div className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-400 whitespace-nowrap">
                               <Calendar className="h-3.5 w-3.5 text-stone-400 shrink-0" />
                               <span>
-                                {task.startDate || 'Any'} → {task.dueDate || 'No due date'}
+                                {task.startDate || 'Bebas'} → {task.dueDate || 'Tanpa tenggat'}
                               </span>
                             </div>
                           )}
@@ -299,12 +299,12 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50/50 text-xs font-bold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-300">
               <th className="py-3.5 px-3.5">Task ID / Title</th>
-              <th className="py-3.5 px-3.5 whitespace-nowrap">Folder Location</th>
-              <th className="py-3.5 px-3.5 whitespace-nowrap">Priority</th>
-              <th className="py-3.5 px-3.5 whitespace-nowrap">Dates</th>
+              <th className="py-3.5 px-3.5 whitespace-nowrap">Lokasi Folder</th>
+              <th className="py-3.5 px-3.5 whitespace-nowrap">Prioritas</th>
+              <th className="py-3.5 px-3.5 whitespace-nowrap">Tanggal</th>
               <th className="py-3.5 px-3.5 whitespace-nowrap">Delivery &amp; Release</th>
               <th className="py-3.5 px-3.5 whitespace-nowrap">Status</th>
-              <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Actions</th>
+              <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
@@ -452,7 +452,7 @@ const Empty = () => (
     <div className="flex justify-center">
       <img
         src={EMPTY_TASKS_ILLUSTRATION_URL}
-        alt="No Tasks in Task Hub Illustration"
+        alt="Ilustrasi tidak ada Task di Task Hub"
         className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.02] drop-shadow-xs"
         loading="lazy"
       />
@@ -465,10 +465,10 @@ const Empty = () => (
     </div>
     <div className="space-y-1">
       <p className="text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100">
-        No tasks found
+        Task tidak ditemukan
       </p>
       <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 max-w-sm mx-auto leading-relaxed">
-        There are no tasks matching your folder or filter criteria.
+        Tidak ada task yang sesuai dengan folder atau filter yang dipilih.
       </p>
     </div>
   </div>

@@ -52,10 +52,10 @@ export const OverviewStoreDashboard: React.FC = () => {
 
   const startIso = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-01`;
   const endIso = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(
-    endOfMonth.getDate()
+    endOfMonth.getDate(),
   ).padStart(2, '0')}`;
   const todayIso = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(
-    now.getDate()
+    now.getDate(),
   ).padStart(2, '0')}`;
 
   const monthName = startOfMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
@@ -86,13 +86,14 @@ export const OverviewStoreDashboard: React.FC = () => {
   const todoTasks = activeTaskList.filter((t) => t.status === 'todo').length;
   const inProgressTasks = activeTaskList.filter((t) => t.status === 'in_progress').length;
   const inReviewTasks = activeTaskList.filter(
-    (t) => t.status === 'in_review' || t.status === 'changes_requested'
+    (t) => t.status === 'in_review' || t.status === 'changes_requested',
   ).length;
   const completedTasks = activeTaskList.filter((t) => t.status === 'done').length;
 
   const urgentTasks = activeTaskList.filter((t) => t.priority === 'urgent').length;
   const overdueTasks = activeTaskList.filter(
-    (t) => Boolean(t.dueDate) && t.dueDate! < todayIso && t.status !== 'done' && t.status !== 'canceled'
+    (t) =>
+      Boolean(t.dueDate) && t.dueDate! < todayIso && t.status !== 'done' && t.status !== 'canceled',
   ).length;
   const blockedTasks = urgentTasks + overdueTasks;
 
@@ -105,16 +106,45 @@ export const OverviewStoreDashboard: React.FC = () => {
   const daysInMonth = endOfMonth.getDate();
   const weeklyAnalyticsData = useMemo(() => {
     const intervals = [
-      { label: 'W1', period: `1-7 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 1, endDay: 7 },
-      { label: 'W2', period: `8-14 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 8, endDay: 14 },
-      { label: 'W3', period: `15-21 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 15, endDay: 21 },
-      { label: 'W4', period: `22-28 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 22, endDay: 28 },
-      { label: 'W5', period: `29-${daysInMonth} ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`, startDay: 29, endDay: daysInMonth },
+      {
+        label: 'W1',
+        period: `1-7 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`,
+        startDay: 1,
+        endDay: 7,
+      },
+      {
+        label: 'W2',
+        period: `8-14 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`,
+        startDay: 8,
+        endDay: 14,
+      },
+      {
+        label: 'W3',
+        period: `15-21 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`,
+        startDay: 15,
+        endDay: 21,
+      },
+      {
+        label: 'W4',
+        period: `22-28 ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`,
+        startDay: 22,
+        endDay: 28,
+      },
+      {
+        label: 'W5',
+        period: `29-${daysInMonth} ${startOfMonth.toLocaleDateString('id-ID', { month: 'short' })}`,
+        startDay: 29,
+        endDay: daysInMonth,
+      },
     ];
 
     return intervals.map((intv) => {
       const bucketTasks = activeTaskList.filter((t) => {
-        const d = t.createdAt ? new Date(t.createdAt).getDate() : (t.dueDate ? new Date(t.dueDate).getDate() : null);
+        const d = t.createdAt
+          ? new Date(t.createdAt).getDate()
+          : t.dueDate
+            ? new Date(t.dueDate).getDate()
+            : null;
         if (d === null) return true;
         return d >= intv.startDay && d <= intv.endDay;
       });
@@ -124,7 +154,9 @@ export const OverviewStoreDashboard: React.FC = () => {
         period: intv.period,
         todo: bucketTasks.filter((t) => t.status === 'todo').length,
         inProgress: bucketTasks.filter((t) => t.status === 'in_progress').length,
-        inReview: bucketTasks.filter((t) => t.status === 'in_review' || t.status === 'changes_requested').length,
+        inReview: bucketTasks.filter(
+          (t) => t.status === 'in_review' || t.status === 'changes_requested',
+        ).length,
         done: bucketTasks.filter((t) => t.status === 'done').length,
         defects: bucketTasks.filter((t) => t.priority === 'urgent').length,
         total: bucketTasks.length,
@@ -140,13 +172,20 @@ export const OverviewStoreDashboard: React.FC = () => {
   const remainingReleaseDash = Math.max(0, donutCircumference - releaseDash);
 
   // User Role & Bottom Stream Cards Logic
-  const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || currentUser?.role || 'dev').toLowerCase();
+  const userRole = (
+    activeWorkspace?.role ||
+    activeWorkspace?.myRole ||
+    currentUser?.role ||
+    'dev'
+  ).toLowerCase();
   const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
   const isQA = userRole === 'qa';
   const isPO = userRole === 'po';
 
   const myAssignedTasks = tasks.filter((t) => t.assigneeId === currentUser?.id);
-  const myPendingTasks = myAssignedTasks.filter((t) => t.status !== 'done' && t.status !== 'canceled');
+  const myPendingTasks = myAssignedTasks.filter(
+    (t) => t.status !== 'done' && t.status !== 'canceled',
+  );
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -158,7 +197,7 @@ export const OverviewStoreDashboard: React.FC = () => {
             <span>Workspace Delivery Hub</span>
           </div>
           <h1 className="text-3xl font-extrabold text-[#22201F] tracking-tight dark:text-white mt-1">
-            Overview
+            Ikhtisar
           </h1>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <p className="text-sm font-medium text-stone-500 dark:text-stone-400">
@@ -169,7 +208,9 @@ export const OverviewStoreDashboard: React.FC = () => {
             </p>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-0.5 text-xs font-semibold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
               <Calendar className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />
-              <span>Bulan {monthName} ({formattedDateRange})</span>
+              <span>
+                Bulan {monthName} ({formattedDateRange})
+              </span>
             </span>
           </div>
         </div>
@@ -182,7 +223,7 @@ export const OverviewStoreDashboard: React.FC = () => {
             rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
             className="rounded-full"
           >
-            Open Task Hub
+            Buka Task Hub
           </Button>
         </div>
       </div>
@@ -237,7 +278,6 @@ export const OverviewStoreDashboard: React.FC = () => {
             Tugas dalam tahap implementasi aktif
           </p>
         </div>
-
 
         {/* Card 3: QA & In Review */}
         <div className="rounded-[24px] bg-white p-6 border border-stone-200/80 shadow-xs space-y-3 dark:bg-[#1C1A19] dark:border-stone-800">
@@ -360,7 +400,8 @@ export const OverviewStoreDashboard: React.FC = () => {
               </div>
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-[#22201F] dark:bg-stone-300" /> In Progress
+                  <span className="h-2 w-2 rounded-full bg-[#22201F] dark:bg-stone-300" /> In
+                  Progress
                 </span>
                 <span className="font-bold text-stone-900 dark:text-stone-200">
                   {inProgressTasks} ({inProgressRate}%)
@@ -439,7 +480,8 @@ export const OverviewStoreDashboard: React.FC = () => {
                 <span className="h-2.5 w-2.5 rounded-full bg-stone-300 dark:bg-stone-600" /> To Do
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#22201F] dark:bg-stone-300" /> In Progress
+                <span className="h-2.5 w-2.5 rounded-full bg-[#22201F] dark:bg-stone-300" /> In
+                Progress
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> In Review
@@ -454,14 +496,18 @@ export const OverviewStoreDashboard: React.FC = () => {
           <div className="relative pt-8 pb-4">
             {/* Scale Grid Lines */}
             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] font-semibold text-stone-400">
-              {[maxBucketTotal, Math.round(maxBucketTotal * 0.75), Math.round(maxBucketTotal * 0.5), Math.round(maxBucketTotal * 0.25), 0].map(
-                (val, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <span className="w-6 text-right">{val}</span>
-                    <div className="flex-1 border-b border-stone-100 dark:border-stone-800/60" />
-                  </div>
-                )
-              )}
+              {[
+                maxBucketTotal,
+                Math.round(maxBucketTotal * 0.75),
+                Math.round(maxBucketTotal * 0.5),
+                Math.round(maxBucketTotal * 0.25),
+                0,
+              ].map((val, idx) => (
+                <div key={idx} className="flex items-center gap-3">
+                  <span className="w-6 text-right">{val}</span>
+                  <div className="flex-1 border-b border-stone-100 dark:border-stone-800/60" />
+                </div>
+              ))}
             </div>
 
             {/* Stacked Vertical Bars */}
@@ -484,16 +530,20 @@ export const OverviewStoreDashboard: React.FC = () => {
                         <span className="text-stone-400 text-[9px] font-mono">{bar.period}</span>
                         <div className="mt-1 space-y-0.5">
                           <span className="flex items-center gap-1.5 text-stone-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-stone-400" /> {bar.todo} To Do
+                            <span className="h-1.5 w-1.5 rounded-full bg-stone-400" /> {bar.todo} To
+                            Do
                           </span>
                           <span className="flex items-center gap-1.5 text-stone-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-stone-300" /> {bar.inProgress} In Progress
+                            <span className="h-1.5 w-1.5 rounded-full bg-stone-300" />{' '}
+                            {bar.inProgress} In Progress
                           </span>
                           <span className="flex items-center gap-1.5 text-amber-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {bar.inReview} In Review
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />{' '}
+                            {bar.inReview} In Review
                           </span>
                           <span className="flex items-center gap-1.5 text-[#B1E743]">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#B1E743]" /> {bar.done} Selesai
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#B1E743]" /> {bar.done}{' '}
+                            Selesai
                           </span>
                         </div>
                       </div>
@@ -505,16 +555,10 @@ export const OverviewStoreDashboard: React.FC = () => {
                       style={{ height: `${minDisplayHeight}px` }}
                     >
                       {bar.done > 0 && (
-                        <div
-                          className="bg-[#B1E743] w-full"
-                          style={{ flex: bar.done }}
-                        />
+                        <div className="bg-[#B1E743] w-full" style={{ flex: bar.done }} />
                       )}
                       {bar.inReview > 0 && (
-                        <div
-                          className="bg-amber-400 w-full"
-                          style={{ flex: bar.inReview }}
-                        />
+                        <div className="bg-amber-400 w-full" style={{ flex: bar.inReview }} />
                       )}
                       {bar.inProgress > 0 && (
                         <div
@@ -532,7 +576,6 @@ export const OverviewStoreDashboard: React.FC = () => {
                         <div className="bg-stone-200 dark:bg-stone-800 w-full h-full" />
                       )}
                     </div>
-
 
                     <span className="text-[11px] font-bold text-stone-500 mt-2 dark:text-stone-400">
                       {bar.label}
@@ -601,7 +644,7 @@ export const OverviewStoreDashboard: React.FC = () => {
         )}
 
         {/* Card 3: Engineering Tasks (Visible for Dev, Admin, Owner) */}
-        {(!isQA && !isPO) && (
+        {!isQA && !isPO && (
           <div
             onClick={() => navigate('/work?tab=tasks')}
             className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-emerald-300 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"

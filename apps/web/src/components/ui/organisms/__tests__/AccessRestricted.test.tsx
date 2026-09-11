@@ -1,27 +1,24 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import {
-  AccessRestricted,
-  ACCESS_RESTRICTED_ILLUSTRATION_URL,
-} from '../AccessRestricted';
+import { AccessRestricted, ACCESS_RESTRICTED_ILLUSTRATION_URL } from '../AccessRestricted';
 
 describe('AccessRestricted Organism', () => {
-  it('renders illustration with the correct access restricted image URL', () => {
+  it('renders illustration with the correct akses dibatasi image URL', () => {
     render(
       <MemoryRouter>
         <AccessRestricted workspaceName="Billing & Core QA" />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    const img = screen.getByAltText('Access Restricted Illustration');
+    const img = screen.getByAltText('Ilustrasi akses dibatasi');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', ACCESS_RESTRICTED_ILLUSTRATION_URL);
     expect(ACCESS_RESTRICTED_ILLUSTRATION_URL).toBe(
-      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787022062/ChatGPT_Image_Aug_18_2026_10_00_36_AM.png'
+      'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787022062/ChatGPT_Image_Aug_18_2026_10_00_36_AM.png',
     );
 
-    expect(screen.getByRole('heading', { name: /access restricted/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /akses dibatasi/i })).toBeInTheDocument();
     expect(screen.getByText(/Billing & Core QA/i)).toBeInTheDocument();
   });
 
@@ -35,7 +32,7 @@ describe('AccessRestricted Organism', () => {
           actionLabel="Go Back"
           onAction={handleAction}
         />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const actionBtn = screen.getByRole('button', { name: /go back/i });

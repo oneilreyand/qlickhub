@@ -84,7 +84,7 @@ export const MyTasksPage: React.FC = () => {
     } catch (error) {
       dispatch(
         enqueueSnackbar(
-          error instanceof Error ? error.message : 'Unable to open this work item.',
+          error instanceof Error ? error.message : 'Pekerjaan ini tidak dapat dibuka.',
           'error',
         ),
       );

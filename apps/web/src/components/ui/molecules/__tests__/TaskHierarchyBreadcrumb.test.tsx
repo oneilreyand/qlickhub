@@ -29,7 +29,7 @@ describe('TaskHierarchyBreadcrumb', () => {
     expect(screen.getByLabelText('Task hierarchy breadcrumb')).toHaveTextContent(
       'Feature / StoryCheckout Feature',
     );
-    expect(screen.queryByRole('button', { name: 'Back to Feature' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kembali ke Feature' })).not.toBeInTheDocument();
   });
 
   it('shows the parent/subtask hierarchy and opens the parent Feature from both controls', () => {
@@ -46,8 +46,8 @@ describe('TaskHierarchyBreadcrumb', () => {
       'Checkout Featurefrontend subtaskBuild checkout summary',
     );
 
-    const parentLink = screen.getByRole('button', { name: 'Open parent Feature Checkout Feature' });
-    const backToFeature = screen.getByRole('button', { name: 'Back to Feature' });
+    const parentLink = screen.getByRole('button', { name: 'Buka Feature induk Checkout Feature' });
+    const backToFeature = screen.getByRole('button', { name: 'Kembali ke Feature' });
     expect(parentLink).toHaveClass('!min-h-[44px]');
     expect(backToFeature).toHaveClass('!min-h-[44px]');
 

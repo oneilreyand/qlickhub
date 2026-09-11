@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  AlertTriangle,
-  Plus,
-  RefreshCw,
-  Layers,
-} from 'lucide-react';
-import {
-  WorkspaceTraceabilitySummary,
-  TestCaseStatus,
-} from '@qlick/contracts';
+import { AlertTriangle, Plus, RefreshCw, Layers } from 'lucide-react';
+import { WorkspaceTraceabilitySummary, TestCaseStatus } from '@qlick/contracts';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Input } from '../atoms/Input';
@@ -42,7 +34,7 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
       const data = await traceabilityService.getTraceabilitySummary(workspaceId);
       setSummary(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load traceability matrix');
+      setError(err instanceof Error ? err.message : 'Matriks keterlacakan gagal dimuat');
     } finally {
       setIsLoading(false);
     }
@@ -60,9 +52,9 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
     } catch (err) {
       dispatch(
         enqueueSnackbar(
-          err instanceof Error ? err.message : 'Failed to update test case status',
-          'error'
-        )
+          err instanceof Error ? err.message : 'Status Test Case gagal diperbarui',
+          'error',
+        ),
       );
     }
   };
@@ -76,16 +68,13 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
         testType: newTcType,
         status: 'pending',
       });
-      dispatch(enqueueSnackbar('Requirement test case created!', 'success'));
+      dispatch(enqueueSnackbar('Test Case Requirement berhasil dibuat', 'success'));
       setNewTcTitle('');
       setSelectedReqId(null);
       loadMatrix();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(
-          err instanceof Error ? err.message : 'Failed to create test case',
-          'error'
-        )
+        enqueueSnackbar(err instanceof Error ? err.message : 'Test Case gagal dibuat', 'error'),
       );
     } finally {
       setIsSubmittingTc(false);
@@ -105,7 +94,7 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
     return (
       <Card className="p-6 text-center space-y-3">
         <AlertTriangle className="h-8 w-8 text-rose-500 mx-auto" />
-        <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">Traceability Error</h3>
+        <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">Error Keterlacakan</h3>
         <p className="text-xs text-stone-500">{error}</p>
         <Button size="sm" variant="outline" onClick={loadMatrix}>
           Retry
@@ -121,11 +110,13 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
       {/* Top Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="p-4 bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800">
-          <p className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Requirements</p>
+          <p className="text-xs font-bold text-stone-500 uppercase tracking-wider">
+            Total Requirement
+          </p>
           <p className="text-2xl font-black text-stone-900 dark:text-stone-100 mt-1">
             {summary.totalRequirements}
           </p>
-          <p className="text-[11px] text-stone-400 mt-0.5">Across active workspace</p>
+          <p className="text-[11px] text-stone-400 mt-0.5">Di seluruh Workspace aktif</p>
         </Card>
 
         <Card className="p-4 bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800">
@@ -135,7 +126,7 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
           <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
             {summary.coveredRequirements}
           </p>
-          <p className="text-[11px] text-stone-400 mt-0.5">Linked to tasks/tests</p>
+          <p className="text-[11px] text-stone-400 mt-0.5">Tertaut ke Task/pengujian</p>
         </Card>
 
         <Card className="p-4 bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800">
@@ -145,15 +136,17 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
           <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">
             {summary.uncoveredRequirements}
           </p>
-          <p className="text-[11px] text-stone-400 mt-0.5">Needs QA coverage</p>
+          <p className="text-[11px] text-stone-400 mt-0.5">Memerlukan cakupan QA</p>
         </Card>
 
         <Card className="p-4 bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800">
-          <p className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Test Cases</p>
+          <p className="text-xs font-bold text-stone-500 uppercase tracking-wider">
+            Total Test Case
+          </p>
           <p className="text-2xl font-black text-stone-900 dark:text-stone-100 mt-1">
             {summary.totalTestCases}
           </p>
-          <p className="text-[11px] text-stone-400 mt-0.5">Validation scenarios</p>
+          <p className="text-[11px] text-stone-400 mt-0.5">Skenario validasi</p>
         </Card>
 
         <Card className="p-4 bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800">
@@ -163,7 +156,7 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
           <p className="text-2xl font-black text-stone-900 dark:text-[#B1E743] mt-1">
             {summary.passRatePercent}%
           </p>
-          <p className="text-[11px] text-stone-400 mt-0.5">Passed test ratio</p>
+          <p className="text-[11px] text-stone-400 mt-0.5">Rasio pengujian lulus</p>
         </Card>
       </div>
 
@@ -173,20 +166,26 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
           <div>
             <h2 className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
               <Layers className="h-5 w-5 text-stone-700 dark:text-[#B1E743]" />
-              Requirements Traceability Matrix
+              Matriks Keterlacakan Requirement
             </h2>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-              Trace requirements to linked tasks, QA strategy documents, and test case execution statuses.
+              Tautkan Requirement ke task, dokumen strategi QA, dan status eksekusi Test Case.
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={loadMatrix} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>
-            Refresh Matrix
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={loadMatrix}
+            leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
+          >
+            Muat Ulang Matriks
           </Button>
         </div>
 
         {summary.matrix.length === 0 ? (
           <p className="text-xs text-stone-500 italic text-center py-8">
-            No requirements defined in this workspace yet. Create requirements in Work Hub task drawer to populate the traceability matrix.
+            Belum ada Requirement di workspace ini. Buat Requirement melalui drawer task di Work Hub
+            untuk mengisi matriks keterlacakan.
           </p>
         ) : (
           <div className="space-y-4">
@@ -239,7 +238,9 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
                       <span>Linked Tasks ({node.tasks.length})</span>
                     </span>
                     {node.tasks.length === 0 ? (
-                      <p className="text-stone-400 italic text-[11px] py-1">No tasks linked</p>
+                      <p className="text-stone-400 italic text-[11px] py-1">
+                        Belum ada Task tertaut
+                      </p>
                     ) : (
                       <div className="space-y-1.5">
                         {node.tasks.map((t) => (
@@ -260,7 +261,9 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
                       <span>QA Documents ({node.qaDocuments.length})</span>
                     </span>
                     {node.qaDocuments.length === 0 ? (
-                      <p className="text-stone-400 italic text-[11px] py-1">No QA docs linked</p>
+                      <p className="text-stone-400 italic text-[11px] py-1">
+                        Belum ada dokumen QA tertaut
+                      </p>
                     ) : (
                       <div className="space-y-1.5">
                         {node.qaDocuments.map((doc) => (
@@ -288,7 +291,11 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
                         variant="ghost"
                         className="h-6 px-1.5 text-[11px]"
                         leftIcon={<Plus className="h-3 w-3" />}
-                        onClick={() => setSelectedReqId(selectedReqId === node.requirement.id ? null : node.requirement.id)}
+                        onClick={() =>
+                          setSelectedReqId(
+                            selectedReqId === node.requirement.id ? null : node.requirement.id,
+                          )
+                        }
                       >
                         Add Test
                       </Button>
@@ -299,7 +306,7 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
                       <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200 dark:bg-stone-950 dark:border-stone-800 space-y-2 my-2">
                         <Input
                           type="text"
-                          placeholder="Test case scenario..."
+                          placeholder="Skenario Test Case..."
                           value={newTcTitle}
                           onChange={(e) => setNewTcTitle(e.target.value)}
                         />
@@ -310,8 +317,8 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
                             className="w-full rounded-lg border border-stone-200 bg-white p-1 text-xs dark:border-stone-800 dark:bg-stone-900 text-stone-800 dark:text-stone-200"
                           >
                             <option value="manual">Manual</option>
-                            <option value="e2e">E2E Automated</option>
-                            <option value="integration">Integration</option>
+                            <option value="e2e">E2E Otomatis</option>
+                            <option value="integration">Integrasi</option>
                             <option value="unit">Unit Test</option>
                           </select>
                           <Button
@@ -321,37 +328,44 @@ export const QaTraceabilityMatrix: React.FC<QaTraceabilityMatrixProps> = ({ work
                             disabled={!newTcTitle.trim()}
                             onClick={() => handleAddTestCase(node.requirement.id)}
                           >
-                            Save
+                            Simpan
                           </Button>
                         </div>
                       </div>
                     )}
 
                     {node.testCases.length === 0 ? (
-                      <p className="text-stone-400 italic text-[11px] py-1">No test cases executed</p>
+                      <p className="text-stone-400 italic text-[11px] py-1">
+                        Belum ada Test Case yang dijalankan
+                      </p>
                     ) : (
                       <div className="space-y-2">
                         {node.testCases.map((tc) => (
-                          <div key={tc.id} className="p-2 rounded bg-stone-50 border border-stone-100 dark:bg-stone-950 dark:border-stone-800 space-y-1">
+                          <div
+                            key={tc.id}
+                            className="p-2 rounded bg-stone-50 border border-stone-100 dark:bg-stone-950 dark:border-stone-800 space-y-1"
+                          >
                             <div className="flex items-center justify-between gap-2">
                               <span className="font-semibold text-stone-900 dark:text-stone-100 flex-1 truncate">
                                 {tc.title}
                               </span>
                               <select
                                 value={tc.status}
-                                onChange={(e) => handleUpdateStatus(tc.id, e.target.value as TestCaseStatus)}
+                                onChange={(e) =>
+                                  handleUpdateStatus(tc.id, e.target.value as TestCaseStatus)
+                                }
                                 className={`text-[10px] font-bold rounded px-1.5 py-0.5 border ${
                                   tc.status === 'passed'
                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
                                     : tc.status === 'failed'
-                                    ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-300'
-                                    : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-300'
+                                      : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
                                 }`}
                               >
-                                <option value="pending">Pending</option>
-                                <option value="passed">Passed</option>
-                                <option value="failed">Failed</option>
-                                <option value="skipped">Skipped</option>
+                                <option value="pending">Menunggu</option>
+                                <option value="passed">Lulus</option>
+                                <option value="failed">Gagal</option>
+                                <option value="skipped">Dilewati</option>
                               </select>
                             </div>
                           </div>

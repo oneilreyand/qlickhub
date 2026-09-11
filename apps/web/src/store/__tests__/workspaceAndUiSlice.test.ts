@@ -60,10 +60,16 @@ describe('workspace and UI state', () => {
 
     const withNotif = uiReducer(
       initialState,
-      addInAppNotification('New Task Assigned', 'You are assigned to FE', 'assignment', 'task-1', 'PO Lead')
+      addInAppNotification(
+        'New Task Ditugaskan',
+        'You are assigned to FE',
+        'assignment',
+        'task-1',
+        'PO Lead',
+      ),
     );
     expect(withNotif.inAppNotifications).toHaveLength(1);
-    expect(withNotif.inAppNotifications[0].title).toBe('New Task Assigned');
+    expect(withNotif.inAppNotifications[0].title).toBe('New Task Ditugaskan');
     expect(withNotif.inAppNotifications[0].isRead).toBe(false);
     expect(withNotif.unreadNotificationCount).toBe(1);
 
@@ -74,7 +80,7 @@ describe('workspace and UI state', () => {
 
     const withSecond = uiReducer(
       markedRead,
-      addInAppNotification('Mention', 'Mentioned in chat', 'mention', 'task-2')
+      addInAppNotification('Mention', 'Mentioned in chat', 'mention', 'task-2'),
     );
     expect(withSecond.unreadNotificationCount).toBe(1);
 

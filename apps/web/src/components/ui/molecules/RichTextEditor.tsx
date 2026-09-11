@@ -44,7 +44,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   label,
   value,
   onChange,
-  placeholder = 'Write details, requirements, or formatted notes...',
+  placeholder = 'Tulis detail, Requirement, atau catatan berformat...',
   disabled = false,
   required = false,
   minRows = 4,
@@ -94,7 +94,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const handleInsertUrlImage = () => {
     if (!imageUrlInput.trim()) return;
-    const alt = imageAltInput.trim() || 'Image';
+    const alt = imageAltInput.trim() || 'Gambar';
     const imageMarkdown = `\n![${alt}](${imageUrlInput.trim()})\n`;
     const textarea = textareaRef.current;
     if (textarea) {
@@ -112,7 +112,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const handleInsertUrlVideo = () => {
     if (!videoUrlInput.trim()) return;
-    const title = videoTitleInput.trim() || 'Video Attachment';
+    const title = videoTitleInput.trim() || 'Lampiran Video';
     const videoMarkdown = `\n![${title}](${videoUrlInput.trim()})\n`;
     const textarea = textareaRef.current;
     if (textarea) {
@@ -187,17 +187,17 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
       if (e.key === 'b' || e.key === 'B') {
         e.preventDefault();
-        applyFormat('**', '**', 'bold text');
+        applyFormat('**', '**', 'teks tebal');
         return;
       }
       if (e.key === 'i' || e.key === 'I') {
         e.preventDefault();
-        applyFormat('*', '*', 'italic text');
+        applyFormat('*', '*', 'teks miring');
         return;
       }
       if (e.key === 'k' || e.key === 'K') {
         e.preventDefault();
-        applyFormat('[', '](https://example.com)', 'link text');
+        applyFormat('[', '](https://example.com)', 'teks tautan');
         return;
       }
     }
@@ -346,7 +346,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => applyFormat('**', '**', 'bold')}
-              title="Bold (Ctrl+B)"
+              title="Tebal (Ctrl+B)"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <Bold className="h-3.5 w-3.5" />
@@ -355,7 +355,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => applyFormat('*', '*', 'italic')}
-              title="Italic (Ctrl+I)"
+              title="Miring (Ctrl+I)"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <Italic className="h-3.5 w-3.5" />
@@ -386,7 +386,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => applyLinePrefix('# ')}
-              title="Heading 1"
+              title="Judul 1"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <Heading1 className="h-3.5 w-3.5" />
@@ -395,7 +395,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => applyLinePrefix('## ')}
-              title="Heading 2"
+              title="Judul 2"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <Heading2 className="h-3.5 w-3.5" />
@@ -404,7 +404,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => applyLinePrefix('### ')}
-              title="Heading 3"
+              title="Judul 3"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <Heading3 className="h-3.5 w-3.5" />
@@ -417,7 +417,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => applyLinePrefix('- ')}
-              title="Bullet List"
+              title="Daftar Bullet"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <List className="h-3.5 w-3.5" />
@@ -426,7 +426,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => applyLinePrefix('1. ')}
-              title="Numbered List"
+              title="Daftar Bernomor"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <ListOrdered className="h-3.5 w-3.5" />
@@ -453,7 +453,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => applyFormat('[', '](https://)', 'link')}
-              title="Insert Link (Ctrl+K)"
+              title="Sisipkan Tautan (Ctrl+K)"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <LinkIcon className="h-3.5 w-3.5" />
@@ -462,7 +462,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => setIsImageModalOpen(true)}
-              title="Insert Image Link (PNG, JPG, WebP, etc.)"
+              title="Sisipkan Tautan Gambar (PNG, JPG, WebP, dll.)"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <ImageIcon className="h-3.5 w-3.5" />
@@ -471,7 +471,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               disabled={disabled || activeTab === 'preview'}
               onClick={() => setIsVideoModalOpen(true)}
-              title="Insert Video Link (MP4, YouTube, or Loom)"
+              title="Sisipkan Tautan Video (MP4, YouTube, atau Loom)"
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 disabled:opacity-40 transition-colors"
             >
               <VideoIcon className="h-3.5 w-3.5" />
@@ -501,7 +501,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
               >
                 <Edit3 className="h-3 w-3" />
-                Write
+                Tulis
               </button>
               <button
                 type="button"
@@ -513,7 +513,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
               >
                 <Eye className="h-3 w-3" />
-                Preview
+                Pratinjau
               </button>
             </div>
 
@@ -521,7 +521,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <button
               type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Expand Fullscreen / Focus Mode'}
+              title={
+                isFullscreen ? 'Keluar dari Layar Penuh (Esc)' : 'Buka Layar Penuh / Mode Fokus'
+              }
               className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 transition-colors"
             >
               {isFullscreen ? (
@@ -574,7 +576,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <FormattedText content={value} />
             ) : (
               <p className="text-xs italic text-stone-400 dark:text-stone-500">
-                {placeholder || 'No content provided. Switch to Write mode to add text.'}
+                {placeholder || 'Belum ada konten. Buka mode Tulis untuk menambahkan teks.'}
               </p>
             )}
           </div>
@@ -584,8 +586,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <div className="flex items-center justify-between border-t border-stone-100 bg-stone-50/50 px-3 py-1 text-[10px] text-stone-400 dark:border-stone-800/60 dark:bg-stone-950/40 dark:text-stone-500 shrink-0">
           <span className="italic">
             {isFullscreen
-              ? 'Press Esc to exit Fullscreen'
-              : 'Tip: Insert media links with Image or Video toolbar buttons'}
+              ? 'Tekan Esc untuk keluar dari layar penuh'
+              : 'Tips: Sisipkan tautan media melalui tombol Gambar atau Video'}
           </span>
           <span className="font-mono">
             {wordCount} {wordCount === 1 ? 'word' : 'words'} · {charCount} chars
@@ -604,7 +606,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
               <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
                 <ImageIcon className="h-4 w-4 text-brand-600" />
-                <span>Insert Image Link</span>
+                <span>Sisipkan Tautan Gambar</span>
               </h3>
               <button
                 type="button"
@@ -618,7 +620,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="space-y-3">
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
-                  Image URL <span className="text-rose-500">*</span>
+                  URL Gambar <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="url"
@@ -629,7 +631,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   autoFocus
                 />
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 pt-1">
-                  Image Description / Caption (Optional)
+                  Deskripsi / Caption Gambar (Opsional)
                 </label>
                 <input
                   type="text"
@@ -646,7 +648,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   onClick={() => setIsImageModalOpen(false)}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 dark:border-stone-800 dark:text-stone-300 dark:hover:bg-stone-800"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="button"
@@ -654,12 +656,13 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   onClick={handleInsertUrlImage}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-900 text-white hover:bg-stone-800 dark:bg-brand-500 dark:text-stone-900 dark:hover:bg-brand-400 disabled:opacity-40"
                 >
-                  Insert Image Link
+                  Sisipkan Tautan Gambar
                 </button>
               </div>
 
               <p className="text-[11px] text-stone-400 italic text-center pt-1">
-                Supports PNG, JPG, GIF, WebP, and SVG links with zoom lightbox preview.
+                Mendukung tautan PNG, JPG, GIF, WebP, dan SVG dengan pratinjau yang dapat
+                diperbesar.
               </p>
             </div>
           </div>
@@ -677,7 +680,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
               <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
                 <VideoIcon className="h-4 w-4 text-red-500" />
-                <span>Insert Video Link</span>
+                <span>Sisipkan Tautan Video</span>
               </h3>
               <button
                 type="button"
@@ -691,22 +694,22 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="space-y-3">
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
-                  Video URL / Embed Link <span className="text-rose-500">*</span>
+                  URL Video / Tautan Embed <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="url"
-                  placeholder="https://example.com/demo.mp4 or YouTube / Loom link"
+                  placeholder="https://example.com/demo.mp4 atau tautan YouTube / Loom"
                   value={videoUrlInput}
                   onChange={(e) => setVideoUrlInput(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 outline-none focus:border-brand-500"
                   autoFocus
                 />
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 pt-1">
-                  Video Title / Description (Optional)
+                  Judul / Deskripsi Video (Opsional)
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Bug Reproduction Demo or Walkthrough"
+                  placeholder="Contoh: Demo reproduksi Bug atau walkthrough"
                   value={videoTitleInput}
                   onChange={(e) => setVideoTitleInput(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 outline-none focus:border-brand-500"
@@ -719,7 +722,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   onClick={() => setIsVideoModalOpen(false)}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 dark:border-stone-800 dark:text-stone-300 dark:hover:bg-stone-800"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="button"
@@ -727,7 +730,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   onClick={handleInsertUrlVideo}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-900 text-white hover:bg-stone-800 dark:bg-brand-500 dark:text-stone-900 dark:hover:bg-brand-400 disabled:opacity-40"
                 >
-                  Insert Video Link
+                  Sisipkan Tautan Video
                 </button>
               </div>
 

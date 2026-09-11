@@ -160,7 +160,7 @@ const GUIDES: GuideItem[] = [
         title: 'Buka Tab "Subtasks"',
         shortDesc: 'Akses area distribusi subtask teknis di drawer.',
         instruction:
-          'Klik tab "Subtasks" pada detail Feature Task, lalu klik tombol "+ Add Subtask".',
+          'Klik tab "Subtasks" pada detail Feature Task, lalu klik tombol "+ Tambah Subtask".',
       },
       {
         title: 'Pilih Area Kerja (Frontend, Backend, Mobile, Fullstack, QA)',
@@ -196,7 +196,7 @@ const GUIDES: GuideItem[] = [
     steps: [
       {
         title: 'Buka "My Tasks" (Dev Working Desk)',
-        shortDesc: 'Lihat antrean tugas pada bucket "Assigned Work".',
+        shortDesc: 'Lihat antrean tugas pada kelompok "Pekerjaan yang Ditugaskan".',
         instruction:
           'Buka menu My Tasks. Subtask yang ditugaskan khusus untuk Anda akan tampil dengan status TODO.',
       },
@@ -276,7 +276,7 @@ const GUIDES: GuideItem[] = [
           'Buka menu My Tasks dan pilih mode QA Testing Desk. Klik tombol "Import Spreadsheet" atau "New Test Case".',
       },
       {
-        title: 'Upload File Spreadsheet (CSV / XLSX)',
+        title: 'Unggah File Spreadsheet (CSV / XLSX)',
         shortDesc: 'Pilih file dan tentukan sheet yang ingin diimpor.',
         instruction:
           'Drop file test case spreadsheet. Jika XLSX memiliki multi-sheet, pilih tab sheet yang relevan.',
@@ -957,7 +957,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                         <span className="w-2 h-2 rounded-full bg-[#B1E743]" /> REQ-CHECKOUT-02
                       </p>
                       <ul className="list-disc pl-5 space-y-0.5 text-stone-600 dark:text-stone-300 text-[11px]">
-                        <li>Review payment details before confirmation</li>
+                        <li>Tinjau detail pembayaran sebelum konfirmasi</li>
                         <li>Source / Reference: exact Checkout prototype section</li>
                       </ul>
                     </div>
@@ -1019,7 +1019,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                     <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-900 dark:text-rose-200 space-y-1.5 animate-fadeIn">
                       <div className="flex items-center gap-1.5 font-bold">
                         <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                        <span>Quality Gate Blocked: Anti Self-Approval</span>
+                        <span>Quality Gate Terblokir: Anti Self-Approval</span>
                       </div>
                       <p className="text-[11px] leading-relaxed">
                         Developer dilarang memindahkan tugas ke <strong>DONE</strong> secara
@@ -1040,10 +1040,10 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                     </div>
                     <Badge variant={simQaDecision === 'done' ? 'passed' : 'review'}>
                       {simQaDecision === 'done'
-                        ? 'Approved (DONE)'
+                        ? 'Disetujui (DONE)'
                         : simQaDecision === 'changes_requested'
-                          ? 'Changes Requested'
-                          : 'Waiting Review'}
+                          ? 'Minta Perubahan'
+                          : 'Menunggu Review'}
                     </Badge>
                   </div>
 
@@ -1058,7 +1058,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                         onClick={() => setSimQaDecision('changes_requested')}
                         className="text-xs flex-1"
                       >
-                        Temukan Bug (Reject)
+                        Temukan Bug (Tolak)
                       </Button>
                       <Button
                         size="sm"
@@ -1066,7 +1066,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                         onClick={() => setSimQaDecision('done')}
                         className="text-xs flex-1"
                       >
-                        Lolos Uji (Approve ke DONE)
+                        Lolos Uji (Setujui ke DONE)
                       </Button>
                     </div>
                   </div>
@@ -1085,7 +1085,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                     <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
                       <p className="font-bold flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        Status Berubah: DONE (Approved by QA)
+                        Status Berubah: DONE (Disetujui oleh QA)
                       </p>
                       <p className="text-[11px]">
                         Subtask terverifikasi tuntas. Progress deliverable parent task meningkat.
@@ -1122,7 +1122,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                     <span
                       className={`font-bold ${simSpreadsheetStage === 'preview' ? 'text-emerald-600' : 'text-stone-400'}`}
                     >
-                      3. Dry-Run Preview
+                      3. Pratinjau Dry-Run
                     </span>
                   </div>
 
@@ -1163,7 +1163,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                       PO Release Decision Desk
                     </span>
                     <Badge variant={simPoDecision === 'approved' ? 'passed' : 'review'}>
-                      {simPoDecision === 'approved' ? 'Release Approved' : 'Decision Pending'}
+                      {simPoDecision === 'approved' ? 'Rilis Disetujui' : 'Keputusan Menunggu'}
                     </Badge>
                   </div>
 
@@ -1187,7 +1187,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                       onClick={() => setSimPoDecision('rejected')}
                       className="text-xs flex-1"
                     >
-                      Reject Release
+                      Tolak Rilis
                     </Button>
                     <Button
                       size="sm"
@@ -1195,7 +1195,7 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                       onClick={() => setSimPoDecision('approved')}
                       className="text-xs flex-1"
                     >
-                      Approve Release Decision
+                      Setujui Keputusan Rilis
                     </Button>
                   </div>
                 </div>

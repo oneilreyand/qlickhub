@@ -38,7 +38,7 @@ function formatRelativeTime(dateStr: string): string {
   if (diffDay === 1) return 'Yesterday';
   if (diffDay < 7) return `${diffDay}d ago`;
 
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('id-ID', {
     month: 'short',
     day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
@@ -88,7 +88,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action === 'qa.sign_off.created') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        recorded QA Sign-off as{' '}
+        mencatat persetujuan QA sebagai{' '}
         <span
           className={
             meta.decision === 'approved'
@@ -96,7 +96,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
               : 'font-semibold text-rose-600 dark:text-rose-400'
           }
         >
-          {meta.decision === 'approved' ? 'Approved' : 'Rejected'}
+          {meta.decision === 'approved' ? 'Disetujui' : 'Ditolak'}
         </span>
       </span>
     );
@@ -105,7 +105,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action === 'release.decision.created') {
     return (
       <span className="inline-flex flex-wrap items-center gap-1 text-stone-700 dark:text-stone-300">
-        <span>recorded Release Decision as</span>
+        <span>mencatat Keputusan Rilis sebagai</span>
         <span
           className={
             meta.decision === 'approved'
@@ -113,11 +113,11 @@ function renderHumanActivityDescription(act: TaskActivity) {
               : 'font-semibold text-rose-600 dark:text-rose-400'
           }
         >
-          {meta.decision === 'approved' ? 'Approved' : 'Rejected'}
+          {meta.decision === 'approved' ? 'Disetujui' : 'Ditolak'}
         </span>
         {meta.isOverride && (
           <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-            QA override
+            Override QA
           </span>
         )}
       </span>
@@ -137,27 +137,27 @@ function renderHumanActivityDescription(act: TaskActivity) {
 
     return (
       <span className="inline-flex items-center gap-1.5 flex-wrap text-stone-700 dark:text-stone-300">
-        <span>changed status</span>
+        <span>mengubah status</span>
         {oldStatus && (
           <>
-            <span>from</span>
+            <span>dari</span>
             <TaskStatusBadge state={oldStatus} />
           </>
         )}
         {newStatus && (
           <>
-            <span>to</span>
+            <span>menjadi</span>
             <TaskStatusBadge state={newStatus} />
           </>
         )}
         {meta.reviewNotes && (
           <span className="text-[11px] italic text-rose-600 dark:text-rose-400">
-            (Review notes: &ldquo;{meta.reviewNotes}&rdquo;)
+            (Catatan review: &ldquo;{meta.reviewNotes}&rdquo;)
           </span>
         )}
         {meta.roleMismatchOverride && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-semibold">
-            Role Override ({meta.assigneeRole})
+            Override Peran ({meta.assigneeRole})
           </span>
         )}
       </span>
@@ -177,10 +177,10 @@ function renderHumanActivityDescription(act: TaskActivity) {
 
     return (
       <span className="inline-flex items-center gap-1.5 flex-wrap text-stone-700 dark:text-stone-300">
-        <span>changed priority</span>
+        <span>mengubah prioritas</span>
         {oldP && (
           <>
-            <span>from</span>
+            <span>dari</span>
             <span className="font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
               {oldP}
             </span>
@@ -188,7 +188,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
         )}
         {newP && (
           <>
-            <span>to</span>
+            <span>menjadi</span>
             <span className="font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
               {newP}
             </span>
@@ -209,13 +209,15 @@ function renderHumanActivityDescription(act: TaskActivity) {
       changes.assigneeId?.new === null ||
       (!newAssignee && changes.assigneeId && !changes.assigneeId.new)
     ) {
-      return <span className="text-stone-700 dark:text-stone-300">unassigned this task</span>;
+      return (
+        <span className="text-stone-700 dark:text-stone-300">menghapus penugasan Task ini</span>
+      );
     }
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        assigned task to{' '}
+        menugaskan Task kepada{' '}
         <span className="font-semibold text-stone-900 dark:text-stone-100">
-          {newAssignee || 'team member'}
+          {newAssignee || 'anggota tim'}
         </span>
       </span>
     );
@@ -235,8 +237,8 @@ function renderHumanActivityDescription(act: TaskActivity) {
     if (oldDue && newDue) {
       return (
         <span className="text-stone-700 dark:text-stone-300">
-          changed due date from{' '}
-          <span className="font-semibold text-stone-900 dark:text-stone-100">{oldDue}</span> to{' '}
+          mengubah tenggat dari{' '}
+          <span className="font-semibold text-stone-900 dark:text-stone-100">{oldDue}</span> menjadi{' '}
           <span className="font-semibold text-stone-900 dark:text-stone-100">{newDue}</span>
         </span>
       );
@@ -244,12 +246,12 @@ function renderHumanActivityDescription(act: TaskActivity) {
     if (newDue) {
       return (
         <span className="text-stone-700 dark:text-stone-300">
-          set due date to{' '}
+          menetapkan tenggat menjadi{' '}
           <span className="font-semibold text-stone-900 dark:text-stone-100">{newDue}</span>
         </span>
       );
     }
-    return <span className="text-stone-700 dark:text-stone-300">updated task schedule dates</span>;
+    return <span className="text-stone-700 dark:text-stone-300">memperbarui jadwal Task</span>;
   }
 
   // Title changes
@@ -257,7 +259,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
     const newTitle = changes.title?.new ?? meta.title;
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        renamed to{' '}
+        mengganti judul menjadi{' '}
         <span className="font-semibold text-stone-900 dark:text-stone-100">"{newTitle}"</span>
       </span>
     );
@@ -265,7 +267,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
 
   // Description changes
   if (action.includes('description_updated') || Boolean(changes.description)) {
-    return <span className="text-stone-700 dark:text-stone-300">updated task description</span>;
+    return <span className="text-stone-700 dark:text-stone-300">memperbarui deskripsi Task</span>;
   }
 
   // Generic multiple updates
@@ -274,23 +276,23 @@ function renderHumanActivityDescription(act: TaskActivity) {
     if (changedFields.length > 0) {
       return (
         <span className="text-stone-700 dark:text-stone-300">
-          updated {changedFields.join(', ')}
+          memperbarui {changedFields.join(', ')}
         </span>
       );
     }
-    return <span className="text-stone-700 dark:text-stone-300">updated task details</span>;
+    return <span className="text-stone-700 dark:text-stone-300">memperbarui detail Task</span>;
   }
 
   // Task created
   if (action === 'task.created' || action === 'created') {
-    return <span className="text-stone-700 dark:text-stone-300">created this task</span>;
+    return <span className="text-stone-700 dark:text-stone-300">membuat Task ini</span>;
   }
 
   // Subtask created
   if (action === 'subtask.created' || action === 'subtask_created') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        created subtask{' '}
+        membuat Subtask{' '}
         <span className="font-semibold text-stone-900 dark:text-stone-100">
           "{meta.title || act.taskTitle || 'Subtask'}"
         </span>
@@ -307,23 +309,23 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action.includes('completed')) {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        marked as{' '}
-        <span className="font-semibold text-emerald-600 dark:text-emerald-400">Completed</span>
+        menandai sebagai{' '}
+        <span className="font-semibold text-emerald-600 dark:text-emerald-400">Selesai</span>
       </span>
     );
   }
 
   // Task reopened
   if (action.includes('reopened')) {
-    return <span className="text-stone-700 dark:text-stone-300">reopened this task</span>;
+    return <span className="text-stone-700 dark:text-stone-300">membuka kembali Task ini</span>;
   }
 
   // Task / Subtask moved
   if (action.includes('moved')) {
-    const folderName = meta.targetFolderName || meta.newFolderName || 'another folder';
+    const folderName = meta.targetFolderName || meta.newFolderName || 'folder lain';
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        moved to folder{' '}
+        memindahkan ke folder{' '}
         <span className="font-semibold text-stone-900 dark:text-stone-100">{folderName}</span>
       </span>
     );
@@ -334,9 +336,9 @@ function renderHumanActivityDescription(act: TaskActivity) {
     const affectedCount = Number(meta.affectedCount) || 0;
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        permanently deleted{' '}
+        menghapus permanen{' '}
         <span className="font-semibold text-rose-600 dark:text-rose-400">
-          {affectedCount} mistaken Requirement{affectedCount === 1 ? '' : 's'}
+          {affectedCount} Requirement yang keliru
         </span>
       </span>
     );
@@ -345,7 +347,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action === 'requirement.linked' || action === 'requirement_linked') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        linked requirement{' '}
+        menautkan Requirement{' '}
         <span className="font-semibold text-stone-900 dark:text-stone-100">
           [{meta.code || 'REQ'}] {meta.title || ''}
         </span>
@@ -353,13 +355,13 @@ function renderHumanActivityDescription(act: TaskActivity) {
     );
   }
   if (action === 'requirement.unlinked' || action === 'requirement_unlinked') {
-    return <span className="text-stone-700 dark:text-stone-300">unlinked a requirement</span>;
+    return <span className="text-stone-700 dark:text-stone-300">melepas tautan Requirement</span>;
   }
 
   if (action === 'acceptance_criterion_created') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        added Acceptance Criterion{' '}
+        menambahkan Kriteria Penerimaan{' '}
         <span className="font-semibold text-stone-900 dark:text-stone-100">
           {meta.code || 'AC'}
         </span>
@@ -369,7 +371,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action === 'acceptance_criterion_updated') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        updated Acceptance Criterion{' '}
+        memperbarui Kriteria Penerimaan{' '}
         <span className="font-semibold text-stone-900 dark:text-stone-100">
           {meta.code || 'AC'}
         </span>
@@ -382,7 +384,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action.includes('brief')) {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        updated Product Brief {meta.version ? `to version v${meta.version}` : ''}
+        memperbarui Ringkasan Produk {meta.version ? `ke versi v${meta.version}` : ''}
       </span>
     );
   }
@@ -391,9 +393,9 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action === 'attachment_deleted') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        deleted attachment{' '}
+        menghapus lampiran{' '}
         <span className="font-semibold text-stone-900 dark:text-stone-100">
-          {meta.fileName || 'file'}
+          {meta.fileName || 'berkas'}
         </span>
       </span>
     );
@@ -402,9 +404,9 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action === 'attachment_created') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        added attachment{' '}
+        menambahkan lampiran{' '}
         <span className="font-semibold text-stone-900 dark:text-stone-100">
-          {meta.fileName || 'file'}
+          {meta.fileName || 'berkas'}
         </span>
       </span>
     );
@@ -413,24 +415,25 @@ function renderHumanActivityDescription(act: TaskActivity) {
   if (action === 'deleted') {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        removed {meta.recordType === 'subtask' ? 'a subtask' : 'this task'} from active views
+        menghapus {meta.recordType === 'subtask' ? 'sebuah Subtask' : 'Task ini'} dari tampilan
+        aktif
       </span>
     );
   }
 
   if (action === 'comment.deleted') {
-    return <span className="text-stone-700 dark:text-stone-300">deleted a discussion message</span>;
+    return <span className="text-stone-700 dark:text-stone-300">menghapus pesan diskusi</span>;
   }
 
   if (action.includes('comment')) {
     return (
-      <span className="text-stone-700 dark:text-stone-300">posted a comment in discussion</span>
+      <span className="text-stone-700 dark:text-stone-300">mengirim komentar dalam diskusi</span>
     );
   }
 
   return (
     <span className="text-stone-700 dark:text-stone-300">
-      recorded {action.replace(/\./g, ' ')}
+      mencatat {action.replace(/\./g, ' ')}
     </span>
   );
 }
@@ -459,13 +462,13 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-xs font-bold text-stone-900 dark:text-stone-100">
-            Activity & Audit Trail
+            Aktivitas &amp; Jejak Audit
           </h3>
           <p className="text-[11px] text-stone-500 dark:text-stone-400">
-            Chronological history of all updates made to this task and its subtasks.
+            Riwayat kronologis seluruh perubahan pada Task dan Subtask-nya.
           </p>
         </div>
-        <span className="text-[11px] font-semibold text-stone-400">{activityTotal} events</span>
+        <span className="text-[11px] font-semibold text-stone-400">{activityTotal} aktivitas</span>
       </div>
 
       {isLoadingActivity ? (
@@ -474,11 +477,11 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
           <Skeleton variant="text" className="h-14 w-full rounded-xl" />
         </div>
       ) : activityError ? (
-        <Alert tone="error" title="Audit trail unavailable">
+        <Alert tone="error" title="Jejak audit tidak tersedia">
           <div className="flex items-center justify-between gap-3">
             <span>{activityError}</span>
             <Button variant="outline" size="sm" onClick={() => onLoadActivity()}>
-              Retry
+              Coba lagi
             </Button>
           </div>
         </Alert>
@@ -487,7 +490,7 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
           <div className="flex justify-center">
             <img
               src={EMPTY_ACTIVITY_ILLUSTRATION_URL}
-              alt="No activity recorded"
+              alt="Belum ada aktivitas"
               className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
               loading="lazy"
             />
@@ -500,10 +503,10 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
           </div>
           <div className="space-y-1">
             <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-200 font-bold">
-              No activity recorded yet
+              Belum ada aktivitas
             </p>
             <p className="text-[11px] sm:text-xs text-stone-500 dark:text-stone-400 max-w-sm mx-auto leading-relaxed">
-              Any status updates, assignments, or edits will appear here.
+              Perubahan status, penugasan, dan edit akan muncul di sini.
             </p>
           </div>
         </div>
@@ -527,7 +530,7 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
                   </div>
                   <span
                     className="text-[11px] font-medium text-stone-400 dark:text-stone-500 shrink-0"
-                    title={new Date(act.createdAt).toLocaleString()}
+                    title={new Date(act.createdAt).toLocaleString('id-ID')}
                   >
                     {formatRelativeTime(act.createdAt)}
                   </span>

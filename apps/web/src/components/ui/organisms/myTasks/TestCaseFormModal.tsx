@@ -112,11 +112,11 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
   const handleSubmit = async (targetStatus: TestCaseDefinitionStatus) => {
     setErrorMessage(null);
     if (!title.trim()) {
-      setErrorMessage('Test Case Title is required.');
+      setErrorMessage('Judul Test Case wajib diisi.');
       return;
     }
     if (selectedReqIds.length === 0) {
-      setErrorMessage('Select at least one Requirement to link this Test Case.');
+      setErrorMessage('Pilih minimal satu Requirement untuk ditautkan ke Test Case ini.');
       return;
     }
 
@@ -163,7 +163,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
         onClose();
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to save Test Case.';
+      const msg = err instanceof Error ? err.message : 'Test Case gagal disimpan.';
       setErrorMessage(msg);
     } finally {
       setLoading(false);
@@ -174,8 +174,8 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? 'Edit Test Case' : 'Author Native Test Case'}
-      description="Create canonical test cases linked to requirements with full lifecycle support."
+      title={isEditing ? 'Edit Test Case' : 'Buat Test Case Baru'}
+      description="Buat Test Case standar yang tertaut ke Requirement dan mendukung seluruh siklus kerja."
       size="3xl"
     >
       <div className="space-y-5 max-h-[72vh] overflow-y-auto pr-1">
@@ -196,24 +196,24 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Title <span className="text-red-400">*</span>
+              Judul <span className="text-red-400">*</span>
             </label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Verify returning customer card checkout"
+              placeholder="Contoh: Verifikasi checkout kartu pelanggan lama"
               required
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Test Case ID (External Ref)
+              ID Test Case (Referensi Eksternal)
             </label>
             <Input
               value={externalReference}
               onChange={(e) => setExternalReference(e.target.value)}
-              placeholder="e.g. TC-001"
+              placeholder="Contoh: TC-001"
             />
           </div>
         </div>
@@ -222,36 +222,36 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Priority
+              Prioritas
             </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as TestCasePriority)}
               className="w-full h-10 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
+              <option value="high">Tinggi</option>
+              <option value="medium">Sedang</option>
+              <option value="low">Rendah</option>
             </select>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Scenario Kind
+              Jenis Skenario
             </label>
             <select
               value={scenarioKind}
               onChange={(e) => setScenarioKind(e.target.value as TestCaseScenarioKind)}
               className="w-full h-10 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
-              <option value="positive">Positive (Happy Path)</option>
-              <option value="negative">Negative (Edge / Error)</option>
+              <option value="positive">Positif (Alur Utama)</option>
+              <option value="negative">Negatif (Kasus Khusus / Error)</option>
             </select>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Test Type
+              Jenis Pengujian
             </label>
             <select
               value={testType}
@@ -260,7 +260,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
             >
               <option value="manual">Manual</option>
               <option value="e2e">E2E</option>
-              <option value="integration">Integration</option>
+              <option value="integration">Integrasi</option>
               <option value="unit">Unit</option>
             </select>
           </div>
@@ -269,7 +269,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
         {/* Linked Requirements */}
         <div>
           <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-            Linked Requirements <span className="text-red-400">*</span>
+            Requirement Tertaut <span className="text-red-400">*</span>
           </label>
           <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-slate-800/60 rounded-xl border border-slate-700">
             {requirements.map((req) => {
@@ -296,12 +296,12 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
         {/* Preconditions */}
         <div>
           <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-            Preconditions
+            Prasyarat
           </label>
           <Textarea
             value={preconditions}
             onChange={(e) => setPreconditions(e.target.value)}
-            placeholder="e.g. User has valid authentication session and items in cart"
+            placeholder="Contoh: Pengguna sudah masuk dan memiliki item di keranjang"
             rows={2}
           />
         </div>
@@ -310,7 +310,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-              Step-by-Step Instructions
+              Langkah Pengujian
             </label>
             <button
               type="button"
@@ -318,7 +318,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
               className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
-              Add Step
+              Tambah Langkah
             </button>
           </div>
 
@@ -331,7 +331,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
                 <Input
                   value={step}
                   onChange={(e) => handleStepChange(index, e.target.value)}
-                  placeholder={`Step ${index + 1}`}
+                  placeholder={`Langkah ${index + 1}`}
                   className="flex-1"
                 />
                 {steps.length > 1 && (
@@ -339,7 +339,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
                     type="button"
                     onClick={() => handleRemoveStep(index)}
                     className="p-2 text-slate-400 hover:text-red-400 transition-colors"
-                    title="Remove step"
+                    title="Hapus langkah"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -353,24 +353,24 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Expected Result
+              Hasil yang Diharapkan
             </label>
             <Textarea
               value={expectedResult}
               onChange={(e) => setExpectedResult(e.target.value)}
-              placeholder="e.g. Success modal displayed with order ID"
+              placeholder="Contoh: Pesan berhasil tampil bersama ID pesanan"
               rows={2}
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Test Data
+              Data Pengujian
             </label>
             <Textarea
               value={testData}
               onChange={(e) => setTestData(e.target.value)}
-              placeholder="e.g. Card: 4242-4242-4242-4242, CVV: 123"
+              placeholder="Contoh: Kartu 4242-4242-4242-4242, CVV 123"
               rows={2}
             />
           </div>
@@ -380,7 +380,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
       {/* Action Footer */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-5 mt-4 border-t border-slate-800">
         <Button variant="ghost" onClick={onClose} disabled={loading}>
-          Cancel
+          Batal
         </Button>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -391,7 +391,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
             disabled={loading}
             leftIcon={<FileCheck className="w-4 h-4" />}
           >
-            Save Draft
+            Simpan Draf
           </Button>
 
           {/* Request Review */}
@@ -401,7 +401,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
             disabled={loading}
             leftIcon={<Send className="w-4 h-4" />}
           >
-            Submit for Review
+            Ajukan untuk Review
           </Button>
 
           {/* Activation applies only to an existing QA review submission. New cases always start as drafts. */}
@@ -412,7 +412,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
               disabled={loading}
               leftIcon={<CheckCircle2 className="w-4 h-4" />}
             >
-              Publish Active
+              Aktifkan
             </Button>
           )}
         </div>

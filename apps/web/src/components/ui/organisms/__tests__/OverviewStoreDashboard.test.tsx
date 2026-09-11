@@ -22,10 +22,7 @@ const rootReducer = combineReducers({
   report: reportReducer,
 });
 
-const renderWithProviders = (
-  ui: React.ReactElement,
-  preloadedState?: Partial<RootState>
-) => {
+const renderWithProviders = (ui: React.ReactElement, preloadedState?: Partial<RootState>) => {
   const store = configureStore({
     reducer: rootReducer,
     preloadedState: preloadedState as any,
@@ -34,7 +31,7 @@ const renderWithProviders = (
   return render(
     <Provider store={store}>
       <MemoryRouter>{ui}</MemoryRouter>
-    </Provider>
+    </Provider>,
   );
 };
 
@@ -42,8 +39,8 @@ describe('OverviewStoreDashboard', () => {
   it('renders overview header, current month date range info, and preserves banner carousel', () => {
     renderWithProviders(<OverviewStoreDashboard />);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Overview' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Overview highlights' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Ikhtisar' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Sorotan ikhtisar' })).toBeInTheDocument();
     expect(screen.getByText(/Ringkasan aktivitas delivery untuk/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Bulan/i).length).toBeGreaterThanOrEqual(1);
 
@@ -52,7 +49,9 @@ describe('OverviewStoreDashboard', () => {
     expect(screen.queryByRole('button', { name: /This Month/i })).not.toBeInTheDocument();
 
     // Verify discipline tabs under banner are removed
-    expect(screen.queryByRole('button', { name: /All Delivery Pipeline/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /All Delivery Pipeline/i }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Product & Specs/i })).not.toBeInTheDocument();
   });
 
@@ -71,7 +70,7 @@ describe('OverviewStoreDashboard', () => {
     expect(screen.getByText('Perhatian Khusus & Blocker')).toBeInTheDocument();
   });
 
-  it('renders role-adaptive action cards with My Tasks link for default/dev user', () => {
+  it('renders role-adaptive action cards with Tugas Saya link for default/dev user', () => {
     renderWithProviders(<OverviewStoreDashboard />, {
       auth: {
         currentUser: { id: 'usr-1', name: 'Dev User', email: 'dev@example.com', role: 'dev' },

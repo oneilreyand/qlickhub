@@ -35,7 +35,7 @@ const TaskDeepLinkPage = lazy(async () => ({
 const protectedPageFallback = (
   <div
     className="min-h-screen w-screen bg-[#FBFCF7] dark:bg-[#141413] flex items-center justify-center"
-    aria-label="Loading workspace"
+    aria-label="Memuat workspace"
   >
     <div className="h-8 w-8 rounded-full border-2 border-stone-300 border-t-stone-800 dark:border-stone-700 dark:border-t-[#B1E743] animate-spin" />
   </div>

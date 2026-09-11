@@ -32,13 +32,13 @@ describe('TaskDeliveryTracePanel', () => {
 
     render(<TaskDeliveryTracePanel workspaceId={workspaceId} taskId={taskId} />);
 
-    expect(screen.getByLabelText('Loading detailed Delivery Trace')).toBeInTheDocument();
+    expect(screen.getByLabelText('Memuat detail Jejak Delivery')).toBeInTheDocument();
     resolveTrace?.(createDeliveryTraceFixture());
 
     expect(
-      await screen.findByRole('heading', { name: 'Feature Delivery Trace' }),
+      await screen.findByRole('heading', { name: 'Jejak Delivery Feature' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Criterion-level coverage pending')).toBeInTheDocument();
+    expect(screen.getByText('Cakupan tingkat kriteria masih menunggu')).toBeInTheDocument();
     expect(screen.getAllByText('100%')).toHaveLength(2);
     expect(screen.getByText('Review checkout before confirmation')).toBeInTheDocument();
     expect(
@@ -46,12 +46,12 @@ describe('TaskDeliveryTracePanel', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Implement checkout summary/)).toBeInTheDocument();
     expect(screen.getByText('Checkout summary is visible')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Refresh Delivery Trace' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Muat ulang Jejak Delivery' })).toBeInTheDocument();
     expect(screen.getByTestId('task-delivery-trace-panel')).toHaveClass('space-y-4');
     expect(getParentTaskDeliveryTraceMock).toHaveBeenCalledWith(workspaceId, taskId);
   });
 
-  it('renders an empty state when the Feature has no linked Requirements', async () => {
+  it('renders an empty state when the Feature has no linked Requirement', async () => {
     const baseTrace = createDeliveryTraceFixture();
     getParentTaskDeliveryTraceMock.mockResolvedValueOnce(
       createDeliveryTraceFixture({
@@ -69,8 +69,8 @@ describe('TaskDeliveryTracePanel', () => {
 
     render(<TaskDeliveryTracePanel workspaceId={workspaceId} taskId={taskId} />);
 
-    expect(await screen.findByText('No requirements linked')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Refresh Delivery Trace' })).toBeInTheDocument();
+    expect(await screen.findByText('Belum ada Requirement tertaut')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Muat ulang Jejak Delivery' })).toBeInTheDocument();
   });
 
   it('offers a retry after a recoverable load error', async () => {
@@ -80,12 +80,12 @@ describe('TaskDeliveryTracePanel', () => {
 
     render(<TaskDeliveryTracePanel workspaceId={workspaceId} taskId={taskId} />);
 
-    expect(await screen.findByText('Delivery Trace unavailable')).toBeInTheDocument();
+    expect(await screen.findByText('Jejak Delivery tidak tersedia')).toBeInTheDocument();
     expect(screen.getByText('Temporary trace failure')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry loading Delivery Trace' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi memuat Jejak Delivery' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Feature Delivery Trace' }),
+      await screen.findByRole('heading', { name: 'Jejak Delivery Feature' }),
     ).toBeInTheDocument();
     await waitFor(() => expect(getParentTaskDeliveryTraceMock).toHaveBeenCalledTimes(2));
   });
@@ -96,10 +96,10 @@ describe('TaskDeliveryTracePanel', () => {
 
     render(<TaskDeliveryTracePanel workspaceId={workspaceId} taskId={taskId} />);
 
-    expect(await screen.findByText('Delivery Trace access restricted')).toBeInTheDocument();
-    expect(screen.getByText(/do not have permission/i)).toBeInTheDocument();
+    expect(await screen.findByText('Akses Jejak Delivery dibatasi')).toBeInTheDocument();
+    expect(screen.getByText(/tidak memiliki izin/i)).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Retry loading Delivery Trace' }),
+      screen.queryByRole('button', { name: 'Coba lagi memuat Jejak Delivery' }),
     ).not.toBeInTheDocument();
   });
 });

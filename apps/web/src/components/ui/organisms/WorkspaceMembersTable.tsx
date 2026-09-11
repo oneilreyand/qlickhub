@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserPlus, Shield, Trash2, Key } from 'lucide-react';
+import { Users, UserPlus, Shield, Trash2, Key, Settings2 } from 'lucide-react';
 import { AssignableWorkspaceRole, DeveloperSpecialty } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { Button } from '../atoms/Button';
@@ -33,6 +33,7 @@ export interface WorkspaceMembersTableProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onInviteClick: () => void;
+  onManageAccess?: (member: WorkspaceMemberItem) => void;
   onRoleChange: (memberUserId: string, newRole: AssignableWorkspaceRole) => void;
   onSpecialtiesChange?: (memberUserId: string, specialties: DeveloperSpecialty[]) => void;
   onRemoveMember: (memberUserId: string, memberEmail: string) => void;
@@ -47,6 +48,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
   searchQuery,
   onSearchChange,
   onInviteClick,
+  onManageAccess = () => undefined,
   onRoleChange,
   onSpecialtiesChange,
   onRemoveMember,
@@ -78,7 +80,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
 
   const renderSpecialties = (member: WorkspaceMemberItem) => {
     if (member.role !== 'dev')
-      return <span className="text-[11px] text-stone-400">Not applicable</span>;
+      return <span className="text-[11px] text-stone-400">Tidak berlaku</span>;
     const memberSpecialties = member.specialties || [];
     if (!canManageMembers) {
       return memberSpecialties.length > 0 ? (
@@ -98,7 +100,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
     return (
       <div
         className="flex flex-wrap gap-1"
-        aria-label={`Developer specialties for ${member.user?.name || member.user?.email || 'member'}`}
+        aria-label={`Spesialisasi Developer untuk ${member.user?.name || member.user?.email || 'anggota'}`}
       >
         {developerSpecialties.map((specialty) => {
           const selected = memberSpecialties.includes(specialty);
@@ -107,7 +109,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
               key={specialty}
               type="button"
               aria-pressed={selected}
-              aria-label={`Toggle ${specialty} specialty for ${member.user?.name || member.user?.email || 'member'}`}
+              aria-label={`Ubah spesialisasi ${specialty} untuk ${member.user?.name || member.user?.email || 'anggota'}`}
               disabled={selected && memberSpecialties.length === 1}
               onClick={() =>
                 onSpecialtiesChange?.(
@@ -138,13 +140,13 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
         <div>
           <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
             <Users className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-            <span>Team Members</span>
+            <span>Anggota Tim</span>
             <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-300">
               {members.length}
             </span>
           </h2>
           <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
-            Assigned workspace roles:{' '}
+            Peran dalam workspace:{' '}
             <span className="font-semibold text-stone-700 dark:text-stone-300">
               Owner, Admin, PO, Dev, QA
             </span>
@@ -160,7 +162,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
             onClick={onInviteClick}
             leftIcon={<UserPlus className="h-4 w-4" />}
           >
-            Invite Member
+            Undang Anggota
           </Button>
         )}
       </div>
@@ -171,8 +173,8 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           onClear={() => onSearchChange('')}
-          placeholder="Search member name, email, or role..."
-          aria-label="Search members"
+          placeholder="Cari nama, email, atau peran anggota..."
+          aria-label="Cari anggota"
         />
       </div>
 
@@ -194,10 +196,14 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
               <Card key={member.id} className="p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar name={u?.name || u?.email || 'User'} size="md" className="shrink-0" />
+                    <Avatar
+                      name={u?.name || u?.email || 'Pengguna'}
+                      size="md"
+                      className="shrink-0"
+                    />
                     <div className="min-w-0">
                       <p className="font-semibold text-stone-900 dark:text-stone-100 text-xs truncate">
-                        {u?.name || 'Workspace User'}
+                        {u?.name || 'Pengguna Workspace'}
                       </p>
                       <p className="text-[11px] text-stone-400 dark:text-stone-500 truncate">
                         {u?.email}
@@ -206,6 +212,17 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1">
+                    {canManageMembers && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onManageAccess(member)}
+                        title="Kelola akses Workspace"
+                        aria-label="Kelola akses Workspace"
+                      >
+                        <Settings2 className="h-4 w-4 text-stone-500" />
+                      </Button>
+                    )}
                     {canResetMemberPassword(member.role) && (
                       <Button
                         variant="ghost"
@@ -213,12 +230,12 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                         onClick={() =>
                           onResetPasswordClick({
                             id: member.userId,
-                            name: u?.name || 'Workspace User',
+                            name: u?.name || 'Pengguna Workspace',
                             email: u?.email || '',
                           })
                         }
-                        title="Reset Member Password"
-                        aria-label="Reset Member Password"
+                        title="Atur ulang kata sandi anggota"
+                        aria-label="Atur ulang kata sandi anggota"
                       >
                         <Key className="h-4 w-4 text-amber-500" />
                       </Button>
@@ -227,8 +244,8 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onRemoveMember(member.userId, u?.email || 'this member')}
-                        aria-label="Remove member"
+                        onClick={() => onRemoveMember(member.userId, u?.email || 'anggota ini')}
+                        aria-label="Hapus anggota"
                       >
                         <Trash2 className="h-4 w-4 text-rose-500" />
                       </Button>
@@ -238,7 +255,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
 
                 <div className="flex items-center justify-between border-t border-stone-100 pt-2 text-xs dark:border-stone-800">
                   <span className="text-[11px] text-stone-400 dark:text-stone-500">
-                    Joined {new Date(member.joinedAt).toLocaleDateString()}
+                    Bergabung {new Date(member.joinedAt).toLocaleDateString('id-ID')}
                   </span>
 
                   <div>
@@ -268,7 +285,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                 </div>
                 <div className="border-t border-stone-100 pt-2 dark:border-stone-800">
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">
-                    Developer specialties
+                    Spesialisasi Developer
                   </p>
                   {renderSpecialties(member)}
                 </div>
@@ -276,7 +293,9 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
             );
           })
         ) : (
-          <div className="py-8 text-center text-xs text-stone-400">No team members found.</div>
+          <div className="py-8 text-center text-xs text-stone-400">
+            Anggota tim tidak ditemukan.
+          </div>
         )}
       </div>
 
@@ -285,11 +304,11 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50/50 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:border-stone-800 dark:bg-stone-800/40 dark:text-stone-400">
-              <th className="py-3 px-3">User</th>
-              <th className="py-3 px-3">Workspace Role</th>
-              <th className="py-3 px-3">Developer Specialties</th>
-              <th className="py-3 px-3">Joined Date</th>
-              <th className="py-3 px-3 text-right">Actions</th>
+              <th className="py-3 px-3">Pengguna</th>
+              <th className="py-3 px-3">Peran Workspace</th>
+              <th className="py-3 px-3">Spesialisasi Developer</th>
+              <th className="py-3 px-3">Tanggal Bergabung</th>
+              <th className="py-3 px-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
@@ -329,13 +348,13 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                     <td className="py-3.5 px-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <Avatar
-                          name={u?.name || u?.email || 'User'}
+                          name={u?.name || u?.email || 'Pengguna'}
                           size="sm"
                           className="shrink-0"
                         />
                         <div className="min-w-0">
                           <p className="font-semibold text-stone-900 dark:text-stone-100">
-                            {u?.name || 'Workspace User'}
+                            {u?.name || 'Pengguna Workspace'}
                           </p>
                           <p className="text-[11px] text-stone-400 dark:text-stone-500">
                             {u?.email}
@@ -372,12 +391,25 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                     <td className="py-3.5 px-3">{renderSpecialties(member)}</td>
 
                     <td className="py-3.5 px-3 text-stone-500 dark:text-stone-400 text-[11px]">
-                      {new Date(member.joinedAt).toLocaleDateString()}
+                      {new Date(member.joinedAt).toLocaleDateString('id-ID')}
                     </td>
 
                     <td className="py-3.5 px-3 text-right">
-                      {canResetMemberPassword(member.role) || canRemoveMember(member.role) ? (
+                      {canManageMembers ||
+                      canResetMemberPassword(member.role) ||
+                      canRemoveMember(member.role) ? (
                         <div className="flex items-center justify-end gap-1">
+                          {canManageMembers && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onManageAccess(member)}
+                              title="Kelola akses Workspace"
+                              aria-label="Kelola akses Workspace"
+                            >
+                              <Settings2 className="h-4 w-4 text-stone-500" />
+                            </Button>
+                          )}
                           {canResetMemberPassword(member.role) && (
                             <Button
                               variant="ghost"
@@ -385,12 +417,12 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                               onClick={() => {
                                 onResetPasswordClick({
                                   id: member.userId,
-                                  name: u?.name || 'Workspace User',
+                                  name: u?.name || 'Pengguna Workspace',
                                   email: u?.email || '',
                                 });
                               }}
-                              title="Reset Member Password"
-                              aria-label="Reset Member Password"
+                              title="Atur ulang kata sandi anggota"
+                              aria-label="Atur ulang kata sandi anggota"
                             >
                               <Key className="h-4 w-4 text-amber-500" />
                             </Button>
@@ -400,10 +432,10 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                               variant="ghost"
                               size="sm"
                               onClick={() =>
-                                onRemoveMember(member.userId, u?.email || 'this member')
+                                onRemoveMember(member.userId, u?.email || 'anggota ini')
                               }
-                              title="Remove Member"
-                              aria-label="Remove member"
+                              title="Hapus Anggota"
+                              aria-label="Hapus anggota"
                             >
                               <Trash2 className="h-4 w-4 text-rose-500" />
                             </Button>
@@ -417,7 +449,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
             ) : (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-stone-400">
-                  No team members match your search criteria.
+                  Tidak ada anggota tim yang sesuai dengan pencarian Anda.
                 </td>
               </tr>
             )}

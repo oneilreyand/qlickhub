@@ -53,21 +53,21 @@ describe('MyTasksDashboard Organism', () => {
   it('shows backend-derived Developer priorities instead of generic task metrics', () => {
     renderDashboard();
 
-    expect(screen.getByRole('heading', { name: 'What needs your attention' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Yang perlu Anda perhatikan' })).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Developer priorities are derived by the backend from persisted Workspace workflow.',
-      ),
+      screen.getByText('Prioritas Developer ditentukan dari alur Workspace yang tersimpan.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Assigned work/ })).toHaveTextContent('1');
-    expect(screen.getByRole('button', { name: /Review feedback/ })).toHaveTextContent('0');
-    expect(screen.getByRole('button', { name: /Bug fixes/ })).toHaveTextContent('1');
+    expect(screen.getByRole('button', { name: /Pekerjaan yang Ditugaskan/ })).toHaveTextContent(
+      '1',
+    );
+    expect(screen.getByRole('button', { name: /Masukan Review/ })).toHaveTextContent('0');
+    expect(screen.getByRole('button', { name: /Perbaikan Bug/ })).toHaveTextContent('1');
     expect(
-      screen.getByText('This frontend subtask is assigned to you and is in progress.'),
+      screen.getByText('Subtask frontend ini ditugaskan kepada Anda dan berstatus in progress.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Next: Continue Subtask')).toBeInTheDocument();
+    expect(screen.getByText('Berikutnya: Lanjutkan Subtask')).toBeInTheDocument();
     expect(screen.queryByText('Total Items')).not.toBeInTheDocument();
-    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+    expect(screen.queryByText('Selesai')).not.toBeInTheDocument();
   });
 
   it('opens an actionable task using the contract subject id', async () => {
@@ -75,7 +75,7 @@ describe('MyTasksDashboard Organism', () => {
     renderDashboard({ onOpenQueueItem });
 
     const openButton = screen.getByRole('button', {
-      name: 'Open Implement checkout summary. Next action: Continue Subtask',
+      name: 'Buka Implement checkout summary. Tindakan berikutnya: Lanjutkan Subtask',
     });
     openButton.focus();
     fireEvent.keyDown(openButton, { key: 'Enter' });
@@ -97,21 +97,21 @@ describe('MyTasksDashboard Organism', () => {
     });
 
     expect(screen.getByText('Checkout release')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Filter work queue by priority'), {
+    fireEvent.change(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas'), {
       target: { value: 'low' },
     });
-    expect(screen.getByText('No matching actions')).toBeInTheDocument();
+    expect(screen.getByText('Tidak ada tindakan yang cocok')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Filter work queue by priority'), {
+    fireEvent.change(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas'), {
       target: { value: 'all' },
     });
-    fireEvent.change(screen.getByLabelText('Search work queue'), {
+    fireEvent.change(screen.getByLabelText('Cari antrean kerja'), {
       target: { value: 'missing phrase' },
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250);
     });
-    expect(screen.getByText('No matching actions')).toBeInTheDocument();
+    expect(screen.getByText('Tidak ada tindakan yang cocok')).toBeInTheDocument();
     vi.useRealTimers();
   });
 
@@ -140,11 +140,11 @@ describe('MyTasksDashboard Organism', () => {
       );
     };
 
-    assertIllustration('No requirement work illustration');
-    fireEvent.click(screen.getByRole('button', { name: /Release decisions/ }));
-    assertIllustration('No release decisions illustration');
-    fireEvent.click(screen.getByRole('button', { name: /Timeline work/ }));
-    assertIllustration('No timeline work illustration');
+    assertIllustration('Ilustrasi tidak ada pekerjaan Requirement');
+    fireEvent.click(screen.getByRole('button', { name: /Keputusan Rilis/ }));
+    assertIllustration('Ilustrasi tidak ada keputusan rilis');
+    fireEvent.click(screen.getByRole('button', { name: /Pekerjaan Timeline/ }));
+    assertIllustration('Ilustrasi tidak ada pekerjaan timeline');
   });
 
   it('moves keyboard focus to the existing Bug action workspace', async () => {
@@ -163,17 +163,17 @@ describe('MyTasksDashboard Organism', () => {
       </Provider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Bug fixes/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Perbaikan Bug/ }));
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Open Checkout total mismatch. Next action: Start Bug Fix',
+        name: 'Buka Checkout total mismatch. Tindakan berikutnya: Mulai Perbaikan Bug',
       }),
     );
 
-    const bugWorkspace = screen.getByLabelText('Assigned Bug work actions');
+    const bugWorkspace = screen.getByLabelText('Pekerjaan Bug yang ditugaskan');
     expect(bugWorkspace).toHaveFocus();
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
-    expect(await screen.findByText('Assigned Bug Work')).toBeInTheDocument();
+    expect(await screen.findByText('Pekerjaan Bug yang Ditugaskan')).toBeInTheDocument();
     expect(bugMocks.listBugs).toHaveBeenCalledWith(workQueueFixtureIds.workspace, {
       queue: 'assigned_work',
     });
@@ -183,7 +183,7 @@ describe('MyTasksDashboard Organism', () => {
     const { rerender, props } = renderDashboard({
       queueState: { queue: null, isLoading: true, error: null, permissionDenied: false },
     });
-    expect(screen.getByLabelText('Loading role-aware work queue')).toBeInTheDocument();
+    expect(screen.getByLabelText('Memuat antrean kerja sesuai peran')).toBeInTheDocument();
 
     rerender(
       <MyTasksDashboard
@@ -191,7 +191,7 @@ describe('MyTasksDashboard Organism', () => {
         queueState={{ queue: null, isLoading: false, error: null, permissionDenied: true }}
       />,
     );
-    expect(screen.getByText('Work queue access denied')).toBeInTheDocument();
+    expect(screen.getByText('Akses antrean kerja ditolak')).toBeInTheDocument();
 
     rerender(
       <MyTasksDashboard
@@ -205,7 +205,7 @@ describe('MyTasksDashboard Organism', () => {
       />,
     );
     expect(screen.getByText('Queue unavailable')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
     expect(props.onRefreshQueue).toHaveBeenCalledOnce();
   });
 });

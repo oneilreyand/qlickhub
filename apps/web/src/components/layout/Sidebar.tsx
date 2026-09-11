@@ -28,7 +28,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    name: 'Overview',
+    name: 'Ringkasan',
     path: '/work?tab=overview',
     icon: LayoutDashboard,
   },
@@ -38,28 +38,28 @@ const navItems: NavItem[] = [
     icon: Layers,
   },
   {
-    name: 'My Tasks',
+    name: 'Tugas Saya',
     path: '/my-tasks',
     icon: CheckSquare,
   },
   {
-    name: 'Report',
+    name: 'Laporan',
     path: '/reports',
     icon: FileBarChart,
   },
   {
-    name: 'User Flow Guide',
+    name: 'Panduan Alur Kerja',
     path: '/user-flows',
     icon: BookOpen,
-    badge: 'Guide',
+    badge: 'Panduan',
   },
   {
-    name: 'Workspace Settings',
+    name: 'Pengaturan Workspace',
     path: '/workspaces/settings',
     icon: Building2,
   },
   {
-    name: 'Component Gallery',
+    name: 'Galeri Komponen',
     path: '/components',
     icon: Component,
     badge: 'Dev',
@@ -145,7 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
               isExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 h-0 p-0 overflow-hidden'
             }`}
           >
-            Main Menu
+            Menu Utama
           </div>
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
@@ -227,7 +227,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
             }`}
           >
             <span className="font-semibold text-stone-700 dark:text-stone-200">
-              Workspace Active
+              Workspace Aktif
             </span>
             <span className="text-[10px] font-medium text-stone-400 dark:text-stone-500">v2.0</span>
           </div>

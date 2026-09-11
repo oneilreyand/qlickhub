@@ -114,13 +114,13 @@ export const Header: React.FC<HeaderProps> = ({
       await dispatch(
         createWorkspace({ name: newWsName.trim(), description: newWsDesc.trim() || undefined }),
       ).unwrap();
-      dispatch(enqueueSnackbar(`Workspace "${newWsName.trim()}" created successfully!`, 'success'));
+      dispatch(enqueueSnackbar(`Workspace "${newWsName.trim()}" berhasil dibuat.`, 'success'));
       setNewWsName('');
       setNewWsDesc('');
       setShowCreateWsModal(false);
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create workspace', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Workspace gagal dibuat.', 'error'),
       );
     } finally {
       setIsCreatingWs(false);
@@ -143,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-3 lg:gap-4">
         <IconButton
           onClick={onToggleMobileSidebar}
-          label="Toggle mobile menu"
+          label="Buka atau tutup menu seluler"
           variant="ghost"
           className="lg:hidden text-stone-700 hover:bg-stone-200/60 dark:text-stone-300 dark:hover:bg-stone-800"
         >
@@ -162,16 +162,12 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setShowWorkspaceMenu(!showWorkspaceMenu)}
-            aria-label="Switch Workspace"
+            aria-label="Ganti workspace"
             className="flex items-center gap-2 rounded-2xl border border-stone-200/80 bg-white px-3 py-1.5 min-h-[38px] text-xs font-semibold text-stone-800 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-[#B1E743]/20 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
           >
             <Building2 className="h-3.5 w-3.5 text-stone-500" />
             <span className="max-w-[120px] truncate">
-              {isLoading
-                ? 'Loading...'
-                : activeWorkspace
-                  ? activeWorkspace.name
-                  : 'Select Workspace'}
+              {isLoading ? 'Memuat...' : activeWorkspace ? activeWorkspace.name : 'Pilih Workspace'}
             </span>
             <ChevronDown className="h-3.5 w-3.5 text-stone-400" />
           </button>
@@ -194,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
                       onClick={() => dispatch(fetchWorkspaces())}
                       className="inline-flex items-center gap-1 text-[11px] font-semibold underline"
                     >
-                      <RefreshCw className="h-3 w-3" /> Retry
+                      <RefreshCw className="h-3 w-3" /> Coba lagi
                     </button>
                   </div>
                 </div>
@@ -232,7 +228,7 @@ export const Header: React.FC<HeaderProps> = ({
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-800"
                   >
                     <Plus className="h-4 w-4" />
-                    <span>Create Workspace</span>
+                    <span>Buat Workspace</span>
                   </button>
                 </div>
               )}
@@ -251,7 +247,7 @@ export const Header: React.FC<HeaderProps> = ({
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
           }`}
         >
-          Overview
+          Ringkasan
         </button>
 
         <button
@@ -273,7 +269,7 @@ export const Header: React.FC<HeaderProps> = ({
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
           }`}
         >
-          My Tasks
+          Tugas Saya
         </button>
 
         <button
@@ -284,7 +280,7 @@ export const Header: React.FC<HeaderProps> = ({
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
           }`}
         >
-          Report
+          Laporan
         </button>
 
         {canAccessSettings && (
@@ -296,7 +292,7 @@ export const Header: React.FC<HeaderProps> = ({
                 : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
             }`}
           >
-            Workspace Settings
+            Pengaturan Workspace
           </button>
         )}
 
@@ -309,7 +305,7 @@ export const Header: React.FC<HeaderProps> = ({
                 : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
             }`}
           >
-            UI System
+            Sistem UI
           </button>
         )}
       </nav>
@@ -319,7 +315,7 @@ export const Header: React.FC<HeaderProps> = ({
         {featureVisibility.userFlowGuide && (
           <IconButton
             onClick={() => navigate('/user-flows')}
-            label="User Flow & Quality Gate Guide"
+            label="Panduan alur kerja & Quality Gate"
             size="sm"
             className="rounded-full border border-stone-200/90 bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:text-white"
           >
@@ -330,7 +326,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Quick Theme Toggle Button */}
         <IconButton
           onClick={toggleTheme}
-          label={`Switch to ${isDarkMode ? 'Light' : 'Dark'} Mode`}
+          label={`Ganti ke mode ${isDarkMode ? 'terang' : 'gelap'}`}
           size="sm"
           className="rounded-full border border-stone-200/90 bg-white dark:border-stone-800 dark:bg-stone-900"
         >
@@ -349,7 +345,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            aria-label="User Profile Menu"
+            aria-label="Menu profil pengguna"
             aria-expanded={isProfileOpen}
             className="flex items-center gap-2 p-0.5 rounded-full border border-stone-200/90 bg-white hover:bg-stone-100 focus:outline-none transition-all dark:border-stone-800 dark:bg-stone-900"
           >
@@ -383,7 +379,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
                 >
                   <UserIcon className="h-4 w-4 text-stone-400" />
-                  <span>Account & Profile Settings</span>
+                  <span>Pengaturan Akun & Profil</span>
                 </button>
 
                 <button
@@ -408,7 +404,7 @@ export const Header: React.FC<HeaderProps> = ({
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
                   >
                     <BookOpen className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
-                    <span>Panduan User Flow & Roles</span>
+                    <span>Panduan Alur &amp; Peran</span>
                   </button>
                 )}
 
@@ -434,7 +430,7 @@ export const Header: React.FC<HeaderProps> = ({
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
                   >
                     <Building2 className="h-4 w-4 text-stone-400" />
-                    <span>Workspace Settings</span>
+                    <span>Pengaturan Workspace</span>
                   </button>
                 )}
               </div>
@@ -446,7 +442,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
                 >
                   <LogOut className="h-4 w-4" />
-                  <span>Sign out</span>
+                  <span>Keluar</span>
                 </button>
               </div>
             </div>
@@ -473,30 +469,30 @@ export const Header: React.FC<HeaderProps> = ({
       <Modal
         isOpen={showCreateWsModal}
         onClose={() => setShowCreateWsModal(false)}
-        title="Create New Workspace"
-        description="Set up a workspace for your team to organize folders, tasks, attachments, and collaboration."
-        primaryActionLabel="Create Workspace"
-        secondaryActionLabel="Cancel"
+        title="Buat Workspace Baru"
+        description="Siapkan workspace agar tim dapat mengelola folder, task, lampiran, dan kolaborasi."
+        primaryActionLabel="Buat Workspace"
+        secondaryActionLabel="Batal"
         onPrimaryAction={handleCreateWs}
         isPrimaryLoading={isCreatingWs}
       >
         <div className="space-y-4">
           <Input
-            label="Workspace Name"
+            label="Nama Workspace"
             type="text"
             value={newWsName}
             onChange={(e) => setNewWsName(e.target.value)}
             required
-            placeholder="e.g. Core Engineering Platform"
+            placeholder="Contoh: Platform Engineering Inti"
             autoFocus
           />
 
           <Textarea
-            label="Description"
+            label="Deskripsi"
             rows={3}
             value={newWsDesc}
             onChange={(e) => setNewWsDesc(e.target.value)}
-            placeholder="Optional description of team workspace purpose..."
+            placeholder="Deskripsi singkat tujuan workspace (opsional)..."
           />
         </div>
       </Modal>

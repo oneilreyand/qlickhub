@@ -114,7 +114,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
           ? null
           : error instanceof Error
             ? error.message
-            : 'Unable to load persisted Feature context.',
+            : 'Konteks Feature yang tersimpan tidak dapat dimuat.',
       );
     } finally {
       if (requestId === featureContextRequestIdRef.current) {
@@ -136,13 +136,13 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   const isSubtask = Boolean(task.parentTaskId);
   const executionTask = activeSubtaskForExecution || task;
   const roleTabs: TabItem[] = [
-    { id: 'po', label: 'PO Cockpit & iCards', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
-    { id: 'dev', label: 'Dev Working Desk', icon: <Code2 className="h-3.5 w-3.5" /> },
-    { id: 'qa', label: 'QA Testing Desk', icon: <Bug className="h-3.5 w-3.5" /> },
+    { id: 'po', label: 'Kokpit PO & iCard', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
+    { id: 'dev', label: 'Area Kerja Dev', icon: <Code2 className="h-3.5 w-3.5" /> },
+    { id: 'qa', label: 'Area Pengujian QA', icon: <Bug className="h-3.5 w-3.5" /> },
   ];
   const developerReviewTabs: TabItem[] = [
-    { id: 'dev', label: 'Dev Working Desk', icon: <Code2 className="h-3.5 w-3.5" /> },
-    { id: 'qa', label: 'QA Evidence', icon: <Bug className="h-3.5 w-3.5" /> },
+    { id: 'dev', label: 'Area Kerja Dev', icon: <Code2 className="h-3.5 w-3.5" /> },
+    { id: 'qa', label: 'Bukti QA', icon: <Bug className="h-3.5 w-3.5" /> },
   ];
 
   const handleRoleTabChange = (viewMode: string) => {
@@ -163,27 +163,27 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
           />
         </div>
         <span className="hidden shrink-0 px-2 text-xs font-bold capitalize text-stone-700 dark:text-stone-300 sm:inline">
-          Role: {userRole}
+          Peran: {userRole}
         </span>
       </div>
     ) : activeViewMode === 'dev' ? (
       <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
         <Code2 className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
         <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
-          Developer Working Desk
+          Area Kerja Developer
         </span>
         <span className="hidden shrink-0 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[10px] font-extrabold text-sky-800 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-300 sm:inline-flex">
-          Executor Workspace
+          Workspace Pelaksana
         </span>
       </div>
     ) : (
       <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
         <Bug className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
         <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
-          QA Testing & Quality Desk
+          Area Pengujian &amp; Mutu QA
         </span>
         <span className="hidden shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 sm:inline-flex">
-          QA Verification
+          Verifikasi QA
         </span>
       </div>
     );
@@ -193,7 +193,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
       isOpen={isOpen}
       onClose={onClose}
       title={task.title}
-      subtitle={`#${task.id.substring(0, 8)} • Workspace Flow`}
+      subtitle={`#${task.id.substring(0, 8)} • Alur Workspace`}
       width="4xl"
       defaultFullScreen={true}
       allowFullScreen={true}

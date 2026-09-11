@@ -137,7 +137,7 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
           <IconButton
             onClick={onClose}
-            label="Close modal"
+            label="Tutup dialog"
             size="sm"
             variant="ghost"
             className="dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200 shrink-0"

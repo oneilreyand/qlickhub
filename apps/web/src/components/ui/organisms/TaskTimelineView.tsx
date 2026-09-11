@@ -50,11 +50,11 @@ function parseDate(dateStr?: string | null): Date | null {
 }
 
 function formatShortDate(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
 function formatRangeDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('id-ID', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -290,7 +290,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       const cur = new Date(start);
       while (cur <= end) {
         const key = normalizeDateStr(cur);
-        const dayOfWeek = cur.toLocaleDateString('en-US', { weekday: 'narrow' });
+        const dayOfWeek = cur.toLocaleDateString('id-ID', { weekday: 'narrow' });
         const dayNum = cur.getDate();
         const isSunOrSat = cur.getDay() === 0 || cur.getDay() === 6;
         cols.push({
@@ -317,7 +317,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
         const weekStartKey = normalizeDateStr(cur);
         const weekEnd = new Date(cur);
         weekEnd.setDate(weekEnd.getDate() + 6);
-        const label = `${cur.toLocaleDateString('en-US', { month: 'short' })} ${cur.getDate()}`;
+        const label = `${cur.getDate()} ${cur.toLocaleDateString('id-ID', { month: 'short' })}`;
         const subLabel = `– ${weekEnd.getDate()}`;
 
         // Check if today falls in this week
@@ -344,7 +344,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       const cur = new Date(start);
       while (cur <= end) {
         const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`;
-        const label = cur.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        const label = cur.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
         const isTodayMonth =
           cur.getMonth() === today.getMonth() && cur.getFullYear() === today.getFullYear();
 
@@ -380,7 +380,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     initFolders(folders);
 
     // Unfiled bucket
-    map.set('unfiled', { name: 'Unfiled Tasks', tasks: [] });
+    map.set('unfiled', { name: 'Task Tanpa Folder', tasks: [] });
 
     // Distribute scheduled tasks
     for (const t of scheduledTasks) {
@@ -462,10 +462,10 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       const completedDate = new Date(task.completedAt);
       if (Number.isNaN(completedDate.getTime())) return null;
       actualEndDate = normalizeDateStr(completedDate);
-      completionLabel = `completed ${formatShortDate(completedDate)}`;
+      completionLabel = `selesai ${formatShortDate(completedDate)}`;
     } else if (task.dueDate < todayKey) {
       actualEndDate = todayKey;
-      completionLabel = `still open through ${formatShortDate(today)}`;
+      completionLabel = `masih terbuka hingga ${formatShortDate(today)}`;
     }
 
     if (!actualEndDate || actualEndDate <= task.dueDate) return null;
@@ -479,7 +479,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     return {
       style: computeDateRangeBarStyles(extensionStartDate, actualEndDate).style,
       daysLate,
-      label: `${task.title} delay extension: ${daysLate} day${daysLate === 1 ? '' : 's'} beyond plan, ${completionLabel}`,
+      label: `${task.title} terlambat ${daysLate} hari dari rencana, ${completionLabel}`,
     };
   };
 
@@ -554,7 +554,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
         <div className="flex justify-center">
           <img
             src={EMPTY_TASKS_ILLUSTRATION_URL}
-            alt="No Tasks in Timeline Illustration"
+            alt="Ilustrasi tidak ada Task di timeline"
             className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.02] drop-shadow-xs"
             loading="lazy"
           />
@@ -567,10 +567,10 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
         </div>
         <div className="space-y-1">
           <p className="text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100">
-            No tasks in current view
+            Tidak ada Task pada tampilan ini
           </p>
           <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 max-w-sm mx-auto leading-relaxed">
-            Create or adjust filters to view scheduled tasks in the timeline.
+            Buat Task atau ubah filter untuk melihat jadwal pada timeline.
           </p>
         </div>
       </div>
@@ -580,11 +580,10 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
   return (
     <div className="space-y-4 animate-fadeIn">
       <div className="rounded-2xl border border-stone-200/90 bg-stone-50/70 px-3.5 py-3 dark:border-stone-800 dark:bg-stone-900/60 sm:px-4">
-        <p className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-          Feature Schedule
-        </p>
+        <p className="text-sm font-extrabold text-stone-900 dark:text-stone-100">Jadwal Feature</p>
         <p className="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
-          Overview of parent Features grouped by Folder. Expand a Feature to see its role subtasks.
+          Ringkasan parent Feature berdasarkan Folder. Buka Feature untuk melihat Subtask setiap
+          peran.
         </p>
       </div>
 
@@ -593,7 +592,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
         {/* Scale Zoom Switcher */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold text-stone-500 dark:text-stone-400 mr-1">
-            Calendar zoom:
+            Skala kalender:
           </span>
           {(['day', 'week', 'month'] as TimeScale[]).map((s) => (
             <button
@@ -609,7 +608,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                   : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 border border-stone-200/80 dark:border-stone-700/80'
               }`}
             >
-              {s}
+              {s === 'day' ? 'Hari' : s === 'week' ? 'Minggu' : 'Bulan'}
             </button>
           ))}
           <span className="text-[11px] font-semibold text-stone-500 dark:text-stone-400 sm:ml-1">
@@ -625,29 +624,29 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               size="sm"
               className="min-h-11"
               onClick={() => setDateOffset((prev) => prev - 1)}
-              aria-label="Previous calendar window"
+              aria-label="Rentang kalender sebelumnya"
               leftIcon={<ChevronLeft className="h-3.5 w-3.5" />}
             >
-              Prev
+              Sebelumnya
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="min-h-11"
               onClick={() => setDateOffset(0)}
-              aria-label="Jump to Today"
+              aria-label="Kembali ke hari ini"
             >
-              Today
+              Hari Ini
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="min-h-11"
               onClick={() => setDateOffset((prev) => prev + 1)}
-              aria-label="Next calendar window"
+              aria-label="Rentang kalender berikutnya"
               rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
             >
-              Next
+              Berikutnya
             </Button>
           </div>
 
@@ -659,14 +658,14 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
             size="sm"
             className="min-h-11"
             onClick={() => void handleToggleExpandAll()}
-            aria-label="Expand or collapse all subtask streams"
+            aria-label="Buka atau tutup semua alur Subtask"
             leftIcon={<ChevronsUpDown className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />}
-            title="Toggle expand/collapse all role subtasks in timeline"
+            title="Buka atau tutup semua Subtask peran di timeline"
           >
             <span className="hidden sm:inline">
-              {expandedTaskIds.size > 0 ? 'Collapse Subtasks' : 'Expand All Subtasks'}
+              {expandedTaskIds.size > 0 ? 'Tutup Subtask' : 'Buka Semua Subtask'}
             </span>
-            <span className="sm:hidden">{expandedTaskIds.size > 0 ? 'Collapse' : 'Expand'}</span>
+            <span className="sm:hidden">{expandedTaskIds.size > 0 ? 'Tutup' : 'Buka'}</span>
           </Button>
 
           {/* Full Width Mode Button */}
@@ -676,7 +675,9 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               size="sm"
               className="min-h-11"
               onClick={onToggleExpand}
-              aria-label={isExpanded ? 'Exit full width timeline' : 'Expand full width timeline'}
+              aria-label={
+                isExpanded ? 'Keluar dari timeline lebar penuh' : 'Buka timeline selebar layar'
+              }
               leftIcon={
                 isExpanded ? (
                   <Minimize2 className="h-3.5 w-3.5" />
@@ -686,14 +687,14 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               }
               title={
                 isExpanded
-                  ? 'Collapse timeline to standard width'
-                  : 'Expand timeline to full width (hide folders sidebar)'
+                  ? 'Kembalikan timeline ke lebar standar'
+                  : 'Buka timeline selebar layar dan sembunyikan sidebar folder'
               }
             >
               <span className="hidden sm:inline">
-                {isExpanded ? 'Standard Width' : 'Full Width'}
+                {isExpanded ? 'Lebar Standar' : 'Lebar Penuh'}
               </span>
-              <span className="sm:hidden">{isExpanded ? 'Standard' : 'Full'}</span>
+              <span className="sm:hidden">{isExpanded ? 'Standar' : 'Penuh'}</span>
             </Button>
           )}
         </div>
@@ -701,24 +702,24 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 
       <div
         className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-[11px] font-semibold text-stone-600 dark:text-stone-300"
-        aria-label="Feature schedule legend"
+        aria-label="Legenda jadwal Feature"
       >
         <span className="inline-flex items-center gap-1.5">
           <span
             className="h-2.5 w-7 rounded-full bg-stone-600 dark:bg-stone-400"
             aria-hidden="true"
           />
-          Planned
+          Terencana
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span
             className="h-2.5 w-7 rounded-full border border-rose-500/60 bg-rose-400/40 dark:bg-rose-400/30"
             aria-hidden="true"
           />
-          Delay extension
+          Perpanjangan keterlambatan
         </span>
         <span className="font-normal text-stone-500 dark:text-stone-400">
-          Late work extends to completion, or to today while still open.
+          Pekerjaan terlambat ditampilkan hingga selesai, atau hingga hari ini jika masih terbuka.
         </span>
       </div>
 
@@ -729,9 +730,9 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
           <div className="w-56 sm:w-80 md:w-[380px] shrink-0 sticky left-0 z-20 bg-white dark:bg-[#1C1A19] border-r border-stone-200 dark:border-stone-800 shadow-sm">
             {/* Header */}
             <div className="h-14 px-4 flex items-center justify-between border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-              <span>Feature & Role Subtasks</span>
+              <span>Feature & Subtask Peran</span>
               <span className="text-[10px] lowercase font-medium bg-stone-200/80 dark:bg-stone-800 text-stone-600 dark:text-stone-300 px-2 py-0.5 rounded-full">
-                {scheduledTasks.length} scheduled
+                {scheduledTasks.length} terjadwal
               </span>
             </div>
 
@@ -794,9 +795,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                   type="button"
                                   onClick={(e) => toggleTaskSubtasks(task, e)}
                                   className="p-1 rounded hover:bg-stone-200/80 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-all shrink-0"
-                                  title={
-                                    isTaskExpanded ? 'Collapse subtasks' : 'Expand role subtasks'
-                                  }
+                                  title={isTaskExpanded ? 'Tutup Subtask' : 'Buka Subtask peran'}
                                 >
                                   <ChevronRight
                                     className={`h-3.5 w-3.5 transition-transform ${isTaskExpanded ? 'rotate-90 text-stone-900 dark:text-[#B1E743]' : ''}`}
@@ -816,7 +815,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                   {task.subtaskSummary && task.subtaskSummary.total > 0 && (
                                     <span className="text-stone-900 dark:text-[#B1E743] font-semibold">
                                       • {task.subtaskSummary.completed}/{task.subtaskSummary.total}{' '}
-                                      subtasks
+                                      Subtask
                                     </span>
                                   )}
                                 </div>
@@ -831,11 +830,11 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                               {isLoadingSubtasks ? (
                                 <div className="h-9 pl-12 pr-3 flex items-center gap-2 bg-stone-50/60 dark:bg-stone-900/30 border-t border-stone-100 dark:border-stone-800/40 text-[11px] text-stone-400">
                                   <Clock className="h-3 w-3 animate-spin" />
-                                  <span>Loading role subtasks...</span>
+                                  <span>Memuat Subtask peran...</span>
                                 </div>
                               ) : subtasks.length === 0 ? (
                                 <div className="h-9 pl-12 pr-3 flex items-center bg-stone-50/60 dark:bg-stone-900/30 border-t border-stone-100 dark:border-stone-800/40 text-[11px] text-stone-400 italic">
-                                  No subtasks found
+                                  Subtask tidak ditemukan
                                 </div>
                               ) : (
                                 subtasks.map((st) => {
@@ -933,7 +932,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                   className="absolute top-0 bottom-0 z-10 w-0.5 bg-amber-500 shadow-sm pointer-events-none"
                 >
                   <div className="absolute top-1 -translate-x-1/2 bg-amber-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-tighter">
-                    Today
+                    Hari Ini
                   </div>
                 </div>
               )}
@@ -975,7 +974,8 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                   role="status"
                                   className="pl-3 text-[10px] font-medium italic text-stone-400 dark:text-stone-500"
                                 >
-                                  Outside visible window — use Prev/Next or adjust date scope
+                                  Di luar rentang tampilan — gunakan Sebelumnya/Berikutnya atau ubah
+                                  cakupan tanggal
                                 </div>
                               )}
                               {delayExtension && (
@@ -991,7 +991,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                 style={barData.style}
                                 role="button"
                                 tabIndex={0}
-                                aria-label={`Inspect ${task.title}`}
+                                aria-label={`Lihat ${task.title}`}
                                 title={dateRangeTooltip}
                                 onClick={() => onSelect(task)}
                                 onKeyDown={(e) => {
@@ -1082,7 +1082,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                       >
                                         {stBarData.widthPx === 0 && (
                                           <div className="pl-3 text-[10px] italic text-stone-400 dark:text-stone-500">
-                                            Outside visible window
+                                            Di luar rentang yang terlihat
                                           </div>
                                         )}
                                         {delayExtension && (
@@ -1126,7 +1126,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                           </div>
                                         ) : (
                                           <div className="pl-3 text-[10px] text-stone-400 italic">
-                                            No dates
+                                            Belum ada tanggal
                                           </div>
                                         )}
                                       </div>
@@ -1158,10 +1158,10 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               <Info className="h-4 w-4 text-stone-500 dark:text-stone-400" />
               <div>
                 <p className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                  Unscheduled Tasks ({unscheduledTasks.length})
+                  Task Belum Dijadwalkan ({unscheduledTasks.length})
                 </p>
                 <p className="text-[11px] text-stone-400 dark:text-stone-500">
-                  Tasks without start or due dates. Click to inspect and assign schedule.
+                  Task tanpa tanggal mulai atau tenggat. Pilih untuk melihat dan menentukan jadwal.
                 </p>
               </div>
             </div>
@@ -1187,7 +1187,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                   <div className="flex items-center gap-2 shrink-0">
                     <TaskStatusBadge state={t.status} />
                     <Button variant="ghost" size="sm">
-                      Inspect & Schedule
+                      Lihat & Jadwalkan
                     </Button>
                   </div>
                 </div>

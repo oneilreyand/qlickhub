@@ -115,7 +115,7 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({ link, onPreview }) =
             </span>
             {link.previewStatus === 'ready' && (
               <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded">
-                Preview Ready
+                Pratinjau Siap
               </span>
             )}
           </div>
@@ -130,12 +130,12 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({ link, onPreview }) =
         {canPreview ? (
           <span className="flex items-center gap-1 text-xs font-medium text-slate-300 group-hover:text-primary">
             <Eye className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Preview</span>
+            <span className="hidden sm:inline">Pratinjau</span>
           </span>
         ) : (
           <span className="flex items-center gap-1 text-xs font-medium text-slate-400">
             <ExternalLink className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Open</span>
+            <span className="hidden sm:inline">Buka</span>
           </span>
         )}
       </div>

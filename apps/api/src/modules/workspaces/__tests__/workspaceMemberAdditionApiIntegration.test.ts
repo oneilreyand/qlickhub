@@ -255,6 +255,87 @@ describe('Workspace member addition and auto-provisioning HTTP API integration (
     assert.strictEqual(m2.role, 'po');
   });
 
+  test('persists Workspace-specific roles, specialties, results, and audit activity atomically', async () => {
+    const multiRoleEmail = `multi.role.user.${Date.now()}@assist.id`;
+    const res = await request(`/workspaces/${workspace1.id}/members`, {
+      method: 'POST',
+      body: JSON.stringify({
+        email: multiRoleEmail,
+        assignments: [
+          { workspaceId: workspace1.id, role: 'qa', specialties: [] },
+          { workspaceId: workspace2.id, role: 'dev', specialties: ['backend'] },
+        ],
+      }),
+    });
+
+    assert.strictEqual(res.status, 201);
+    const body = (await res.json()) as {
+      data: {
+        userId: string;
+        assignmentResults: Array<{
+          workspaceId: string;
+          workspaceName: string;
+          status: string;
+        }>;
+      };
+    };
+    createdUserIds.push(body.data.userId);
+    assert.deepStrictEqual(
+      body.data.assignmentResults.map((result) => [result.workspaceId, result.status]),
+      [
+        [workspace1.id, 'added'],
+        [workspace2.id, 'added'],
+      ],
+    );
+
+    const [workspace1Membership, workspace2Membership] = await Promise.all([
+      WorkspaceMemberModel.findOne({
+        where: { workspaceId: workspace1.id, userId: body.data.userId },
+      }),
+      WorkspaceMemberModel.findOne({
+        where: { workspaceId: workspace2.id, userId: body.data.userId },
+      }),
+    ]);
+    assert.strictEqual(workspace1Membership?.role, 'qa');
+    assert.strictEqual(workspace2Membership?.role, 'dev');
+
+    const specialties = await WorkspaceMemberSpecialtyModel.findAll({
+      where: { workspaceId: workspace2.id, workspaceMemberId: workspace2Membership!.id },
+    });
+    assert.deepStrictEqual(
+      specialties.map((specialty) => specialty.specialty),
+      ['backend'],
+    );
+
+    const activities = await WorkspaceMembershipActivityModel.findAll({
+      where: {
+        workspaceId: [workspace1.id, workspace2.id],
+        targetUserId: body.data.userId,
+        action: 'member_added',
+      },
+    });
+    assert.strictEqual(activities.length, 2);
+  });
+
+  test('does not persist an account or membership when one selected Workspace is invalid', async () => {
+    const atomicEmail = `atomic.member.${Date.now()}@assist.id`;
+    const missingWorkspaceId = '123e4567-e89b-42d3-a456-426614174099';
+    const res = await request(`/workspaces/${workspace1.id}/members`, {
+      method: 'POST',
+      body: JSON.stringify({
+        email: atomicEmail,
+        assignments: [
+          { workspaceId: workspace1.id, role: 'qa', specialties: [] },
+          { workspaceId: missingWorkspaceId, role: 'po', specialties: [] },
+        ],
+      }),
+    });
+
+    assert.strictEqual(res.status, 404);
+    const user = await UserModel.findOne({ where: { email: atomicEmail }, paranoid: false });
+    assert.strictEqual(user, null);
+  });
+
   test('inviting a soft-deleted user restores the user account and workspace membership', async () => {
     const restoredEmail = `restored.user.${Date.now()}@assist.id`;
     const userToSoftDelete = await UserModel.create({

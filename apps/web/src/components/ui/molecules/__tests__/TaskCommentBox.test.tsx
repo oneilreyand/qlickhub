@@ -44,7 +44,7 @@ describe('TaskCommentBox Molecule Component', () => {
           authorId: 'user-3',
           authorName: 'Charlie QA',
           parentCommentId: 'comm-1',
-          body: 'Looks good! Verified on staging environment.',
+          body: 'Looks good! Terverifikasi on staging environment.',
           editedAt: '2026-08-20T10:15:00.000Z',
           deletedAt: null,
           createdAt: '2026-08-20T10:10:00.000Z',
@@ -61,13 +61,13 @@ describe('TaskCommentBox Molecule Component', () => {
         comments={mockComments}
         currentUserId="user-2"
         members={mockMembers}
-        title="Subtask Collaboration Discussion"
+        title="Diskusi Kolaborasi Subtask"
         onPostComment={vi.fn()}
       />,
     );
 
     // Title and total comments count
-    expect(screen.getByText('Subtask Collaboration Discussion')).toBeInTheDocument();
+    expect(screen.getByText('Diskusi Kolaborasi Subtask')).toBeInTheDocument();
     expect(screen.getByText('(2)')).toBeInTheDocument();
 
     // Authors and role badges
@@ -232,7 +232,7 @@ describe('TaskCommentBox Molecule Component', () => {
     );
 
     // Click edit on Bob's own message
-    const editBtn = screen.getByRole('button', { name: /Edit message/i });
+    const editBtn = screen.getByRole('button', { name: /Edit pesan/i });
     fireEvent.click(editBtn);
 
     // Form switches to textarea editor
@@ -241,7 +241,7 @@ describe('TaskCommentBox Molecule Component', () => {
 
     fireEvent.change(editTextarea, { target: { value: 'Updated API draft response with schema' } });
 
-    const saveBtn = screen.getByRole('button', { name: /Save/i });
+    const saveBtn = screen.getByRole('button', { name: /Simpan/i });
     await act(async () => {
       fireEvent.click(saveBtn);
     });
@@ -267,8 +267,8 @@ describe('TaskCommentBox Molecule Component', () => {
         />,
       );
 
-      expect(screen.queryByRole('button', { name: /Edit message/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /Delete message/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Edit pesan/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Hapus pesan/i })).not.toBeInTheDocument();
     },
   );
 
@@ -285,7 +285,7 @@ describe('TaskCommentBox Molecule Component', () => {
     );
 
     // Title and total comments count badge
-    expect(screen.getByText('Subtask Collaboration Discussion')).toBeInTheDocument();
+    expect(screen.getByText('Diskusi Kolaborasi Subtask')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
 
     // User-2 is currentUserId -> displayed as Anda (DEV)
@@ -294,7 +294,9 @@ describe('TaskCommentBox Molecule Component', () => {
 
     // User-3 is other member -> displayed as Charlie QA
     expect(screen.getByText('Charlie QA')).toBeInTheDocument();
-    expect(screen.getByText(/Looks good! Verified on staging environment/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Looks good! Terverifikasi on staging environment/i),
+    ).toBeInTheDocument();
 
     // Send new message via bubble bottom bar
     const input = screen.getByPlaceholderText(/Tulis pesan untuk tim/i);
@@ -321,22 +323,20 @@ describe('TaskCommentBox Molecule Component', () => {
     );
 
     // Click delete button on user-2's comment
-    const deleteBtn = screen.getByRole('button', { name: /Delete message/i });
+    const deleteBtn = screen.getByRole('button', { name: /Hapus pesan/i });
     fireEvent.click(deleteBtn);
 
     // Modal dialog should appear
-    const dialog = screen.getByRole('dialog', { name: /Delete comment\?/i });
+    const dialog = screen.getByRole('dialog', { name: /Hapus komentar\?/i });
     expect(dialog).toBeInTheDocument();
-    expect(
-      within(dialog).getByText(/Are you sure you want to delete this comment\?/i),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/Yakin ingin menghapus komentar ini/i)).toBeInTheDocument();
 
     // Click cancel button
-    const cancelBtn = within(dialog).getByRole('button', { name: /Cancel/i });
+    const cancelBtn = within(dialog).getByRole('button', { name: /Batal/i });
     fireEvent.click(cancelBtn);
 
     // Modal should close and onDeleteComment should not be called
-    expect(screen.queryByRole('dialog', { name: /Delete comment\?/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /Hapus komentar\?/i })).not.toBeInTheDocument();
     expect(handleDeleteComment).not.toHaveBeenCalled();
   });
 
@@ -353,20 +353,20 @@ describe('TaskCommentBox Molecule Component', () => {
     );
 
     // Click delete button
-    const deleteBtn = screen.getByRole('button', { name: /Delete message/i });
+    const deleteBtn = screen.getByRole('button', { name: /Hapus pesan/i });
     fireEvent.click(deleteBtn);
 
     // Modal dialog should appear
-    const dialog = screen.getByRole('dialog', { name: /Delete comment\?/i });
+    const dialog = screen.getByRole('dialog', { name: /Hapus komentar\?/i });
     expect(dialog).toBeInTheDocument();
 
     // Click confirm delete button
-    const confirmDeleteBtn = within(dialog).getByRole('button', { name: /Delete Comment/i });
+    const confirmDeleteBtn = within(dialog).getByRole('button', { name: /Hapus Komentar/i });
     await act(async () => {
       fireEvent.click(confirmDeleteBtn);
     });
 
     expect(handleDeleteComment).toHaveBeenCalledWith('comm-1');
-    expect(screen.queryByRole('dialog', { name: /Delete comment\?/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /Hapus komentar\?/i })).not.toBeInTheDocument();
   });
 });

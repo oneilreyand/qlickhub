@@ -97,7 +97,7 @@ describe('TaskAttachmentsPanel', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Hapus lampiran wireframe.png' }));
     expect(await screen.findByRole('dialog', { name: 'Hapus lampiran?' })).toHaveTextContent(
-      /mencatatnya pada Activity Task/i,
+      /mencatatnya pada Aktivitas Task/i,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Hapus Lampiran' }));

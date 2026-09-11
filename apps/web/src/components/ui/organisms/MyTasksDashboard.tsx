@@ -48,15 +48,15 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-[#B1E743]">
             <CheckSquare className="h-4 w-4" aria-hidden="true" />
-            <span>Integrated Work Hub</span>
+            <span>Work Hub Terintegrasi</span>
             <span className="text-stone-300 dark:text-stone-600">/</span>
-            <span className="capitalize text-stone-500 dark:text-stone-400">Role: {userRole}</span>
+            <span className="capitalize text-stone-500 dark:text-stone-400">Peran: {userRole}</span>
           </div>
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100 sm:text-3xl">
-            My Tasks
+            Tugas Saya
           </h1>
           <p className="mt-1 text-xs text-stone-500 dark:text-stone-400 sm:text-sm">
-            Start with the persisted actions that need your attention now.
+            Mulai dari pekerjaan tersimpan yang membutuhkan perhatian Anda sekarang.
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
             onClick={onCreateTaskClick}
             leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
           >
-            Create Task
+            Buat Task
           </Button>
         )}
       </div>
@@ -82,7 +82,9 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
         <section
           id="my-task-bug-queue"
           tabIndex={-1}
-          aria-label={normalizedRole === 'dev' ? 'Assigned Bug work actions' : 'Bug retest actions'}
+          aria-label={
+            normalizedRole === 'dev' ? 'Pekerjaan Bug yang ditugaskan' : 'Pekerjaan retest Bug'
+          }
           className="scroll-mt-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B1E743]/50"
         >
           <Card className="p-4 sm:p-5">

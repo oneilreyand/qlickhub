@@ -72,7 +72,7 @@ describe('TaskReportDashboard', () => {
     );
 
     const readinessPanel = screen.getByTestId('report-release-readiness');
-    expect(readinessPanel).toHaveTextContent('Release blocked · 1 gates need action');
+    expect(readinessPanel).toHaveTextContent('Rilis terblokir · 1 gate perlu ditindaklanjuti');
     expect(readinessPanel).toHaveTextContent('1/2 development subtasks are complete.');
   });
 
@@ -131,25 +131,25 @@ describe('TaskReportDashboard', () => {
       }),
     ]);
 
-    expect(screen.getByRole('heading', { name: 'Delivery & SDLC Report' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Laporan Delivery & SDLC' })).toBeInTheDocument();
     expect(screen.getByText('25%')).toBeInTheDocument();
     expect(screen.getByText('Run smoke test')).toBeInTheDocument();
     expect(screen.getByText('Fix payment regression')).toBeInTheDocument();
-    expect(screen.getByText('Overdue · 2026-08-13')).toBeInTheDocument();
-    expect(screen.getByText('Due today · 2026-08-14')).toBeInTheDocument();
+    expect(screen.getByText('Terlambat · 2026-08-13')).toBeInTheDocument();
+    expect(screen.getByText('Jatuh tempo hari ini · 2026-08-14')).toBeInTheDocument();
 
     // Cross-functional delivery area breakdown is displayed
-    expect(screen.getByText('Cross-Functional Delivery Areas')).toBeInTheDocument();
+    expect(screen.getByText('Area Delivery Lintas Fungsi')).toBeInTheDocument();
     expect(screen.getByText('Frontend', { selector: 'span' })).toBeInTheDocument();
     expect(screen.getByText('Backend', { selector: 'span' })).toBeInTheDocument();
   });
 
-  it('allows switching between SDLC Overview, Roles & Workstreams, and Bottlenecks tabs', () => {
+  it('allows switching between SDLC Overview, Peran & Alur Kerja, and Bottlenecks tabs', () => {
     renderDashboard([
       createTask({
         id: '11111111-1111-4111-8111-111111111112',
         status: 'done',
-        title: 'User Profile Feature',
+        title: 'Profil Pengguna Feature',
         subtasks: [
           createTask({
             id: 'sub-fe-1',
@@ -162,13 +162,13 @@ describe('TaskReportDashboard', () => {
     ]);
 
     // Switch to Roles & Workstreams tab
-    fireEvent.click(screen.getByRole('button', { name: /Roles & Workstreams/i }));
-    expect(screen.getByText('Team Workload & Allocation')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Peran & Alur Kerja/i }));
+    expect(screen.getByText('Beban Kerja & Alokasi Tim')).toBeInTheDocument();
 
     // Switch to Bottlenecks tab
-    fireEvent.click(screen.getByRole('button', { name: /Bottlenecks & Schedule Health/i }));
-    expect(screen.getByText('End-to-End SDLC Handoff Pipeline')).toBeInTheDocument();
-    expect(screen.getByText('Schedule Slippage & Risk Diagnosis')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Hambatan & Kondisi Jadwal/i }));
+    expect(screen.getByText('Alur Handoff SDLC End-to-End')).toBeInTheDocument();
+    expect(screen.getByText('Diagnosis Keterlambatan & Risiko Jadwal')).toBeInTheDocument();
   });
 
   it('shows Developer specialties beside persisted team workload', () => {
@@ -210,7 +210,7 @@ describe('TaskReportDashboard', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Roles & Workstreams/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Peran & Alur Kerja/i }));
     expect(screen.getByText('Mobile Developer')).toBeInTheDocument();
     expect(screen.getByText('mobile', { selector: 'span' })).toBeInTheDocument();
     expect(screen.getByText('fullstack', { selector: 'span' })).toBeInTheDocument();
@@ -219,8 +219,8 @@ describe('TaskReportDashboard', () => {
   it('shows an empty report and sends the user to Work Hub to create tasks', () => {
     const onOpenWorkHub = renderDashboard([]);
 
-    expect(screen.getByText('No tasks in this report')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Open Work Hub' }));
+    expect(screen.getByText('Belum ada Task dalam laporan ini')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Buka Work Hub' }));
 
     expect(onOpenWorkHub).toHaveBeenCalledOnce();
   });

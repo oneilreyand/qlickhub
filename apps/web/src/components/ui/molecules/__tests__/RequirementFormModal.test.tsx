@@ -9,15 +9,15 @@ describe('RequirementFormModal Molecule', () => {
 
     render(<RequirementFormModal isOpen={true} onClose={handleClose} onSave={handleSave} />);
 
-    expect(screen.getByRole('heading', { name: 'Create Requirement' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Buat Requirement' })).toBeInTheDocument();
 
-    const titleInput = screen.getByLabelText(/Requirement Title/i);
+    const titleInput = screen.getByLabelText(/Judul Requirement/i);
     fireEvent.change(titleInput, { target: { value: 'New Structured Requirement' } });
 
-    const codeInput = screen.getByLabelText(/Requirement Code/i);
+    const codeInput = screen.getByLabelText(/Kode Requirement/i);
     fireEvent.change(codeInput, { target: { value: 'req-999' } });
 
-    const submitBtn = screen.getByRole('button', { name: /^Create Requirement$/i });
+    const submitBtn = screen.getByRole('button', { name: /^Buat Requirement$/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -46,10 +46,10 @@ describe('RequirementFormModal Molecule', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText(/Requirement Title/i), {
+    fireEvent.change(screen.getByLabelText(/Judul Requirement/i), {
       target: { value: 'Requirement with planned delivery' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Create & Plan Subtask' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Buat & Rencanakan Subtask' }));
 
     await waitFor(() => {
       expect(handleSaveAndPlan).toHaveBeenCalledWith(
@@ -70,7 +70,7 @@ describe('RequirementFormModal Molecule', () => {
       />,
     );
 
-    const codeInput = screen.getByLabelText('Requirement Code (Suggested)');
+    const codeInput = screen.getByLabelText('Kode Requirement (Saran)');
     expect(codeInput).toHaveValue('REQ-103');
     expect(codeInput).toHaveAttribute('aria-describedby', 'requirement-code-guidance');
 
@@ -83,26 +83,26 @@ describe('RequirementFormModal Molecule', () => {
 
     render(<RequirementFormModal isOpen={true} onClose={vi.fn()} onSave={handleSave} />);
 
-    expect(screen.getByTitle('Bold (Ctrl+B)')).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /write/i }));
+    expect(screen.getByTitle('Tebal (Ctrl+B)')).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /tulis/i }));
 
     const detailInput = screen.getByLabelText(
-      'Detailed Description (Optional)',
+      'Deskripsi Lengkap (Opsional)',
     ) as HTMLTextAreaElement;
-    fireEvent.change(detailInput, { target: { value: 'Important rule' } });
-    detailInput.setSelectionRange(0, 'Important rule'.length);
-    fireEvent.click(screen.getByTitle('Bold (Ctrl+B)'));
+    fireEvent.change(detailInput, { target: { value: 'Penting rule' } });
+    detailInput.setSelectionRange(0, 'Penting rule'.length);
+    fireEvent.click(screen.getByTitle('Tebal (Ctrl+B)'));
 
-    fireEvent.change(screen.getByLabelText(/Requirement Title/i), {
+    fireEvent.change(screen.getByLabelText(/Judul Requirement/i), {
       target: { value: 'Formatted Requirement' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /^Create Requirement$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Buat Requirement$/i }));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Formatted Requirement',
-          description: '**Important rule**',
+          description: '**Penting rule**',
         }),
       );
     });
@@ -114,16 +114,16 @@ describe('RequirementFormModal Molecule', () => {
 
     render(<RequirementFormModal isOpen={true} onClose={handleClose} onSave={handleSave} />);
 
-    const titleInput = screen.getByLabelText(/Requirement Title/i);
+    const titleInput = screen.getByLabelText(/Judul Requirement/i);
     fireEvent.change(titleInput, { target: { value: 'Spec with bad URL' } });
 
-    const urlInput = screen.getByLabelText(/Source \/ Reference URL/i);
+    const urlInput = screen.getByLabelText(/URL Sumber \/ Referensi/i);
     fireEvent.change(urlInput, { target: { value: 'not_a_valid_url' } });
 
-    const submitBtn = screen.getByRole('button', { name: /^Create Requirement$/i });
+    const submitBtn = screen.getByRole('button', { name: /^Buat Requirement$/i });
     fireEvent.click(submitBtn);
 
-    expect(await screen.findByText(/Please enter a valid URL/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Masukkan URL yang valid/i)).toBeInTheDocument();
     expect(handleSave).not.toHaveBeenCalled();
   });
 
@@ -136,7 +136,7 @@ describe('RequirementFormModal Molecule', () => {
       workspaceId: 'ws-1',
       code: 'REQ-101',
       title: 'Original Title',
-      description: 'Original Description',
+      description: 'Original Deskripsi',
       url: 'https://www.figma.com/file/123',
       status: 'active' as const,
       createdBy: 'user-1',
@@ -154,7 +154,7 @@ describe('RequirementFormModal Molecule', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Edit Requirement' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ubah Requirement' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('REQ-101')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument();
     expect(screen.getByDisplayValue('https://www.figma.com/file/123')).toBeInTheDocument();
@@ -162,7 +162,7 @@ describe('RequirementFormModal Molecule', () => {
     const urlInput = screen.getByDisplayValue('https://www.figma.com/file/123');
     fireEvent.change(urlInput, { target: { value: '' } });
 
-    const submitBtn = screen.getByRole('button', { name: /^Update Requirement$/i });
+    const submitBtn = screen.getByRole('button', { name: /^Perbarui Requirement$/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {

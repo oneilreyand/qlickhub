@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  FileText,
-  Plus,
-  History,
-  Search,
-  FileCode,
-  ShieldCheck,
-  Edit,
-} from 'lucide-react';
-import type {
-  QaDocument,
-  QaDocumentVersion,
-} from '@qlick/contracts';
+import { FileText, Plus, History, Search, FileCode, ShieldCheck, Edit } from 'lucide-react';
+import type { QaDocument, QaDocumentVersion } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
@@ -37,28 +26,34 @@ export interface QaDocumentsManagerProps {
 
 const docTypeMeta: Record<string, { label: string; badgeClass: string }> = {
   test_plan: {
-    label: 'Test Plan',
-    badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
+    label: 'Rencana Pengujian',
+    badgeClass:
+      'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
   },
   test_strategy: {
-    label: 'Test Strategy',
-    badgeClass: 'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
+    label: 'Strategi Pengujian',
+    badgeClass:
+      'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
   },
   product_brief: {
-    label: 'Product Brief',
-    badgeClass: 'bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] border border-[#B1E743]/40 dark:border-[#B1E743]/40',
+    label: 'Ringkasan Produk',
+    badgeClass:
+      'bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] border border-[#B1E743]/40 dark:border-[#B1E743]/40',
   },
   release_report: {
-    label: 'Release Report',
-    badgeClass: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
+    label: 'Laporan Rilis',
+    badgeClass:
+      'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
   },
   qa_guide: {
-    label: 'QA Guide',
-    badgeClass: 'bg-teal-100 text-teal-800 dark:bg-teal-950/70 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
+    label: 'Panduan QA',
+    badgeClass:
+      'bg-teal-100 text-teal-800 dark:bg-teal-950/70 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
   },
   default: {
-    label: 'QA Document',
-    badgeClass: 'bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700',
+    label: 'Dokumen QA',
+    badgeClass:
+      'bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700',
   },
 };
 
@@ -96,7 +91,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [newDocType, setNewDocType] = useState('test_plan');
   const [newContent, setNewContent] = useState('');
-  const [newChangelog, setNewChangelog] = useState('Initial draft');
+  const [newChangelog, setNewChangelog] = useState('Draf awal');
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
 
   // Create Version Modal State
@@ -116,7 +111,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
         setSelectedDocId(docs[0].id);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load QA documents');
+      setError(err instanceof Error ? err.message : 'Dokumen QA gagal dimuat');
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +136,12 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
       setSelectedDocDetails(details);
       setSelectedVersionId(details.currentVersion?.id || null);
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to load document details', 'error'));
+      dispatch(
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Detail dokumen gagal dimuat',
+          'error',
+        ),
+      );
     } finally {
       setIsLoadingDetails(false);
     }
@@ -150,7 +150,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
   const handleCreateDocument = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newContent.trim()) {
-      dispatch(enqueueSnackbar('Title and content are required.', 'error'));
+      dispatch(enqueueSnackbar('Judul dan isi wajib diisi.', 'error'));
       return;
     }
 
@@ -160,19 +160,23 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
         title: newTitle.trim(),
         docType: newDocType,
         contentMarkdown: newContent,
-        changelog: newChangelog.trim() || 'Initial version',
+        changelog: newChangelog.trim() || 'Versi awal',
         folderId: folderId || null,
       });
 
-      dispatch(enqueueSnackbar(`QA Document "${result.document.title}" created successfully.`, 'success'));
+      dispatch(
+        enqueueSnackbar(`Dokumen QA "${result.document.title}" berhasil dibuat.`, 'success'),
+      );
       setIsCreateModalOpen(false);
       setNewTitle('');
       setNewContent('');
-      setNewChangelog('Initial draft');
+      setNewChangelog('Draf awal');
       await loadDocuments();
       setSelectedDocId(result.document.id);
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create QA document', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Dokumen QA gagal dibuat', 'error'),
+      );
     } finally {
       setIsSubmittingCreate(false);
     }
@@ -181,7 +185,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
   const handleCreateVersion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDocId || !versionContent.trim()) {
-      dispatch(enqueueSnackbar('Content is required for new version.', 'error'));
+      dispatch(enqueueSnackbar('Konten wajib diisi untuk versi baru.', 'error'));
       return;
     }
 
@@ -189,16 +193,18 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
     try {
       const result = await qaDocumentService.createDocumentVersion(workspaceId, selectedDocId, {
         contentMarkdown: versionContent,
-        changelog: versionChangelog.trim() || `Version update`,
+        changelog: versionChangelog.trim() || `Pembaruan versi`,
       });
 
-      dispatch(enqueueSnackbar(`Created version v${result.version.version} successfully.`, 'success'));
+      dispatch(enqueueSnackbar(`Versi v${result.version.version} berhasil dibuat.`, 'success'));
       setIsVersionModalOpen(false);
       setVersionContent('');
       setVersionChangelog('');
       await loadDocDetails(selectedDocId);
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create new version', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Versi baru gagal dibuat', 'error'),
+      );
     } finally {
       setIsSubmittingVersion(false);
     }
@@ -234,15 +240,15 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-              <span>QA Test Documents & Plans</span>
+              <span>Dokumen &amp; Rencana Pengujian QA</span>
               <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-300">
                 {documents.length}
               </span>
             </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400">
               {canManageDocs
-                ? 'Create and version test plans, test strategies, and QA sign-off documents.'
-                : 'Read-only access: Only QA Engineers, Admins, or Owners can create and edit QA documents.'}
+                ? 'Buat dan kelola versi rencana pengujian, strategi pengujian, serta dokumen persetujuan QA.'
+                : 'Akses hanya baca: hanya QA Engineer, Admin, atau Owner yang dapat membuat dan mengedit dokumen QA.'}
             </p>
           </div>
         </div>
@@ -254,14 +260,15 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
             leftIcon={<Plus className="h-4 w-4" />}
             onClick={() => setIsCreateModalOpen(true)}
           >
-            Create QA Document
+            Buat Dokumen QA
           </Button>
         )}
       </div>
 
       {!canManageDocs && (
-        <Alert tone="info" title="QA Document Permissions">
-          You are viewing QA documents in read-only mode. Only <strong>QA Engineer, Admin, or Owner</strong> roles can create new documents and versions.
+        <Alert tone="info" title="Izin Dokumen QA">
+          Anda melihat dokumen QA dalam mode hanya baca. Hanya peran{' '}
+          <strong>QA Engineer, Admin, atau Owner</strong> yang dapat membuat dokumen dan versi baru.
         </Alert>
       )}
 
@@ -273,7 +280,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-stone-400" />
               <Input
-                placeholder="Search QA docs..."
+                placeholder="Cari dokumen QA..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 text-xs h-9"
@@ -284,12 +291,12 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               onChange={(e) => setTypeFilter(e.target.value)}
               className="text-xs h-9 w-36"
             >
-              <option value="all">All Types</option>
-              <option value="test_plan">Test Plan</option>
-              <option value="test_strategy">Test Strategy</option>
-              <option value="product_brief">Product Brief</option>
-              <option value="release_report">Release Report</option>
-              <option value="qa_guide">QA Guide</option>
+              <option value="all">Semua Jenis</option>
+              <option value="test_plan">Rencana Pengujian</option>
+              <option value="test_strategy">Strategi Pengujian</option>
+              <option value="product_brief">Ringkasan Produk</option>
+              <option value="release_report">Laporan Rilis</option>
+              <option value="qa_guide">Panduan QA</option>
             </Select>
           </div>
 
@@ -300,14 +307,14 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               <Skeleton className="h-16 w-full rounded-xl" />
             </div>
           ) : error ? (
-            <Alert tone="error" title="Error loading QA documents">
+            <Alert tone="error" title="Dokumen QA gagal dimuat">
               {error}
             </Alert>
           ) : filteredDocuments.length === 0 ? (
             <Card className="p-6 text-center space-y-2 border-dashed">
               <FileText className="h-8 w-8 text-stone-300 dark:text-stone-600 mx-auto" />
               <p className="text-xs font-semibold text-stone-600 dark:text-stone-400">
-                No QA documents found
+                Dokumen QA belum ditemukan
               </p>
               {canManageDocs && (
                 <Button
@@ -316,7 +323,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
                   leftIcon={<Plus className="h-3 w-3" />}
                   onClick={() => setIsCreateModalOpen(true)}
                 >
-                  Create Document
+                  Buat Dokumen
                 </Button>
               )}
             </Card>
@@ -326,7 +333,8 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
                 const meta = docTypeMeta[doc.docType || ''] || docTypeMeta.default;
                 const isSelected = selectedDocId === doc.id;
                 const isLinked = linkedDocumentIds.includes(doc.id);
-                const versionNumber = typeof doc.currentVersion === 'number' ? doc.currentVersion : 1;
+                const versionNumber =
+                  typeof doc.currentVersion === 'number' ? doc.currentVersion : 1;
 
                 return (
                   <div
@@ -345,7 +353,9 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
                           {doc.title}
                         </span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${meta.badgeClass} shrink-0`}>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${meta.badgeClass} shrink-0`}
+                      >
                         {meta.label}
                       </span>
                     </div>
@@ -364,7 +374,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
                             isLinked ? 'border-emerald-500 text-emerald-600' : ''
                           }`}
                         >
-                          {isLinked ? 'Linked' : 'Link to Task'}
+                          {isLinked ? 'Tertaut' : 'Tautkan ke Task'}
                         </Button>
                       )}
                     </div>
@@ -393,7 +403,10 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
                     </h4>
                   </div>
                   <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                    Doc ID: <span className="font-mono">{selectedDocDetails.document.id.slice(0, 8)}</span> • Type: {docTypeMeta[selectedDocDetails.document.docType || '']?.label || 'QA Doc'}
+                    Doc ID:{' '}
+                    <span className="font-mono">{selectedDocDetails.document.id.slice(0, 8)}</span>{' '}
+                    • Type:{' '}
+                    {docTypeMeta[selectedDocDetails.document.docType || '']?.label || 'QA Doc'}
                   </p>
                 </div>
 
@@ -405,7 +418,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
                       leftIcon={<Edit className="h-3 w-3" />}
                       onClick={openNewVersionModal}
                     >
-                      New Version
+                      Versi Baru
                     </Button>
                   )}
                 </div>
@@ -415,7 +428,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-stone-50 dark:bg-stone-950/60 border border-stone-200 dark:border-stone-800 text-xs">
                 <div className="flex items-center gap-2">
                   <History className="h-4 w-4 text-stone-500" />
-                  <span className="font-semibold text-stone-700 dark:text-stone-300">Version:</span>
+                  <span className="font-semibold text-stone-700 dark:text-stone-300">Versi:</span>
                   <Select
                     value={selectedVersionId || ''}
                     onChange={(e) => setSelectedVersionId(e.target.value)}
@@ -431,7 +444,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
 
                 {activeVersion && (
                   <span className="text-[11px] text-stone-500">
-                    Created {new Date(activeVersion.createdAt).toLocaleDateString()}
+                    Dibuat {new Date(activeVersion.createdAt).toLocaleDateString('id-ID')}
                   </span>
                 )}
               </div>
@@ -441,14 +454,16 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
                 {activeVersion?.contentMarkdown ? (
                   <FormattedText content={activeVersion.contentMarkdown} />
                 ) : (
-                  <p className="text-xs text-stone-400 italic">No content in this version.</p>
+                  <p className="text-xs text-stone-400 italic">Versi ini belum memiliki isi.</p>
                 )}
               </div>
             </Card>
           ) : (
             <Card className="p-8 text-center text-stone-400">
               <FileCode className="h-10 w-10 mx-auto text-stone-300 dark:text-stone-600 mb-2" />
-              <p className="text-xs font-semibold">Select a QA document on the left to preview details.</p>
+              <p className="text-xs font-semibold">
+                Pilih dokumen QA di sebelah kiri untuk melihat detail.
+              </p>
             </Card>
           )}
         </div>
@@ -458,18 +473,18 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Create QA Document"
-        description="Author a new test plan, strategy, or test scenario document."
+        title="Buat Dokumen QA"
+        description="Buat dokumen rencana pengujian, strategi, atau skenario pengujian baru."
         size="lg"
       >
         <form onSubmit={handleCreateDocument} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Document Title *
+              Judul Dokumen *
             </label>
             <Input
               required
-              placeholder="e.g. End-to-End Payment Gateway Test Plan"
+              placeholder="Contoh: Rencana Pengujian End-to-End Payment Gateway"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
             />
@@ -478,26 +493,23 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                Document Type *
+                Jenis Dokumen *
               </label>
-              <Select
-                value={newDocType}
-                onChange={(e) => setNewDocType(e.target.value)}
-              >
-                <option value="test_plan">Test Plan</option>
-                <option value="test_strategy">Test Strategy</option>
-                <option value="product_brief">Product Brief</option>
-                <option value="release_report">Release Report</option>
-                <option value="qa_guide">QA Guide</option>
+              <Select value={newDocType} onChange={(e) => setNewDocType(e.target.value)}>
+                <option value="test_plan">Rencana Pengujian</option>
+                <option value="test_strategy">Strategi Pengujian</option>
+                <option value="product_brief">Ringkasan Produk</option>
+                <option value="release_report">Laporan Rilis</option>
+                <option value="qa_guide">Panduan QA</option>
               </Select>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                Initial Changelog
+                Catatan Perubahan Awal
               </label>
               <Input
-                placeholder="e.g. Initial draft"
+                placeholder="Contoh: Draf awal"
                 value={newChangelog}
                 onChange={(e) => setNewChangelog(e.target.value)}
               />
@@ -506,13 +518,13 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Document Content (Markdown) *
+              Konten Dokumen (Markdown) *
             </label>
             <RichTextEditor
               id="new-doc-content"
               value={newContent}
               onChange={setNewContent}
-              placeholder="Write test objectives, scope, test scenarios, prerequisites, and expected outcomes..."
+              placeholder="Tulis tujuan dan cakupan pengujian, skenario, prasyarat, serta hasil yang diharapkan..."
               minRows={8}
             />
           </div>
@@ -524,7 +536,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               size="sm"
               onClick={() => setIsCreateModalOpen(false)}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               type="submit"
@@ -533,7 +545,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               isLoading={isSubmittingCreate}
               disabled={!newTitle.trim() || !newContent.trim()}
             >
-              Create Document
+              Buat Dokumen
             </Button>
           </div>
         </form>
@@ -543,18 +555,18 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
       <Modal
         isOpen={isVersionModalOpen}
         onClose={() => setIsVersionModalOpen(false)}
-        title={`New Version for ${selectedDocDetails?.document.title || 'Document'}`}
-        description={`Publishing version v${(selectedDocDetails?.currentVersion?.version || 1) + 1}`}
+        title={`Versi Baru untuk ${selectedDocDetails?.document.title || 'Dokumen'}`}
+        description={`Menerbitkan versi v${(selectedDocDetails?.currentVersion?.version || 1) + 1}`}
         size="lg"
       >
         <form onSubmit={handleCreateVersion} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Changelog Notes *
+              Catatan Perubahan *
             </label>
             <Input
               required
-              placeholder="What changed in this revision? (e.g. Added edge case test scenarios)"
+              placeholder="Apa yang berubah pada revisi ini? (contoh: menambahkan skenario edge case)"
               value={versionChangelog}
               onChange={(e) => setVersionChangelog(e.target.value)}
             />
@@ -562,7 +574,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Updated Content (Markdown) *
+              Konten Terbaru (Markdown) *
             </label>
             <RichTextEditor
               id="version-doc-content"
@@ -579,7 +591,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               size="sm"
               onClick={() => setIsVersionModalOpen(false)}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               type="submit"
@@ -588,7 +600,7 @@ export const QaDocumentsManager: React.FC<QaDocumentsManagerProps> = ({
               isLoading={isSubmittingVersion}
               disabled={!versionContent.trim()}
             >
-              Publish New Version
+              Terbitkan Versi Baru
             </Button>
           </div>
         </form>

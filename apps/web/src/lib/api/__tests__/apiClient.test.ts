@@ -11,7 +11,7 @@ describe('apiClient error metadata', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({ error: { code: 'FORBIDDEN', message: 'Delivery Trace access denied' } }),
+          JSON.stringify({ error: { code: 'FORBIDDEN', message: 'Jejak Delivery access denied' } }),
           {
             status: 403,
             statusText: 'Forbidden',
@@ -28,7 +28,7 @@ describe('apiClient error metadata', () => {
     });
   });
 
-  it('explains immutable QA evidence and deletion blockers without exposing backend detail', () => {
+  it('explains bukti QA permanen and deletion blockers without exposing backend detail', () => {
     expect(
       getHumanReadableApiErrorMessage(
         409,

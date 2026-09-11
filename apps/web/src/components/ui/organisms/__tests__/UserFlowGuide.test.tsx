@@ -146,7 +146,7 @@ describe('UserFlowGuide', () => {
     // Developer attempts to self-approve to DONE (triggers anti self-approval guardrail)
     const doneAttemptBtn = screen.getByRole('button', { name: /DONE \(Coba Selesaikan\)/i });
     fireEvent.click(doneAttemptBtn);
-    expect(screen.getByText(/Quality Gate Blocked: Anti Self-Approval/i)).toBeInTheDocument();
+    expect(screen.getByText(/Quality Gate Terblokir: Anti Self-Approval/i)).toBeInTheDocument();
 
     // Switch filter to Semua Role
     const allRoleFilterBtn = screen.getByRole('button', { name: /Semua Role/i });
@@ -158,14 +158,14 @@ describe('UserFlowGuide', () => {
     expect(screen.getByText(/QA Gatekeeper Verification Panel/i)).toBeInTheDocument();
 
     // Click QA Bug Scenario
-    const bugScenarioBtn = screen.getByRole('button', { name: /Temukan Bug \(Reject\)/i });
+    const bugScenarioBtn = screen.getByRole('button', { name: /Temukan Bug \(Tolak\)/i });
     fireEvent.click(bugScenarioBtn);
     expect(screen.getByText(/Status: CHANGES REQUESTED/i)).toBeInTheDocument();
 
     // Click QA Pass Scenario
-    const passScenarioBtn = screen.getByRole('button', { name: /Lolos Uji \(Approve ke DONE\)/i });
+    const passScenarioBtn = screen.getByRole('button', { name: /Lolos Uji \(Setujui ke DONE\)/i });
     fireEvent.click(passScenarioBtn);
-    expect(screen.getByText(/Status Berubah: DONE \(Approved by QA\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Status Berubah: DONE \(Disetujui oleh QA\)/i)).toBeInTheDocument();
 
     // Switch to QA Intake Guide (Guide 6)
     const qaIntakeBtn = screen.getByRole('button', { name: /6\. QA: Test Case Intake/i });

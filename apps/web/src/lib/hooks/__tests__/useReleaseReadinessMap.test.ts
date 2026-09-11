@@ -56,7 +56,7 @@ describe('useReleaseReadinessMap', () => {
         .ready,
     ).toBe(false);
     expect(result.current.stateByFeatureTaskId[secondFeatureId]?.error).toBe(
-      'Release readiness unavailable.',
+      'Kesiapan rilis tidak tersedia.',
     );
   });
 

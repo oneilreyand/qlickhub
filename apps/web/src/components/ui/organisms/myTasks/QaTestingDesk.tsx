@@ -230,7 +230,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         setRequirementOptionsError(
           error instanceof Error
             ? error.message
-            : 'Unable to load the active Requirements linked to this Feature.',
+            : 'Requirement aktif yang tertaut ke Feature ini tidak dapat dimuat.',
         );
       } finally {
         if (isCurrent) setIsLoadingRequirementOptions(false);
@@ -263,7 +263,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           ? null
           : error instanceof Error
             ? error.message
-            : 'Failed to load persisted Test Cases.',
+            : 'Test Case yang tersimpan gagal dimuat.',
       );
     } finally {
       if (requestId === executionRequestIdRef.current) setIsLoadingExecutions(false);
@@ -290,13 +290,13 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       await testManagementService.updateTestCase(workspaceId, testCaseId, {
         status: 'in_review',
       });
-      dispatch(enqueueSnackbar('Test Case submitted for Product Owner review', 'success'));
+      dispatch(enqueueSnackbar('Test Case dikirim untuk direview Product Owner', 'success'));
       await loadExecutions();
       onDataChanged();
     } catch (error) {
       dispatch(
         enqueueSnackbar(
-          error instanceof Error ? error.message : 'Unable to submit Test Case for review',
+          error instanceof Error ? error.message : 'Test Case tidak dapat diajukan untuk review',
           'error',
         ),
       );
@@ -308,7 +308,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const handleStartRun = async () => {
     if (!runTestCaseId) return;
     if (!runBuild.trim() || !runEnvironment.trim()) {
-      setRunFormError('Build and environment are required.');
+      setRunFormError('Build dan environment wajib diisi.');
       return;
     }
 
@@ -323,7 +323,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       dispatch(enqueueSnackbar('Test Run started and persisted', 'success'));
       await loadExecutions();
     } catch (error) {
-      setRunFormError(error instanceof Error ? error.message : 'Failed to start Test Run.');
+      setRunFormError(error instanceof Error ? error.message : 'Test Run gagal dimulai.');
     } finally {
       setIsStartingRun(false);
     }
@@ -368,7 +368,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     } catch (error) {
       dispatch(
         enqueueSnackbar(
-          error instanceof Error ? error.message : 'Failed to activate Test Case.',
+          error instanceof Error ? error.message : 'Test Case gagal diaktifkan.',
           'error',
         ),
       );
@@ -415,7 +415,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       dispatch(enqueueSnackbar('Immutable Test Result recorded with evidence links', 'success'));
       await loadExecutions();
     } catch (error) {
-      setResultFormError(error instanceof Error ? error.message : 'Failed to record Test Result.');
+      setResultFormError(error instanceof Error ? error.message : 'Hasil pengujian gagal dicatat.');
     } finally {
       setIsRecordingResult(false);
     }
@@ -436,13 +436,13 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           label: singleEvidenceLabel.trim() || undefined,
         },
       );
-      dispatch(enqueueSnackbar('Evidence link attached to Test Result', 'success'));
+      dispatch(enqueueSnackbar('Tautan bukti berhasil dilampirkan ke hasil pengujian', 'success'));
       setAddEvidenceResultTarget(null);
       setSingleEvidenceUrl('');
       setSingleEvidenceLabel('');
       await loadExecutions();
     } catch (err: unknown) {
-      setAddResultEvidenceError(err instanceof Error ? err.message : 'Failed to add evidence.');
+      setAddResultEvidenceError(err instanceof Error ? err.message : 'Bukti gagal ditambahkan.');
     } finally {
       setIsAddingResultEvidence(false);
     }
@@ -459,7 +459,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       dispatch(enqueueSnackbar('Comment added to subtask', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to post comment', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Komentar gagal dikirim', 'error'),
       );
     }
   };
@@ -481,7 +481,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       onDataChanged();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update QA status', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Status QA gagal diperbarui', 'error'),
       );
     } finally {
       setIsUpdatingStatus(false);
@@ -498,7 +498,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       !bugReproSteps.trim()
     ) {
       setBugFormError(
-        'Originating Result, Developer assignee, title, and reproduction details are required.',
+        'Hasil Asal, Developer penerima tugas, judul, dan detail reproduksi wajib diisi.',
       );
       return;
     }
@@ -521,7 +521,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       setBugReproSteps('');
       onDataChanged();
     } catch (err) {
-      setBugFormError(err instanceof Error ? err.message : 'Failed to open Bug.');
+      setBugFormError(err instanceof Error ? err.message : 'Bug gagal dibuat.');
     } finally {
       setIsSubmittingBug(false);
     }
@@ -536,7 +536,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                 <Bug className="h-3.5 w-3.5" />
-                QA Testing & Quality Desk
+                Area Pengujian &amp; Mutu QA
               </span>
               <TaskStatusBadge state={subtask.status} />
               <TaskScheduleHealthBadge status={calculateSubtaskScheduleHealth(subtask).status} />
@@ -549,7 +549,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             {parentTask && (
               <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400">
                 <span className="text-stone-400 font-bold uppercase text-[10px]">
-                  Parent Feature:
+                  Feature Induk:
                 </span>
                 <span className="font-semibold text-stone-800 dark:text-stone-200 truncate">
                   {parentTask.title}
@@ -558,8 +558,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             )}
 
             <p className="text-xs text-stone-600 dark:text-stone-400">
-              Completing this QA Subtask records the assigned test execution only. QA sign-off and
-              the Product Owner release decision remain separate.
+              Menyelesaikan Subtask QA hanya mencatat eksekusi pengujian yang ditugaskan.
+              Persetujuan QA dan keputusan rilis Product Owner tetap dilakukan terpisah.
             </p>
           </div>
 
@@ -574,7 +574,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 leftIcon={<Play className="h-4 w-4" />}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
-                Start Testing
+                Mulai Pengujian
               </Button>
             )}
 
@@ -588,12 +588,12 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                     disabled={bugTraceOptions.length === 0}
                     title={
                       bugTraceOptions.length === 0
-                        ? 'Record a failed or blocked Test Result first'
-                        : 'Open linked defect'
+                        ? 'Catat hasil pengujian yang gagal atau terblokir terlebih dahulu'
+                        : 'Buat Bug tertaut'
                     }
                     leftIcon={<AlertTriangle className="h-4 w-4" />}
                   >
-                    Log Defect
+                    Catat Bug
                   </Button>
                 )}
                 {canMutateQaExecution && (
@@ -605,7 +605,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                     leftIcon={<CheckCircle2 className="h-4 w-4" />}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
-                    Complete QA Execution
+                    Selesaikan Eksekusi QA
                   </Button>
                 )}
               </>
@@ -619,13 +619,13 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   onClick={() =>
                     handleStatusChange(
                       'in_progress',
-                      'Returned to In Progress for additional QA passes.',
+                      'Dikembalikan ke Sedang Dikerjakan untuk pengujian QA tambahan.',
                     )
                   }
                   isLoading={isUpdatingStatus}
                   leftIcon={<RotateCcw className="h-4 w-4" />}
                 >
-                  Resume Testing
+                  Lanjutkan Pengujian
                 </Button>
                 <Button
                   variant="primary"
@@ -635,7 +635,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   leftIcon={<CheckCircle2 className="h-4 w-4" />}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
-                  Complete QA Execution
+                  Selesaikan Eksekusi QA
                 </Button>
               </>
             )}
@@ -644,13 +644,11 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  handleStatusChange('in_progress', 'Reopened from Completed for re-testing.')
-                }
+                onClick={() => handleStatusChange('in_progress', 'Dibuka kembali untuk retest.')}
                 isLoading={isUpdatingStatus}
                 leftIcon={<RotateCcw className="h-4 w-4" />}
               >
-                Reopen QA Execution
+                Buka Kembali Eksekusi QA
               </Button>
             )}
           </div>
@@ -672,11 +670,11 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             <div className="flex items-center gap-2">
               <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                Canonical Test Management & Executions
+                Pengelolaan &amp; Eksekusi Test Case
               </h3>
             </div>
             <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
-              Native authoring and spreadsheet batch intake linked to Feature Requirements.
+              Pembuatan manual dan impor spreadsheet yang tertaut ke Requirement Feature.
             </p>
           </div>
 
@@ -688,7 +686,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 onClick={() => setIsImportWizardOpen(true)}
                 leftIcon={<Upload className="h-3.5 w-3.5" />}
               >
-                Import Spreadsheet
+                Impor Spreadsheet
               </Button>
               <Button
                 variant="primary"
@@ -697,12 +695,12 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 disabled={isLoadingRequirementOptions || requirementOptions.length === 0}
                 title={
                   isLoadingRequirementOptions
-                    ? 'Loading linked Requirements'
-                    : 'Link at least one active Requirement to this Feature before authoring a Test Case.'
+                    ? 'Memuat Requirement tertaut'
+                    : 'Tautkan minimal satu Requirement aktif ke Feature sebelum membuat Test Case.'
                 }
                 leftIcon={<Plus className="h-3.5 w-3.5" />}
               >
-                New Test Case
+                Test Case Baru
               </Button>
             </div>
           )}
@@ -714,37 +712,37 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             <Skeleton className="h-24 w-full rounded-2xl" />
           </div>
         ) : executionPermissionDenied ? (
-          <Alert tone="warning" title="Test Management access restricted">
-            Your workspace role cannot inspect persisted Test Cases for this context.
+          <Alert tone="warning" title="Akses pengelolaan pengujian dibatasi">
+            Peran Workspace Anda tidak dapat melihat Test Case yang tersimpan dalam konteks ini.
           </Alert>
         ) : executionError ? (
-          <Alert tone="error" title="Unable to load Test Executions">
+          <Alert tone="error" title="Eksekusi pengujian tidak dapat dimuat">
             {executionError}
           </Alert>
         ) : !executionWorkspace || executionWorkspace.executions.length === 0 ? (
           <div className="space-y-3">
             {requirementOptionsError ? (
-              <Alert tone="error" title="Unable to load linked Requirements">
+              <Alert tone="error" title="Requirement tertaut tidak dapat dimuat">
                 {requirementOptionsError}
               </Alert>
             ) : !isLoadingRequirementOptions && requirementOptions.length === 0 ? (
-              <Alert tone="info" title="Link a Requirement before authoring a Test Case">
-                This Feature has no active linked Requirements yet. A Product Owner or Admin can
-                link one from the Requirements section, then QA can create the Test Case.
+              <Alert tone="info" title="Tautkan Requirement sebelum membuat Test Case">
+                Feature ini belum memiliki Requirement aktif yang tertaut. Product Owner atau Admin
+                dapat menautkannya dari bagian Requirement, lalu QA dapat membuat Test Case.
               </Alert>
             ) : null}
             <EmptyState
               icon={<CheckSquare className="h-6 w-6" />}
-              title="No Test Cases linked to this Feature"
-              description="Author a native Test Case or import CSV/XLSX spreadsheet rows linked to Requirements."
+              title="Belum ada Test Case yang tertaut ke Feature ini"
+              description="Buat Test Case baru atau impor baris CSV/XLSX yang tertaut ke Requirement."
             />
           </div>
         ) : (
           <div className="space-y-4">
             {!canExecuteTests && (
-              <Alert tone="info" title="Read-only test inspection">
-                Your role can inspect Test Cases and Run history. Only Owner, Admin, or QA can start
-                Runs and record Results.
+              <Alert tone="info" title="Pengujian hanya dapat dilihat">
+                Peran Anda dapat melihat Test Case dan riwayat Run. Hanya Owner, Admin, atau QA yang
+                dapat memulai Run dan mencatat hasilnya.
               </Alert>
             )}
 
@@ -764,7 +762,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                         {testCase.testType}
                       </Badge>
                       <Badge variant="neutral" size="sm">
-                        Priority: {testCase.priority}
+                        Prioritas: {testCase.priority}
                       </Badge>
                       {testCase.externalReference && (
                         <span className="text-xs font-mono font-bold text-primary">
@@ -799,10 +797,10 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                           size="sm"
                           isLoading={submittingTestCaseId === testCase.id}
                           onClick={() => void handleSubmitTestCaseForReview(testCase.id)}
-                          aria-label={`Submit Test Case ${testCase.title} for review`}
+                          aria-label={`Ajukan Test Case ${testCase.title} untuk review`}
                           leftIcon={<CheckSquare className="h-3.5 w-3.5" />}
                         >
-                          Submit for Review
+                          Ajukan untuk Review
                         </Button>
                       )}
                       {canActivateTestCases && testCase.status === 'in_review' && (
@@ -811,10 +809,10 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                           size="sm"
                           isLoading={activatingTestCaseId === testCase.id}
                           onClick={() => void handleActivateTestCase(testCase.id)}
-                          aria-label={`Activate Test Case ${testCase.title}`}
+                          aria-label={`Aktifkan Test Case ${testCase.title}`}
                           leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
                         >
-                          Activate Test Case
+                          Aktifkan Test Case
                         </Button>
                       )}
                       {canExecuteTests && (
@@ -823,9 +821,9 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                           size="sm"
                           disabled={testCase.status !== 'active'}
                           onClick={() => openRunModal(testCase.id)}
-                          aria-label={`Start Test Run for ${testCase.title}`}
+                          aria-label={`Mulai Test Run untuk ${testCase.title}`}
                         >
-                          Start Test Run
+                          Mulai Test Run
                         </Button>
                       )}
                       {canExecuteTests && latestRun?.status === 'in_progress' && (
@@ -833,9 +831,9 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                           variant="primary"
                           size="sm"
                           onClick={() => openResultModal(testCase.id, latestRun.id)}
-                          aria-label={`Record Result for ${testCase.title}`}
+                          aria-label={`Catat hasil untuk ${testCase.title}`}
                         >
-                          Record Result
+                          Catat Hasil
                         </Button>
                       )}
                     </div>
@@ -849,15 +847,15 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   <div className="mt-4 grid gap-3 lg:grid-cols-4">
                     <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
                       <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                        Preconditions
+                        Prasyarat
                       </p>
                       <p className="mt-1 text-xs text-stone-700 dark:text-stone-300">
-                        {testCase.preconditions || 'None recorded'}
+                        {testCase.preconditions || 'Belum dicatat'}
                       </p>
                     </div>
                     <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
                       <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                        Steps
+                        Langkah
                       </p>
                       {testCase.steps.length > 0 ? (
                         <ol className="mt-1 list-decimal space-y-1 pl-4 text-xs text-stone-700 dark:text-stone-300">
@@ -866,23 +864,23 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                           ))}
                         </ol>
                       ) : (
-                        <p className="mt-1 text-xs text-stone-500">No formal steps recorded</p>
+                        <p className="mt-1 text-xs text-stone-500">Belum ada langkah formal</p>
                       )}
                     </div>
                     <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
                       <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                        Expected Result
+                        Hasil yang Diharapkan
                       </p>
                       <p className="mt-1 text-xs text-stone-700 dark:text-stone-300">
-                        {testCase.expectedResult || 'None recorded'}
+                        {testCase.expectedResult || 'Belum dicatat'}
                       </p>
                     </div>
                     <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
                       <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                        Test Data
+                        Data Pengujian
                       </p>
                       <p className="mt-1 text-xs font-mono text-stone-700 dark:text-stone-300">
-                        {testCase.testData || 'None recorded'}
+                        {testCase.testData || 'Belum dicatat'}
                       </p>
                     </div>
                   </div>
@@ -894,7 +892,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                     <div className="flex items-center gap-2">
                       <History className="h-4 w-4 text-stone-400" />
                       <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                        Run history ({testRuns.length})
+                        Riwayat Run ({testRuns.length})
                       </span>
                     </div>
                     {latestRun && (
@@ -910,7 +908,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   </div>
 
                   {testRuns.length === 0 ? (
-                    <p className="mt-2 text-xs text-stone-500">No persisted Runs yet.</p>
+                    <p className="mt-2 text-xs text-stone-500">Belum ada Run yang tersimpan.</p>
                   ) : (
                     <div className="mt-3 space-y-3">
                       {testRuns.map((run) => {
@@ -926,7 +924,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                                   {run.build}
                                 </p>
                                 <p className="text-[11px] text-stone-500">
-                                  {run.environment} · {new Date(run.startedAt).toLocaleString()}
+                                  {run.environment} ·{' '}
+                                  {new Date(run.startedAt).toLocaleString('id-ID')}
                                 </p>
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
@@ -953,7 +952,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                                     className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
                                   >
                                     <Plus className="w-3 h-3" />
-                                    Add Evidence
+                                    Tambah Bukti
                                   </button>
                                 )}
                               </div>
@@ -961,7 +960,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
                             {run.result?.actualResult && (
                               <p className="text-xs text-stone-600 dark:text-stone-400">
-                                <strong>Actual:</strong> {run.result.actualResult}
+                                <strong>Aktual:</strong> {run.result.actualResult}
                               </p>
                             )}
 
@@ -970,7 +969,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                               evidenceLinks.length > 0) && (
                               <div className="mt-2 pt-2 border-t border-slate-700/40">
                                 <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1.5">
-                                  Result Evidence (
+                                  Bukti Hasil (
                                   {(run.result?.evidence?.length || 0) + evidenceLinks.length})
                                 </span>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -981,7 +980,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                                       className="relative flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-xs"
                                     >
                                       <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                                        Formal File
+                                        File Resmi
                                       </span>
                                       <div className="min-w-0 pr-2">
                                         <p className="font-semibold text-slate-200 truncate">
@@ -1000,8 +999,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-                                        aria-label={`Download ${att.fileName}`}
-                                        title={`Download ${att.fileName}`}
+                                        aria-label={`Unduh ${att.fileName}`}
+                                        title={`Unduh ${att.fileName}`}
                                       >
                                         <Link2 className="w-5 h-5" />
                                       </a>
@@ -1045,7 +1044,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         <div className="flex items-center gap-2">
           <FileCheck className="h-4 w-4 text-sky-600 dark:text-sky-400" />
           <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-            Dev Deliverables & Environment Verification
+            Hasil Kerja Developer &amp; Verifikasi Lingkungan
           </h3>
         </div>
 
@@ -1054,7 +1053,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             <FormattedText content={subtask.description || parentTask?.description || ''} />
           ) : (
             <p className="text-stone-500 italic">
-              No build / deliverable notes submitted yet by developer.
+              Developer belum mengirim catatan build atau hasil kerja.
             </p>
           )}
         </div>
@@ -1063,7 +1062,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       {/* Subtask Discussion & Defect Chat */}
       <Card className="p-5 border-stone-200/80 dark:border-stone-800 space-y-3">
         <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-          QA Collaboration & Feedback Thread
+          Diskusi Kolaborasi &amp; Masukan QA
         </h3>
         <SubtaskCommentBox
           comments={comments}
@@ -1077,11 +1076,11 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       <Modal
         isOpen={Boolean(runTestCaseId)}
         onClose={() => setRunTestCaseId(null)}
-        title="Start persisted Test Run"
-        description="Build and environment identify this immutable execution attempt."
-        primaryActionLabel="Start Test Run"
+        title="Mulai Test Run Tersimpan"
+        description="Build dan lingkungan digunakan untuk mengenali setiap percobaan eksekusi."
+        primaryActionLabel="Mulai Test Run"
         onPrimaryAction={() => void handleStartRun()}
-        secondaryActionLabel="Cancel"
+        secondaryActionLabel="Batal"
         isPrimaryLoading={isStartingRun}
         size="sm"
       >
@@ -1091,15 +1090,15 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             label="Build"
             value={runBuild}
             onChange={(event) => setRunBuild(event.target.value)}
-            placeholder="e.g. checkout-web-2026.08.22.1"
+            placeholder="Contoh: checkout-web-2026.08.22.1"
             maxLength={100}
             required
           />
           <Input
-            label="Environment"
+            label="Lingkungan"
             value={runEnvironment}
             onChange={(event) => setRunEnvironment(event.target.value)}
-            placeholder="e.g. staging"
+            placeholder="Contoh: staging"
             maxLength={100}
             required
           />
@@ -1110,39 +1109,39 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       <Modal
         isOpen={Boolean(resultTarget)}
         onClose={() => setResultTarget(null)}
-        title="Record immutable Test Result"
-        description="After submission, this Result cannot be overwritten. Start a new Run for a retest."
-        primaryActionLabel="Record Result"
+        title="Catat Hasil Pengujian"
+        description="Setelah dikirim, hasil ini tidak dapat ditimpa. Mulai Run baru untuk retest."
+        primaryActionLabel="Catat Hasil"
         onPrimaryAction={() => void handleRecordResult()}
-        secondaryActionLabel="Cancel"
+        secondaryActionLabel="Batal"
         isPrimaryLoading={isRecordingResult}
         size="lg"
       >
         <div className="space-y-4">
           {resultFormError && <Alert tone="error">{resultFormError}</Alert>}
           <Select
-            label="Result status"
+            label="Status hasil"
             value={resultStatus}
             onChange={(event) => setResultStatus(event.target.value as TestResultStatus)}
           >
-            <option value="passed">Passed</option>
-            <option value="failed">Failed</option>
-            <option value="blocked">Blocked</option>
-            <option value="skipped">Skipped</option>
+            <option value="passed">Lulus</option>
+            <option value="failed">Gagal</option>
+            <option value="blocked">Terblokir</option>
+            <option value="skipped">Dilewati</option>
           </Select>
           <Textarea
-            label="Actual result"
+            label="Hasil aktual"
             value={actualResult}
             onChange={(event) => setActualResult(event.target.value)}
-            placeholder="What happened during this Run?"
+            placeholder="Apa yang terjadi selama Run ini?"
             rows={3}
             maxLength={20000}
           />
           <Textarea
-            label="Notes"
+            label="Catatan"
             value={resultNotes}
             onChange={(event) => setResultNotes(event.target.value)}
-            placeholder="Optional QA context for this Result"
+            placeholder="Konteks QA tambahan untuk hasil ini"
             rows={2}
             maxLength={10000}
           />
@@ -1150,7 +1149,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           {/* Uploaded QA Task Attachments Picker */}
           <div className="space-y-2 pt-2 border-t border-slate-700/60">
             <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
-              Link Uploaded QA Task Attachments ({selectedAttachmentIds.length} selected)
+              Tautkan Lampiran Task QA ({selectedAttachmentIds.length} dipilih)
             </label>
             {availableAttachments.length > 0 ? (
               <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-slate-800/40 rounded-xl border border-slate-700">
@@ -1183,7 +1182,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               </div>
             ) : (
               <div className="p-3 text-center bg-slate-800/30 rounded-xl border border-slate-700/50 text-xs text-slate-400">
-                No formal QA evidence attachments uploaded to this feature task.
+                Belum ada lampiran bukti QA resmi pada Task Feature ini.
               </div>
             )}
           </div>
@@ -1192,7 +1191,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           <div className="space-y-2 pt-2 border-t border-slate-700/60">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                External Evidence Links (YouTube, Loom, Vimeo, Drive, Direct Images)
+                Tautan Bukti Eksternal (YouTube, Loom, Vimeo, Drive, Gambar)
               </label>
               <button
                 type="button"
@@ -1200,7 +1199,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 className="inline-flex items-center gap-1 text-xs text-primary font-medium hover:underline"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Add Link
+                Tambah Tautan
               </button>
             </div>
 
@@ -1216,7 +1215,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 />
                 <div className="flex items-center gap-2">
                   <Input
-                    placeholder="Label (e.g. Failure reproduction recording)"
+                    placeholder="Label (contoh: Rekaman reproduksi kegagalan)"
                     value={item.label}
                     onChange={(e) => handleEvidenceLinkChange(index, 'label', e.target.value)}
                     className="flex-1"
@@ -1225,7 +1224,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                     type="button"
                     onClick={() => handleRemoveEvidenceLinkInput(index)}
                     className="text-slate-400 hover:text-red-400 p-1"
-                    title="Remove link"
+                    title="Hapus tautan"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -1240,19 +1239,19 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       <Modal
         isOpen={Boolean(addEvidenceResultTarget)}
         onClose={() => setAddEvidenceResultTarget(null)}
-        title="Attach Evidence Link to Test Result"
-        description="Add a sandboxed video, image, or document link to support test evidence verification."
+        title="Lampirkan Tautan Bukti ke Hasil Pengujian"
+        description="Tambahkan tautan video, gambar, atau dokumen untuk mendukung verifikasi bukti pengujian."
         size="md"
       >
         <div className="space-y-4">
           {addResultEvidenceError && (
-            <Alert tone="error" title="Unable to attach evidence">
+            <Alert tone="error" title="Bukti tidak dapat dilampirkan">
               {addResultEvidenceError}
             </Alert>
           )}
 
           <Input
-            label="Evidence URL"
+            label="URL Bukti"
             value={singleEvidenceUrl}
             onChange={(e) => setSingleEvidenceUrl(e.target.value)}
             placeholder="https://www.youtube.com/watch?v=... or https://loom.com/share/..."
@@ -1260,15 +1259,15 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           />
 
           <Input
-            label="Label / Description (Optional)"
+            label="Label / Deskripsi (Opsional)"
             value={singleEvidenceLabel}
             onChange={(e) => setSingleEvidenceLabel(e.target.value)}
-            placeholder="e.g. Video reproduction walkthrough"
+            placeholder="Contoh: Video panduan reproduksi"
           />
 
           <div className="flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
             <Button variant="ghost" size="sm" onClick={() => setAddEvidenceResultTarget(null)}>
-              Cancel
+              Batal
             </Button>
             <Button
               variant="primary"
@@ -1278,7 +1277,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               disabled={!singleEvidenceUrl.trim()}
               leftIcon={<Link2 className="h-3.5 w-3.5" />}
             >
-              Attach Evidence
+              Lampirkan Bukti
             </Button>
           </div>
         </div>
@@ -1288,24 +1287,24 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       <Modal
         isOpen={isBugModalOpen}
         onClose={() => setIsBugModalOpen(false)}
-        title="Open Linked Bug"
+        title="Buat Bug Tertaut"
         size="md"
       >
         <div className="space-y-4 p-1">
           <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-            Create a persisted Bug linked to its Feature, Requirement, and originating failed or
-            blocked Test Result. Inherited evidence will automatically be visible.
+            Buat Bug tersimpan yang tertaut ke Feature, Requirement, dan hasil pengujian gagal atau
+            terblokir. Bukti terkait akan otomatis terlihat.
           </p>
 
           {bugFormError && (
-            <Alert tone="error" title="Unable to open Bug">
+            <Alert tone="error" title="Bug tidak dapat dibuat">
               {bugFormError}
             </Alert>
           )}
 
           <div className="space-y-3">
             <Select
-              label="Originating failed or blocked Result"
+              label="Hasil gagal atau terblokir asal"
               value={bugTraceKey}
               onChange={(event) => setBugTraceKey(event.target.value)}
             >
@@ -1317,7 +1316,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             </Select>
 
             <Select
-              label="Developer assignee"
+              label="Developer yang ditugaskan"
               value={bugAssigneeId}
               onChange={(event) => setBugAssigneeId(event.target.value)}
             >
@@ -1329,39 +1328,39 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             </Select>
 
             <Input
-              label="Defect title / summary"
+              label="Judul / ringkasan Bug"
               value={bugTitle}
               onChange={(event) => setBugTitle(event.target.value)}
-              placeholder="E.g. Checkout button unresponsive on mobile viewport"
+              placeholder="Contoh: Tombol checkout tidak merespons di layar mobile"
               maxLength={255}
             />
 
             <Select
-              label="Severity level"
+              label="Tingkat keparahan"
               value={bugSeverity}
               onChange={(event) => setBugSeverity(event.target.value as typeof bugSeverity)}
             >
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
+              <option value="critical">Kritis</option>
+              <option value="high">Tinggi</option>
+              <option value="medium">Sedang</option>
+              <option value="low">Rendah</option>
             </Select>
 
             <Textarea
-              label="Steps to reproduce and expected vs actual"
+              label="Langkah reproduksi serta hasil yang diharapkan dan aktual"
               value={bugReproSteps}
               onChange={(event) => setBugReproSteps(event.target.value)}
               rows={5}
               maxLength={20000}
               placeholder={
-                '1. Navigate to /cart\n2. Click Checkout\nExpected: Opens payment modal\nActual: Request returns 500'
+                '1. Buka /cart\n2. Klik Checkout\nHarapan: Modal pembayaran terbuka\nAktual: Permintaan menghasilkan 500'
               }
             />
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-800">
             <Button variant="ghost" size="sm" onClick={() => setIsBugModalOpen(false)}>
-              Cancel
+              Batal
             </Button>
             <Button
               variant="destructive"
@@ -1371,7 +1370,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               disabled={!bugTitle.trim() || !bugReproSteps.trim() || !bugTraceKey || !bugAssigneeId}
               leftIcon={<AlertTriangle className="h-4 w-4" />}
             >
-              Submit Defect Report
+              Kirim Laporan Bug
             </Button>
           </div>
         </div>
@@ -1385,7 +1384,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         userRole={userRole as WorkspaceRole}
         requirements={requirementOptions}
         onSuccess={() => {
-          dispatch(enqueueSnackbar('Test Case created successfully', 'success'));
+          dispatch(enqueueSnackbar('Test Case berhasil dibuat', 'success'));
           void loadExecutions();
         }}
       />
@@ -1397,7 +1396,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         workspaceId={workspaceId}
         userRole={userRole as WorkspaceRole}
         onImportComplete={() => {
-          dispatch(enqueueSnackbar('Spreadsheet import finished', 'success'));
+          dispatch(enqueueSnackbar('Impor spreadsheet selesai', 'success'));
           void loadExecutions();
         }}
       />

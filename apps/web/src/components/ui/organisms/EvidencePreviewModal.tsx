@@ -133,10 +133,10 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex min-h-[44px] items-center gap-1.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400 font-medium"
-              aria-label="Open evidence link in external tab"
+              aria-label="Buka tautan bukti di tab baru"
             >
               <ExternalLink className="w-4 h-4" />
-              <span>Open External</span>
+              <span>Buka di Tab Baru</span>
             </a>
           </div>
         </div>
@@ -184,7 +184,7 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
                 <FileText className="w-8 h-8" />
               </div>
               <div className="max-w-md">
-                <h3 className="text-sm font-semibold text-slate-200">External URL Evidence Link</h3>
+                <h3 className="text-sm font-semibold text-slate-200">Tautan URL Bukti Eksternal</h3>
                 <p className="text-xs text-slate-400 mt-1">
                   In-app embedded preview is not supported for this provider. You can securely open
                   the link in a new browser tab.
@@ -193,7 +193,7 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
               <a href={evidence.url} target="_blank" rel="noopener noreferrer" className="mt-2">
                 <Button variant="primary" size="sm">
                   <ExternalLink className="w-4 h-4 mr-1.5" />
-                  Open External Link
+                  Buka Tautan Eksternal
                 </Button>
               </a>
             </div>

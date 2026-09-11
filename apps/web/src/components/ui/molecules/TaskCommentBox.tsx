@@ -73,7 +73,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 }) => {
   const isBubble = variant === 'bubble';
   const defaultTitle =
-    title || (isBubble ? 'Subtask Collaboration Discussion' : 'Working Task Discussion');
+    title || (isBubble ? 'Diskusi Kolaborasi Subtask' : 'Diskusi Pengerjaan Task');
 
   const [commentText, setCommentText] = useState('');
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
@@ -351,12 +351,12 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
               <Skeleton variant="text" className="h-10 w-3/4" />
             </div>
           ) : error ? (
-            <Alert tone="error" title="Discussion unavailable">
+            <Alert tone="error" title="Diskusi tidak tersedia">
               <div className="flex items-center justify-between gap-3">
                 <span>{error}</span>
                 {onRetry && (
                   <Button variant="outline" size="sm" onClick={onRetry}>
-                    Retry
+                    Coba Lagi
                   </Button>
                 )}
               </div>
@@ -837,7 +837,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                     ? 'bg-amber-500 text-white shadow-xs dark:bg-amber-400 dark:text-stone-950 ring-2 ring-amber-500/30'
                     : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/60'
                 }`}
-                title="Broadcast ke semua orang di task ini (Reporter, Assignee, Subtask Assignees, Komentator)"
+                title="Kirim ke semua orang di task ini (Pelapor, Penerima Tugas, Penerima Subtask, Komentator)"
               >
                 <Volume2 className="h-3 w-3" />
                 <span>@channel</span>
@@ -953,7 +953,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
               className="h-7 text-xs px-3"
               rightIcon={<Send className="h-3 w-3" />}
             >
-              Post Message
+              Kirim Pesan
             </Button>
           </div>
         </form>
@@ -963,12 +963,12 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
       {isLoading && comments.length === 0 ? (
         <Skeleton variant="text" className="h-20 w-full" />
       ) : error ? (
-        <Alert tone="error" title="Discussion unavailable">
+        <Alert tone="error" title="Diskusi tidak tersedia">
           <div className="flex items-center justify-between gap-3">
             <span>{error}</span>
             {onRetry && (
               <Button variant="outline" size="sm" onClick={onRetry}>
-                Retry
+                Coba Lagi
               </Button>
             )}
           </div>
@@ -980,7 +980,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
             {emptyIllustrationUrl ? (
               <img
                 src={emptyIllustrationUrl}
-                alt="No discussion messages"
+                alt="Belum ada pesan diskusi"
                 className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
                 loading="lazy"
               />
@@ -995,7 +995,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
             </div>
           </div>
           <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium max-w-sm mx-auto leading-relaxed">
-            No messages in this discussion thread. Be the first to start the conversation!
+            Belum ada pesan dalam diskusi ini. Mulai percakapan pertama!
           </p>
         </div>
       ) : (
@@ -1056,7 +1056,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                       {/* Edit Button */}
                       {canManage(comment) && onUpdateComment && !isEditing && (
                         <IconButton
-                          label="Edit message"
+                          label="Edit pesan"
                           size="sm"
                           variant="ghost"
                           onClick={() => {
@@ -1072,7 +1072,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                       {/* Delete Button */}
                       {canManage(comment) && onDeleteComment && (
                         <IconButton
-                          label="Delete message"
+                          label="Hapus pesan"
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDelete(comment.id)}
@@ -1105,7 +1105,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                           onClick={() => setEditingCommentId(null)}
                           className="h-6 text-[11px] px-2"
                         >
-                          Cancel
+                          Batal
                         </Button>
                         <Button
                           size="sm"
@@ -1115,7 +1115,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                           disabled={!editingCommentText.trim()}
                           className="h-6 text-[11px] px-2.5"
                         >
-                          Save
+                          Simpan
                         </Button>
                       </div>
                     </div>
@@ -1222,7 +1222,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
                               {canManage(reply) && onUpdateComment && !isReplyEditing && (
                                 <IconButton
-                                  label="Edit reply"
+                                  label="Edit balasan"
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => {
@@ -1237,7 +1237,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
                               {canManage(reply) && onDeleteComment && (
                                 <IconButton
-                                  label="Delete reply"
+                                  label="Hapus balasan"
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleDelete(reply.id)}
@@ -1269,7 +1269,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                   onClick={() => setEditingCommentId(null)}
                                   className="h-5 text-[10px] px-2"
                                 >
-                                  Cancel
+                                  Batal
                                 </Button>
                                 <Button
                                   size="sm"
@@ -1279,7 +1279,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                   disabled={!editingCommentText.trim()}
                                   className="h-5 text-[10px] px-2"
                                 >
-                                  Save
+                                  Simpan
                                 </Button>
                               </div>
                             </div>
@@ -1402,18 +1402,18 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
         onClose={() => {
           if (!deletingId) setCommentToDelete(null);
         }}
-        title={commentToDelete?.isBubble ? 'Delete message?' : 'Delete comment?'}
+        title={commentToDelete?.isBubble ? 'Hapus pesan?' : 'Hapus komentar?'}
         description={
           commentToDelete?.isBubble
-            ? 'This action will remove the message from this discussion.'
-            : 'This action will remove the comment and any direct replies from this task discussion.'
+            ? 'Tindakan ini akan menghapus pesan dari diskusi.'
+            : 'Tindakan ini akan menghapus komentar beserta balasan langsungnya dari diskusi Task.'
         }
         size="sm"
       >
         <div className="space-y-4">
           <p className="text-xs text-stone-600 dark:text-stone-300">
-            Are you sure you want to delete this {commentToDelete?.isBubble ? 'message' : 'comment'}
-            ? This action cannot be undone.
+            Yakin ingin menghapus {commentToDelete?.isBubble ? 'pesan' : 'komentar'} ini ? This
+            action cannot be undone.
           </p>
           <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
             <Button
@@ -1422,7 +1422,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
               onClick={() => setCommentToDelete(null)}
               disabled={Boolean(deletingId)}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               variant="destructive"
@@ -1431,7 +1431,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
               isLoading={Boolean(deletingId)}
               leftIcon={<Trash2 className="h-3.5 w-3.5" />}
             >
-              Delete {commentToDelete?.isBubble ? 'Message' : 'Comment'}
+              Hapus {commentToDelete?.isBubble ? 'Pesan' : 'Komentar'}
             </Button>
           </div>
         </div>

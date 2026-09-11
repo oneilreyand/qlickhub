@@ -180,10 +180,8 @@ describe('TaskDeepLinkPage', () => {
     getTaskMock.mockRejectedValue(forbidden);
     renderRoute(false);
 
-    expect(
-      await screen.findByRole('heading', { name: 'Task access restricted' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Workspace you cannot access/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Akses Task dibatasi' })).toBeInTheDocument();
+    expect(screen.getByText(/Workspace yang tidak dapat Anda akses/)).toBeInTheDocument();
     expect(getTaskMock).toHaveBeenCalledWith(workspaceId, taskId);
   });
 
@@ -193,12 +191,12 @@ describe('TaskDeepLinkPage', () => {
     renderRoute();
 
     expect(
-      await screen.findByRole('heading', { name: 'Task not found (404)' }),
+      await screen.findByRole('heading', { name: 'Task tidak ditemukan (404)' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/does not exist in the requested Workspace/)).toBeInTheDocument();
+    expect(screen.getByText(/tidak ada di Workspace yang diminta/)).toBeInTheDocument();
   });
 
-  it('loads a subtask parent and navigates Back to Feature without losing the return path', async () => {
+  it('loads sebuah Subtask parent and navigates Kembali ke Feature without losing the return path', async () => {
     const parentTask = {
       ...task,
       id: '10000000-0000-4000-8000-000000000004',

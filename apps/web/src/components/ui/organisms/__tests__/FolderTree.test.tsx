@@ -48,12 +48,15 @@ describe('FolderTree', () => {
       />,
     );
 
-    const toggle = screen.getByRole('button', { name: 'Expand Release 1.0' });
+    const toggle = screen.getByRole('button', { name: 'Buka Release 1.0' });
     toggle.focus();
     await user.keyboard('{Enter}');
 
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(toggle).toHaveAttribute('aria-controls', 'folder-children-11111111-1111-4111-8111-111111111111');
+    expect(toggle).toHaveAttribute(
+      'aria-controls',
+      'folder-children-11111111-1111-4111-8111-111111111111',
+    );
     await user.click(screen.getByRole('button', { name: 'Checkout flow' }));
 
     expect(onSelectFolder).toHaveBeenCalledWith('44444444-4444-4444-8444-444444444444');
@@ -74,9 +77,9 @@ describe('FolderTree', () => {
       />,
     );
 
-    expect(screen.getByText('Failed to load folders')).toBeVisible();
+    expect(screen.getByText('Folder gagal dimuat')).toBeVisible();
     expect(screen.getByText("Couldn't load folders")).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    await user.click(screen.getByRole('button', { name: 'Coba Lagi' }));
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
@@ -91,17 +94,12 @@ describe('FolderTree', () => {
       />,
     );
 
-    expect(screen.getByRole('status', { name: 'Loading folders' })).toBeVisible();
+    expect(screen.getByRole('status', { name: 'Memuat folder' })).toBeVisible();
 
     rerender(
-      <FolderTree
-        folders={[]}
-        selectedFolderId={null}
-        onSelectFolder={vi.fn()}
-        {...handlers}
-      />,
+      <FolderTree folders={[]} selectedFolderId={null} onSelectFolder={vi.fn()} {...handlers} />,
     );
 
-    expect(screen.getByText('No folders created yet.')).toBeVisible();
+    expect(screen.getByText('Belum ada folder.')).toBeVisible();
   });
 });

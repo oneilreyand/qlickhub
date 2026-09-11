@@ -19,7 +19,7 @@ describe('DiscussionMediaRenderer', () => {
     expect(screen.getByText(/please review the PR from/i)).toBeInTheDocument();
   });
 
-  it('detects and renders zoomable image preview with click-to-enlarge', () => {
+  it('detects and renders zoomable image pratinjau with click-to-enlarge', () => {
     render(
       <DiscussionMediaRenderer content="Screenshot evidence: https://example.com/assets/screenshot.png" />,
     );
@@ -78,7 +78,7 @@ describe('DiscussionMediaRenderer', () => {
     expect(iframeEl).toHaveAttribute('src', 'https://player.vimeo.com/video/76979871');
   });
 
-  it('detects and renders Google Drive video / file preview iframe directly in app', () => {
+  it('detects and renders Google Drive video / file pratinjau iframe directly in app', () => {
     const { container } = render(
       <DiscussionMediaRenderer content="Google Drive Video: https://drive.google.com/file/d/1A2B3C4D5E6F_xyz/view?usp=sharing" />,
     );
@@ -91,7 +91,7 @@ describe('DiscussionMediaRenderer', () => {
     );
   });
 
-  it('detects and renders Figma design link card preview', () => {
+  it('detects and renders Figma design link card pratinjau', () => {
     render(
       <DiscussionMediaRenderer content="Figma mockup: https://www.figma.com/design/AbCdEf123/Checkout-Flow-Redesign" />,
     );
@@ -101,7 +101,7 @@ describe('DiscussionMediaRenderer', () => {
     expect(screen.getByText(/Checkout Flow Redesign/i)).toBeInTheDocument();
   });
 
-  it('detects and renders rich web link preview card for PRs and doc links', () => {
+  it('detects and renders rich web link pratinjau card for PRs and doc links', () => {
     render(
       <DiscussionMediaRenderer content="Check PR details here: https://github.com/qlick-org/qareport/pull/105" />,
     );
@@ -128,8 +128,8 @@ describe('DiscussionMediaRenderer', () => {
 
     // Lightbox modal should open with zoom controls
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Zoom In/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Zoom Out/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Perbesar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Perkecil/i })).toBeInTheDocument();
   });
 
   it('detects and renders base64 data URL images from clipboard paste', () => {

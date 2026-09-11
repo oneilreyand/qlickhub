@@ -159,12 +159,12 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
 
   if (error) {
     return (
-      <Alert tone="error" title="Subtasks unavailable">
+      <Alert tone="error" title="Subtask tidak tersedia">
         <div className="flex items-center justify-between gap-3">
           <span>{error}</span>
           {onRetry && (
             <Button variant="outline" size="sm" onClick={onRetry}>
-              Retry
+              Coba Lagi
             </Button>
           )}
         </div>
@@ -180,10 +180,10 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
               <ListTodo className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-              <span>Direct Subtasks ({subtasks.length})</span>
+              <span>Subtask Langsung ({subtasks.length})</span>
             </span>
             <span className="text-[11px] font-semibold text-stone-500 dark:text-stone-400">
-              • {metrics.completed}/{metrics.total} Done ({metrics.percent}%)
+              • {metrics.completed}/{metrics.total} Selesai ({metrics.percent}%)
             </span>
           </div>
 
@@ -198,7 +198,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                     ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                     : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
                 }`}
-                title="View subtasks as expandable accordion cards"
+                title="Lihat Subtask sebagai kartu yang dapat dibuka"
               >
                 <LayoutList className="h-3.5 w-3.5" />
                 <span>Accordion</span>
@@ -207,16 +207,16 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('timeline')}
-                aria-label="Role & Handoff Timeline"
+                aria-label="Timeline Peran & Handoff"
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
                   viewMode === 'timeline'
                     ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                     : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
                 }`}
-                title="View this Feature's role handoffs, overlap, and schedule health"
+                title="Lihat handoff peran, tumpang tindih, dan kondisi jadwal Feature ini"
               >
                 <Clock className="h-3.5 w-3.5" />
-                <span>Role & Handoff</span>
+                <span>Peran &amp; Handoff</span>
               </button>
             </div>
 
@@ -411,7 +411,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search subtasks..."
+                  placeholder="Cari Subtask..."
                   className="h-8 text-xs"
                 />
               </div>
@@ -425,7 +425,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                 {!emptyIllustrationFailed && (
                   <img
                     src={emptyIllustrationSrc}
-                    alt="No subtasks created"
+                    alt="Belum ada Subtask"
                     className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
                     loading="lazy"
                     onError={() => {
@@ -451,7 +451,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                 </div>
               </div>
               <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium max-w-sm mx-auto leading-relaxed">
-                No subtasks created under this task.
+                Belum ada Subtask yang dibuat di bawah Task ini.
               </p>
               {canPlan && onOpenCreateModal && (
                 <Button
@@ -461,13 +461,13 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                   onClick={onOpenCreateModal}
                   className="mt-2"
                 >
-                  Plan First Subtask
+                  Rencanakan Subtask Pertama
                 </Button>
               )}
             </div>
           ) : filteredSubtasks.length === 0 ? (
             <div className="py-8 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 text-xs text-stone-500">
-              No subtasks match the selected area or search query.
+              Tidak ada Subtask yang cocok dengan area atau pencarian yang dipilih.
             </div>
           ) : (
             <Accordion value={expandedIds} onValueChange={setExpandedIds} allowMultiple={true}>

@@ -58,7 +58,7 @@ describe('taskService', () => {
         ok: false,
         status: 403,
         statusText: 'Forbidden',
-        json: async () => ({ error: { message: 'You are not allowed to move this task' } }),
+        json: async () => ({ error: { message: 'You are not allowed to move Task ini' } }),
       }),
     );
 
@@ -133,7 +133,7 @@ describe('taskService', () => {
     );
   });
 
-  it('creates a subtask under a parent task', async () => {
+  it('creates sebuah Subtask under a parent task', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({

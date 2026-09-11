@@ -58,7 +58,7 @@ describe('GlobalSnackbarHost Molecule', () => {
 
     expect(screen.getByText('Manual close test')).toBeInTheDocument();
 
-    const closeBtn = screen.getByRole('button', { name: /dismiss notification/i });
+    const closeBtn = screen.getByRole('button', { name: /tutup notifikasi/i });
     fireEvent.click(closeBtn);
 
     expect(screen.queryByText('Manual close test')).not.toBeInTheDocument();

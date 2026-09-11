@@ -43,18 +43,18 @@ describe('ResetPasswordPage Component', () => {
   it('captures a fragment token and removes it from the address bar', async () => {
     renderResetPage('/reset-password#token=valid-token');
 
-    expect(screen.getByText('Set New Password')).toBeInTheDocument();
+    expect(screen.getByText('Buat Kata Sandi Baru')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByTestId('location')).toHaveTextContent(/^\/reset-password$/);
       expect(screen.getByTestId('location')).not.toHaveTextContent('valid-token');
     });
-    const newPasswordInput = screen.getByPlaceholderText(/New password \(min 6 characters\)/i);
-    const confirmPasswordInput = screen.getByPlaceholderText(/Confirm new password/i);
+    const newPasswordInput = screen.getByPlaceholderText(/Kata sandi baru \(minimal 6 karakter\)/i);
+    const confirmPasswordInput = screen.getByPlaceholderText(/Konfirmasi kata sandi baru/i);
 
     expect(newPasswordInput).toHaveAttribute('type', 'password');
     expect(confirmPasswordInput).toHaveAttribute('type', 'password');
 
-    const toggleButtons = screen.getAllByRole('button', { name: /show password/i });
+    const toggleButtons = screen.getAllByRole('button', { name: /tampilkan kata sandi/i });
     expect(toggleButtons).toHaveLength(2);
 
     // Toggle first input
@@ -73,21 +73,21 @@ describe('ResetPasswordPage Component', () => {
 
     renderResetPage('/reset-password#token=valid-token-123');
 
-    fireEvent.change(screen.getByPlaceholderText(/New password \(min 6 characters\)/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Kata sandi baru \(minimal 6 karakter\)/i), {
       target: { value: 'ValidPass123!' },
     });
-    fireEvent.change(screen.getByPlaceholderText(/Confirm new password/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Konfirmasi kata sandi baru/i), {
       target: { value: 'ValidPass123!' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Update Password/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Perbarui Kata Sandi/i }));
 
     await waitFor(() => {
       expect(authService.resetPassword).toHaveBeenCalledWith({
         token: 'valid-token-123',
         newPassword: 'ValidPass123!',
       });
-      expect(screen.getByText('Password Reset Complete!')).toBeInTheDocument();
+      expect(screen.getByText('Kata Sandi Berhasil Diatur Ulang')).toBeInTheDocument();
     });
   });
 
@@ -98,6 +98,6 @@ describe('ResetPasswordPage Component', () => {
       expect(screen.getByTestId('location')).toHaveTextContent(/^\/reset-password\?source=invite$/);
       expect(screen.getByTestId('location')).not.toHaveTextContent('legacy-token');
     });
-    expect(screen.getByRole('button', { name: /Update Password/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Perbarui Kata Sandi/i })).toBeEnabled();
   });
 });

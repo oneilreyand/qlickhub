@@ -114,10 +114,10 @@ export const ComponentGalleryPage: React.FC = () => {
     return (
       <AccessRestricted
         workspaceName={activeWorkspace?.name}
-        title="UI System Access Restricted"
-        description="Hanya Workspace Owner yang dapat mengakses UI System & Component Gallery."
+        title="Akses UI System Dibatasi"
+        description="Hanya Workspace Owner yang dapat mengakses UI System & Galeri Komponen."
         actionHref="/work"
-        actionLabel="Return to Work Hub"
+        actionLabel="Kembali ke Work Hub"
       />
     );
   }
@@ -182,18 +182,18 @@ export const ComponentGalleryPage: React.FC = () => {
           <span>Atomic Design System</span>
         </div>
         <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
-          Component Gallery
+          Galeri Komponen
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-500 dark:text-stone-400">
-          Exhaustive UI library aligned with the new global design palette (Lime Primary{' '}
+          Pustaka UI lengkap yang selaras dengan palet desain global (Lime Utama{' '}
           <code className="bg-stone-100 px-1 py-0.5 rounded text-[#141413] font-semibold dark:bg-stone-800 dark:text-[#B1E743]">
             #B1E743
           </code>
-          , Charcoal Dark{' '}
+          , Charcoal Gelap{' '}
           <code className="bg-stone-100 px-1 py-0.5 rounded text-[#141413] font-semibold dark:bg-stone-800 dark:text-[#B1E743]">
             #141413
           </code>
-          , and Stone Neutrals).
+          , dan Stone Netral).
         </p>
       </div>
 

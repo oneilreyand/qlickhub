@@ -86,7 +86,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
       dispatch(enqueueSnackbar('Comment added to subtask', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to post comment', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Komentar gagal dikirim', 'error'),
       );
     }
   };
@@ -145,11 +145,14 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
           input: { status: 'in_progress' },
         }),
       ).unwrap();
-      dispatch(enqueueSnackbar('Feature task reopened', 'info'));
+      dispatch(enqueueSnackbar('Task Feature dibuka kembali', 'info'));
       onDataChanged();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to reopen feature', 'error'),
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Feature gagal dibuka kembali',
+          'error',
+        ),
       );
     }
   };
@@ -178,9 +181,9 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
   };
 
   const getMemberName = (userId?: string | null) => {
-    if (!userId) return 'Unassigned';
+    if (!userId) return 'Belum ditugaskan';
     const member = members.find((m) => m.userId === userId);
-    return member?.user?.name || member?.user?.email || 'Assigned';
+    return member?.user?.name || member?.user?.email || 'Ditugaskan';
   };
 
   return (
@@ -192,7 +195,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                PO Management Cockpit
+                Kokpit Pengelolaan PO
               </span>
               <TaskStatusBadge state={task.status} />
               <TaskScheduleHealthBadge status={calculateSubtaskScheduleHealth(task).status} />
@@ -213,7 +216,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5 text-stone-400" />
                   <span>
-                    Start: <strong>{task.startDate}</strong>
+                    Mulai: <strong>{task.startDate}</strong>
                   </span>
                 </span>
               )}
@@ -221,14 +224,14 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                 <span className="inline-flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5 text-amber-500" />
                   <span>
-                    Target Due: <strong>{task.dueDate}</strong>
+                    Target Tenggat: <strong>{task.dueDate}</strong>
                   </span>
                 </span>
               )}
               <span className="inline-flex items-center gap-1">
                 <TrendingUp className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />
                 <span>
-                  Overall Delivery: <strong>{progressPercent}%</strong>
+                  Delivery Keseluruhan: <strong>{progressPercent}%</strong>
                 </span>
               </span>
             </div>
@@ -243,7 +246,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                 onClick={handleReopenFeature}
                 leftIcon={<RotateCcw className="h-4 w-4" />}
               >
-                Reopen Task
+                Buka Kembali Task
               </Button>
             )}
           </div>
@@ -255,7 +258,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             value={completedSubtasks}
             max={totalSubtasks || 1}
             variant={progressPercent === 100 ? 'emerald' : 'brand'}
-            label={`Execution Progress: ${completedSubtasks}/${totalSubtasks} Subtasks Completed`}
+            label={`Progres Eksekusi: ${completedSubtasks}/${totalSubtasks} Subtask Selesai`}
           />
         </div>
       </Card>
@@ -280,9 +283,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                   <Code2 className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-sky-900 dark:text-sky-100">
-                    Frontend Team
-                  </h3>
+                  <h3 className="text-sm font-bold text-sky-900 dark:text-sky-100">Tim Frontend</h3>
                   <p className="text-[11px] text-sky-700/80 dark:text-sky-400">
                     UI / UX / Web & Mobile
                   </p>
@@ -297,7 +298,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             <div className="space-y-2 min-h-[140px]">
               {feSubtasks.length === 0 ? (
                 <div className="py-6 text-center text-xs text-stone-400 dark:text-stone-500">
-                  No Frontend subtasks yet
+                  Belum ada Subtask Frontend
                 </div>
               ) : (
                 feSubtasks.map((st) => {
@@ -323,7 +324,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                             {getMemberName(st.assigneeId)}
                           </span>
                         </span>
-                        {st.dueDate && <span>Due {st.dueDate}</span>}
+                        {st.dueDate && <span>Tenggat {st.dueDate}</span>}
                       </div>
                     </div>
                   );
@@ -340,7 +341,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
               className="w-full text-xs border-sky-300 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:text-sky-300 dark:hover:bg-sky-950"
               leftIcon={<Plus className="h-3.5 w-3.5" />}
             >
-              Add FE Subtask
+              Tambah Subtask FE
             </Button>
           </div>
         </Card>
@@ -355,7 +356,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">
-                    Backend Team
+                    Tim Backend
                   </h3>
                   <p className="text-[11px] text-amber-700/80 dark:text-amber-400">
                     APIs / Database / Services
@@ -371,7 +372,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             <div className="space-y-2 min-h-[140px]">
               {beSubtasks.length === 0 ? (
                 <div className="py-6 text-center text-xs text-stone-400 dark:text-stone-500">
-                  No Backend subtasks yet
+                  Belum ada Subtask Backend
                 </div>
               ) : (
                 beSubtasks.map((st) => {
@@ -397,7 +398,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                             {getMemberName(st.assigneeId)}
                           </span>
                         </span>
-                        {st.dueDate && <span>Due {st.dueDate}</span>}
+                        {st.dueDate && <span>Tenggat {st.dueDate}</span>}
                       </div>
                     </div>
                   );
@@ -414,7 +415,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
               className="w-full text-xs border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950"
               leftIcon={<Plus className="h-3.5 w-3.5" />}
             >
-              Add BE Subtask
+              Tambah Subtask BE
             </Button>
           </div>
         </Card>
@@ -429,10 +430,10 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
-                    QA & Quality
+                    QA &amp; Mutu
                   </h3>
                   <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
-                    Testing & Verification
+                    Pengujian &amp; Verifikasi
                   </p>
                 </div>
               </div>
@@ -445,7 +446,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             <div className="space-y-2 min-h-[140px]">
               {qaSubtasks.length === 0 ? (
                 <div className="py-6 text-center text-xs text-stone-400 dark:text-stone-500">
-                  No QA subtasks yet
+                  Belum ada Subtask QA
                 </div>
               ) : (
                 qaSubtasks.map((st) => {
@@ -471,7 +472,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                             {getMemberName(st.assigneeId)}
                           </span>
                         </span>
-                        {st.dueDate && <span>Due {st.dueDate}</span>}
+                        {st.dueDate && <span>Tenggat {st.dueDate}</span>}
                       </div>
                     </div>
                   );
@@ -488,7 +489,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
               className="w-full text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950"
               leftIcon={<Plus className="h-3.5 w-3.5" />}
             >
-              Add QA Subtask
+              Tambah Subtask QA
             </Button>
           </div>
         </Card>
@@ -499,7 +500,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
         <Modal
           isOpen={Boolean(selectedSubtask)}
           onClose={() => setSelectedSubtask(null)}
-          title={`Subtask Details: ${selectedSubtask.title}`}
+          title={`Detail Subtask: ${selectedSubtask.title}`}
           size="lg"
         >
           <div className="space-y-5 p-1">
@@ -521,7 +522,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                     }}
                     rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
                   >
-                    Open QA Testing Desk
+                    Buka Area Pengujian QA
                   </Button>
                 )}
                 {selectedSubtask.deliveryArea !== 'qa' && onOpenDevView && (
@@ -534,7 +535,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                     }}
                     rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
                   >
-                    Open Dev Working Desk
+                    Buka Area Kerja Dev
                   </Button>
                 )}
                 {canPlan && (
@@ -554,10 +555,10 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             {/* Description / Implementation Details */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-stone-500 uppercase tracking-wider">
-                Description & Instructions
+                Deskripsi &amp; Petunjuk
               </label>
               <div className="p-3 rounded-lg bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 text-xs sm:text-sm text-stone-800 dark:text-stone-200 leading-relaxed whitespace-pre-wrap">
-                {selectedSubtask.description || 'No description provided.'}
+                {selectedSubtask.description || 'Belum ada deskripsi.'}
               </div>
             </div>
 
@@ -565,7 +566,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               <div className="p-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
                 <span className="text-stone-400 block text-[10px] uppercase font-bold">
-                  Assignee
+                  Penerima Tugas
                 </span>
                 <span className="font-bold text-stone-800 dark:text-stone-200">
                   {getMemberName(selectedSubtask.assigneeId)}
@@ -573,7 +574,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
               </div>
               <div className="p-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
                 <span className="text-stone-400 block text-[10px] uppercase font-bold">
-                  Start Date
+                  Tanggal Mulai
                 </span>
                 <span className="font-bold text-stone-800 dark:text-stone-200">
                   {selectedSubtask.startDate || '—'}
@@ -581,7 +582,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
               </div>
               <div className="p-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
                 <span className="text-stone-400 block text-[10px] uppercase font-bold">
-                  Target Due Date
+                  Target Tenggat
                 </span>
                 <span className="font-bold text-stone-800 dark:text-stone-200">
                   {selectedSubtask.dueDate || '—'}
@@ -592,7 +593,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             {/* Subtask Discussion stream */}
             <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-800">
               <label className="text-xs font-bold text-stone-500 uppercase tracking-wider">
-                Subtask Discussion & Notes
+                Diskusi &amp; Catatan Subtask
               </label>
               <SubtaskCommentBox
                 comments={subtaskComments}

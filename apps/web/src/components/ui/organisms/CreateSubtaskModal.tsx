@@ -21,6 +21,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
 import { fetchMembers } from '../../../store/workspaceSlice';
+import { getIndonesianTaskScheduleMessage } from '../../../lib/i18n/indonesianCopy';
 
 const EMPTY_REQUIREMENT_IDS: string[] = [];
 
@@ -100,7 +101,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       setSelectedRequirementIds((current) => current.filter((id) => eligibleIds.has(id)));
     } catch (error) {
       setRequirementsError(
-        error instanceof Error ? error.message : 'Failed to load linked Requirements.',
+        error instanceof Error ? error.message : 'Requirement yang terhubung gagal dimuat.',
       );
       setEligibleRequirements([]);
     } finally {
@@ -147,23 +148,24 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
   if (!parentTask || !canPlan) return null;
 
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
+  const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeWorkspaceId || !parentTask) return;
 
     if (!title.trim()) {
-      dispatch(enqueueSnackbar('Subtask title is required', 'error'));
+      dispatch(enqueueSnackbar('Judul Subtask wajib diisi.', 'error'));
       return;
     }
 
     if (!assigneeId) {
-      dispatch(enqueueSnackbar('Assignee is required for subtasks', 'error'));
+      dispatch(enqueueSnackbar('Pelaksana Subtask wajib dipilih.', 'error'));
       return;
     }
 
     if (scheduleIssue) {
-      dispatch(enqueueSnackbar(scheduleIssue.message, 'error'));
+      dispatch(enqueueSnackbar(scheduleIssueMessage || 'Jadwal Subtask belum valid.', 'error'));
       return;
     }
 
@@ -182,13 +184,13 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       });
 
       dispatch(
-        enqueueSnackbar(`Planned ${deliveryArea.toUpperCase()} subtask successfully`, 'success'),
+        enqueueSnackbar(`Subtask ${deliveryArea.toUpperCase()} berhasil direncanakan.`, 'success'),
       );
       onCreated();
       onClose();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create subtask', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Subtask gagal dibuat.', 'error'),
       );
     } finally {
       setIsSubmitting(false);
@@ -199,14 +201,14 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Plan Subtask — ${parentTask.title}`}
+      title={`Rencanakan Subtask — ${parentTask.title}`}
       size="2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Delivery Area Segmented Cards */}
         <div>
           <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1.5">
-            Delivery Area & Responsibility *
+            Area Delivery & Tanggung Jawab *
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
             {/* Frontend Card */}
@@ -302,13 +304,13 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             htmlFor="subtask-title"
             className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
           >
-            Subtask Title *
+            Judul Subtask *
           </label>
           <Input
             id="subtask-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Implement API contracts & migration"
+            placeholder="Contoh: Implementasi kontrak API & migrasi"
             maxLength={200}
             autoFocus
           />
@@ -320,13 +322,13 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             htmlFor="subtask-description"
             className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
           >
-            Technical Description (Optional)
+            Deskripsi Teknis (Opsional)
           </label>
           <Textarea
             id="subtask-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Technical context, checklist, or instructions for the assignee (supports Markdown)..."
+            placeholder="Konteks teknis, checklist, atau instruksi untuk pelaksana (mendukung Markdown)..."
             rows={3}
             className="text-xs"
           />
@@ -335,14 +337,14 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         <div>
           <div className="mb-1.5">
             <p className="text-xs font-bold text-stone-700 dark:text-stone-300">
-              Covered Requirements (Optional)
+              Requirement yang Dicakup (Opsional)
             </p>
             <p className="text-[11px] text-stone-500 dark:text-stone-400">
-              Choose active Requirements already linked to this Feature.
+              Pilih Requirement aktif yang sudah terhubung ke Feature ini.
             </p>
           </div>
           {isRequirementsLoading ? (
-            <div aria-label="Loading linked Requirements" className="space-y-2">
+            <div aria-label="Memuat Requirement yang terhubung" className="space-y-2">
               <Skeleton className="h-11 w-full rounded-xl" />
               <Skeleton className="h-11 w-full rounded-xl" />
             </div>
@@ -356,13 +358,13 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
                   variant="outline"
                   onClick={() => void loadEligibleRequirements()}
                 >
-                  Retry
+                  Coba Lagi
                 </Button>
               </div>
             </Alert>
           ) : eligibleRequirements.length === 0 ? (
             <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50 p-3 text-xs text-stone-500 dark:border-stone-800 dark:bg-stone-950/50 dark:text-stone-400">
-              No active Requirement is linked to this Feature yet.
+              Belum ada Requirement aktif yang terhubung ke Feature ini.
             </div>
           ) : (
             <div className="max-h-40 space-y-1 overflow-y-auto rounded-xl border border-stone-200 px-3 dark:border-stone-800">
@@ -393,16 +395,16 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               htmlFor="subtask-assignee"
               className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
             >
-              Assignee ({deliveryArea.toUpperCase()} Team) <span className="text-rose-500">*</span>
+              Pelaksana (Tim {deliveryArea.toUpperCase()}) <span className="text-rose-500">*</span>
             </label>
             <Select
               id="subtask-assignee"
               value={assigneeId}
               onChange={(e) => setAssigneeId(e.target.value)}
               disabled={isMembersLoading}
-              aria-label="Assignee"
+              aria-label="Pelaksana"
             >
-              <option value="">Select {deliveryArea.toUpperCase()} Member *</option>
+              <option value="">Pilih Anggota {deliveryArea.toUpperCase()} *</option>
               {filteredMembers.map((member) => (
                 <option key={member.userId} value={member.userId}>
                   {member.user?.name || member.user?.email || member.userId} (
@@ -412,7 +414,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             </Select>
             {filteredMembers.length === 0 && !isMembersLoading && (
               <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                No active members with role matching {deliveryArea.toUpperCase()}.
+                Tidak ada anggota aktif dengan peran {deliveryArea.toUpperCase()}.
               </p>
             )}
           </div>
@@ -422,18 +424,18 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               htmlFor="subtask-priority"
               className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
             >
-              Priority
+              Prioritas
             </label>
             <Select
               value={priority}
               id="subtask-priority"
               onChange={(e) => setPriority(e.target.value as TaskPriority)}
-              aria-label="Priority"
+              aria-label="Prioritas"
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
+              <option value="low">Rendah</option>
+              <option value="medium">Sedang</option>
+              <option value="high">Tinggi</option>
+              <option value="urgent">Mendesak</option>
             </Select>
           </div>
         </div>
@@ -445,7 +447,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               htmlFor="subtask-start-date"
               className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
             >
-              Start Date (Optional pair)
+              Tanggal Mulai (pasangan opsional)
             </label>
             <Input
               type="date"
@@ -462,7 +464,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
               htmlFor="subtask-due-date"
               className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
             >
-              Due Date (Optional pair)
+              Tanggal Tenggat (pasangan opsional)
             </label>
             <Input
               type="date"
@@ -480,7 +482,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             role="alert"
             className="text-xs text-rose-600 dark:text-rose-400"
           >
-            {scheduleIssue.message}
+            {scheduleIssueMessage}
           </p>
         )}
 
@@ -493,7 +495,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             onClick={onClose}
             className="w-full sm:w-auto"
           >
-            Cancel
+            Batal
           </Button>
           <Button
             variant="primary"
@@ -502,7 +504,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             isLoading={isSubmitting}
             className="w-full sm:w-auto"
           >
-            Create Subtask
+            Buat Subtask
           </Button>
         </div>
       </form>

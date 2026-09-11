@@ -72,20 +72,18 @@ describe('ComponentGalleryPage Role Access Guard', () => {
 
     for (const role of roles) {
       const { unmount } = renderComponentGalleryPage(role);
-      expect(screen.getByText('UI System Access Restricted')).toBeInTheDocument();
+      expect(screen.getByText('Akses UI System Dibatasi')).toBeInTheDocument();
       expect(
-        screen.getByText(
-          'Hanya Workspace Owner yang dapat mengakses UI System & Component Gallery.',
-        ),
+        screen.getByText('Hanya Workspace Owner yang dapat mengakses UI System & Galeri Komponen.'),
       ).toBeInTheDocument();
       unmount();
     }
   });
 
-  it('renders full Component Gallery and Atomic Design System sections for owner role', () => {
+  it('renders full Galeri Komponen and Atomic Design System sections for owner role', () => {
     renderComponentGalleryPage('owner');
-    expect(screen.queryByText('UI System Access Restricted')).toBeNull();
-    expect(screen.getByText('Component Gallery')).toBeInTheDocument();
+    expect(screen.queryByText('Akses UI System Dibatasi')).toBeNull();
+    expect(screen.getByText('Galeri Komponen')).toBeInTheDocument();
     expect(screen.getByText('Atomic Design System')).toBeInTheDocument();
     expect(screen.getByText('1. Atoms')).toBeInTheDocument();
     expect(screen.getByText('2. Molecules')).toBeInTheDocument();

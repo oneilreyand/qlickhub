@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../sequelize.js';
 
 export type WorkspaceMembershipActivityAction =
+  | 'member_added'
   | 'member_removed'
   | 'member_restored'
   | 'member_role_updated'

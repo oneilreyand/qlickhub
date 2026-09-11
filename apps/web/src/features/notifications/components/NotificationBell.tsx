@@ -60,7 +60,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className = 
     <div className={`relative ${className}`} ref={notificationRef}>
       <button
         onClick={() => setShowNotifications(!showNotifications)}
-        aria-label="Notifications"
+        aria-label="Notifikasi"
         className="relative grid h-10 w-10 place-items-center rounded-full border border-stone-200/90 bg-white text-stone-600 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300"
       >
         <Bell className="h-4 w-4" />

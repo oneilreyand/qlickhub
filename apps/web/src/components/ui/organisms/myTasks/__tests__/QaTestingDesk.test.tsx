@@ -278,15 +278,17 @@ describe('QaTestingDesk Organism', () => {
     ]);
   });
 
-  it('completes assigned QA execution directly without a self-review step', async () => {
+  it('completes assigned QA eksekusi directly without a self-review step', async () => {
     const user = userEvent.setup();
     renderDesk();
 
     expect(screen.queryByRole('button', { name: 'Submit for Review' })).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Completing this QA Subtask records the assigned test execution only/i),
+      screen.getByText(
+        /Menyelesaikan Subtask QA hanya mencatat eksekusi pengujian yang ditugaskan/i,
+      ),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Complete QA Execution' }));
+    await user.click(screen.getByRole('button', { name: 'Selesaikan Eksekusi QA' }));
 
     await waitFor(() =>
       expect(taskServiceMocks.updateTask).toHaveBeenCalledWith(ids.workspace, ids.subtask, {
@@ -296,7 +298,7 @@ describe('QaTestingDesk Organism', () => {
     );
   });
 
-  it('reopens completed QA execution with an auditable reason', async () => {
+  it('reopens completed QA eksekusi with an auditable reason', async () => {
     const user = userEvent.setup();
     const completedSubtask = { ...mockQaSubtask, status: 'done' as const };
     taskServiceMocks.updateTask.mockResolvedValue({
@@ -305,12 +307,12 @@ describe('QaTestingDesk Organism', () => {
     });
     renderDesk('qa', completedSubtask);
 
-    await user.click(screen.getByRole('button', { name: 'Reopen QA Execution' }));
+    await user.click(screen.getByRole('button', { name: 'Buka Kembali Eksekusi QA' }));
 
     await waitFor(() =>
       expect(taskServiceMocks.updateTask).toHaveBeenCalledWith(ids.workspace, ids.subtask, {
         status: 'in_progress',
-        reviewNotes: 'Reopened from Completed for re-testing.',
+        reviewNotes: 'Dibuka kembali untuk retest.',
       }),
     );
   });
@@ -319,36 +321,42 @@ describe('QaTestingDesk Organism', () => {
     const legacySubtask = { ...mockQaSubtask, status: 'in_review' as const };
     renderDesk('qa', legacySubtask);
 
-    await screen.findByText('No QA Sign-off recorded');
-    await screen.findByText('No Test Cases linked to this Feature');
-    expect(screen.getByRole('button', { name: 'Resume Testing' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Complete QA Execution' })).toBeInTheDocument();
+    await screen.findByText('Belum ada Persetujuan QA');
+    await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini');
+    expect(screen.getByRole('button', { name: 'Lanjutkan Pengujian' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Selesaikan Eksekusi QA' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Approve Quality/i })).not.toBeInTheDocument();
   });
 
   it('keeps QA Subtask status actions hidden from a QA member who is not the assignee', async () => {
     renderDesk('qa', mockQaSubtask, ids.reporter);
 
-    await screen.findByText('No Test Cases linked to this Feature');
-    expect(screen.queryByRole('button', { name: 'Complete QA Execution' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Log Defect' })).toBeDisabled();
+    await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini');
+    expect(
+      screen.queryByRole('button', { name: 'Selesaikan Eksekusi QA' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Catat Bug' })).toBeDisabled();
   });
 
   it('renders Canonical Test Management workspace with Native Authoring and Import buttons for Planners', async () => {
     renderDesk('po');
 
-    expect(await screen.findByText('No Test Cases linked to this Feature')).toBeInTheDocument();
-    expect(screen.getByText('QA Testing & Quality Desk')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /New Test Case/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Import Spreadsheet/i })).toBeInTheDocument();
+    expect(
+      await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Area Pengujian & Mutu QA')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Test Case Baru/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Impor Spreadsheet/i })).toBeInTheDocument();
   });
 
-  it('lets QA author the first Test Case from active Requirements linked to the Feature', async () => {
+  it('lets QA author the first Test Case from active Requirement linked to the Feature', async () => {
     const user = userEvent.setup();
     renderDesk('qa');
 
-    expect(await screen.findByText('No Test Cases linked to this Feature')).toBeInTheDocument();
-    const createButton = screen.getByRole('button', { name: /New Test Case/i });
+    expect(
+      await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
+    ).toBeInTheDocument();
+    const createButton = screen.getByRole('button', { name: /Test Case Baru/i });
     await waitFor(() => expect(createButton).toBeEnabled());
     await user.click(createButton);
 
@@ -359,10 +367,10 @@ describe('QaTestingDesk Organism', () => {
       }),
     ).toBeInTheDocument();
     await user.type(
-      within(dialog).getByPlaceholderText(/Verify returning customer card checkout/i),
+      within(dialog).getByPlaceholderText(/Verifikasi checkout kartu pelanggan lama/i),
       'QA can author the first Test Case',
     );
-    await user.click(within(dialog).getByRole('button', { name: 'Save Draft' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan Draf' }));
 
     await waitFor(() =>
       expect(serviceMocks.createTestCase).toHaveBeenCalledWith(ids.workspace, {
@@ -420,14 +428,14 @@ describe('QaTestingDesk Organism', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Start Test Run for Returning customer completes checkout',
+        name: 'Mulai Test Run untuk Returning customer completes checkout',
       }),
     );
     const dialog = screen.getByRole('dialog');
     await user.type(within(dialog).getByLabelText('Build'), 'checkout-web-2026.08.22.1');
-    await user.clear(within(dialog).getByLabelText('Environment'));
-    await user.type(within(dialog).getByLabelText('Environment'), 'qa-staging');
-    await user.click(within(dialog).getByRole('button', { name: 'Start Test Run' }));
+    await user.clear(within(dialog).getByLabelText('Lingkungan'));
+    await user.type(within(dialog).getByLabelText('Lingkungan'), 'qa-staging');
+    await user.click(within(dialog).getByRole('button', { name: 'Mulai Test Run' }));
 
     await waitFor(() =>
       expect(serviceMocks.createTestRun).toHaveBeenCalledWith(ids.workspace, ids.testCase, {
@@ -437,7 +445,7 @@ describe('QaTestingDesk Organism', () => {
     );
   });
 
-  it('lets PO activate a QA Test Case that is awaiting review without granting execution access', async () => {
+  it('lets PO activate a QA Test Case that is awaiting review without granting eksekusi access', async () => {
     const user = userEvent.setup();
     const reviewWorkspace = executionWorkspace();
     reviewWorkspace.executions[0].testCase.status = 'in_review';
@@ -447,7 +455,7 @@ describe('QaTestingDesk Organism', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Activate Test Case Returning customer completes checkout',
+        name: 'Aktifkan Test Case Returning customer completes checkout',
       }),
     );
 
@@ -456,7 +464,7 @@ describe('QaTestingDesk Organism', () => {
         status: 'active',
       }),
     );
-    expect(screen.queryByRole('button', { name: /Start Test Run for/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Mulai Test Run untuk/ })).not.toBeInTheDocument();
   });
 
   it('lets QA submit a draft Test Case for Product Owner review without granting activation access', async () => {
@@ -469,7 +477,7 @@ describe('QaTestingDesk Organism', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Submit Test Case Returning customer completes checkout for review',
+        name: 'Ajukan Test Case Returning customer completes checkout untuk review',
       }),
     );
 
@@ -478,7 +486,7 @@ describe('QaTestingDesk Organism', () => {
         status: 'in_review',
       }),
     );
-    expect(screen.queryByRole('button', { name: /Activate Test Case/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Aktifkan Test Case/ })).not.toBeInTheDocument();
   });
 
   it('records a Result for the active persisted Run with evidence links', async () => {
@@ -488,13 +496,13 @@ describe('QaTestingDesk Organism', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Record Result for Returning customer completes checkout',
+        name: 'Catat hasil untuk Returning customer completes checkout',
       }),
     );
     const dialog = screen.getByRole('dialog');
-    await user.selectOptions(within(dialog).getByLabelText('Result status'), 'failed');
-    await user.type(within(dialog).getByLabelText('Actual result'), 'Payment API returned 500.');
-    await user.click(within(dialog).getByRole('button', { name: 'Record Result' }));
+    await user.selectOptions(within(dialog).getByLabelText('Status hasil'), 'failed');
+    await user.type(within(dialog).getByLabelText('Hasil aktual'), 'Payment API returned 500.');
+    await user.click(within(dialog).getByRole('button', { name: 'Catat Hasil' }));
 
     await waitFor(() =>
       expect(serviceMocks.recordTestResult).toHaveBeenCalledWith(
@@ -513,12 +521,12 @@ describe('QaTestingDesk Organism', () => {
     qaRender.unmount();
 
     renderDesk('po');
-    expect(await screen.findByText('Read-only test inspection')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Start Test Run for/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Record Result for/ })).not.toBeInTheDocument();
+    expect(await screen.findByText('Pengujian hanya dapat dilihat')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Mulai Test Run untuk/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Catat hasil untuk/ })).not.toBeInTheDocument();
   });
 
-  it('opens Defect Report modal when clicking Log Defect button', async () => {
+  it('opens Defect Report modal when clicking Catat Bug button', async () => {
     const user = userEvent.setup();
     serviceMocks.getTaskTestExecutions.mockResolvedValue(
       executionWorkspace([
@@ -544,11 +552,11 @@ describe('QaTestingDesk Organism', () => {
     );
     renderDesk();
     await screen.findByText('Returning customer completes checkout');
-    await user.click(screen.getByRole('button', { name: 'Log Defect' }));
+    await user.click(screen.getByRole('button', { name: 'Catat Bug' }));
 
-    expect(screen.getByText('Open Linked Bug')).toBeInTheDocument();
+    expect(screen.getByText('Buat Bug Tertaut')).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText(/E.g. Checkout button unresponsive on mobile viewport/i),
+      screen.getByPlaceholderText(/Contoh: Tombol checkout tidak merespons di layar mobile/i),
     ).toBeInTheDocument();
   });
 
@@ -576,22 +584,22 @@ describe('QaTestingDesk Organism', () => {
     renderDesk();
 
     await screen.findByText('Returning customer completes checkout');
-    await user.click(screen.getByRole('button', { name: 'Log Defect' }));
+    await user.click(screen.getByRole('button', { name: 'Catat Bug' }));
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByLabelText('Originating failed or blocked Result')).toHaveValue(
+    expect(within(dialog).getByLabelText('Hasil gagal atau terblokir asal')).toHaveValue(
       `${ids.result}:${ids.requirement}`,
     );
-    expect(within(dialog).getByLabelText('Developer assignee')).toHaveValue(ids.dev);
+    expect(within(dialog).getByLabelText('Developer yang ditugaskan')).toHaveValue(ids.dev);
     await user.type(
-      within(dialog).getByLabelText('Defect title / summary'),
+      within(dialog).getByLabelText('Judul / ringkasan Bug'),
       'Checkout request returns 500',
     );
     await user.type(
-      within(dialog).getByLabelText('Steps to reproduce and expected vs actual'),
+      within(dialog).getByLabelText('Langkah reproduksi serta hasil yang diharapkan dan aktual'),
       'Open checkout and submit a saved card. Expected success; actual HTTP 500.',
     );
-    await user.selectOptions(within(dialog).getByLabelText('Severity level'), 'critical');
-    await user.click(within(dialog).getByRole('button', { name: 'Submit Defect Report' }));
+    await user.selectOptions(within(dialog).getByLabelText('Tingkat keparahan'), 'critical');
+    await user.click(within(dialog).getByRole('button', { name: 'Kirim Laporan Bug' }));
 
     await waitFor(() =>
       expect(bugServiceMocks.createBug).toHaveBeenCalledWith(ids.workspace, {

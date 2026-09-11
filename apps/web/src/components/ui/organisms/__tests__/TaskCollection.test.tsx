@@ -38,42 +38,42 @@ describe('TaskCollection Organism', () => {
   it('renders no tasks illustration and message when task list is empty', () => {
     render(<TaskCollection tasks={[]} folders={[]} isLoading={false} onSelect={vi.fn()} />);
 
-    const imgs = screen.getAllByAltText('No Tasks in Task Hub Illustration');
+    const imgs = screen.getAllByAltText('Ilustrasi tidak ada Task di Task Hub');
     expect(imgs.length).toBeGreaterThanOrEqual(1);
     expect(imgs[0]).toHaveAttribute('src', EMPTY_TASKS_ILLUSTRATION_URL);
     expect(EMPTY_TASKS_ILLUSTRATION_URL).toBe(
       'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787027457/ChatGPT_Image_Aug_18_2026_11_30_28_AM.png',
     );
-    expect(screen.getAllByText('No tasks found').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Task tidak ditemukan').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders Collapse All button and toggles collapse / expand for all groups', () => {
+  it('renders Tutup Semua button and toggles collapse / expand for all groups', () => {
     render(<TaskCollection tasks={mockTasks} folders={[]} isLoading={false} onSelect={vi.fn()} />);
 
-    // Initial state: Both tasks visible, button says "Collapse All"
+    // Initial state: Both tasks visible, button says "Tutup Semua"
     expect(screen.getByText(/status groups/i)).toBeInTheDocument();
-    const collapseButton = screen.getByRole('button', { name: /collapse all/i });
+    const collapseButton = screen.getByRole('button', { name: /tutup semua/i });
     expect(collapseButton).toBeInTheDocument();
 
     expect(screen.getAllByText('Design Wireframes').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Implement Authentication').length).toBeGreaterThanOrEqual(1);
 
-    // Click "Collapse All" -> button becomes "Expand All" and task items are hidden
+    // Click "Tutup Semua" -> button becomes "Buka Semua" and task items are hidden
     fireEvent.click(collapseButton);
 
-    expect(screen.getByRole('button', { name: /expand all/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /buka semua/i })).toBeInTheDocument();
     expect(screen.queryByText('Design Wireframes')).not.toBeInTheDocument();
     expect(screen.queryByText('Implement Authentication')).not.toBeInTheDocument();
 
-    // Click "Expand All" -> tasks become visible again and button returns to "Collapse All"
-    fireEvent.click(screen.getByRole('button', { name: /expand all/i }));
+    // Click "Buka Semua" -> tasks become visible again and button returns to "Tutup Semua"
+    fireEvent.click(screen.getByRole('button', { name: /buka semua/i }));
 
-    expect(screen.getByRole('button', { name: /collapse all/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /tutup semua/i })).toBeInTheDocument();
     expect(screen.getAllByText('Design Wireframes').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Implement Authentication').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders compact Delivery Trace state in mobile cards and the desktop table', () => {
+  it('renders compact Jejak Delivery state in mobile cards and the desktop table', () => {
     const trace = createDeliveryTraceFixture({
       structural: {
         ...createDeliveryTraceFixture().structural,
@@ -102,9 +102,9 @@ describe('TaskCollection Organism', () => {
       />,
     );
 
-    expect(screen.getAllByText('Trace 1/2 reqs')).toHaveLength(2);
-    expect(screen.getAllByText('Tests 1 failed')).toHaveLength(2);
-    expect(screen.getAllByText('Trace restricted')).toHaveLength(2);
+    expect(screen.getAllByText('Cakupan 1/2 Requirement')).toHaveLength(2);
+    expect(screen.getAllByText('1 pengujian gagal')).toHaveLength(2);
+    expect(screen.getAllByText('Jejak dibatasi')).toHaveLength(2);
     expect(screen.getByRole('columnheader', { name: 'Delivery & Release' })).toBeInTheDocument();
   });
 
@@ -121,7 +121,7 @@ describe('TaskCollection Organism', () => {
       />,
     );
 
-    expect(screen.getAllByText('Release blocked · 1 gates need action')).toHaveLength(2);
+    expect(screen.getAllByText('Rilis terblokir · 1 gate perlu ditindaklanjuti')).toHaveLength(2);
     expect(screen.getByRole('columnheader', { name: 'Delivery & Release' })).toBeInTheDocument();
   });
 

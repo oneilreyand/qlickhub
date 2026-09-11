@@ -52,7 +52,7 @@ describe('authSlice Redux store', () => {
     expect(loggedOutState.status).toBe('idle');
   });
 
-  it('manages showOnboardingModal and setOnboardingCompleted actions', () => {
+  it('manages showOnboardingModal and setOnboardingSelesai actions', () => {
     const initialState = authReducer(undefined, setSessionUser(mockUser));
     // User without onboarding completed automatically opens modal
     expect(initialState.showOnboardingModal).toBe(true);
@@ -63,7 +63,10 @@ describe('authSlice Redux store', () => {
     const openedState = authReducer(closedState, setShowOnboardingModal(true));
     expect(openedState.showOnboardingModal).toBe(true);
 
-    const completedState = authReducer(openedState, setOnboardingCompleted('2026-08-19T12:00:00.000Z'));
+    const completedState = authReducer(
+      openedState,
+      setOnboardingCompleted('2026-08-19T12:00:00.000Z'),
+    );
     expect(completedState.currentUser?.onboardingCompletedAt).toBe('2026-08-19T12:00:00.000Z');
   });
 
@@ -151,7 +154,7 @@ describe('authSlice Redux store', () => {
     expect(state.status).toBe('idle');
   });
 
-  it('does not write user profile or onboarding status to localStorage when setting session user or completing onboarding', () => {
+  it('does not tulis user profile or onboarding status to localStorage when setting session user or completing onboarding', () => {
     authReducer(undefined, setSessionUser(mockUser));
     expect(window.localStorage.getItem('user_id')).toBeNull();
     expect(window.localStorage.getItem('user_role')).toBeNull();
@@ -162,4 +165,3 @@ describe('authSlice Redux store', () => {
     expect(window.localStorage.getItem('user_onboarding_completed_at')).toBeNull();
   });
 });
-

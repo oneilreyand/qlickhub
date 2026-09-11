@@ -23,7 +23,7 @@ function getFailure(error: unknown): RouteFailure {
       typeof error === 'object' && error !== null && 'status' in error
         ? Number(error.status)
         : undefined,
-    message: error instanceof Error ? error.message : 'Unable to load this task.',
+    message: error instanceof Error ? error.message : 'Task ini tidak dapat dimuat.',
   };
 }
 
@@ -116,7 +116,10 @@ export const TaskDeepLinkPage: React.FC = () => {
 
   if (!isInitialized || isWorkspaceLoading) {
     return (
-      <Card className="mx-auto max-w-3xl space-y-4 p-5 sm:p-8" aria-label="Loading task deep link">
+      <Card
+        className="mx-auto max-w-3xl space-y-4 p-5 sm:p-8"
+        aria-label="Memuat tautan langsung Task"
+      >
         <Skeleton className="h-5 w-48 rounded-lg" />
         <Skeleton className="h-12 w-full rounded-xl" />
         <Skeleton className="h-64 w-full rounded-xl" />
@@ -138,8 +141,8 @@ export const TaskDeepLinkPage: React.FC = () => {
   if (failure?.status === 403) {
     return (
       <AccessRestricted
-        title="Task access restricted"
-        description="This task belongs to a Workspace you cannot access, or your role cannot open this Feature context."
+        title="Akses Task dibatasi"
+        description="Task ini berada di Workspace yang tidak dapat Anda akses, atau peran Anda tidak dapat membuka konteks Feature ini."
         actionHref="/work?tab=tasks"
       />
     );
@@ -148,8 +151,8 @@ export const TaskDeepLinkPage: React.FC = () => {
   if (failure?.status === 404) {
     return (
       <ErrorBoundaryFallback
-        title="Task not found (404)"
-        description="This task does not exist in the requested Workspace, or it has been removed."
+        title="Task tidak ditemukan (404)"
+        description="Task ini tidak ada di Workspace yang diminta atau sudah dihapus."
         resetErrorBoundary={reload}
         showHomeButton
       />
@@ -160,8 +163,8 @@ export const TaskDeepLinkPage: React.FC = () => {
     return (
       <ErrorBoundaryFallback
         error={failure ? new Error(failure.message) : undefined}
-        title="Task unavailable"
-        description="The persisted task could not be loaded. Try again or return to the Work Hub."
+        title="Task tidak tersedia"
+        description="Task yang tersimpan tidak dapat dimuat. Coba lagi atau kembali ke Work Hub."
         resetErrorBoundary={reload}
         showHomeButton
       />

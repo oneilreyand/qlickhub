@@ -20,7 +20,7 @@ describe('TaskHubMetrics Organism', () => {
         donePercentage={67}
         inReviewCount={6}
         urgentCount={2}
-      />
+      />,
     );
 
     act(() => {
@@ -28,10 +28,10 @@ describe('TaskHubMetrics Organism', () => {
     });
 
     // Verify clean titles are present
-    expect(screen.getByText('Total Tasks')).toBeInTheDocument();
-    expect(screen.getByText('Completed')).toBeInTheDocument();
-    expect(screen.getByText('In Review')).toBeInTheDocument();
-    expect(screen.getByText('Urgent & Blocked')).toBeInTheDocument();
+    expect(screen.getByText('Total Task')).toBeInTheDocument();
+    expect(screen.getByText('Selesai')).toBeInTheDocument();
+    expect(screen.getByText('Dalam Review')).toBeInTheDocument();
+    expect(screen.getByText('Mendesak & Terblokir')).toBeInTheDocument();
 
     // Verify counters
     expect(screen.getByText('42')).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe('TaskHubMetrics Organism', () => {
     expect(screen.getByText('67%')).toBeInTheDocument();
 
     // Verify urgent status badge
-    expect(screen.getByText('Needs Attention')).toBeInTheDocument();
+    expect(screen.getByText('Perlu Perhatian')).toBeInTheDocument();
   });
 
   it('does not render redundant clutter text', () => {
@@ -55,7 +55,7 @@ describe('TaskHubMetrics Organism', () => {
         donePercentage={50}
         inReviewCount={3}
         urgentCount={0}
-      />
+      />,
     );
 
     act(() => {
@@ -64,7 +64,7 @@ describe('TaskHubMetrics Organism', () => {
 
     // Redundant footer strings must NOT exist in the DOM
     expect(screen.queryByText('Active workspace tasks')).not.toBeInTheDocument();
-    expect(screen.queryByText('Completed tasks')).not.toBeInTheDocument();
+    expect(screen.queryByText('Selesai tasks')).not.toBeInTheDocument();
     expect(screen.queryByText('Awaiting verification')).not.toBeInTheDocument();
     expect(screen.queryByText('Critical items')).not.toBeInTheDocument();
     expect(screen.queryByText('Reviewing')).not.toBeInTheDocument();

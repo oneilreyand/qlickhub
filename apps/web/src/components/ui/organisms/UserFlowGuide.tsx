@@ -228,11 +228,11 @@ const LoggedInRoleHeroBanner: React.FC<LoggedInRoleHeroBannerProps> = ({
       case 'admin':
         return {
           title: 'Owner & Workspace Admin',
-          badgeText: 'Governance & Escalation',
+          badgeText: 'Tata Kelola & Eskalasi',
           badgeColor: 'bg-amber-400/20 text-amber-300 border-amber-400/30',
           icon: ShieldCheck,
           deskRoute: '/workspaces/settings',
-          deskLabel: 'Buka Workspace Settings',
+          deskLabel: 'Buka Pengaturan Workspace',
           summary:
             'Anda memegang kendali tata kelola workspace, keanggotaan tim, klasifikasi spesialisasi developer (ADR-002), dan akuntabilitas keputusan rilis tertinggi.',
           primaryActions: [
@@ -246,7 +246,7 @@ const LoggedInRoleHeroBanner: React.FC<LoggedInRoleHeroBannerProps> = ({
       case 'po':
         return {
           title: 'Product Owner (PO)',
-          badgeText: 'Product Planning & Release Ownership',
+          badgeText: 'Perencanaan Produk & Kepemilikan Rilis',
           badgeColor: 'bg-purple-400/20 text-purple-300 border-purple-400/30',
           icon: CheckCircle2,
           deskRoute: '/my-tasks',
@@ -264,7 +264,7 @@ const LoggedInRoleHeroBanner: React.FC<LoggedInRoleHeroBannerProps> = ({
       case 'dev':
         return {
           title: 'Developer (Frontend / Backend / Mobile / Fullstack)',
-          badgeText: 'Technical Delivery & Quality Gate',
+          badgeText: 'Delivery Teknis & Quality Gate',
           badgeColor: 'bg-blue-400/20 text-blue-300 border-blue-400/30',
           icon: Code2,
           deskRoute: '/my-tasks',
@@ -282,7 +282,7 @@ const LoggedInRoleHeroBanner: React.FC<LoggedInRoleHeroBannerProps> = ({
       case 'qa':
         return {
           title: 'Quality Assurance (QA)',
-          badgeText: 'Quality Gatekeeper & Sign-off Certification',
+          badgeText: 'Gatekeeper Kualitas & Sertifikasi Sign-off',
           badgeColor: 'bg-emerald-400/20 text-emerald-300 border-emerald-400/30',
           icon: TestTube,
           deskRoute: '/my-tasks',
@@ -290,7 +290,7 @@ const LoggedInRoleHeroBanner: React.FC<LoggedInRoleHeroBannerProps> = ({
           summary:
             'Pintu gerbang kualitas sistem. Anda berwenang mereview subtask developer, authoring test cases (Spreadsheet Intake), merekam test runs & evidence, retest bug, dan menerbitkan QA Sign-off.',
           primaryActions: [
-            'Review subtask In Review (Approve ke DONE / Changes Requested)',
+            'Review subtask In Review (Setujui ke DONE / Minta Perubahan)',
             'Import Test Case Spreadsheet Wizard (CSV / XLSX)',
             'Catat immutable Test Result, Evidence Links, & QA Sign-off',
           ],
@@ -1065,8 +1065,9 @@ const UserFlowSection: React.FC<{
                 1. Transisi Status Subtask: todo ➔ in_progress ➔ in_review
               </span>
               <p className="text-[11px] leading-relaxed">
-                Ambil tugas dari antrean Assigned Work di My Tasks. Saat coding, ubah ke IN
-                PROGRESS. Setelah deployed ke staging, ajukan ke IN REVIEW beserta catatan teknis.
+                Ambil tugas dari antrean Pekerjaan yang Ditugaskan di My Tasks. Saat coding, ubah ke
+                IN PROGRESS. Setelah deployed ke staging, ajukan ke IN REVIEW beserta catatan
+                teknis.
               </p>
             </div>
             <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">

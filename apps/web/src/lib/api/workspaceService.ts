@@ -5,6 +5,7 @@ import {
   DeleteWorkspaceInput,
   DeleteWorkspaceResponse,
   AddWorkspaceMemberInput,
+  AddWorkspaceMemberResult,
   DeveloperSpecialty,
   UpdateMemberRoleInput,
   WorkspaceRole,
@@ -77,8 +78,8 @@ export const workspaceService = {
   async addMember(
     workspaceId: string,
     input: AddWorkspaceMemberInput,
-  ): Promise<WorkspaceMemberItem> {
-    const res = await apiClient<{ data: WorkspaceMemberItem }>(
+  ): Promise<AddWorkspaceMemberResult> {
+    const res = await apiClient<{ data: AddWorkspaceMemberResult }>(
       `/workspaces/${workspaceId}/members`,
       {
         method: 'POST',

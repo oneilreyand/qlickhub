@@ -29,7 +29,7 @@ describe('Modal keyboard focus', () => {
       </>,
     );
 
-    const closeButton = screen.getByRole('button', { name: 'Close modal' });
+    const closeButton = screen.getByRole('button', { name: 'Tutup dialog' });
     expect(closeButton).toHaveFocus();
     await user.tab({ shift: true });
     expect(screen.getByRole('button', { name: 'Save modal' })).toHaveFocus();

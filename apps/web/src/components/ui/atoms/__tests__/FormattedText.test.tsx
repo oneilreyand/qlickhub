@@ -5,10 +5,10 @@ import { FormattedText, stripMarkdown } from '../FormattedText';
 describe('FormattedText Atom', () => {
   it('renders fallback when content is empty', () => {
     render(<FormattedText content="" />);
-    expect(screen.getByText('No description provided.')).toBeInTheDocument();
+    expect(screen.getByText('Belum ada deskripsi.')).toBeInTheDocument();
   });
 
-  it('renders headings and bold text', () => {
+  it('renders headings and teks tebal', () => {
     const text = '# Main Header\nThis is **important** text';
     render(<FormattedText content={text} />);
 
@@ -30,7 +30,7 @@ describe('FormattedText Atom', () => {
     expect(plain).toBe('Heading Bold and Italic with code item Bullet point');
   });
 
-  it('renders zoomable image preview for explicit markdown image syntax', () => {
+  it('renders zoomable image pratinjau for explicit markdown image syntax', () => {
     render(
       <FormattedText content="Screenshot evidence:\n![Evidence](https://example.com/assets/screenshot.png)" />,
     );
@@ -61,7 +61,7 @@ describe('FormattedText Atom', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders GitHub Alert callout boxes (Note, Important, Tip, Warning)', () => {
+  it('renders GitHub Alert callout boxes (Note, Penting, Tip, Warning)', () => {
     const text = `> [!IMPORTANT]
 > Must pass all payment gateway integration test cases
 > [!WARNING]
@@ -69,11 +69,11 @@ describe('FormattedText Atom', () => {
 
     render(<FormattedText content={text} />);
 
-    expect(screen.getByText('Important')).toBeInTheDocument();
+    expect(screen.getByText('Penting')).toBeInTheDocument();
     expect(
       screen.getByText(/Must pass all payment gateway integration test cases/i),
     ).toBeInTheDocument();
-    expect(screen.getByText('Warning')).toBeInTheDocument();
+    expect(screen.getByText('Peringatan')).toBeInTheDocument();
     expect(screen.getByText(/Do not expose API secrets in client bundle/i)).toBeInTheDocument();
   });
 
@@ -86,8 +86,8 @@ Acceptance Criteria:
 
     render(<FormattedText content={text} />);
 
-    expect(screen.getByText('Objective & Context')).toBeInTheDocument();
-    expect(screen.getByText('Acceptance Criteria')).toBeInTheDocument();
+    expect(screen.getByText('Tujuan & Konteks')).toBeInTheDocument();
+    expect(screen.getByText('Kriteria Penerimaan')).toBeInTheDocument();
     expect(screen.getByText('User can select payment method')).toBeInTheDocument();
     expect(screen.getByText('Shows confirmation toast on success')).toBeInTheDocument();
   });

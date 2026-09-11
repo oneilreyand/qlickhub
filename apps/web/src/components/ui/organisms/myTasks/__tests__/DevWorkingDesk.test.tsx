@@ -123,21 +123,21 @@ describe('DevWorkingDesk Organism', () => {
     });
 
     // Header & Roles
-    expect(screen.getByText('Frontend Workstation')).toBeInTheDocument();
+    expect(screen.getByText('Area Kerja Frontend')).toBeInTheDocument();
     expect(screen.getByText('Implement Navigation Bar Component')).toBeInTheDocument();
     expect(screen.getByText('Global App Shell')).toBeInTheDocument();
-    expect(screen.getByText('Handoff to QA')).toBeInTheDocument();
-    expect(screen.getByText('Assigned Developer')).toBeInTheDocument();
+    expect(screen.getByText('Serahkan ke QA')).toBeInTheDocument();
+    expect(screen.getByText('Developer yang Ditugaskan')).toBeInTheDocument();
     expect(screen.getByText('Bob Dev')).toBeInTheDocument();
     expect(screen.getByText('Alice PO')).toBeInTheDocument();
 
     // Schedule Timeline
-    expect(screen.getByText('Schedule Timeline & Commitment Status')).toBeInTheDocument();
-    expect(screen.getByText(/Start: 2026-08-01/i)).toBeInTheDocument();
-    expect(screen.getByText(/Due: 2026-08-25/i)).toBeInTheDocument();
+    expect(screen.getByText('Timeline & Status Komitmen')).toBeInTheDocument();
+    expect(screen.getByText(/Mulai: 2026-08-01/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tenggat: 2026-08-25/i)).toBeInTheDocument();
 
     // PO Brief (read-only)
-    expect(screen.getByText('PO Product Brief & Specifications')).toBeInTheDocument();
+    expect(screen.getByText('Ringkasan Produk & Spesifikasi dari PO')).toBeInTheDocument();
     expect(
       screen.getByText(/PRD: Must include header, sidebar, and theme toggle/i),
     ).toBeInTheDocument();
@@ -156,16 +156,16 @@ describe('DevWorkingDesk Organism', () => {
     ).toBeInTheDocument();
 
     // 2-Tab Navigation
-    expect(screen.getByText('Work & Deliverables')).toBeInTheDocument();
-    const discussionTab = screen.getByText('Team Discussion');
+    expect(screen.getByText('Pekerjaan & Hasil')).toBeInTheDocument();
+    const discussionTab = screen.getByText('Diskusi Tim');
     expect(discussionTab).toBeInTheDocument();
 
     // Switch to Team Discussion tab
     fireEvent.click(discussionTab);
-    expect(screen.getByText(/Subtask Collaboration Discussion/i)).toBeInTheDocument();
+    expect(screen.getByText(/Diskusi Kolaborasi Subtask/i)).toBeInTheDocument();
   });
 
-  it('opens Handoff to QA modal when clicking Handoff to QA button', async () => {
+  it('opens Serahkan ke QA modal when clicking Serahkan ke QA button', async () => {
     const store = createTestStore();
     render(
       <Provider store={store}>
@@ -182,11 +182,13 @@ describe('DevWorkingDesk Organism', () => {
       await Promise.resolve();
     });
 
-    const handoffBtn = screen.getByText('Handoff to QA');
+    const handoffBtn = screen.getByText('Serahkan ke QA');
     fireEvent.click(handoffBtn);
 
-    expect(screen.getByText('Submit Handoff to QA Team')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/E.g. Login with test-qa@qlick.io/i)).toBeInTheDocument();
+    expect(screen.getByText('Serahkan Handoff kepada Tim QA')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Contoh: masuk dengan test-qa@qlick.io/i),
+    ).toBeInTheDocument();
   });
 
   it('ignores comments loaded for a previous subtask after switching tasks', async () => {
@@ -246,7 +248,7 @@ describe('DevWorkingDesk Organism', () => {
       secondRequest.resolve({ comments: [currentComment] });
       await secondRequest.promise;
     });
-    fireEvent.click(screen.getByText('Team Discussion'));
+    fireEvent.click(screen.getByText('Diskusi Tim'));
     expect(screen.getByText(currentComment.body)).toBeInTheDocument();
 
     await act(async () => {

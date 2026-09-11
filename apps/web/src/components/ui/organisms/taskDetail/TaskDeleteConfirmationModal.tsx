@@ -29,29 +29,29 @@ export const TaskDeleteConfirmationModal: React.FC<TaskDeleteConfirmationModalPr
       onClose={() => {
         if (!isDeleting) onClose();
       }}
-      title={isSubtask ? 'Delete subtask?' : 'Delete task?'}
+      title={isSubtask ? 'Hapus Subtask?' : 'Hapus Task?'}
       description={
         isSubtask
-          ? 'This action removes the subtask from active Feature views.'
-          : 'This action removes the task from active Task Hub views.'
+          ? 'Tindakan ini menghapus Subtask dari tampilan Feature aktif.'
+          : 'Tindakan ini menghapus Task dari tampilan Task Hub aktif.'
       }
       size="sm"
     >
       <div className="space-y-4">
         <Alert
           tone="warning"
-          title={isSubtask ? 'This subtask will be soft-deleted' : 'This task will be soft-deleted'}
+          title={isSubtask ? 'Subtask akan dihapus secara aman' : 'Task akan dihapus secara aman'}
         >
           {task.subtaskSummary?.total
-            ? `${task.subtaskSummary.total} direct subtask${task.subtaskSummary.total === 1 ? '' : 's'} will also be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; active QA Sign-offs and active Release Decisions must be cancelled before deletion; immutable QA evidence and Bugs permanently block deletion.`
-            : `${isSubtask ? 'The subtask' : 'The task'} will be removed from active views. Existing persisted audit history is retained. Requirement/document links and removable attachments must be cleared first; active QA Sign-offs and active Release Decisions must be cancelled before deletion; immutable QA evidence and Bugs permanently block deletion.`}
+            ? `${task.subtaskSummary.total} Subtask langsung juga akan dihapus dari tampilan aktif. Riwayat audit tersimpan tetap dipertahankan. Tautan Requirement/dokumen dan lampiran yang dapat dihapus harus dibersihkan lebih dahulu; persetujuan QA dan keputusan rilis aktif harus dibatalkan sebelum penghapusan; bukti QA permanen dan Bug akan memblokir penghapusan.`
+            : `${isSubtask ? 'Subtask' : 'Task'} akan dihapus dari tampilan aktif. Riwayat audit tersimpan tetap dipertahankan. Tautan Requirement/dokumen dan lampiran yang dapat dihapus harus dibersihkan lebih dahulu; persetujuan QA dan keputusan rilis aktif harus dibatalkan sebelum penghapusan; bukti QA permanen dan Bug akan memblokir penghapusan.`}
         </Alert>
         <p className="text-xs leading-5 text-stone-600 dark:text-stone-300">
-          Delete <span className="font-bold text-stone-900 dark:text-stone-100">{task.title}</span>?
+          Hapus <span className="font-bold text-stone-900 dark:text-stone-100">{task.title}</span>?
         </p>
         <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
           <Button variant="outline" size="sm" onClick={onClose} disabled={isDeleting}>
-            {isSubtask ? 'Keep Subtask' : 'Keep Task'}
+            {isSubtask ? 'Pertahankan Subtask' : 'Pertahankan Task'}
           </Button>
           <Button
             variant="destructive"
@@ -60,7 +60,7 @@ export const TaskDeleteConfirmationModal: React.FC<TaskDeleteConfirmationModalPr
             isLoading={isDeleting}
             leftIcon={<Trash2 className="h-3.5 w-3.5" />}
           >
-            {isSubtask ? 'Delete Subtask' : 'Delete Task'}
+            {isSubtask ? 'Hapus Subtask' : 'Hapus Task'}
           </Button>
         </div>
       </div>

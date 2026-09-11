@@ -44,15 +44,15 @@ describe('QaDocumentsManager UI Component', () => {
       id: 'doc-1',
       workspaceId: 'ws-1',
       folderId: null,
-      title: 'Payment Integration Test Plan',
+      title: 'Payment Integration Rencana Pengujian',
       docType: 'test_plan',
       status: 'active',
       ownerId: 'user-qa',
       currentVersion: {
         id: 'ver-1',
         version: 1,
-        title: 'Payment Integration Test Plan',
-        contentMarkdown: '# Payment Test Plan\nTesting stripe webhooks.',
+        title: 'Payment Integration Rencana Pengujian',
+        contentMarkdown: '# Payment Rencana Pengujian\nTesting stripe webhooks.',
         createdAt: '2026-08-14T00:00:00.000Z',
       },
       createdBy: 'user-qa',
@@ -74,16 +74,16 @@ describe('QaDocumentsManager UI Component', () => {
   test('renders QA document list and displays Create button for QA role', async () => {
     renderWithStore(<QaDocumentsManager workspaceId="ws-1" userRole="qa" />);
 
-    expect(await screen.findByText('Payment Integration Test Plan')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Create QA Document/i })).toBeInTheDocument();
+    expect(await screen.findByText('Payment Integration Rencana Pengujian')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Buat Dokumen QA/i })).toBeInTheDocument();
   });
 
-  test('renders read-only mode for PO and Developer role without Create Document button', async () => {
+  test('renders read-only mode for PO and Developer role without Buat Dokumen button', async () => {
     renderWithStore(<QaDocumentsManager workspaceId="ws-1" userRole="po" />);
 
-    expect(await screen.findByText('Payment Integration Test Plan')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Create QA Document/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/You are viewing QA documents in read-only mode/i)).toBeInTheDocument();
+    expect(await screen.findByText('Payment Integration Rencana Pengujian')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Buat Dokumen QA/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/Anda melihat dokumen QA dalam mode hanya baca/i)).toBeInTheDocument();
   });
 
   test('allows QA to open create modal and submit new QA document', async () => {
@@ -100,25 +100,30 @@ describe('QaDocumentsManager UI Component', () => {
 
     renderWithStore(<QaDocumentsManager workspaceId="ws-1" userRole="qa" />);
 
-    const createBtn = await screen.findByRole('button', { name: /Create QA Document/i });
+    const createBtn = await screen.findByRole('button', { name: /Buat Dokumen QA/i });
     fireEvent.click(createBtn);
 
-    expect(screen.getByRole('heading', { name: 'Create QA Document' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Buat Dokumen QA' })).toBeInTheDocument();
 
-    const titleInput = screen.getByPlaceholderText(/e.g. End-to-End Payment Gateway/i);
+    const titleInput = screen.getByPlaceholderText(
+      /Contoh: Rencana Pengujian End-to-End Payment Gateway/i,
+    );
     fireEvent.change(titleInput, { target: { value: 'E2E Regression Strategy' } });
 
-    const contentEditor = screen.getByPlaceholderText(/Write test objectives, scope/i);
+    const contentEditor = screen.getByPlaceholderText(/Tulis tujuan dan cakupan pengujian/i);
     fireEvent.change(contentEditor, { target: { value: '## Scope\nTest all core workflows.' } });
 
-    const submitBtn = screen.getByRole('button', { name: /^Create Document$/i });
+    const submitBtn = screen.getByRole('button', { name: /^Buat Dokumen$/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(createDocumentMock).toHaveBeenCalledWith('ws-1', expect.objectContaining({
-        title: 'E2E Regression Strategy',
-        docType: 'test_plan',
-      }));
+      expect(createDocumentMock).toHaveBeenCalledWith(
+        'ws-1',
+        expect.objectContaining({
+          title: 'E2E Regression Strategy',
+          docType: 'test_plan',
+        }),
+      );
     });
   });
 });

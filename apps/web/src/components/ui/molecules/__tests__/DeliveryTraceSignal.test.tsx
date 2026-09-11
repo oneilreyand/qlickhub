@@ -4,7 +4,7 @@ import { createDeliveryTraceFixture } from '../../../../test/deliveryTraceFixtur
 import { DeliveryTraceSignal } from '../DeliveryTraceSignal';
 
 describe('DeliveryTraceSignal', () => {
-  it('renders a compact structural and execution summary', () => {
+  it('renders a compact structural and eksekusi summary', () => {
     const trace = createDeliveryTraceFixture({
       structural: {
         ...createDeliveryTraceFixture().structural,
@@ -25,16 +25,16 @@ describe('DeliveryTraceSignal', () => {
 
     render(<DeliveryTraceSignal trace={trace} />);
 
-    expect(screen.getByText('Trace 1/2 reqs')).toBeInTheDocument();
-    expect(screen.getByText('Tests 1 failed')).toBeInTheDocument();
+    expect(screen.getByText('Cakupan 1/2 Requirement')).toBeInTheDocument();
+    expect(screen.getByText('1 pengujian gagal')).toBeInTheDocument();
     expect(
-      screen.getByLabelText('Delivery trace: 1 of 2 requirements structurally covered'),
+      screen.getByLabelText('Jejak delivery: 1 dari 2 Requirement tercakup secara struktural'),
     ).toBeInTheDocument();
   });
 
   it('renders loading, empty, unavailable, and permission states explicitly', () => {
     const { rerender } = render(<DeliveryTraceSignal isLoading />);
-    expect(screen.getByLabelText('Loading delivery trace')).toBeInTheDocument();
+    expect(screen.getByLabelText('Memuat jejak delivery')).toBeInTheDocument();
 
     const emptyTrace = createDeliveryTraceFixture({
       structural: {
@@ -46,13 +46,13 @@ describe('DeliveryTraceSignal', () => {
       requirements: [],
     });
     rerender(<DeliveryTraceSignal trace={emptyTrace} />);
-    expect(screen.getByText('No requirements')).toBeInTheDocument();
+    expect(screen.getByText('Belum ada Requirement')).toBeInTheDocument();
 
     rerender(<DeliveryTraceSignal error="Request failed" />);
-    expect(screen.getByText('Trace unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Jejak tidak tersedia')).toBeInTheDocument();
 
     rerender(<DeliveryTraceSignal permissionDenied />);
-    expect(screen.getByText('Trace restricted')).toBeInTheDocument();
+    expect(screen.getByText('Jejak dibatasi')).toBeInTheDocument();
   });
 
   it('presents an unexecuted test state as neutral progress, not a failed test', () => {
@@ -71,7 +71,7 @@ describe('DeliveryTraceSignal', () => {
 
     render(<DeliveryTraceSignal trace={trace} />);
 
-    expect(screen.getByText('No test results yet')).toBeInTheDocument();
+    expect(screen.getByText('Belum ada hasil pengujian')).toBeInTheDocument();
     expect(screen.queryByText(/failed/i)).not.toBeInTheDocument();
   });
 });

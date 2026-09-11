@@ -75,28 +75,32 @@ describe('WorkspaceMembersTable deletion hierarchy', () => {
     renderTable('owner');
 
     // Mobile and desktop surfaces each render one remove action per removable member.
-    expect(screen.getAllByRole('button', { name: 'Remove member' })).toHaveLength(8);
+    expect(screen.getAllByRole('button', { name: 'Hapus anggota' })).toHaveLength(8);
   });
 
   it('does not let Admin target Owner or Admin', () => {
     renderTable('admin');
 
-    expect(screen.getAllByRole('button', { name: 'Remove member' })).toHaveLength(6);
+    expect(screen.getAllByRole('button', { name: 'Hapus anggota' })).toHaveLength(6);
   });
 
   it('mirrors the approved reset hierarchy on desktop and mobile actions', () => {
     const { unmount } = renderTable('owner');
-    expect(screen.getAllByRole('button', { name: 'Reset Member Password' })).toHaveLength(8);
+    expect(screen.getAllByRole('button', { name: 'Atur ulang kata sandi anggota' })).toHaveLength(
+      8,
+    );
 
     unmount();
     renderTable('admin');
-    expect(screen.getAllByRole('button', { name: 'Reset Member Password' })).toHaveLength(6);
+    expect(screen.getAllByRole('button', { name: 'Atur ulang kata sandi anggota' })).toHaveLength(
+      6,
+    );
   });
 
   it('hides all removal actions from roles that cannot manage members', () => {
     renderTable(null, false);
 
-    expect(screen.queryByRole('button', { name: 'Remove member' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Hapus anggota' })).not.toBeInTheDocument();
   });
 
   it('shows persisted Developer specialties and sends specialty edits through the member callback', () => {
@@ -104,14 +108,14 @@ describe('WorkspaceMembersTable deletion hierarchy', () => {
     renderTable('owner', true, onSpecialtiesChange);
 
     const frontendButtons = screen.getAllByRole('button', {
-      name: 'Toggle frontend specialty for Developer',
+      name: 'Ubah spesialisasi frontend untuk Developer',
     });
     expect(frontendButtons[0]).toHaveAttribute('aria-pressed', 'true');
     expect(frontendButtons[0]).toBeDisabled();
 
     fireEvent.click(
       screen.getAllByRole('button', {
-        name: 'Toggle mobile specialty for Developer',
+        name: 'Ubah spesialisasi mobile untuk Developer',
       })[0],
     );
     expect(onSpecialtiesChange).toHaveBeenCalledWith('user-dev', ['frontend', 'mobile']);

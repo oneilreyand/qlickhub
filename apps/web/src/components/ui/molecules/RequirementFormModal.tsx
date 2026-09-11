@@ -31,7 +31,7 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
   onSaveAndPlan,
   initialData,
   suggestedCode,
-  title = initialData ? 'Edit Requirement' : 'Create Requirement',
+  title = initialData ? 'Ubah Requirement' : 'Buat Requirement',
   isSaving = false,
 }) => {
   const [code, setCode] = useState('');
@@ -66,14 +66,14 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
     setValidationError(null);
     const trimmedTitle = reqTitle.trim();
     if (!trimmedTitle) {
-      setValidationError('Requirement title is required.');
+      setValidationError('Judul Requirement wajib diisi.');
       return;
     }
 
     const trimmedUrl = url.trim();
     if (trimmedUrl && !validateUrl(trimmedUrl)) {
       setValidationError(
-        'Please enter a valid URL (including http:// or https://) or leave it blank.',
+        'Masukkan URL yang valid (termasuk http:// atau https://), atau kosongkan kolom ini.',
       );
       return;
     }
@@ -88,7 +88,7 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
       });
       onClose();
     } catch (err: any) {
-      setValidationError(err?.message || 'Failed to save requirement.');
+      setValidationError(err?.message || 'Requirement gagal disimpan.');
     }
   };
 
@@ -99,22 +99,22 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
       title={title}
       description={
         initialData
-          ? 'Update the requirement details, source reference, or status.'
-          : 'Define a structured requirement and optionally link its specific source section.'
+          ? 'Perbarui detail, sumber referensi, atau status Requirement.'
+          : 'Buat Requirement yang terstruktur dan tautkan sumber spesifiknya bila diperlukan.'
       }
       primaryActionLabel={
         !initialData && onSaveAndPlan
-          ? 'Create & Plan Subtask'
+          ? 'Buat & Rencanakan Subtask'
           : initialData
-            ? 'Update Requirement'
-            : 'Create Requirement'
+            ? 'Perbarui Requirement'
+            : 'Buat Requirement'
       }
       onPrimaryAction={() =>
         void handleSubmit(onSaveAndPlan && !initialData ? onSaveAndPlan : onSave)
       }
-      additionalActionLabel={!initialData && onSaveAndPlan ? 'Create Requirement' : undefined}
+      additionalActionLabel={!initialData && onSaveAndPlan ? 'Buat Requirement' : undefined}
       onAdditionalAction={() => void handleSubmit(onSave)}
-      secondaryActionLabel="Cancel"
+      secondaryActionLabel="Batal"
       isPrimaryLoading={isSaving}
       size="lg"
     >
@@ -122,8 +122,8 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
         {validationError && <Alert tone="error">{validationError}</Alert>}
 
         <Input
-          label="Requirement Title *"
-          placeholder="e.g. Checkout Modal & Coupon Application Spec"
+          label="Judul Requirement *"
+          placeholder="Contoh: Spesifikasi Modal Checkout & Penggunaan Kupon"
           value={reqTitle}
           onChange={(e) => setReqTitle(e.target.value)}
           disabled={isSaving}
@@ -135,10 +135,10 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
             id="requirement-code"
             label={
               suggestedCode && !initialData
-                ? 'Requirement Code (Suggested)'
-                : 'Requirement Code (Optional)'
+                ? 'Kode Requirement (Saran)'
+                : 'Kode Requirement (Opsional)'
             }
-            placeholder="e.g. REQ-101 (Auto-generated if empty)"
+            placeholder="Contoh: REQ-101 (dibuat otomatis jika kosong)"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             disabled={isSaving}
@@ -153,8 +153,8 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
               id="requirement-code-guidance"
               className="self-center text-xs text-stone-500 dark:text-stone-400"
             >
-              Suggested from the Requirement codes linked to this Task. You can edit it before
-              saving.
+              Disarankan dari kode Requirement yang terhubung ke Task ini. Anda dapat mengubahnya
+              sebelum menyimpan.
             </p>
           )}
 
@@ -165,16 +165,16 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
               onChange={(e) => setStatus(e.target.value as RequirementStatus)}
               disabled={isSaving}
             >
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="deprecated">Deprecated</option>
+              <option value="draft">Draf</option>
+              <option value="active">Aktif</option>
+              <option value="deprecated">Tidak Berlaku</option>
             </Select>
           )}
         </div>
 
         <Input
-          label="Source / Reference URL (Optional)"
-          placeholder="Deep link to the exact PRD, Figma, policy, or technical-spec section"
+          label="URL Sumber / Referensi (Opsional)"
+          placeholder="Tautan langsung ke bagian PRD, Figma, kebijakan, atau spesifikasi teknis"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={isSaving}
@@ -183,8 +183,8 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
 
         <RichTextEditor
           id="requirement-description"
-          label="Detailed Description (Optional)"
-          placeholder="Business need, rules, behavior, constraints, or edge cases..."
+          label="Deskripsi Lengkap (Opsional)"
+          placeholder="Kebutuhan bisnis, aturan, perilaku, batasan, atau edge case..."
           minRows={8}
           value={description}
           onChange={setDescription}

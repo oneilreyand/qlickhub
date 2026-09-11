@@ -189,7 +189,12 @@ const workspaceSlice = createSlice({
         state.isMembersLoading = false;
       })
       .addCase(addMember.fulfilled, (state, action) => {
-        state.members.push(action.payload);
+        if (action.payload.workspaceId !== state.activeWorkspaceId) return;
+        const existingIndex = state.members.findIndex(
+          (member) => member.userId === action.payload.userId,
+        );
+        if (existingIndex === -1) state.members.push(action.payload);
+        else state.members[existingIndex] = { ...state.members[existingIndex], ...action.payload };
       })
       .addCase(updateMemberRole.fulfilled, (state, action) => {
         const index = state.members.findIndex((m) => m.userId === action.payload.userId);

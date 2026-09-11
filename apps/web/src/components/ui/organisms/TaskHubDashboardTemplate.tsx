@@ -30,20 +30,20 @@ import { useReleaseReadinessMap } from '../../../lib/hooks/useReleaseReadinessMa
 import { traceabilityService } from '../../../lib/api/traceabilityService';
 
 const statusFilters: { label: string; value: string }[] = [
-  { label: 'ALL', value: 'ALL' },
-  { label: 'To Do', value: 'todo' },
-  { label: 'In Progress', value: 'in_progress' },
-  { label: 'In Review', value: 'in_review' },
-  { label: 'Done', value: 'done' },
-  { label: 'Canceled', value: 'canceled' },
+  { label: 'SEMUA', value: 'ALL' },
+  { label: 'Belum Dikerjakan', value: 'todo' },
+  { label: 'Sedang Dikerjakan', value: 'in_progress' },
+  { label: 'Dalam Review', value: 'in_review' },
+  { label: 'Selesai', value: 'done' },
+  { label: 'Dibatalkan', value: 'canceled' },
 ];
 
 const datePresetViews: { label: string; value: TaskDatePreset | 'all' }[] = [
-  { label: 'All Dates', value: 'all' },
-  { label: 'Today', value: 'today' },
-  { label: 'This Week', value: 'this_week' },
-  { label: 'This Month', value: 'this_month' },
-  { label: 'Overdue', value: 'overdue' },
+  { label: 'Semua Tanggal', value: 'all' },
+  { label: 'Hari Ini', value: 'today' },
+  { label: 'Minggu Ini', value: 'this_week' },
+  { label: 'Bulan Ini', value: 'this_month' },
+  { label: 'Terlambat', value: 'overdue' },
 ];
 
 /**
@@ -251,7 +251,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                   ? null
                   : error instanceof Error
                     ? error.message
-                    : 'Delivery Trace unavailable',
+                    : 'Jejak delivery tidak tersedia',
               permissionDenied: status === 403,
             },
           }));
@@ -286,7 +286,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     } catch (error) {
       dispatch(
         enqueueSnackbar(
-          error instanceof Error ? error.message : 'Failed to refresh workspace data',
+          error instanceof Error ? error.message : 'Data workspace gagal dimuat ulang.',
           'error',
         ),
       );
@@ -356,10 +356,10 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       await dispatch(
         createFolderThunk({ workspaceId: activeWorkspaceId, input: { name, parentFolderId } }),
       ).unwrap();
-      dispatch(enqueueSnackbar(`Folder "${name}" created successfully.`, 'success'));
+      dispatch(enqueueSnackbar(`Folder "${name}" berhasil dibuat.`, 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create folder', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Folder gagal dibuat.', 'error'),
       );
     }
   };
@@ -370,10 +370,10 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       await dispatch(
         updateFolderThunk({ workspaceId: activeWorkspaceId, folderId, input: { name: newName } }),
       ).unwrap();
-      dispatch(enqueueSnackbar('Folder renamed.', 'success'));
+      dispatch(enqueueSnackbar('Nama folder berhasil diubah.', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to rename folder', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Nama folder gagal diubah.', 'error'),
       );
     }
   };
@@ -382,10 +382,10 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     if (!activeWorkspaceId) return;
     try {
       await dispatch(archiveFolderThunk({ workspaceId: activeWorkspaceId, folderId })).unwrap();
-      dispatch(enqueueSnackbar('Folder archived.', 'success'));
+      dispatch(enqueueSnackbar('Folder berhasil diarsipkan.', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to archive folder', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Folder gagal diarsipkan.', 'error'),
       );
     }
   };
@@ -417,7 +417,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   ).length;
   const donePercentage = totalTasksCount > 0 ? Math.round((doneCount / totalTasksCount) * 100) : 0;
 
-  const selectedFolderName = selectedFolderNode ? selectedFolderNode.name : 'All Workspace Tasks';
+  const selectedFolderName = selectedFolderNode ? selectedFolderNode.name : 'Semua Task Workspace';
 
   const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || '').toLowerCase();
   const canCreateTask = ['owner', 'admin', 'po'].includes(userRole);
@@ -537,7 +537,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       <Drawer
         isOpen={isMobileFolderDrawerOpen}
         onClose={() => setIsMobileFolderDrawerOpen(false)}
-        title="Folders"
+        title="Folder"
         subtitle="Choose an initiative or workstream."
         width="sm"
       >

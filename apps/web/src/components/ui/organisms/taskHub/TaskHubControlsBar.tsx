@@ -48,7 +48,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
           </div>
           <div className="min-w-0">
             <div className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-              Folder Scope
+              Cakupan Folder
             </div>
             <h2 className="text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100 truncate">
               {selectedFolderName}
@@ -68,30 +68,27 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               }`}
               title={
                 isExpanded
-                  ? 'Collapse timeline to normal width'
-                  : 'Expand timeline to full width (hide sidebar)'
+                  ? 'Kembalikan timeline ke lebar normal'
+                  : 'Buka timeline selebar layar dan sembunyikan sidebar'
               }
-              aria-label={isExpanded ? 'Normal width timeline' : 'Expand full width timeline'}
+              aria-label={isExpanded ? 'Timeline lebar normal' : 'Buka timeline selebar layar'}
             >
               {isExpanded ? (
                 <>
                   <Minimize2 className="h-3.5 w-3.5 text-[#141413] dark:text-[#B1E743]" />
-                  <span className="hidden sm:inline">Normal Width</span>
+                  <span className="hidden sm:inline">Lebar Normal</span>
                 </>
               ) : (
                 <>
                   <Maximize2 className="h-3.5 w-3.5 text-stone-600 dark:text-stone-400" />
-                  <span className="hidden sm:inline">Full Width</span>
+                  <span className="hidden sm:inline">Lebar Penuh</span>
                 </>
               )}
             </button>
           )}
 
           <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-xs border border-stone-200/70 dark:border-stone-700/70">
-            <AnimatedCounter
-              value={visibleTasksCount}
-              suffix={visibleTasksCount === 1 ? ' task' : ' tasks'}
-            />
+            <AnimatedCounter value={visibleTasksCount} suffix=" task" />
           </span>
         </div>
       </div>
@@ -100,11 +97,11 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex-1 min-w-0">
           <SearchInput
-            aria-label="Filter tasks"
+            aria-label="Filter task"
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
             onClear={onSearchClear}
-            placeholder="Search tasks by ID or title..."
+            placeholder="Cari task berdasarkan ID atau judul..."
           />
         </div>
 
@@ -121,13 +118,13 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               }`}
             >
               <TableIcon className="h-3.5 w-3.5" />
-              <span>Table</span>
+              <span>Tabel</span>
             </button>
             <button
               type="button"
               onClick={() => onViewModeChange('timeline')}
-              aria-label="Feature Schedule"
-              title="View parent Features by Folder and expand one to see role subtasks"
+              aria-label="Jadwal Feature"
+              title="Lihat parent Feature per folder dan buka untuk melihat Subtask setiap peran"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'timeline'
                   ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
@@ -135,7 +132,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               }`}
             >
               <CalendarRange className="h-3.5 w-3.5 text-amber-500" />
-              <span>Feature Schedule</span>
+              <span>Jadwal Feature</span>
             </button>
           </div>
 
@@ -143,19 +140,19 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
             <DateRangePicker
               value={dateRange}
               onChange={onDateRangeChange}
-              placeholder="Custom range"
+              placeholder="Rentang khusus"
               className="min-w-0 w-full [&>button]:w-full"
             />
             <Select
               id="task-status-filter"
-              aria-label="Filter tasks by status"
+              aria-label="Filter task berdasarkan status"
               value={statusFilter}
               onChange={(event) => onStatusFilterChange(event.target.value)}
               className="w-full"
             >
               {statusFilters.map((status) => (
                 <option key={status.value} value={status.value}>
-                  {status.value === 'ALL' ? 'All statuses' : status.label}
+                  {status.value === 'ALL' ? 'Semua status' : status.label}
                 </option>
               ))}
             </Select>

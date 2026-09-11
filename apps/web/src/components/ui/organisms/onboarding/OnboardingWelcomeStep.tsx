@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  Sparkles,
-  ShieldCheck,
-  Layers,
-  Code2,
-  TestTube,
-  Eye,
-  Mail,
-} from 'lucide-react';
+import { Sparkles, ShieldCheck, Layers, Code2, TestTube, Eye, Mail } from 'lucide-react';
 import { Card } from '../../atoms/Card';
 import { Badge } from '../../atoms/Badge';
 import { User } from '../../../../lib/api/authService';
@@ -53,7 +45,7 @@ export const getRoleMeta = (role: string = '') => {
     case 'qa':
       return {
         title: 'Quality Assurance (QA Engineer)',
-        badge: 'Verification & Quality Gate',
+        badge: 'Verifikasi & Quality Gate',
         badgeVariant: 'passed' as const,
         icon: TestTube,
         colorClass: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-[#B1E743]',
@@ -87,10 +79,15 @@ export const OnboardingWelcomeStep: React.FC<OnboardingWelcomeStepProps> = ({ us
           <span>Selamat Datang di Qlick Hub</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight">
-          Halo, <span className="text-emerald-600 dark:text-[#B1E743]">{user.name || user.email.split('@')[0]}</span>!
+          Halo,{' '}
+          <span className="text-emerald-600 dark:text-[#B1E743]">
+            {user.name || user.email.split('@')[0]}
+          </span>
+          !
         </h2>
         <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 max-w-lg mx-auto leading-relaxed">
-          Platform kolaborasi dan orkestrasi tugas end-to-end yang menghubungkan Product Owner, Developer, dan QA secara terintegrasi.
+          Platform kolaborasi dan orkestrasi tugas end-to-end yang menghubungkan Product Owner,
+          Developer, dan QA secara terintegrasi.
         </p>
       </div>
 
@@ -103,7 +100,7 @@ export const OnboardingWelcomeStep: React.FC<OnboardingWelcomeStepProps> = ({ us
             </div>
             <div className="min-w-0">
               <h3 className="font-bold text-sm sm:text-base text-stone-900 dark:text-white truncate">
-                {user.name || 'User Profile'}
+                {user.name || 'Profil Pengguna'}
               </h3>
               <div className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400 mt-0.5 truncate">
                 <Mail className="w-3.5 h-3.5 shrink-0" />

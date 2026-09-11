@@ -56,7 +56,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
 
   useEffect(() => {
     setCurrentBrief(productBrief);
-    setTitle(productBrief?.document.title || `${task.title} Product Brief`);
+    setTitle(productBrief?.document.title || `Ringkasan Produk ${task.title}`);
     setContentMarkdown(productBrief?.currentVersion.contentMarkdown || '');
     setInScope(productBrief?.currentVersion.inScope || []);
     setOutScope(productBrief?.currentVersion.outScope || []);
@@ -108,7 +108,9 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
       setStatus(saved.document.status);
       onSaved?.(saved);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Unable to save the Product Brief.');
+      setSaveError(
+        error instanceof Error ? error.message : 'Ringkasan Produk tidak dapat disimpan.',
+      );
     } finally {
       setIsSaving(false);
     }
@@ -140,18 +142,18 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
 
       {items.length === 0 ? (
         <p className="rounded-xl border border-dashed border-stone-300 p-3 text-[11px] text-stone-500 dark:border-stone-700 dark:text-stone-400">
-          No {heading.toLowerCase()} items defined.
+          Belum ada item {heading.toLowerCase()}.
         </p>
       ) : (
         <div className="space-y-2.5">
           {items.map((item, index) => (
             <div key={item.id} className="flex items-start gap-2">
               <label htmlFor={`${kind}-scope-${item.id}`} className="sr-only">
-                {heading} item {index + 1}
+                Item {heading} {index + 1}
               </label>
               <textarea
                 id={`${kind}-scope-${item.id}`}
-                aria-label={`${heading} item ${index + 1}`}
+                aria-label={`Item ${heading} ${index + 1}`}
                 value={item.text}
                 onChange={(event) => updateScopeItem(kind, item.id, event.target.value)}
                 disabled={!canPlan || isSaving}
@@ -160,7 +162,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
               />
               {canPlan && (
                 <IconButton
-                  label={`Remove ${heading} item ${index + 1}`}
+                  label={`Hapus item ${heading} ${index + 1}`}
                   size="sm"
                   variant="ghost"
                   disabled={isSaving}
@@ -187,7 +189,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
               : setOutScope((items) => [...items, newScopeItem(items.length)])
           }
         >
-          Add {heading}
+          Tambah {heading}
         </Button>
       )}
     </section>
@@ -196,11 +198,11 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
   if (loadError) {
     return (
       <Card className="border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900/90 sm:p-5">
-        <Alert tone="error" title="Product Brief unavailable">
+        <Alert tone="error" title="Ringkasan Produk tidak tersedia">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span>{loadError}</span>
             <Button size="sm" variant="outline" onClick={onReload}>
-              Retry
+              Coba lagi
             </Button>
           </div>
         </Alert>
@@ -211,8 +213,8 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
   if (!currentBrief && !canPlan) {
     return (
       <Card className="border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900/90 sm:p-5">
-        <Alert tone="info" title="No Product Brief yet">
-          A Product Owner, Admin, or Owner must define the Feature context and scope.
+        <Alert tone="info" title="Ringkasan Produk belum tersedia">
+          Product Owner, Admin, atau Owner perlu menentukan konteks dan cakupan Feature.
         </Alert>
       </Card>
     );
@@ -225,23 +227,23 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
           <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-[#B1E743]" />
           <div>
             <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-              Product Brief
+              Ringkasan Produk
             </h2>
             <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
-              Feature context, external references, commitments, and explicit exclusions.
+              Konteks Feature, referensi eksternal, komitmen, dan pengecualian yang jelas.
             </p>
           </div>
         </div>
         <span className="self-start rounded-lg bg-[#B1E743]/20 px-2 py-1 text-[11px] font-bold text-[#141413] dark:text-[#B1E743]">
-          {currentBrief ? `v${currentBrief.currentVersion.version}` : 'New draft'}
+          {currentBrief ? `v${currentBrief.currentVersion.version}` : 'Draf baru'}
         </span>
       </div>
 
       {!canPlan && (
-        <Alert tone="info" title="Read-only Product Brief">
+        <Alert tone="info" title="Ringkasan Produk hanya dapat dilihat">
           <span className="inline-flex items-center gap-1.5">
-            <Lock className="h-3.5 w-3.5" /> Only a Product Owner, Admin, or Owner can create a new
-            version.
+            <Lock className="h-3.5 w-3.5" /> Hanya Product Owner, Admin, atau Owner yang dapat
+            membuat versi baru.
           </span>
         </Alert>
       )}
@@ -249,53 +251,53 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
         <Input
-          label="Product Brief Title"
+          label="Judul Ringkasan Produk"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           disabled={!canPlan || isSaving}
-          error={!title.trim() ? 'A Product Brief title is required.' : undefined}
+          error={!title.trim() ? 'Judul Ringkasan Produk wajib diisi.' : undefined}
         />
         <Select
-          label="Brief Status"
+          label="Status Ringkasan"
           value={status}
           onChange={(event) => setStatus(event.target.value as ProductBriefStatus)}
           disabled={!canPlan || isSaving}
         >
-          <option value="draft">Draft</option>
-          <option value="in_review">In review</option>
-          <option value="approved">Approved</option>
+          <option value="draft">Draf</option>
+          <option value="in_review">Dalam Review</option>
+          <option value="approved">Disetujui</option>
         </Select>
       </div>
 
-      <Alert tone="info" title="Where external links belong">
+      <Alert tone="info" title="Tempat menambahkan tautan eksternal">
         <span className="inline-flex items-start gap-1.5">
-          <LinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Add the primary PRD, Figma, research,
-          and technical-spec links here with clear Markdown labels. Use a Requirement source URL
-          only when it points to the exact section defining that Requirement.
+          <LinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Tambahkan tautan utama PRD, Figma,
+          riset, dan spesifikasi teknis di sini dengan label Markdown yang jelas. Gunakan URL sumber
+          Requirement hanya jika mengarah ke bagian yang mendefinisikan Requirement tersebut.
         </span>
       </Alert>
 
       <RichTextEditor
         id="product-brief-context"
-        label="Product context and external references"
+        label="Konteks produk dan referensi eksternal"
         value={contentMarkdown}
         onChange={setContentMarkdown}
         disabled={!canPlan || isSaving}
         minRows={8}
-        placeholder="Explain the problem, user outcome, decisions, and supporting links. Example: [Primary PRD](https://...)"
+        placeholder="Jelaskan masalah, hasil bagi pengguna, keputusan, dan tautan pendukung. Contoh: [PRD Utama](https://...)"
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {renderScope(
           'in',
-          'In Scope',
-          'Deliverables and commitments included in this Feature.',
+          'Dalam Cakupan',
+          'Hasil kerja dan komitmen yang termasuk dalam Feature ini.',
           inScope,
         )}
         {renderScope(
           'out',
-          'Out of Scope',
-          'Explicit exclusions that prevent scope ambiguity and creep.',
+          'Di Luar Cakupan',
+          'Pengecualian yang jelas untuk mencegah ambiguitas dan perluasan cakupan.',
           outScope,
         )}
       </div>
@@ -309,7 +311,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
             disabled={!title.trim()}
             onClick={() => void handleSave()}
           >
-            Save new version
+            Simpan Versi Baru
           </Button>
         </div>
       )}

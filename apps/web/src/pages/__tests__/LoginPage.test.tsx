@@ -43,7 +43,7 @@ describe('LoginPage Component', () => {
 
     // Both responsive hero images remain visible in light and dark themes.
     const desktopHeroImage = screen.getByAltText('QA Management Platform Illustration');
-    const mobileHeroImage = screen.getByAltText('Qlick Hub Platform');
+    const mobileHeroImage = screen.getByAltText('Platform Qlick Hub');
     expect(desktopHeroImage.getAttribute('src')).toContain(
       'ChatGPT_Image_Aug_19_2026_03_01_47_PM.png',
     );
@@ -58,16 +58,16 @@ describe('LoginPage Component', () => {
     // Checks header & copy
     expect(screen.getByText('Selamat Datang Kembali')).toBeInTheDocument();
     expect(
-      screen.getByText(/Sign in to access your workspaces, tasks, and reports\./i),
+      screen.getByText(/Masuk untuk mengakses workspace, task, dan laporan Anda\./i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Task Management & Collaboration Platform/i)).toBeInTheDocument();
+    expect(screen.getByText(/Platform Pengelolaan Task & Kolaborasi/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Qlick Hub/i).length).toBeGreaterThan(0);
 
     // Checks form inputs
     expect(screen.getByPlaceholderText('Masukkan alamat email')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Masukkan kata sandi')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign In to Hub/i })).toBeInTheDocument();
-    expect(screen.getByText(/Forgot password\?/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Masuk ke Qlick Hub/i })).toBeInTheDocument();
+    expect(screen.getByText(/Lupa kata sandi\?/i)).toBeInTheDocument();
   });
 
   it('displays session expired alert when reason=session_expired', () => {
@@ -133,7 +133,7 @@ describe('LoginPage Component', () => {
       target: { value: 'password123' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Sign In to Hub/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Masuk ke Qlick Hub/i }));
 
     await waitFor(() => {
       expect(authService.login).toHaveBeenCalledWith({
@@ -170,7 +170,7 @@ describe('LoginPage Component', () => {
       target: { value: 'wrongpassword' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Sign In to Hub/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Masuk ke Qlick Hub/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Invalid email or password')).toBeInTheDocument();
@@ -192,11 +192,11 @@ describe('LoginPage Component', () => {
     const passwordInput = screen.getByPlaceholderText('Masukkan kata sandi');
     expect(passwordInput).toHaveAttribute('type', 'password');
 
-    const toggleButton = screen.getByRole('button', { name: /show password/i });
+    const toggleButton = screen.getByRole('button', { name: /tampilkan kata sandi/i });
     fireEvent.click(toggleButton);
     expect(passwordInput).toHaveAttribute('type', 'text');
 
-    const hideButton = screen.getByRole('button', { name: /hide password/i });
+    const hideButton = screen.getByRole('button', { name: /sembunyikan kata sandi/i });
     fireEvent.click(hideButton);
     expect(passwordInput).toHaveAttribute('type', 'password');
   });

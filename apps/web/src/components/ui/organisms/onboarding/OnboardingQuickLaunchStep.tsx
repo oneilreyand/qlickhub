@@ -37,7 +37,7 @@ export const OnboardingQuickLaunchStep: React.FC<OnboardingQuickLaunchStepProps>
       case 'dev':
         return {
           path: '/my-tasks',
-          title: 'Buka My Tasks (Ruang Kerja Dev)',
+          title: 'Buka My Tasks (Area Kerja Dev)',
           desc: 'Lihat antrean subtask coding Anda dan mulai update status pengerjaan.',
           icon: CheckSquare,
           buttonText: 'Luncurkan My Tasks',
@@ -54,10 +54,10 @@ export const OnboardingQuickLaunchStep: React.FC<OnboardingQuickLaunchStepProps>
       case 'admin':
         return {
           path: '/workspaces/settings',
-          title: 'Buka Workspace Settings',
+          title: 'Buka Pengaturan Workspace',
           desc: 'Atur konfigurasi tim, undang anggota baru, dan sesuaikan Task Creation Policy.',
           icon: Building2,
-          buttonText: 'Luncurkan Settings',
+          buttonText: 'Buka Pengaturan',
         };
       default:
         return {
@@ -85,7 +85,8 @@ export const OnboardingQuickLaunchStep: React.FC<OnboardingQuickLaunchStepProps>
           Anda Siap Memulai di Qlick Hub!
         </h3>
         <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 max-w-md mx-auto leading-relaxed">
-          Semua panduan peran dan alur kerja telah Anda pelajari. Klik menu di bawah untuk langsung menuju area kerja utama Anda.
+          Semua panduan peran dan alur kerja telah Anda pelajari. Klik menu di bawah untuk langsung
+          menuju area kerja utama Anda.
         </p>
       </div>
 
@@ -103,7 +104,9 @@ export const OnboardingQuickLaunchStep: React.FC<OnboardingQuickLaunchStepProps>
                 <h4 className="font-bold text-sm sm:text-base text-stone-900 dark:text-white">
                   {primaryTarget.title}
                 </h4>
-                <Badge variant="neutral" size="sm">Rekomendasi Peran</Badge>
+                <Badge variant="neutral" size="sm">
+                  Rekomendasi Peran
+                </Badge>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed max-w-md">
                 {primaryTarget.desc}
@@ -127,7 +130,9 @@ export const OnboardingQuickLaunchStep: React.FC<OnboardingQuickLaunchStepProps>
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-emerald-600 dark:text-[#B1E743] shrink-0" />
           <span>
-            Butuh menyegarkan ingatan? Anda dapat membuka kembali panduan kapan saja melalui <strong>Menu Profil</strong> (kanan atas) atau halaman <strong>User Flow Guide</strong>.
+            Butuh menyegarkan ingatan? Anda dapat membuka kembali panduan kapan saja melalui{' '}
+            <strong>Menu Profil</strong> (kanan atas) atau halaman{' '}
+            <strong>Panduan Alur Pengguna</strong>.
           </span>
         </div>
       </div>

@@ -53,12 +53,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       {/* Header Bar */}
       <div className="flex items-center justify-between border-b border-stone-100 pb-3 dark:border-stone-800">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-            Team Notifications
-          </h3>
+          <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">Notifikasi Tim</h3>
           {unreadCount > 0 && (
             <span className="rounded-full bg-[#B1E743] px-2 py-0.5 text-[11px] font-extrabold text-[#141413]">
-              {unreadCount} New
+              {unreadCount} Baru
             </span>
           )}
         </div>
@@ -69,10 +67,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               type="button"
               onClick={onMarkAllAsRead}
               className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:hover:text-stone-200 dark:hover:bg-stone-800 text-[11px] font-semibold flex items-center gap-1"
-              title="Mark all as read"
+              title="Tandai semua sudah dibaca"
             >
               <CheckCheck className="h-3.5 w-3.5" />
-              <span>Read all</span>
+              <span>Baca semua</span>
             </button>
           )}
           {notifications.length > 0 && (
@@ -80,7 +78,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               type="button"
               onClick={onClearAll}
               className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-[11px]"
-              title="Clear all notifications"
+              title="Hapus semua notifikasi"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -91,10 +89,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       {/* Filter Tabs */}
       <div className="flex items-center gap-1 pt-2 pb-1 border-b border-stone-100 dark:border-stone-800 overflow-x-auto scrollbar-none">
         {[
-          { id: 'all', label: `All (${notifications.length})` },
-          { id: 'unread', label: `Unread (${unreadCount})` },
-          { id: 'mentions', label: 'Mentions' },
-          { id: 'deadlines', label: 'Deadlines' },
+          { id: 'all', label: `Semua (${notifications.length})` },
+          { id: 'unread', label: `Belum Dibaca (${unreadCount})` },
+          { id: 'mentions', label: 'Sebutan' },
+          { id: 'deadlines', label: 'Tenggat' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -173,8 +171,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         ) : filteredNotifications.length === 0 ? (
           <div className="py-8 text-center text-xs text-stone-400 space-y-1">
             <Sparkles className="mx-auto h-6 w-6 text-stone-300 dark:text-stone-600" />
-            <p className="font-semibold text-stone-600 dark:text-stone-300">All caught up!</p>
-            <p className="text-[11px]">No notifications in this filter.</p>
+            <p className="font-semibold text-stone-600 dark:text-stone-300">Semua sudah beres!</p>
+            <p className="text-[11px]">Tidak ada notifikasi pada filter ini.</p>
           </div>
         ) : (
           filteredNotifications.map((notif) => (
@@ -193,10 +191,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
           }}
           className="font-bold text-stone-700 hover:text-stone-950 dark:text-[#B1E743] dark:hover:text-[#B1E743]/80 flex items-center gap-1"
         >
-          <span>Open My Tasks</span>
+          <span>Buka Tugas Saya</span>
           <ExternalLink className="h-3 w-3" />
         </button>
-        <span className="text-stone-400">Collaborative Hub</span>
+        <span className="text-stone-400">Pusat Kolaborasi</span>
       </div>
     </div>
   );

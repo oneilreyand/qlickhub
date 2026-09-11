@@ -85,9 +85,7 @@ export const LoginPage: React.FC = () => {
           </div>
           <div className="leading-tight">
             <h2 className="text-base font-bold text-white tracking-wide">Qlick Hub</h2>
-            <p className="text-xs text-stone-300 font-medium">
-              Task Management & Collaboration Hub
-            </p>
+            <p className="text-xs text-stone-300 font-medium">Hub Pengelolaan Task & Kolaborasi</p>
           </div>
         </div>
 
@@ -95,26 +93,26 @@ export const LoginPage: React.FC = () => {
         <div className="relative z-10 space-y-4 max-w-lg">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-white/90 font-semibold shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-[#B1E743]" />
-            <span>Qlick Hub — Task Management & Collaboration Platform</span>
+            <span>Qlick Hub — Platform Pengelolaan Task &amp; Kolaborasi</span>
           </div>
 
           <h1 className="text-2xl xl:text-3xl font-extrabold text-white leading-tight tracking-tight">
-            Accelerate delivery with real-time task management & cross-role collaboration.
+            Percepat delivery dengan pengelolaan task real-time dan kolaborasi lintas peran.
           </h1>
 
           <p className="text-xs xl:text-sm text-stone-300 leading-relaxed">
-            Centralize requirements, cross-role subtask handoffs (PO ➔ Dev ➔ QA), delivery tracking,
-            and team discussions in one unified workspace.
+            Satukan requirement, handoff subtask lintas peran (PO ➔ Dev ➔ QA), pemantauan delivery,
+            dan diskusi tim dalam satu workspace.
           </p>
 
           <div className="pt-2 flex items-center gap-4 text-xs font-semibold text-stone-400">
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-[#B1E743]" />
-              Task Management & Sprints
+              Pengelolaan Task & Sprint
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-[#B1E743]" />
-              Cross-Role Collaboration
+              Kolaborasi Lintas Peran
             </span>
           </div>
         </div>
@@ -132,7 +130,7 @@ export const LoginPage: React.FC = () => {
             src={loginHeroImageUrl(768)}
             srcSet={loginHeroImageSrcSet}
             sizes="100vw"
-            alt="Qlick Hub Platform"
+            alt="Platform Qlick Hub"
             className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/40 to-transparent flex items-end p-4">
@@ -142,7 +140,7 @@ export const LoginPage: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-sm font-bold text-white">Qlick Hub</h2>
-                <p className="text-[11px] text-stone-300">Sign in to your account</p>
+                <p className="text-[11px] text-stone-300">Masuk ke akun Anda</p>
               </div>
             </div>
           </div>
@@ -164,7 +162,7 @@ export const LoginPage: React.FC = () => {
               Selamat Datang Kembali
             </h1>
             <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400">
-              Sign in to access your workspaces, tasks, and reports.
+              Masuk untuk mengakses workspace, task, dan laporan Anda.
             </p>
           </div>
 
@@ -210,7 +208,7 @@ export const LoginPage: React.FC = () => {
                 htmlFor="email-input"
                 className="block text-xs font-bold text-stone-700 dark:text-stone-300"
               >
-                Email Address
+                Alamat Email
               </label>
               <Input
                 id="email-input"
@@ -231,13 +229,13 @@ export const LoginPage: React.FC = () => {
                   htmlFor="password-input"
                   className="block text-xs font-bold text-stone-700 dark:text-stone-300"
                 >
-                  Password
+                  Kata Sandi
                 </label>
                 <Link
                   to="/forgot-password"
                   className="text-xs text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200 hover:underline font-semibold transition-colors"
                 >
-                  Forgot password?
+                  Lupa kata sandi?
                 </Link>
               </div>
               <Input
@@ -260,7 +258,7 @@ export const LoginPage: React.FC = () => {
                 isLoading={isLoading}
                 rightIcon={<ArrowRight className="h-4 w-4" />}
               >
-                {isLoading ? 'Signing in…' : 'Sign In to Hub'}
+                {isLoading ? 'Sedang masuk…' : 'Masuk ke Qlick Hub'}
               </Button>
             </div>
           </form>
@@ -269,7 +267,7 @@ export const LoginPage: React.FC = () => {
           <div className="pt-3 border-t border-stone-100 dark:border-stone-800 flex items-center justify-center gap-1.5 text-center">
             <ShieldCheck className="h-3.5 w-3.5 text-stone-400" />
             <span className="text-[11px] font-medium text-stone-400 dark:text-stone-500">
-              Secure enterprise authentication & session guard
+              Autentikasi enterprise aman & perlindungan sesi
             </span>
           </div>
         </div>

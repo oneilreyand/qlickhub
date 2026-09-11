@@ -213,11 +213,11 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           },
         }),
       ).unwrap();
-      dispatch(enqueueSnackbar(`Status updated to ${newStatus.replace('_', ' ')}`, 'success'));
+      dispatch(enqueueSnackbar('Status berhasil diperbarui', 'success'));
       onDataChanged();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update status', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Status gagal diperbarui', 'error'),
       );
     } finally {
       setIsUpdatingStatus(false);
@@ -236,11 +236,11 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       parts.push(notes.trim());
     }
     const deliverableItems: string[] = [];
-    if (pr.trim()) deliverableItems.push(`- **PR Link**: ${pr.trim()}`);
+    if (pr.trim()) deliverableItems.push(`- **Tautan PR**: ${pr.trim()}`);
     if (branch.trim()) deliverableItems.push(`- **Branch**: \`${branch.trim()}\``);
-    if (staging.trim()) deliverableItems.push(`- **Staging URL**: ${staging.trim()}`);
+    if (staging.trim()) deliverableItems.push(`- **URL Staging**: ${staging.trim()}`);
     if (extraHandoff && extraHandoff.trim()) {
-      deliverableItems.push(`- **Handoff Instructions**: ${extraHandoff.trim()}`);
+      deliverableItems.push(`- **Petunjuk Handoff**: ${extraHandoff.trim()}`);
     }
 
     if (deliverableItems.length > 0) {
@@ -265,11 +265,11 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           },
         }),
       ).unwrap();
-      dispatch(enqueueSnackbar('Deliverables & technical implementation notes saved', 'success'));
+      dispatch(enqueueSnackbar('Hasil kerja dan catatan teknis berhasil disimpan', 'success'));
       onDataChanged();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to save notes', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Catatan gagal disimpan', 'error'),
       );
     } finally {
       setIsSavingNotes(false);
@@ -300,13 +300,13 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       ).unwrap();
 
       dispatch(
-        enqueueSnackbar('Successfully handed off to QA team for review & verification', 'success'),
+        enqueueSnackbar('Subtask berhasil diserahkan kepada tim QA untuk diverifikasi', 'success'),
       );
       setIsHandoffModalOpen(false);
       onDataChanged();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to handoff to QA', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Handoff ke QA gagal', 'error'),
       );
     } finally {
       setIsSubmittingHandoff(false);
@@ -314,9 +314,9 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   };
 
   const getMemberName = (userId?: string | null) => {
-    if (!userId) return 'Unassigned';
+    if (!userId) return 'Belum ditugaskan';
     const member = members.find((m) => m.userId === userId);
-    return member?.user?.name || member?.user?.email || 'Team Member';
+    return member?.user?.name || member?.user?.email || 'Anggota Tim';
   };
 
   const getAreaBadge = () => {
@@ -325,7 +325,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700">
           <Code2 className="h-3.5 w-3.5 text-stone-700 dark:text-stone-300" />
-          Frontend Workstation
+          Area Kerja Frontend
         </span>
       );
     }
@@ -333,7 +333,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
           <Layers className="h-3.5 w-3.5" />
-          Backend Workstation
+          Area Kerja Backend
         </span>
       );
     }
@@ -341,14 +341,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700">
           <Smartphone className="h-3.5 w-3.5 text-stone-700 dark:text-stone-300" />
-          Mobile Workstation
+          Area Kerja Mobile
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700">
         <Cpu className="h-3.5 w-3.5 text-stone-700 dark:text-stone-300" />
-        Fullstack Workstation
+        Area Kerja Fullstack
       </span>
     );
   };
@@ -364,12 +364,12 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
     if (!dueDate && !startDate) {
       return {
         hasSchedule: false,
-        message: 'Unscheduled — No commitment dates defined yet',
+        message: 'Belum dijadwalkan — tanggal komitmen belum ditentukan',
         percent: 0,
         daysTotal: 0,
         daysElapsed: 0,
         remainingDays: null,
-        statusLabel: 'Unscheduled',
+        statusLabel: 'Belum dijadwalkan',
         todayStr,
       };
     }
@@ -411,12 +411,12 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   const tabs: TabItem[] = [
     {
       id: 'work',
-      label: 'Work & Deliverables',
+      label: 'Pekerjaan & Hasil',
       icon: <Code2 className="h-4 w-4" />,
     },
     {
       id: 'discussion',
-      label: 'Team Discussion',
+      label: 'Diskusi Tim',
       icon: <MessageSquare className="h-4 w-4" />,
       count: comments.length > 0 ? comments.length : undefined,
     },
@@ -441,7 +441,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             {parentTask && (
               <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 flex-wrap">
                 <span className="text-stone-400 font-bold uppercase text-[10px]">
-                  Parent Feature:
+                  Feature Induk:
                 </span>
                 <span className="font-semibold text-stone-800 dark:text-stone-200 truncate max-w-md">
                   {parentTask.title}
@@ -460,7 +460,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 isLoading={isUpdatingStatus}
                 leftIcon={<Play className="h-4 w-4" />}
               >
-                Start Working
+                Mulai Kerjakan
               </Button>
             )}
 
@@ -472,7 +472,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 leftIcon={<Send className="h-4 w-4" />}
                 className="bg-[#B1E743] hover:bg-[#9ed434] text-[#141413] font-bold dark:bg-[#B1E743] dark:hover:bg-[#9ed434] dark:text-[#141413]"
               >
-                Handoff to QA
+                Serahkan ke QA
               </Button>
             )}
 
@@ -485,14 +485,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 leftIcon={<RotateCcw className="h-4 w-4" />}
                 className="bg-amber-600 hover:bg-amber-700 text-white"
               >
-                Resume Bug Fixes
+                Lanjutkan Perbaikan Bug
               </Button>
             )}
 
             {subtask.status === 'in_review' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                 <Clock className="h-3.5 w-3.5 animate-spin" />
-                Under QA Verification
+                Dalam Verifikasi QA
               </span>
             )}
 
@@ -504,7 +504,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 isLoading={isUpdatingStatus}
                 leftIcon={<RotateCcw className="h-4 w-4" />}
               >
-                Reopen Subtask
+                Buka Kembali Subtask
               </Button>
             )}
           </div>
@@ -529,7 +529,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               >
                 1
               </div>
-              <span>To Do</span>
+              <span>Belum Dikerjakan</span>
             </div>
 
             <div className="h-0.5 flex-1 mx-2 bg-stone-200 dark:border-stone-800" />
@@ -550,7 +550,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               >
                 2
               </div>
-              <span>In Progress</span>
+              <span>Sedang Dikerjakan</span>
             </div>
 
             <div className="h-0.5 flex-1 mx-2 bg-stone-200 dark:border-stone-800" />
@@ -571,7 +571,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               >
                 3
               </div>
-              <span>Ready for QA</span>
+              <span>Siap untuk QA</span>
             </div>
 
             <div className="h-0.5 flex-1 mx-2 bg-stone-200 dark:border-stone-800" />
@@ -592,7 +592,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               >
                 4
               </div>
-              <span>Completed</span>
+              <span>Selesai</span>
             </div>
           </div>
         </div>
@@ -620,7 +620,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-stone-400 block">
-                    Assigned Developer
+                    Developer yang Ditugaskan
                   </span>
                   <span className="text-xs sm:text-sm font-extrabold text-stone-800 dark:text-stone-200">
                     {getMemberName(subtask.assigneeId)}
@@ -628,7 +628,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 </div>
               </div>
               <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase border border-stone-200 dark:border-stone-700">
-                Executor
+                Pelaksana
               </span>
             </Card>
 
@@ -647,7 +647,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 </div>
               </div>
               <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase border border-stone-200 dark:border-stone-700">
-                Planner
+                Perencana
               </span>
             </Card>
           </div>
@@ -658,12 +658,12 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-[#B1E743]" />
                 <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                  Schedule Timeline & Commitment Status
+                  Timeline &amp; Status Komitmen
                 </h3>
               </div>
 
               <div className="flex items-center gap-2 text-xs font-bold">
-                <span className="text-stone-500 dark:text-stone-400">Today:</span>
+                <span className="text-stone-500 dark:text-stone-400">Hari ini:</span>
                 <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-mono">
                   {timelineStats.todayStr}
                 </span>
@@ -677,14 +677,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   <div className="flex justify-between items-center text-xs font-bold text-stone-600 dark:text-stone-400">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3 text-stone-400" />
-                      <span>Start: {timelineStats.startDate}</span>
+                      <span>Mulai: {timelineStats.startDate}</span>
                     </span>
                     <span className="text-stone-900 dark:text-[#B1E743] font-extrabold">
-                      {timelineStats.percent}% Elapsed
+                      {timelineStats.percent}% berjalan
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3 text-stone-400" />
-                      <span>Due: {timelineStats.dueDate}</span>
+                      <span>Tenggat: {timelineStats.dueDate}</span>
                     </span>
                   </div>
 
@@ -726,14 +726,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   <div>
                     <p className="font-bold">
                       {timelineStats.isCompleted
-                        ? 'Task Completed & Signed-off'
+                        ? 'Task selesai dan disetujui'
                         : timelineStats.isOverdue
-                          ? `⚠️ Overdue ${Math.abs(timelineStats.remainingDays || 0)} Days past commitment deadline (${timelineStats.dueDate})`
+                          ? `⚠️ Terlambat ${Math.abs(timelineStats.remainingDays || 0)} hari dari tenggat komitmen (${timelineStats.dueDate})`
                           : timelineStats.remainingDays === 0
-                            ? '⚡ Due Today! Ready for QA handoff'
+                            ? '⚡ Tenggat hari ini! Siap diserahkan ke QA'
                             : timelineStats.remainingDays === 1
-                              ? '⚡ Due Tomorrow! Finalize dev deliverables'
-                              : `On Track — ${timelineStats.remainingDays} Days remaining until commitment deadline (${timelineStats.dueDate})`}
+                              ? '⚡ Tenggat besok! Selesaikan hasil kerja developer'
+                              : `Sesuai Jadwal — tersisa ${timelineStats.remainingDays} hari hingga tenggat komitmen (${timelineStats.dueDate})`}
                     </p>
                     <p className="text-[11px] opacity-85 mt-0.5">
                       {timelineStats.isOverdue
@@ -747,8 +747,8 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 flex items-center gap-3 text-xs text-stone-600 dark:text-stone-400">
                 <Calendar className="h-4 w-4 text-stone-400 shrink-0" />
                 <span>
-                  Subtask ini belum memiliki tanggal <strong>Start Date</strong> atau{' '}
-                  <strong>Due Date</strong>. Hubungi PO untuk menetapkan komitmen waktu.
+                  Subtask ini belum memiliki <strong>tanggal mulai</strong> atau{' '}
+                  <strong>tenggat</strong>. Hubungi PO untuk menetapkan komitmen waktu.
                 </span>
               </div>
             )}
@@ -765,10 +765,10 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 <FileText className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
                 <div>
                   <span className="text-xs font-extrabold uppercase tracking-wider text-stone-900 dark:text-stone-100 block">
-                    PO Product Brief & Specifications
+                    Ringkasan Produk &amp; Spesifikasi dari PO
                   </span>
                   <span className="text-[10px] text-stone-500 dark:text-stone-400">
-                    Spesifikasi acuan dari Product Owner (Read-Only)
+                    Spesifikasi acuan dari Product Owner (hanya baca)
                   </span>
                 </div>
               </div>
@@ -787,7 +787,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   </div>
                 ) : (
                   <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 text-xs sm:text-sm text-stone-500 italic border border-stone-200/60 dark:border-stone-800">
-                    No detailed specifications provided on parent task by Product Owner.
+                    Product Owner belum memberikan spesifikasi terperinci pada Task induk.
                   </div>
                 )}
               </div>
@@ -801,7 +801,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 <GitPullRequest className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
                 <div>
                   <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                    Dev Deliverables & Technical Implementation Notes
+                    Hasil Kerja &amp; Catatan Implementasi Teknis
                   </h3>
                   <p className="text-[11px] text-stone-500 dark:text-stone-400">
                     Catatan teknis, PR link, branch, dan staging demo hasil pekerjaan developer.
@@ -815,7 +815,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 isLoading={isSavingNotes}
                 leftIcon={<Save className="h-3.5 w-3.5" />}
               >
-                Save Notes
+                Simpan Catatan
               </Button>
             </div>
 
@@ -833,7 +833,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               </div>
               <div>
                 <label className="block text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1">
-                  Git Branch Name
+                  Nama Branch Git
                 </label>
                 <Input
                   value={branchName}
@@ -856,13 +856,13 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             {/* Technical Implementation Markdown Notes */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-bold text-stone-500 dark:text-stone-400">
-                Technical Implementation Notes / API Contracts (Developer Only)
+                Catatan Implementasi Teknis / Kontrak API (khusus Developer)
               </label>
               <textarea
                 value={technicalNotes}
                 onChange={(e) => setTechnicalNotes(e.target.value)}
                 rows={6}
-                placeholder="Write technical architecture, database migrations, endpoint signatures, or key developer decisions..."
+                placeholder="Tulis arsitektur teknis, migrasi database, bentuk endpoint, atau keputusan penting developer..."
                 className="w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:border-[#B1E743] dark:focus:border-[#B1E743] outline-none font-mono leading-relaxed"
               />
             </div>
@@ -882,7 +882,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             onPostComment={handlePostComment}
             onUpdateComment={handleUpdateComment}
             onDeleteComment={handleDeleteComment}
-            title="Subtask Collaboration Discussion"
+            title="Diskusi Kolaborasi Subtask"
             placeholder="Tulis pesan untuk tim (FE, BE, QA, PO)... (Shift+Enter untuk baris baru)"
             maxHeight="max-h-[560px]"
           />
@@ -893,19 +893,20 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       <Modal
         isOpen={isHandoffModalOpen}
         onClose={() => setIsHandoffModalOpen(false)}
-        title="Submit Handoff to QA Team"
+        title="Serahkan Handoff kepada Tim QA"
         size="md"
       >
         <div className="space-y-4 p-1">
           <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-            You are moving this subtask to <strong>Ready for QA (In Review)</strong>. Please supply
-            instructions, staging link, and test accounts to help QA verify quickly.
+            Anda akan memindahkan Subtask ini ke <strong>Siap untuk QA (Dalam Review)</strong>.
+            Sertakan petunjuk, tautan staging, dan akun uji agar QA dapat memverifikasi dengan
+            cepat.
           </p>
 
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                Staging / Preview Environment URL
+                URL Lingkungan Staging / Pratinjau
               </label>
               <Input
                 value={stagingUrl}
@@ -927,13 +928,13 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                QA Verification Instructions & Test Credentials
+                Petunjuk Verifikasi QA &amp; Kredensial Pengujian
               </label>
               <textarea
                 value={handoffNotes}
                 onChange={(e) => setHandoffNotes(e.target.value)}
                 rows={3}
-                placeholder="E.g. Login with test-qa@qlick.io, navigate to /checkout, try new Stripe sandbox card..."
+                placeholder="Contoh: masuk dengan test-qa@qlick.io, buka /checkout, lalu coba kartu sandbox Stripe..."
                 className="w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:border-[#B1E743] dark:focus:border-[#B1E743] outline-none"
               />
             </div>
@@ -941,7 +942,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-800">
             <Button variant="ghost" size="sm" onClick={() => setIsHandoffModalOpen(false)}>
-              Cancel
+              Batal
             </Button>
             <Button
               variant="primary"
@@ -951,7 +952,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               leftIcon={<Send className="h-4 w-4" />}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              Confirm Handoff to QA
+              Konfirmasi Handoff ke QA
             </Button>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { normalizeDateStr } from '../../../lib/utils/scheduleHealth';
 
 export interface DateRange {
   startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
 }
 
 export interface DateRangePickerProps {
@@ -36,7 +36,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
     } catch {
       return dateStr;
     }
@@ -84,9 +84,10 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setIsOpen(false);
   };
 
-  const labelText = internalRange?.startDate && internalRange?.endDate
-    ? `${formatDateLabel(internalRange.startDate)} – ${formatDateLabel(internalRange.endDate)}`
-    : placeholder;
+  const labelText =
+    internalRange?.startDate && internalRange?.endDate
+      ? `${formatDateLabel(internalRange.startDate)} – ${formatDateLabel(internalRange.endDate)}`
+      : placeholder;
 
   return (
     <div className={`relative inline-block text-left ${className}`} ref={containerRef}>
@@ -113,7 +114,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
               e.stopPropagation();
               handleClear();
             }}
-            aria-label="Clear date range"
+            aria-label="Hapus rentang tanggal"
             className="grid h-4 w-4 place-items-center rounded-full opacity-80 hover:opacity-100"
           >
             <X className="h-3 w-3" />
@@ -127,7 +128,9 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       {isOpen && (
         <div className="absolute left-0 mt-2 w-72 rounded-2xl border border-stone-200 bg-white p-4 shadow-2xl ring-1 ring-stone-900/5 z-40 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100">
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Presets</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+              Presets
+            </h4>
             <div className="grid grid-cols-2 gap-1.5">
               <button
                 type="button"
@@ -160,10 +163,14 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             </div>
 
             <div className="border-t border-stone-100 pt-3 dark:border-stone-800">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 dark:text-stone-400">Custom Range</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 dark:text-stone-400">
+                Custom Range
+              </h4>
               <div className="space-y-2">
                 <div>
-                  <label className="block text-[10px] font-semibold text-stone-500 mb-1 dark:text-stone-400">Start Date</label>
+                  <label className="block text-[10px] font-semibold text-stone-500 mb-1 dark:text-stone-400">
+                    Start Date
+                  </label>
                   <input
                     type="date"
                     value={internalRange?.startDate || ''}
@@ -177,7 +184,9 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-stone-500 mb-1 dark:text-stone-400">End Date</label>
+                  <label className="block text-[10px] font-semibold text-stone-500 mb-1 dark:text-stone-400">
+                    End Date
+                  </label>
                   <input
                     type="date"
                     value={internalRange?.endDate || ''}

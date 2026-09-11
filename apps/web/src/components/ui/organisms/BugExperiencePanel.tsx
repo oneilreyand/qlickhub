@@ -60,29 +60,29 @@ const severityVariant: Record<BugSeverity, 'blocked' | 'review' | 'info' | 'neut
 function panelCopy(mode: BugExperiencePanelProps['mode'], role: string) {
   if (mode === 'feature') {
     return {
-      title: 'Linked Bugs',
+      title: 'Bug Tertaut',
       description:
-        'Persisted defects traced to this Feature, its Requirements, and originating Test Results.',
-      emptyTitle: 'No Bugs linked to this Feature',
+        'Bug tersimpan yang terlacak ke Feature, Requirement, dan hasil pengujian asalnya.',
+      emptyTitle: 'Belum ada Bug yang tertaut ke Feature ini',
       emptyDescription:
-        'Failed or blocked Test Results can be opened as first-class Bugs from the QA Testing Desk.',
+        'Hasil pengujian yang gagal atau terblokir dapat dibuat sebagai Bug dari area kerja QA.',
     };
   }
   if (role === 'dev') {
     return {
-      title: 'Assigned Bug Work',
+      title: 'Pekerjaan Bug yang Ditugaskan',
       description:
-        'Only open, reopened, or in-progress Bugs assigned to you are returned by the backend.',
-      emptyTitle: 'No assigned Bug work',
-      emptyDescription: 'You have no open, reopened, or in-progress Bugs requiring action.',
+        'Hanya Bug terbuka, dibuka kembali, atau sedang dikerjakan yang ditugaskan kepada Anda.',
+      emptyTitle: 'Belum ada pekerjaan Bug',
+      emptyDescription: 'Tidak ada Bug yang membutuhkan tindakan Anda saat ini.',
     };
   }
   return {
-    title: 'Bug Retest Queue',
-    description: 'Resolved Bugs waiting for independent QA verification or reopening.',
-    emptyTitle: 'No Bugs awaiting retest',
+    title: 'Antrean Retest Bug',
+    description: 'Bug yang sudah diperbaiki dan menunggu verifikasi independen dari QA.',
+    emptyTitle: 'Belum ada Bug yang menunggu retest',
     emptyDescription:
-      'Resolved Bugs will appear here when Developer work is ready for verification.',
+      'Bug yang sudah diperbaiki akan muncul ketika pekerjaan Developer siap diverifikasi.',
   };
 }
 
@@ -152,7 +152,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
       }
     } catch (err: unknown) {
       if (requestId === requestIdRef.current) {
-        const message = err instanceof Error ? err.message : 'Failed to load Bugs.';
+        const message = err instanceof Error ? err.message : 'Bug gagal dimuat.';
         const status = (err as { status?: number })?.status;
         if (
           status === 403 ||
@@ -201,7 +201,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
         void loadBugs();
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to update Bug status.';
+      const message = err instanceof Error ? err.message : 'Status Bug gagal diperbarui.';
       dispatch(enqueueSnackbar(message, 'error'));
     } finally {
       setUpdatingBugId(null);
@@ -216,7 +216,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
       setResolveTarget(null);
       setResolutionNotes('');
     } catch (err: unknown) {
-      setResolutionError(err instanceof Error ? err.message : 'Failed to resolve Bug.');
+      setResolutionError(err instanceof Error ? err.message : 'Bug gagal diselesaikan.');
     }
   };
 
@@ -237,13 +237,13 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
         },
         evidenceKind,
       );
-      dispatch(enqueueSnackbar('Evidence link attached to Bug', 'success'));
+      dispatch(enqueueSnackbar('Tautan bukti berhasil dilampirkan ke Bug', 'success'));
       setAddEvidenceBug(null);
       setEvidenceUrl('');
       setEvidenceLabel('');
       await loadBugs();
     } catch (err: unknown) {
-      setAddEvidenceError(err instanceof Error ? err.message : 'Failed to attach evidence.');
+      setAddEvidenceError(err instanceof Error ? err.message : 'Bukti gagal dilampirkan.');
     } finally {
       setIsAddingEvidence(false);
     }
@@ -276,28 +276,28 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
               aria-hidden="true"
             />
           }
-          aria-label="Refresh Bug list"
+          aria-label="Muat ulang daftar Bug"
         >
-          Refresh
+          Muat Ulang
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="space-y-3" aria-label={`Loading ${copy.title}`}>
+        <div className="space-y-3" aria-label={`Memuat ${copy.title}`}>
           <Skeleton className="h-28 w-full rounded-2xl" />
           <Skeleton className="h-28 w-full rounded-2xl" />
         </div>
       ) : permissionDenied ? (
-        <Alert tone="warning" title="Bug access denied">
-          Your workspace membership does not grant permission to view or manage Bugs for this
-          context.
+        <Alert tone="warning" title="Akses Bug ditolak">
+          Keanggotaan Workspace Anda tidak memberikan izin untuk melihat atau mengelola Bug dalam
+          konteks ini.
         </Alert>
       ) : error ? (
-        <Alert tone="error" title="Unable to load Bugs">
+        <Alert tone="error" title="Bug tidak dapat dimuat">
           <p>{error}</p>
           <div className="mt-2">
             <Button variant="outline" size="sm" onClick={() => void loadBugs()}>
-              Try again
+              Coba lagi
             </Button>
           </div>
         </Alert>
@@ -362,7 +362,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                   </div>
                   <div className="min-w-0">
                     <dt className="text-[10px] font-bold uppercase tracking-wide text-stone-400">
-                      Assigned Developer
+                      Developer yang Ditugaskan
                     </dt>
                     <dd className="mt-0.5 truncate font-semibold text-stone-700 dark:text-stone-300">
                       {bug.assignee.name}
@@ -390,12 +390,12 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
 
                 <div className="space-y-2 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
                   <p>
-                    <strong className="text-stone-800 dark:text-stone-200">Reproduction:</strong>{' '}
+                    <strong className="text-stone-800 dark:text-stone-200">Reproduksi:</strong>{' '}
                     {bug.reproductionDetails}
                   </p>
                   {bug.resolutionNotes && (
                     <p>
-                      <strong className="text-stone-800 dark:text-stone-200">Resolution:</strong>{' '}
+                      <strong className="text-stone-800 dark:text-stone-200">Penyelesaian:</strong>{' '}
                       {bug.resolutionNotes}
                     </p>
                   )}
@@ -418,7 +418,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                           className="relative flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-xs"
                         >
                           <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-rose-500/20 text-rose-400 px-1.5 py-0.2 rounded border border-rose-500/30">
-                            Inherited File from Run
+                            File Warisan dari Test Run
                           </span>
                           <div className="min-w-0 pr-2">
                             <p className="font-semibold text-slate-200 truncate">{att.fileName}</p>
@@ -467,7 +467,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                       {bugEvidenceLinks.map((link) => (
                         <div key={link.id} className="relative">
                           <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-sky-500/20 text-sky-400 px-1.5 py-0.2 rounded border border-sky-500/30">
-                            Bug Evidence
+                            Bukti Bug
                           </span>
                           <EvidenceCard
                             link={link}
@@ -502,7 +502,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                     }}
                     leftIcon={<Plus className="h-3.5 w-3.5" />}
                   >
-                    Add Evidence Link
+                    Tambah Tautan Bukti
                   </Button>
 
                   <div className="flex flex-wrap gap-2">
@@ -512,10 +512,10 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                         size="sm"
                         isLoading={isUpdating}
                         onClick={() => void updateStatus(bug, 'in_progress')}
-                        aria-label={`Start Bug work: ${bug.title}`}
+                        aria-label={`Mulai pengerjaan Bug: ${bug.title}`}
                         leftIcon={<Play className="h-3.5 w-3.5" aria-hidden="true" />}
                       >
-                        Start Bug work
+                        Mulai Kerjakan Bug
                       </Button>
                     )}
                     {canResolve && (
@@ -528,10 +528,10 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                           setResolutionNotes('');
                           setResolutionError(null);
                         }}
-                        aria-label={`Resolve for retest: ${bug.title}`}
+                        aria-label={`Selesaikan untuk retest: ${bug.title}`}
                         leftIcon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}
                       >
-                        Resolve for retest
+                        Selesaikan untuk Retest
                       </Button>
                     )}
                     {canRetest && (
@@ -541,20 +541,20 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                           size="sm"
                           disabled={isUpdating}
                           onClick={() => void updateStatus(bug, 'reopened')}
-                          aria-label={`Reopen after failed retest: ${bug.title}`}
+                          aria-label={`Buka kembali setelah retest gagal: ${bug.title}`}
                           leftIcon={<RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
                         >
-                          Reopen after failed retest
+                          Buka Kembali setelah Retest Gagal
                         </Button>
                         <Button
                           variant="primary"
                           size="sm"
                           isLoading={isUpdating}
                           onClick={() => void updateStatus(bug, 'verified')}
-                          aria-label={`Verify after retest: ${bug.title}`}
+                          aria-label={`Verifikasi setelah retest: ${bug.title}`}
                           leftIcon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}
                         >
-                          Verify after retest
+                          Verifikasi setelah Retest
                         </Button>
                       </>
                     )}
@@ -574,26 +574,27 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
           setResolveTarget(null);
           setResolutionError(null);
         }}
-        title="Resolve Bug for retest"
+        title="Selesaikan Bug untuk Retest"
         description={resolveTarget?.title}
         size="md"
       >
         <div className="space-y-4">
           <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-            Explain what changed. The Bug will leave Developer work and enter the QA retest queue.
+            Jelaskan perubahan yang dibuat. Bug akan keluar dari antrean Developer dan masuk ke
+            antrean retest QA.
           </p>
           {resolutionError && (
-            <Alert tone="error" title="Unable to resolve Bug">
+            <Alert tone="error" title="Bug tidak dapat diselesaikan">
               {resolutionError}
             </Alert>
           )}
           <Textarea
-            label="Resolution notes"
+            label="Catatan resolusi"
             value={resolutionNotes}
             onChange={(event) => setResolutionNotes(event.target.value)}
             rows={5}
             maxLength={10000}
-            placeholder="e.g. Added null check on payment payload and validated unit test suite."
+            placeholder="Contoh: Menambahkan pemeriksaan null pada payload pembayaran dan memvalidasi unit test."
           />
           <div className="flex items-center justify-end gap-2 border-t border-stone-200 pt-2 dark:border-stone-800">
             <Button
@@ -604,7 +605,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                 setResolutionError(null);
               }}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               variant="primary"
@@ -624,13 +625,13 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
       <Modal
         isOpen={Boolean(addEvidenceBug)}
         onClose={() => setAddEvidenceBug(null)}
-        title="Attach Evidence Link to Bug"
-        description="Add a sandboxed video, image, or document link to support triage or fix verification."
+        title="Lampirkan Tautan Bukti ke Bug"
+        description="Tambahkan tautan video, gambar, atau dokumen untuk mendukung triase atau verifikasi perbaikan."
         size="md"
       >
         <div className="space-y-4">
           {addEvidenceError && (
-            <Alert tone="error" title="Unable to attach evidence">
+            <Alert tone="error" title="Bukti tidak dapat dilampirkan">
               {addEvidenceError}
             </Alert>
           )}
@@ -664,7 +665,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
           </div>
 
           <Input
-            label="Evidence URL"
+            label="URL Bukti"
             value={evidenceUrl}
             onChange={(e) => setEvidenceUrl(e.target.value)}
             placeholder="https://www.youtube.com/watch?v=... or https://loom.com/share/..."
@@ -672,7 +673,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
           />
 
           <Input
-            label="Label / Description (Optional)"
+            label="Label / Deskripsi (Opsional)"
             value={evidenceLabel}
             onChange={(e) => setEvidenceLabel(e.target.value)}
             placeholder="e.g. Fix reproduction video walkthrough"
@@ -680,7 +681,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
 
           <div className="flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
             <Button variant="ghost" size="sm" onClick={() => setAddEvidenceBug(null)}>
-              Cancel
+              Batal
             </Button>
             <Button
               variant="primary"

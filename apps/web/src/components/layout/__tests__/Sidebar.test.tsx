@@ -68,66 +68,66 @@ function renderSidebar(role: 'owner' | 'admin' | 'po' | 'dev' | 'qa', initialPat
 }
 
 describe('Sidebar Role-based Visibility', () => {
-  it('hides Workspace Settings and Component Gallery for dev and qa roles', () => {
+  it('hides Pengaturan Workspace and Galeri Komponen for dev and qa roles', () => {
     const { unmount } = renderSidebar('dev');
-    expect(screen.queryByText('Workspace Settings')).toBeNull();
-    expect(screen.queryByText('Component Gallery')).toBeNull();
+    expect(screen.queryByText('Pengaturan Workspace')).toBeNull();
+    expect(screen.queryByText('Galeri Komponen')).toBeNull();
     unmount();
 
     renderSidebar('qa');
-    expect(screen.queryByText('Workspace Settings')).toBeNull();
-    expect(screen.queryByText('Component Gallery')).toBeNull();
+    expect(screen.queryByText('Pengaturan Workspace')).toBeNull();
+    expect(screen.queryByText('Galeri Komponen')).toBeNull();
   });
 
-  it('shows Workspace Settings for owner, admin, and po roles', () => {
+  it('shows Pengaturan Workspace for owner, admin, and po roles', () => {
     const { unmount: unmountOwner } = renderSidebar('owner');
-    expect(screen.getByText('Workspace Settings')).toBeInTheDocument();
+    expect(screen.getByText('Pengaturan Workspace')).toBeInTheDocument();
     unmountOwner();
 
     const { unmount: unmountAdmin } = renderSidebar('admin');
-    expect(screen.getByText('Workspace Settings')).toBeInTheDocument();
+    expect(screen.getByText('Pengaturan Workspace')).toBeInTheDocument();
     unmountAdmin();
 
     const { unmount: unmountPo } = renderSidebar('po');
-    expect(screen.getByText('Workspace Settings')).toBeInTheDocument();
+    expect(screen.getByText('Pengaturan Workspace')).toBeInTheDocument();
     unmountPo();
   });
 
-  it('shows Component Gallery only for owner role and hides for others', () => {
+  it('shows Galeri Komponen only for owner role and hides for others', () => {
     const { unmount: unmountOwner } = renderSidebar('owner');
-    expect(screen.getByText('Component Gallery')).toBeInTheDocument();
+    expect(screen.getByText('Galeri Komponen')).toBeInTheDocument();
     unmountOwner();
 
     const { unmount: unmountAdmin } = renderSidebar('admin');
-    expect(screen.queryByText('Component Gallery')).toBeNull();
+    expect(screen.queryByText('Galeri Komponen')).toBeNull();
     unmountAdmin();
 
     const { unmount: unmountPo } = renderSidebar('po');
-    expect(screen.queryByText('Component Gallery')).toBeNull();
+    expect(screen.queryByText('Galeri Komponen')).toBeNull();
     unmountPo();
 
     const { unmount: unmountDev } = renderSidebar('dev');
-    expect(screen.queryByText('Component Gallery')).toBeNull();
+    expect(screen.queryByText('Galeri Komponen')).toBeNull();
     unmountDev();
 
     const { unmount: unmountQa } = renderSidebar('qa');
-    expect(screen.queryByText('Component Gallery')).toBeNull();
+    expect(screen.queryByText('Galeri Komponen')).toBeNull();
     unmountQa();
   });
 
-  it('shows Overview, Task Hub, My Tasks, and Report for all roles', () => {
+  it('shows Overview, Task Hub, Tugas Saya, and Report for all roles', () => {
     const { unmount } = renderSidebar('dev');
-    expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getByText('Ringkasan')).toBeInTheDocument();
     expect(screen.getByText('Task Hub')).toBeInTheDocument();
-    expect(screen.getByText('My Tasks')).toBeInTheDocument();
-    expect(screen.getByText('Report')).toBeInTheDocument();
+    expect(screen.getByText('Tugas Saya')).toBeInTheDocument();
+    expect(screen.getByText('Laporan')).toBeInTheDocument();
     unmount();
   });
 
-  it('temporarily hides the User Flow Guide navigation entry', () => {
+  it('temporarily hides the Panduan Alur Kerja navigation entry', () => {
     renderSidebar('owner');
 
-    expect(screen.queryByRole('link', { name: /User Flow Guide/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Panduan Alur Kerja/i })).not.toBeInTheDocument();
   });
 
   it('keeps Task Hub active on a canonical task deep link', () => {

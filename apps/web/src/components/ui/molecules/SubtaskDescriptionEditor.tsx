@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Edit2,
-  Check,
-  X,
-  FileText,
-  Image as ImageIcon,
-  Video as VideoIcon,
-} from 'lucide-react';
+import { Edit2, Check, X, FileText, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { FormattedText } from '../atoms/FormattedText';
 import { Textarea } from '../atoms/Textarea';
@@ -57,7 +50,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400 flex items-center gap-1.5">
           <FileText className="h-3.5 w-3.5 text-stone-400" />
-          <span>Technical Description & Instructions</span>
+          <span>Deskripsi &amp; Petunjuk Teknis</span>
         </span>
 
         {canEdit && !isEditing && (
@@ -68,7 +61,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
             leftIcon={<Edit2 className="h-3 w-3" />}
             onClick={handleStartEditing}
           >
-            {description ? 'Edit Description' : 'Add Description'}
+            {description ? 'Edit Deskripsi' : 'Tambahkan Deskripsi'}
           </Button>
         )}
       </div>
@@ -77,14 +70,12 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
         <div className="space-y-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-3 shadow-xs">
           {/* Quick Snippet Helpers */}
           <div className="flex items-center gap-1.5 flex-wrap pb-1 border-b border-stone-100 dark:border-stone-800">
-            <span className="text-[10px] font-bold text-stone-400">
-              Quick Template:
-            </span>
+            <span className="text-[10px] font-bold text-stone-400">Quick Template:</span>
             <button
               type="button"
               onClick={() =>
                 insertTemplate(
-                  `### Implementation Steps\n- [ ] 1. Define interface / schema\n- [ ] 2. Core implementation\n- [ ] 3. Write unit tests`
+                  `### Implementation Steps\n- [ ] 1. Define interface / schema\n- [ ] 2. Core implementation\n- [ ] 3. Write unit tests`,
                 )
               }
               className="text-[10px] px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium transition-colors"
@@ -96,7 +87,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
                 type="button"
                 onClick={() =>
                   insertTemplate(
-                    `### UI Specifications\n- State management: Redux thunk / slice\n- Error handling: Global snackbar on 4xx/5xx\n- Component level: Atom/Molecule reuse`
+                    `### UI Specifications\n- State management: Redux thunk / slice\n- Error handling: Global snackbar on 4xx/5xx\n- Component level: Atom/Molecule reuse`,
                   )
                 }
                 className="text-[10px] px-2 py-0.5 rounded-md bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-300 font-medium transition-colors"
@@ -109,7 +100,9 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
                 type="button"
                 onClick={() =>
                   insertTemplate(
-                    `### API & DB Specs\n- Route: ` + '`METHOD /v1/endpoint`' + `\n- Authorization: Workspace policy check\n- Input Validation: Zod schema`
+                    `### API & DB Specs\n- Route: ` +
+                      '`METHOD /v1/endpoint`' +
+                      `\n- Authorization: Workspace policy check\n- Input Validation: Zod schema`,
                   )
                 }
                 className="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 font-medium transition-colors"
@@ -122,7 +115,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
                 type="button"
                 onClick={() =>
                   insertTemplate(
-                    `### Mobile Specifications\n- Target Platform: iOS 17+ / Android 14+\n- Permissions: Camera / Biometrics / Notifications\n- Network: Offline-first queue with auto-sync`
+                    `### Mobile Specifications\n- Target Platform: iOS 17+ / Android 14+\n- Permissions: Camera / Biometrics / Notifications\n- Network: Offline-first queue with auto-sync`,
                   )
                 }
                 className="text-[10px] px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-medium transition-colors"
@@ -135,7 +128,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
                 type="button"
                 onClick={() =>
                   insertTemplate(
-                    `### Fullstack Implementation Specs\n- [ ] 1. Backend Route & DB Migration\n- [ ] 2. Contracts schema & validation\n- [ ] 3. Frontend UI Component & Redux Integration\n- [ ] 4. E2E verification`
+                    `### Fullstack Implementation Specs\n- [ ] 1. Backend Route & DB Migration\n- [ ] 2. Contracts schema & validation\n- [ ] 3. Frontend UI Component & Redux Integration\n- [ ] 4. E2E verification`,
                   )
                 }
                 className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 font-medium transition-colors"
@@ -148,7 +141,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
                 type="button"
                 onClick={() =>
                   insertTemplate(
-                    `### QA Verification Scope\n- [ ] Positive test cases executed\n- [ ] Edge cases & validation errors tested\n- [ ] Evidence screenshot attached`
+                    `### QA Verification Scope\n- [ ] Positive test cases executed\n- [ ] Edge cases & validation errors tested\n- [ ] Evidence screenshot attached`,
                   )
                 }
                 className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-medium transition-colors"
@@ -160,7 +153,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
               type="button"
               onClick={() =>
                 insertTemplate(
-                  `![Screenshot / Image Attachment](https://example.com/screenshot.png)`
+                  `![Screenshot / Image Attachment](https://example.com/screenshot.png)`,
                 )
               }
               className="text-[10px] px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium transition-colors flex items-center gap-1"
@@ -170,11 +163,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
             </button>
             <button
               type="button"
-              onClick={() =>
-                insertTemplate(
-                  `https://cdn.example.com/demo.mp4`
-                )
-              }
+              onClick={() => insertTemplate(`https://cdn.example.com/demo.mp4`)}
               className="text-[10px] px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium transition-colors flex items-center gap-1"
             >
               <VideoIcon className="h-3 w-3 text-red-500" />
@@ -201,7 +190,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
               className="h-7 text-xs px-2.5"
             >
               <X className="h-3.5 w-3.5 mr-1" />
-              Cancel
+              Batal
             </Button>
             <Button
               size="sm"
@@ -211,7 +200,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
               className="h-7 text-xs px-2.5"
             >
               <Check className="h-3.5 w-3.5 mr-1" />
-              Save Description
+              Simpan Deskripsi
             </Button>
           </div>
         </div>
@@ -221,7 +210,7 @@ export const SubtaskDescriptionEditor: React.FC<SubtaskDescriptionEditorProps> =
         </div>
       ) : (
         <p className="text-xs italic text-stone-400 dark:text-stone-500 py-1">
-          No description provided for this subtask yet.
+          Belum ada deskripsi untuk Subtask ini.
         </p>
       )}
     </div>

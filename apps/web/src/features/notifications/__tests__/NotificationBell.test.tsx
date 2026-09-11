@@ -17,7 +17,7 @@ const sampleNotification: InAppNotification = {
   id: 'notif-1',
   userId: 'u1',
   workspaceId: 'ws-1',
-  title: 'Task Assigned',
+  title: 'Task Ditugaskan',
   message: 'You have been assigned to task A',
   type: 'assignment',
   isRead: false,
@@ -46,7 +46,7 @@ describe('NotificationBell Feature Component', () => {
       </Provider>,
     );
 
-    const bellButton = screen.getByRole('button', { name: 'Notifications' });
+    const bellButton = screen.getByRole('button', { name: 'Notifikasi' });
     expect(bellButton).toBeInTheDocument();
   });
 
@@ -118,11 +118,11 @@ describe('NotificationBell Feature Component', () => {
       </Provider>,
     );
 
-    expect(screen.queryByText('Team Notifications')).not.toBeInTheDocument();
+    expect(screen.queryByText('Notifikasi Tim')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+    await user.click(screen.getByRole('button', { name: 'Notifikasi' }));
 
-    expect(screen.getByText('Team Notifications')).toBeInTheDocument();
-    expect(screen.getByText('Task Assigned')).toBeInTheDocument();
+    expect(screen.getByText('Notifikasi Tim')).toBeInTheDocument();
+    expect(screen.getByText('Task Ditugaskan')).toBeInTheDocument();
   });
 });

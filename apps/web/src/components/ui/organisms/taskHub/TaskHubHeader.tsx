@@ -27,7 +27,7 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
             Task Hub
           </h1>
           <p className="text-sm font-medium text-stone-500 mt-1 dark:text-stone-400">
-            QA-native delivery workspace for {workspaceName}.
+            Workspace delivery berbasis QA untuk {workspaceName}.
           </p>
         </div>
 
@@ -39,7 +39,7 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
               onClick={onCreateTask}
               leftIcon={<Plus className="h-4 w-4" />}
             >
-              Create Task
+              Buat Task
             </Button>
           )}
 
@@ -50,7 +50,7 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
             isLoading={isRefreshing}
             leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
           >
-            Refresh
+            Muat Ulang
           </Button>
         </div>
       </div>
@@ -62,7 +62,7 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
           onClick={onOpenMobileFolders}
           leftIcon={<Folder className="h-4 w-4 text-amber-500" />}
         >
-          Browse Folders
+          Lihat Folder
         </Button>
       </div>
     </div>

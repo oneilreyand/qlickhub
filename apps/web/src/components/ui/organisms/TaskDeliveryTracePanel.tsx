@@ -42,11 +42,11 @@ function structuralBadge(status: DeliveryTraceStructuralStatus) {
     DeliveryTraceStructuralStatus,
     { label: string; variant: BadgeProps['variant'] }
   > = {
-    complete: { label: 'Structure complete', variant: 'passed' },
-    missing_implementation: { label: 'Missing implementation', variant: 'blocked' },
-    missing_tests: { label: 'Missing Test Cases', variant: 'review' },
+    complete: { label: 'Struktur lengkap', variant: 'passed' },
+    missing_implementation: { label: 'Implementasi belum ada', variant: 'blocked' },
+    missing_tests: { label: 'Test Case Belum Ada', variant: 'review' },
     missing_implementation_and_tests: {
-      label: 'Implementation and tests missing',
+      label: 'Implementasi dan pengujian belum ada',
       variant: 'blocked',
     },
   };
@@ -73,10 +73,10 @@ function executionBadge(status: DeliveryTraceExecutionStatus) {
     DeliveryTraceExecutionStatus,
     { label: string; variant: BadgeProps['variant'] }
   > = {
-    not_run: { label: 'No test results yet', variant: 'draft' },
-    passing: { label: 'Tests passing', variant: 'passed' },
-    failing: { label: 'Tests failing', variant: 'blocked' },
-    incomplete: { label: 'Execution incomplete', variant: 'review' },
+    not_run: { label: 'Belum ada hasil pengujian', variant: 'draft' },
+    passing: { label: 'Pengujian lulus', variant: 'passed' },
+    failing: { label: 'Pengujian gagal', variant: 'blocked' },
+    incomplete: { label: 'Eksekusi belum lengkap', variant: 'review' },
   };
   const item = config[status];
   return (
@@ -117,7 +117,9 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
       const status = (loadError as { status?: number }).status;
       setTrace(null);
       setPermissionDenied(status === 403);
-      setError(loadError instanceof Error ? loadError.message : 'Unable to load Delivery Trace.');
+      setError(
+        loadError instanceof Error ? loadError.message : 'Jejak Delivery tidak dapat dimuat.',
+      );
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
     }
@@ -140,7 +142,7 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
 
   if (isLoading && !trace) {
     return (
-      <div className="space-y-4" aria-label="Loading detailed Delivery Trace">
+      <div className="space-y-4" aria-label="Memuat detail Jejak Delivery">
         <Skeleton className="h-20 w-full rounded-2xl" />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((item) => (
@@ -156,10 +158,10 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
     return (
       <Alert
         tone="error"
-        title="Delivery Trace access restricted"
+        title="Akses Jejak Delivery dibatasi"
         icon={<LockKeyhole className="h-4 w-4" />}
       >
-        You do not have permission to read this Feature&apos;s traceability data.
+        Anda tidak memiliki izin untuk membaca data keterlacakan Feature ini.
       </Alert>
     );
   }
@@ -169,10 +171,10 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
       <div className="space-y-3">
         <Alert
           tone="error"
-          title="Delivery Trace unavailable"
+          title="Jejak Delivery tidak tersedia"
           icon={<AlertTriangle className="h-4 w-4" />}
         >
-          {error || 'The Delivery Trace response could not be loaded.'}
+          {error || 'Respons Jejak Delivery tidak dapat dimuat.'}
         </Alert>
         <Button
           variant="outline"
@@ -181,9 +183,9 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
           disabled={isLoading}
           isLoading={isLoading}
           leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-          aria-label="Retry loading Delivery Trace"
+          aria-label="Coba lagi memuat Jejak Delivery"
         >
-          Retry
+          Coba Lagi
         </Button>
       </div>
     );
@@ -200,15 +202,15 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
             disabled={isLoading}
             isLoading={isLoading}
             leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-            aria-label="Refresh Delivery Trace"
+            aria-label="Muat ulang Jejak Delivery"
           >
-            Refresh
+            Muat Ulang
           </Button>
         </div>
         <EmptyState
           icon={<CircleOff className="h-5 w-5" />}
-          title="No requirements linked"
-          description="Link persisted Requirements to this Feature or one of its subtasks before structural coverage can be evaluated."
+          title="Belum ada Requirement tertaut"
+          description="Tautkan Requirement tersimpan ke Feature atau salah satu Subtask sebelum cakupan struktur dapat dinilai."
         />
       </div>
     );
@@ -228,11 +230,11 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
               id="delivery-trace-heading"
               className="text-sm font-bold text-stone-900 dark:text-stone-100"
             >
-              Feature Delivery Trace
+              Jejak Delivery Feature
             </h3>
           </div>
           <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-            Persisted Requirement → implementing subtask → Test Case relationships for{' '}
+            Relasi Requirement tersimpan → subtask implementasi → Test Case untuk{' '}
             {trace.featureTask.title}.
           </p>
         </div>
@@ -245,24 +247,24 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
             disabled={isLoading}
             isLoading={isLoading}
             leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-            aria-label="Refresh Delivery Trace"
+            aria-label="Muat ulang Jejak Delivery"
           >
-            Refresh
+            Muat Ulang
           </Button>
         </div>
       </div>
 
       {!trace.acceptanceCriterionCoverageAvailable && (
-        <Alert tone="info" title="Criterion-level coverage pending">
-          Existing Test Cases are linked at Requirement level. Acceptance Criteria are shown as
-          context and are not silently counted as covered.
+        <Alert tone="info" title="Cakupan tingkat kriteria masih menunggu">
+          Test Case yang ada tertaut pada tingkat Requirement. Acceptance Criteria ditampilkan
+          sebagai konteks dan tidak otomatis dihitung sebagai cakupan.
         </Alert>
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="p-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-            Structural coverage
+            Cakupan struktur
           </p>
           <p className="mt-1 text-xl font-black text-stone-900 dark:text-stone-100">
             {trace.structural.coveragePercent ?? '—'}
@@ -270,35 +272,37 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
           </p>
           <p className="text-[11px] text-stone-500">
             {trace.structural.fullyCoveredRequirements}/{trace.structural.totalRequirements}{' '}
-            Requirements complete
+            Requirement selesai
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-            Implementation links
+            Tautan implementasi
           </p>
           <p className="mt-1 text-xl font-black text-stone-900 dark:text-stone-100">
             {trace.structural.linkedImplementingSubtasks}/{trace.structural.totalFeatureSubtasks}
           </p>
-          <p className="text-[11px] text-stone-500">Feature subtasks linked to Requirements</p>
+          <p className="text-[11px] text-stone-500">Subtask Feature yang tertaut ke Requirement</p>
         </Card>
         <Card className="p-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-            Executed tests
+            Pengujian yang dijalankan
           </p>
           <p className="mt-1 text-xl font-black text-stone-900 dark:text-stone-100">
             {trace.execution.executedTestCases}/{trace.execution.totalTestCases}
           </p>
-          <p className="text-[11px] text-stone-500">Passed or failed results only</p>
+          <p className="text-[11px] text-stone-500">Hanya hasil lulus atau gagal</p>
         </Card>
         <Card className="p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Pass rate</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+            Tingkat Kelulusan
+          </p>
           <p className="mt-1 text-xl font-black text-stone-900 dark:text-stone-100">
             {trace.execution.passRatePercent ?? '—'}
             {trace.execution.passRatePercent !== null ? '%' : ''}
           </p>
           <p className="text-[11px] text-stone-500">
-            {trace.execution.failedTestCases} failed · {trace.execution.pendingTestCases} pending
+            {trace.execution.failedTestCases} gagal · {trace.execution.pendingTestCases} menunggu
           </p>
         </Card>
       </div>
@@ -306,7 +310,7 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
       {trace.unlinkedSubtasks.length > 0 && (
         <Alert
           tone="warning"
-          title={`${trace.unlinkedSubtasks.length} subtask(s) missing Requirement links`}
+          title={`${trace.unlinkedSubtasks.length} subtask belum memiliki tautan Requirement`}
           icon={<Link2Off className="h-4 w-4" />}
         >
           {trace.unlinkedSubtasks.map((subtask) => subtask.title).join(', ')}
@@ -346,7 +350,7 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
                 </p>
                 {node.acceptanceCriteria.length === 0 ? (
                   <p className="mt-2 text-xs italic text-stone-500">
-                    No Acceptance Criteria defined.
+                    Belum ada Acceptance Criteria.
                   </p>
                 ) : (
                   <ul className="mt-2 space-y-2">
@@ -367,11 +371,11 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
 
               <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-3 dark:border-stone-800 dark:bg-stone-950/40">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                  Implementing subtasks ({node.totalImplementingSubtasks})
+                  Subtask implementasi ({node.totalImplementingSubtasks})
                 </p>
                 {node.implementingSubtasks.length === 0 ? (
                   <p className="mt-2 text-xs italic text-stone-500">
-                    No implementing subtask linked.
+                    Belum ada subtask implementasi yang tertaut.
                   </p>
                 ) : (
                   <ul className="mt-2 space-y-2">
@@ -397,7 +401,7 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
                 </p>
                 {node.testCases.length === 0 ? (
                   <p className="mt-2 text-xs italic text-stone-500">
-                    No Requirement-level Test Case linked.
+                    Belum ada Test Case tingkat Requirement yang tertaut.
                   </p>
                 ) : (
                   <ul className="mt-2 space-y-2">

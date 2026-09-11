@@ -116,11 +116,11 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   };
 
   return (
-    <nav className="space-y-2 w-full min-w-0" aria-label="Folder hierarchy tree">
+    <nav className="space-y-2 w-full min-w-0" aria-label="Hierarki folder">
       {/* Header Controls */}
       <div className="flex items-center justify-between border-b border-stone-200 pb-2.5 dark:border-stone-800">
         <span className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-          Folders
+          Folder
         </span>
         {canManageFolders && (
           <Button
@@ -130,15 +130,15 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
             className="h-7 text-[11px] px-2 text-stone-900 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800 shrink-0"
             leftIcon={<Plus className="h-3.5 w-3.5" />}
           >
-            New Folder
+            Folder Baru
           </Button>
         )}
       </div>
 
       {/* Loading Skeleton */}
       {isLoading ? (
-        <div className="space-y-2 py-1" role="status" aria-label="Loading folders">
-          <span className="sr-only">Loading folders</span>
+        <div className="space-y-2 py-1" role="status" aria-label="Memuat folder">
+          <span className="sr-only">Memuat folder</span>
           <Skeleton variant="rectangular" className="h-9 w-full rounded-xl" />
           <Skeleton variant="rectangular" className="h-9 w-full rounded-xl" />
           <Skeleton variant="rectangular" className="h-9 w-full rounded-xl" />
@@ -148,7 +148,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
         <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs dark:bg-rose-950/50 dark:border-rose-900/60 dark:text-rose-300 space-y-2">
           <div className="flex items-center gap-1.5 font-semibold">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
-            <span>Failed to load folders</span>
+            <span>Folder gagal dimuat</span>
           </div>
           <p className="text-[11px] text-rose-600 dark:text-rose-400">{error}</p>
           {onRetry && (
@@ -159,7 +159,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
               className="h-7 text-[11px] w-full border-rose-200 text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:text-rose-300"
               leftIcon={<RefreshCw className="h-3 w-3" />}
             >
-              Retry
+              Coba Lagi
             </Button>
           )}
         </div>
@@ -176,10 +176,14 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
             }`}
           >
             <span className="flex min-w-0 items-center gap-2 truncate">
-              <FolderOpen className={`h-4 w-4 shrink-0 ${selectedFolderId === null ? 'text-[#141413] dark:text-[#141413]' : 'text-stone-500'}`} />
-              <span className="truncate">All Tasks</span>
+              <FolderOpen
+                className={`h-4 w-4 shrink-0 ${selectedFolderId === null ? 'text-[#141413] dark:text-[#141413]' : 'text-stone-500'}`}
+              />
+              <span className="truncate">Semua Task</span>
             </span>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null ? 'bg-[#141413] text-[#B1E743] dark:bg-[#141413] dark:text-[#B1E743]' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}>
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null ? 'bg-[#141413] text-[#B1E743] dark:bg-[#141413] dark:text-[#B1E743]' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
+            >
               {totalTasks}
             </span>
           </button>
@@ -189,7 +193,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
             <div className="py-6 text-center space-y-2 border border-dashed border-stone-200 rounded-xl p-4 dark:border-stone-800">
               <FolderPlus className="h-6 w-6 text-stone-300 mx-auto dark:text-stone-600" />
               <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
-                No folders created yet.
+                Belum ada folder.
               </p>
               {canManageFolders && (
                 <Button
@@ -198,7 +202,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                   variant="outline"
                   className="text-xs"
                 >
-                  Add Initiative
+                  Tambahkan Inisiatif
                 </Button>
               )}
             </div>
@@ -223,7 +227,9 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                             : 'text-stone-700 dark:text-stone-300'
                         }`}
                       >
-                        <Folder className={`h-4 w-4 shrink-0 ${isSelected ? 'text-[#141413] dark:text-[#141413]' : 'text-amber-500'}`} />
+                        <Folder
+                          className={`h-4 w-4 shrink-0 ${isSelected ? 'text-[#141413] dark:text-[#141413]' : 'text-amber-500'}`}
+                        />
                         <span className="truncate block min-w-0 flex-1">{folder.name}</span>
                       </button>
 
@@ -233,7 +239,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                             {/* Add Subfolder Action */}
                             <IconButton
                               onClick={() => handleOpenCreateModal(folder.id)}
-                              label={`Add subfolder to ${folder.name}`}
+                              label={`Tambahkan subfolder ke ${folder.name}`}
                               size="sm"
                               variant="ghost"
                               className="h-6 w-6 p-0.5 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 shrink-0"
@@ -244,7 +250,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                             {/* Rename Action */}
                             <IconButton
                               onClick={() => handleOpenRenameModal(folder)}
-                              label={`Rename ${folder.name}`}
+                              label={`Ganti nama ${folder.name}`}
                               size="sm"
                               variant="ghost"
                               className="h-6 w-6 p-0.5 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 shrink-0"
@@ -255,7 +261,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                             {/* Archive Action */}
                             <IconButton
                               onClick={() => handleOpenArchiveModal(folder)}
-                              label={`Archive ${folder.name}`}
+                              label={`Arsipkan ${folder.name}`}
                               size="sm"
                               variant="ghost"
                               className="h-6 w-6 p-0.5 text-stone-400 hover:text-rose-600 dark:hover:text-rose-400 shrink-0"
@@ -268,7 +274,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                         {hasChildren && (
                           <IconButton
                             onClick={() => toggleExpand(folder.id)}
-                            label={`${isExpanded ? 'Collapse' : 'Expand'} ${folder.name}`}
+                            label={`${isExpanded ? 'Tutup' : 'Buka'} ${folder.name}`}
                             aria-expanded={isExpanded}
                             aria-controls={`folder-children-${folder.id}`}
                             size="sm"
@@ -307,14 +313,16 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                                     : 'text-stone-600 dark:text-stone-400'
                                 }`}
                               >
-                                <span className="truncate block min-w-0 flex-1">{subfolder.name}</span>
+                                <span className="truncate block min-w-0 flex-1">
+                                  {subfolder.name}
+                                </span>
                               </button>
 
                               {canManageFolders && (
                                 <div className="opacity-0 group-hover/sub:opacity-100 flex items-center transition-opacity shrink-0">
                                   <IconButton
                                     onClick={() => handleOpenRenameModal(subfolder)}
-                                    label={`Rename ${subfolder.name}`}
+                                    label={`Ganti nama ${subfolder.name}`}
                                     size="sm"
                                     variant="ghost"
                                     className="h-5 w-5 p-0.5 text-stone-400 hover:text-stone-900 shrink-0"
@@ -323,7 +331,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                                   </IconButton>
                                   <IconButton
                                     onClick={() => handleOpenArchiveModal(subfolder)}
-                                    label={`Archive ${subfolder.name}`}
+                                    label={`Arsipkan ${subfolder.name}`}
                                     size="sm"
                                     variant="ghost"
                                     className="h-5 w-5 p-0.5 text-stone-400 hover:text-rose-600 shrink-0"
@@ -349,23 +357,23 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
       <Modal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title={parentFolderForNew ? 'Create New Subfolder (Level 2)' : 'Create New Folder (Level 1)'}
+        title={parentFolderForNew ? 'Buat Subfolder Baru (Level 2)' : 'Buat Folder Baru (Level 1)'}
         description={
           parentFolderForNew
-            ? 'Add a Feature or Workstream subfolder.'
-            : 'Add an Initiative or Release top-level folder.'
+            ? 'Tambahkan subfolder Feature atau Workstream.'
+            : 'Tambahkan folder utama untuk Inisiatif atau Rilis.'
         }
-        primaryActionLabel="Create Folder"
-        secondaryActionLabel="Cancel"
+        primaryActionLabel="Buat Folder"
+        secondaryActionLabel="Batal"
         onPrimaryAction={submitCreate}
         isPrimaryLoading={isSubmitting}
       >
         <Input
-          label="Folder Name"
+          label="Nama Folder"
           type="text"
           value={folderNameInput}
           onChange={(e) => setFolderNameInput(e.target.value)}
-          placeholder={parentFolderForNew ? 'e.g. Workstream Checkout' : 'e.g. Release 2026.1'}
+          placeholder={parentFolderForNew ? 'Contoh: Workstream Checkout' : 'Contoh: Rilis 2026.1'}
           required
           autoFocus
         />
@@ -375,14 +383,14 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
       <Modal
         isOpen={renameModalOpen}
         onClose={() => setRenameModalOpen(false)}
-        title={`Rename "${targetFolder?.name || 'Folder'}"`}
-        primaryActionLabel="Save Name"
-        secondaryActionLabel="Cancel"
+        title={`Ganti nama "${targetFolder?.name || 'Folder'}"`}
+        primaryActionLabel="Simpan Nama"
+        secondaryActionLabel="Batal"
         onPrimaryAction={submitRename}
         isPrimaryLoading={isSubmitting}
       >
         <Input
-          label="New Folder Name"
+          label="Nama Folder Baru"
           type="text"
           value={folderNameInput}
           onChange={(e) => setFolderNameInput(e.target.value)}
@@ -395,15 +403,15 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
       <Modal
         isOpen={archiveModalOpen}
         onClose={() => setArchiveModalOpen(false)}
-        title={`Archive "${targetFolder?.name || 'Folder'}"?`}
-        description="Archiving this folder will hide it from the active workspace tree along with any child subfolders."
-        primaryActionLabel="Archive Folder"
-        secondaryActionLabel="Cancel"
+        title={`Arsipkan "${targetFolder?.name || 'Folder'}"?`}
+        description="Folder dan seluruh subfolder di dalamnya akan disembunyikan dari workspace aktif."
+        primaryActionLabel="Arsipkan Folder"
+        secondaryActionLabel="Batal"
         onPrimaryAction={submitArchive}
         isPrimaryLoading={isSubmitting}
       >
         <p className="text-xs text-stone-500 dark:text-stone-400">
-          This action will archive the folder. You can unarchive it later if needed.
+          Folder dapat dipulihkan dari arsip jika dibutuhkan nanti.
         </p>
       </Modal>
     </nav>

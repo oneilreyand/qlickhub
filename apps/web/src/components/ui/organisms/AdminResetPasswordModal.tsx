@@ -24,24 +24,24 @@ export const AdminResetPasswordModal: React.FC<AdminResetPasswordModalProps> = (
     <Modal
       isOpen={Boolean(targetUser)}
       onClose={onClose}
-      title="Reset Member Password"
-      description={`Set a new temporary or permanent password for ${targetUser?.name} (${targetUser?.email}).`}
-      primaryActionLabel="Reset Password"
-      secondaryActionLabel="Cancel"
+      title="Atur Ulang Kata Sandi Anggota"
+      description={`Tetapkan kata sandi sementara atau permanen untuk ${targetUser?.name} (${targetUser?.email}).`}
+      primaryActionLabel="Atur Ulang Kata Sandi"
+      secondaryActionLabel="Batal"
       onPrimaryAction={onSubmit}
       isPrimaryLoading={isResetting}
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-            New Password for Member
+            Kata Sandi Baru untuk Anggota
           </label>
           <Input
             type="password"
             value={newPassword}
             onChange={(e) => onPasswordChange(e.target.value)}
             required
-            placeholder="Minimum 6 characters"
+            placeholder="Minimal 6 karakter"
             leftIcon={<Key className="h-4 w-4 text-stone-400" />}
           />
         </div>

@@ -23,7 +23,7 @@ const brief: ProductBrief = {
   document: {
     id: '10000000-0000-4000-8000-000000000004',
     workspaceId: task.workspaceId,
-    title: 'Checkout Product Brief',
+    title: 'Checkout Ringkasan Produk',
     docType: 'product_brief',
     status: 'draft',
     ownerId: task.reporterId,
@@ -37,7 +37,7 @@ const brief: ProductBrief = {
     workspaceId: task.workspaceId,
     documentId: '10000000-0000-4000-8000-000000000004',
     version: 1,
-    title: 'Checkout Product Brief',
+    title: 'Checkout Ringkasan Produk',
     contentMarkdown: '[Primary external PRD](https://docs.example.com/checkout)',
     inScope: [
       {
@@ -75,7 +75,7 @@ describe('TaskDetailProductBriefTab', () => {
     });
   });
 
-  test('keeps Feature scope and external references separate from Acceptance Criteria', async () => {
+  test('keeps Feature scope and external references separate from Kriteria Penerimaan', async () => {
     render(
       <TaskDetailProductBriefTab
         task={task}
@@ -87,10 +87,10 @@ describe('TaskDetailProductBriefTab', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Product Brief' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ringkasan Produk' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Card checkout')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Cryptocurrency')).toBeInTheDocument();
-    expect(screen.getByLabelText('Product context and external references')).toHaveValue(
+    expect(screen.getByLabelText('Konteks produk dan referensi eksternal')).toHaveValue(
       brief.currentVersion.contentMarkdown,
     );
     expect(screen.queryByDisplayValue(/Legacy criterion/)).not.toBeInTheDocument();
@@ -98,11 +98,11 @@ describe('TaskDetailProductBriefTab', () => {
     fireEvent.change(screen.getByDisplayValue('Card checkout'), {
       target: { value: 'Card and bank-transfer checkout' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save new version' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan Versi Baru' }));
 
     await waitFor(() => {
       expect(upsertProductBriefMock).toHaveBeenCalledWith(task.workspaceId, task.id, {
-        title: 'Checkout Product Brief',
+        title: 'Checkout Ringkasan Produk',
         contentMarkdown: brief.currentVersion.contentMarkdown,
         inScope: [
           {
@@ -119,7 +119,7 @@ describe('TaskDetailProductBriefTab', () => {
     });
   });
 
-  test('renders Product Brief read-only for QA', () => {
+  test('renders Ringkasan Produk read-only for QA', () => {
     render(
       <TaskDetailProductBriefTab
         task={task}
@@ -131,8 +131,8 @@ describe('TaskDetailProductBriefTab', () => {
       />,
     );
 
-    expect(screen.getByText('Read-only Product Brief')).toBeInTheDocument();
+    expect(screen.getByText('Ringkasan Produk hanya dapat dilihat')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Card checkout')).toBeDisabled();
-    expect(screen.queryByRole('button', { name: 'Save new version' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Simpan Versi Baru' })).not.toBeInTheDocument();
   });
 });

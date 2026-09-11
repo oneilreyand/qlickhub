@@ -155,8 +155,8 @@ describe('SubtaskList Organism Component', () => {
       />,
     );
 
-    expect(screen.getByText(/Direct Subtasks \(3\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/1\/3 Done/i)).toBeInTheDocument();
+    expect(screen.getByText(/Subtask Langsung \(3\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/1\/3 Selesai/i)).toBeInTheDocument();
     expect(screen.getByText('Frontend')).toBeInTheDocument();
     expect(screen.getByText('Backend')).toBeInTheDocument();
     expect(screen.getAllByText('QA').length).toBeGreaterThan(0);
@@ -192,12 +192,14 @@ describe('SubtaskList Organism Component', () => {
       />,
     );
 
-    expect(screen.getByText(/No subtasks created under this task/i)).toBeInTheDocument();
-    const img = screen.getByAltText('No subtasks created');
+    expect(
+      screen.getByText(/Belum ada Subtask yang dibuat di bawah Task ini/i),
+    ).toBeInTheDocument();
+    const img = screen.getByAltText('Belum ada Subtask');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', EMPTY_SUBTASKS_ILLUSTRATION_URL);
 
-    const planBtn = screen.getByRole('button', { name: /Plan First Subtask/i });
+    const planBtn = screen.getByRole('button', { name: /Rencanakan Subtask Pertama/i });
     expect(planBtn).toBeInTheDocument();
 
     fireEvent.click(planBtn);
@@ -207,7 +209,7 @@ describe('SubtaskList Organism Component', () => {
   it('falls back to local illustration and then fallback icon when image loading fails', () => {
     renderWithStore(<SubtaskList subtasks={[]} workspaceId="ws-1" />);
 
-    const img = screen.getByAltText('No subtasks created');
+    const img = screen.getByAltText('Belum ada Subtask');
     expect(img).toHaveAttribute('src', EMPTY_SUBTASKS_ILLUSTRATION_URL);
 
     // Trigger first error -> should fall back to local illustration (Option A)
@@ -216,7 +218,7 @@ describe('SubtaskList Organism Component', () => {
 
     // Trigger second error -> should fall back to icon (Option C)
     fireEvent.error(img);
-    expect(screen.queryByAltText('No subtasks created')).not.toBeInTheDocument();
+    expect(screen.queryByAltText('Belum ada Subtask')).not.toBeInTheDocument();
   });
 
   it('expands accordion item when clicking subtask row and reveals inner workspace', async () => {
@@ -236,9 +238,9 @@ describe('SubtaskList Organism Component', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
 
     // Inner tabs should now be rendered (Description, Discussion, Details)
-    expect(await screen.findByRole('button', { name: /^description$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^discussion/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^details$/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^Deskripsi$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Diskusi/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Detail$/i })).toBeInTheDocument();
   });
 
   it('displays real-time unread discussion badge on subtask row when message arrives from another member', async () => {
@@ -298,27 +300,23 @@ describe('SubtaskList Organism Component', () => {
     );
 
     fireEvent.click(screen.getByText('Build Subtask Accordion UI').closest('button')!);
-    fireEvent.click(await screen.findByRole('button', { name: /^details$/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Subtask' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Detail$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hapus Subtask' }));
 
-    const confirmation = await screen.findByRole('dialog', { name: 'Delete subtask?' });
-    expect(
-      within(confirmation).getByText(
-        /Requirement\/document links and removable attachments must be cleared first/i,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      within(confirmation).getByText(
-        /immutable QA evidence, Bugs, QA Sign-offs, and Release Decisions permanently block deletion/i,
-      ),
-    ).toBeInTheDocument();
-    fireEvent.click(within(confirmation).getByRole('button', { name: 'Delete Subtask' }));
+    const confirmation = await screen.findByRole('dialog', { name: 'Hapus Subtask?' });
+    expect(confirmation).toHaveTextContent(
+      /Tautan Requirement\/dokumen dan lampiran yang dapat dihapus harus dibersihkan terlebih dahulu/i,
+    );
+    expect(confirmation).toHaveTextContent(
+      /evidence QA, Bug, QA Sign-off, dan Keputusan Rilis yang tidak dapat diubah akan memblokir penghapusan/i,
+    );
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Hapus Subtask' }));
 
     await waitFor(() => {
       expect(taskService.deleteTask).toHaveBeenCalledWith('ws-1', 'sub-fe-1');
       expect(onSubtaskDeleted).toHaveBeenCalledWith('sub-fe-1');
     });
-    expect(screen.queryByRole('dialog', { name: 'Delete subtask?' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Hapus Subtask?' })).not.toBeInTheDocument();
   });
 
   it('hides Subtask deletion from non-planners and keeps confirmation open on API failure', async () => {
@@ -338,8 +336,8 @@ describe('SubtaskList Organism Component', () => {
       />,
     );
     fireEvent.click(screen.getByText('Build Subtask Accordion UI').closest('button')!);
-    fireEvent.click(await screen.findByRole('button', { name: /^details$/i }));
-    expect(screen.queryByRole('button', { name: 'Delete Subtask' })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: /^detail$/i }));
+    expect(screen.queryByRole('button', { name: 'Hapus Subtask' })).not.toBeInTheDocument();
     firstRender.unmount();
 
     vi.mocked(taskService.deleteTask).mockRejectedValueOnce(
@@ -356,13 +354,13 @@ describe('SubtaskList Organism Component', () => {
       />,
     );
     fireEvent.click(screen.getByText('Build Subtask Accordion UI').closest('button')!);
-    fireEvent.click(await screen.findByRole('button', { name: /^details$/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Subtask' }));
-    const confirmation = await screen.findByRole('dialog', { name: 'Delete subtask?' });
-    fireEvent.click(within(confirmation).getByRole('button', { name: 'Delete Subtask' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^detail$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hapus Subtask' }));
+    const confirmation = await screen.findByRole('dialog', { name: 'Hapus Subtask?' });
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Hapus Subtask' }));
 
     await waitFor(() => expect(taskService.deleteTask).toHaveBeenCalledWith('ws-1', 'sub-fe-1'));
     expect(onSubtaskDeleted).not.toHaveBeenCalled();
-    expect(screen.getByRole('dialog', { name: 'Delete subtask?' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Hapus Subtask?' })).toBeInTheDocument();
   });
 });

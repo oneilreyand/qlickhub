@@ -29,7 +29,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
   const [lightboxAlt, setLightboxAlt] = useState<string>('');
 
   if (!content || !content.trim()) {
-    return <span className="text-stone-400 italic">No description provided.</span>;
+    return <span className="text-stone-400 italic">Belum ada deskripsi.</span>;
   }
 
   const handleImageClick = (src: string, alt: string) => {
@@ -362,7 +362,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
       let bgClass =
         'bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 text-sky-900 dark:text-sky-200';
       let icon = <Info className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />;
-      let label = 'Note';
+      let label = 'Catatan';
 
       if (type === 'TIP' || type === 'HINT') {
         bgClass =
@@ -370,28 +370,28 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
         icon = (
           <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
         );
-        label = 'Tip';
+        label = 'Tips';
       } else if (type === 'IMPORTANT') {
         bgClass =
           'bg-[#B1E743]/10 dark:bg-[#B1E743]/10 border-[#B1E743]/40 dark:border-[#B1E743]/40 text-[#141413] dark:text-[#B1E743]';
         icon = (
           <CheckCircle2 className="h-4 w-4 text-[#141413] dark:text-[#B1E743] shrink-0 mt-0.5" />
         );
-        label = 'Important';
+        label = 'Penting';
       } else if (type === 'WARNING' || type === 'CAUTION') {
         bgClass =
           'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200';
         icon = (
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         );
-        label = 'Warning';
+        label = 'Peringatan';
       } else if (type === 'DANGER' || type === 'BUG') {
         bgClass =
           'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200';
         icon = (
           <AlertOctagon className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
         );
-        label = 'Caution';
+        label = 'Perhatian';
       }
 
       elements.push(
@@ -442,7 +442,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
           className="mt-4 mb-1.5 flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 border-b border-emerald-200 dark:border-emerald-900/50"
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
-          <span>Acceptance Criteria</span>
+          <span>Kriteria Penerimaan</span>
         </div>,
       );
       continue;
@@ -460,7 +460,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
           className="mt-4 mb-1.5 flex items-center gap-1.5 text-xs font-extrabold text-stone-900 dark:text-[#B1E743] uppercase tracking-wider pb-1 border-b border-stone-200 dark:border-stone-800"
         >
           <Target className="h-3.5 w-3.5" />
-          <span>Objective & Context</span>
+          <span>Tujuan & Konteks</span>
         </div>,
       );
       continue;
@@ -478,7 +478,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
           className="mt-4 mb-1.5 flex items-center gap-1.5 text-xs font-extrabold text-sky-700 dark:text-sky-400 uppercase tracking-wider pb-1 border-b border-sky-200 dark:border-sky-900/50"
         >
           <ClipboardCheck className="h-3.5 w-3.5" />
-          <span>Testing Checklist</span>
+          <span>Checklist Pengujian</span>
         </div>,
       );
       continue;
@@ -496,7 +496,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
           className="mt-4 mb-1.5 flex items-center gap-1.5 text-xs font-extrabold text-stone-900 dark:text-[#B1E743] uppercase tracking-wider pb-1 border-b border-stone-200 dark:border-stone-800"
         >
           <Code2 className="h-3.5 w-3.5" />
-          <span>Technical Deliverables & Specs</span>
+          <span>Hasil Kerja & Spesifikasi Teknis</span>
         </div>,
       );
       continue;

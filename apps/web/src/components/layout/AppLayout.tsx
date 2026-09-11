@@ -66,7 +66,7 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
             <div className="absolute top-4 right-4 z-10">
               <IconButton
                 onClick={() => dispatch(setMobileSidebarOpen(false))}
-                label="Close navigation"
+                label="Tutup navigasi"
                 size="sm"
                 variant="ghost"
                 className="bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300"

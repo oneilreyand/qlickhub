@@ -30,7 +30,7 @@ export const DeliveryTraceSignal: React.FC<DeliveryTraceSignalProps> = ({
     return (
       <span
         className={`inline-flex items-center gap-2 ${className}`}
-        aria-label="Loading delivery trace"
+        aria-label="Memuat jejak delivery"
       >
         <Skeleton className="h-5 w-20 rounded-full" />
         <Skeleton className="h-5 w-16 rounded-full" />
@@ -46,7 +46,7 @@ export const DeliveryTraceSignal: React.FC<DeliveryTraceSignalProps> = ({
         icon={<LockKeyhole className="h-3 w-3" />}
         className={className}
       >
-        Trace restricted
+        Jejak dibatasi
       </Badge>
     );
   }
@@ -59,7 +59,7 @@ export const DeliveryTraceSignal: React.FC<DeliveryTraceSignalProps> = ({
         icon={<AlertTriangle className="h-3 w-3" />}
         className={className}
       >
-        Trace unavailable
+        Jejak tidak tersedia
       </Badge>
     );
   }
@@ -72,7 +72,7 @@ export const DeliveryTraceSignal: React.FC<DeliveryTraceSignalProps> = ({
         icon={<CircleOff className="h-3 w-3" />}
         className={className}
       >
-        No requirements
+        Belum ada Requirement
       </Badge>
     );
   }
@@ -84,7 +84,7 @@ export const DeliveryTraceSignal: React.FC<DeliveryTraceSignalProps> = ({
   return (
     <span
       className={`inline-flex flex-wrap items-center gap-1.5 ${className}`}
-      aria-label={`Delivery trace: ${trace.structural.fullyCoveredRequirements} of ${trace.structural.totalRequirements} requirements structurally covered`}
+      aria-label={`Jejak delivery: ${trace.structural.fullyCoveredRequirements} dari ${trace.structural.totalRequirements} Requirement tercakup secara struktural`}
     >
       <Badge
         variant={
@@ -99,16 +99,17 @@ export const DeliveryTraceSignal: React.FC<DeliveryTraceSignalProps> = ({
           structuralComplete ? <CheckCircle2 className="h-3 w-3" /> : <Route className="h-3 w-3" />
         }
       >
-        Trace {trace.structural.fullyCoveredRequirements}/{trace.structural.totalRequirements} reqs
+        Cakupan {trace.structural.fullyCoveredRequirements}/{trace.structural.totalRequirements}{' '}
+        Requirement
       </Badge>
 
       {execution.failedTestCases > 0 ? (
         <Badge variant="blocked" size="sm" icon={<AlertTriangle className="h-3 w-3" />}>
-          Tests {execution.failedTestCases} failed
+          {execution.failedTestCases} pengujian gagal
         </Badge>
       ) : execution.passRatePercent === null ? (
         <Badge variant="draft" size="sm" icon={<FlaskConical className="h-3 w-3" />}>
-          No test results yet
+          Belum ada hasil pengujian
         </Badge>
       ) : (
         <Badge
@@ -118,8 +119,8 @@ export const DeliveryTraceSignal: React.FC<DeliveryTraceSignalProps> = ({
           size="sm"
           icon={<FlaskConical className="h-3 w-3" />}
         >
-          Pass {execution.passRatePercent}%
-          {execution.pendingTestCases > 0 ? ` · ${execution.pendingTestCases} pending` : ''}
+          Lulus {execution.passRatePercent}%
+          {execution.pendingTestCases > 0 ? ` · ${execution.pendingTestCases} tertunda` : ''}
         </Badge>
       )}
     </span>

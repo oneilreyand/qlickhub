@@ -1,14 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  X,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  Maximize2,
-  Film,
-  ImageIcon,
-} from 'lucide-react';
+import { X, ZoomIn, ZoomOut, RotateCcw, Maximize2, Film, ImageIcon } from 'lucide-react';
 import { IconButton } from '../atoms/IconButton';
 
 export type MediaLightboxType = 'image' | 'video_direct' | 'video_embed';
@@ -25,7 +17,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
   isOpen,
   src,
   type = 'image',
-  alt = 'Media Preview',
+  alt = 'Pratinjau Media',
   onClose,
 }) => {
   const [scale, setScale] = useState(1);
@@ -67,7 +59,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
         }
       }
     },
-    [isOpen, onClose, type]
+    [isOpen, onClose, type],
   );
 
   useEffect(() => {
@@ -107,7 +99,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
             ) : (
               <ImageIcon className="h-3.5 w-3.5 text-stone-300" />
             )}
-            <span>{alt || (isVideo ? 'Video Player' : 'Image Preview')}</span>
+            <span>{alt || (isVideo ? 'Pemutar Video' : 'Pratinjau Gambar')}</span>
           </span>
           {!isVideo && (
             <span className="px-2 py-1 rounded-lg bg-stone-800 text-stone-400 text-[11px] font-mono border border-stone-700/50">
@@ -120,7 +112,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
           {!isVideo && (
             <>
               <IconButton
-                label="Zoom In"
+                label="Perbesar"
                 size="sm"
                 variant="ghost"
                 onClick={handleZoomIn}
@@ -129,7 +121,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
                 <ZoomIn className="h-4 w-4" />
               </IconButton>
               <IconButton
-                label="Zoom Out"
+                label="Perkecil"
                 size="sm"
                 variant="ghost"
                 onClick={handleZoomOut}
@@ -138,7 +130,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
                 <ZoomOut className="h-4 w-4" />
               </IconButton>
               <IconButton
-                label="Reset Zoom"
+                label="Atur Ulang Zoom"
                 size="sm"
                 variant="ghost"
                 onClick={handleResetZoom}
@@ -147,7 +139,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
                 <Maximize2 className="h-4 w-4" />
               </IconButton>
               <IconButton
-                label="Rotate"
+                label="Putar"
                 size="sm"
                 variant="ghost"
                 onClick={handleRotate}
@@ -160,7 +152,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
           )}
 
           <IconButton
-            label="Close preview (Esc)"
+            label="Tutup pratinjau (Esc)"
             size="sm"
             variant="ghost"
             onClick={onClose}
@@ -211,7 +203,11 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
 
       {/* Footer Instructions */}
       <div className="absolute bottom-4 text-center text-[11px] text-stone-400 select-none pointer-events-none">
-        Tekan <kbd className="px-1.5 py-0.5 rounded bg-stone-800 border border-stone-700 text-stone-300 font-mono">ESC</kbd> untuk menutup &bull; Video berjalan langsung di dalam aplikasi
+        Tekan{' '}
+        <kbd className="px-1.5 py-0.5 rounded bg-stone-800 border border-stone-700 text-stone-300 font-mono">
+          ESC
+        </kbd>{' '}
+        untuk menutup &bull; Video berjalan langsung di dalam aplikasi
       </div>
     </div>
   );

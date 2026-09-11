@@ -21,7 +21,7 @@ describe('scheduleHealth Engine', () => {
       id: 'st-1',
       workspaceId: 'ws-1',
       parentTaskId: 'p-1',
-      title: 'Completed Task',
+      title: 'Selesai Task',
       status: 'done',
       priority: 'medium',
       reporterId: 'u-1',
@@ -98,7 +98,7 @@ describe('scheduleHealth Engine', () => {
 
     const health2 = calculateSubtaskScheduleHealth(subtaskChangesReq, fakeToday);
     expect(health2.status).toBe('at_risk');
-    expect(health2.label).toBe('Changes Requested');
+    expect(health2.label).toBe('Perlu Perbaikan');
   });
 
   it('calculates overall task schedule health from subtasks aggregate', () => {
@@ -131,7 +131,7 @@ describe('scheduleHealth Engine', () => {
     const overallHealth = calculateTaskOverallScheduleHealth(parent, [delayedSubtask], fakeToday);
     expect(overallHealth.status).toBe('delayed');
     expect(overallHealth.delayedCount).toBe(1);
-    expect(overallHealth.label).toBe('1 Subtask Delayed');
+    expect(overallHealth.label).toBe('1 Subtask Terlambat');
   });
 
   it('diagnoses Dev Backend as primary bottleneck when BE is delayed and overlaps FE', () => {
@@ -205,13 +205,13 @@ describe('scheduleHealth Engine', () => {
         { userId: 'u-fe', role: 'dev', user: { name: 'Frontend Dev' } },
         { userId: 'u-qa', role: 'qa', user: { name: 'QA Engineer' } },
       ],
-      fakeToday
+      fakeToday,
     );
 
     expect(analysis.overallHealth).toBe('delayed');
     expect(analysis.primaryBottleneck.role).toBe('backend');
     expect(analysis.primaryBottleneck.severity).toBe('delayed');
-    expect(analysis.primaryBottleneck.title).toContain('Dev Backend Bottleneck');
+    expect(analysis.primaryBottleneck.title).toContain('Hambatan Dev Backend');
     expect(analysis.stages.backend.health).toBe('delayed');
     expect(analysis.stages.backend.daysOverdue).toBe(4);
   });
@@ -220,7 +220,7 @@ describe('scheduleHealth Engine', () => {
     const parentTask: Task = {
       id: 'parent-2',
       workspaceId: 'ws-1',
-      title: 'Notifications Feature',
+      title: 'Notifikasi Feature',
       status: 'in_progress',
       priority: 'medium',
       reporterId: 'u-po',
@@ -265,11 +265,11 @@ describe('scheduleHealth Engine', () => {
       [beDone, feInProgress],
       null,
       [],
-      fakeToday
+      fakeToday,
     );
 
     expect(analysis.overallHealth).toBe('on_track');
     expect(analysis.primaryBottleneck.role).toBe('none');
-    expect(analysis.primaryBottleneck.title).toBe('Schedule On Track');
+    expect(analysis.primaryBottleneck.title).toBe('Sesuai Jadwal');
   });
 });

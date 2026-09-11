@@ -21,7 +21,7 @@ const createTestStore = () => {
 };
 
 describe('CreateTaskModal Organism', () => {
-  it('renders modal with required fields, Assignee description, and no unassign option', () => {
+  it('renders modal with required fields, Pelaksana description, and no unassign option', () => {
     const store = createTestStore();
     const mockFolders: FolderTreeNode[] = [
       {
@@ -43,21 +43,21 @@ describe('CreateTaskModal Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByText('Create New Task')).toBeInTheDocument();
+    expect(screen.getByText('Buat Task Baru')).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText('e.g. Implement user authorization middleware'),
+      screen.getByPlaceholderText('Contoh: Implementasi middleware otorisasi pengguna'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Description/i)).toBeInTheDocument();
-    expect(screen.getByLabelText('Folder Location')).toBeInTheDocument();
-    expect(screen.getByText('Created by (Reporter)')).toBeInTheDocument();
+    expect(screen.getByText(/Deskripsi/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Lokasi folder')).toBeInTheDocument();
+    expect(screen.getByText('Dibuat oleh (Reporter)')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /Execution assignees \(Frontend, Backend, Mobile, Fullstack, and QA\) are assigned on Subtasks\./i,
+        /Pelaksana Frontend, Backend, Mobile, Fullstack, dan QA ditentukan pada Subtask\./i,
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Unassigned')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Priority')).toBeInTheDocument();
-    expect(screen.getByText('To Do (Default for new tasks)')).toBeInTheDocument();
+    expect(screen.queryByText('Belum ditugaskan')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Prioritas')).toBeInTheDocument();
+    expect(screen.getByText('Belum Dikerjakan (default untuk task baru)')).toBeInTheDocument();
   });
 
   it('retains typed title, description, and selected fields when store members are fetched in background', () => {
@@ -83,8 +83,10 @@ describe('CreateTaskModal Organism', () => {
     );
 
     // Type in fields
-    const titleInput = screen.getByPlaceholderText('e.g. Implement user authorization middleware');
-    const folderSelect = screen.getByLabelText('Folder Location');
+    const titleInput = screen.getByPlaceholderText(
+      'Contoh: Implementasi middleware otorisasi pengguna',
+    );
+    const folderSelect = screen.getByLabelText('Lokasi folder');
 
     fireEvent.change(titleInput, { target: { value: 'My Typed Title' } });
     fireEvent.change(folderSelect, { target: { value: 'f-1' } });
@@ -112,12 +114,12 @@ describe('CreateTaskModal Organism', () => {
       </Provider>,
     );
 
-    const startDate = screen.getByLabelText('Start Date (Optional pair)');
-    const dueDate = screen.getByLabelText('Due Date (Optional pair)');
+    const startDate = screen.getByLabelText('Tanggal Mulai (pasangan opsional)');
+    const dueDate = screen.getByLabelText('Tanggal Tenggat (pasangan opsional)');
     fireEvent.change(startDate, { target: { value: '2026-09-07' } });
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Start Date and Due Date must be provided together.',
+      'Tanggal mulai dan tanggal tenggat harus diisi bersama.',
     );
     expect(startDate).toHaveAttribute('aria-invalid', 'true');
     expect(dueDate).toHaveAttribute('aria-invalid', 'true');

@@ -76,7 +76,7 @@ export function useReleaseReadinessMap(workspaceId: string | undefined, featureT
                 isLoading: false,
                 error: snapshotByFeatureId.has(featureTaskId)
                   ? null
-                  : 'Release readiness unavailable.',
+                  : 'Kesiapan rilis tidak tersedia.',
                 permissionDenied: false,
               },
             ]),
@@ -101,7 +101,7 @@ export function useReleaseReadinessMap(workspaceId: string | undefined, featureT
                     ? null
                     : error instanceof Error
                       ? error.message
-                      : 'Release readiness unavailable.',
+                      : 'Kesiapan rilis tidak tersedia.',
                 permissionDenied: status === 403,
               },
             ]),

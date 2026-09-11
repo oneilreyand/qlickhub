@@ -102,8 +102,8 @@ describe('TaskTimelineView', () => {
 
   it('renders empty message and illustration when tasks array is empty and not loading', () => {
     render(<TaskTimelineView tasks={[]} isLoading={false} onSelect={vi.fn()} />);
-    expect(screen.getByText('No tasks in current view')).toBeInTheDocument();
-    const img = screen.getByAltText('No Tasks in Timeline Illustration');
+    expect(screen.getByText('Tidak ada Task pada tampilan ini')).toBeInTheDocument();
+    const img = screen.getByAltText('Ilustrasi tidak ada Task di timeline');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute(
       'src',
@@ -127,28 +127,28 @@ describe('TaskTimelineView', () => {
     // Check Folder Names
     expect(screen.getByText('Frontend Workstream')).toBeInTheDocument();
     expect(screen.getByText('Backend API')).toBeInTheDocument();
-    expect(screen.getByText('Feature Schedule')).toBeInTheDocument();
-    expect(screen.getByText(/Outside visible window/)).toBeInTheDocument();
+    expect(screen.getByText('Jadwal Feature')).toBeInTheDocument();
+    expect(screen.getByText(/Di luar rentang tampilan/)).toBeInTheDocument();
 
     // Check Task Titles
     expect(screen.getAllByText('Implement OAuth Flow').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Database Migration Service').length).toBeGreaterThan(0);
 
     // Check Scale buttons
-    const dayBtn = screen.getByRole('button', { name: /^day$/i });
-    const monthBtn = screen.getByRole('button', { name: /^month$/i });
+    const dayBtn = screen.getByRole('button', { name: /^Hari$/i });
+    const monthBtn = screen.getByRole('button', { name: /^Bulan$/i });
 
-    expect(screen.getByText('Aug 23, 2026 – Oct 24, 2026')).toBeInTheDocument();
+    expect(screen.getByText('23 Agu 2026 – 24 Okt 2026')).toBeInTheDocument();
     fireEvent.click(dayBtn);
     expect(dayBtn.className).toContain('bg-[#B1E743]');
-    expect(screen.getByText('Aug 31, 2026 – Sep 28, 2026')).toBeInTheDocument();
+    expect(screen.getByText('31 Agu 2026 – 28 Sep 2026')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /next calendar window/i }));
-    expect(screen.getByText('Sep 1, 2026 – Sep 29, 2026')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /rentang kalender berikutnya/i }));
+    expect(screen.getByText('1 Sep 2026 – 29 Sep 2026')).toBeInTheDocument();
 
     fireEvent.click(monthBtn);
     expect(monthBtn.className).toContain('bg-[#B1E743]');
-    expect(screen.getByText('Jul 1, 2026 – Feb 28, 2027')).toBeInTheDocument();
+    expect(screen.getByText('1 Jul 2026 – 28 Feb 2027')).toBeInTheDocument();
   });
 
   it('separates the persisted plan from open and completed delay extensions', () => {
@@ -167,7 +167,7 @@ describe('TaskTimelineView', () => {
       {
         ...mockTasks[1],
         id: 'completed-delayed-task',
-        title: 'Completed delayed delivery',
+        title: 'Selesai delayed delivery',
         startDate: '2026-09-01',
         dueDate: '2026-09-03',
         completedAt: '2026-09-06T12:00:00.000Z',
@@ -176,7 +176,7 @@ describe('TaskTimelineView', () => {
       {
         ...mockTasks[1],
         id: 'completed-on-time-task',
-        title: 'Completed on time',
+        title: 'Selesai on time',
         startDate: '2026-09-01',
         dueDate: '2026-09-03',
         completedAt: '2026-09-03T12:00:00.000Z',
@@ -194,18 +194,18 @@ describe('TaskTimelineView', () => {
     );
 
     expect(
-      screen.getByRole('img', { name: /open delayed delivery.*2 days beyond plan.*still open/i }),
+      screen.getByRole('img', { name: /terlambat.*2 hari dari rencana.*masih terbuka/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('img', {
-        name: /completed delayed delivery.*3 days beyond plan.*completed sep 6/i,
+        name: /terlambat.*3 hari dari rencana.*selesai 6 Sep/i,
       }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('img', { name: /completed on time.*beyond plan/i }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Planned')).toBeInTheDocument();
-    expect(screen.getByText('Delay extension')).toBeInTheDocument();
+    expect(screen.getByText('Terencana')).toBeInTheDocument();
+    expect(screen.getByText('Perpanjangan keterlambatan')).toBeInTheDocument();
   });
 
   it('triggers onSelect when clicking a task bar or label', () => {
@@ -242,7 +242,7 @@ describe('TaskTimelineView', () => {
     );
 
     // Check unscheduled header
-    const unscheduledToggle = screen.getByText(/Unscheduled Tasks \(1\)/i);
+    const unscheduledToggle = screen.getByText(/Task Belum Dijadwalkan \(1\)/i);
     expect(unscheduledToggle).toBeInTheDocument();
 
     // Click to expand
@@ -259,7 +259,7 @@ describe('TaskTimelineView', () => {
     );
   });
 
-  it('triggers onToggleExpand when Full Width button is clicked', () => {
+  it('triggers onToggleExpand when Lebar Penuh button is clicked', () => {
     const handleToggleExpand = vi.fn();
     render(
       <TaskTimelineView
@@ -272,13 +272,13 @@ describe('TaskTimelineView', () => {
       />,
     );
 
-    const fullWidthBtn = screen.getByRole('button', { name: /expand full width timeline/i });
+    const fullWidthBtn = screen.getByRole('button', { name: /buka timeline selebar layar/i });
     expect(fullWidthBtn).toBeInTheDocument();
     fireEvent.click(fullWidthBtn);
     expect(handleToggleExpand).toHaveBeenCalledTimes(1);
   });
 
-  it('toggles expand all subtasks when Expand All Subtasks button is clicked', async () => {
+  it('toggles buka semua subtasks when Buka Semua Subtask button is clicked', async () => {
     render(
       <TaskTimelineView
         tasks={mockTasks}
@@ -289,12 +289,12 @@ describe('TaskTimelineView', () => {
     );
 
     const expandAllBtn = screen.getByRole('button', {
-      name: /expand or collapse all subtask streams/i,
+      name: /buka atau tutup semua alur Subtask/i,
     });
     expect(expandAllBtn).toBeInTheDocument();
-    expect(screen.getByText('Expand All Subtasks')).toBeInTheDocument();
+    expect(screen.getByText('Buka Semua Subtask')).toBeInTheDocument();
 
     fireEvent.click(expandAllBtn);
-    expect(screen.getByText('Collapse Subtasks')).toBeInTheDocument();
+    expect(screen.getByText('Tutup Subtask')).toBeInTheDocument();
   });
 });

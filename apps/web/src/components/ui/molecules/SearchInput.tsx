@@ -17,16 +17,16 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       shortcut,
       onClear,
       showClearButton = true,
-      placeholder = 'Search...',
+      placeholder = 'Cari...',
       value,
       onChange,
       className = '',
       id,
       disabled,
-      'aria-label': ariaLabel = 'Search',
+      'aria-label': ariaLabel = 'Cari',
       ...props
     },
-    ref
+    ref,
   ) => {
     const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
     const hasValue = Boolean(value !== undefined && value !== null && String(value).length > 0);
@@ -48,7 +48,10 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-stone-300">
+          <label
+            htmlFor={inputId}
+            className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-stone-300"
+          >
             {label}
           </label>
         )}
@@ -78,7 +81,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
             <button
               type="button"
               onClick={handleClear}
-              aria-label="Clear search"
+              aria-label="Hapus pencarian"
               className="absolute right-3 grid h-6 w-6 place-items-center rounded-lg text-stone-400 hover:bg-stone-200/80 hover:text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-400/40 transition-all dark:text-stone-500 dark:hover:bg-stone-800 dark:hover:text-stone-200"
             >
               <X className="h-3.5 w-3.5" />
@@ -94,7 +97,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         {error && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
       </div>
     );
-  }
+  },
 );
 
 SearchInput.displayName = 'SearchInput';

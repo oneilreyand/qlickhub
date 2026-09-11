@@ -33,7 +33,7 @@ function formatShortDate(dateStr?: string | null): string {
   if (!dateStr) return '—';
   const d = new Date(dateStr + 'T00:00:00');
   if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
 export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
@@ -89,7 +89,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     while (cur <= end) {
       const key = normalizeDateStr(cur);
       const dayNum = cur.getDate();
-      const weekday = cur.toLocaleDateString('en-US', { weekday: 'narrow' });
+      const weekday = cur.toLocaleDateString('id-ID', { weekday: 'narrow' });
       const isWeekend = cur.getDay() === 0 || cur.getDay() === 6;
 
       cols.push({
@@ -243,7 +243,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     <div className="space-y-4 animate-fadeIn">
       <div className="rounded-2xl border border-stone-200/90 bg-stone-50/70 px-3.5 py-3 dark:border-stone-800 dark:bg-stone-900/60 sm:px-4">
         <p className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-          Role &amp; Handoff Timeline
+          Timeline Peran &amp; Handoff
         </p>
         <p className="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
           Detailed schedule for this Feature: follow handoffs from PO to development and QA.
@@ -304,7 +304,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider flex items-center gap-1.5">
             <Clock className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-            <span>Inter-Role Handoff Pipeline</span>
+            <span>Alur Handoff Antarperan</span>
           </span>
           <span className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
             PO Specs ➔ Dev Backend ➔ Dev Frontend ➔ QA Verification

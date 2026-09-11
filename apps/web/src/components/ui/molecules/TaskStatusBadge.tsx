@@ -17,31 +17,31 @@ export const TaskStatusBadge: React.FC<{ state: TaskStatusInput; size?: 'sm' | '
     case 'done':
     case 'Passed':
       variant = 'passed';
-      label = state === 'done' ? 'Done' : 'Passed';
+      label = state === 'done' ? 'Selesai' : 'Lulus';
       break;
     case 'in_review':
     case 'In Review':
       variant = 'review';
-      label = 'In Review';
+      label = 'Dalam Review';
       break;
     case 'changes_requested':
       variant = 'blocked';
-      label = 'Changes Requested';
+      label = 'Perlu Perbaikan';
       break;
     case 'in_progress':
       variant = 'info';
-      label = 'In Progress';
+      label = 'Sedang Dikerjakan';
       break;
     case 'canceled':
     case 'Blocked':
       variant = 'blocked';
-      label = state === 'canceled' ? 'Canceled' : 'Blocked';
+      label = state === 'canceled' ? 'Dibatalkan' : 'Terblokir';
       break;
     case 'todo':
     case 'Draft':
     default:
       variant = 'draft';
-      label = state === 'todo' ? 'To Do' : 'Draft';
+      label = state === 'todo' ? 'Belum Dikerjakan' : 'Draf';
       break;
   }
 

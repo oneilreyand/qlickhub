@@ -16,7 +16,7 @@ const requirement = (code: string, createdAt = '2026-09-11T00:00:00.000Z'): Requ
 });
 
 describe('suggestRequirementCode', () => {
-  it('continues the numeric series used by Requirements linked to the Task', () => {
+  it('continues the numeric series used by Requirement linked to the Task', () => {
     const linked = [requirement('REQ-101'), requirement('REQ-102')];
 
     expect(suggestRequirementCode(linked, linked)).toBe('REQ-103');

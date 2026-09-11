@@ -25,7 +25,7 @@ export const TaskHubMetrics: React.FC<TaskHubMetricsProps> = ({
       <div className="rounded-2xl bg-white p-5 border border-stone-200/80 shadow-xs hover:border-stone-300 transition-all dark:bg-[#1C1A19] dark:border-stone-800">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
-            Total Tasks
+            Total Task
           </span>
           <div className="grid h-8 w-8 place-items-center rounded-xl bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
             <Layers className="h-4 w-4" />
@@ -42,7 +42,7 @@ export const TaskHubMetrics: React.FC<TaskHubMetricsProps> = ({
       <div className="rounded-2xl bg-white p-5 border border-stone-200/80 shadow-xs hover:border-stone-300 transition-all dark:bg-[#1C1A19] dark:border-stone-800">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-            Completed
+            Selesai
           </span>
           <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
             <CheckCircle2 className="h-4 w-4" />
@@ -62,7 +62,7 @@ export const TaskHubMetrics: React.FC<TaskHubMetricsProps> = ({
       <div className="rounded-2xl bg-white p-5 border border-stone-200/80 shadow-xs hover:border-stone-300 transition-all dark:bg-[#1C1A19] dark:border-stone-800">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-            In Review
+            Dalam Review
           </span>
           <div className="grid h-8 w-8 place-items-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
             <Clock className="h-4 w-4" />
@@ -79,7 +79,7 @@ export const TaskHubMetrics: React.FC<TaskHubMetricsProps> = ({
       <div className="rounded-2xl bg-white p-5 border border-stone-200/80 shadow-xs hover:border-stone-300 transition-all dark:bg-[#1C1A19] dark:border-stone-800">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
-            Urgent &amp; Blocked
+            Mendesak &amp; Terblokir
           </span>
           <div className="grid h-8 w-8 place-items-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
             <AlertTriangle className="h-4 w-4" />
@@ -96,7 +96,7 @@ export const TaskHubMetrics: React.FC<TaskHubMetricsProps> = ({
                 : 'bg-stone-100 text-stone-600 border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700'
             }`}
           >
-            {urgentCount > 0 ? 'Needs Attention' : 'Normal'}
+            {urgentCount > 0 ? 'Perlu Perhatian' : 'Normal'}
           </span>
         </div>
       </div>

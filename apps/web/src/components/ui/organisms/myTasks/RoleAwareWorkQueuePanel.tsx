@@ -55,13 +55,116 @@ const PO_EMPTY_WORK_ILLUSTRATION =
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1788007862/ChatGPT_Image_Aug_18_2026_11_18_28_AM.png';
 
 const poEmptyWorkIllustrationAlt: Partial<Record<WorkQueueBucketCode, string>> = {
-  po_requirement_work: 'No requirement work illustration',
-  po_release_decision: 'No release decisions illustration',
-  po_timeline_work: 'No timeline work illustration',
+  po_requirement_work: 'Ilustrasi tidak ada pekerjaan Requirement',
+  po_release_decision: 'Ilustrasi tidak ada keputusan rilis',
+  po_timeline_work: 'Ilustrasi tidak ada pekerjaan timeline',
 };
 
-function humanize(value: string) {
-  return value.replace(/_/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
+const bucketLabels: Record<WorkQueueBucketCode, string> = {
+  po_requirement_work: 'Pekerjaan Requirement',
+  po_release_decision: 'Keputusan Rilis',
+  po_timeline_work: 'Pekerjaan Timeline',
+  dev_assigned_work: 'Pekerjaan yang Ditugaskan',
+  dev_blocked_work: 'Masukan Review',
+  dev_bug_fix: 'Perbaikan Bug',
+  qa_test_work: 'Pengujian dan Review',
+  qa_retest_work: 'Pekerjaan Retest',
+  qa_sign_off: 'Persetujuan QA',
+};
+
+const termLabels: Record<string, string> = {
+  feature: 'Feature',
+  subtask: 'Subtask',
+  bug: 'Bug',
+  urgent: 'Mendesak',
+  high: 'Tinggi',
+  medium: 'Sedang',
+  low: 'Rendah',
+  todo: 'Belum Dikerjakan',
+  in_progress: 'Sedang Dikerjakan',
+  changes_requested: 'Perlu Perbaikan',
+  in_review: 'Dalam Review',
+  resolved: 'Selesai Diperbaiki',
+  open: 'Terbuka',
+  reopened: 'Dibuka Kembali',
+};
+
+const actionLabels: Record<string, string> = {
+  add_requirement: 'Tambahkan Requirement',
+  complete_requirement: 'Lengkapi Requirement',
+  record_release_decision: 'Catat Keputusan Rilis',
+  schedule_feature: 'Atur Jadwal Feature',
+  review_timeline: 'Tinjau Timeline',
+  start_subtask: 'Mulai Subtask',
+  continue_subtask: 'Lanjutkan Subtask',
+  address_review_feedback: 'Tindak Lanjuti Masukan Review',
+  continue_bug_fix: 'Lanjutkan Perbaikan Bug',
+  start_bug_fix: 'Mulai Perbaikan Bug',
+  review_subtask: 'Tinjau Subtask',
+  resume_qa_task: 'Lanjutkan Task QA',
+  execute_qa_task: 'Kerjakan Task QA',
+  verify_bug_fix: 'Verifikasi Perbaikan Bug',
+  record_qa_sign_off: 'Catat Persetujuan QA',
+};
+
+function localizeTerm(value: string) {
+  return termLabels[value] || value.replace(/_/g, ' ');
+}
+
+function localizeReason(reason: string) {
+  return reason
+    .replace(
+      'No Requirement is linked to this Feature or its subtasks.',
+      'Belum ada Requirement yang tertaut ke Feature atau Subtask-nya.',
+    )
+    .replace(
+      /(\d+) linked Requirement\(s\) are not active\./,
+      '$1 Requirement tertaut belum aktif.',
+    )
+    .replace(
+      /Latest QA Sign-off is (.+) and has no Release Decision\./,
+      'Persetujuan QA terbaru berstatus $1 dan belum memiliki Keputusan Rilis.',
+    )
+    .replace('Changes were requested during review.', 'Perbaikan diminta saat proses review.')
+    .replace(/^Changes requested: /, 'Perbaikan diminta: ')
+    .replace(
+      'Latest QA Sign-off is rejected; record a new certification after verification.',
+      'Persetujuan QA terbaru ditolak; catat persetujuan baru setelah verifikasi.',
+    )
+    .replace(
+      'Feature is in review and has no QA Sign-off.',
+      'Feature sedang dalam review dan belum memiliki persetujuan QA.',
+    )
+    .replace(
+      /Feature is missing its start date and due date\./,
+      'Feature belum memiliki tanggal mulai dan tenggat.',
+    )
+    .replace(/Feature is missing its start date\./, 'Feature belum memiliki tanggal mulai.')
+    .replace(/Feature is missing its due date\./, 'Feature belum memiliki tenggat.')
+    .replace(
+      /Feature was due on (.+) and remains open\./,
+      'Tenggat Feature adalah $1 dan pekerjaannya masih terbuka.',
+    )
+    .replace(
+      /^This (.+) subtask is assigned to you and is (.+)\.$/,
+      'Subtask $1 ini ditugaskan kepada Anda dan berstatus $2.',
+    )
+    .replace(
+      /^(.+) Bug is assigned to you and is (.+)\.$/,
+      'Bug dengan tingkat $1 ditugaskan kepada Anda dan berstatus $2.',
+    )
+    .replace(
+      /^(.+) subtask is waiting for independent QA review\.$/,
+      'Subtask $1 menunggu review independen dari QA.',
+    )
+    .replace(
+      /^QA subtask is assigned to you and is (.+)\.$/,
+      'Subtask QA ditugaskan kepada Anda dan berstatus $1.',
+    )
+    .replace(
+      /^(.+) Bug is resolved and requires independent QA verification\.$/,
+      'Bug dengan tingkat $1 telah diperbaiki dan memerlukan verifikasi independen dari QA.',
+    );
 }
 
 function firstActiveBucket(buckets: WorkQueueBucket[], currentCode: string | null) {
@@ -109,7 +212,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
 
   if (state.isLoading) {
     return (
-      <section className="space-y-4" aria-label="Loading role-aware work queue">
+      <section className="space-y-4" aria-label="Memuat antrean kerja sesuai peran">
         <div className="grid gap-3 sm:grid-cols-3">
           {[1, 2, 3].map((id) => (
             <Skeleton key={id} variant="rectangular" className="h-20 rounded-2xl" />
@@ -125,10 +228,10 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
     return (
       <Alert
         tone="warning"
-        title="Work queue access denied"
+        title="Akses antrean kerja ditolak"
         icon={<AlertTriangle className="h-4 w-4" />}
       >
-        Your Workspace membership does not permit this queue to be returned.
+        Keanggotaan Workspace Anda tidak mengizinkan akses ke antrean ini.
       </Alert>
     );
   }
@@ -138,7 +241,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
       <div className="space-y-3">
         <Alert
           tone="error"
-          title="Unable to load your work queue"
+          title="Antrean kerja Anda tidak dapat dimuat"
           icon={<AlertTriangle className="h-4 w-4" />}
         >
           {state.error}
@@ -149,7 +252,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
           onClick={onRefresh}
           leftIcon={<RefreshCw className="h-4 w-4" aria-hidden="true" />}
         >
-          Try again
+          Coba lagi
         </Button>
       </div>
     );
@@ -159,8 +262,8 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
     return (
       <EmptyState
         icon={<ListChecks className="h-5 w-5" />}
-        title="No work queue available"
-        description="Choose an active Workspace to load your role-specific next actions."
+        title="Antrean kerja belum tersedia"
+        description="Pilih Workspace aktif untuk memuat pekerjaan berikutnya sesuai peran Anda."
       />
     );
   }
@@ -170,7 +273,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
     activeBucket.total === 0 ? poEmptyWorkIllustrationAlt[activeBucket.code] : undefined;
   const roleLabel =
     state.queue.queueRole === 'planner'
-      ? 'Planner'
+      ? 'Perencana'
       : state.queue.queueRole === 'developer'
         ? 'Developer'
         : 'QA';
@@ -184,14 +287,14 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
               id="role-aware-queue-title"
               className="text-lg font-extrabold text-stone-900 dark:text-stone-100"
             >
-              What needs your attention
+              Yang perlu Anda perhatikan
             </h2>
             <Badge variant={totalItems > 0 ? 'brand' : 'neutral'} size="sm">
-              {totalItems} action{totalItems === 1 ? '' : 's'}
+              {totalItems} tindakan
             </Badge>
           </div>
           <p className="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
-            {roleLabel} priorities are derived by the backend from persisted Workspace workflow.
+            Prioritas {roleLabel} ditentukan dari alur Workspace yang tersimpan.
           </p>
         </div>
         <Button
@@ -199,9 +302,9 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
           size="md"
           onClick={onRefresh}
           leftIcon={<RefreshCw className="h-4 w-4" aria-hidden="true" />}
-          aria-label="Refresh work queue"
+          aria-label="Muat ulang antrean kerja"
         >
-          Refresh
+          Muat ulang
         </Button>
       </div>
 
@@ -211,7 +314,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         onChange={setActiveBucketCode}
         tabs={buckets.map((bucket) => ({
           id: bucket.code,
-          label: bucket.label,
+          label: bucketLabels[bucket.code],
           count: bucket.total,
           icon: bucketIcons[bucket.code],
         }))}
@@ -221,10 +324,10 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-              {activeBucket.label}
+              {bucketLabels[activeBucket.code]}
             </h3>
             <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400" aria-live="polite">
-              Showing {visibleItems.length} of {activeBucket.total} backend-prioritized items.
+              Menampilkan {visibleItems.length} dari {activeBucket.total} pekerjaan prioritas.
             </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
@@ -233,21 +336,21 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 onClear={() => setSearchQuery('')}
-                placeholder="Search title, reason, or action"
-                aria-label="Search work queue"
+                placeholder="Cari judul, alasan, atau tindakan"
+                aria-label="Cari antrean kerja"
               />
             </div>
             <div className="w-full sm:w-44">
               <Select
                 value={priorityFilter}
                 onChange={(event) => setPriorityFilter(event.target.value)}
-                aria-label="Filter work queue by priority"
+                aria-label="Filter antrean kerja berdasarkan prioritas"
               >
-                <option value="all">All priorities</option>
-                <option value="urgent">Urgent</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
+                <option value="all">Semua prioritas</option>
+                <option value="urgent">Mendesak</option>
+                <option value="high">Tinggi</option>
+                <option value="medium">Sedang</option>
+                <option value="low">Rendah</option>
               </Select>
             </div>
           </div>
@@ -259,13 +362,13 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
           icon={<CheckCircle2 className="h-5 w-5" />}
           title={
             activeBucket.total === 0
-              ? `No ${activeBucket.label.toLowerCase()}`
-              : 'No matching actions'
+              ? `Belum ada ${bucketLabels[activeBucket.code].toLowerCase()}`
+              : 'Tidak ada tindakan yang cocok'
           }
           description={
             activeBucket.total === 0
-              ? 'There is nothing requiring your attention in this bucket right now.'
-              : 'Clear the search or priority filter to see the backend-prioritized work.'
+              ? 'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda di kelompok ini.'
+              : 'Hapus pencarian atau filter prioritas untuk melihat semua pekerjaan.'
           }
           illustrationSrc={emptyBucketIllustrationAlt ? PO_EMPTY_WORK_ILLUSTRATION : undefined}
           illustrationAlt={emptyBucketIllustrationAlt}
@@ -285,15 +388,15 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="neutral" size="sm" icon={bucketIcons[item.bucketCode]}>
-                        {humanize(item.subjectType)}
+                        {localizeTerm(item.subjectType)}
                       </Badge>
                       {item.priority && (
                         <Badge variant={priorityVariants[item.priority]} size="sm">
-                          {humanize(item.priority)} priority
+                          Prioritas {localizeTerm(item.priority)}
                         </Badge>
                       )}
                       <Badge variant="info" size="sm">
-                        {humanize(item.status)}
+                        {localizeTerm(item.status)}
                       </Badge>
                     </div>
                     <div>
@@ -301,17 +404,17 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                         {item.title}
                       </h4>
                       <p className="mt-1 text-xs leading-relaxed text-stone-600 dark:text-stone-300">
-                        {item.reason}
+                        {localizeReason(item.reason)}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-[11px] text-stone-500 dark:text-stone-400">
                       <span className="font-semibold text-stone-700 dark:text-stone-300">
-                        Next: {item.nextAction.label}
+                        Berikutnya: {actionLabels[item.nextAction.code] || item.nextAction.label}
                       </span>
                       {item.dueDate && (
                         <span className="inline-flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-                          Due {item.dueDate}
+                          Tenggat {item.dueDate}
                         </span>
                       )}
                     </div>
@@ -324,9 +427,9 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                     disabled={openingItemId !== null && openingItemId !== item.id}
                     onClick={() => void openItem(item)}
                     rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
-                    aria-label={`Open ${item.title}. Next action: ${item.nextAction.label}`}
+                    aria-label={`Buka ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`}
                   >
-                    Open work
+                    Buka pekerjaan
                   </Button>
                 </div>
               </Card>

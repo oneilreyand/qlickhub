@@ -31,9 +31,11 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
       <span
         className={`animate-spin rounded-full ${sizeStyles[size]} ${variantStyles[variant]}`}
         role="status"
-        aria-label="loading"
+        aria-label="memuat"
       />
-      {label && <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{label}</span>}
+      {label && (
+        <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">{label}</span>
+      )}
     </div>
   );
 };
@@ -46,7 +48,7 @@ export interface LoadingOverlayProps {
 
 export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   isLoading,
-  message = 'Loading data...',
+  message = 'Memuat data...',
   children,
 }) => {
   return (
@@ -55,7 +57,9 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       {isLoading && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/80 backdrop-blur-xs transition-opacity dark:bg-[#141413]/80">
           <LoadingSpinner size="lg" variant="brand" />
-          {message && <p className="text-xs font-semibold text-stone-700 dark:text-stone-200">{message}</p>}
+          {message && (
+            <p className="text-xs font-semibold text-stone-700 dark:text-stone-200">{message}</p>
+          )}
         </div>
       )}
     </div>

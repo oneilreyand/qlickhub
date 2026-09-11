@@ -182,7 +182,7 @@ export const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({
             if (!isDeleting) setAttachmentToDelete(null);
           }}
           title="Hapus lampiran?"
-          description="Tindakan ini menghapus lampiran biasa dan mencatatnya pada Activity Task."
+          description="Tindakan ini menghapus lampiran biasa dan mencatatnya pada Aktivitas Task."
           size="sm"
         >
           <div className="space-y-4">

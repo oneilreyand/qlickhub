@@ -11,8 +11,8 @@ describe('Drawer', () => {
     );
 
     const content = screen.getByRole('region', { name: 'Task details content' });
-    const restoreButton = screen.getByRole('button', { name: 'Restore normal view' });
-    const closeButton = screen.getByRole('button', { name: 'Close drawer' });
+    const restoreButton = screen.getByRole('button', { name: 'Kembali ke tampilan normal' });
+    const closeButton = screen.getByRole('button', { name: 'Tutup panel' });
 
     expect(content).toContainElement(restoreButton);
     expect(content).toContainElement(closeButton);
@@ -39,11 +39,13 @@ describe('Drawer', () => {
     });
 
     expect(toolbar).toContainElement(screen.getByRole('button', { name: 'Overview' }));
-    expect(toolbar).toContainElement(screen.getByRole('button', { name: 'Expand to full page' }));
-    expect(toolbar).toContainElement(screen.getByRole('button', { name: 'Close drawer' }));
+    expect(toolbar).toContainElement(
+      screen.getByRole('button', { name: 'Perluas ke halaman penuh' }),
+    );
+    expect(toolbar).toContainElement(screen.getByRole('button', { name: 'Tutup panel' }));
   });
 
-  it('toggles between fullscreen and restored labels from the content controls', () => {
+  it('toggles between fullscreen and dipulihkan labels from the content controls', () => {
     const onToggleFullScreen = vi.fn();
 
     render(
@@ -58,10 +60,10 @@ describe('Drawer', () => {
       </Drawer>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Restore normal view' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Kembali ke tampilan normal' }));
 
     expect(onToggleFullScreen).toHaveBeenCalledWith(false);
-    expect(screen.getByRole('button', { name: 'Expand to full page' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Perluas ke halaman penuh' })).toBeInTheDocument();
   });
 
   it('closes from the content control and preserves the fullscreen opt-out', () => {
@@ -77,7 +79,7 @@ describe('Drawer', () => {
       screen.queryByRole('button', { name: /full page|normal view/i }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close drawer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tutup panel' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });

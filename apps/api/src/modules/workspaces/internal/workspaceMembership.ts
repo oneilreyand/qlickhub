@@ -13,6 +13,7 @@ import {
   AssignableWorkspaceRole,
   DeveloperSpecialty,
   UpdateMemberRoleInput,
+  WorkspaceMemberAssignment,
 } from '@qlick/contracts';
 import { emailService } from '../../../services/emailService.js';
 import { fcmService } from '../../../services/fcmService.js';
@@ -99,72 +100,100 @@ export async function addWorkspaceMember(
   }
 
   const normalizedEmail = input.email.trim().toLowerCase();
-  let user = await UserModel.findOne({
-    where: { email: { [Op.iLike]: normalizedEmail } },
-    paranoid: false,
-  });
+  const assignments: WorkspaceMemberAssignment[] = input.assignments
+    ? input.assignments.map((assignment) => ({
+        ...assignment,
+        specialties: assignment.specialties || [],
+      }))
+    : Array.from(new Set([workspaceId, ...(input.workspaceIds || [])])).map(
+        (targetWorkspaceId) => ({
+          workspaceId: targetWorkspaceId,
+          role: input.role || 'dev',
+          specialties: input.specialties || [],
+        }),
+      );
 
-  const targetWorkspaceIds = Array.from(new Set([workspaceId, ...(input.workspaceIds || [])]));
-
-  const targetWorkspaces = await WorkspaceModel.findAll({
-    where: { id: targetWorkspaceIds },
-  });
-  if (targetWorkspaces.length !== targetWorkspaceIds.length) {
-    throw new Error('NOT_FOUND: One or more selected Workspaces do not exist.');
-  }
-
-  if (actorId) {
-    const actorMemberships = await WorkspaceMemberModel.findAll({
-      where: {
-        workspaceId: targetWorkspaceIds,
-        userId: actorId,
-        role: { [Op.in]: ['owner', 'admin'] },
-      },
-      attributes: ['workspaceId'],
+  const mutation = await sequelize.transaction(async (transaction) => {
+    const targetWorkspaceIds = assignments.map((assignment) => assignment.workspaceId);
+    const targetWorkspaces = await WorkspaceModel.findAll({
+      where: { id: targetWorkspaceIds },
+      transaction,
     });
-    const authorizedWorkspaceIds = new Set(
-      actorMemberships.map((membership) => membership.workspaceId),
-    );
-    const unauthorizedWorkspaceIds = targetWorkspaceIds.filter(
-      (id) => !authorizedWorkspaceIds.has(id),
-    );
-    if (unauthorizedWorkspaceIds.length > 0) {
-      throw new Error('FORBIDDEN: Owner or Admin access is required for every selected Workspace.');
+    if (targetWorkspaces.length !== targetWorkspaceIds.length) {
+      throw new Error('NOT_FOUND: One or more selected Workspaces do not exist.');
     }
-  }
 
-  let setPasswordToken: string | undefined;
-  if (user?.deletedAt) {
-    await user.restore();
-  }
+    if (actorId) {
+      const actorMemberships = await WorkspaceMemberModel.findAll({
+        where: {
+          workspaceId: targetWorkspaceIds,
+          userId: actorId,
+          role: { [Op.in]: ['owner', 'admin'] },
+        },
+        attributes: ['workspaceId'],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      const authorizedWorkspaceIds = new Set(
+        actorMemberships.map((membership) => membership.workspaceId),
+      );
+      const unauthorizedWorkspaceIds = targetWorkspaceIds.filter(
+        (id) => !authorizedWorkspaceIds.has(id),
+      );
+      if (unauthorizedWorkspaceIds.length > 0) {
+        throw new Error(
+          'FORBIDDEN: Owner or Admin access is required for every selected Workspace.',
+        );
+      }
+    }
 
-  if (!user) {
-    const reset = createPasswordResetToken();
-    user = await UserModel.create({
-      email: normalizedEmail,
-      name: normalizedEmail.split('@')[0],
-      role: input.role || 'dev',
-      passwordHash: null,
-      passwordResetToken: reset.tokenHash,
-      passwordResetExpiresAt: reset.expiresAt,
+    const workspaceById = new Map(targetWorkspaces.map((workspace) => [workspace.id, workspace]));
+    let user = await UserModel.findOne({
+      where: { email: { [Op.iLike]: normalizedEmail } },
+      paranoid: false,
+      transaction,
+      lock: transaction.LOCK.UPDATE,
     });
-    setPasswordToken = reset.token;
-  } else if (!user.passwordHash) {
-    const reset = createPasswordResetToken();
-    user.passwordResetToken = reset.tokenHash;
-    user.passwordResetExpiresAt = reset.expiresAt;
-    await user.save();
-    setPasswordToken = reset.token;
-  }
+    let setPasswordToken: string | undefined;
 
-  let primaryMember: WorkspaceMemberModel | null = null;
-  const addedWorkspaceNames: string[] = [];
+    if (user?.deletedAt) {
+      await user.restore({ transaction });
+    }
 
-  for (const ws of targetWorkspaces) {
-    const result = await sequelize.transaction(async (transaction) => {
-      const specialtyActorId = actorId || ws.ownerId;
+    if (!user) {
+      const reset = createPasswordResetToken();
+      user = await UserModel.create(
+        {
+          email: normalizedEmail,
+          name: normalizedEmail.split('@')[0],
+          role: assignments[0].role,
+          passwordHash: null,
+          passwordResetToken: reset.tokenHash,
+          passwordResetExpiresAt: reset.expiresAt,
+        },
+        { transaction },
+      );
+      setPasswordToken = reset.token;
+    } else if (!user.passwordHash) {
+      const reset = createPasswordResetToken();
+      user.passwordResetToken = reset.tokenHash;
+      user.passwordResetExpiresAt = reset.expiresAt;
+      await user.save({ transaction });
+      setPasswordToken = reset.token;
+    }
+
+    const processedMembers = new Map<string, WorkspaceMemberModel>();
+    const assignmentResults: Array<{
+      workspaceId: string;
+      workspaceName: string;
+      status: 'added' | 'restored' | 'already_member';
+    }> = [];
+
+    for (const assignment of assignments) {
+      const workspace = workspaceById.get(assignment.workspaceId)!;
+      const activityActorId = actorId || workspace.ownerId;
       const existingMember = await WorkspaceMemberModel.findOne({
-        where: { workspaceId: ws.id, userId: user.id },
+        where: { workspaceId: workspace.id, userId: user.id },
         paranoid: false,
         transaction,
         lock: transaction.LOCK.UPDATE,
@@ -173,73 +202,120 @@ export async function addWorkspaceMember(
       if (!existingMember) {
         const member = await WorkspaceMemberModel.create(
           {
-            workspaceId: ws.id,
+            workspaceId: workspace.id,
             userId: user.id,
-            role: input.role || 'dev',
+            role: assignment.role,
           },
           { transaction },
         );
-        await replaceSpecialties(ws.id, member, input.specialties, specialtyActorId, transaction);
-        return { member, added: true };
+        await replaceSpecialties(
+          workspace.id,
+          member,
+          assignment.specialties,
+          activityActorId,
+          transaction,
+        );
+        await WorkspaceMembershipActivityModel.create(
+          {
+            workspaceId: workspace.id,
+            actorId: activityActorId,
+            targetUserId: user.id,
+            action: 'member_added',
+            metadata: { role: assignment.role, specialties: assignment.specialties },
+          },
+          { transaction },
+        );
+        processedMembers.set(workspace.id, member);
+        assignmentResults.push({
+          workspaceId: workspace.id,
+          workspaceName: workspace.name,
+          status: 'added',
+        });
+        continue;
       }
 
       if (existingMember.deletedAt) {
         const previousRole = existingMember.role;
         await existingMember.restore({ transaction });
-        existingMember.role = input.role || 'dev';
+        existingMember.role = assignment.role;
         existingMember.joinedAt = new Date();
         await existingMember.save({ transaction });
         await replaceSpecialties(
-          ws.id,
+          workspace.id,
           existingMember,
-          input.specialties,
-          specialtyActorId,
+          assignment.specialties,
+          activityActorId,
           transaction,
         );
-
-        if (actorId) {
-          await WorkspaceMembershipActivityModel.create(
-            {
-              workspaceId: ws.id,
-              actorId,
-              targetUserId: user.id,
-              action: 'member_restored',
-              metadata: {
-                previousRole,
-                restoredRole: existingMember.role,
-                specialties: input.specialties,
-              },
+        await WorkspaceMembershipActivityModel.create(
+          {
+            workspaceId: workspace.id,
+            actorId: activityActorId,
+            targetUserId: user.id,
+            action: 'member_restored',
+            metadata: {
+              previousRole,
+              restoredRole: existingMember.role,
+              specialties: assignment.specialties,
             },
-            { transaction },
-          );
-        }
-
-        return { member: existingMember, added: true };
+          },
+          { transaction },
+        );
+        processedMembers.set(workspace.id, existingMember);
+        assignmentResults.push({
+          workspaceId: workspace.id,
+          workspaceName: workspace.name,
+          status: 'restored',
+        });
+        continue;
       }
 
-      return { member: existingMember, added: false };
+      processedMembers.set(workspace.id, existingMember);
+      assignmentResults.push({
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        status: 'already_member',
+      });
+    }
+
+    const changedWorkspaceNames = assignmentResults
+      .filter((result) => result.status !== 'already_member')
+      .map((result) => result.workspaceName);
+    if (changedWorkspaceNames.length === 0) {
+      throw new Error('CONFLICT: User is already a member of all selected workspaces.');
+    }
+
+    const primaryMember =
+      processedMembers.get(workspaceId) || processedMembers.values().next().value || null;
+    if (!primaryMember) {
+      throw new Error('INTERNAL: Member assignment completed without a persisted membership.');
+    }
+    const primarySpecialtyRows = await WorkspaceMemberSpecialtyModel.findAll({
+      where: { workspaceId: primaryMember.workspaceId, workspaceMemberId: primaryMember.id },
+      transaction,
     });
 
-    if (ws.id === workspaceId) {
-      primaryMember = result.member;
-    }
-    if (result.added) {
-      addedWorkspaceNames.push(ws.name);
-    }
-  }
+    return {
+      user,
+      primaryMember,
+      primarySpecialties: primarySpecialtyRows.map((row) => row.specialty).sort(),
+      assignmentResults,
+      changedWorkspaceNames,
+      setPasswordToken,
+    };
+  });
 
-  if (addedWorkspaceNames.length === 0) {
-    throw new Error('CONFLICT: User is already a member of all selected workspaces.');
-  }
-
-  if (!primaryMember) {
-    primaryMember = (await WorkspaceMemberModel.findOne({
-      where: { workspaceId, userId: user.id },
-    })) as WorkspaceMemberModel;
-  }
+  const {
+    user,
+    primaryMember,
+    primarySpecialties,
+    assignmentResults,
+    changedWorkspaceNames,
+    setPasswordToken,
+  } = mutation;
 
   // Send zero-cost invitation notification email if workspaces were added
-  if (addedWorkspaceNames.length > 0) {
+  if (changedWorkspaceNames.length > 0) {
     let inviterName = 'Workspace Admin';
     if (actorId) {
       const actor = await UserModel.findByPk(actorId);
@@ -247,9 +323,9 @@ export async function addWorkspaceMember(
     }
     await emailService.sendWorkspaceInvitationEmail(
       user.email,
-      addedWorkspaceNames,
+      changedWorkspaceNames,
       inviterName,
-      input.role || 'dev',
+      primaryMember.role,
       setPasswordToken,
     );
 
@@ -258,29 +334,28 @@ export async function addWorkspaceMember(
         userId: user.id,
         actorName: inviterName,
         actorId: actorId || user.id,
-        workspaceName: addedWorkspaceNames.join(', '),
-        workspaceId,
+        workspaceName: changedWorkspaceNames.join(', '),
+        workspaceId: primaryMember.workspaceId,
         action: 'added',
-        newRole: input.role || 'dev',
+        newRole: primaryMember.role,
       })
       .catch((err) => console.warn('⚠️ Failed to dispatch workspace member notification:', err));
   }
 
   return {
-    id: primaryMember?.id || 'batch-assignment',
-    workspaceId,
+    id: primaryMember.id,
+    workspaceId: primaryMember.workspaceId,
     userId: user.id,
-    role: primaryMember?.role || input.role || 'dev',
-    specialties: input.role === 'dev' ? input.specialties : [],
-    joinedAt: primaryMember?.joinedAt
-      ? primaryMember.joinedAt.toISOString()
-      : new Date().toISOString(),
+    role: primaryMember.role,
+    specialties: primarySpecialties,
+    joinedAt: primaryMember.joinedAt.toISOString(),
     user: {
       id: user.id,
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl,
     },
+    assignmentResults,
   };
 }
 

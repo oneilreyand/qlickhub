@@ -25,7 +25,7 @@ describe('Input Atom Component', () => {
 
   it('renders left icon and shortcut when provided', () => {
     render(
-      <Input label="Search" leftIcon={<span data-testid="search-icon">🔍</span>} shortcut="⌘K" />,
+      <Input label="Cari" leftIcon={<span data-testid="search-icon">🔍</span>} shortcut="⌘K" />,
     );
 
     expect(screen.getByTestId('search-icon')).toBeInTheDocument();
@@ -38,19 +38,19 @@ describe('Input Atom Component', () => {
     const input = screen.getByLabelText('Password');
     expect(input).toHaveAttribute('type', 'password');
 
-    const toggleButton = screen.getByRole('button', { name: /show password/i });
+    const toggleButton = screen.getByRole('button', { name: /tampilkan kata sandi/i });
     expect(toggleButton).toBeInTheDocument();
     expect(toggleButton).toHaveAttribute('type', 'button');
 
     // Click toggle button to show password
     fireEvent.click(toggleButton);
     expect(input).toHaveAttribute('type', 'text');
-    expect(screen.getByRole('button', { name: /hide password/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sembunyikan kata sandi/i })).toBeInTheDocument();
 
     // Click toggle button again to hide password
-    fireEvent.click(screen.getByRole('button', { name: /hide password/i }));
+    fireEvent.click(screen.getByRole('button', { name: /sembunyikan kata sandi/i }));
     expect(input).toHaveAttribute('type', 'password');
-    expect(screen.getByRole('button', { name: /show password/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /tampilkan kata sandi/i })).toBeInTheDocument();
   });
 
   it('does not render password visibility toggle if showPasswordToggle is false', () => {
@@ -58,7 +58,7 @@ describe('Input Atom Component', () => {
 
     const input = screen.getByLabelText('Password');
     expect(input).toHaveAttribute('type', 'password');
-    expect(screen.queryByRole('button', { name: /show password/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /tampilkan kata sandi/i })).not.toBeInTheDocument();
   });
 
   it('disables toggle button and applies disabled styling when input is disabled', () => {
@@ -67,7 +67,7 @@ describe('Input Atom Component', () => {
     const input = screen.getByLabelText('Password');
     expect(input).toBeDisabled();
 
-    const toggleButton = screen.getByRole('button', { name: /show password/i });
+    const toggleButton = screen.getByRole('button', { name: /tampilkan kata sandi/i });
     expect(toggleButton).toBeDisabled();
   });
 

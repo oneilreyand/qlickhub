@@ -28,13 +28,13 @@ export const WorkspaceGeneralSettingsForm: React.FC<WorkspaceGeneralSettingsForm
     <Card className="p-5 space-y-4">
       <div className="flex items-center gap-2 border-b border-stone-100 pb-3 dark:border-stone-800">
         <Settings className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-        <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">General Settings</h2>
+        <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">Pengaturan Umum</h2>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-            Workspace Name
+            Nama Workspace
           </label>
           <Input
             type="text"
@@ -47,14 +47,14 @@ export const WorkspaceGeneralSettingsForm: React.FC<WorkspaceGeneralSettingsForm
 
         <div>
           <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-            Description
+            Deskripsi
           </label>
           <Textarea
             rows={3}
             value={workspaceDesc}
             onChange={(e) => onDescChange(e.target.value)}
             disabled={!canManage}
-            placeholder="Optional brief workspace description..."
+            placeholder="Deskripsi singkat workspace (opsional)..."
           />
         </div>
 
@@ -67,7 +67,7 @@ export const WorkspaceGeneralSettingsForm: React.FC<WorkspaceGeneralSettingsForm
             isLoading={isSaving}
             leftIcon={<Check className="h-4 w-4" />}
           >
-            Save Changes
+            Simpan Perubahan
           </Button>
         )}
       </form>

@@ -8,27 +8,27 @@ const statusPresentation: Record<
   { label: string; variant: 'blocked' | 'brand' | 'review' | 'passed'; icon: React.ReactNode }
 > = {
   open: {
-    label: 'Open',
+    label: 'Terbuka',
     variant: 'blocked',
     icon: <AlertCircle className="h-3 w-3" aria-hidden="true" />,
   },
   in_progress: {
-    label: 'In progress',
+    label: 'Sedang Dikerjakan',
     variant: 'brand',
     icon: <Clock3 className="h-3 w-3" aria-hidden="true" />,
   },
   resolved: {
-    label: 'Resolved · Retest needed',
+    label: 'Selesai Diperbaiki · Perlu Retest',
     variant: 'review',
     icon: <Wrench className="h-3 w-3" aria-hidden="true" />,
   },
   verified: {
-    label: 'Verified',
+    label: 'Terverifikasi',
     variant: 'passed',
     icon: <CheckCircle2 className="h-3 w-3" aria-hidden="true" />,
   },
   reopened: {
-    label: 'Reopened',
+    label: 'Dibuka Kembali',
     variant: 'blocked',
     icon: <RotateCcw className="h-3 w-3" aria-hidden="true" />,
   },

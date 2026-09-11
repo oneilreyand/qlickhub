@@ -33,7 +33,7 @@ export const Snackbar: React.FC<SnackbarProps> = ({
       <button
         type="button"
         onClick={onClose}
-        aria-label="Dismiss notification"
+        aria-label="Tutup notifikasi"
         className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 hover:bg-stone-800 hover:text-white shrink-0"
       >
         <X className="h-4 w-4" />

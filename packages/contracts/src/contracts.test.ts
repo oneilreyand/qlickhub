@@ -44,6 +44,7 @@ import {
   UpdateWorkspaceSchema,
   DeleteWorkspaceSchema,
   AddWorkspaceMemberSchema,
+  AddWorkspaceMemberResultSchema,
   UpdateMemberRoleSchema,
   RegisterFcmTokenSchema,
   UnregisterFcmTokenSchema,
@@ -221,6 +222,78 @@ describe('Contracts Validation Suite', () => {
 
       const updated = UpdateMemberRoleSchema.parse({ role: 'dev', specialties: ['fullstack'] });
       assert.deepStrictEqual(updated.specialties, ['fullstack']);
+    });
+
+    test('supports Workspace-specific roles and Developer specialties in one member addition', () => {
+      const parsed = AddWorkspaceMemberSchema.parse({
+        email: 'multi-workspace@company.com',
+        assignments: [
+          {
+            workspaceId: '123e4567-e89b-12d3-a456-426614174000',
+            role: 'po',
+            specialties: [],
+          },
+          {
+            workspaceId: '223e4567-e89b-12d3-a456-426614174000',
+            role: 'dev',
+            specialties: ['backend'],
+          },
+        ],
+      });
+
+      assert.strictEqual(parsed.assignments?.[0].role, 'po');
+      assert.deepStrictEqual(parsed.assignments?.[1].specialties, ['backend']);
+      assert.throws(() =>
+        AddWorkspaceMemberSchema.parse({
+          email: 'duplicate@company.com',
+          assignments: [
+            {
+              workspaceId: '123e4567-e89b-12d3-a456-426614174000',
+              role: 'qa',
+            },
+            {
+              workspaceId: '123e4567-e89b-12d3-a456-426614174000',
+              role: 'po',
+            },
+          ],
+        }),
+      );
+      assert.throws(() =>
+        AddWorkspaceMemberSchema.parse({
+          email: 'invalid-dev@company.com',
+          assignments: [
+            {
+              workspaceId: '123e4567-e89b-12d3-a456-426614174000',
+              role: 'dev',
+            },
+          ],
+        }),
+      );
+    });
+
+    test('validates the per-Workspace member addition result', () => {
+      const parsed = AddWorkspaceMemberResultSchema.parse({
+        id: '323e4567-e89b-12d3-a456-426614174000',
+        workspaceId: '123e4567-e89b-12d3-a456-426614174000',
+        userId: '423e4567-e89b-12d3-a456-426614174000',
+        role: 'qa',
+        specialties: [],
+        joinedAt: '2026-09-11T00:00:00.000Z',
+        user: {
+          id: '423e4567-e89b-12d3-a456-426614174000',
+          email: 'qa@company.com',
+          name: 'QA',
+        },
+        assignmentResults: [
+          {
+            workspaceId: '123e4567-e89b-12d3-a456-426614174000',
+            workspaceName: 'Core',
+            status: 'added',
+          },
+        ],
+      });
+
+      assert.strictEqual(parsed.assignmentResults[0].status, 'added');
     });
 
     test('does not allow assigning or changing to the owner role outside an ownership transfer', () => {

@@ -234,7 +234,7 @@ export const DiscussionMediaRenderer: React.FC<DiscussionMediaRendererProps> = (
           type: 'image',
           url: dataUrl,
           originalUrl: dataUrl,
-          title: 'Uploaded Image',
+          title: 'Gambar yang Diunggah',
         });
       }
       return '';

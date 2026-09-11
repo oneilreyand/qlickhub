@@ -17,16 +17,16 @@ export interface AccessRestrictedProps {
 }
 
 export const AccessRestricted: React.FC<AccessRestrictedProps> = ({
-  title = 'Access Restricted',
+  title = 'Akses Dibatasi',
   description,
   workspaceName,
-  actionLabel = 'Return to Work Hub',
+  actionLabel = 'Kembali ke Work Hub',
   actionHref = '/work',
   onAction,
 }) => {
   const defaultDescription = workspaceName
-    ? `Only workspace administrators or owners are authorized to manage workspace settings, members, and policies for "${workspaceName}".`
-    : 'You do not have permission to access or manage this resource. Please contact your workspace administrator.';
+    ? `Hanya Admin atau Owner yang dapat mengelola pengaturan, anggota, dan kebijakan workspace "${workspaceName}".`
+    : 'Anda tidak memiliki izin untuk mengakses atau mengelola bagian ini. Hubungi Admin workspace Anda.';
 
   return (
     <div className="py-12 px-4 max-w-2xl mx-auto text-center animate-fadeIn">
@@ -34,7 +34,7 @@ export const AccessRestricted: React.FC<AccessRestrictedProps> = ({
         <div className="flex justify-center">
           <img
             src={ACCESS_RESTRICTED_ILLUSTRATION_URL}
-            alt="Access Restricted Illustration"
+            alt="Ilustrasi akses dibatasi"
             className="dark:hidden w-full max-w-[280px] sm:max-w-[360px] md:max-w-[420px] h-auto max-h-64 sm:max-h-76 object-contain mx-auto transition-transform duration-300 hover:scale-[1.02] drop-shadow-xs"
             loading="lazy"
           />
@@ -49,11 +49,9 @@ export const AccessRestricted: React.FC<AccessRestrictedProps> = ({
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 text-[11px] font-semibold text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900">
             <ShieldAlert className="h-3.5 w-3.5" />
-            <span>Access Control</span>
+            <span>Kontrol Akses</span>
           </div>
-          <h2 className="text-2xl font-extrabold text-stone-900 dark:text-stone-100">
-            {title}
-          </h2>
+          <h2 className="text-2xl font-extrabold text-stone-900 dark:text-stone-100">{title}</h2>
           <p className="text-sm text-stone-500 dark:text-stone-400 max-w-md mx-auto leading-relaxed">
             {description || defaultDescription}
           </p>

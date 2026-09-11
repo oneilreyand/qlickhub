@@ -65,11 +65,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         name: name.trim(),
         avatarUrl: avatarUrl.trim() || null,
       });
-      dispatch(enqueueSnackbar('Profile updated successfully!', 'success'));
+      dispatch(enqueueSnackbar('Profil berhasil diperbarui', 'success'));
       if (onProfileUpdated) onProfileUpdated(updated);
       onClose();
     } catch (err: any) {
-      setProfileError(err?.message || 'Failed to update profile.');
+      setProfileError(err?.message || 'Profil gagal diperbarui.');
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -78,11 +78,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 6) {
-      setPasswordError('New password must be at least 6 characters long.');
+      setPasswordError('Kata sandi baru minimal 6 karakter.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match.');
+      setPasswordError('Konfirmasi kata sandi tidak cocok.');
       return;
     }
 
@@ -91,25 +91,22 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
     try {
       await authService.changePassword({ currentPassword, newPassword });
-      dispatch(enqueueSnackbar('Password changed successfully!', 'success'));
+      dispatch(enqueueSnackbar('Kata sandi berhasil diubah', 'success'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       onClose();
     } catch (err: any) {
-      setPasswordError(err?.message || 'Failed to change password. Ensure your current password is correct.');
+      setPasswordError(
+        err?.message || 'Kata sandi gagal diubah. Pastikan kata sandi saat ini sudah benar.',
+      );
     } finally {
       setIsChangingPassword(false);
     }
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Account Settings"
-      size="md"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Pengaturan Akun" size="md">
       <div className="space-y-6">
         {/* Navigation Tabs */}
         <div className="flex border-b border-stone-200 dark:border-stone-800 gap-4">
@@ -123,7 +120,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             }`}
           >
             <UserIcon className="h-4 w-4" />
-            Profile Details
+            Detail Profil
           </button>
           <button
             type="button"
@@ -135,7 +132,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             }`}
           >
             <Lock className="h-4 w-4" />
-            Change Password
+            Ubah Kata Sandi
           </button>
         </div>
 
@@ -146,7 +143,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Email Address (Read-only)
+                Alamat Email (hanya baca)
               </label>
               <Input
                 value={currentUser?.email || ''}
@@ -157,19 +154,19 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Full Name
+                Nama Lengkap
               </label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
+                placeholder="Nama lengkap Anda"
                 required
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Avatar Image URL (Optional)
+                URL Gambar Avatar (Opsional)
               </label>
               <Input
                 value={avatarUrl}
@@ -180,14 +177,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
             <div className="flex justify-end gap-2 pt-4 border-t border-stone-100 dark:border-stone-800">
               <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
+                Batal
               </Button>
               <Button
                 type="submit"
                 isLoading={isUpdatingProfile}
                 leftIcon={<Check className="h-4 w-4" />}
               >
-                Save Changes
+                Simpan Perubahan
               </Button>
             </div>
           </form>
@@ -200,53 +197,53 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Current Password
+                Kata Sandi Saat Ini
               </label>
               <Input
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password"
+                placeholder="Masukkan kata sandi saat ini"
                 required
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                New Password
+                Kata Sandi Baru
               </label>
               <Input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
+                placeholder="Minimal 6 karakter"
                 required
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Confirm New Password
+                Konfirmasi Kata Sandi Baru
               </label>
               <Input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter new password"
+                placeholder="Masukkan kembali kata sandi baru"
                 required
               />
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t border-stone-100 dark:border-stone-800">
               <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
+                Batal
               </Button>
               <Button
                 type="submit"
                 isLoading={isChangingPassword}
                 leftIcon={<ShieldCheck className="h-4 w-4" />}
               >
-                Update Password
+                Perbarui Kata Sandi
               </Button>
             </div>
           </form>

@@ -40,10 +40,10 @@ const renderWithProviders = (ui: React.ReactElement, role = '') => {
 };
 
 describe('EmptyWorkspaceOnboarding Organism', () => {
-  it('renders create workspace illustration image and welcome message for admin/lead/po roles', () => {
+  it('renders buat workspace illustration image and welcome message for admin/lead/po roles', () => {
     renderWithProviders(<EmptyWorkspaceOnboarding />, 'admin');
 
-    const img = screen.getByAltText('Create Workspace Illustration');
+    const img = screen.getByAltText('Ilustrasi membuat workspace');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', CREATE_WORKSPACE_ILLUSTRATION_URL);
     expect(CREATE_WORKSPACE_ILLUSTRATION_URL).toBe(
@@ -51,41 +51,47 @@ describe('EmptyWorkspaceOnboarding Organism', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: /create your first workspace/i }),
+      screen.getByRole('heading', { name: /buat workspace pertama Anda/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /create workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /buat workspace/i })).toBeInTheDocument();
   });
 
-  it('opens create workspace modal when button is clicked by a permitted role', () => {
+  it('opens buat workspace modal when button is clicked by a permitted role', () => {
     renderWithProviders(<EmptyWorkspaceOnboarding />, 'po');
 
-    const createBtn = screen.getByRole('button', { name: /create workspace/i });
+    const createBtn = screen.getByRole('button', { name: /buat workspace/i });
     fireEvent.click(createBtn);
 
-    expect(screen.getByLabelText(/workspace name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/nama workspace/i)).toBeInTheDocument();
   });
 
   it('does not offer workspace creation to QA', () => {
     renderWithProviders(<EmptyWorkspaceOnboarding />, 'qa');
 
-    expect(screen.getByRole('heading', { name: /no workspace assigned yet/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /check again/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /belum ada workspace untuk Anda/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^buat workspace$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /coba lagi/i })).toBeInTheDocument();
   });
 
   it('renders no workspace assigned state for member/dev roles without create button', () => {
     renderWithProviders(<EmptyWorkspaceOnboarding />, 'dev');
 
-    expect(screen.getByRole('heading', { name: /no workspace assigned yet/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /check again/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /belum ada workspace untuk Anda/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^buat workspace$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /coba lagi/i })).toBeInTheDocument();
   });
 
   it('ignores spoofed user_role in localStorage and relies only on Redux role', () => {
     localStorage.setItem('user_role', 'admin');
     renderWithProviders(<EmptyWorkspaceOnboarding />, 'dev');
 
-    expect(screen.getByRole('heading', { name: /no workspace assigned yet/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /belum ada workspace untuk Anda/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^buat workspace$/i })).not.toBeInTheDocument();
   });
 });

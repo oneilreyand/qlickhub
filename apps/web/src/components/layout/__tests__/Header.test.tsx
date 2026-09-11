@@ -111,7 +111,7 @@ describe('Header', () => {
 
     renderHeader(onToggleMobileSidebar);
 
-    await user.click(screen.getByRole('button', { name: 'Toggle mobile menu' }));
+    await user.click(screen.getByRole('button', { name: 'Buka atau tutup menu seluler' }));
 
     expect(onToggleMobileSidebar).toHaveBeenCalledOnce();
   });
@@ -121,13 +121,13 @@ describe('Header', () => {
 
     renderHeader(vi.fn());
 
-    const reportButton = screen.getByRole('button', { name: 'Report' });
+    const reportButton = screen.getByRole('button', { name: 'Laporan' });
     await user.click(reportButton);
 
     expect(reportButton).toHaveClass('bg-[#B1E743]');
   });
 
-  it('highlights the My Tasks button as active when on /my-tasks', () => {
+  it('highlights the Tugas Saya button as active when on /my-tasks', () => {
     const store = configureStore({
       reducer: {
         auth: authReducer,
@@ -148,11 +148,11 @@ describe('Header', () => {
       </Provider>,
     );
 
-    const myTasksButton = screen.getByRole('button', { name: 'My Tasks' });
+    const myTasksButton = screen.getByRole('button', { name: 'Tugas Saya' });
     expect(myTasksButton).toHaveClass('bg-[#B1E743]');
   });
 
-  it('hides Workspace Settings and UI System buttons for dev and qa roles', () => {
+  it('hides Pengaturan Workspace and UI System buttons for dev and qa roles', () => {
     const store = configureStore({
       reducer: {
         auth: authReducer,
@@ -208,35 +208,35 @@ describe('Header', () => {
       </Provider>,
     );
 
-    expect(screen.queryByRole('button', { name: 'Workspace Settings' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'UI System' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Pengaturan Workspace' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
   });
 
-  it('shows Workspace Settings for PO and Admin roles while hiding UI System', () => {
+  it('shows Pengaturan Workspace for PO and Admin roles while hiding UI System', () => {
     const { unmount: unmountPo } = renderHeaderForRole('po');
-    expect(screen.getByRole('button', { name: 'Workspace Settings' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'UI System' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Pengaturan Workspace' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
     unmountPo();
 
     const { unmount: unmountAdmin } = renderHeaderForRole('admin');
-    expect(screen.getByRole('button', { name: 'Workspace Settings' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'UI System' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Pengaturan Workspace' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
     unmountAdmin();
   });
 
-  it('shows both Workspace Settings and UI System buttons for owner role', () => {
+  it('shows both Pengaturan Workspace and UI System buttons for owner role', () => {
     renderHeaderForRole('owner');
-    expect(screen.getByRole('button', { name: 'Workspace Settings' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'UI System' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pengaturan Workspace' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sistem UI' })).toBeInTheDocument();
   });
 
   it('hides the Task Creation Policy shortcut from the profile menu', async () => {
     const user = userEvent.setup();
     renderHeaderForRole('owner');
 
-    await user.click(screen.getByRole('button', { name: 'User Profile Menu' }));
+    await user.click(screen.getByRole('button', { name: 'Menu profil pengguna' }));
 
-    expect(screen.getAllByRole('button', { name: 'Workspace Settings' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Pengaturan Workspace' })).toHaveLength(2);
     expect(screen.queryByText('Task Creation Policy')).not.toBeInTheDocument();
   });
 
@@ -245,10 +245,10 @@ describe('Header', () => {
     renderHeaderForRole('owner');
 
     expect(
-      screen.queryByRole('button', { name: 'User Flow & Quality Gate Guide' }),
+      screen.queryByRole('button', { name: 'Panduan alur kerja & Quality Gate' }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'User Profile Menu' }));
+    await user.click(screen.getByRole('button', { name: 'Menu profil pengguna' }));
 
     expect(screen.queryByText('Panduan User Flow & Roles')).not.toBeInTheDocument();
   });
@@ -257,8 +257,8 @@ describe('Header', () => {
     const user = userEvent.setup();
     renderHeaderForRole('qa');
 
-    await user.click(screen.getByRole('button', { name: /switch workspace/i }));
+    await user.click(screen.getByRole('button', { name: /ganti workspace/i }));
 
-    expect(screen.queryByRole('button', { name: /^create workspace$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^buat workspace$/i })).not.toBeInTheDocument();
   });
 });

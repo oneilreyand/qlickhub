@@ -77,12 +77,11 @@ export const DeleteWorkspaceResponseSchema = z.object({
 });
 export type DeleteWorkspaceResponse = z.infer<typeof DeleteWorkspaceResponseSchema>;
 
-export const AddWorkspaceMemberSchema = z
+export const WorkspaceMemberAssignmentSchema = z
   .object({
-    email: z.string().email(),
-    role: AssignableWorkspaceRoleSchema.default('dev'),
+    workspaceId: z.string().uuid(),
+    role: AssignableWorkspaceRoleSchema,
     specialties: z.array(DeveloperSpecialtySchema).max(4).default([]),
-    workspaceIds: z.array(z.string().uuid()).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.role === 'dev' && data.specialties.length === 0) {
@@ -101,7 +100,57 @@ export const AddWorkspaceMemberSchema = z
     }
   });
 
-export type AddWorkspaceMemberInput = z.infer<typeof AddWorkspaceMemberSchema>;
+export type WorkspaceMemberAssignment = z.infer<typeof WorkspaceMemberAssignmentSchema>;
+
+export const AddWorkspaceMemberSchema = z
+  .object({
+    email: z.string().email(),
+    role: AssignableWorkspaceRoleSchema.default('dev'),
+    specialties: z.array(DeveloperSpecialtySchema).max(4).default([]),
+    workspaceIds: z.array(z.string().uuid()).optional(),
+    assignments: z.array(WorkspaceMemberAssignmentSchema).min(1).max(50).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.assignments) {
+      const workspaceIds = data.assignments.map((assignment) => assignment.workspaceId);
+      if (new Set(workspaceIds).size !== workspaceIds.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Each Workspace may appear only once',
+          path: ['assignments'],
+        });
+      }
+      return;
+    }
+    if (data.role === 'dev' && data.specialties.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one Developer specialty is required',
+        path: ['specialties'],
+      });
+    }
+    if (data.role !== 'dev' && data.specialties.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Developer specialties are allowed only for the dev role',
+        path: ['specialties'],
+      });
+    }
+  });
+
+export type AddWorkspaceMemberInput = z.input<typeof AddWorkspaceMemberSchema>;
+
+export const WorkspaceMemberAssignmentResultSchema = z.object({
+  workspaceId: z.string().uuid(),
+  workspaceName: z.string().min(1),
+  status: z.enum(['added', 'restored', 'already_member']),
+});
+
+export const AddWorkspaceMemberResultSchema = WorkspaceMemberSchema.extend({
+  assignmentResults: z.array(WorkspaceMemberAssignmentResultSchema).min(1),
+});
+
+export type AddWorkspaceMemberResult = z.infer<typeof AddWorkspaceMemberResultSchema>;
 
 export const UpdateMemberRoleSchema = z
   .object({

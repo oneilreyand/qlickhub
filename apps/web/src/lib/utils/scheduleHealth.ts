@@ -1,11 +1,6 @@
 import type { Task, ProductBrief } from '@qlick/contracts';
 
-export type ScheduleHealthStatus =
-  | 'on_track'
-  | 'at_risk'
-  | 'delayed'
-  | 'completed'
-  | 'unscheduled';
+export type ScheduleHealthStatus = 'on_track' | 'at_risk' | 'delayed' | 'completed' | 'unscheduled';
 
 export interface SubtaskScheduleHealth {
   status: ScheduleHealthStatus;
@@ -87,14 +82,14 @@ export function diffDays(dateAStr: string, dateBStr: string): number {
  */
 export function calculateSubtaskScheduleHealth(
   subtask: Task,
-  todayDate: Date = new Date()
+  todayDate: Date = new Date(),
 ): SubtaskScheduleHealth {
   const todayStr = normalizeDateStr(todayDate);
 
   if (subtask.status === 'done') {
     return {
       status: 'completed',
-      label: 'Done',
+      label: 'Selesai',
       daysRemaining: null,
       daysOverdue: 0,
       isOverdue: false,
@@ -105,7 +100,7 @@ export function calculateSubtaskScheduleHealth(
   if (subtask.status === 'canceled') {
     return {
       status: 'completed',
-      label: 'Canceled',
+      label: 'Dibatalkan',
       daysRemaining: null,
       daysOverdue: 0,
       isOverdue: false,
@@ -116,12 +111,12 @@ export function calculateSubtaskScheduleHealth(
   if (!subtask.dueDate) {
     return {
       status: 'unscheduled',
-      label: 'No Due Date',
+      label: 'Tanpa Tenggat',
       daysRemaining: null,
       daysOverdue: 0,
       isOverdue: false,
       isCompleted: false,
-      reason: 'Subtask has no scheduled due date',
+      reason: 'Subtask belum memiliki tenggat terjadwal',
     };
   }
 
@@ -131,47 +126,52 @@ export function calculateSubtaskScheduleHealth(
     const overdueDays = Math.abs(daysLeft);
     return {
       status: 'delayed',
-      label: `${overdueDays}d Overdue`,
+      label: `Terlambat ${overdueDays} hari`,
       daysRemaining: daysLeft,
       daysOverdue: overdueDays,
       isOverdue: true,
       isCompleted: false,
-      reason: `Due date was ${subtask.dueDate} (${overdueDays} day${overdueDays > 1 ? 's' : ''} ago)`,
+      reason: `Tenggat ${subtask.dueDate} (terlewat ${overdueDays} hari)`,
     };
   }
 
   if (subtask.status === 'changes_requested') {
     return {
       status: 'at_risk',
-      label: 'Changes Requested',
+      label: 'Perlu Perbaikan',
       daysRemaining: daysLeft,
       daysOverdue: 0,
       isOverdue: false,
       isCompleted: false,
-      reason: 'Reviewer requested revisions before verification can proceed',
+      reason: 'Reviewer meminta perbaikan sebelum verifikasi dapat dilanjutkan',
     };
   }
 
   if (daysLeft <= 2) {
     return {
       status: 'at_risk',
-      label: daysLeft === 0 ? 'Due Today' : daysLeft === 1 ? 'Due Tomorrow' : '2 Days Left',
+      label:
+        daysLeft === 0
+          ? 'Jatuh Tempo Hari Ini'
+          : daysLeft === 1
+            ? 'Jatuh Tempo Besok'
+            : 'Tersisa 2 Hari',
       daysRemaining: daysLeft,
       daysOverdue: 0,
       isOverdue: false,
       isCompleted: false,
-      reason: `Due very soon (${subtask.dueDate})`,
+      reason: `Tenggat segera tiba (${subtask.dueDate})`,
     };
   }
 
   return {
     status: 'on_track',
-    label: `${daysLeft}d Remaining`,
+    label: `Tersisa ${daysLeft} hari`,
     daysRemaining: daysLeft,
     daysOverdue: 0,
     isOverdue: false,
     isCompleted: false,
-    reason: `On schedule (due ${subtask.dueDate})`,
+    reason: `Sesuai jadwal (tenggat ${subtask.dueDate})`,
   };
 }
 
@@ -181,7 +181,7 @@ export function calculateSubtaskScheduleHealth(
 export function calculateTaskOverallScheduleHealth(
   parentTask: Task,
   subtasks: Task[] = [],
-  todayDate: Date = new Date()
+  todayDate: Date = new Date(),
 ): {
   status: ScheduleHealthStatus;
   label: string;
@@ -196,7 +196,7 @@ export function calculateTaskOverallScheduleHealth(
   if (parentTask.status === 'done' || parentTask.status === 'canceled') {
     return {
       status: 'completed',
-      label: parentTask.status === 'done' ? 'Completed' : 'Canceled',
+      label: parentTask.status === 'done' ? 'Selesai' : 'Dibatalkan',
       delayedCount: 0,
       atRiskCount: 0,
       onTrackCount: 0,
@@ -225,7 +225,7 @@ export function calculateTaskOverallScheduleHealth(
   if (delayedCount > 0 || parentIsOverdue) {
     return {
       status: 'delayed',
-      label: delayedCount > 0 ? `${delayedCount} Subtask${delayedCount > 1 ? 's' : ''} Delayed` : 'Parent Task Overdue',
+      label: delayedCount > 0 ? `${delayedCount} Subtask Terlambat` : 'Task Induk Terlambat',
       delayedCount,
       atRiskCount,
       onTrackCount,
@@ -237,7 +237,7 @@ export function calculateTaskOverallScheduleHealth(
   if (atRiskCount > 0) {
     return {
       status: 'at_risk',
-      label: `${atRiskCount} Subtask${atRiskCount > 1 ? 's' : ''} At Risk`,
+      label: `${atRiskCount} Subtask Berisiko`,
       delayedCount,
       atRiskCount,
       onTrackCount,
@@ -249,7 +249,7 @@ export function calculateTaskOverallScheduleHealth(
   if (subtasks.length > 0 && completedCount === subtasks.length) {
     return {
       status: 'completed',
-      label: 'All Subtasks Done',
+      label: 'Semua Subtask Selesai',
       delayedCount,
       atRiskCount,
       onTrackCount,
@@ -261,7 +261,7 @@ export function calculateTaskOverallScheduleHealth(
   if (subtasks.length === 0 && !parentTask.dueDate && !parentTask.startDate) {
     return {
       status: 'unscheduled',
-      label: 'Unscheduled',
+      label: 'Belum Dijadwalkan',
       delayedCount,
       atRiskCount,
       onTrackCount,
@@ -272,7 +272,7 @@ export function calculateTaskOverallScheduleHealth(
 
   return {
     status: 'on_track',
-    label: 'On Track',
+    label: 'Sesuai Jadwal',
     delayedCount,
     atRiskCount,
     onTrackCount,
@@ -289,7 +289,7 @@ export function calculateRoleOverlapAndBottlenecks(
   subtasks: Task[] = [],
   productBrief: ProductBrief | null = null,
   members: Array<{ userId: string; role: string; user?: { name?: string; email?: string } }> = [],
-  todayDate: Date = new Date()
+  todayDate: Date = new Date(),
 ): RoleOverlapAnalysis {
   const memberMap = new Map<string, string>();
   for (const m of members) {
@@ -304,7 +304,7 @@ export function calculateRoleOverlapAndBottlenecks(
     role: 'po' | 'backend' | 'frontend' | 'qa',
     name: string,
     shortLabel: string,
-    items: Task[]
+    items: Task[],
   ): RoleTimelineStage {
     if (items.length === 0) {
       return {
@@ -366,7 +366,7 @@ export function calculateRoleOverlapAndBottlenecks(
     }
 
     const assignees = Array.from(
-      new Set(items.map((i) => i.assigneeId).filter((id): id is string => Boolean(id)))
+      new Set(items.map((i) => i.assigneeId).filter((id): id is string => Boolean(id))),
     ).map((id) => ({
       id,
       name: memberMap.get(id) || 'Team Member',
@@ -402,7 +402,9 @@ export function calculateRoleOverlapAndBottlenecks(
     dueDate: parentTask.startDate || parentTask.dueDate || null,
     daysOverdue: 0,
     daysRemaining: null,
-    assignees: poAssigneeId ? [{ id: poAssigneeId, name: memberMap.get(poAssigneeId) || 'Product Owner' }] : [],
+    assignees: poAssigneeId
+      ? [{ id: poAssigneeId, name: memberMap.get(poAssigneeId) || 'Product Owner' }]
+      : [],
     overlapWithNextDays: 0,
     blockerReason: !productBrief ? 'Product brief specification is still in draft' : undefined,
   };
@@ -436,8 +438,9 @@ export function calculateRoleOverlapAndBottlenecks(
   let primaryBottleneck: RoleOverlapAnalysis['primaryBottleneck'] = {
     role: 'none',
     severity: 'none',
-    title: 'Schedule On Track',
-    description: 'All role deliverables and handoffs are running within planned timeline windows.',
+    title: 'Sesuai Jadwal',
+    description:
+      'Semua hasil kerja dan handoff antarperan berjalan dalam rentang waktu yang direncanakan.',
     overlapDays: 0,
   };
 
@@ -445,10 +448,10 @@ export function calculateRoleOverlapAndBottlenecks(
     primaryBottleneck = {
       role: 'backend',
       severity: 'delayed',
-      title: 'Dev Backend Bottleneck',
-      description: `Backend subtasks are ${beStage.daysOverdue} day${beStage.daysOverdue > 1 ? 's' : ''} overdue${
+      title: 'Hambatan Dev Backend',
+      description: `Subtask Backend terlambat ${beStage.daysOverdue} hari${
         beStage.overlapWithNextDays > 0
-          ? `, overlapping with Frontend development by ${beStage.overlapWithNextDays} days`
+          ? ` dan tumpang tindih dengan pengembangan Frontend selama ${beStage.overlapWithNextDays} hari`
           : ''
       }.`,
       overlapDays: beStage.overlapWithNextDays || beStage.daysOverdue,
@@ -457,10 +460,10 @@ export function calculateRoleOverlapAndBottlenecks(
     primaryBottleneck = {
       role: 'frontend',
       severity: 'delayed',
-      title: 'Dev Frontend Bottleneck',
-      description: `Frontend subtasks are ${feStage.daysOverdue} day${feStage.daysOverdue > 1 ? 's' : ''} overdue${
+      title: 'Hambatan Dev Frontend',
+      description: `Subtask Frontend terlambat ${feStage.daysOverdue} hari${
         feStage.overlapWithNextDays > 0
-          ? `, encroaching into the QA testing window by ${feStage.overlapWithNextDays} days`
+          ? ` dan mengurangi waktu pengujian QA selama ${feStage.overlapWithNextDays} hari`
           : ''
       }.`,
       overlapDays: feStage.overlapWithNextDays || feStage.daysOverdue,
@@ -469,8 +472,8 @@ export function calculateRoleOverlapAndBottlenecks(
     primaryBottleneck = {
       role: 'qa',
       severity: 'delayed',
-      title: 'QA Verification Bottleneck',
-      description: `QA verification is ${qaStage.daysOverdue} day${qaStage.daysOverdue > 1 ? 's' : ''} overdue after development completion.`,
+      title: 'Hambatan Verifikasi QA',
+      description: `Verifikasi QA terlambat ${qaStage.daysOverdue} hari setelah pengembangan selesai.`,
       overlapDays: qaStage.daysOverdue,
     };
   } else if (beStage.health === 'at_risk' || beStage.status === 'changes_requested') {
@@ -478,7 +481,9 @@ export function calculateRoleOverlapAndBottlenecks(
       role: 'backend',
       severity: 'at_risk',
       title: 'Dev Backend At Risk',
-      description: beStage.blockerReason || 'Backend subtask due date is approaching or revisions are requested.',
+      description:
+        beStage.blockerReason ||
+        'Backend subtask due date is approaching or revisions are requested.',
       overlapDays: beStage.overlapWithNextDays,
     };
   } else if (feStage.health === 'at_risk' || feStage.status === 'changes_requested') {
@@ -486,7 +491,9 @@ export function calculateRoleOverlapAndBottlenecks(
       role: 'frontend',
       severity: 'at_risk',
       title: 'Dev Frontend At Risk',
-      description: feStage.blockerReason || 'Frontend subtask due date is approaching or revisions are requested.',
+      description:
+        feStage.blockerReason ||
+        'Frontend subtask due date is approaching or revisions are requested.',
       overlapDays: feStage.overlapWithNextDays,
     };
   } else if (qaStage.health === 'at_risk' || qaStage.status === 'changes_requested') {
@@ -527,12 +534,12 @@ export function calculateRoleOverlapAndBottlenecks(
     delayedSubtasks > 0
       ? 'delayed'
       : atRiskSubtasks > 0
-      ? 'at_risk'
-      : subtasks.length > 0 && completedSubtasks === subtasks.length
-      ? 'completed'
-      : subtasks.length === 0
-      ? 'unscheduled'
-      : 'on_track';
+        ? 'at_risk'
+        : subtasks.length > 0 && completedSubtasks === subtasks.length
+          ? 'completed'
+          : subtasks.length === 0
+            ? 'unscheduled'
+            : 'on_track';
 
   const stages = { po: poStage, backend: beStage, frontend: feStage, qa: qaStage };
   const stageList = [poStage, beStage, feStage, qaStage];

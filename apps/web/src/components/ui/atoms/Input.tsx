@@ -71,8 +71,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               disabled={disabled}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              title={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+              title={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
               className="absolute right-3 flex items-center justify-center p-1 rounded-md text-stone-400 hover:text-stone-700 dark:text-stone-500 dark:hover:text-stone-300 focus:outline-hidden transition-colors disabled:opacity-50 disabled:pointer-events-none"
               tabIndex={-1}
             >

@@ -99,7 +99,7 @@ describe('RoleOnboardingModal Organism', () => {
         <MemoryRouter>
           <RoleOnboardingModal isOpen={false} onClose={vi.fn()} />
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.queryByText('Onboarding Panduan Peran Tim')).not.toBeInTheDocument();
@@ -112,7 +112,7 @@ describe('RoleOnboardingModal Organism', () => {
         <MemoryRouter>
           <RoleOnboardingModal isOpen={true} onClose={vi.fn()} />
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.getByText('Onboarding Panduan Peran Tim')).toBeInTheDocument();
@@ -137,7 +137,7 @@ describe('RoleOnboardingModal Organism', () => {
         <MemoryRouter>
           <RoleOnboardingModal isOpen={true} onClose={onClose} userOverride={devUser} />
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     // Step 1 Check
@@ -158,7 +158,7 @@ describe('RoleOnboardingModal Organism', () => {
     // Click Next -> Step 4
     fireEvent.click(screen.getByText('Lanjutkan'));
     expect(screen.getByText('Anda Siap Memulai di Qlick Hub!')).toBeInTheDocument();
-    expect(screen.getByText('Buka My Tasks (Ruang Kerja Dev)')).toBeInTheDocument();
+    expect(screen.getByText('Buka My Tasks (Area Kerja Dev)')).toBeInTheDocument();
     expect(screen.getByText('Selesaikan Onboarding')).toBeInTheDocument();
 
     // Click Complete Onboarding
@@ -186,13 +186,13 @@ describe('RoleOnboardingModal Organism', () => {
         <MemoryRouter>
           <RoleOnboardingModal isOpen={true} onClose={vi.fn()} userOverride={qaUser} />
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     // Go to Step 2
     fireEvent.click(screen.getByText('Lanjutkan'));
     expect(screen.getByText('Quality Gatekeeper')).toBeInTheDocument();
-    expect(screen.getByText('Review Notes & Bug Report')).toBeInTheDocument();
+    expect(screen.getByText('Catatan Review & Laporan Bug')).toBeInTheDocument();
     expect(screen.getByText('Validasi Done')).toBeInTheDocument();
     expect(screen.getByText('Traceability & Test Cases')).toBeInTheDocument();
   });
@@ -204,7 +204,7 @@ describe('RoleOnboardingModal Organism', () => {
         <MemoryRouter>
           <RoleOnboardingModal isOpen={true} onClose={vi.fn()} />
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     fireEvent.click(screen.getByText('Lanjutkan'));
@@ -222,7 +222,7 @@ describe('RoleOnboardingModal Organism', () => {
         <MemoryRouter>
           <RoleOnboardingModal isOpen={true} onClose={onClose} />
         </MemoryRouter>
-      </Provider>
+      </Provider>,
     );
 
     fireEvent.click(screen.getByText('Lewati untuk Sekarang'));

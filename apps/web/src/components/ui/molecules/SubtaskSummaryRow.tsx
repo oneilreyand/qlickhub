@@ -34,7 +34,6 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
   hasUnreadComment = false,
   unreadCommentCount = 0,
 }) => {
-
   const isCompleted = subtask.status === 'done';
   const isChangesRequested = subtask.status === 'changes_requested';
   const hasDescription = Boolean(subtask.description && subtask.description.trim().length > 0);
@@ -93,7 +92,6 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
     }
   };
 
-
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
       {/* Left side: Area badge, Title, and Indicators */}
@@ -135,10 +133,11 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
             >
               <MessageSquare className="h-3 w-3" />
               <span>{commentCount}</span>
-              <span className="text-[9px] font-extrabold uppercase">• +{unreadCommentCount} Baru</span>
+              <span className="text-[9px] font-extrabold uppercase">
+                • +{unreadCommentCount} Baru
+              </span>
             </span>
           ) : commentCount > 0 ? (
-
             <span
               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50"
               title={`${commentCount} discussion comments`}
@@ -146,10 +145,7 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
               <MessageSquare className="h-3 w-3" />
               <span>{commentCount}</span>
             </span>
-
-
           ) : null}
-
 
           {isChangesRequested && (
             <span
@@ -157,7 +153,7 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
               title="Changes requested by reviewer"
             >
               <AlertCircle className="h-3 w-3" />
-              <span>Revise</span>
+              <span>Perbaiki</span>
             </span>
           )}
 
@@ -185,16 +181,14 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
         {/* Assignee Avatar / Name */}
         <div
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-stone-100/80 dark:bg-stone-800/70 text-[11px] text-stone-700 dark:text-stone-300"
-          title={`Assignee: ${assigneeName || 'Unassigned'}`}
+          title={`Penanggung jawab: ${assigneeName || 'Belum ditugaskan'}`}
         >
           {assigneeName ? (
             <Avatar name={assigneeName} size="sm" className="h-4 w-4 text-[9px]" />
           ) : (
             <User className="h-3 w-3 text-stone-400" />
           )}
-          <span className="max-w-[100px] truncate font-medium">
-            {assigneeName || 'Unassigned'}
-          </span>
+          <span className="max-w-[100px] truncate font-medium">{assigneeName || 'Unassigned'}</span>
         </div>
 
         {/* Static Status Badge (Read-Only) */}

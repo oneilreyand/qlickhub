@@ -141,7 +141,7 @@ const releaseDecision = (
   featureTaskId: ids.feature,
   qaSignOffId: ids.signOff,
   decision,
-  notes: 'Approved for launch',
+  notes: 'Disetujui for launch',
   overrideReason: null,
   readinessSnapshot: readinessSnapshot('approved'),
   decidedBy: ids.po,
@@ -218,9 +218,9 @@ describe('ReleaseAssurancePanel', () => {
 
   it('renders persisted loading/empty states and an explicit QA decision action', async () => {
     renderPanel('qa');
-    expect(screen.getByLabelText('Loading QA Certification')).toBeInTheDocument();
-    expect(await screen.findByText('No QA Sign-off recorded')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Record QA Sign-off' })).toBeEnabled();
+    expect(screen.getByLabelText('Memuat Sertifikasi QA')).toBeInTheDocument();
+    expect(await screen.findByText('Belum ada Persetujuan QA')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Catat Persetujuan QA' })).toBeEnabled();
   });
 
   it('recovers from a generic load error', async () => {
@@ -230,21 +230,21 @@ describe('ReleaseAssurancePanel', () => {
     const user = userEvent.setup();
     renderPanel('qa');
     expect(await screen.findByText('Release records unavailable.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByText('No QA Sign-off recorded')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Coba lagi' }));
+    expect(await screen.findByText('Belum ada Persetujuan QA')).toBeInTheDocument();
   });
 
   it('records QA Sign-off by keyboard without changing any Task field', async () => {
     releaseServiceMocks.createQaSignOff.mockResolvedValue(qaSignOff());
     const user = userEvent.setup();
     renderPanel('qa');
-    await user.click(await screen.findByRole('button', { name: 'Record QA Sign-off' }));
+    await user.click(await screen.findByRole('button', { name: 'Catat Persetujuan QA' }));
     const dialog = screen.getByRole('dialog');
     await user.type(
-      within(dialog).getByLabelText('QA certification notes (optional)'),
+      within(dialog).getByLabelText('Catatan sertifikasi QA (opsional)'),
       'Regression passed on staging.',
     );
-    const submit = within(dialog).getByRole('button', { name: 'Record decision' });
+    const submit = within(dialog).getByRole('button', { name: 'Catat Keputusan' });
     submit.focus();
     await user.keyboard('{Enter}');
 
@@ -256,18 +256,18 @@ describe('ReleaseAssurancePanel', () => {
     );
   });
 
-  it('records an independent Product Owner Release Decision against the latest QA Sign-off', async () => {
+  it('records an independent Product Owner Keputusan Rilis against the latest QA Sign-off', async () => {
     releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(records([qaSignOff()]));
     releaseServiceMocks.createReleaseDecision.mockResolvedValue({ id: 'release-id' });
     const user = userEvent.setup();
     renderPanel('release');
-    await user.click(await screen.findByRole('button', { name: 'Record Release Decision' }));
+    await user.click(await screen.findByRole('button', { name: 'Catat Keputusan Rilis' }));
     const dialog = screen.getByRole('dialog');
     await user.type(
-      within(dialog).getByLabelText('Release notes (optional)'),
-      'Approved for rollout.',
+      within(dialog).getByLabelText('Catatan rilis (opsional)'),
+      'Disetujui for rollout.',
     );
-    await user.click(within(dialog).getByRole('button', { name: 'Record decision' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Catat Keputusan' }));
 
     await waitFor(() =>
       expect(releaseServiceMocks.createReleaseDecision).toHaveBeenCalledWith(
@@ -276,7 +276,7 @@ describe('ReleaseAssurancePanel', () => {
         {
           qaSignOffId: ids.signOff,
           decision: 'approved',
-          notes: 'Approved for rollout.',
+          notes: 'Disetujui for rollout.',
           overrideReason: null,
         },
       ),
@@ -290,17 +290,17 @@ describe('ReleaseAssurancePanel', () => {
     releaseServiceMocks.createReleaseDecision.mockResolvedValue({ id: 'override-id' });
     const user = userEvent.setup();
     renderPanel('release');
-    await user.click(await screen.findByRole('button', { name: 'Record Release Decision' }));
+    await user.click(await screen.findByRole('button', { name: 'Catat Keputusan Rilis' }));
     const dialog = screen.getByRole('dialog');
-    await user.click(within(dialog).getByRole('button', { name: 'Record decision' }));
-    expect(await within(dialog).findByText(/Override reason is required/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Catat Keputusan' }));
+    expect(await within(dialog).findByText(/Alasan override wajib diisi/)).toBeInTheDocument();
     expect(releaseServiceMocks.createReleaseDecision).not.toHaveBeenCalled();
 
     await user.type(
-      within(dialog).getByLabelText('Override reason'),
+      within(dialog).getByLabelText('Alasan override'),
       'Emergency release with rollback plan.',
     );
-    await user.click(within(dialog).getByRole('button', { name: 'Record decision' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Catat Keputusan' }));
     await waitFor(() =>
       expect(releaseServiceMocks.createReleaseDecision).toHaveBeenCalledWith(
         ids.workspace,
@@ -319,19 +319,22 @@ describe('ReleaseAssurancePanel', () => {
     renderPanel('release');
 
     expect(await screen.findByText('1/2 development subtasks are complete.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Record Release Decision' }));
+    await user.click(screen.getByRole('button', { name: 'Catat Keputusan Rilis' }));
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText('1/2 development subtasks are complete.')).toBeInTheDocument();
-    await user.click(within(dialog).getByRole('button', { name: 'Record decision' }));
-    expect(await within(dialog).findByText(/Override reason is required/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Catat Keputusan' }));
+    expect(await within(dialog).findByText(/Alasan override wajib diisi/)).toBeInTheDocument();
   });
 
   it('disables self-approval and explains the independent decision requirement', async () => {
     releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(records([qaSignOff()]));
     renderPanel('release', { currentUserId: ids.qa, userRole: 'owner' });
-    const button = await screen.findByRole('button', { name: 'Record Release Decision' });
+    const button = await screen.findByRole('button', { name: 'Catat Keputusan Rilis' });
     expect(button).toBeDisabled();
-    expect(screen.getByText(/cannot make its Release Decision/)).toBeInTheDocument();
+    expect(button).toHaveAttribute(
+      'title',
+      'Pemberi persetujuan QA tidak dapat membuat Keputusan Rilis untuk sertifikasi yang sama',
+    );
   });
 
   it('allows QA signer to cancel their QA Sign-off with mandatory reason (D3)', async () => {
@@ -340,23 +343,23 @@ describe('ReleaseAssurancePanel', () => {
     const user = userEvent.setup();
     renderPanel('qa', { currentUserId: ids.qa, userRole: 'qa' });
 
-    const cancelBtn = await screen.findByRole('button', { name: 'Cancel Sign-off' });
+    const cancelBtn = await screen.findByRole('button', { name: 'Batalkan Sign-off' });
     await user.click(cancelBtn);
 
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText('Cancel QA Sign-off')).toBeInTheDocument();
+    expect(within(dialog).getByText('Batalkan Persetujuan QA')).toBeInTheDocument();
 
     // Try submitting without reason
-    await user.click(within(dialog).getByRole('button', { name: 'Confirm Cancellation' }));
-    expect(await within(dialog).findByText('Cancellation reason is required.')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Konfirmasi Pembatalan' }));
+    expect(await within(dialog).findByText('Alasan pembatalan wajib diisi.')).toBeInTheDocument();
     expect(releaseServiceMocks.cancelQaSignOff).not.toHaveBeenCalled();
 
     // Enter reason and confirm
     await user.type(
-      within(dialog).getByLabelText('Cancellation reason'),
+      within(dialog).getByLabelText('Alasan pembatalan'),
       'Discovered regression in build 102.',
     );
-    await user.click(within(dialog).getByRole('button', { name: 'Confirm Cancellation' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Konfirmasi Pembatalan' }));
 
     await waitFor(() =>
       expect(releaseServiceMocks.cancelQaSignOff).toHaveBeenCalledWith(
@@ -368,7 +371,7 @@ describe('ReleaseAssurancePanel', () => {
     );
   });
 
-  it('allows Product Owner to cancel a Release Decision with mandatory reason (D4)', async () => {
+  it('allows Product Owner to cancel a Keputusan Rilis with mandatory reason (D4)', async () => {
     releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(
       records([qaSignOff()], readinessSnapshot(), [releaseDecision()]),
     );
@@ -376,17 +379,17 @@ describe('ReleaseAssurancePanel', () => {
     const user = userEvent.setup();
     renderPanel('release', { currentUserId: ids.po, userRole: 'po' });
 
-    const cancelBtn = await screen.findByRole('button', { name: 'Cancel Decision' });
+    const cancelBtn = await screen.findByRole('button', { name: 'Batalkan Keputusan' });
     await user.click(cancelBtn);
 
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText('Cancel Release Decision')).toBeInTheDocument();
+    expect(within(dialog).getByText('Batalkan Keputusan Rilis')).toBeInTheDocument();
 
     await user.type(
-      within(dialog).getByLabelText('Cancellation reason'),
+      within(dialog).getByLabelText('Alasan pembatalan'),
       'Infrastructure degradation requiring rollback.',
     );
-    await user.click(within(dialog).getByRole('button', { name: 'Confirm Cancellation' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Konfirmasi Pembatalan' }));
 
     await waitFor(() =>
       expect(releaseServiceMocks.cancelReleaseDecision).toHaveBeenCalledWith(
@@ -398,23 +401,23 @@ describe('ReleaseAssurancePanel', () => {
     );
   });
 
-  it('displays sequence warning and disables QA cancellation when active Release Decision exists (D5)', async () => {
+  it('displays sequence warning and disables QA cancellation when active Keputusan Rilis exists (D5)', async () => {
     releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(
       records([qaSignOff()], readinessSnapshot(), [releaseDecision()]),
     );
     const user = userEvent.setup();
     renderPanel('qa', { currentUserId: ids.qa, userRole: 'qa' });
 
-    const cancelBtn = await screen.findByRole('button', { name: 'Cancel Sign-off' });
+    const cancelBtn = await screen.findByRole('button', { name: 'Batalkan Sign-off' });
     await user.click(cancelBtn);
 
     const dialog = screen.getByRole('dialog');
     expect(
       within(dialog).getByText(
-        /You must cancel the Release Decision before cancelling this QA Sign-off/,
+        /Batalkan Keputusan Rilis terlebih dahulu sebelum membatalkan QA Sign-off ini/,
       ),
     ).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Confirm Cancellation' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Konfirmasi Pembatalan' })).toBeDisabled();
   });
 
   it('renders cancelled status badge and reason for cancelled records', async () => {
@@ -427,7 +430,7 @@ describe('ReleaseAssurancePanel', () => {
     releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(records([cancelledSignOff]));
     renderPanel('qa');
 
-    expect(await screen.findByText('Cancelled (Approved)')).toBeInTheDocument();
+    expect(await screen.findByText('Dibatalkan (Disetujui)')).toBeInTheDocument();
     expect(screen.getByText(/"Superseded by urgent patch"/)).toBeInTheDocument();
   });
 });

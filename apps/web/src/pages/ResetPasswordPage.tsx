@@ -59,15 +59,15 @@ export const ResetPasswordPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) {
-      setErrorMessage('Invalid or missing password reset token.');
+      setErrorMessage('Token atur ulang kata sandi tidak valid atau tidak tersedia.');
       return;
     }
     if (newPassword.length < 6) {
-      setErrorMessage('Password must be at least 6 characters long.');
+      setErrorMessage('Kata sandi minimal terdiri dari 6 karakter.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setErrorMessage('Passwords do not match.');
+      setErrorMessage('Konfirmasi kata sandi tidak cocok.');
       return;
     }
 
@@ -81,7 +81,9 @@ export const ResetPasswordPage: React.FC = () => {
         navigate('/login');
       }, 2500);
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to reset password. The link may have expired.');
+      setErrorMessage(
+        err?.message || 'Kata sandi gagal diatur ulang. Tautan mungkin sudah kedaluwarsa.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -95,13 +97,13 @@ export const ResetPasswordPage: React.FC = () => {
 
       <div className="w-full max-w-md bg-white p-8 rounded-[24px] border border-stone-200/80 shadow-xl shadow-stone-200/60 space-y-6 relative z-10">
         <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-stone-900">Set New Password</h1>
-          <p className="text-sm text-stone-500">Please enter and confirm your new password.</p>
+          <h1 className="text-xl font-bold text-stone-900">Buat Kata Sandi Baru</h1>
+          <p className="text-sm text-stone-500">Masukkan dan konfirmasikan kata sandi baru Anda.</p>
         </div>
 
         {!token && (
           <Alert tone="error" icon={<AlertTriangle className="h-4 w-4 text-rose-500" />}>
-            No reset token found in link. Please request a new reset link.
+            Tautan tidak memiliki token atur ulang. Silakan minta tautan baru.
           </Alert>
         )}
 
@@ -113,14 +115,16 @@ export const ResetPasswordPage: React.FC = () => {
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-semibold text-stone-900">Password Reset Complete!</h3>
+              <h3 className="text-base font-semibold text-stone-900">
+                Kata Sandi Berhasil Diatur Ulang
+              </h3>
               <p className="text-xs text-stone-500">
-                Your password has been successfully updated. Redirecting you to sign in…
+                Kata sandi berhasil diperbarui. Anda akan diarahkan ke halaman masuk…
               </p>
             </div>
             <div className="pt-2">
               <Link to="/login">
-                <Button className="w-full">Sign In Now</Button>
+                <Button className="w-full">Masuk Sekarang</Button>
               </Link>
             </div>
           </div>
@@ -130,7 +134,7 @@ export const ResetPasswordPage: React.FC = () => {
               id="new-password-input"
               leftIcon={<Lock className="h-3.5 w-3.5 text-stone-400" />}
               type="password"
-              placeholder="New password (min 6 characters)"
+              placeholder="Kata sandi baru (minimal 6 karakter)"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400"
@@ -142,7 +146,7 @@ export const ResetPasswordPage: React.FC = () => {
               id="confirm-password-input"
               leftIcon={<Lock className="h-3.5 w-3.5 text-stone-400" />}
               type="password"
-              placeholder="Confirm new password"
+              placeholder="Konfirmasi kata sandi baru"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400"
@@ -158,7 +162,7 @@ export const ResetPasswordPage: React.FC = () => {
                 disabled={!token || isLoading}
                 rightIcon={<ArrowRight className="h-4 w-4" />}
               >
-                {isLoading ? 'Updating Password…' : 'Update Password'}
+                {isLoading ? 'Memperbarui kata sandi…' : 'Perbarui Kata Sandi'}
               </Button>
             </div>
           </form>

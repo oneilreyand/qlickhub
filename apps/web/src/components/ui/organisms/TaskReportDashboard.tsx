@@ -88,7 +88,7 @@ const deliveryAreaConfig: Record<
   }
 > = {
   frontend: {
-    label: 'Frontend UI & Client',
+    label: 'UI & Client Frontend',
     shortLabel: 'Frontend',
     icon: Code2,
     colorClass: 'text-stone-800 dark:text-stone-200',
@@ -97,7 +97,7 @@ const deliveryAreaConfig: Record<
     barVariant: 'brand',
   },
   backend: {
-    label: 'Backend API & Database',
+    label: 'API & Database Backend',
     shortLabel: 'Backend',
     icon: Layers,
     colorClass: 'text-stone-800 dark:text-stone-200',
@@ -106,7 +106,7 @@ const deliveryAreaConfig: Record<
     barVariant: 'amber',
   },
   mobile: {
-    label: 'Mobile Applications (iOS/Android)',
+    label: 'Aplikasi Mobile (iOS/Android)',
     shortLabel: 'Mobile',
     icon: Smartphone,
     colorClass: 'text-stone-800 dark:text-stone-200',
@@ -115,7 +115,7 @@ const deliveryAreaConfig: Record<
     barVariant: 'brand',
   },
   fullstack: {
-    label: 'Fullstack Engineering',
+    label: 'Engineering Fullstack',
     shortLabel: 'Fullstack',
     icon: Cpu,
     colorClass: 'text-stone-800 dark:text-stone-200',
@@ -124,8 +124,8 @@ const deliveryAreaConfig: Record<
     barVariant: 'brand',
   },
   qa: {
-    label: 'QA Verification & Quality Gates',
-    shortLabel: 'QA & Testing',
+    label: 'Verifikasi QA & Quality Gate',
+    shortLabel: 'QA & Pengujian',
     icon: Bug,
     colorClass: 'text-[#22201F] dark:text-[#B1E743]',
     bgClass: 'bg-[#B1E743]/10 dark:bg-[#B1E743]/10',
@@ -300,7 +300,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
         if (!entry) {
           entry = {
             userId: item.assigneeId,
-            name: memberMap.get(item.assigneeId)?.name || 'Assignee',
+            name: memberMap.get(item.assigneeId)?.name || 'Penerima Tugas',
             email: memberMap.get(item.assigneeId)?.email || '',
             role: memberMap.get(item.assigneeId)?.role || 'member',
             specialties: memberMap.get(item.assigneeId)?.specialties || [],
@@ -414,8 +414,8 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
   }, [tasks, members, memberMap]);
 
   const periodDescription = dateRange
-    ? 'Metrics include tasks and deliverables with a due date in the selected range.'
-    : 'Metrics include every task and workstream across this workspace.';
+    ? 'Metrik mencakup Task dan hasil kerja dengan tenggat dalam rentang yang dipilih.'
+    : 'Metrik mencakup seluruh Task dan workstream di Workspace ini.';
   const isInitialLoading = isLoading && tasks.length === 0;
 
   return (
@@ -425,15 +425,15 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
             <FileBarChart className="h-4 w-4 text-[#22201F] dark:text-[#B1E743]" />
-            Workspace Delivery Intelligence
+            Analitik Delivery Workspace
           </div>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[#22201F] dark:text-white">
-            Delivery & SDLC Report
+            Laporan Delivery &amp; SDLC
           </h1>
           <p className="mt-1 text-sm font-medium text-stone-500 dark:text-stone-400">
             {workspaceName
               ? `${workspaceName} · ${periodDescription}`
-              : 'Cross-functional delivery tracking connecting Product Owners, Engineering, and QA.'}
+              : 'Pelacakan delivery lintas fungsi yang menghubungkan Product Owner, Engineering, dan QA.'}
           </p>
         </div>
 
@@ -442,7 +442,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
             <DateRangePicker
               value={dateRange}
               onChange={onDateRangeChange}
-              placeholder="Filter due dates"
+              placeholder="Filter tenggat"
             />
           )}
           <Button
@@ -452,7 +452,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
             isLoading={isLoading}
             leftIcon={<RefreshCw className="h-4 w-4" />}
           >
-            Refresh
+            Muat ulang
           </Button>
         </div>
       </div>
@@ -468,7 +468,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
           }`}
         >
           <Activity className="h-3.5 w-3.5" />
-          Delivery & SDLC Overview
+          Ringkasan Delivery &amp; SDLC
         </button>
         <button
           onClick={() => setActiveReportTab('workstreams')}
@@ -479,7 +479,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
           }`}
         >
           <Users className="h-3.5 w-3.5" />
-          Roles & Workstreams
+          Peran &amp; Alur Kerja
         </button>
         <button
           onClick={() => setActiveReportTab('bottlenecks')}
@@ -490,7 +490,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
           }`}
         >
           <TrendingUp className="h-3.5 w-3.5" />
-          Bottlenecks & Schedule Health
+          Hambatan &amp; Kondisi Jadwal
         </button>
         <button
           onClick={() => setActiveReportTab('qa')}
@@ -501,15 +501,15 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
           }`}
         >
           <ShieldCheck className="h-3.5 w-3.5" />
-          QA Governance & Traceability
+          Tata Kelola QA &amp; Keterlacakan
         </button>
       </div>
 
       {requiresWorkspace ? (
         <EmptyState
           icon={<ClipboardCheck className="h-6 w-6" />}
-          title="Choose a workspace to view reports"
-          description="Reports are calculated from the tasks and workstreams you are permitted to see in the active workspace."
+          title="Pilih Workspace untuk melihat laporan"
+          description="Laporan dihitung dari Task dan workstream yang boleh Anda lihat di Workspace aktif."
         />
       ) : activeReportTab === 'qa' && workspaceId ? (
         <div className="space-y-6">
@@ -522,7 +522,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                   : 'text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
               }`}
             >
-              Traceability Matrix
+              Matriks Keterlacakan
             </button>
             <button
               onClick={() => setQaSubTab('docs')}
@@ -532,7 +532,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                   : 'text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
               }`}
             >
-              Test Plans & Quality Documents
+              Rencana Pengujian &amp; Dokumen Mutu
             </button>
           </div>
 
@@ -543,11 +543,15 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
           )}
         </div>
       ) : error && tasks.length === 0 ? (
-        <Alert tone="error" icon={<AlertTriangle className="h-4 w-4" />} title="Report unavailable">
+        <Alert
+          tone="error"
+          icon={<AlertTriangle className="h-4 w-4" />}
+          title="Laporan tidak tersedia"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
             <Button variant="outline" size="sm" onClick={onRefresh}>
-              Try again
+              Coba lagi
             </Button>
           </div>
         </Alert>
@@ -556,13 +560,13 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
       ) : tasks.length === 0 ? (
         <EmptyState
           icon={<FileBarChart className="h-6 w-6" />}
-          title="No tasks in this report"
+          title="Belum ada Task dalam laporan ini"
           description={
             dateRange
-              ? 'Try another due-date range, or clear the filter to report on the full workspace.'
-              : 'Create tasks in Work Hub to start tracking end-to-end delivery progress across Product, Engineering, and QA.'
+              ? 'Coba rentang tenggat lain atau hapus filter untuk melihat seluruh Workspace.'
+              : 'Buat Task di Work Hub untuk mulai melacak progres delivery Product, Engineering, dan QA.'
           }
-          actionLabel="Open Work Hub"
+          actionLabel="Buka Work Hub"
           onAction={onOpenWorkHub}
         />
       ) : (
@@ -571,9 +575,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
             <Alert
               tone="warning"
               icon={<AlertTriangle className="h-4 w-4" />}
-              title="Last refresh did not finish"
+              title="Pembaruan terakhir tidak selesai"
             >
-              {error} The report below uses the data loaded previously.
+              {error} Laporan di bawah menggunakan data yang dimuat sebelumnya.
             </Alert>
           ) : null}
 
@@ -585,14 +589,15 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                   <div className="flex flex-col gap-1 border-b border-stone-100 pb-4 dark:border-stone-800 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-                        Feature Release Readiness
+                        Kesiapan Rilis Feature
                       </h2>
                       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                        Current backend-evaluated gates for every Feature in this report.
+                        Quality Gate terkini yang dievaluasi backend untuk setiap Feature dalam
+                        laporan.
                       </p>
                     </div>
                     <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
-                      {tasks.length} Feature(s)
+                      {tasks.length} Feature
                     </span>
                   </div>
                   <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
@@ -623,32 +628,32 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
               {/* Stat Cards Grid */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
-                  title="Tasks & Subtasks"
+                  title="Task & Subtask"
                   value={total + report.allSubtasks.length}
-                  description={`${total} parent tasks · ${report.allSubtasks.length} subtasks`}
+                  description={`${total} Task induk · ${report.allSubtasks.length} Subtask`}
                   icon={<ClipboardCheck className="h-5 w-5" />}
                 />
                 <StatCard
-                  title="Task Completion Rate"
+                  title="Tingkat Penyelesaian Task"
                   value={`${report.completionRate}%`}
-                  description={`${report.completedTasks} of ${tasks.length} parent tasks done`}
+                  description={`${report.completedTasks} dari ${tasks.length} Task induk selesai`}
                   icon={<CheckCircle2 className="h-5 w-5" />}
                 />
                 <StatCard
                   title="Review & Quality Gate"
                   value={report.inReviewCount + report.changesRequestedCount}
-                  description={`${report.inReviewCount} in review · ${report.changesRequestedCount} changes requested`}
+                  description={`${report.inReviewCount} dalam review · ${report.changesRequestedCount} perlu perbaikan`}
                   icon={<Clock3 className="h-5 w-5" />}
                 />
                 <StatCard
-                  title="Needs Attention"
+                  title="Perlu Perhatian"
                   value={
                     report.overdueTasks.length +
                     report.dueTodayTasks.length +
                     report.overdueSubtasks.length +
                     report.dueTodaySubtasks.length
                   }
-                  description={`${report.overdueTasks.length + report.overdueSubtasks.length} overdue · ${report.dueTodayTasks.length + report.dueTodaySubtasks.length} due today`}
+                  description={`${report.overdueTasks.length + report.overdueSubtasks.length} terlambat · ${report.dueTodayTasks.length + report.dueTodaySubtasks.length} jatuh tempo hari ini`}
                   icon={<AlertTriangle className="h-5 w-5" />}
                 />
               </div>
@@ -660,14 +665,14 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                   <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-4 dark:border-stone-800">
                     <div>
                       <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-                        Delivery Health
+                        Kondisi Delivery
                       </h2>
                       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                        Task lifecycle distribution across the workspace.
+                        Distribusi siklus Task di seluruh Workspace.
                       </p>
                     </div>
                     <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                      {tasks.length} tasks
+                      {tasks.length} Task
                     </span>
                   </div>
 
@@ -696,7 +701,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                           <div className="flex items-center justify-between gap-3">
                             <TaskStatusBadge state={status} />
                             <span className="text-xs font-bold text-stone-700 dark:text-stone-300">
-                              {report.byStatus[status] || 0} tasks
+                              {report.byStatus[status] || 0} Task
                             </span>
                           </div>
                           <ProgressBar
@@ -716,15 +721,15 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                   <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-4 dark:border-stone-800">
                     <div>
                       <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-                        Cross-Functional Delivery Areas
+                        Area Delivery Lintas Fungsi
                       </h2>
                       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                        Subtask volume and completion across Frontend, Backend, Mobile, Fullstack,
-                        and QA.
+                        Volume dan penyelesaian Subtask di Frontend, Backend, Mobile, Fullstack, dan
+                        QA.
                       </p>
                     </div>
                     <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                      {report.allSubtasks.length} subtasks
+                      {report.allSubtasks.length} Subtask
                     </span>
                   </div>
 
@@ -768,9 +773,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                           </div>
 
                           <div className="mt-2 flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400">
-                            <span>{areaStats.inProgress} in progress</span>
+                            <span>{areaStats.inProgress} dikerjakan</span>
                             <span>{areaStats.inReview + areaStats.changesRequested} review</span>
-                            <span>{areaStats.todo} to do</span>
+                            <span>{areaStats.todo} belum dikerjakan</span>
                           </div>
                         </div>
                       );
@@ -782,15 +787,15 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
               {/* Priority Closure Chart */}
               <div className="grid grid-cols-1 gap-6">
                 <BarChart
-                  title="Closure by Priority"
-                  subtitle="Completed deliverables compared with active work across priority tiers."
+                  title="Penyelesaian per Prioritas"
+                  subtitle="Perbandingan hasil kerja selesai dan pekerjaan aktif pada tiap tingkat prioritas."
                   data={priorityOrder.map((priority) => ({
                     label: priorityLabels[priority],
                     value: report.byPriority[priority].closed,
                     secondaryValue: report.byPriority[priority].open,
                   }))}
-                  primaryLabel="Completed"
-                  secondaryLabel="Open / In Flight"
+                  primaryLabel="Selesai"
+                  secondaryLabel="Terbuka / Berjalan"
                   height={220}
                 />
               </div>
@@ -800,14 +805,14 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 <div className="flex flex-col gap-3 border-b border-stone-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-stone-800">
                   <div>
                     <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-                      Cross-Functional Attention Queue
+                      Antrean Perhatian Lintas Fungsi
                     </h2>
                     <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                      Open tasks and subtasks that are overdue or due today across all workstreams.
+                      Task dan Subtask terbuka yang terlambat atau jatuh tempo hari ini.
                     </p>
                   </div>
                   <Button variant="outline" size="sm" onClick={onOpenWorkHub}>
-                    Open Work Hub
+                    Buka Work Hub
                   </Button>
                 </div>
 
@@ -835,7 +840,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                               )}
                               {!item.isSubtask && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                                  Parent Feature
+                                  Feature Induk
                                 </span>
                               )}
                               <span className="font-mono text-[11px] font-bold text-stone-400 dark:text-stone-500">
@@ -857,8 +862,8 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                               <CalendarDays className="h-3.5 w-3.5 shrink-0" />
                               <span>
                                 {isOverdue
-                                  ? `Overdue · ${item.dueDate}`
-                                  : `Due today · ${item.dueDate}`}
+                                  ? `Terlambat · ${item.dueDate}`
+                                  : `Jatuh tempo hari ini · ${item.dueDate}`}
                               </span>
                             </span>
                             <span className="rounded-full bg-stone-100 px-2 py-1 text-[11px] text-stone-700 dark:bg-stone-800 dark:text-stone-300">
@@ -873,11 +878,10 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                   <div className="flex flex-col items-center justify-center gap-2 p-10 text-center">
                     <CheckCircle2 className="h-7 w-7 text-emerald-500 dark:text-emerald-400" />
                     <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                      Nothing needs attention right now
+                      Tidak ada yang perlu diperhatikan saat ini
                     </p>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
-                      There are no open tasks or subtasks overdue or due today in this reporting
-                      scope.
+                      Tidak ada Task atau Subtask terbuka yang terlambat atau jatuh tempo hari ini.
                     </p>
                   </div>
                 )}
@@ -911,7 +915,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                                 {config.label}
                               </h3>
                               <p className="text-[11px] text-stone-400 font-mono">
-                                {stats.total} total deliverables
+                                {stats.total} total hasil kerja
                               </p>
                             </div>
                           </div>
@@ -923,9 +927,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                         <div className="mt-4 space-y-3">
                           <div>
                             <div className="flex justify-between text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1.5">
-                              <span>Progress</span>
+                              <span>Progres</span>
                               <span>
-                                {stats.completed} of {stats.total} Done
+                                {stats.completed} dari {stats.total} Selesai
                               </span>
                             </div>
                             <ProgressBar
@@ -941,7 +945,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                               <span className="block text-xs font-bold text-stone-800 dark:text-stone-200">
                                 {stats.inProgress}
                               </span>
-                              <span className="block text-[10px] text-stone-400">In Progress</span>
+                              <span className="block text-[10px] text-stone-400">Dikerjakan</span>
                             </div>
                             <div className="p-2 rounded-xl bg-stone-50 dark:bg-stone-900/60">
                               <span className="block text-xs font-bold text-amber-600 dark:text-amber-400">
@@ -953,7 +957,9 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                               <span className="block text-xs font-bold text-stone-600 dark:text-stone-400">
                                 {stats.todo}
                               </span>
-                              <span className="block text-[10px] text-stone-400">To Do</span>
+                              <span className="block text-[10px] text-stone-400">
+                                Belum Dikerjakan
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -962,7 +968,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                       {stats.subtasks.length > 0 ? (
                         <div className="mt-4 pt-3 border-t border-stone-100 dark:border-stone-800">
                           <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-2">
-                            Active Items
+                            Item Aktif
                           </p>
                           <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                             {stats.subtasks.slice(0, 3).map((st) => (
@@ -980,7 +986,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                         </div>
                       ) : (
                         <p className="mt-4 pt-3 text-[11px] text-stone-400 italic">
-                          No subtasks recorded for this delivery area.
+                          Belum ada Subtask untuk area delivery ini.
                         </p>
                       )}
                     </Card>
@@ -993,14 +999,14 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-4 dark:border-stone-800">
                   <div>
                     <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-                      Team Workload & Allocation
+                      Beban Kerja &amp; Alokasi Tim
                     </h2>
                     <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                      Task and subtask assignments distributed across workspace team members.
+                      Distribusi penugasan Task dan Subtask kepada anggota tim Workspace.
                     </p>
                   </div>
                   <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                    {report.memberWorkloads.length} active contributors
+                    {report.memberWorkloads.length} kontributor aktif
                   </span>
                 </div>
 
@@ -1037,7 +1043,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                               </div>
                               {member.role === 'dev' && member.specialties.length === 0 && (
                                 <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                                  Unclassified Developer
+                                  Developer Tanpa Spesialisasi
                                 </p>
                               )}
                               <p className="text-xs text-stone-400">{member.email}</p>
@@ -1047,7 +1053,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                           <div className="flex items-center gap-6">
                             <div className="w-32 hidden sm:block">
                               <div className="flex justify-between text-[11px] text-stone-500 mb-1">
-                                <span>Done</span>
+                                <span>Selesai</span>
                                 <span className="font-bold">{rate}%</span>
                               </div>
                               <ProgressBar
@@ -1059,14 +1065,14 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                             </div>
                             <div className="flex items-center gap-3 text-xs font-semibold text-stone-700 dark:text-stone-300">
                               <span className="px-2 py-1 rounded bg-stone-100 dark:bg-stone-800">
-                                {member.totalAssigned} Assigned
+                                {member.totalAssigned} Ditugaskan
                               </span>
                               <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                                {member.completed} Done
+                                {member.completed} Selesai
                               </span>
                               {member.overdue > 0 && (
                                 <span className="px-2 py-1 rounded bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
-                                  {member.overdue} Overdue
+                                  {member.overdue} Terlambat
                                 </span>
                               )}
                             </div>
@@ -1077,7 +1083,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                   </div>
                 ) : (
                   <p className="mt-4 text-xs text-stone-400 italic">
-                    No assigned work recorded for workspace members.
+                    Belum ada pekerjaan yang ditugaskan kepada anggota Workspace.
                   </p>
                 )}
               </Card>
@@ -1092,42 +1098,42 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 <div className="flex items-center justify-between border-b border-stone-700 pb-3">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-[#B1E743]" />
-                    <h2 className="text-base font-bold">End-to-End SDLC Handoff Pipeline</h2>
+                    <h2 className="text-base font-bold">Alur Handoff SDLC End-to-End</h2>
                   </div>
                   <span className="text-xs text-stone-400 font-medium">
-                    Cross-Role Stage Velocity
+                    Kecepatan Tahap Lintas Peran
                   </span>
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
-                    <span className="text-[10px] uppercase font-bold text-[#B1E743]">Stage 1</span>
-                    <h4 className="text-sm font-bold mt-1">PO Specs & Scope</h4>
-                    <p className="text-xs text-stone-300 mt-1">{tasks.length} Parent Features</p>
+                    <span className="text-[10px] uppercase font-bold text-[#B1E743]">Tahap 1</span>
+                    <h4 className="text-sm font-bold mt-1">Spesifikasi &amp; Cakupan PO</h4>
+                    <p className="text-xs text-stone-300 mt-1">{tasks.length} Feature Induk</p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
-                    <span className="text-[10px] uppercase font-bold text-amber-400">Stage 2</span>
+                    <span className="text-[10px] uppercase font-bold text-amber-400">Tahap 2</span>
                     <h4 className="text-sm font-bold mt-1">Backend & Fullstack</h4>
                     <p className="text-xs text-stone-300 mt-1">
                       {report.byArea.backend.completed + report.byArea.fullstack.completed}/
-                      {report.byArea.backend.total + report.byArea.fullstack.total} Subtasks Done
+                      {report.byArea.backend.total + report.byArea.fullstack.total} Subtask Selesai
                     </p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
-                    <span className="text-[10px] uppercase font-bold text-sky-400">Stage 3</span>
+                    <span className="text-[10px] uppercase font-bold text-sky-400">Tahap 3</span>
                     <h4 className="text-sm font-bold mt-1">Frontend & Mobile</h4>
                     <p className="text-xs text-stone-300 mt-1">
                       {report.byArea.frontend.completed + report.byArea.mobile.completed}/
-                      {report.byArea.frontend.total + report.byArea.mobile.total} Subtasks Done
+                      {report.byArea.frontend.total + report.byArea.mobile.total} Subtask Selesai
                     </p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
                     <span className="text-[10px] uppercase font-bold text-emerald-400">
-                      Stage 4
+                      Tahap 4
                     </span>
-                    <h4 className="text-sm font-bold mt-1">QA Verification</h4>
+                    <h4 className="text-sm font-bold mt-1">Verifikasi QA</h4>
                     <p className="text-xs text-stone-300 mt-1">
-                      {report.byArea.qa.completed}/{report.byArea.qa.total} Tests Passed
+                      {report.byArea.qa.completed}/{report.byArea.qa.total} Pengujian Lulus
                     </p>
                   </div>
                 </div>
@@ -1137,54 +1143,56 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
                 <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/20">
                   <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
-                    Completed
+                    Selesai
                   </span>
                   <p className="text-2xl font-extrabold text-emerald-950 dark:text-emerald-100 mt-1">
                     {report.healthCounts.completed}
                   </p>
                   <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-1">
-                    Workstreams fully closed
+                    Workstream selesai sepenuhnya
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl border border-sky-200 bg-sky-50 dark:border-sky-900/50 dark:bg-sky-950/20">
                   <span className="text-xs font-bold text-sky-800 dark:text-sky-300 uppercase tracking-wider">
-                    On Track
+                    Sesuai Jadwal
                   </span>
                   <p className="text-2xl font-extrabold text-sky-950 dark:text-sky-100 mt-1">
                     {report.healthCounts.on_track}
                   </p>
                   <p className="text-[11px] text-sky-700 dark:text-sky-400 mt-1">
-                    Within scheduled window
+                    Masih dalam jadwal
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20">
                   <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
-                    At Risk
+                    Berisiko
                   </span>
                   <p className="text-2xl font-extrabold text-amber-950 dark:text-amber-100 mt-1">
                     {report.healthCounts.at_risk}
                   </p>
                   <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
-                    Due soon or changes requested
+                    Tenggat dekat atau perlu perbaikan
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50 dark:border-rose-900/50 dark:bg-rose-950/20">
                   <span className="text-xs font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">
-                    Delayed
+                    Terlambat
                   </span>
                   <p className="text-2xl font-extrabold text-rose-950 dark:text-rose-100 mt-1">
                     {report.healthCounts.delayed}
                   </p>
-                  <p className="text-[11px] text-rose-700 dark:text-rose-400 mt-1">Past due date</p>
+                  <p className="text-[11px] text-rose-700 dark:text-rose-400 mt-1">
+                    Melewati tenggat
+                  </p>
                 </div>
                 <div className="p-4 rounded-2xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/30">
                   <span className="text-xs font-bold text-stone-600 dark:text-stone-400 uppercase tracking-wider">
-                    Unscheduled
+                    Belum Dijadwalkan
                   </span>
                   <p className="text-2xl font-extrabold text-stone-900 dark:text-stone-100 mt-1">
                     {report.healthCounts.unscheduled}
                   </p>
-                  <p className="text-[11px] text-stone-500 mt-1">Missing target dates</p>
+                  <p className="text-[11px] text-stone-500 mt-1">Tanggal target belum ada</p>
                 </div>
               </div>
 
@@ -1193,10 +1201,10 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 <div className="flex flex-col gap-3 border-b border-stone-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-stone-800">
                   <div>
                     <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-                      Schedule Slippage & Risk Diagnosis
+                      Diagnosis Keterlambatan &amp; Risiko Jadwal
                     </h2>
                     <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                      Workstream items requiring timeline intervention or role realignment.
+                      Item workstream yang memerlukan penyesuaian timeline atau peran.
                     </p>
                   </div>
                 </div>
@@ -1222,7 +1230,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                                 </span>
                               ) : (
                                 <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                                  Parent Task
+                                  Task Induk
                                 </span>
                               )}
                               <span className="text-xs font-mono font-bold text-stone-400">
@@ -1238,7 +1246,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                           <div className="flex items-center gap-3">
                             <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
                               <AlertCircle className="h-4 w-4" />
-                              Past Due · {item.dueDate}
+                              Terlambat · {item.dueDate}
                             </span>
                           </div>
                         </div>
@@ -1249,10 +1257,10 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                   <div className="flex flex-col items-center justify-center gap-2 p-10 text-center">
                     <CheckCircle2 className="h-7 w-7 text-emerald-500 dark:text-emerald-400" />
                     <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                      Zero Schedule Slippage
+                      Tidak Ada Keterlambatan Jadwal
                     </p>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
-                      All planned workstreams and subtasks are operating within schedule.
+                      Semua workstream dan Subtask yang direncanakan berjalan sesuai jadwal.
                     </p>
                   </div>
                 )}
@@ -1266,7 +1274,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
 };
 
 const ReportSkeleton: React.FC = () => (
-  <div className="space-y-6" aria-label="Loading report">
+  <div className="space-y-6" aria-label="Memuat laporan">
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {[1, 2, 3, 4].map((id) => (
         <Skeleton key={id} variant="rectangular" className="h-40" />

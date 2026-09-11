@@ -25,6 +25,7 @@ import type {
   TaskRequirementLink,
 } from '@qlick/contracts';
 import { getTaskScheduleValidationIssue } from '@qlick/contracts';
+import { getIndonesianTaskScheduleMessage } from '../../../lib/i18n/indonesianCopy';
 
 import { Drawer } from '../molecules/Drawer';
 import { Button } from '../atoms/Button';
@@ -384,7 +385,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     } catch (error) {
       if (isCurrentInitialRequest(requestId)) {
         setProductBrief(null);
-        setProductBriefError(errorMessage(error, 'Unable to load the Product Brief.'));
+        setProductBriefError(errorMessage(error, 'Ringkasan Produk tidak dapat dimuat.'));
       }
     }
   };
@@ -408,7 +409,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         setRequirementInitialState({
           requirements: [],
           taskLinks: [],
-          error: errorMessage(error, 'Unable to load requirements.'),
+          error: errorMessage(error, 'Requirement tidak dapat dimuat.'),
         });
       }
     }
@@ -429,7 +430,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         const status = (error as { status?: number })?.status;
         setDeliveryTraceInitialState({
           trace: null,
-          error: status === 403 ? null : errorMessage(error, 'Unable to load Delivery Trace.'),
+          error: status === 403 ? null : errorMessage(error, 'Jejak Delivery tidak dapat dimuat.'),
           permissionDenied: status === 403,
         });
       }
@@ -450,7 +451,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         const status = (error as { status?: number })?.status;
         setBugInitialState({
           bugs: [],
-          error: status === 403 ? null : errorMessage(error, 'Unable to load Bugs.'),
+          error: status === 403 ? null : errorMessage(error, 'Bug tidak dapat dimuat.'),
           permissionDenied: status === 403,
         });
       }
@@ -468,7 +469,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       }
     } catch (error) {
       if (isCurrentInitialRequest(requestId)) {
-        setSubtasksError(errorMessage(error, 'Unable to load subtasks.'));
+        setSubtasksError(errorMessage(error, 'Subtask tidak dapat dimuat.'));
       }
     } finally {
       if (isCurrentInitialRequest(requestId)) setIsLoadingSubtasks(false);
@@ -509,7 +510,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       }
     } catch (error) {
       if (isCurrentInitialRequest(requestId)) {
-        setActivityError(errorMessage(error, 'Unable to load audit activity.'));
+        setActivityError(errorMessage(error, 'Aktivitas audit tidak dapat dimuat.'));
       }
     } finally {
       if (isCurrentInitialRequest(requestId)) setIsLoadingActivity(false);
@@ -538,7 +539,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       }
     } catch (error) {
       if (isCurrentInitialRequest(requestId)) {
-        setCommentsError(errorMessage(error, 'Unable to load discussion messages.'));
+        setCommentsError(errorMessage(error, 'Pesan diskusi tidak dapat dimuat.'));
       }
     } finally {
       if (isCurrentInitialRequest(requestId)) setIsLoadingComments(false);
@@ -637,6 +638,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   };
   const flatFolders = flattenFolders(folders);
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
+  const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
 
   const handleSave = async () => {
     if (!activeWorkspaceId || !task) return;
@@ -645,12 +647,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       return;
     }
     if (!title.trim()) {
-      dispatch(enqueueSnackbar('Title cannot be empty', 'error'));
+      dispatch(enqueueSnackbar('Judul tidak boleh kosong', 'error'));
       return;
     }
 
     if (scheduleIssue) {
-      dispatch(enqueueSnackbar(scheduleIssue.message, 'error'));
+      dispatch(enqueueSnackbar(scheduleIssueMessage || 'Jadwal Task belum valid.', 'error'));
       return;
     }
 
@@ -698,12 +700,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         }),
       ).unwrap();
 
-      dispatch(enqueueSnackbar('Task saved successfully', 'success'));
+      dispatch(enqueueSnackbar('Task berhasil disimpan', 'success'));
       onDataChanged?.();
       onClose();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update task', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Task gagal diperbarui', 'error'),
       );
     } finally {
       setIsSaving(false);
@@ -716,8 +718,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       dispatch(
         enqueueSnackbar(
           isSubtask
-            ? 'Only Product Owner or authorized QA reviewers may approve subtasks.'
-            : 'Only Product Owner, Admin, or Owner may complete parent tasks.',
+            ? 'Hanya Product Owner atau peninjau QA yang berwenang yang dapat menyetujui Subtask.'
+            : 'Hanya Product Owner, Admin, atau Owner yang dapat menyelesaikan Parent Task.',
           'error',
         ),
       );
@@ -727,7 +729,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     if (task.status !== 'done' && hasIncompleteSubtasks) {
       dispatch(
         enqueueSnackbar(
-          `Cannot complete task: ${incompleteSubtasks.length} subtask(s) are still in progress. Please complete all delivery-area subtasks first.`,
+          `Task belum dapat diselesaikan: ${incompleteSubtasks.length} subtask masih berjalan. Selesaikan semua subtask area delivery terlebih dahulu.`,
           'error',
         ),
       );
@@ -744,7 +746,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             input: { status: 'in_progress' },
           }),
         ).unwrap();
-        dispatch(enqueueSnackbar('Task reopened as In Progress', 'success'));
+        dispatch(enqueueSnackbar('Task dibuka kembali sebagai In Progress', 'success'));
       } else {
         await dispatch(
           completeTask({
@@ -753,14 +755,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             input: { status: 'done' },
           }),
         ).unwrap();
-        dispatch(enqueueSnackbar('Task marked as Done', 'success'));
+        dispatch(enqueueSnackbar('Task ditandai sebagai Done', 'success'));
       }
       onDataChanged?.();
       onClose();
     } catch (err) {
       dispatch(
         enqueueSnackbar(
-          err instanceof Error ? err.message : 'Failed to toggle task completion',
+          err instanceof Error ? err.message : 'Status penyelesaian Task gagal diubah',
           'error',
         ),
       );
@@ -802,7 +804,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       if (targetMentionedUserIds.length > 0) {
         dispatch(
           addInAppNotification(
-            `Mention in "${task.title}"`,
+            `Mention di "${task.title}"`,
             body.trim(),
             'mention',
             task.id,
@@ -810,10 +812,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           ),
         );
       }
-      dispatch(enqueueSnackbar('Message posted to discussion', 'success'));
+      dispatch(enqueueSnackbar('Pesan dikirim ke diskusi', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to post message', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Pesan gagal dikirim', 'error'),
       );
       throw err;
     }
@@ -825,7 +827,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       .flatMap((item) => [item, ...(item.replies || [])])
       .find((item) => item.id === commentId);
     if (!comment || comment.authorId !== currentUserId) {
-      dispatch(enqueueSnackbar('You can only edit your own messages.', 'error'));
+      dispatch(enqueueSnackbar('Anda hanya dapat mengubah pesan milik sendiri.', 'error'));
       return;
     }
     const newBody = body.trim();
@@ -861,10 +863,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           return c;
         }),
       );
-      dispatch(enqueueSnackbar('Message updated', 'success'));
+      dispatch(enqueueSnackbar('Pesan berhasil diperbarui', 'success'));
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update message', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Pesan gagal diperbarui', 'error'),
       );
       throw err;
     }
@@ -876,16 +878,16 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       .flatMap((item) => [item, ...(item.replies || [])])
       .find((item) => item.id === commentId);
     if (!comment || comment.authorId !== currentUserId) {
-      dispatch(enqueueSnackbar('You can only delete your own messages.', 'error'));
+      dispatch(enqueueSnackbar('Anda hanya dapat menghapus pesan milik sendiri.', 'error'));
       return;
     }
     try {
       await taskService.deleteTaskComment(activeWorkspaceId, task.id, commentId);
-      dispatch(enqueueSnackbar('Message soft-deleted', 'success'));
+      dispatch(enqueueSnackbar('Pesan dihapus secara soft delete', 'success'));
       loadComments();
     } catch (err) {
       dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete message', 'error'),
+        enqueueSnackbar(err instanceof Error ? err.message : 'Pesan gagal dihapus', 'error'),
       );
     }
   };
@@ -899,16 +901,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       setIsDeleteConfirmationOpen(false);
       dispatch(
         enqueueSnackbar(
-          `${task.parentTaskId ? 'Subtask' : 'Task'} "${task.title}" deleted.`,
+          `${task.parentTaskId ? 'Subtask' : 'Task'} "${task.title}" berhasil dihapus.`,
           'success',
         ),
       );
       onClose();
       onDataChanged?.();
     } catch (err) {
-      dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete task', 'error'),
-      );
+      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Task gagal dihapus', 'error'));
     } finally {
       setIsDeletingTask(false);
     }
@@ -923,16 +923,16 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   };
 
   const detailTabs: TabItem[] = [
-    { id: 'overview', label: 'Overview', icon: <FileText className="h-3.5 w-3.5" /> },
+    { id: 'overview', label: 'Ringkasan', icon: <FileText className="h-3.5 w-3.5" /> },
     ...(!task.parentTaskId
-      ? [{ id: 'brief', label: 'Product Brief', icon: <BookOpen className="h-3.5 w-3.5" /> }]
+      ? [{ id: 'brief', label: 'Ringkasan Produk', icon: <BookOpen className="h-3.5 w-3.5" /> }]
       : []),
-    { id: 'prd', label: 'Requirements', icon: <FileCode2 className="h-3.5 w-3.5" /> },
-    { id: 'trace', label: 'Delivery Trace', icon: <Route className="h-3.5 w-3.5" /> },
-    { id: 'bugs', label: 'Bugs', icon: <Bug className="h-3.5 w-3.5" /> },
+    { id: 'prd', label: 'Requirement', icon: <FileCode2 className="h-3.5 w-3.5" /> },
+    { id: 'trace', label: 'Jejak Delivery', icon: <Route className="h-3.5 w-3.5" /> },
+    { id: 'bugs', label: 'Bug', icon: <Bug className="h-3.5 w-3.5" /> },
     {
       id: 'subtasks',
-      label: `Subtasks (${subtasks.length})`,
+      label: `Subtask (${subtasks.length})`,
       icon: <ListTodo className="h-3.5 w-3.5" />,
       badge:
         totalUnreadSubtasksCount > 0 ? (
@@ -947,12 +947,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     },
     {
       id: 'activity',
-      label: `Activity (${activityTotal})`,
+      label: `Aktivitas (${activityTotal})`,
       icon: <History className="h-3.5 w-3.5" />,
     },
     {
       id: 'discussion',
-      label: `Discussion (${commentsTotal})`,
+      label: `Diskusi (${commentsTotal})`,
       badge: hasUnreadDiscussion ? (
         <span
           className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
@@ -974,7 +974,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         defaultFullScreen={true}
         allowFullScreen={true}
         title={task.title}
-        subtitle={`Task ID: ${task.id.substring(0, 8)} • Created ${new Date(task.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}${task.deliveryArea ? ` • Delivery Area: ${task.deliveryArea.toUpperCase()}` : ''}`}
+        subtitle={`ID Task: ${task.id.substring(0, 8)} • Dibuat ${new Date(task.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}${task.deliveryArea ? ` • Area Delivery: ${task.deliveryArea.toUpperCase()}` : ''}`}
         toolbar={
           <Tabs
             tabs={detailTabs}
@@ -1003,15 +1003,15 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   >
                     {task.status === 'done'
                       ? isSubtask
-                        ? 'Reopen Subtask'
-                        : 'Reopen Task'
+                        ? 'Buka Kembali Subtask'
+                        : 'Buka Kembali Task'
                       : isSubtask
-                        ? 'Approve Subtask (Done)'
-                        : 'Complete Task'}
+                        ? 'Setujui Subtask (Selesai)'
+                        : 'Selesaikan Task'}
                   </Button>
                   {hasIncompleteSubtasks && task.status !== 'done' && (
                     <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 hidden sm:inline">
-                      ({incompleteSubtasks.length} subtask pending)
+                      ({incompleteSubtasks.length} subtask tertunda)
                     </span>
                   )}
                 </>
@@ -1024,18 +1024,18 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   disabled={isSaving || isDeletingTask}
                   leftIcon={<Trash2 className="h-3.5 w-3.5" />}
                 >
-                  {isSubtask ? 'Delete Subtask' : 'Delete Task'}
+                  {isSubtask ? 'Hapus Subtask' : 'Hapus Task'}
                 </Button>
               )}
             </div>
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={onClose}>
-                Cancel
+                Batal
               </Button>
               {canEditTask && (
                 <Button variant="primary" size="sm" isLoading={isSaving} onClick={handleSave}>
-                  Save Changes
+                  Simpan Perubahan
                 </Button>
               )}
             </div>
@@ -1194,7 +1194,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               comments={comments}
               currentUserId={currentUserId || undefined}
               members={members}
-              title="Task Discussion Thread"
+              title="Diskusi Task"
               showMentionChips={true}
               emptyIllustrationUrl={EMPTY_DISCUSSION_ILLUSTRATION_URL}
               isLoading={isLoadingComments}

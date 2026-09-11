@@ -13,6 +13,7 @@ import { ReleaseReadinessSignal } from '../../molecules/ReleaseReadinessSignal';
 import { TaskScheduleHealthBadge } from '../../molecules/TaskScheduleHealthBadge';
 import { calculateRoleOverlapAndBottlenecks } from '../../../../lib/utils/scheduleHealth';
 import type { ReleaseReadinessViewState } from '../../../../lib/hooks/useReleaseReadinessMap';
+import { getIndonesianTaskScheduleMessage } from '../../../../lib/i18n/indonesianCopy';
 
 export interface TaskDetailOverviewTabProps {
   task: Task;
@@ -66,6 +67,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
   onSelectTab,
 }) => {
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
+  const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
   const subtaskMetrics = React.useMemo(() => {
     const feTotal = subtasks.filter((s) => s.deliveryArea === 'frontend').length;
     const feDone = subtasks.filter(
@@ -109,13 +111,13 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
   return (
     <div className="space-y-4">
       {!canEditTask && (
-        <Alert tone="info" title="Read-only task">
-          Only a Product Owner, Admin, or Owner can update this parent task.
+        <Alert tone="info" title="Task hanya dapat dilihat">
+          Hanya Product Owner, Admin, atau Owner yang dapat memperbarui parent Task ini.
         </Alert>
       )}
       {isAssignedExecutor && !canPlan && (
-        <Alert tone="info" title="Execution access">
-          You can update this assigned subtask's description and status only.
+        <Alert tone="info" title="Akses eksekusi">
+          Anda hanya dapat memperbarui deskripsi dan status Subtask yang ditugaskan kepada Anda.
         </Alert>
       )}
       {/* Two columns only on wide desktop; tablets and phones stay stacked. */}
@@ -124,13 +126,13 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
         <div className="min-w-0 xl:h-full">
           <RichTextEditor
             id="task-description"
-            label="Task Overview & Description"
+            label="Ringkasan & Deskripsi Task"
             value={description}
             onChange={onDescriptionChange}
             minRows={10}
             fillHeight
             disabled={!canEditTask}
-            placeholder="High-level task summary, objective, and requirements with paragraphs, bullet points, headers..."
+            placeholder="Ringkasan, tujuan, dan kebutuhan utama Task dalam bentuk paragraf, bullet, atau heading..."
           />
         </div>
 
@@ -139,7 +141,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
           {releaseReadinessState && (
             <Card className="space-y-2 border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-950/40">
               <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-                Release Readiness
+                Kesiapan Rilis
               </p>
               <ReleaseReadinessSignal state={releaseReadinessState} showReason />
             </Card>
@@ -151,7 +153,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-[#22201F] dark:text-[#B1E743]" />
                 <h4 className="text-xs font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider">
-                  Delivery & Multi-Role Readiness
+                  Delivery & Kesiapan Lintas Peran
                 </h4>
               </div>
               <div className="flex items-center gap-2">
@@ -163,14 +165,14 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                         ? `${scheduleOverlapAnalysis.primaryBottleneck.title} (${scheduleOverlapAnalysis.primaryBottleneck.overlapDays}d)`
                         : scheduleOverlapAnalysis.overallHealth === 'at_risk'
                           ? scheduleOverlapAnalysis.primaryBottleneck.title
-                          : 'Schedule On Track'
+                          : 'Sesuai Jadwal'
                     }
                   />
                 )}
                 <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
                   {subtaskMetrics.total > 0
-                    ? `${subtaskMetrics.totalDone}/${subtaskMetrics.total} Complete`
-                    : '0 items'}
+                    ? `${subtaskMetrics.totalDone}/${subtaskMetrics.total} Selesai`
+                    : '0 item'}
                 </span>
               </div>
             </div>
@@ -194,7 +196,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                     </span>
                   </div>
                   <span className="text-[10px] font-bold underline shrink-0">
-                    View Role &amp; Handoff ➔
+                    Lihat Peran &amp; Handoff ➔
                   </span>
                 </div>
               )}
@@ -205,9 +207,9 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                 onClick={() => onSelectTab('prd')}
                 className="p-2.5 rounded-xl border border-stone-200 bg-stone-50/70 hover:bg-stone-100 dark:border-stone-800 dark:bg-stone-950/50 dark:hover:bg-stone-800/60 cursor-pointer transition-all"
               >
-                <p className="text-[10px] font-bold text-stone-500 uppercase">Requirements</p>
+                <p className="text-[10px] font-bold text-stone-500 uppercase">Requirement</p>
                 <p className="mt-0.5 text-xs font-bold text-stone-900 dark:text-[#B1E743]">
-                  View linked items
+                  Lihat item terhubung
                 </p>
               </div>
 
@@ -220,7 +222,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   <Code2 className="h-3 w-3" /> Frontend
                 </p>
                 <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                  {subtaskMetrics.feDone}/{subtaskMetrics.feTotal} Done
+                  {subtaskMetrics.feDone}/{subtaskMetrics.feTotal} Selesai
                 </p>
               </div>
 
@@ -233,7 +235,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   <Layers className="h-3 w-3" /> Backend
                 </p>
                 <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                  {subtaskMetrics.beDone}/{subtaskMetrics.beTotal} Done
+                  {subtaskMetrics.beDone}/{subtaskMetrics.beTotal} Selesai
                 </p>
               </div>
 
@@ -246,7 +248,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   <Smartphone className="h-3 w-3" /> Mobile
                 </p>
                 <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                  {subtaskMetrics.mobileDone}/{subtaskMetrics.mobileTotal} Done
+                  {subtaskMetrics.mobileDone}/{subtaskMetrics.mobileTotal} Selesai
                 </p>
               </div>
 
@@ -258,7 +260,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   <Cpu className="h-3 w-3" /> Fullstack
                 </p>
                 <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                  {subtaskMetrics.fullstackDone}/{subtaskMetrics.fullstackTotal} Done
+                  {subtaskMetrics.fullstackDone}/{subtaskMetrics.fullstackTotal} Selesai
                 </p>
               </div>
 
@@ -271,7 +273,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   <Bug className="h-3 w-3" /> QA Testing
                 </p>
                 <p className="text-xs font-bold text-stone-900 dark:text-stone-100 mt-0.5">
-                  {subtaskMetrics.qaDone}/{subtaskMetrics.qaTotal} Verified
+                  {subtaskMetrics.qaDone}/{subtaskMetrics.qaTotal} Terverifikasi
                 </p>
               </div>
             </div>
@@ -293,11 +295,11 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   disabled={!canEditTask}
                   aria-label="Status"
                 >
-                  <option value="todo">To Do</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="in_review">In Review</option>
-                  <option value="done">Done</option>
-                  <option value="canceled">Canceled</option>
+                  <option value="todo">Belum Dikerjakan</option>
+                  <option value="in_progress">Sedang Dikerjakan</option>
+                  <option value="in_review">Dalam Review</option>
+                  <option value="done">Selesai</option>
+                  <option value="canceled">Dibatalkan</option>
                 </Select>
               </div>
 
@@ -306,19 +308,19 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   htmlFor="task-priority"
                   className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
                 >
-                  Priority
+                  Prioritas
                 </label>
                 <Select
                   value={priority}
                   id="task-priority"
                   onChange={(e) => onPriorityChange(e.target.value as TaskPriority)}
                   disabled={!canEditPlanning}
-                  aria-label="Priority"
+                  aria-label="Prioritas"
                 >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
+                  <option value="low">Rendah</option>
+                  <option value="medium">Sedang</option>
+                  <option value="high">Tinggi</option>
+                  <option value="urgent">Mendesak</option>
                 </Select>
               </div>
             </div>
@@ -329,16 +331,16 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   htmlFor="task-folder"
                   className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
                 >
-                  Folder Location
+                  Lokasi Folder
                 </label>
                 <Select
                   value={folderId || ''}
                   id="task-folder"
                   onChange={(e) => onFolderIdChange(e.target.value ? e.target.value : null)}
                   disabled={!canEditPlanning}
-                  aria-label="Folder Location"
+                  aria-label="Lokasi folder"
                 >
-                  <option value="">Unfiled (Workspace Root)</option>
+                  <option value="">Tanpa Folder (Root Workspace)</option>
                   {flatFolders.map((f) => (
                     <option key={f.id} value={f.id}>
                       {'\u00A0'.repeat(f.depth * 4)}
@@ -355,7 +357,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   htmlFor="task-start-date"
                   className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
                 >
-                  Start Date
+                  Tanggal Mulai
                 </label>
                 <Input
                   type="date"
@@ -372,7 +374,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   htmlFor="task-due-date"
                   className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1"
                 >
-                  Due Date
+                  Tanggal Tenggat
                 </label>
                 <Input
                   type="date"
@@ -391,7 +393,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                 role="alert"
                 className="text-xs text-rose-600 dark:text-rose-400"
               >
-                {scheduleIssue.message}
+                {scheduleIssueMessage}
               </p>
             )}
           </Card>

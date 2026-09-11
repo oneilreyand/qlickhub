@@ -115,25 +115,27 @@ describe('CreateSubtaskModal UI Component', () => {
       </Provider>,
     );
 
-    expect(screen.getByText(/Plan Subtask — Parent Task for Planning Subtask/)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Implement API contracts/)).toBeInTheDocument();
-    expect(screen.getByText(/Delivery Area/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Rencanakan Subtask — Parent Task for Planning Subtask/),
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Implementasi kontrak API/)).toBeInTheDocument();
+    expect(screen.getByText(/Area Delivery/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Frontend/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Backend/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Mobile/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Fullstack/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /QA Testing/ })).toBeInTheDocument();
-    expect(screen.getByLabelText('Assignee')).toBeInTheDocument();
-    expect(screen.getByText('Create Subtask')).toBeInTheDocument();
+    expect(screen.getByLabelText('Pelaksana')).toBeInTheDocument();
+    expect(screen.getByText('Buat Subtask')).toBeInTheDocument();
     expect(
       await screen.findByRole('checkbox', { name: /REQ-101.*OAuth login requirement/i }),
     ).toBeInTheDocument();
 
-    const startDate = screen.getByLabelText('Start Date (Optional pair)');
-    const dueDate = screen.getByLabelText('Due Date (Optional pair)');
+    const startDate = screen.getByLabelText('Tanggal Mulai (pasangan opsional)');
+    const dueDate = screen.getByLabelText('Tanggal Tenggat (pasangan opsional)');
     fireEvent.change(dueDate, { target: { value: '2026-09-08' } });
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Start Date and Due Date must be provided together.',
+      'Tanggal mulai dan tanggal tenggat harus diisi bersama.',
     );
     expect(startDate).toHaveAttribute('aria-invalid', 'true');
     expect(dueDate).toHaveAttribute('aria-invalid', 'true');
@@ -197,11 +199,11 @@ describe('CreateSubtaskModal UI Component', () => {
     });
     expect(requirementCheckbox).toBeChecked();
 
-    fireEvent.change(screen.getByLabelText('Subtask Title *'), {
+    fireEvent.change(screen.getByLabelText('Judul Subtask *'), {
       target: { value: 'Implement OAuth login' },
     });
-    fireEvent.change(screen.getByLabelText('Assignee'), { target: { value: 'dev-1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Subtask' }));
+    fireEvent.change(screen.getByLabelText('Pelaksana'), { target: { value: 'dev-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Buat Subtask' }));
 
     await waitFor(() => {
       expect(createSubtaskMock).toHaveBeenCalledWith(

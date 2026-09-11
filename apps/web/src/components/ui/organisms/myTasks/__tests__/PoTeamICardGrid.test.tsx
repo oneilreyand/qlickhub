@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -169,16 +169,16 @@ describe('PoTeamICardGrid Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByText('PO Management Cockpit')).toBeInTheDocument();
+    expect(screen.getByText('Kokpit Pengelolaan PO')).toBeInTheDocument();
     expect(screen.getByText('User Authentication Flow')).toBeInTheDocument();
-    expect(screen.getByText('Frontend Team')).toBeInTheDocument();
-    expect(screen.getByText('Backend Team')).toBeInTheDocument();
-    expect(screen.getByText('QA & Quality')).toBeInTheDocument();
+    expect(screen.getByText('Tim Frontend')).toBeInTheDocument();
+    expect(screen.getByText('Tim Backend')).toBeInTheDocument();
+    expect(screen.getByText('QA & Mutu')).toBeInTheDocument();
 
     expect(screen.getByText('Build Login Form UI')).toBeInTheDocument();
     expect(screen.getByText('JWT Auth Endpoint')).toBeInTheDocument();
     expect(screen.getByText('Smoke Test Login & Edge Cases')).toBeInTheDocument();
-    expect(await screen.findByText('No Release Decision recorded')).toBeInTheDocument();
+    expect(await screen.findByText('Belum ada Keputusan Rilis')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'PO Sign-off & Done' })).not.toBeInTheDocument();
   });
 
@@ -195,17 +195,17 @@ describe('PoTeamICardGrid Organism', () => {
       </Provider>,
     );
 
-    await screen.findByText('No Release Decision recorded');
+    await screen.findByText('Belum ada Keputusan Rilis');
 
     const feSubtaskCard = screen.getByText('Build Login Form UI');
     fireEvent.click(feSubtaskCard);
 
     await waitFor(() => {
-      expect(screen.getByText('Subtask Details: Build Login Form UI')).toBeInTheDocument();
+      expect(screen.getByText('Detail Subtask: Build Login Form UI')).toBeInTheDocument();
     });
   });
 
-  it('lets a planner delete a subtask from the PO Cockpit after confirmation', async () => {
+  it('lets a planner delete sebuah Subtask from the PO Cockpit after confirmation', async () => {
     const onDataChanged = vi.fn();
     const store = createTestStore();
     render(
@@ -223,10 +223,10 @@ describe('PoTeamICardGrid Organism', () => {
     fireEvent.click(await screen.findByText('Build Login Form UI'));
     fireEvent.click(await screen.findByRole('button', { name: 'Hapus Subtask' }));
 
-    const confirmation = await screen.findByRole('dialog', { name: 'Delete subtask?' });
-    expect(confirmation).toHaveTextContent(/immutable QA evidence/i);
+    const confirmation = await screen.findByRole('dialog', { name: 'Hapus Subtask?' });
+    expect(confirmation).toHaveTextContent(/bukti QA permanen/i);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Subtask' }));
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Hapus Subtask' }));
 
     await waitFor(() => {
       expect(taskServiceMocks.deleteTask).toHaveBeenCalledWith('ws-1', 'st-fe-1');

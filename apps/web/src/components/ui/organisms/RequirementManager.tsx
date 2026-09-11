@@ -113,7 +113,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
       setRequirements(reqs || []);
       setTaskLinks(links || []);
     } catch (err: any) {
-      setError(err?.message || 'Failed to load requirements.');
+      setError(err?.message || 'Requirement gagal dimuat.');
     } finally {
       setIsLoading(false);
     }
@@ -150,7 +150,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
     } catch (error) {
       setDetailErrors((current) => ({
         ...current,
-        [reqId]: error instanceof Error ? error.message : 'Unable to load Requirement details.',
+        [reqId]: error instanceof Error ? error.message : 'Detail Requirement tidak dapat dimuat.',
       }));
     } finally {
       setIsLoadingDetail(false);
@@ -217,7 +217,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
       setTaskLinks((prev) => [...prev, link]);
       onRequirementChanged?.();
     } catch (err: any) {
-      setError(err?.message || 'Failed to link requirement.');
+      setError(err?.message || 'Requirement gagal ditautkan.');
     } finally {
       setActionLoadingId(null);
     }
@@ -231,7 +231,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
       setTaskLinks((prev) => prev.filter((l) => l.requirementId !== reqId));
       onRequirementChanged?.();
     } catch (err: any) {
-      setError(err?.message || 'Failed to unlink requirement.');
+      setError(err?.message || 'Tautan Requirement gagal dilepas.');
     } finally {
       setActionLoadingId(null);
     }
@@ -262,7 +262,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
     if (!canManage || !criterionEditor) return;
     const text = criterionText.trim();
     if (!text) {
-      setCriterionError('Acceptance Criterion is required.');
+      setCriterionError('Kriteria Penerimaan wajib diisi.');
       return;
     }
 
@@ -299,7 +299,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
       onRequirementChanged?.();
     } catch (error) {
       setCriterionError(
-        error instanceof Error ? error.message : 'Unable to save the Acceptance Criterion.',
+        error instanceof Error ? error.message : 'Kriteria Penerimaan tidak dapat disimpan.',
       );
     } finally {
       setIsCriterionSaving(false);
@@ -344,7 +344,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
         [requirementId]:
           error instanceof Error
             ? error.message
-            : 'Unable to update the Acceptance Criterion status.',
+            : 'Status Kriteria Penerimaan tidak dapat diperbarui.',
       }));
     } finally {
       setCriterionActionId(null);
@@ -380,7 +380,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
       await loadData();
       onRequirementChanged?.();
     } catch (err: any) {
-      setError(err?.message || 'Failed to apply the bulk correction.');
+      setError(err?.message || 'Perbaikan massal gagal diterapkan.');
     } finally {
       setIsBulkSaving(false);
     }
@@ -469,19 +469,19 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
       case 'active':
         return (
           <Badge variant="passed" size="sm">
-            Active
+            Aktif
           </Badge>
         );
       case 'draft':
         return (
           <Badge variant="neutral" size="sm">
-            Draft
+            Draf
           </Badge>
         );
       case 'deprecated':
         return (
           <Badge variant="review" size="sm">
-            Deprecated
+            Tidak Berlaku
           </Badge>
         );
       default:
@@ -497,17 +497,17 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
           <h4 className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
             <FileText className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
             <span>
-              {isTaskContext ? 'Linked Requirements' : 'Requirements'} ({linkedRequirements.length})
+              {isTaskContext ? 'Requirement Tertaut' : 'Requirement'} ({linkedRequirements.length})
             </span>
           </h4>
           <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
             {isTaskContext
               ? canManage
-                ? 'Review linked requirements or add an existing Workspace Requirement.'
-                : 'Requirements linked to this task. Product Owners and Admins manage links.'
+                ? 'Tinjau Requirement tertaut atau tambahkan Requirement yang sudah ada di Workspace.'
+                : 'Requirement yang tertaut ke Task ini. Tautan dikelola Product Owner dan Admin.'
               : canManage
-                ? 'Manage structured Requirements, their Acceptance Criteria, and specific source links.'
-                : 'Read-only access. Product Owners and Admins manage Requirements and Acceptance Criteria.'}
+                ? 'Kelola Requirement, Kriteria Penerimaan, dan tautan sumbernya.'
+                : 'Akses hanya baca. Requirement dan Kriteria Penerimaan dikelola Product Owner dan Admin.'}
           </p>
         </div>
 
@@ -515,7 +515,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
           {!canManage && (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-400 dark:text-stone-500 bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-lg">
               <Lock className="h-3 w-3" />
-              <span>Read-Only</span>
+              <span>Hanya Baca</span>
             </span>
           )}
 
@@ -529,7 +529,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                   onClick={() => setIsBulkCorrectionOpen(true)}
                   data-testid="bulk-correct-requirements-btn"
                 >
-                  Correct selected ({selectedLinkedRequirementCount})
+                  Perbaiki yang dipilih ({selectedLinkedRequirementCount})
                 </Button>
               )}
               <Button
@@ -537,14 +537,14 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                 variant="primary"
                 leftIcon={<Plus className="h-3.5 w-3.5" />}
                 disabled={isLoading}
-                title={isLoading ? 'Loading Requirement codes' : undefined}
+                title={isLoading ? 'Memuat kode Requirement' : undefined}
                 onClick={() => {
                   setEditingRequirement(null);
                   setIsModalOpen(true);
                 }}
                 data-testid="create-requirement-btn"
               >
-                New Requirement
+                Requirement Baru
               </Button>
             </>
           )}
@@ -558,7 +558,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
       {searchableRequirementCount > 0 && (
         <div className="relative">
           <Input
-            placeholder="Search requirements by code, title, or keyword..."
+            placeholder="Cari Requirement berdasarkan kode, judul, atau kata kunci..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<Search className="h-3.5 w-3.5" />}
@@ -572,7 +572,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
           id="select-all-linked-requirements"
           checked={allFilteredLinkedAreSelected}
           onChange={handleToggleAllLinkedSelection}
-          label={`Select all ${filteredLinkedRequirements.length} linked Requirements`}
+          label={`Pilih semua ${filteredLinkedRequirements.length} Requirement tertaut`}
           className="text-xs"
         />
       )}
@@ -586,16 +586,16 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
         </div>
       ) : displayEntries.length === 0 ? (
         <EmptyState
-          title={searchQuery ? 'No matching requirements' : 'No requirements found'}
+          title={searchQuery ? 'Requirement yang cocok tidak ditemukan' : 'Belum ada Requirement'}
           description={
             searchQuery
-              ? 'Try adjusting your search terms.'
+              ? 'Coba ubah kata kunci pencarian.'
               : canManage
-                ? 'Create the first Requirement and define its testable Acceptance Criteria.'
-                : 'No Requirements have been linked yet by the Product Owner.'
+                ? 'Buat Requirement pertama dan tentukan Kriteria Penerimaan yang dapat diuji.'
+                : 'Product Owner belum menautkan Requirement.'
           }
           icon={<FileText className="h-8 w-8 text-stone-400" />}
-          actionLabel={canManage && !searchQuery ? 'Create Requirement' : undefined}
+          actionLabel={canManage && !searchQuery ? 'Buat Requirement' : undefined}
           onAction={
             canManage && !searchQuery
               ? () => {
@@ -612,11 +612,15 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
               return (
                 <EmptyState
                   key="linked-requirements-empty"
-                  title={searchQuery ? 'No linked requirements match' : 'No requirement linked'}
+                  title={
+                    searchQuery
+                      ? 'Requirement tertaut yang cocok tidak ditemukan'
+                      : 'Belum ada Requirement tertaut'
+                  }
                   description={
                     searchQuery
-                      ? 'Try adjusting your search terms.'
-                      : 'This task does not have a linked Requirement yet.'
+                      ? 'Coba ubah kata kunci pencarian.'
+                      : 'Task ini belum memiliki Requirement tertaut.'
                   }
                   icon={<FileText className="h-8 w-8 text-stone-400" />}
                 />
@@ -630,11 +634,11 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                   className="pt-3 mt-1 border-t border-stone-200 dark:border-stone-800"
                 >
                   <h5 className="text-xs font-bold text-stone-700 dark:text-stone-300">
-                    Available Workspace Requirements ({availableRequirements.length})
+                    Requirement Workspace yang Tersedia ({availableRequirements.length})
                   </h5>
                   <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                    These Requirements are available to link and are not counted as part of this
-                    task.
+                    Requirement ini tersedia untuk ditautkan dan belum dihitung sebagai bagian dari
+                    Task ini.
                   </p>
                 </div>
               );
@@ -647,8 +651,8 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                   className="text-[11px] text-stone-400 dark:text-stone-500 italic"
                 >
                   {searchQuery
-                    ? 'No available Workspace Requirements match your search.'
-                    : 'All Workspace Requirements are already linked to this task.'}
+                    ? 'Tidak ada Requirement Workspace yang cocok dengan pencarian.'
+                    : 'Semua Requirement Workspace sudah tertaut ke Task ini.'}
                 </p>
               );
             }
@@ -676,7 +680,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                         id={`select-requirement-${req.id}`}
                         checked={selectedRequirementIds.includes(req.id)}
                         onChange={() => handleToggleRequirementSelection(req.id)}
-                        aria-label={`Select ${req.code}: ${req.title}`}
+                        aria-label={`Pilih ${req.code}: ${req.title}`}
                         className="shrink-0"
                       />
                     )}
@@ -692,7 +696,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                         {linked && (
                           <span className="text-[10px] font-medium text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950 px-1.5 py-0.5 rounded-full flex items-center gap-1">
                             <CheckCircle2 className="h-3 w-3" />
-                            <span>Linked to this task</span>
+                            <span>Tertaut ke Task ini</span>
                           </span>
                         )}
                       </div>
@@ -702,12 +706,12 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                           href={req.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          aria-label={`Source / Reference: ${req.url}`}
+                          aria-label={`Sumber / Referensi: ${req.url}`}
                           className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium text-emerald-600 hover:text-emerald-700 hover:underline dark:text-emerald-400 sm:max-w-md"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <ExternalLink className="h-3 w-3 shrink-0" />
-                          <span className="shrink-0">Source / Reference:</span>
+                          <span className="shrink-0">Sumber / Referensi:</span>
                           <span className="truncate">{req.url}</span>
                         </a>
                       )}
@@ -719,7 +723,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                     <IconButton
                       size="sm"
                       variant="ghost"
-                      label={isExpanded ? 'Collapse details' : 'Expand details'}
+                      label={isExpanded ? 'Tutup detail' : 'Buka detail'}
                       onClick={() => handleToggleExpand(req.id)}
                     >
                       {isExpanded ? (
@@ -733,7 +737,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                       <IconButton
                         size="sm"
                         variant="ghost"
-                        label="Edit requirement"
+                        label="Ubah Requirement"
                         onClick={() => {
                           setEditingRequirement(req);
                           setIsModalOpen(true);
@@ -755,7 +759,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                           leftIcon={<Unlink className="h-3 w-3 text-rose-500" />}
                           className="hover:border-rose-300 hover:text-rose-600 dark:hover:text-rose-400"
                         >
-                          Unlink
+                          Lepas Tautan
                         </Button>
                       ) : (
                         <Button
@@ -765,7 +769,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                           onClick={() => handleLinkToTask(req.id)}
                           leftIcon={<LinkIcon className="h-3 w-3 text-stone-500" />}
                         >
-                          Link
+                          Tautkan
                         </Button>
                       ))}
                   </div>
@@ -777,7 +781,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                     {req.description && (
                       <div>
                         <span className="font-semibold text-stone-600 dark:text-stone-400 block mb-0.5">
-                          Description:
+                          Deskripsi:
                         </span>
                         <FormattedText content={req.description} />
                       </div>
@@ -786,7 +790,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                     <div className="space-y-2">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <span className="font-semibold text-stone-600 dark:text-stone-400">
-                          Acceptance Criteria (
+                          Kriteria Penerimaan (
                           {detail ? (detail.acceptanceCriteria || []).length : '...'})
                         </span>
                         {canManage && detail && (
@@ -796,7 +800,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                             leftIcon={<Plus className="h-3.5 w-3.5" />}
                             onClick={() => openCriterionEditor(req.id)}
                           >
-                            Add Acceptance Criterion
+                            Tambah Kriteria Penerimaan
                           </Button>
                         )}
                       </div>
@@ -810,14 +814,14 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                               variant="outline"
                               onClick={() => void loadDetail(req.id)}
                             >
-                              Retry
+                              Coba lagi
                             </Button>
                           </div>
                         </Alert>
                       )}
 
                       {isLoadingDetail && !detail ? (
-                        <div className="space-y-2" aria-label="Loading Acceptance Criteria">
+                        <div className="space-y-2" aria-label="Memuat Kriteria Penerimaan">
                           <Skeleton className="h-12 w-full rounded-xl" />
                         </div>
                       ) : detail && (detail.acceptanceCriteria || []).length > 0 ? (
@@ -843,7 +847,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                                   </p>
                                   {criterion.status === 'deprecated' && (
                                     <span className="mt-1 inline-block text-[10px] font-semibold uppercase text-amber-600 dark:text-amber-400">
-                                      Deprecated
+                                      Tidak Berlaku
                                     </span>
                                   )}
                                 </div>
@@ -866,8 +870,8 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                                     }
                                   >
                                     {criterion.status === 'active'
-                                      ? `Deactivate ${criterion.code}`
-                                      : `Reactivate ${criterion.code}`}
+                                      ? `Nonaktifkan ${criterion.code}`
+                                      : `Aktifkan Kembali ${criterion.code}`}
                                   </Button>
                                 </div>
                               )}
@@ -876,8 +880,8 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                         </div>
                       ) : detail ? (
                         <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-3 text-[11px] text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-300">
-                          No Acceptance Criteria defined. Add testable outcomes before using this
-                          Requirement for delivery.
+                          Belum ada Kriteria Penerimaan. Tambahkan hasil yang dapat diuji sebelum
+                          menggunakan Requirement ini untuk delivery.
                         </div>
                       ) : null}
                     </div>
@@ -886,7 +890,9 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                     <div>
                       <span className="font-semibold text-stone-600 dark:text-stone-400 flex items-center gap-1 mb-1">
                         <Layers className="h-3.5 w-3.5 text-stone-400" />
-                        <span>Covering Tasks ({detail ? detail.linkedTasks.length : '...'})</span>
+                        <span>
+                          Task yang Mencakup ({detail ? detail.linkedTasks.length : '...'})
+                        </span>
                       </span>
                       {isLoadingDetail && !detail ? (
                         <Skeleton className="h-6 w-48 rounded" />
@@ -906,7 +912,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                         </div>
                       ) : (
                         <p className="text-[11px] text-stone-400 italic">
-                          No tasks currently linked.
+                          Belum ada Task yang tertaut.
                         </p>
                       )}
                     </div>
@@ -940,11 +946,11 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
         isOpen={Boolean(criterionEditor)}
         onClose={closeCriterionEditor}
         title={
-          criterionEditor?.criterion ? 'Edit Acceptance Criterion' : 'Add Acceptance Criterion'
+          criterionEditor?.criterion ? 'Edit Kriteria Penerimaan' : 'Tambah Kriteria Penerimaan'
         }
-        description="Define one observable and testable outcome for this Requirement."
-        primaryActionLabel={criterionEditor?.criterion ? 'Update Criterion' : 'Create Criterion'}
-        secondaryActionLabel="Cancel"
+        description="Tentukan satu hasil yang dapat diamati dan diuji untuk Requirement ini."
+        primaryActionLabel={criterionEditor?.criterion ? 'Perbarui Kriteria' : 'Buat Kriteria'}
+        secondaryActionLabel="Batal"
         onPrimaryAction={() => void handleSaveCriterion()}
         isPrimaryLoading={isCriterionSaving}
         size="lg"
@@ -952,10 +958,10 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
         <div className="space-y-3">
           {criterionError && <Alert tone="error">{criterionError}</Alert>}
           <Textarea
-            label="Acceptance Criterion"
+            label="Kriteria Penerimaan"
             value={criterionText}
             onChange={(event) => setCriterionText(event.target.value)}
-            placeholder="e.g. Given valid payment details, when the user confirms, then the order is created once."
+            placeholder="Contoh: Dengan detail pembayaran valid, saat pengguna mengonfirmasi, pesanan dibuat tepat satu kali."
             rows={4}
             disabled={isCriterionSaving}
             autoFocus
@@ -971,16 +977,16 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
             setDeleteConfirmation('');
           }
         }}
-        title={`Correct ${selectedLinkedRequirementCount} Requirement${selectedLinkedRequirementCount === 1 ? '' : 's'}`}
-        description="Choose how to correct only the selected Requirements currently linked to this task."
+        title={`Perbaiki ${selectedLinkedRequirementCount} Requirement`}
+        description="Pilih cara memperbaiki Requirement terpilih yang saat ini tertaut ke Task ini."
         primaryActionLabel={
           bulkAction === 'unlink'
-            ? 'Unlink selected'
+            ? 'Lepas tautan pilihan'
             : bulkAction === 'deprecate'
-              ? 'Deprecate selected'
-              : 'Delete permanently'
+              ? 'Jadikan tidak berlaku'
+              : 'Hapus permanen'
         }
-        secondaryActionLabel="Cancel"
+        secondaryActionLabel="Batal"
         onPrimaryAction={handleBulkCorrection}
         isPrimaryLoading={isBulkSaving}
         isPrimaryDisabled={bulkAction === 'delete' && deleteConfirmation !== 'DELETE'}
@@ -1001,9 +1007,10 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
               }`}
             >
               <span>
-                <span className="block text-sm font-semibold">Unlink from this Feature</span>
+                <span className="block text-sm font-semibold">Lepas dari Feature ini</span>
                 <span className="mt-0.5 block text-xs font-normal text-stone-500 dark:text-stone-400">
-                  Removes only this Feature mapping. The Requirement remains reusable elsewhere.
+                  Hanya menghapus tautan ke Feature ini. Requirement tetap dapat digunakan di tempat
+                  lain.
                 </span>
               </span>
             </Button>
@@ -1019,10 +1026,10 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
               }`}
             >
               <span>
-                <span className="block text-sm font-semibold">Mark as deprecated</span>
+                <span className="block text-sm font-semibold">Jadikan tidak berlaku</span>
                 <span className="mt-0.5 block text-xs font-normal text-stone-500 dark:text-stone-400">
-                  Keeps all existing links and history, but marks the Requirement as no longer
-                  valid.
+                  Mempertahankan semua tautan dan riwayat, tetapi menandai Requirement sebagai tidak
+                  berlaku lagi.
                 </span>
               </span>
             </Button>
@@ -1035,9 +1042,10 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
               leftIcon={<Trash2 className="h-4 w-4" />}
             >
               <span>
-                <span className="block text-sm font-semibold">Delete mistaken Requirements</span>
+                <span className="block text-sm font-semibold">Hapus Requirement yang keliru</span>
                 <span className="mt-0.5 block text-xs font-normal opacity-80">
-                  Permanently removes only unused mistakes after backend safety checks.
+                  Menghapus permanen hanya data keliru yang tidak digunakan setelah pemeriksaan
+                  keamanan.
                 </span>
               </span>
             </Button>
@@ -1045,12 +1053,12 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
 
           {bulkAction === 'delete' ? (
             <div className="space-y-3">
-              <Alert tone="warning" title="Permanent and irreversible">
-                Deletion is rejected if a selected Requirement is linked elsewhere or used by a Test
-                Case or Bug. Use deprecated when delivery history exists.
+              <Alert tone="warning" title="Permanen dan tidak dapat dibatalkan">
+                Penghapusan ditolak jika Requirement terpilih tertaut di tempat lain atau digunakan
+                Test Case maupun Bug. Gunakan status tidak berlaku jika riwayat delivery sudah ada.
               </Alert>
               <Input
-                label="Type DELETE to confirm"
+                label="Ketik DELETE untuk mengonfirmasi"
                 value={deleteConfirmation}
                 onChange={(event) => setDeleteConfirmation(event.target.value)}
                 placeholder="DELETE"
@@ -1060,8 +1068,8 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
             </div>
           ) : (
             <Alert tone="info">
-              Existing Test Case, Bug, and activity history are retained. This operation is recorded
-              in the Feature activity log.
+              Test Case, Bug, dan riwayat aktivitas tetap dipertahankan. Operasi ini dicatat dalam
+              log aktivitas Feature.
             </Alert>
           )}
         </div>

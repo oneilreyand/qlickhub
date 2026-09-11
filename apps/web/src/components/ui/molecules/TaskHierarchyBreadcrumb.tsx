@@ -22,7 +22,7 @@ export const TaskHierarchyBreadcrumb: React.FC<TaskHierarchyBreadcrumbProps> = (
 }) => {
   const isSubtask = Boolean(task.parentTaskId);
   const parentLabel =
-    parentTask?.title || (isParentTaskLoading ? 'Loading Feature…' : 'Feature / Story');
+    parentTask?.title || (isParentTaskLoading ? 'Memuat Feature…' : 'Feature / Story');
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-stone-200 bg-stone-50/70 p-3 dark:border-stone-800 dark:bg-stone-950/40 sm:flex-row sm:items-center sm:justify-between">
@@ -39,7 +39,7 @@ export const TaskHierarchyBreadcrumb: React.FC<TaskHierarchyBreadcrumbProps> = (
                 size="sm"
                 onClick={() => onNavigateToTask(task.parentTaskId!)}
                 className="!min-h-[44px] max-w-full justify-start px-2 text-left font-bold text-stone-800 underline-offset-4 hover:underline dark:text-stone-100"
-                aria-label={`Open parent Feature ${parentLabel}`}
+                aria-label={`Buka Feature induk ${parentLabel}`}
                 disabled={isParentTaskLoading}
               >
                 <span className="block max-w-[16rem] truncate sm:max-w-sm">{parentLabel}</span>
@@ -73,7 +73,7 @@ export const TaskHierarchyBreadcrumb: React.FC<TaskHierarchyBreadcrumbProps> = (
           onClick={() => onNavigateToTask(task.parentTaskId!)}
           disabled={isParentTaskLoading}
         >
-          Back to Feature
+          Kembali ke Feature
         </Button>
       )}
     </div>

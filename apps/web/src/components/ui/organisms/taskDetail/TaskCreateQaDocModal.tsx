@@ -36,8 +36,8 @@ export const TaskCreateQaDocModal: React.FC<TaskCreateQaDocModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Create & Link QA Document"
-      description={`Author a new QA test plan or scenario document linked to "${taskTitle}"`}
+      title="Buat & Tautkan Dokumen QA"
+      description={`Buat rencana pengujian atau dokumen skenario QA yang tertaut ke "${taskTitle}"`}
       size="lg"
     >
       <form onSubmit={onSubmit} className="space-y-4">
@@ -47,7 +47,7 @@ export const TaskCreateQaDocModal: React.FC<TaskCreateQaDocModalProps> = ({
           </label>
           <Input
             required
-            placeholder="e.g. Test Plan: Payment Gateway Integration"
+            placeholder="Contoh: Rencana Pengujian Payment Gateway"
             value={docTitle}
             onChange={(e) => onDocTitleChange(e.target.value)}
           />
@@ -58,30 +58,30 @@ export const TaskCreateQaDocModal: React.FC<TaskCreateQaDocModalProps> = ({
             Document Type *
           </label>
           <Select value={docType} onChange={(e) => onDocTypeChange(e.target.value)}>
-            <option value="test_plan">Test Plan</option>
-            <option value="test_strategy">Test Strategy</option>
-            <option value="product_brief">Product Brief</option>
-            <option value="release_report">Release Report</option>
-            <option value="qa_guide">QA Guide</option>
+            <option value="test_plan">Rencana Pengujian</option>
+            <option value="test_strategy">Strategi Pengujian</option>
+            <option value="product_brief">Ringkasan Produk</option>
+            <option value="release_report">Laporan Rilis</option>
+            <option value="qa_guide">Panduan QA</option>
           </Select>
         </div>
 
         <div>
           <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-            Document Content (Markdown) *
+            Konten Dokumen (Markdown) *
           </label>
           <RichTextEditor
             id="new-task-qa-doc-content"
             value={docContent}
             onChange={onDocContentChange}
-            placeholder="Write test objectives, scope, test cases, and verification criteria..."
+            placeholder="Tulis tujuan dan cakupan pengujian, Test Case, serta kriteria verifikasi..."
             minRows={8}
           />
         </div>
 
         <div className="flex justify-end gap-2 pt-3 border-t border-stone-100 dark:border-stone-800">
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            Cancel
+            Batal
           </Button>
           <Button
             type="submit"
@@ -90,7 +90,7 @@ export const TaskCreateQaDocModal: React.FC<TaskCreateQaDocModalProps> = ({
             isLoading={isSubmitting}
             disabled={!docTitle.trim() || !docContent.trim()}
           >
-            Create & Link Document
+            Buat & Tautkan Dokumen
           </Button>
         </div>
       </form>

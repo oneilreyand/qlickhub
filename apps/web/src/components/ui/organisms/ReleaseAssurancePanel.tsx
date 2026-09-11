@@ -46,7 +46,7 @@ const decisionBadge = (decision: 'approved' | 'rejected', isCancelled = false) =
   if (isCancelled) {
     return (
       <Badge variant="neutral" icon={<Ban className="h-3.5 w-3.5" />}>
-        Cancelled ({decision === 'approved' ? 'Approved' : 'Rejected'})
+        Dibatalkan ({decision === 'approved' ? 'Disetujui' : 'Ditolak'})
       </Badge>
     );
   }
@@ -70,7 +70,7 @@ const SnapshotFacts: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) 
   <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
     <div className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950/40">
       <dt className="text-stone-500 dark:text-stone-400">
-        {snapshot.schemaVersion === 2 ? 'Development done' : 'Subtasks done'}
+        {snapshot.schemaVersion === 2 ? 'Development selesai' : 'Subtask selesai'}
       </dt>
       <dd className="mt-1 font-extrabold text-stone-900 dark:text-stone-100">
         {snapshot.schemaVersion === 2
@@ -79,21 +79,21 @@ const SnapshotFacts: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) 
       </dd>
     </div>
     <div className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950/40">
-      <dt className="text-stone-500 dark:text-stone-400">Requirements</dt>
+      <dt className="text-stone-500 dark:text-stone-400">Requirement</dt>
       <dd className="mt-1 font-extrabold text-stone-900 dark:text-stone-100">
         {snapshot.schemaVersion === 2
-          ? `${snapshot.requirements.coveredByActiveTestCases}/${snapshot.requirements.total} covered`
+          ? `${snapshot.requirements.coveredByActiveTestCases}/${snapshot.requirements.total} tercakup`
           : snapshot.requirements.total}
       </dd>
     </div>
     <div className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950/40">
-      <dt className="text-stone-500 dark:text-stone-400">Latest tests passed</dt>
+      <dt className="text-stone-500 dark:text-stone-400">Pengujian terbaru lulus</dt>
       <dd className="mt-1 font-extrabold text-stone-900 dark:text-stone-100">
         {snapshot.testExecution.passed}/{snapshot.testExecution.totalTestCases}
       </dd>
     </div>
     <div className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950/40">
-      <dt className="text-stone-500 dark:text-stone-400">High/Critical unverified</dt>
+      <dt className="text-stone-500 dark:text-stone-400">Bug Tinggi/Kritis belum diverifikasi</dt>
       <dd className="mt-1 font-extrabold text-stone-900 dark:text-stone-100">
         {snapshot.bugs.criticalOrHighUnverified}
       </dd>
@@ -105,18 +105,18 @@ const SnapshotGates: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) 
   if (snapshot.schemaVersion !== 2) return null;
 
   return (
-    <div className="space-y-2" aria-label="Current readiness gates">
+    <div className="space-y-2" aria-label="Quality gate kesiapan saat ini">
       <div className="flex items-center justify-between gap-3">
         <h4 className="text-xs font-extrabold text-stone-900 dark:text-stone-100">
-          Current readiness gates
+          Quality gate kesiapan saat ini
         </h4>
         {snapshot.evaluation.ready ? (
           <Badge variant="passed" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
-            Ready
+            Siap
           </Badge>
         ) : (
           <Badge variant="blocked" icon={<XCircle className="h-3.5 w-3.5" />}>
-            Not ready
+            Belum siap
           </Badge>
         )}
       </div>
@@ -230,7 +230,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           ? null
           : loadError instanceof Error
             ? loadError.message
-            : 'Failed to load release assurance records.',
+            : 'Catatan jaminan rilis gagal dimuat.',
       );
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
@@ -266,11 +266,11 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
 
   const submitDecision = async () => {
     if (mode === 'release' && !latestActiveQaSignOff) {
-      setFormError('An active QA Sign-off is required before recording a Release Decision.');
+      setFormError('Persetujuan QA aktif diperlukan sebelum mencatat Keputusan Rilis.');
       return;
     }
     if (requiresOverrideReason && !overrideReason.trim()) {
-      setFormError('Override reason is required when approving failed readiness gates.');
+      setFormError('Alasan override wajib diisi saat menyetujui quality gate yang gagal.');
       return;
     }
 
@@ -282,7 +282,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           decision,
           notes: notes.trim() || null,
         });
-        dispatch(enqueueSnackbar('QA Sign-off recorded without changing Task status', 'success'));
+        dispatch(enqueueSnackbar('Persetujuan QA dicatat tanpa mengubah status Task', 'success'));
       } else {
         await releaseDecisionService.createReleaseDecision(workspaceId, featureTaskId, {
           qaSignOffId: latestActiveQaSignOff!.id,
@@ -290,17 +290,13 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           notes: notes.trim() || null,
           overrideReason: requiresOverrideReason ? overrideReason.trim() : null,
         });
-        dispatch(
-          enqueueSnackbar('Release Decision recorded without changing Task status', 'success'),
-        );
+        dispatch(enqueueSnackbar('Keputusan Rilis dicatat tanpa mengubah status Task', 'success'));
       }
       setIsModalOpen(false);
       await loadRecords();
       onDataChanged?.();
     } catch (submitError) {
-      setFormError(
-        submitError instanceof Error ? submitError.message : 'Failed to record the decision.',
-      );
+      setFormError(submitError instanceof Error ? submitError.message : 'Keputusan gagal dicatat.');
     } finally {
       setIsSubmitting(false);
     }
@@ -310,7 +306,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     if (!recordToCancel) return;
     const trimmedReason = cancelReason.trim();
     if (!trimmedReason) {
-      setCancelError('Cancellation reason is required.');
+      setCancelError('Alasan pembatalan wajib diisi.');
       return;
     }
 
@@ -326,7 +322,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             reason: trimmedReason,
           },
         );
-        dispatch(enqueueSnackbar('QA Sign-off cancelled successfully', 'success'));
+        dispatch(enqueueSnackbar('Persetujuan QA berhasil dibatalkan', 'success'));
       } else {
         await releaseDecisionService.cancelReleaseDecision(
           workspaceId,
@@ -334,20 +330,20 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           recordToCancel.id,
           { reason: trimmedReason },
         );
-        dispatch(enqueueSnackbar('Release Decision cancelled successfully', 'success'));
+        dispatch(enqueueSnackbar('Keputusan Rilis berhasil dibatalkan', 'success'));
       }
       setIsCancelModalOpen(false);
       setRecordToCancel(null);
       await loadRecords();
       onDataChanged?.();
     } catch (err) {
-      setCancelError(err instanceof Error ? err.message : 'Failed to cancel record.');
+      setCancelError(err instanceof Error ? err.message : 'Catatan gagal dibatalkan.');
     } finally {
       setIsCancelling(false);
     }
   };
 
-  const title = mode === 'qa' ? 'QA Certification' : 'Release Decision';
+  const title = mode === 'qa' ? 'Sertifikasi QA' : 'Keputusan Rilis';
   const snapshot =
     latestRecord?.readinessSnapshot || latestActiveQaSignOff?.readinessSnapshot || null;
   const canMutate = mode === 'qa' ? canSignOff : canDecideRelease;
@@ -386,8 +382,8 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">{title}</h3>
           </div>
           <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-            Append-only decision history. Recording a decision does not change Task status or review
-            notes.
+            Riwayat keputusan bersifat append-only. Pencatatan keputusan tidak mengubah status atau
+            catatan review Task.
           </p>
         </div>
         {!isLoading && !permissionDenied && !error && (
@@ -399,9 +395,9 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             disabled={buttonDisabled}
             title={
               isSelfApproval
-                ? 'The QA signer cannot make the Release Decision for the same certification'
+                ? 'Pemberi persetujuan QA tidak dapat membuat Keputusan Rilis untuk sertifikasi yang sama'
                 : mode === 'release' && !latestActiveQaSignOff
-                  ? 'Record QA Sign-off before making a Release Decision'
+                  ? 'Catat persetujuan QA sebelum membuat Keputusan Rilis'
                   : undefined
             }
             leftIcon={
@@ -412,27 +408,27 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               )
             }
           >
-            {mode === 'qa' ? 'Record QA Sign-off' : 'Record Release Decision'}
+            {mode === 'qa' ? 'Catat Persetujuan QA' : 'Catat Keputusan Rilis'}
           </Button>
         )}
       </div>
 
       {isLoading ? (
-        <div className="space-y-3" aria-label={`Loading ${title}`}>
+        <div className="space-y-3" aria-label={`Memuat ${title}`}>
           <Skeleton variant="rectangular" className="h-16" />
           <Skeleton variant="rectangular" className="h-20" />
         </div>
       ) : permissionDenied ? (
-        <Alert tone="warning" title={`${title} access denied`}>
-          Your workspace membership does not permit access to these assurance records.
+        <Alert tone="warning" title={`Akses ${title} ditolak`}>
+          Keanggotaan workspace Anda tidak memiliki izin untuk mengakses catatan jaminan ini.
         </Alert>
       ) : error ? (
         <div className="space-y-3">
-          <Alert tone="error" title={`Unable to load ${title}`}>
+          <Alert tone="error" title={`${title} gagal dimuat`}>
             {error}
           </Alert>
           <Button variant="outline" size="sm" onClick={() => void loadRecords()}>
-            Try again
+            Coba lagi
           </Button>
         </div>
       ) : !latestRecord ? (
@@ -440,15 +436,15 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           icon={
             mode === 'qa' ? <ShieldAlert className="h-5 w-5" /> : <History className="h-5 w-5" />
           }
-          title={mode === 'qa' ? 'No QA Sign-off recorded' : 'No Release Decision recorded'}
+          title={mode === 'qa' ? 'Belum ada Persetujuan QA' : 'Belum ada Keputusan Rilis'}
           description={
             mode === 'qa'
-              ? 'Record explicit QA certification after reviewing persisted execution evidence.'
+              ? 'Catat sertifikasi QA setelah meninjau evidence eksekusi yang tersimpan.'
               : latestActiveQaSignOff
                 ? currentReadinessSnapshot?.evaluation.ready
-                  ? 'The latest QA certification and persisted gates are ready for an independent product decision.'
-                  : 'Review the failed readiness gates below before rejecting the release or recording a reasoned override.'
-                : 'A QA Sign-off must be recorded before a product release decision.'
+                  ? 'Sertifikasi QA terbaru dan quality gate yang tersimpan siap untuk keputusan produk yang independen.'
+                  : 'Tinjau quality gate yang gagal sebelum menolak rilis atau mencatat override beserta alasannya.'
+                : 'Persetujuan QA harus dicatat sebelum keputusan rilis produk dibuat.'
           }
         />
       ) : (
@@ -458,10 +454,10 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               {decisionBadge(latestRecord.decision, Boolean(latestRecord.cancellation))}
               <span>
                 {mode === 'qa'
-                  ? `Signed by ${actorLabel((latestRecord as QaSignOff).signedBy, members)}`
-                  : `Decided by ${actorLabel((latestRecord as ReleaseDecision).decidedBy, members)}`}
+                  ? `Ditandatangani oleh ${actorLabel((latestRecord as QaSignOff).signedBy, members)}`
+                  : `Diputuskan oleh ${actorLabel((latestRecord as ReleaseDecision).decidedBy, members)}`}
               </span>
-              <span aria-label="Decision history">{historyText}</span>
+              <span aria-label="Riwayat keputusan">{historyText}</span>
             </div>
 
             {/* Cancel Action for latest active record */}
@@ -481,11 +477,11 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                     leftIcon={<Ban className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
                     title={
                       hasActiveReleaseDecision
-                        ? 'Cancel related Release Decision first'
-                        : 'Cancel this QA Sign-off'
+                        ? 'Batalkan Keputusan Rilis terkait terlebih dahulu'
+                        : 'Batalkan persetujuan QA ini'
                     }
                   >
-                    Cancel Sign-off
+                    Batalkan Sign-off
                   </Button>
                 )}
                 {mode === 'release' && canCancelCurrentRelease && (
@@ -501,7 +497,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                     }
                     leftIcon={<Ban className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
                   >
-                    Cancel Decision
+                    Batalkan Keputusan
                   </Button>
                 )}
               </div>
@@ -514,8 +510,8 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               <div className="flex items-center gap-1.5 font-semibold text-stone-900 dark:text-stone-200">
                 <Ban className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                 <span>
-                  Cancelled by {actorLabel(latestRecord.cancellation.cancelledBy, members)} ·{' '}
-                  {new Date(latestRecord.cancellation.cancelledAt).toLocaleString()}
+                  Dibatalkan oleh {actorLabel(latestRecord.cancellation.cancelledBy, members)} ·{' '}
+                  {new Date(latestRecord.cancellation.cancelledAt).toLocaleString('id-ID')}
                 </span>
               </div>
               <p className="mt-1 text-stone-700 italic dark:text-stone-300">
@@ -530,7 +526,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             </p>
           )}
           {'overrideReason' in latestRecord && latestRecord.overrideReason && (
-            <Alert tone="warning" title="Release override reason">
+            <Alert tone="warning" title="Alasan override rilis">
               {latestRecord.overrideReason}
             </Alert>
           )}
@@ -543,8 +539,8 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       )}
 
       {isSelfApproval && (
-        <Alert tone="warning" title="Independent approval required">
-          The person who recorded the latest QA Sign-off cannot make its Release Decision.
+        <Alert tone="warning" title="Persetujuan independen diperlukan">
+          Pengguna yang mencatat QA Sign-off terbaru tidak dapat membuat Keputusan Rilisnya.
         </Alert>
       )}
 
@@ -567,7 +563,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                 )
               }
             >
-              {showHistory ? 'Hide history' : `View assurance history (${historyText})`}
+              {showHistory ? 'Sembunyikan riwayat' : `Lihat riwayat jaminan (${historyText})`}
             </Button>
 
             {showHistory && (
@@ -575,7 +571,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                 {mode === 'qa' && (
                   <div className="space-y-2">
                     <h5 className="text-xs font-bold text-stone-700 dark:text-stone-300">
-                      All QA Sign-offs
+                      Semua QA Sign-off
                     </h5>
                     {allQaSignOffs.map((so) => (
                       <div
@@ -587,7 +583,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                             {decisionBadge(so.decision, Boolean(so.cancellation))}
                             <span>{actorLabel(so.signedBy, members)}</span>
                             <span className="text-stone-400">
-                              {new Date(so.signedAt).toLocaleDateString()}
+                              {new Date(so.signedAt).toLocaleDateString('id-ID')}
                             </span>
                           </div>
                           {!so.cancellation && canCancelCurrentQa && (
@@ -602,7 +598,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                                 })
                               }
                             >
-                              Cancel
+                              Batal
                             </Button>
                           )}
                         </div>
@@ -611,7 +607,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                         )}
                         {so.cancellation && (
                           <div className="mt-1.5 rounded bg-stone-100 p-1.5 text-stone-600 dark:bg-stone-900/60 dark:text-stone-400">
-                            <span className="font-semibold">Cancelled: </span>
+                            <span className="font-semibold">Dibatalkan: </span>
                             <span>{so.cancellation.reason}</span>
                           </div>
                         )}
@@ -623,7 +619,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                 {mode === 'release' && (
                   <div className="space-y-2">
                     <h5 className="text-xs font-bold text-stone-700 dark:text-stone-300">
-                      All Release Decisions
+                      Semua Keputusan Rilis
                     </h5>
                     {allReleaseDecisions.map((rd) => (
                       <div
@@ -635,7 +631,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                             {decisionBadge(rd.decision, Boolean(rd.cancellation))}
                             <span>{actorLabel(rd.decidedBy, members)}</span>
                             <span className="text-stone-400">
-                              {new Date(rd.decidedAt).toLocaleDateString()}
+                              {new Date(rd.decidedAt).toLocaleDateString('id-ID')}
                             </span>
                           </div>
                           {!rd.cancellation && canCancelCurrentRelease && (
@@ -650,7 +646,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                                 })
                               }
                             >
-                              Cancel
+                              Batal
                             </Button>
                           )}
                         </div>
@@ -665,7 +661,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                         )}
                         {rd.cancellation && (
                           <div className="mt-1.5 rounded bg-stone-100 p-1.5 text-stone-600 dark:bg-stone-900/60 dark:text-stone-400">
-                            <span className="font-semibold">Cancelled: </span>
+                            <span className="font-semibold">Dibatalkan: </span>
                             <span>{rd.cancellation.reason}</span>
                           </div>
                         )}
@@ -682,19 +678,19 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       <Modal
         isOpen={isModalOpen}
         onClose={() => !isSubmitting && setIsModalOpen(false)}
-        title={mode === 'qa' ? 'Record QA Sign-off' : 'Record Release Decision'}
+        title={mode === 'qa' ? 'Catat Persetujuan QA' : 'Catat Keputusan Rilis'}
         size="md"
       >
         <div className="space-y-4">
-          <Alert tone="info" title="Immutable assurance record">
-            This creates a timestamped snapshot and Activity entry. It will not complete or reopen
-            the Task.
+          <Alert tone="info" title="Catatan jaminan yang tidak dapat diubah">
+            Tindakan ini membuat snapshot bertanda waktu dan entri Aktivitas. Status Task tidak akan
+            diselesaikan atau dibuka kembali.
           </Alert>
           {mode === 'release' && currentReadinessSnapshot && (
             <SnapshotGates snapshot={currentReadinessSnapshot} />
           )}
           <Select
-            label={mode === 'qa' ? 'QA certification decision' : 'Release decision'}
+            label={mode === 'qa' ? 'Keputusan sertifikasi QA' : 'Keputusan rilis'}
             value={decision}
             onChange={(event) => {
               setDecision(event.target.value as QaSignOffDecision | ReleaseDecisionOutcome);
@@ -702,11 +698,11 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             }}
             disabled={isSubmitting}
           >
-            <option value="approved">Approve</option>
-            <option value="rejected">Reject</option>
+            <option value="approved">Setujui</option>
+            <option value="rejected">Tolak</option>
           </Select>
           <Textarea
-            label={mode === 'qa' ? 'QA certification notes (optional)' : 'Release notes (optional)'}
+            label={mode === 'qa' ? 'Catatan sertifikasi QA (opsional)' : 'Catatan rilis (opsional)'}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={3}
@@ -715,7 +711,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           />
           {requiresOverrideReason && (
             <Textarea
-              label="Override reason"
+              label="Alasan override"
               value={overrideReason}
               onChange={(event) => setOverrideReason(event.target.value)}
               rows={3}
@@ -726,7 +722,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             />
           )}
           {formError && (!requiresOverrideReason || overrideReason.trim()) && (
-            <Alert tone="error" title="Decision was not recorded">
+            <Alert tone="error" title="Keputusan tidak tercatat">
               {formError}
             </Alert>
           )}
@@ -737,7 +733,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               onClick={() => setIsModalOpen(false)}
               disabled={isSubmitting}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               variant="primary"
@@ -752,7 +748,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                 )
               }
             >
-              Record decision
+              Catat Keputusan
             </Button>
           </div>
         </div>
@@ -762,30 +758,32 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       <Modal
         isOpen={isCancelModalOpen}
         onClose={() => !isCancelling && setIsCancelModalOpen(false)}
-        title={recordToCancel?.type === 'qa' ? 'Cancel QA Sign-off' : 'Cancel Release Decision'}
+        title={
+          recordToCancel?.type === 'qa' ? 'Batalkan Persetujuan QA' : 'Batalkan Keputusan Rilis'
+        }
         size="md"
       >
         <div className="space-y-4">
-          <Alert tone="warning" title="Permanent cancellation">
-            This creates an append-only cancellation event. A cancellation is permanent and cannot
-            be undone. Cancelled records are retained indefinitely for audit history.
+          <Alert tone="warning" title="Pembatalan permanen">
+            Tindakan ini membuat event pembatalan append-only. Pembatalan bersifat permanen dan
+            tidak dapat dibatalkan. Catatan yang dibatalkan tetap disimpan untuk riwayat audit.
           </Alert>
 
           {recordToCancel?.type === 'qa' && hasActiveReleaseDecision && (
-            <Alert tone="error" title="Sequence requirement (D5)">
-              An active Release Decision references this Feature / Story. You must cancel the
-              Release Decision before cancelling this QA Sign-off.
+            <Alert tone="error" title="Urutan wajib (D5)">
+              Keputusan Rilis aktif merujuk Feature / Story ini. Batalkan Keputusan Rilis terlebih
+              dahulu sebelum membatalkan QA Sign-off ini.
             </Alert>
           )}
 
           <Textarea
-            label="Cancellation reason"
+            label="Alasan pembatalan"
             value={cancelReason}
             onChange={(event) => {
               setCancelReason(event.target.value);
               setCancelError(null);
             }}
-            placeholder="Explain why this assurance record is being cancelled..."
+            placeholder="Jelaskan alasan pembatalan catatan jaminan ini..."
             rows={3}
             maxLength={20000}
             required
@@ -800,7 +798,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               onClick={() => setIsCancelModalOpen(false)}
               disabled={isCancelling}
             >
-              Back
+              Kembali
             </Button>
             <Button
               variant="destructive"
@@ -810,7 +808,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               disabled={recordToCancel?.type === 'qa' && hasActiveReleaseDecision}
               leftIcon={<Ban className="h-4 w-4" />}
             >
-              Confirm Cancellation
+              Konfirmasi Pembatalan
             </Button>
           </div>
         </div>

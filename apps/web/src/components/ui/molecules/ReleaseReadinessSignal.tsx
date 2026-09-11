@@ -17,7 +17,7 @@ export const ReleaseReadinessSignal: React.FC<ReleaseReadinessSignalProps> = ({
 }) => {
   if (!state || state.isLoading) {
     return (
-      <div className={`space-y-1 ${className}`} aria-label="Loading release readiness">
+      <div className={`space-y-1 ${className}`} aria-label="Memuat kesiapan rilis">
         <Skeleton variant="text" className="h-5 w-28" />
       </div>
     );
@@ -31,16 +31,16 @@ export const ReleaseReadinessSignal: React.FC<ReleaseReadinessSignalProps> = ({
         icon={<LockKeyhole className="h-3.5 w-3.5" />}
         className={className}
       >
-        Readiness restricted
+        Kesiapan dibatasi
       </Badge>
     );
   }
 
   if (state.error || !state.snapshot) {
     return (
-      <span title={state.error || 'Release readiness unavailable.'} className={className}>
+      <span title={state.error || 'Kesiapan rilis tidak tersedia.'} className={className}>
         <Badge variant="draft" size="sm" icon={<ShieldAlert className="h-3.5 w-3.5" />}>
-          Readiness unavailable
+          Kesiapan tidak tersedia
         </Badge>
       </span>
     );
@@ -54,23 +54,23 @@ export const ReleaseReadinessSignal: React.FC<ReleaseReadinessSignalProps> = ({
       className={`min-w-0 space-y-1 ${className}`}
       aria-label={
         evaluation.ready
-          ? 'Release ready: all five gates passed'
-          : `Release blocked: ${failedGates.length} gates need action`
+          ? 'Siap dirilis: semua lima gate lulus'
+          : `Rilis terblokir: ${failedGates.length} gate perlu ditindaklanjuti`
       }
     >
       {evaluation.ready ? (
         <Badge variant="passed" size="sm" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
-          Release ready · 5/5 gates
+          Siap dirilis · 5/5 gate
         </Badge>
       ) : (
         <Badge variant="blocked" size="sm" icon={<XCircle className="h-3.5 w-3.5" />}>
-          Release blocked · {failedGates.length} gates need action
+          Rilis terblokir · {failedGates.length} gate perlu ditindaklanjuti
         </Badge>
       )}
       {showReason && failedGates.length > 0 && (
         <ul
           className="max-w-xl space-y-1 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400"
-          aria-label="Release gates needing action"
+          aria-label="Gate rilis yang perlu ditindaklanjuti"
         >
           {failedGates.map((gate) => (
             <li key={gate.code}>
