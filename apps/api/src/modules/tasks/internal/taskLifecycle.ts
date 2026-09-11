@@ -26,6 +26,8 @@ import {
   WorkspaceMemberSpecialtyModel,
   UserModel,
   TaskCreationPermissionModel,
+  RequirementModel,
+  TaskRequirementModel,
 } from '../../../db/models/index.js';
 import {
   assertCanCreateTask,
@@ -257,6 +259,7 @@ export async function createTaskImpl(actorId: string, input: CreateTaskInput): P
       assigneeId,
       startDate,
       dueDate,
+      requirementIds,
     } = input;
     const membership = await getActorMembership(workspaceId, actorId, transaction);
 
@@ -329,6 +332,43 @@ export async function createTaskImpl(actorId: string, input: CreateTaskInput): P
 
     const completedAt = status === 'done' ? new Date() : null;
 
+    let selectedRequirements: RequirementModel[] = [];
+    if (requirementIds && requirementIds.length > 0) {
+      if (!parentTaskId) {
+        throw new Error('BAD_REQUEST: Requirement selection is allowed only for Subtasks.');
+      }
+
+      selectedRequirements = await RequirementModel.findAll({
+        where: {
+          workspaceId,
+          id: { [Op.in]: requirementIds },
+          status: 'active',
+        },
+        transaction,
+      });
+
+      if (selectedRequirements.length !== requirementIds.length) {
+        throw new Error(
+          'BAD_REQUEST: Every selected Requirement must be active and belong to this Workspace.',
+        );
+      }
+
+      const parentRequirementLinkCount = await TaskRequirementModel.count({
+        where: {
+          workspaceId,
+          taskId: parentTaskId,
+          requirementId: { [Op.in]: requirementIds },
+        },
+        transaction,
+      });
+
+      if (parentRequirementLinkCount !== requirementIds.length) {
+        throw new Error(
+          'BAD_REQUEST: Every selected Requirement must already be linked to the parent Feature.',
+        );
+      }
+    }
+
     const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
     if (scheduleIssue) {
       throw new Error(`BAD_REQUEST: ${scheduleIssue.message}`);
@@ -352,6 +392,36 @@ export async function createTaskImpl(actorId: string, input: CreateTaskInput): P
       },
       { transaction },
     );
+
+    if (selectedRequirements.length > 0) {
+      await TaskRequirementModel.bulkCreate(
+        selectedRequirements.map((requirement) => ({
+          workspaceId,
+          taskId: task.id,
+          requirementId: requirement.id,
+          linkedBy: actorId,
+        })),
+        { transaction },
+      );
+
+      await Promise.all(
+        selectedRequirements.map((requirement) =>
+          logActivity(
+            workspaceId,
+            task.id,
+            actorId,
+            'requirement_linked',
+            {
+              requirementId: requirement.id,
+              code: requirement.code,
+              title: requirement.title,
+              url: requirement.url || null,
+            },
+            transaction,
+          ),
+        ),
+      );
+    }
 
     // If parent task is already done, adding an incomplete subtask reopens the parent task
     if (

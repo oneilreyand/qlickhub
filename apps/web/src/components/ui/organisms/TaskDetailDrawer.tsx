@@ -167,6 +167,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [isLoadingSubtasks, setIsLoadingSubtasks] = useState(false);
   const [subtasksError, setSubtasksError] = useState<string | null>(null);
   const [isSubtaskModalOpen, setIsSubtaskModalOpen] = useState(false);
+  const [plannedRequirementIds, setPlannedRequirementIds] = useState<string[]>([]);
 
   // Activity state
   const [activities, setActivities] = useState<TaskActivity[]>([]);
@@ -1101,6 +1102,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               activeWorkspaceId={activeWorkspaceId}
               userRole={userWorkspaceRole}
               onRequirementChanged={() => loadActivity(1)}
+              onPlanSubtask={
+                canPlan && !task.parentTaskId
+                  ? (requirement: Requirement) => {
+                      setPlannedRequirementIds([requirement.id]);
+                      setIsSubtaskModalOpen(true);
+                    }
+                  : undefined
+              }
               requirementInitialState={requirementInitialState}
             />
           )}
@@ -1149,7 +1158,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   return updated;
                 });
               }}
-              onOpenCreateModal={() => setIsSubtaskModalOpen(true)}
+              onOpenCreateModal={() => {
+                setPlannedRequirementIds([]);
+                setIsSubtaskModalOpen(true);
+              }}
               onRetry={() => void loadSubtasks()}
               onSubtaskUpdated={(updated) => {
                 setSubtasks((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
@@ -1202,8 +1214,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       <CreateSubtaskModal
         parentTask={task}
         isOpen={canPlan && isSubtaskModalOpen}
-        onClose={() => setIsSubtaskModalOpen(false)}
+        initialRequirementIds={plannedRequirementIds}
+        onClose={() => {
+          setIsSubtaskModalOpen(false);
+          setPlannedRequirementIds([]);
+        }}
         onCreated={() => {
+          setPlannedRequirementIds([]);
           loadSubtasks();
           onDataChanged?.();
         }}

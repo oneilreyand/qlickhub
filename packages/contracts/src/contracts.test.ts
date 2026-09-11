@@ -445,6 +445,37 @@ describe('Contracts Validation Suite', () => {
       );
     });
 
+    test('scopes Requirement links to Subtask creation and requires distinct IDs', () => {
+      const secondRequirementId = '123e4567-e89b-12d3-a456-426614174001';
+      const subtaskInput = CreateTaskSchema.parse({
+        workspaceId: validUuid,
+        parentTaskId: validUuid,
+        deliveryArea: 'frontend',
+        assigneeId: validUuid,
+        title: 'Implement linked Requirements',
+        requirementIds: [validUuid, secondRequirementId],
+      });
+
+      assert.deepStrictEqual(subtaskInput.requirementIds, [validUuid, secondRequirementId]);
+      assert.throws(() =>
+        CreateTaskSchema.parse({
+          workspaceId: validUuid,
+          title: 'Root Feature cannot own create-time Subtask links',
+          requirementIds: [validUuid],
+        }),
+      );
+      assert.throws(() =>
+        CreateTaskSchema.parse({
+          workspaceId: validUuid,
+          parentTaskId: validUuid,
+          deliveryArea: 'backend',
+          assigneeId: validUuid,
+          title: 'Duplicate Requirement links',
+          requirementIds: [validUuid, validUuid],
+        }),
+      );
+    });
+
     test('requires an auditable reason for assignment mismatch overrides', () => {
       assert.throws(() =>
         CreateTaskSchema.parse({

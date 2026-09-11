@@ -32,6 +32,34 @@ describe('RequirementFormModal Molecule', () => {
     });
   });
 
+  test('offers an explicit create-and-plan action without auto-creating a Subtask', async () => {
+    const handleSave = vi.fn().mockResolvedValue(undefined);
+    const handleSaveAndPlan = vi.fn().mockResolvedValue(undefined);
+    const handleClose = vi.fn();
+
+    render(
+      <RequirementFormModal
+        isOpen={true}
+        onClose={handleClose}
+        onSave={handleSave}
+        onSaveAndPlan={handleSaveAndPlan}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/Requirement Title/i), {
+      target: { value: 'Requirement with planned delivery' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create & Plan Subtask' }));
+
+    await waitFor(() => {
+      expect(handleSaveAndPlan).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Requirement with planned delivery' }),
+      );
+      expect(handleSave).not.toHaveBeenCalled();
+      expect(handleClose).toHaveBeenCalled();
+    });
+  });
+
   test('uses the shared rich-text editor and saves bold Markdown in Requirement details', async () => {
     const handleSave = vi.fn().mockResolvedValue(undefined);
 

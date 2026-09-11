@@ -133,6 +133,13 @@ export const CreateTaskSchema = z
     startDate: DateStringSchema.nullable().optional(),
     dueDate: DateStringSchema.nullable().optional(),
     position: z.number().int().min(0).optional(),
+    requirementIds: z
+      .array(z.string().uuid())
+      .max(100)
+      .refine((ids) => new Set(ids).size === ids.length, {
+        message: 'requirementIds must contain distinct Requirement IDs',
+      })
+      .optional(),
     allowRoleMismatch: z.boolean().optional(),
     roleMismatchReason: z.string().trim().min(10).max(500).optional(),
   })
@@ -150,6 +157,14 @@ export const CreateTaskSchema = z
         code: z.ZodIssueCode.custom,
         message: 'deliveryArea is allowed only for subtasks',
         path: ['deliveryArea'],
+      });
+    }
+
+    if (!data.parentTaskId && data.requirementIds && data.requirementIds.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'requirementIds are allowed only for subtasks',
+        path: ['requirementIds'],
       });
     }
 

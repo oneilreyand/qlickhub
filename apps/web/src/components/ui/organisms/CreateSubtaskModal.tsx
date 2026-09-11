@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   getTaskScheduleValidationIssue,
   type Task,
+  type Requirement,
   type DeliveryArea,
   type TaskPriority,
 } from '@qlick/contracts';
@@ -10,17 +11,24 @@ import { Input } from '../atoms/Input';
 import { Textarea } from '../atoms/Textarea';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
+import { Checkbox } from '../atoms/Checkbox';
+import { Alert } from '../atoms/Alert';
+import { Skeleton } from '../atoms/Skeleton';
 import { Code2, Layers, Smartphone, Cpu, Bug } from 'lucide-react';
 import { taskService } from '../../../lib/api/taskService';
+import { requirementService } from '../../../lib/api/requirementService';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
 import { fetchMembers } from '../../../store/workspaceSlice';
 
+const EMPTY_REQUIREMENT_IDS: string[] = [];
+
 interface CreateSubtaskModalProps {
   parentTask: Task | null;
   isOpen: boolean;
   initialDeliveryArea?: DeliveryArea;
+  initialRequirementIds?: string[];
   onClose: () => void;
   onCreated: () => void;
 }
@@ -29,6 +37,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
   parentTask,
   isOpen,
   initialDeliveryArea,
+  initialRequirementIds = EMPTY_REQUIREMENT_IDS,
   onClose,
   onCreated,
 }) => {
@@ -49,6 +58,10 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [eligibleRequirements, setEligibleRequirements] = useState<Requirement[]>([]);
+  const [selectedRequirementIds, setSelectedRequirementIds] = useState<string[]>([]);
+  const [isRequirementsLoading, setIsRequirementsLoading] = useState(false);
+  const [requirementsError, setRequirementsError] = useState<string | null>(null);
 
   const prevIsOpenRef = useRef(false);
 
@@ -61,12 +74,45 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       setAssigneeId('');
       setStartDate('');
       setDueDate('');
+      setSelectedRequirementIds(initialRequirementIds);
       if (activeWorkspaceId && canPlan) {
         dispatch(fetchMembers(activeWorkspaceId));
       }
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, initialDeliveryArea, activeWorkspaceId, canPlan, dispatch]);
+  }, [isOpen, initialDeliveryArea, initialRequirementIds, activeWorkspaceId, canPlan, dispatch]);
+
+  const loadEligibleRequirements = useCallback(async () => {
+    if (!activeWorkspaceId || !parentTask) return;
+    setIsRequirementsLoading(true);
+    setRequirementsError(null);
+    try {
+      const [requirements, links] = await Promise.all([
+        requirementService.listRequirements(activeWorkspaceId),
+        requirementService.listTaskRequirementLinks(activeWorkspaceId, parentTask.id),
+      ]);
+      const linkedIds = new Set(links.map((link) => link.requirementId));
+      const eligible = requirements.filter(
+        (requirement) => requirement.status === 'active' && linkedIds.has(requirement.id),
+      );
+      setEligibleRequirements(eligible);
+      const eligibleIds = new Set(eligible.map((requirement) => requirement.id));
+      setSelectedRequirementIds((current) => current.filter((id) => eligibleIds.has(id)));
+    } catch (error) {
+      setRequirementsError(
+        error instanceof Error ? error.message : 'Failed to load linked Requirements.',
+      );
+      setEligibleRequirements([]);
+    } finally {
+      setIsRequirementsLoading(false);
+    }
+  }, [activeWorkspaceId, parentTask]);
+
+  useEffect(() => {
+    if (isOpen && canPlan) {
+      void loadEligibleRequirements();
+    }
+  }, [isOpen, canPlan, loadEligibleRequirements]);
 
   // Filter members strictly based on delivery area
   const filteredMembers = useMemo(() => {
@@ -132,6 +178,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         assigneeId,
         startDate: startDate || undefined,
         dueDate: dueDate || undefined,
+        requirementIds: selectedRequirementIds.length > 0 ? selectedRequirementIds : undefined,
       });
 
       dispatch(
@@ -283,6 +330,60 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             rows={3}
             className="text-xs"
           />
+        </div>
+
+        <div>
+          <div className="mb-1.5">
+            <p className="text-xs font-bold text-stone-700 dark:text-stone-300">
+              Covered Requirements (Optional)
+            </p>
+            <p className="text-[11px] text-stone-500 dark:text-stone-400">
+              Choose active Requirements already linked to this Feature.
+            </p>
+          </div>
+          {isRequirementsLoading ? (
+            <div aria-label="Loading linked Requirements" className="space-y-2">
+              <Skeleton className="h-11 w-full rounded-xl" />
+              <Skeleton className="h-11 w-full rounded-xl" />
+            </div>
+          ) : requirementsError ? (
+            <Alert tone="error">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span>{requirementsError}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void loadEligibleRequirements()}
+                >
+                  Retry
+                </Button>
+              </div>
+            </Alert>
+          ) : eligibleRequirements.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50 p-3 text-xs text-stone-500 dark:border-stone-800 dark:bg-stone-950/50 dark:text-stone-400">
+              No active Requirement is linked to this Feature yet.
+            </div>
+          ) : (
+            <div className="max-h-40 space-y-1 overflow-y-auto rounded-xl border border-stone-200 px-3 dark:border-stone-800">
+              {eligibleRequirements.map((requirement) => (
+                <Checkbox
+                  key={requirement.id}
+                  id={`subtask-requirement-${requirement.id}`}
+                  label={`${requirement.code} — ${requirement.title}`}
+                  checked={selectedRequirementIds.includes(requirement.id)}
+                  onChange={() =>
+                    setSelectedRequirementIds((current) =>
+                      current.includes(requirement.id)
+                        ? current.filter((id) => id !== requirement.id)
+                        : [...current, requirement.id],
+                    )
+                  }
+                  className="w-full"
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Assignee and Priority Grid */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Task } from '@qlick/contracts';
+import type { Requirement, Task } from '@qlick/contracts';
 
 import { Card } from '../../atoms/Card';
 import { RequirementManager, type RequirementManagerInitialState } from '../RequirementManager';
@@ -9,6 +9,7 @@ export interface TaskDetailSpecsTabProps {
   activeWorkspaceId: string | null;
   userRole: string;
   onRequirementChanged: () => void;
+  onPlanSubtask?: (requirement: Requirement) => void;
   requirementInitialState?: RequirementManagerInitialState;
 }
 
@@ -17,6 +18,7 @@ export const TaskDetailSpecsTab: React.FC<TaskDetailSpecsTabProps> = ({
   activeWorkspaceId,
   userRole,
   onRequirementChanged,
+  onPlanSubtask,
   requirementInitialState,
 }) => {
   return (
@@ -26,6 +28,7 @@ export const TaskDetailSpecsTab: React.FC<TaskDetailSpecsTabProps> = ({
         taskId={task.id}
         userRole={(userRole || 'dev') as any}
         onRequirementChanged={onRequirementChanged}
+        onPlanSubtask={onPlanSubtask}
         initialState={requirementInitialState}
       />
     </Card>

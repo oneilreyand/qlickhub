@@ -124,6 +124,49 @@ describe('RequirementManager Organism', () => {
     expect(screen.getByText('Available Workspace Requirements (2)')).toBeInTheDocument();
   });
 
+  test('creates and links a Requirement before handing it to Subtask planning', async () => {
+    const createdRequirement = {
+      ...mockRequirements[0],
+      id: 'req-created-for-plan',
+      code: 'REQ-PLAN-001',
+      title: 'New Requirement for implementation',
+    };
+    const onPlanSubtask = vi.fn();
+    createRequirementMock.mockResolvedValueOnce(createdRequirement);
+    linkRequirementMock.mockResolvedValueOnce({
+      id: 'link-created-for-plan',
+      workspaceId: 'ws-1',
+      taskId: 'task-1',
+      requirementId: createdRequirement.id,
+      linkedBy: 'user-po',
+      createdAt: '2026-09-11T00:00:00.000Z',
+    });
+
+    render(
+      <RequirementManager
+        workspaceId="ws-1"
+        taskId="task-1"
+        userRole="po"
+        onPlanSubtask={onPlanSubtask}
+      />,
+    );
+
+    fireEvent.click(await screen.findByTestId('create-requirement-btn'));
+    fireEvent.change(screen.getByLabelText(/Requirement Title/i), {
+      target: { value: createdRequirement.title },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create & Plan Subtask' }));
+
+    await waitFor(() => {
+      expect(createRequirementMock).toHaveBeenCalledWith(
+        'ws-1',
+        expect.objectContaining({ title: createdRequirement.title }),
+      );
+      expect(linkRequirementMock).toHaveBeenCalledWith('ws-1', 'task-1', createdRequirement.id);
+      expect(onPlanSubtask).toHaveBeenCalledWith(createdRequirement);
+    });
+  });
+
   test('shows Dev only Requirements linked to the selected task', async () => {
     listTaskRequirementLinksMock.mockResolvedValueOnce([
       {

@@ -17,6 +17,7 @@ export interface RequirementFormModalProps {
     url?: string | null;
     status?: RequirementStatus;
   }) => Promise<void>;
+  onSaveAndPlan?: RequirementFormModalProps['onSave'];
   initialData?: Partial<Requirement> | null;
   title?: string;
   isSaving?: boolean;
@@ -26,6 +27,7 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onSaveAndPlan,
   initialData,
   title = initialData ? 'Edit Requirement' : 'Create Requirement',
   isSaving = false,
@@ -58,7 +60,7 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (saveAction = onSave) => {
     setValidationError(null);
     const trimmedTitle = reqTitle.trim();
     if (!trimmedTitle) {
@@ -75,7 +77,7 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
     }
 
     try {
-      await onSave({
+      await saveAction({
         code: code.trim() ? code.trim().toUpperCase() : undefined,
         title: trimmedTitle,
         description: description.trim() ? description.trim() : initialData ? null : undefined,
@@ -98,8 +100,18 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
           ? 'Update the requirement details, source reference, or status.'
           : 'Define a structured requirement and optionally link its specific source section.'
       }
-      primaryActionLabel={initialData ? 'Update Requirement' : 'Create Requirement'}
-      onPrimaryAction={handleSubmit}
+      primaryActionLabel={
+        !initialData && onSaveAndPlan
+          ? 'Create & Plan Subtask'
+          : initialData
+            ? 'Update Requirement'
+            : 'Create Requirement'
+      }
+      onPrimaryAction={() =>
+        void handleSubmit(onSaveAndPlan && !initialData ? onSaveAndPlan : onSave)
+      }
+      additionalActionLabel={!initialData && onSaveAndPlan ? 'Create Requirement' : undefined}
+      onAdditionalAction={() => void handleSubmit(onSave)}
       secondaryActionLabel="Cancel"
       isPrimaryLoading={isSaving}
       size="lg"

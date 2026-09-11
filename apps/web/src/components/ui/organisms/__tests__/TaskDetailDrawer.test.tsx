@@ -264,6 +264,7 @@ describe('TaskDetailDrawer UI Component', () => {
 
     getProductBriefMock.mockResolvedValue(productBrief);
     upsertProductBriefMock.mockResolvedValue(productBrief);
+    listRequirementsMock.mockResolvedValue([]);
     listTaskRequirementLinksMock.mockResolvedValue([]);
     getParentTaskDeliveryTraceMock.mockResolvedValue(createDeliveryTraceFixture());
     deleteTaskMock.mockResolvedValue({ success: true });
@@ -568,6 +569,57 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(screen.queryByText('Specification Brief')).not.toBeInTheDocument();
     expect(screen.queryByText(/QA Test Plans & Verification Docs/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /New QA Doc/ })).not.toBeInTheDocument();
+  });
+
+  test('continues from a newly created Requirement to Subtask planning with it selected', async () => {
+    const plannedRequirement = {
+      id: 'req-guided-plan-1',
+      workspaceId: mockTask.workspaceId,
+      code: 'REQ-GUIDED-01',
+      title: 'Guided implementation requirement',
+      description: null,
+      url: null,
+      status: 'active' as const,
+      createdBy: 'user-1',
+      createdAt: '2026-09-11T00:00:00.000Z',
+      updatedAt: '2026-09-11T00:00:00.000Z',
+    };
+    const plannedLink = {
+      id: 'link-guided-plan-1',
+      workspaceId: mockTask.workspaceId,
+      taskId: mockTask.id,
+      requirementId: plannedRequirement.id,
+      linkedBy: 'user-1',
+      createdAt: '2026-09-11T00:00:00.000Z',
+    };
+    let isLinked = false;
+    listRequirementsMock.mockResolvedValue([plannedRequirement]);
+    listTaskRequirementLinksMock.mockImplementation(async () => (isLinked ? [plannedLink] : []));
+    createRequirementMock.mockResolvedValue(plannedRequirement);
+    linkRequirementMock.mockImplementation(async () => {
+      isLinked = true;
+      return plannedLink;
+    });
+
+    renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
+
+    await screen.findByRole('heading', { name: mockTask.title });
+    fireEvent.click(screen.getByRole('button', { name: 'Requirements' }));
+    fireEvent.click(await screen.findByTestId('create-requirement-btn'));
+    fireEvent.change(screen.getByLabelText(/Requirement Title/i), {
+      target: { value: plannedRequirement.title },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create & Plan Subtask' }));
+
+    const planDialog = await screen.findByRole('dialog', {
+      name: `Plan Subtask — ${mockTask.title}`,
+    });
+    expect(planDialog).toBeInTheDocument();
+    expect(
+      await within(planDialog).findByRole('checkbox', {
+        name: /REQ-GUIDED-01.*Guided implementation requirement/i,
+      }),
+    ).toBeChecked();
   });
 
   test('shows Feature scope and external references in a separate Product Brief tab', async () => {

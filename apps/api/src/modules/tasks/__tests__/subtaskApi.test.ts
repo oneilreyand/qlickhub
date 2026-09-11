@@ -6,6 +6,9 @@ import { WorkFolderModel } from '../../../db/models/workFolder.js';
 import { WorkspaceModel } from '../../../db/models/workspace.js';
 import { WorkspaceMemberModel } from '../../../db/models/workspaceMember.js';
 import { UserModel } from '../../../db/models/user.js';
+import { RequirementModel } from '../../../db/models/requirement.js';
+import { TaskRequirementModel } from '../../../db/models/taskRequirement.js';
+import { TaskActivityModel } from '../../../db/models/taskActivity.js';
 import { CreateTaskSchema, TaskListQuerySchema } from '@qlick/contracts';
 
 describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
@@ -100,14 +103,16 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'Authentication Modernization',
         status: 'in_progress',
         priority: 'high',
-      })
+      }),
     );
 
     parentTask = (await TaskModel.findByPk(createdParent.id))!;
   });
 
   after(async () => {
+    await TaskRequirementModel.destroy({ where: { workspaceId: workspace.id }, force: true });
     await TaskModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+    await RequirementModel.destroy({ where: { workspaceId: workspace.id }, force: true });
     await WorkFolderModel.destroy({ where: { workspaceId: workspace.id }, force: true });
     await WorkspaceModel.destroy({ where: { id: workspace.id }, force: true });
     await UserModel.destroy({ where: { id: owner.id }, force: true });
@@ -126,7 +131,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'Build OAuth Login Form',
         assigneeId: devUser.id,
         priority: 'high',
-      })
+      }),
     );
 
     const qaSubtask = await taskService.createTask(
@@ -138,7 +143,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'Automate E2E Auth Flow',
         assigneeId: qaUser.id,
         priority: 'high',
-      })
+      }),
     );
 
     assert.strictEqual(feSubtask.parentTaskId, parentTask.id);
@@ -149,6 +154,94 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
     assert.strictEqual(qaSubtask.parentTaskId, parentTask.id);
     assert.strictEqual(qaSubtask.deliveryArea, 'qa');
     assert.strictEqual(qaSubtask.assigneeId, qaUser.id);
+  });
+
+  test('PO can create a Subtask with a persisted Requirement link and audit evidence', async () => {
+    const requirement = await RequirementModel.create({
+      workspaceId: workspace.id,
+      code: 'REQ-ST2-001',
+      title: 'OAuth login must support the company identity provider',
+      status: 'active',
+      createdBy: poUser.id,
+    });
+    await TaskRequirementModel.create({
+      workspaceId: workspace.id,
+      taskId: parentTask.id,
+      requirementId: requirement.id,
+      linkedBy: poUser.id,
+    });
+
+    const subtask = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        parentTaskId: parentTask.id,
+        deliveryArea: 'frontend',
+        title: 'Implement OAuth login requirement',
+        assigneeId: devUser.id,
+        requirementIds: [requirement.id],
+      }),
+    );
+
+    const persistedLink = await TaskRequirementModel.findOne({
+      where: {
+        workspaceId: workspace.id,
+        taskId: subtask.id,
+        requirementId: requirement.id,
+      },
+    });
+    const audit = await TaskActivityModel.findOne({
+      where: {
+        workspaceId: workspace.id,
+        taskId: subtask.id,
+        action: 'requirement_linked',
+      },
+    });
+
+    assert.ok(persistedLink);
+    assert.strictEqual(persistedLink.linkedBy, poUser.id);
+    assert.ok(audit);
+    assert.deepStrictEqual(audit.metadataJson, {
+      requirementId: requirement.id,
+      code: requirement.code,
+      title: requirement.title,
+      url: null,
+    });
+  });
+
+  test('Subtask creation rejects a Requirement that is not linked to its parent Feature', async () => {
+    const unrelatedRequirement = await RequirementModel.create({
+      workspaceId: workspace.id,
+      code: 'REQ-ST2-UNRELATED',
+      title: 'Requirement outside the selected Feature scope',
+      status: 'active',
+      createdBy: poUser.id,
+    });
+    const subtaskTitle = `Invalid requirement scope ${Date.now()}`;
+
+    await assert.rejects(
+      () =>
+        taskService.createTask(
+          poUser.id,
+          CreateTaskSchema.parse({
+            workspaceId: workspace.id,
+            parentTaskId: parentTask.id,
+            deliveryArea: 'frontend',
+            title: subtaskTitle,
+            assigneeId: devUser.id,
+            requirementIds: [unrelatedRequirement.id],
+          }),
+        ),
+      (error: Error) => {
+        assert.match(error.message, /linked to the parent Feature/);
+        return true;
+      },
+    );
+
+    assert.strictEqual(
+      await TaskModel.count({ where: { workspaceId: workspace.id, title: subtaskTitle } }),
+      0,
+    );
   });
 
   test('Non-planner (Dev/QA) cannot create or plan subtasks', async () => {
@@ -162,13 +255,13 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
             deliveryArea: 'backend',
             title: 'Unpermitted Dev Subtask',
             assigneeId: devUser.id,
-          })
+          }),
         );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
   });
 
@@ -182,7 +275,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'FE Execution Task',
         assigneeId: devUser.id,
         status: 'todo',
-      })
+      }),
     );
 
     // Assigned Dev updates status & description -> Allowed
@@ -204,7 +297,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
   });
 
@@ -217,7 +310,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         deliveryArea: 'backend',
         title: 'BE Unassigned Task',
         assigneeId: devUser.id,
-      })
+      }),
     );
 
     // QA user is NOT assignee and subtask is not in review -> Rejected
@@ -230,7 +323,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
   });
 
@@ -241,7 +334,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         workspaceId: workspace.id,
         folderId: folderA.id,
         title: 'Parent Task To Move',
-      })
+      }),
     );
 
     const sub1 = await taskService.createTask(
@@ -252,7 +345,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         deliveryArea: 'frontend',
         title: 'Subtask 1',
         assigneeId: devUser.id,
-      })
+      }),
     );
 
     const sub2 = await taskService.createTask(
@@ -263,7 +356,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         deliveryArea: 'backend',
         title: 'Subtask 2',
         assigneeId: devUser.id,
-      })
+      }),
     );
 
     // PO moves parent from folderA to folderB
@@ -284,7 +377,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
       CreateTaskSchema.parse({
         workspaceId: workspace.id,
         title: 'Parent For Summary Test',
-      })
+      }),
     );
 
     await taskService.createTask(
@@ -296,7 +389,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'FE 1',
         assigneeId: devUser.id,
         status: 'done',
-      })
+      }),
     );
 
     await taskService.createTask(
@@ -308,7 +401,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'FE 2',
         assigneeId: devUser.id,
         status: 'todo',
-      })
+      }),
     );
 
     await taskService.createTask(
@@ -320,7 +413,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'QA 1',
         assigneeId: qaUser.id,
         status: 'done',
-      })
+      }),
     );
 
     const res = await taskService.listTasks(
@@ -329,7 +422,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         workspaceId: workspace.id,
         rootOnly: true,
         includeSubtaskSummary: true,
-      })
+      }),
     );
 
     const foundParent = res.tasks.find((t) => t.id === parent.id);
@@ -358,7 +451,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         workspaceId: workspace.id,
         title: 'Parent With Incomplete Subtask',
         status: 'in_progress',
-      })
+      }),
     );
 
     const subFE = await taskService.createTask(
@@ -370,7 +463,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'FE Subtask Incomplete',
         assigneeId: devUser.id,
         status: 'in_progress',
-      })
+      }),
     );
 
     const subQA = await taskService.createTask(
@@ -382,7 +475,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'QA Subtask Incomplete',
         assigneeId: qaUser.id,
         status: 'todo',
-      })
+      }),
     );
 
     // Attempting to complete guardParent while subFE and subQA are incomplete -> MUST FAIL
@@ -391,9 +484,11 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         await taskService.completeTask(poUser.id, workspace.id, guardParent.id, { status: 'done' });
       },
       (err: any) => {
-        assert.ok(String(err.message).includes('Cannot complete task while subtasks are incomplete'));
+        assert.ok(
+          String(err.message).includes('Cannot complete task while subtasks are incomplete'),
+        );
         return true;
-      }
+      },
     );
 
     // Also attempting to update status directly to 'done' -> MUST FAIL
@@ -402,9 +497,11 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         await taskService.updateTask(poUser.id, workspace.id, guardParent.id, { status: 'done' });
       },
       (err: any) => {
-        assert.ok(String(err.message).includes('Cannot complete task while subtasks are incomplete'));
+        assert.ok(
+          String(err.message).includes('Cannot complete task while subtasks are incomplete'),
+        );
         return true;
-      }
+      },
     );
 
     // Move subtasks to done by PO
@@ -412,7 +509,12 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
     await taskService.updateTask(poUser.id, workspace.id, subQA.id, { status: 'done' });
 
     // Now parent task can be completed successfully
-    const completedParent = await taskService.completeTask(poUser.id, workspace.id, guardParent.id, { status: 'done' });
+    const completedParent = await taskService.completeTask(
+      poUser.id,
+      workspace.id,
+      guardParent.id,
+      { status: 'done' },
+    );
     assert.strictEqual(completedParent.status, 'done');
     assert.ok(completedParent.completedAt);
 
@@ -436,7 +538,7 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
         title: 'Newly added BE subtask',
         assigneeId: devUser.id,
         status: 'todo',
-      })
+      }),
     );
 
     const reopenedAgain = await TaskModel.findByPk(guardParent.id);

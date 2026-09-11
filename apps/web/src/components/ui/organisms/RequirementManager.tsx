@@ -40,6 +40,7 @@ export interface RequirementManagerProps {
   taskId?: string;
   userRole: WorkspaceRole;
   onRequirementChanged?: () => void;
+  onPlanSubtask?: (requirement: Requirement) => void;
   initialState?: RequirementManagerInitialState;
 }
 
@@ -54,6 +55,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
   taskId,
   userRole,
   onRequirementChanged,
+  onPlanSubtask,
   initialState,
 }) => {
   const [requirements, setRequirements] = useState<Requirement[]>(initialState?.requirements || []);
@@ -161,13 +163,16 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
     }
   };
 
-  const handleSaveRequirement = async (data: {
-    code?: string;
-    title: string;
-    description?: string | null;
-    url?: string | null;
-    status?: RequirementStatus;
-  }) => {
+  const handleSaveRequirement = async (
+    data: {
+      code?: string;
+      title: string;
+      description?: string | null;
+      url?: string | null;
+      status?: RequirementStatus;
+    },
+    shouldPlanSubtask = false,
+  ) => {
     if (!canManage) return;
     setIsSaving(true);
     try {
@@ -191,6 +196,9 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
           await requirementService.linkRequirement(workspaceId, taskId, created.id);
         }
         await loadData();
+        if (shouldPlanSubtask) {
+          onPlanSubtask?.(created);
+        }
       }
       onRequirementChanged?.();
     } finally {
@@ -907,7 +915,12 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
           setIsModalOpen(false);
           setEditingRequirement(null);
         }}
-        onSave={handleSaveRequirement}
+        onSave={(data) => handleSaveRequirement(data)}
+        onSaveAndPlan={
+          taskId && onPlanSubtask && !editingRequirement
+            ? (data) => handleSaveRequirement(data, true)
+            : undefined
+        }
         initialData={editingRequirement}
         isSaving={isSaving}
       />

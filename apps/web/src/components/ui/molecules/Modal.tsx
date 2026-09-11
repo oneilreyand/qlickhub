@@ -13,6 +13,8 @@ export interface ModalProps {
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
   secondaryActionLabel?: string;
+  additionalActionLabel?: string;
+  onAdditionalAction?: () => void;
   isPrimaryLoading?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
@@ -26,6 +28,8 @@ export const Modal: React.FC<ModalProps> = ({
   primaryActionLabel,
   onPrimaryAction,
   secondaryActionLabel,
+  additionalActionLabel,
+  onAdditionalAction,
   isPrimaryLoading = false,
   size = 'md',
 }) => {
@@ -144,11 +148,22 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        {(primaryActionLabel || secondaryActionLabel) && (
+        {(primaryActionLabel || secondaryActionLabel || additionalActionLabel) && (
           <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 border-t border-stone-100 pt-3 sm:pt-4 dark:border-stone-800 shrink-0">
             {secondaryActionLabel && (
               <Button variant="outline" size="sm" onClick={onClose} className="w-full sm:w-auto">
                 {secondaryActionLabel}
+              </Button>
+            )}
+            {additionalActionLabel && (
+              <Button
+                variant="outline"
+                size="sm"
+                isLoading={isPrimaryLoading}
+                onClick={onAdditionalAction}
+                className="w-full sm:w-auto"
+              >
+                {additionalActionLabel}
               </Button>
             )}
             {primaryActionLabel && (
