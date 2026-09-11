@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Product and Engineering
-**Last reviewed:** 2026-09-07
+**Last reviewed:** 2026-09-08
 **Applicable Policy IDs:** `DATA-001`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-004`
 
 ## 1. Tujuan dan Pengguna
@@ -19,8 +19,10 @@ make external FCM delivery transactional, deploy to Production, or add a native 
   token and reports active only after the authenticated backend confirms token registration.
 - **MWP-R2:** The root Firebase service worker can initialise after its process restarts without an
   open page sending runtime configuration.
-- **MWP-R3:** Android Chrome users receive actionable permission, registration, denied, unsupported,
-  and failure states; iOS users outside standalone mode receive Home Screen installation guidance.
+- **MWP-R3:** Android Chrome users receive truthful registered, denied, unsupported, and failure
+  states; iOS users outside standalone mode receive Home Screen installation guidance. The
+  notification dropdown does not present an activation banner while permission is required or
+  registration is in progress.
 - **MWP-R4:** A discussion mutation completes its persisted notification and FCM delivery attempt
   before the request can be suspended by a serverless runtime.
 - **MWP-R5:** Explicit logout unregisters and deletes the current device token on a best-effort basis
@@ -62,11 +64,13 @@ role, RBAC, membership, or UI-only authorization behavior changes.
 
 ## 7. UI dan Interaction States
 
-The existing notification dropdown presents `checking`, `permission required`, `registering`,
-`registered`, `denied`, `installation required`, `unsupported`, and retryable `error` states. It
-reuses the current notification organism styling and approved lime, amber, red, stone, and dark-mode
-tokens. Activation and retry controls retain accessible names, disabled behavior, and a minimum
-44-pixel touch target. A Web App Manifest enables standalone Home Screen launch.
+The existing notification dropdown presents `registered`, `denied`, `installation required`,
+`unsupported`, and retryable `error` feedback. The internal `checking`, `permission required`, and
+`registering` states remain part of device registration but intentionally render no activation
+banner in the dropdown. The remaining feedback reuses the current notification organism styling
+and approved lime, amber, red, stone, and dark-mode tokens. Retry controls retain accessible names,
+disabled behavior, and a minimum 44-pixel touch target. A Web App Manifest enables standalone Home
+Screen launch.
 
 ## 8. Pengujian dan Evidence
 

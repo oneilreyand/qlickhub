@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import { test, describe, before, after } from 'node:test';
 import { taskService } from '../taskService.js';
 import { TaskModel } from '../../../db/models/task.js';
+import { TaskActivityModel } from '../../../db/models/taskActivity.js';
 import { WorkFolderModel } from '../../../db/models/workFolder.js';
 import { WorkspaceModel } from '../../../db/models/workspace.js';
 import { WorkspaceMemberModel } from '../../../db/models/workspaceMember.js';
@@ -91,7 +92,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
         title: 'User Authentication Flow',
         status: 'in_progress',
         priority: 'high',
-      })
+      }),
     );
 
     parentTask = (await TaskModel.findByPk(createdParent.id))!;
@@ -117,7 +118,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
         title: 'FE Form Implementation',
         assigneeId: feDev.id,
         status: 'todo',
-      })
+      }),
     );
 
     // todo -> in_progress
@@ -145,7 +146,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
           title: `${deliveryArea} delivery persistence`,
           assigneeId: feDev.id,
           status: 'todo',
-        })
+        }),
       );
 
       const persisted = await taskService.getTask(workspace.id, created.id, poUser.id, 'po');
@@ -164,7 +165,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
         title: 'FE Self Approval Test',
         assigneeId: feDev.id,
         status: 'in_progress',
-      })
+      }),
     );
 
     await taskService.updateTask(feDev.id, workspace.id, subtask.id, { status: 'in_review' });
@@ -177,7 +178,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
   });
 
@@ -191,7 +192,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
         title: 'FE Button Styling',
         assigneeId: feDev.id,
         status: 'in_progress',
-      })
+      }),
     );
 
     await taskService.updateTask(feDev.id, workspace.id, subtask.id, { status: 'in_review' });
@@ -206,7 +207,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
       (err: any) => {
         assert.ok(String(err.message).includes('Review notes are required'));
         return true;
-      }
+      },
     );
 
     // QA requesting changes with reviewNotes -> Succeeded
@@ -216,7 +217,10 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
     });
 
     assert.strictEqual(rejectedSubtask.status, 'changes_requested');
-    assert.strictEqual(rejectedSubtask.reviewNotes, 'Form validation error state styling is missing.');
+    assert.strictEqual(
+      rejectedSubtask.reviewNotes,
+      'Form validation error state styling is missing.',
+    );
     assert.strictEqual(rejectedSubtask.reviewedBy, qaUser.id);
 
     // Assignee moves from changes_requested -> in_progress to rework
@@ -247,7 +251,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
         title: 'FE Guarded Task',
         assigneeId: feDev.id,
         status: 'todo',
-      })
+      }),
     );
 
     // Dev attempting invalid transition todo -> in_review must fail
@@ -258,7 +262,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
       (err: any) => {
         assert.ok(String(err.message).includes('Invalid status transition for developer'));
         return true;
-      }
+      },
     );
 
     // Dev moves to in_progress
@@ -272,7 +276,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
   });
 
@@ -286,12 +290,103 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
         title: 'QA lifecycle guard',
         assigneeId: qaUser.id,
         status: 'todo',
-      })
+      }),
     );
 
     await assert.rejects(
       () => taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, { status: 'done' }),
-      /Invalid status transition for QA executor from "todo" to "done"/
+      /Invalid status transition for QA executor from "todo" to "done"/,
     );
+  });
+
+  test('Assigned QA execution persists direct completion and reasoned reopening without self-review', async () => {
+    const qaParent = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        folderId: folder.id,
+        title: 'QA lifecycle persistence feature',
+        status: 'in_progress',
+      }),
+    );
+    const qaSubtask = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        parentTaskId: qaParent.id,
+        deliveryArea: 'qa',
+        title: 'Assigned E2E verification',
+        assigneeId: qaUser.id,
+        status: 'todo',
+      }),
+    );
+
+    const inProgress = await taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, {
+      status: 'in_progress',
+    });
+    assert.strictEqual(inProgress.status, 'in_progress');
+
+    await assert.rejects(
+      () =>
+        taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, {
+          status: 'in_review',
+        }),
+      /Invalid status transition for QA executor from "in_progress" to "in_review"/,
+    );
+
+    const completed = await taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, {
+      status: 'done',
+    });
+    assert.strictEqual(completed.status, 'done');
+    assert.strictEqual(completed.reviewedBy, null);
+
+    await assert.rejects(
+      () =>
+        taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, {
+          status: 'in_progress',
+        }),
+      /A reason is required when reopening completed QA execution/,
+    );
+
+    const reopenReason = 'Regression verification required for the release candidate.';
+    const reopened = await taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, {
+      status: 'in_progress',
+      reviewNotes: reopenReason,
+    });
+    assert.strictEqual(reopened.status, 'in_progress');
+    assert.strictEqual(reopened.reviewNotes, reopenReason);
+
+    const reopenActivity = await TaskActivityModel.findOne({
+      where: { workspaceId: workspace.id, taskId: qaSubtask.id, action: 'subtask.updated' },
+      order: [['createdAt', 'DESC']],
+    });
+    assert.ok(reopenActivity);
+    assert.strictEqual(reopenActivity.actorId, qaUser.id);
+    assert.strictEqual(reopenActivity.metadataJson?.reviewNotes, reopenReason);
+
+    const legacyQaSubtask = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        parentTaskId: qaParent.id,
+        deliveryArea: 'qa',
+        title: 'Legacy QA self-review recovery',
+        assigneeId: qaUser.id,
+        status: 'in_review',
+      }),
+    );
+    await TaskModel.update(
+      { reviewedBy: qaUser.id, reporterId: qaUser.id },
+      { where: { id: legacyQaSubtask.id, workspaceId: workspace.id } },
+    );
+
+    const recoveredLegacy = await taskService.updateTask(
+      qaUser.id,
+      workspace.id,
+      legacyQaSubtask.id,
+      { status: 'done' },
+    );
+    assert.strictEqual(recoveredLegacy.status, 'done');
+    assert.strictEqual(recoveredLegacy.reviewedBy, null);
   });
 });

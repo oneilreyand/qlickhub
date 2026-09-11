@@ -8,6 +8,7 @@ import {
   FileText,
   Trash2,
   FileCode2,
+  BookOpen,
   Bug,
   Route,
 } from 'lucide-react';
@@ -19,28 +20,32 @@ import type {
   FolderTreeNode,
   TaskActivity,
   TaskComment,
-  TaskDocumentLink,
   ProductBrief,
-  ProductBriefScopeItem,
-  ProductBriefAcceptanceCriterion,
+  Requirement,
+  TaskRequirementLink,
 } from '@qlick/contracts';
 import { getTaskScheduleValidationIssue } from '@qlick/contracts';
 
 import { Drawer } from '../molecules/Drawer';
 import { Button } from '../atoms/Button';
+import { Skeleton } from '../atoms/Skeleton';
 import { TaskCommentBox } from '../molecules/TaskCommentBox';
 import { Tabs, TabItem } from '../molecules/Tabs';
 import { TaskHierarchyBreadcrumb } from '../molecules/TaskHierarchyBreadcrumb';
 import { CreateSubtaskModal } from './CreateSubtaskModal';
 import { SubtaskList } from './SubtaskList';
-import { TaskDeliveryTracePanel } from './TaskDeliveryTracePanel';
-import { BugExperiencePanel } from './BugExperiencePanel';
+import {
+  TaskDeliveryTracePanel,
+  type TaskDeliveryTraceInitialState,
+} from './TaskDeliveryTracePanel';
+import { BugExperiencePanel, type BugExperienceInitialState } from './BugExperiencePanel';
+import type { RequirementManagerInitialState } from './RequirementManager';
 import {
   TaskDetailOverviewTab,
+  TaskDetailProductBriefTab,
   TaskDetailSpecsTab,
   TaskDetailActivityTab,
   TaskDeleteConfirmationModal,
-  TaskCreateQaDocModal,
   EMPTY_ACTIVITY_ILLUSTRATION_URL,
 } from './taskDetail';
 
@@ -51,6 +56,9 @@ import { RootState } from '../../../store/store';
 import { selectCurrentUserId } from '../../../store/authSlice';
 import { taskService } from '../../../lib/api/taskService';
 import { qaDocumentService } from '../../../lib/api/qaDocumentService';
+import { requirementService } from '../../../lib/api/requirementService';
+import { traceabilityService } from '../../../lib/api/traceabilityService';
+import { bugService } from '../../../lib/api/bugService';
 import { fetchMembers } from '../../../store/workspaceSlice';
 import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
 import type { ReleaseReadinessViewState } from '../../../lib/hooks/useReleaseReadinessMap';
@@ -65,6 +73,30 @@ export { EMPTY_ACTIVITY_ILLUSTRATION_URL };
 
 const PAGE_SIZE = 50;
 
+const TaskDetailLoadingBody: React.FC = () => (
+  <div
+    className="mx-auto w-full max-w-4xl space-y-5 py-3"
+    role="status"
+    aria-label="Memuat detail task"
+    aria-live="polite"
+    aria-busy="true"
+  >
+    <div className="space-y-2">
+      <Skeleton className="h-5 w-52 rounded-lg" />
+      <Skeleton className="h-4 w-72 max-w-full rounded-lg" />
+    </div>
+    <Skeleton className="h-14 w-full rounded-2xl" />
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <Skeleton className="h-40 w-full rounded-2xl" />
+      <Skeleton className="h-40 w-full rounded-2xl" />
+    </div>
+    <Skeleton className="h-56 w-full rounded-2xl" />
+    <p className="text-center text-xs font-semibold text-stone-500 dark:text-stone-400">
+      Menyiapkan task, requirements, subtasks, activity, discussion, bugs, trace, dan readiness…
+    </p>
+  </div>
+);
+
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
@@ -72,6 +104,9 @@ function errorMessage(error: unknown, fallback: string) {
 export interface TaskDetailDrawerProps {
   task: Task | null;
   folders: FolderTreeNode[];
+  pendingTaskId?: string | null;
+  detailLoadError?: string | null;
+  onRetryDetail?: () => void;
   parentTask?: Task | null;
   isParentTaskLoading?: boolean;
   releaseReadinessState?: ReleaseReadinessViewState;
@@ -83,6 +118,9 @@ export interface TaskDetailDrawerProps {
 export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   task,
   folders,
+  pendingTaskId,
+  detailLoadError,
+  onRetryDetail,
   parentTask,
   isParentTaskLoading,
   releaseReadinessState,
@@ -102,7 +140,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role),
   );
   const userWorkspaceRole = (activeWorkspace?.role || '').toLowerCase();
-  const canManageQaDocs = ['owner', 'admin', 'qa'].includes(userWorkspaceRole);
 
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [title, setTitle] = useState('');
@@ -116,28 +153,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
 
-  // Persisted Product Brief state
+  // Persisted Product Brief remains available to read-only schedule context.
   const [productBrief, setProductBrief] = useState<ProductBrief | null>(null);
-  const [isLoadingProductBrief, setIsLoadingProductBrief] = useState(false);
   const [productBriefError, setProductBriefError] = useState<string | null>(null);
-  const [isSavingProductBrief, setIsSavingProductBrief] = useState(false);
-  const [productBriefTitle, setProductBriefTitle] = useState('');
-  const [productBriefContent, setProductBriefContent] = useState('');
-  const [productBriefInScope, setProductBriefInScope] = useState<ProductBriefScopeItem[]>([]);
-  const [productBriefOutScope, setProductBriefOutScope] = useState<ProductBriefScopeItem[]>([]);
-  const [productBriefAcceptanceCriteria, setProductBriefAcceptanceCriteria] = useState<
-    ProductBriefAcceptanceCriterion[]
-  >([]);
-  const [productBriefOwnerId, setProductBriefOwnerId] = useState('');
-
-  // Task QA Documents & Test Plans state
-  const [taskQaDocLinks, setTaskQaDocLinks] = useState<TaskDocumentLink[]>([]);
-  const [isLoadingQaDocs, setIsLoadingQaDocs] = useState(false);
-  const [isCreateQaDocModalOpen, setIsCreateQaDocModalOpen] = useState(false);
-  const [newQaDocTitle, setNewQaDocTitle] = useState('');
-  const [newQaDocType, setNewQaDocType] = useState('test_plan');
-  const [newQaDocContent, setNewQaDocContent] = useState('');
-  const [isSubmittingQaDoc, setIsSubmittingQaDoc] = useState(false);
+  const [requirementInitialState, setRequirementInitialState] =
+    useState<RequirementManagerInitialState>();
+  const [deliveryTraceInitialState, setDeliveryTraceInitialState] =
+    useState<TaskDeliveryTraceInitialState>();
+  const [bugInitialState, setBugInitialState] = useState<BugExperienceInitialState>();
 
   // Subtasks state
   const [subtasks, setSubtasks] = useState<Task[]>([]);
@@ -165,6 +188,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   );
 
   const prevTaskIdRef = useRef<string | null>(null);
+  const initialLoadRequestRef = useRef(0);
+  const [loadedTaskKey, setLoadedTaskKey] = useState<string | null>(null);
 
   useEffect(() => {
     setUnreadSubtaskCommentMap({});
@@ -285,10 +310,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   useEffect(() => {
     if (task) {
-      const isNewTask = task.id !== prevTaskIdRef.current;
-      prevTaskIdRef.current = task.id;
+      const nextTaskKey = `${effectiveWorkspaceId || task.workspaceId}:${task.id}`;
+      const isNewTask = nextTaskKey !== prevTaskIdRef.current;
+      prevTaskIdRef.current = nextTaskKey;
 
       if (isNewTask) {
+        const requestId = ++initialLoadRequestRef.current;
+        setLoadedTaskKey(null);
         setTitle(task.title);
         setDescription(task.description || '');
         setStatus(task.status);
@@ -304,214 +332,145 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
         setSubtasks([]);
         setSubtasksError(null);
+        setActivities([]);
+        setActivityTotal(0);
+        setActivityError(null);
+        setComments([]);
+        setCommentsTotal(0);
+        setCommentsError(null);
+        setProductBrief(null);
+        setProductBriefError(null);
+        setRequirementInitialState(undefined);
+        setDeliveryTraceInitialState(undefined);
+        setBugInitialState(undefined);
 
         if (effectiveWorkspaceId) {
-          loadSubtasks();
-          loadActivity(1);
-          loadComments(1);
-          loadProductBrief();
-          loadTaskQaDocs();
-          dispatch(fetchMembers(effectiveWorkspaceId));
+          void Promise.allSettled([
+            loadSubtasks(requestId),
+            loadActivity(1, false, requestId),
+            loadComments(1, false, requestId),
+            loadProductBrief(requestId),
+            loadRequirements(requestId),
+            loadDeliveryTrace(requestId),
+            loadBugs(requestId),
+            dispatch(fetchMembers(effectiveWorkspaceId)).unwrap(),
+          ]).then(() => {
+            if (initialLoadRequestRef.current === requestId) {
+              setLoadedTaskKey(nextTaskKey);
+            }
+          });
         }
       }
     } else {
+      initialLoadRequestRef.current += 1;
       prevTaskIdRef.current = null;
+      setLoadedTaskKey(null);
     }
+    // These request helpers are intentionally scoped to the current task render. Including their
+    // recreated identities would restart the initial bundle after every detail state update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id, effectiveWorkspaceId, dispatch]);
 
-  const loadProductBrief = async () => {
+  const isCurrentInitialRequest = (requestId?: number) =>
+    requestId === undefined || initialLoadRequestRef.current === requestId;
+
+  const loadProductBrief = async (requestId?: number) => {
     if (!effectiveWorkspaceId || !task) return;
-    setIsLoadingProductBrief(true);
-    setProductBriefError(null);
+    if (isCurrentInitialRequest(requestId)) setProductBriefError(null);
     try {
       const brief = await qaDocumentService.getProductBrief(effectiveWorkspaceId, task.id);
-      setProductBrief(brief);
-      setProductBriefTitle(brief?.document.title || `${task.title} Product Brief`);
-      setProductBriefContent(brief?.currentVersion.contentMarkdown || '');
-      setProductBriefInScope(brief?.currentVersion.inScope || []);
-      setProductBriefOutScope(brief?.currentVersion.outScope || []);
-      setProductBriefAcceptanceCriteria(brief?.currentVersion.acceptanceCriteria || []);
-      setProductBriefOwnerId(brief?.document.ownerId || task.reporterId || currentUserId || '');
-    } catch (err) {
-      setProductBriefError(errorMessage(err, 'Unable to load the Product Brief.'));
-    } finally {
-      setIsLoadingProductBrief(false);
+      if (isCurrentInitialRequest(requestId)) setProductBrief(brief);
+    } catch (error) {
+      if (isCurrentInitialRequest(requestId)) {
+        setProductBrief(null);
+        setProductBriefError(errorMessage(error, 'Unable to load the Product Brief.'));
+      }
     }
   };
 
-  const addScopeItem = (kind: 'in' | 'out') => {
-    const item: ProductBriefScopeItem = {
-      id: crypto.randomUUID(),
-      text: '',
-      position: kind === 'in' ? productBriefInScope.length : productBriefOutScope.length,
-    };
-    if (kind === 'in') {
-      setProductBriefInScope((items) => [...items, item]);
-    } else {
-      setProductBriefOutScope((items) => [...items, item]);
-    }
-  };
-
-  const updateScopeItem = (kind: 'in' | 'out', id: string, text: string) => {
-    const update = (items: ProductBriefScopeItem[]) =>
-      items.map((item) => (item.id === id ? { ...item, text } : item));
-    if (kind === 'in') {
-      setProductBriefInScope(update);
-    } else {
-      setProductBriefOutScope(update);
-    }
-  };
-
-  const removeScopeItem = (kind: 'in' | 'out', id: string) => {
-    const remove = (items: ProductBriefScopeItem[]) =>
-      items.filter((item) => item.id !== id).map((item, position) => ({ ...item, position }));
-    if (kind === 'in') {
-      setProductBriefInScope(remove);
-    } else {
-      setProductBriefOutScope(remove);
-    }
-  };
-
-  const addAcceptanceCriterion = () => {
-    setProductBriefAcceptanceCriteria((items) => [
-      ...items,
-      { id: crypto.randomUUID(), text: '', position: items.length },
-    ]);
-  };
-
-  const updateAcceptanceCriterion = (id: string, text: string) => {
-    setProductBriefAcceptanceCriteria((items) =>
-      items.map((item) => (item.id === id ? { ...item, text } : item)),
-    );
-  };
-
-  const removeAcceptanceCriterion = (id: string) => {
-    setProductBriefAcceptanceCriteria((items) =>
-      items.filter((item) => item.id !== id).map((item, position) => ({ ...item, position })),
-    );
-  };
-
-  const handleSaveProductBrief = async () => {
-    if (!activeWorkspaceId || !task || !productBriefTitle.trim()) return;
-    const inScope = productBriefInScope
-      .filter((item) => item.text.trim())
-      .map((item, position) => ({
-        ...item,
-        text: item.text.trim(),
-        position,
-      }));
-    const outScope = productBriefOutScope
-      .filter((item) => item.text.trim())
-      .map((item, position) => ({
-        ...item,
-        text: item.text.trim(),
-        position,
-      }));
-    const acceptanceCriteria = productBriefAcceptanceCriteria
-      .filter((item) => item.text.trim())
-      .map((item, position) => ({
-        ...item,
-        text: item.text.trim(),
-        position,
-      }));
-
-    setIsSavingProductBrief(true);
+  const loadRequirements = async (requestId?: number) => {
+    if (!effectiveWorkspaceId || !task) return;
     try {
-      const brief = await qaDocumentService.upsertProductBrief(activeWorkspaceId, task.id, {
-        title: productBriefTitle.trim(),
-        contentMarkdown: productBriefContent,
-        inScope,
-        outScope,
-        acceptanceCriteria,
-        ownerId: productBriefOwnerId || undefined,
+      const [requirements, taskLinks] = await Promise.all([
+        requirementService.listRequirements(effectiveWorkspaceId),
+        requirementService.listTaskRequirementLinks(effectiveWorkspaceId, task.id),
+      ]);
+      if (isCurrentInitialRequest(requestId)) {
+        setRequirementInitialState({
+          requirements: (requirements || []) as Requirement[],
+          taskLinks: (taskLinks || []) as TaskRequirementLink[],
+          error: null,
+        });
+      }
+    } catch (error) {
+      if (isCurrentInitialRequest(requestId)) {
+        setRequirementInitialState({
+          requirements: [],
+          taskLinks: [],
+          error: errorMessage(error, 'Unable to load requirements.'),
+        });
+      }
+    }
+  };
+
+  const loadDeliveryTrace = async (requestId?: number) => {
+    if (!effectiveWorkspaceId || !task) return;
+    try {
+      const trace = await traceabilityService.getParentTaskDeliveryTrace(
+        effectiveWorkspaceId,
+        task.id,
+      );
+      if (isCurrentInitialRequest(requestId)) {
+        setDeliveryTraceInitialState({ trace, error: null, permissionDenied: false });
+      }
+    } catch (error) {
+      if (isCurrentInitialRequest(requestId)) {
+        const status = (error as { status?: number })?.status;
+        setDeliveryTraceInitialState({
+          trace: null,
+          error: status === 403 ? null : errorMessage(error, 'Unable to load Delivery Trace.'),
+          permissionDenied: status === 403,
+        });
+      }
+    }
+  };
+
+  const loadBugs = async (requestId?: number) => {
+    if (!effectiveWorkspaceId || !task) return;
+    try {
+      const bugs = await bugService.listBugs(effectiveWorkspaceId, {
+        featureTaskId: task.parentTaskId || task.id,
       });
-      setProductBrief(brief);
-      setProductBriefInScope(brief.currentVersion.inScope);
-      setProductBriefOutScope(brief.currentVersion.outScope);
-      setProductBriefAcceptanceCriteria(brief.currentVersion.acceptanceCriteria);
-      dispatch(
-        enqueueSnackbar(
-          `Product Brief saved as version ${brief.currentVersion.version}.`,
-          'success',
-        ),
-      );
-      loadActivity(1);
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to save Product Brief'), 'error'));
-    } finally {
-      setIsSavingProductBrief(false);
+      if (isCurrentInitialRequest(requestId)) {
+        setBugInitialState({ bugs, error: null, permissionDenied: false });
+      }
+    } catch (error) {
+      if (isCurrentInitialRequest(requestId)) {
+        const status = (error as { status?: number })?.status;
+        setBugInitialState({
+          bugs: [],
+          error: status === 403 ? null : errorMessage(error, 'Unable to load Bugs.'),
+          permissionDenied: status === 403,
+        });
+      }
     }
   };
 
-  const loadTaskQaDocs = async () => {
-    if (!activeWorkspaceId || !task) return;
-    setIsLoadingQaDocs(true);
-    try {
-      const links = await qaDocumentService.listTaskDocumentLinks(activeWorkspaceId, task.id);
-      setTaskQaDocLinks(Array.isArray(links) ? links : []);
-    } catch {
-      setTaskQaDocLinks([]);
-    } finally {
-      setIsLoadingQaDocs(false);
-    }
-  };
-
-  const handleUnlinkQaDoc = async (documentId: string) => {
-    if (!activeWorkspaceId || !task) return;
-    try {
-      await qaDocumentService.unlinkDocument(activeWorkspaceId, task.id, documentId);
-      dispatch(enqueueSnackbar('QA Document unlinked from task', 'info'));
-      loadTaskQaDocs();
-      loadActivity(1);
-    } catch (err) {
-      dispatch(enqueueSnackbar(errorMessage(err, 'Failed to unlink QA document'), 'error'));
-    }
-  };
-
-  const handleCreateAndLinkQaDoc = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeWorkspaceId || !task || !newQaDocTitle.trim() || !newQaDocContent.trim()) {
-      dispatch(enqueueSnackbar('Title and content are required.', 'error'));
-      return;
-    }
-    setIsSubmittingQaDoc(true);
-    try {
-      const docResult = await qaDocumentService.createDocument(activeWorkspaceId, {
-        title: newQaDocTitle.trim(),
-        docType: newQaDocType,
-        contentMarkdown: newQaDocContent,
-        changelog: 'Initial draft for task',
-        folderId: task.folderId || null,
-      });
-      await qaDocumentService.linkDocument(activeWorkspaceId, task.id, docResult.document.id);
-      dispatch(
-        enqueueSnackbar(`QA Document "${docResult.document.title}" created and linked!`, 'success'),
-      );
-      setIsCreateQaDocModalOpen(false);
-      setNewQaDocTitle('');
-      setNewQaDocContent('');
-      loadTaskQaDocs();
-      loadActivity(1);
-    } catch (err) {
-      dispatch(
-        enqueueSnackbar(errorMessage(err, 'Failed to create and link QA document'), 'error'),
-      );
-    } finally {
-      setIsSubmittingQaDoc(false);
-    }
-  };
-
-  const loadSubtasks = async () => {
+  const loadSubtasks = async (requestId?: number) => {
     if (!effectiveWorkspaceId || !task) return;
     setIsLoadingSubtasks(true);
     setSubtasksError(null);
     try {
       const res = await taskService.listSubtasks(effectiveWorkspaceId, task.id);
-      setSubtasks(res?.tasks || (Array.isArray(res) ? res : []));
+      if (isCurrentInitialRequest(requestId)) {
+        setSubtasks(res?.tasks || (Array.isArray(res) ? res : []));
+      }
     } catch (error) {
-      setSubtasksError(errorMessage(error, 'Unable to load subtasks.'));
+      if (isCurrentInitialRequest(requestId)) {
+        setSubtasksError(errorMessage(error, 'Unable to load subtasks.'));
+      }
     } finally {
-      setIsLoadingSubtasks(false);
+      if (isCurrentInitialRequest(requestId)) setIsLoadingSubtasks(false);
     }
   };
 
@@ -527,7 +486,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     task && !task.parentTaskId && incompleteSubtasks.length > 0,
   );
 
-  const loadActivity = async (page = activityPage, append = false) => {
+  const loadActivity = async (page = activityPage, append = false, requestId?: number) => {
     if (!effectiveWorkspaceId || !task) return;
     setIsLoadingActivity(true);
     setActivityError(null);
@@ -538,21 +497,25 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         page,
         PAGE_SIZE,
       );
-      if (append) {
-        setActivities((prev) => [...prev, ...res.activities]);
-      } else {
-        setActivities(res.activities);
+      if (isCurrentInitialRequest(requestId)) {
+        if (append) {
+          setActivities((prev) => [...prev, ...res.activities]);
+        } else {
+          setActivities(res.activities);
+        }
+        setActivityPage(res.page);
+        setActivityTotal(res.total);
       }
-      setActivityPage(res.page);
-      setActivityTotal(res.total);
     } catch (error) {
-      setActivityError(errorMessage(error, 'Unable to load audit activity.'));
+      if (isCurrentInitialRequest(requestId)) {
+        setActivityError(errorMessage(error, 'Unable to load audit activity.'));
+      }
     } finally {
-      setIsLoadingActivity(false);
+      if (isCurrentInitialRequest(requestId)) setIsLoadingActivity(false);
     }
   };
 
-  const loadComments = async (page = commentsPage, append = false) => {
+  const loadComments = async (page = commentsPage, append = false, requestId?: number) => {
     if (!effectiveWorkspaceId || !task) return;
     setIsLoadingComments(true);
     setCommentsError(null);
@@ -563,21 +526,88 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         page,
         PAGE_SIZE,
       );
-      if (append) {
-        setComments((prev) => [...prev, ...res.comments]);
-      } else {
-        setComments(res.comments);
+      if (isCurrentInitialRequest(requestId)) {
+        if (append) {
+          setComments((prev) => [...prev, ...res.comments]);
+        } else {
+          setComments(res.comments);
+        }
+        setCommentsPage(res.page);
+        setCommentsTotal(res.total);
       }
-      setCommentsPage(res.page);
-      setCommentsTotal(res.total);
     } catch (error) {
-      setCommentsError(errorMessage(error, 'Unable to load discussion messages.'));
+      if (isCurrentInitialRequest(requestId)) {
+        setCommentsError(errorMessage(error, 'Unable to load discussion messages.'));
+      }
     } finally {
-      setIsLoadingComments(false);
+      if (isCurrentInitialRequest(requestId)) setIsLoadingComments(false);
     }
   };
 
-  if (!task) return null;
+  if (!task) {
+    if (!pendingTaskId) return null;
+
+    return (
+      <Drawer
+        isOpen
+        onClose={onClose}
+        width="4xl"
+        defaultFullScreen={true}
+        allowFullScreen={true}
+        title={detailLoadError ? 'Detail task tidak tersedia' : 'Memuat detail task'}
+        subtitle={
+          detailLoadError
+            ? `Task ID: ${pendingTaskId.substring(0, 8)}`
+            : 'Mengambil data terbaru dari Workspace…'
+        }
+      >
+        {detailLoadError ? (
+          <div
+            className="mx-auto flex min-h-72 w-full max-w-xl flex-col items-center justify-center gap-4 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center dark:border-rose-900/60 dark:bg-rose-950/30"
+            role="alert"
+          >
+            <div>
+              <h4 className="text-sm font-bold text-rose-900 dark:text-rose-100">
+                Gagal memuat detail task
+              </h4>
+              <p className="mt-2 text-xs leading-5 text-rose-700 dark:text-rose-300">
+                {detailLoadError}
+              </p>
+            </div>
+            {onRetryDetail && (
+              <Button variant="outline" size="sm" onClick={onRetryDetail}>
+                Coba lagi
+              </Button>
+            )}
+          </div>
+        ) : (
+          <TaskDetailLoadingBody />
+        )}
+      </Drawer>
+    );
+  }
+
+  const taskKey = `${effectiveWorkspaceId || task.workspaceId}:${task.id}`;
+  const isInitialDetailLoading =
+    loadedTaskKey !== taskKey ||
+    Boolean(isParentTaskLoading) ||
+    Boolean(releaseReadinessState?.isLoading);
+
+  if (isInitialDetailLoading) {
+    return (
+      <Drawer
+        isOpen
+        onClose={onClose}
+        width="4xl"
+        defaultFullScreen={true}
+        allowFullScreen={true}
+        title="Memuat detail task"
+        subtitle="Mengambil data terbaru dari Workspace…"
+      >
+        <TaskDetailLoadingBody />
+      </Drawer>
+    );
+  }
 
   const isSubtask = Boolean(task.parentTaskId);
   const isAssignedExecutor = Boolean(
@@ -590,9 +620,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       )
     : canPlan;
   const canEditPlanning = canPlan;
-  const canManageComments = Boolean(
-    activeWorkspace && ['owner', 'admin'].includes(activeWorkspace.role),
-  );
 
   const flattenFolders = (
     items: FolderTreeNode[],
@@ -670,45 +697,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         }),
       ).unwrap();
 
-      if (
-        canPlan &&
-        productBriefTitle.trim() &&
-        (activeTab === 'prd' ||
-          productBriefContent !== (productBrief?.currentVersion?.contentMarkdown || ''))
-      ) {
-        const inScope = productBriefInScope
-          .filter((item) => item.text.trim())
-          .map((item, position) => ({
-            ...item,
-            text: item.text.trim(),
-            position,
-          }));
-        const outScope = productBriefOutScope
-          .filter((item) => item.text.trim())
-          .map((item, position) => ({
-            ...item,
-            text: item.text.trim(),
-            position,
-          }));
-        const acceptanceCriteria = productBriefAcceptanceCriteria
-          .filter((item) => item.text.trim())
-          .map((item, position) => ({
-            ...item,
-            text: item.text.trim(),
-            position,
-          }));
-
-        await qaDocumentService.upsertProductBrief(activeWorkspaceId, task.id, {
-          title: productBriefTitle.trim(),
-          contentMarkdown: productBriefContent,
-          inScope,
-          outScope,
-          acceptanceCriteria,
-          ownerId: productBriefOwnerId || undefined,
-        });
-      }
-
-      dispatch(enqueueSnackbar('Task & Specifications saved successfully', 'success'));
+      dispatch(enqueueSnackbar('Task saved successfully', 'success'));
       onDataChanged?.();
       onClose();
     } catch (err) {
@@ -834,7 +823,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     const comment = comments
       .flatMap((item) => [item, ...(item.replies || [])])
       .find((item) => item.id === commentId);
-    if (!comment || (comment.authorId !== currentUserId && !canManageComments)) {
+    if (!comment || comment.authorId !== currentUserId) {
       dispatch(enqueueSnackbar('You can only edit your own messages.', 'error'));
       return;
     }
@@ -885,7 +874,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     const comment = comments
       .flatMap((item) => [item, ...(item.replies || [])])
       .find((item) => item.id === commentId);
-    if (!comment || (comment.authorId !== currentUserId && !canManageComments)) {
+    if (!comment || comment.authorId !== currentUserId) {
       dispatch(enqueueSnackbar('You can only delete your own messages.', 'error'));
       return;
     }
@@ -934,7 +923,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   const detailTabs: TabItem[] = [
     { id: 'overview', label: 'Overview', icon: <FileText className="h-3.5 w-3.5" /> },
-    { id: 'prd', label: 'Specs & Requirements', icon: <FileCode2 className="h-3.5 w-3.5" /> },
+    ...(!task.parentTaskId
+      ? [{ id: 'brief', label: 'Product Brief', icon: <BookOpen className="h-3.5 w-3.5" /> }]
+      : []),
+    { id: 'prd', label: 'Requirements', icon: <FileCode2 className="h-3.5 w-3.5" /> },
     { id: 'trace', label: 'Delivery Trace', icon: <Route className="h-3.5 w-3.5" /> },
     { id: 'bugs', label: 'Bugs', icon: <Bug className="h-3.5 w-3.5" /> },
     {
@@ -1086,42 +1078,30 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             />
           )}
 
-          {/* TAB 2: SPECS & REQUIREMENTS */}
+          {/* FEATURE-LEVEL PRODUCT BRIEF */}
+          {activeTab === 'brief' && !task.parentTaskId && (
+            <TaskDetailProductBriefTab
+              task={task}
+              workspaceId={activeWorkspaceId || task.workspaceId}
+              userRole={userWorkspaceRole}
+              productBrief={productBrief}
+              loadError={productBriefError}
+              onReload={() => void loadProductBrief()}
+              onSaved={(brief) => {
+                setProductBrief(brief);
+                void loadActivity(1);
+              }}
+            />
+          )}
+
+          {/* REQUIREMENTS AND ACCEPTANCE CRITERIA */}
           {activeTab === 'prd' && (
             <TaskDetailSpecsTab
               task={task}
               activeWorkspaceId={activeWorkspaceId}
               userRole={userWorkspaceRole}
-              canPlan={canPlan}
-              canManageQaDocs={canManageQaDocs}
-              productBrief={productBrief}
-              isLoadingProductBrief={isLoadingProductBrief}
-              productBriefError={productBriefError}
-              productBriefTitle={productBriefTitle}
-              onProductBriefTitleChange={setProductBriefTitle}
-              productBriefContent={productBriefContent}
-              onProductBriefContentChange={setProductBriefContent}
-              productBriefInScope={productBriefInScope}
-              productBriefOutScope={productBriefOutScope}
-              productBriefAcceptanceCriteria={productBriefAcceptanceCriteria}
-              productBriefOwnerId={productBriefOwnerId}
-              isSavingProductBrief={isSavingProductBrief}
-              onAddScopeItem={addScopeItem}
-              onUpdateScopeItem={updateScopeItem}
-              onRemoveScopeItem={removeScopeItem}
-              onAddAcceptanceCriterion={addAcceptanceCriterion}
-              onUpdateAcceptanceCriterion={updateAcceptanceCriterion}
-              onRemoveAcceptanceCriterion={removeAcceptanceCriterion}
-              onSaveProductBrief={handleSaveProductBrief}
-              onReloadProductBrief={() => void loadProductBrief()}
-              taskQaDocLinks={taskQaDocLinks}
-              isLoadingQaDocs={isLoadingQaDocs}
-              onOpenCreateQaDocModal={() => setIsCreateQaDocModalOpen(true)}
-              onUnlinkQaDoc={handleUnlinkQaDoc}
               onRequirementChanged={() => loadActivity(1)}
-              members={members}
-              currentUserId={currentUserId}
-              onAttachmentChanged={() => void loadActivity(1)}
+              requirementInitialState={requirementInitialState}
             />
           )}
 
@@ -1130,6 +1110,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             <TaskDeliveryTracePanel
               workspaceId={activeWorkspaceId || task.workspaceId}
               taskId={task.id}
+              initialState={deliveryTraceInitialState}
             />
           )}
 
@@ -1140,6 +1121,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               userRole={userWorkspaceRole}
               mode="feature"
               featureTaskId={task.parentTaskId || task.id}
+              initialState={bugInitialState}
             />
           )}
 
@@ -1202,7 +1184,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               members={members}
               title="Task Discussion Thread"
               showMentionChips={true}
-              canManageComments={canManageComments}
               emptyIllustrationUrl={EMPTY_DISCUSSION_ILLUSTRATION_URL}
               isLoading={isLoadingComments}
               error={commentsError || undefined}
@@ -1234,20 +1215,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         task={task}
         isDeleting={isDeletingTask}
         onConfirmDelete={() => void handleDeleteTask()}
-      />
-
-      <TaskCreateQaDocModal
-        isOpen={isCreateQaDocModalOpen}
-        onClose={() => setIsCreateQaDocModalOpen(false)}
-        taskTitle={task.title}
-        docTitle={newQaDocTitle}
-        onDocTitleChange={setNewQaDocTitle}
-        docType={newQaDocType}
-        onDocTypeChange={setNewQaDocType}
-        docContent={newQaDocContent}
-        onDocContentChange={setNewQaDocContent}
-        isSubmitting={isSubmittingQaDoc}
-        onSubmit={handleCreateAndLinkQaDoc}
       />
     </>
   );

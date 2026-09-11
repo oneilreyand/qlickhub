@@ -2,7 +2,7 @@
 
 **Status:** Active policy index  
 **Owner:** Product and Engineering  
-**Last reviewed:** 2026-09-03
+**Last reviewed:** 2026-09-10
 **Scope:** Stable identifiers for rules already approved in Qlick Hub SSoT documents.
 
 This registry gives humans, tests, Feature Knowledge Cards, reports, and AI agents a stable way
@@ -12,11 +12,12 @@ then update this index.
 
 ## Domain and Hierarchy
 
-| Policy ID  | Rule summary                                                               | Canonical source                                                             |
-| ---------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| DOMAIN-001 | A Folder hierarchy has a maximum depth of two levels.                      | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
-| DOMAIN-002 | A Feature/Story is a root Task and may have only one direct Subtask level. | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
-| DOMAIN-003 | Requirements belong to a Workspace and link many-to-many to root Tasks.    | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
+| Policy ID  | Rule summary                                                                                                       | Canonical source                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| DOMAIN-001 | A Folder hierarchy has a maximum depth of two levels.                                                              | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
+| DOMAIN-002 | A Feature/Story is a root Task and may have only one direct Subtask level.                                         | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
+| DOMAIN-003 | Requirements belong to a Workspace and link many-to-many to root Tasks.                                            | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
+| DOMAIN-004 | Product Brief owns Feature context/scope; Requirement owns stable Acceptance Criteria and its specific source URL. | [Architecture §4](1_ARCHITECTURE.md#aturan-hierarki-data)                    |
 
 ## Authentication and Authorization
 
@@ -29,6 +30,7 @@ then update this index.
 | AUTH-005  | Credential reset is exact-Workspace scoped and atomically revokes superseded sessions.               | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
 | AUTH-006  | Successful credential changes create secret-free append-only events with scoped reads.               | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
 | AUTH-007  | Only the persisted Owner may permanently delete an archived Workspace after exact-name confirmation. | [Architecture §5](1_ARCHITECTURE.md#penghapusan-permanen-workspace)       |
+| AUTH-008  | Only the signed-in author account may edit or soft-delete its own Task Discussion message.           | [Architecture §5](1_ARCHITECTURE.md#kepemilikan-mutasi-pesan-discussion)  |
 
 ## Application Security
 
@@ -47,13 +49,14 @@ then update this index.
 
 ## QA and Release
 
-| Policy ID   | Rule summary                                                                              | Canonical source                                                                                  |
-| ----------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| QA-001      | QA authors draft Test Cases; PO/admin publication is required before active execution.    | [Workflow §5](2_WORKFLOW_AND_ROLES.md#5-manajemen-pengujian-native-qa-qa-test-management)         |
-| QA-002      | Test Results are immutable, append-only execution records.                                | [Workflow §5](2_WORKFLOW_AND_ROLES.md#b-hasil-uji-yang-imutabel-immutable-test-results)           |
-| QA-003      | A Developer cannot close a Bug; independent QA retest determines closure or reopening.    | [Workflow §6](2_WORKFLOW_AND_ROLES.md#6-siklus-defek--retest-bug--retest-lifecycle)               |
-| RELEASE-001 | Readiness is derived by the backend from coverage, pass rate, and unresolved severe Bugs. | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
-| RELEASE-002 | QA submits quality sign-off; PO owns the formal release decision.                         | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
+| Policy ID   | Rule summary                                                                                                                  | Canonical source                                                                                  |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| QA-001      | QA authors draft Test Cases; PO/admin publication is required before active execution.                                        | [Workflow §5](2_WORKFLOW_AND_ROLES.md#5-manajemen-pengujian-native-qa-qa-test-management)         |
+| QA-002      | Test Results are immutable, append-only execution records.                                                                    | [Workflow §5](2_WORKFLOW_AND_ROLES.md#b-hasil-uji-yang-imutabel-immutable-test-results)           |
+| QA-003      | A Developer cannot close a Bug; independent QA retest determines closure or reopening.                                        | [Workflow §6](2_WORKFLOW_AND_ROLES.md#6-siklus-defek--retest-bug--retest-lifecycle)               |
+| QA-004      | QA work is assigned through a QA Subtask whose assignee executes `todo → in_progress → done`; QA Subtasks do not self-review. | [Workflow §4](2_WORKFLOW_AND_ROLES.md#b-subtask-qa)                                               |
+| RELEASE-001 | Readiness is derived by the backend from coverage, pass rate, and unresolved severe Bugs.                                     | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
+| RELEASE-002 | QA submits quality sign-off; PO owns the formal release decision.                                                             | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
 
 ## Data, Interface, UI, and AI
 

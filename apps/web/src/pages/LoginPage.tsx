@@ -71,8 +71,18 @@ export const LoginPage: React.FC = () => {
             srcSet={loginHeroImageSrcSet}
             sizes="(min-width: 1280px) 50vw, (min-width: 1024px) 50vw, 100vw"
             alt="QA Management Platform Illustration"
-            className="w-full h-full object-cover object-center transform transition-transform duration-700 hover:scale-105"
+            className="w-full h-full object-cover object-center transform transition-transform duration-700 hover:scale-105 dark:hidden"
           />
+          <div
+            data-testid="login-dark-mode-icon-desktop"
+            className="absolute inset-0 hidden place-items-center bg-stone-950 dark:grid"
+            aria-hidden="true"
+          >
+            <div className="relative grid h-32 w-32 place-items-center rounded-[32px] border border-stone-700 bg-stone-900 shadow-inner">
+              <div className="pointer-events-none absolute inset-0 rounded-[32px] bg-[#B1E743]/10 blur-2xl" />
+              <ShieldCheck className="h-16 w-16 text-[#B1E743]" />
+            </div>
+          </div>
           {/* Subtle multi-layer gradient overlays for contrast & deep readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950/95 via-stone-950/40 to-stone-950/20" />
           <div className="absolute inset-0 bg-gradient-to-r from-stone-950/50 via-transparent to-stone-950/30" />
@@ -133,8 +143,15 @@ export const LoginPage: React.FC = () => {
             srcSet={loginHeroImageSrcSet}
             sizes="100vw"
             alt="Qlick Hub Platform"
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-cover object-center dark:hidden"
           />
+          <div
+            data-testid="login-dark-mode-icon-mobile"
+            className="absolute inset-0 hidden items-center justify-center bg-stone-950 dark:flex"
+            aria-hidden="true"
+          >
+            <ShieldCheck className="h-14 w-14 text-[#B1E743]" />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/40 to-transparent flex items-end p-4">
             <div className="flex items-center gap-2.5">
               <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#B1E743] text-[#22201F] font-black text-base shadow-sm">

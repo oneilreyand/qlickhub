@@ -102,8 +102,8 @@ const GUIDES: GuideItem[] = [
   },
   {
     id: 'specs_brief',
-    title: '2. Specification Brief & Requirement Linking',
-    subtitle: 'Tuliskan spesifikasi produk (In/Out Scope, AC) dan tautkan Requirement.',
+    title: '2. Product Brief & Requirement Linking',
+    subtitle: 'Tetapkan scope Feature, lalu tautkan Requirement dan Acceptance Criteria.',
     roles: ['po', 'admin'],
     roleBadge: 'PO / Admin',
     icon: FileCode2,
@@ -118,23 +118,30 @@ const GUIDES: GuideItem[] = [
           'Klik pada baris Feature Task untuk membuka Task Detail Drawer di sisi kanan layar.',
       },
       {
-        title: 'Buka Tab "Specs & Requirements"',
-        shortDesc: 'Akses editor Specification Brief versi terpusat.',
+        title: 'Lengkapi Tab "Product Brief"',
+        shortDesc: 'Pisahkan konteks dan batas Feature dari Requirement.',
         instruction:
-          'Klik tab "Specs & Requirements" untuk mendefinisikan ruang lingkup pengerjaan fitur.',
+          'Tambahkan konteks, link PRD/Figma/spec eksternal, In Scope, dan Out of Scope pada tab "Product Brief", lalu simpan versi baru.',
+        tip: 'Referensi umum Feature berada di Product Brief; URL Requirement dipakai untuk deep link sumber yang spesifik.',
       },
       {
-        title: 'Definisikan In Scope, Out Scope & Acceptance Criteria',
-        shortDesc: 'Tuliskan komitmen deliverable dan batasan pengerjaan.',
+        title: 'Buka Tab "Requirements"',
+        shortDesc: 'Akses Requirement yang terhubung ke fitur.',
         instruction:
-          'Isi deliverables dalam In Scope, batasan yang dikecualikan dalam Out of Scope, dan observable targets dalam Acceptance Criteria.',
-        tip: 'Spesifikasi disimpan dengan versioning otomatis (v1, v2, dst.) sebagai single source of truth.',
+          'Klik tab "Requirements" untuk mengelola kebutuhan produk yang terhubung ke fitur.',
       },
       {
-        title: 'Tautkan Workspace Requirement (Figma / PRD)',
-        shortDesc: 'Hubungkan dokumen requirement eksternal untuk ketertelusuran QA.',
+        title: 'Buat atau Tautkan Requirement',
+        shortDesc: 'Pilih Requirement Workspace yang relevan untuk fitur.',
         instruction:
-          'Gunakan panel Requirement Manager di bawahnya untuk menautkan link Figma Prototype atau PRD.',
+          'Tinjau Requirement yang sudah terhubung, lalu buat atau tambahkan Requirement Workspace bila diperlukan.',
+        tip: 'Requirement dimiliki Workspace dan dapat ditautkan ke lebih dari satu Feature.',
+      },
+      {
+        title: 'Definisikan Acceptance Criteria',
+        shortDesc: 'Tambahkan hasil yang terukur dan dapat diuji di bawah Requirement.',
+        instruction:
+          'Buka detail Requirement, tambahkan Acceptance Criteria, dan gunakan Source / Reference URL hanya untuk bagian sumber yang mendefinisikan Requirement tersebut.',
       },
     ],
   },
@@ -170,7 +177,7 @@ const GUIDES: GuideItem[] = [
       },
       {
         title: 'Pantau Delivery Progress & Bottlenecks',
-        shortDesc: 'Cek metrik kelengkapan peran dan jadwal di Role Timeline.',
+        shortDesc: 'Cek metrik kelengkapan peran dan jadwal di Role & Handoff Timeline.',
         instruction:
           'Lihat ringkasan FE/BE/Mobile/Fullstack/QA di header drawer dan evaluasi potensi bottleneck di Task Timeline View.',
       },
@@ -905,33 +912,53 @@ export const InteractiveGuideSimulator: React.FC<InteractiveGuideSimulatorProps>
                 </div>
               )}
 
-              {/* SIMULATOR 2: Specs & Brief */}
+              {/* SIMULATOR 2: Requirements */}
               {selectedGuideId === 'specs_brief' && (
                 <div className="space-y-3 p-4 rounded-xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-800 text-xs">
+                  <div className="rounded-lg border border-[#B1E743]/40 bg-[#B1E743]/5 p-3 dark:border-[#B1E743]/30 dark:bg-[#B1E743]/10">
+                    <p className="font-bold text-stone-900 dark:text-white">Product Brief · v2</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                          In Scope
+                        </span>
+                        <p className="mt-0.5 text-stone-600 dark:text-stone-300">Card checkout</p>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-stone-600 dark:text-stone-300">
+                          Out of Scope
+                        </span>
+                        <p className="mt-0.5 text-stone-600 dark:text-stone-300">Cryptocurrency</p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                      Primary PRD · Figma · Technical spec
+                    </p>
+                  </div>
                   <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-stone-700">
                     <span className="font-bold text-stone-900 dark:text-white">
-                      Specification Brief v1 (Single Source of Truth)
+                      Linked Requirements (2)
                     </span>
-                    <Badge variant="passed">v1 Ready</Badge>
+                    <Badge variant="passed">Active</Badge>
                   </div>
                   <div className="space-y-2">
                     <div className="p-2.5 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
                       <p className="font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1.5 mb-1">
-                        <span className="w-2 h-2 rounded-full bg-[#B1E743]" /> In Scope
-                        (Deliverable)
+                        <span className="w-2 h-2 rounded-full bg-[#B1E743]" /> REQ-CHECKOUT-01
                       </p>
                       <ul className="list-disc pl-5 space-y-0.5 text-stone-600 dark:text-stone-300 text-[11px]">
-                        <li>Saved payment methods & charge API</li>
-                        <li>Responsive Checkout UI form</li>
+                        <li>Saved payment methods</li>
+                        <li>AC-1: User reviews payment details before confirmation</li>
+                        <li>Linked to Checkout Feature</li>
                       </ul>
                     </div>
                     <div className="p-2.5 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
                       <p className="font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1.5 mb-1">
-                        <span className="w-2 h-2 rounded-full bg-amber-400" /> Acceptance Criteria
+                        <span className="w-2 h-2 rounded-full bg-[#B1E743]" /> REQ-CHECKOUT-02
                       </p>
                       <ul className="list-disc pl-5 space-y-0.5 text-stone-600 dark:text-stone-300 text-[11px]">
-                        <li>User dapat me-review rincian transaksi sebelum bayar</li>
-                        <li>Response HTTP 400 memicu error snackbar</li>
+                        <li>Review payment details before confirmation</li>
+                        <li>Source / Reference: exact Checkout prototype section</li>
                       </ul>
                     </div>
                   </div>

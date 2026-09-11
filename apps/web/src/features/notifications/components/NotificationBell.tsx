@@ -29,7 +29,6 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className = 
 
   const {
     permission: fcmPermission,
-    isSupported: isFcmSupported,
     requestPermission: requestFcmPermission,
     isRegistering: isFcmRegistering,
     registrationStatus: fcmRegistrationStatus,
@@ -77,7 +76,6 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className = 
           notifications={inAppNotifications}
           unreadCount={unreadCount}
           isLoading={isNotificationsLoading}
-          isFcmSupported={isFcmSupported}
           fcmPermission={fcmPermission}
           isFcmRegistering={isFcmRegistering}
           fcmRegistrationStatus={fcmRegistrationStatus}

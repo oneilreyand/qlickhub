@@ -79,6 +79,7 @@ graph TB
 | **Folder & Subfolder**          | Struktur pengelompokan hierarkis di dalam Workspace (maksimal kedalaman 2 level).                                                     | _category, group, directory_        |
 | **Feature / Story (Root Task)** | Task tingkat atas di dalam folder yang menjadi kontainer utama pengiriman fitur.                                                      | _epic table, feature record_        |
 | **Subtask**                     | Unit eksekusi turunan langsung dari Root Task untuk delivery spesifik (Frontend, Backend, Mobile, Fullstack, atau QA).                | _child task, nested task_           |
+| **Product Brief**               | Dokumen primer berversi pada Feature yang memiliki konteks, referensi eksternal, In Scope, dan Out of Scope.                          | _requirement list, test checklist_  |
 | **Requirement**                 | Definisi spesifikasi kebutuhan berskala Workspace yang dapat dihubungkan ke banyak task (_many-to-many_).                             | _spec item, task requirement_       |
 | **Acceptance Criteria**         | Kriteria penerimaan yang terdefinisi di bawah Requirement dengan identitas UUID stabil.                                               | _checklist item, acceptance bullet_ |
 | **Evidence**                    | Bukti pengujian terotentikasi dan persisten (tangkapan layar, rekaman video, log) yang diunggah ke storage atau ditautkan via HTTPS.  | _proof, attachment link_            |
@@ -119,6 +120,11 @@ erDiagram
 1. **Folder Depth**: Maksimal 2 level folder di dalam Workspace (`Folder → Subfolder`).
 2. **Task Nesting**: Hanya 1 tingkat subtask langsung di bawah Root Task. Dilarang arbitrer subtask bertingkat (_nested subtasks of subtasks_).
 3. **Requirement Ownership**: Requirement dimiliki pada tingkat Workspace dan dihubungkan ke parent Task via `task_requirements` (_many-to-many_).
+4. **Context Ownership**: Product Brief pada root Feature / Story memiliki konteks, referensi
+   eksternal umum, In Scope, dan Out of Scope. Requirement memiliki kebutuhan delivery, URL sumber
+   spesifik, dan Acceptance Criteria stabil. Acceptance Criteria pada versi Product Brief lama
+   dipertahankan sebagai histori tetapi bukan sumber kanonikal. Keputusan lengkap dicatat dalam
+   [ADR-010](adr/ADR-010-PRODUCT-BRIEF-REQUIREMENT-CONTEXT-OWNERSHIP.md).
 
 ---
 
@@ -153,6 +159,20 @@ graph TD
 
 - `owner` atau `admin` dapat memberikan delegasi izin pembuatan parent-Task yang bersifat aktif dan berbatas waktu (_expiring delegation_) kepada anggota `dev` atau `qa`.
 - **Batasan Mutlak**: Delegasi izin ini **hanya** berlaku untuk parent-Task dan **tidak pernah** mengizinkan perencanaan subtask.
+
+### Kepemilikan Mutasi Pesan Discussion
+
+- Setiap Project Member aktif dapat membaca dan mengirim pesan pada Discussion Task di Workspace
+  yang sama.
+- Hanya akun penulis pesan yang sedang terautentikasi (`actorId === authorId`) dapat mengedit atau
+  melakukan soft-delete atas pesan tersebut, termasuk pesan utama dan reply.
+- Role Workspace tidak memberi hak moderasi pesan milik akun lain. Owner, Admin, PO, Developer, dan
+  QA tunduk pada aturan kepemilikan yang sama.
+- Backend wajib menolak edit atau delete oleh non-penulis dengan `403 Forbidden`; penyembunyian
+  tombol pada UI hanya presentasi dan tidak menggantikan pemeriksaan tersebut.
+- Pesan yang dihapus tetap menggunakan tombstone persisten agar riwayat Discussion tidak diam-diam
+  ditulis ulang. Keputusan ini dicatat dalam
+  [ADR-009](adr/ADR-009-DISCUSSION-AUTHOR-ONLY-MUTATION.md).
 
 ### Penghapusan Permanen Workspace
 

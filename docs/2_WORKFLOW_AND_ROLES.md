@@ -19,7 +19,7 @@ sequenceDiagram
 
     Note over Owner,PO: Tahap 1: Setup & Perencanaan
     Owner->>PO: Siapkan Workspace & Konfigurasi Anggota
-    PO->>PO: Susun Folder, Requirement (AC) & Feature Task
+    PO->>PO: Susun Product Brief, Requirement (AC) & Feature Task
     PO->>Dev: Buat & Tugaskan Subtask (Delivery Area)
     PO->>QA: Buat & Tugaskan Subtask QA
 
@@ -53,12 +53,29 @@ sequenceDiagram
 
 ## 2. Matriks Tanggung Jawab & Batasan Peran (_Role Matrix_)
 
-| Peran                  | Tanggung Jawab Utama                                                  | Aksi yang Diizinkan                                                                                                                    | Batasan Mutlak (_Hard Boundaries_)                                                                                                           |
-| :--------------------- | :-------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Owner / Admin**      | Tata kelola workspace, konfigurasi anggota, dan persetujuan delivery. | Mengundang anggota, mengatur spesialisasi dev, delegasi parent task, rilis keputusan darurat.                                          | Dilarang memotong alur bukti pengujian QA untuk memaksakan rilis tanpa audit.                                                                |
-| **Product Owner (PO)** | Pemilik cakupan fitur, prioritas requirement, dan keputusan rilis.    | Membuat Folder, Feature Task, Requirement, Subtask, mengaktifkan Test Case, menerbitkan _Release Decision_.                            | Dilarang mengubah status eksekusi _Test Result_ QA secara langsung.                                                                          |
-| **Developer (`dev`)**  | Eksekusi teknis subtask sesuai spesialisasi.                          | Mengubah status subtask miliknya (`todo → in_progress → in_review`), memperbaiki Bug, mengunggah bukti teknis.                         | Dilarang merencanakan subtask baru, dilarang menutup Bug sendiri tanpa verifikasi QA, dilarang mengedit field planning (target date/points). |
-| **QA (`qa`)**          | Menjamin kualitas, verifikasi requirement, dan mitigasi regresi.      | Membuat draf Test Case, mengimpor spreadsheet test case, menjalankan Test Run, mencatat Bug, mereview subtask, mengajukan QA Sign-off. | Dilarang mempublikasikan Test Case ke status `active` secara sepihak, dilarang mengambil keputusan rilis akhir PO.                           |
+| Peran                  | Tanggung Jawab Utama                                                  | Aksi yang Diizinkan                                                                                                                                                         | Batasan Mutlak (_Hard Boundaries_)                                                                                                                              |
+| :--------------------- | :-------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owner / Admin**      | Tata kelola workspace, konfigurasi anggota, dan persetujuan delivery. | Mengundang anggota, mengatur spesialisasi dev, delegasi parent task, rilis keputusan darurat, dan berpartisipasi dalam Discussion.                                          | Dilarang memotong alur bukti pengujian QA untuk memaksakan rilis tanpa audit atau mengubah/menghapus pesan Discussion milik akun lain.                          |
+| **Product Owner (PO)** | Pemilik cakupan fitur, prioritas requirement, dan keputusan rilis.    | Membuat Folder, Feature Task, Requirement, Subtask, mengaktifkan Test Case, menerbitkan _Release Decision_, dan berpartisipasi dalam Discussion.                            | Dilarang mengubah status eksekusi _Test Result_ QA atau mengubah/menghapus pesan Discussion milik akun lain.                                                    |
+| **Developer (`dev`)**  | Eksekusi teknis subtask sesuai spesialisasi.                          | Mengubah status subtask miliknya (`todo → in_progress → in_review`), memperbaiki Bug, mengunggah bukti teknis, dan berpartisipasi dalam Discussion.                         | Dilarang merencanakan subtask baru, menutup Bug sendiri tanpa verifikasi QA, mengedit field planning, atau mengubah/menghapus pesan Discussion milik akun lain. |
+| **QA (`qa`)**          | Menjamin kualitas, verifikasi requirement, dan mitigasi regresi.      | Membuat draf Test Case, mengimpor spreadsheet test case, menjalankan Test Run, mencatat Bug, mereview subtask, mengajukan QA Sign-off, dan berpartisipasi dalam Discussion. | Dilarang mempublikasikan Test Case secara sepihak, mengambil keputusan rilis akhir PO, atau mengubah/menghapus pesan Discussion milik akun lain.                |
+
+### Kepemilikan Konteks Perencanaan
+
+Product Brief pada root Feature / Story menyimpan konteks, referensi PRD/Figma/spec eksternal, In
+Scope, dan Out of Scope sebagai versi persisten. Requirement Workspace menyimpan kebutuhan delivery
+yang dapat digunakan ulang, URL sumber yang spesifik, dan Acceptance Criteria stabil. Developer dan
+QA membaca kedua konteks tersebut, tetapi hanya Planner (`owner`, `admin`, `po`) yang dapat
+memutasinya. Requirement tetap menjadi target coverage Test Case kanonikal. Aturan lengkap berada
+pada [ADR-010](adr/ADR-010-PRODUCT-BRIEF-REQUIREMENT-CONTEXT-OWNERSHIP.md).
+
+### Aturan Discussion Lintas Peran
+
+Semua Project Member aktif dapat membaca, mengirim pesan, membalas, dan menyebut anggota Workspace
+pada Discussion Task. Edit dan soft-delete bersifat self-service: hanya akun penulis yang sedang
+login dapat memutasi pesannya sendiri. Role tidak pernah memperluas hak ini; Owner dan Admin juga
+ditolak ketika mencoba mengedit atau menghapus pesan akun lain. Backend menegakkan batas tersebut,
+sementara UI hanya menampilkan aksi pada pesan milik pengguna saat ini.
 
 ### Siklus Akhir Workspace
 
@@ -96,6 +113,13 @@ graph LR
 
 ## 4. Siklus Hidup Subtask (_Subtask State Machine_)
 
+Root Feature / Story adalah kontainer lintas peran dan tidak menjadi unit penugasan QA. Planner
+menugaskan pekerjaan pengujian kepada satu anggota QA melalui Subtask dengan `deliveryArea: qa`.
+Pemisahan ini menjaga ownership eksekusi, jadwal, dan histori QA tanpa menjadikan root Feature
+seolah-olah dimiliki satu peran.
+
+### A. Subtask Development
+
 ```mermaid
 stateDiagram-v2
     [*] --> todo: Dibuat oleh Planner (PO/Admin)
@@ -106,16 +130,36 @@ stateDiagram-v2
     in_review --> changes_requested: QA / Reviewer menemukan revisi
     changes_requested --> in_progress: Developer memperbaiki revisi
 
-    in_review --> completed: QA memverifikasi & lolos review
-    completed --> [*]
+    in_review --> done: QA / Reviewer memverifikasi & lolos review
+    done --> [*]
 ```
+
+### B. Subtask QA
+
+```mermaid
+stateDiagram-v2
+    [*] --> todo: Dibuat dan ditugaskan oleh Planner
+    todo --> in_progress: QA assignee mulai menguji
+    in_progress --> done: QA assignee menyelesaikan eksekusi
+    done --> in_progress: QA assignee membuka ulang dengan alasan
+    in_review --> in_progress: Pemulihan status legacy
+    in_review --> done: Pemulihan status legacy
+```
+
+Status `done` pada Subtask QA menyatakan pekerjaan eksekusi QA yang ditugaskan telah selesai. Status
+ini bukan QA Sign-off dan tidak memberikan keputusan rilis; QA Sign-off serta keputusan rilis tetap
+mengikuti gerbang pada §7. Status `in_review` tidak digunakan pada eksekusi QA baru karena akan
+membuat QA mereview pekerjaannya sendiri. Transisi dari `in_review` hanya dipertahankan untuk
+memulihkan record lama.
 
 ### Aturan Transisi Subtask
 
 1. **Developer Flow**: Developer menggerakkan subtask dari `todo → in_progress → in_review`.
-2. **Review Independen**: Anggota QA atau sesama developer mereview pekerjaan. Jika belum lolos, status dialihkan ke `changes_requested`.
-3. **Proteksi Field Perencanaan**: Field estimasi poin, tanggal target rilis, dan tautan Requirement hanya dapat diubah oleh Planner (`owner`, `admin`, `po`).
-4. **Kelengkapan Timeline Task dan Subtask**: Jadwal boleh tidak ditentukan dengan mengosongkan `startDate` dan `dueDate`. Jika jadwal ditentukan, kedua tanggal wajib diisi dan `startDate` tidak boleh melewati `dueDate`. Aturan ini berlaku saat pembuatan maupun perubahan Task dan Subtask serta ditegakkan kembali oleh backend dan database.
+2. **QA Execution Flow**: Hanya QA assignee yang menjalankan Subtask QA melalui `todo → in_progress → done`. Membuka ulang `done → in_progress` wajib menyertakan alasan audit.
+3. **Review Independen**: Anggota QA atau reviewer berwenang mereview Subtask Development pada `in_review`. Jika belum lolos, status dialihkan ke `changes_requested`; Subtask QA tidak memakai self-review.
+4. **Proteksi Field Perencanaan**: Field estimasi poin, tanggal target rilis, dan tautan Requirement hanya dapat diubah oleh Planner (`owner`, `admin`, `po`).
+5. **Kelengkapan Timeline Task dan Subtask**: Jadwal boleh tidak ditentukan dengan mengosongkan `startDate` dan `dueDate`. Jika jadwal ditentukan, kedua tanggal wajib diisi dan `startDate` tidak boleh melewati `dueDate`. Aturan ini berlaku saat pembuatan maupun perubahan Task dan Subtask serta ditegakkan kembali oleh backend dan database.
+6. **Batas Evidence Gate**: Sampai Test Run memiliki scope Feature yang eksplisit, penyelesaian Subtask QA belum boleh diklaim sebagai bukti readiness. Readiness tetap dihitung backend melalui §7; pemasangan evidence gate pada transisi Subtask QA dilakukan setelah scope Test Run tidak dapat bercampur antar-Feature.
 
 ---
 

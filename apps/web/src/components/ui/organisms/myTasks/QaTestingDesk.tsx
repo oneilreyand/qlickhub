@@ -148,10 +148,15 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [bugFormError, setBugFormError] = useState<string | null>(null);
   const [isSubmittingBug, setIsSubmittingBug] = useState(false);
 
-  const canExecuteTests = ['owner', 'admin', 'qa'].includes(userRole.toLowerCase());
-  const canAuthorTests = ['owner', 'admin', 'po', 'qa'].includes(userRole.toLowerCase());
-  const canActivateTestCases = ['owner', 'admin', 'po'].includes(userRole.toLowerCase());
-  const canSubmitTestCasesForReview = userRole.toLowerCase() === 'qa';
+  const normalizedUserRole = userRole.toLowerCase();
+  const isPlanner = ['owner', 'admin', 'po'].includes(normalizedUserRole);
+  const isAssignedQaExecutor = normalizedUserRole === 'qa' && subtask.assigneeId === currentUserId;
+  const canMutateQaExecution = isPlanner || isAssignedQaExecutor;
+  const canExecuteTests = ['owner', 'admin', 'qa'].includes(normalizedUserRole);
+  const canOpenBugReport = ['owner', 'admin', 'qa'].includes(normalizedUserRole);
+  const canAuthorTests = ['owner', 'admin', 'po', 'qa'].includes(normalizedUserRole);
+  const canActivateTestCases = ['owner', 'admin', 'po'].includes(normalizedUserRole);
+  const canSubmitTestCasesForReview = normalizedUserRole === 'qa';
   const requirementScopeTaskId = parentTask?.id || subtask.parentTaskId || subtask.id;
 
   const bugTraceOptions = useMemo(() => {
@@ -551,11 +556,16 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 </span>
               </div>
             )}
+
+            <p className="text-xs text-stone-600 dark:text-stone-400">
+              Completing this QA Subtask records the assigned test execution only. QA sign-off and
+              the Product Owner release decision remain separate.
+            </p>
           </div>
 
           {/* Quick Workflow Action Buttons */}
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {subtask.status === 'todo' && (
+            {canMutateQaExecution && subtask.status === 'todo' && (
               <Button
                 variant="primary"
                 size="sm"
@@ -570,33 +580,38 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
             {subtask.status === 'in_progress' && (
               <>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={openBugModal}
-                  disabled={bugTraceOptions.length === 0}
-                  title={
-                    bugTraceOptions.length === 0
-                      ? 'Record a failed or blocked Test Result first'
-                      : 'Open linked defect'
-                  }
-                  leftIcon={<AlertTriangle className="h-4 w-4" />}
-                >
-                  Log Defect
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStatusChange('in_review')}
-                  isLoading={isUpdatingStatus}
-                  leftIcon={<CheckSquare className="h-4 w-4" />}
-                >
-                  Submit for Review
-                </Button>
+                {canOpenBugReport && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={openBugModal}
+                    disabled={bugTraceOptions.length === 0}
+                    title={
+                      bugTraceOptions.length === 0
+                        ? 'Record a failed or blocked Test Result first'
+                        : 'Open linked defect'
+                    }
+                    leftIcon={<AlertTriangle className="h-4 w-4" />}
+                  >
+                    Log Defect
+                  </Button>
+                )}
+                {canMutateQaExecution && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleStatusChange('done')}
+                    isLoading={isUpdatingStatus}
+                    leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    Complete QA Execution
+                  </Button>
+                )}
               </>
             )}
 
-            {subtask.status === 'in_review' && (
+            {canMutateQaExecution && subtask.status === 'in_review' && (
               <>
                 <Button
                   variant="outline"
@@ -610,7 +625,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   isLoading={isUpdatingStatus}
                   leftIcon={<RotateCcw className="h-4 w-4" />}
                 >
-                  Reopen Testing
+                  Resume Testing
                 </Button>
                 <Button
                   variant="primary"
@@ -620,12 +635,12 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   leftIcon={<CheckCircle2 className="h-4 w-4" />}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
-                  Approve Quality & Complete
+                  Complete QA Execution
                 </Button>
               </>
             )}
 
-            {subtask.status === 'done' && (
+            {canMutateQaExecution && subtask.status === 'done' && (
               <Button
                 variant="outline"
                 size="sm"
@@ -635,7 +650,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 isLoading={isUpdatingStatus}
                 leftIcon={<RotateCcw className="h-4 w-4" />}
               >
-                Reopen Task
+                Reopen QA Execution
               </Button>
             )}
           </div>

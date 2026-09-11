@@ -47,6 +47,9 @@ describe('LoginPage Component', () => {
       img.getAttribute('src')?.includes('ChatGPT_Image_Aug_19_2026_03_01_47_PM.png'),
     );
     expect(heroImage).toBeDefined();
+    expect(heroImage).toHaveClass('dark:hidden');
+    expect(screen.getByTestId('login-dark-mode-icon-desktop')).toHaveClass('hidden', 'dark:grid');
+    expect(screen.getByTestId('login-dark-mode-icon-mobile')).toHaveClass('hidden', 'dark:flex');
 
     // Checks header & copy
     expect(screen.getByText('Selamat Datang Kembali')).toBeInTheDocument();

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Requirement, RequirementStatus } from '@qlick/contracts';
 import { Modal } from './Modal';
 import { Input } from '../atoms/Input';
-import { Textarea } from '../atoms/Textarea';
 import { Select } from '../atoms/Select';
 import { Alert } from '../atoms/Alert';
+import { RichTextEditor } from './RichTextEditor';
 import { Link, Hash } from 'lucide-react';
 
 export interface RequirementFormModalProps {
@@ -95,8 +95,8 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
       title={title}
       description={
         initialData
-          ? 'Update the requirement details, external reference, or status.'
-          : 'Define a structured requirement or embed an optional external design/spec reference.'
+          ? 'Update the requirement details, source reference, or status.'
+          : 'Define a structured requirement and optionally link its specific source section.'
       }
       primaryActionLabel={initialData ? 'Update Requirement' : 'Create Requirement'}
       onPrimaryAction={handleSubmit}
@@ -141,20 +141,21 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
         </div>
 
         <Input
-          label="External Reference URL (Optional)"
-          placeholder="e.g. https://www.figma.com/file/... or https://docs.google.com/..."
+          label="Source / Reference URL (Optional)"
+          placeholder="Deep link to the exact PRD, Figma, policy, or technical-spec section"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={isSaving}
           leftIcon={<Link className="h-4 w-4" />}
         />
 
-        <Textarea
+        <RichTextEditor
+          id="requirement-description"
           label="Detailed Description (Optional)"
-          placeholder="Summary of business rules, UI behaviors, or edge cases..."
-          rows={3}
+          placeholder="Business need, rules, behavior, constraints, or edge cases..."
+          minRows={8}
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={setDescription}
           disabled={isSaving}
         />
       </div>

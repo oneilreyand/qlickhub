@@ -1,6 +1,6 @@
 # Parent Tasks, Subtasks, Activity, and Discussion Plan
 
-**Status:** approved product scope — ready for phased delivery  
+**Status:** approved product scope — authorization updated by [ADR-009](../adr/ADR-009-DISCUSSION-AUTHOR-ONLY-MUTATION.md)
 **Created:** 2026-08-13  
 **Architecture Decision Record:** [`docs/adr/ADR-001-CORE-DOMAIN-AND-COLLABORATION-DECISIONS.md`](file:///Users/mac/Documents/GitHub/QAREPORT/docs/adr/ADR-001-CORE-DOMAIN-AND-COLLABORATION-DECISIONS.md)  
 **Supersedes:** the hierarchy decision in `QA_NATIVE_WORK_HUB_DELIVERY_PLAN.md` only to add one direct subtask level.
@@ -49,17 +49,17 @@ Workspace → Folder → Subfolder → Parent Task → Subtask
 
 ### 2.4 Role policy
 
-| Operation | Owner/Admin | PO | Assigned Dev | Assigned QA | Other member |
-|---|---:|---:|---:|---:|---:|
-| Read parent, subtasks, Activity, Discussion | yes | yes | yes | yes | yes |
-| Create/plan/assign subtask | yes | yes | no | no | no |
-| Edit subtask title, area, assignee, priority, dates | yes | yes | no | no | no |
-| Edit parent title, planning fields, or status | yes | yes | no | no | no |
-| Update own subtask execution status/description | yes | no | yes | yes | no |
-| Move parent and its subtasks | yes | yes | no | no | no |
-| Post a Discussion message | yes | yes | yes | yes | yes |
-| Edit/delete own message | yes | yes | yes | yes | yes |
-| Moderate another user's message | yes | no | no | no | no |
+| Operation                                           | Owner/Admin |  PO | Assigned Dev | Assigned QA | Other member |
+| --------------------------------------------------- | ----------: | --: | -----------: | ----------: | -----------: |
+| Read parent, subtasks, Activity, Discussion         |         yes | yes |          yes |         yes |          yes |
+| Create/plan/assign subtask                          |         yes | yes |           no |          no |           no |
+| Edit subtask title, area, assignee, priority, dates |         yes | yes |           no |          no |           no |
+| Edit parent title, planning fields, or status       |         yes | yes |           no |          no |           no |
+| Update own subtask execution status/description     |         yes |  no |          yes |         yes |           no |
+| Move parent and its subtasks                        |         yes | yes |           no |          no |           no |
+| Post a Discussion message                           |         yes | yes |          yes |         yes |          yes |
+| Edit/delete own message                             |         yes | yes |          yes |         yes |          yes |
+| Attempt to edit/delete another account's message    |          no |  no |           no |          no |           no |
 
 The API policy layer enforces this matrix. UI visibility is convenience only.
 
@@ -69,7 +69,9 @@ The API policy layer enforces this matrix. UI visibility is convenience only.
 
 The parent Activity view aggregates direct-subtask events in chronological order and labels the affected subtask. A subtask still has its own focused Activity view.
 
-**Discussion** is a task-scoped message thread. Every Workspace member can read and participate. A message may mention Workspace members and may reply once to another message. Messages have `editedAt`/`deletedAt`; a deleted message retains an audit-safe tombstone rather than disappearing from moderation history.
+**Discussion** is a task-scoped message thread. Every Workspace member can read and participate. A message may mention Workspace members and may reply once to another message. Only the signed-in author account may edit or soft-delete that message; roles do not grant moderation over another account's message. Messages have `editedAt`/`deletedAt`; a deleted message retains an audit-safe tombstone rather than disappearing from history.
+
+Before edit/delete handling begins, the backend requires an active Workspace membership and then verifies exact account ownership of the message. A non-author receives `403 Forbidden`, including Owner and Admin.
 
 Messages are visible to the whole Workspace through the task thread. V1 stores mentions and refreshes the thread after a send; real-time delivery, unread counters, and broad broadcast notifications are a later phase. If a broadcast notification is added later, only Owner/Admin/PO may send it and the UI must require confirmation.
 
@@ -116,16 +118,16 @@ task_comment_mentions
 
 New contracts belong in `packages/contracts`; controllers accept only validated contract input.
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /v1/workspaces/:workspaceId/tasks?rootOnly=true&includeSubtaskSummary=true` | Parent-task list for status grouping, with progress counts. |
-| `GET /v1/workspaces/:workspaceId/tasks/:taskId/subtasks` | Paginated direct subtasks for one parent. |
-| `POST /v1/workspaces/:workspaceId/tasks/:taskId/subtasks` | PO/Admin/Owner creates a planned FE/BE/QA subtask. |
-| `PATCH /v1/workspaces/:workspaceId/tasks/:taskId` | Field-level policy distinguishes planning updates from an assignee's execution updates. |
-| `GET /v1/workspaces/:workspaceId/tasks/:taskId/activity` | Paginated audit timeline; parent requests aggregate direct-subtask events. |
-| `GET /v1/workspaces/:workspaceId/tasks/:taskId/comments` | Paginated Discussion thread with replies and mention metadata. |
-| `POST /v1/workspaces/:workspaceId/tasks/:taskId/comments` | Create a message and validate mentions. |
-| `PATCH` / `DELETE /v1/workspaces/:workspaceId/tasks/:taskId/comments/:commentId` | Edit own message or soft-delete according to the role policy. |
+| Endpoint                                                                         | Purpose                                                                                 |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `GET /v1/workspaces/:workspaceId/tasks?rootOnly=true&includeSubtaskSummary=true` | Parent-task list for status grouping, with progress counts.                             |
+| `GET /v1/workspaces/:workspaceId/tasks/:taskId/subtasks`                         | Paginated direct subtasks for one parent.                                               |
+| `POST /v1/workspaces/:workspaceId/tasks/:taskId/subtasks`                        | PO/Admin/Owner creates a planned FE/BE/QA subtask.                                      |
+| `PATCH /v1/workspaces/:workspaceId/tasks/:taskId`                                | Field-level policy distinguishes planning updates from an assignee's execution updates. |
+| `GET /v1/workspaces/:workspaceId/tasks/:taskId/activity`                         | Paginated audit timeline; parent requests aggregate direct-subtask events.              |
+| `GET /v1/workspaces/:workspaceId/tasks/:taskId/comments`                         | Paginated Discussion thread with replies and mention metadata.                          |
+| `POST /v1/workspaces/:workspaceId/tasks/:taskId/comments`                        | Create a message and validate mentions.                                                 |
+| `PATCH` / `DELETE /v1/workspaces/:workspaceId/tasks/:taskId/comments/:commentId` | Author-only edit or soft-delete; every non-author role receives `403 Forbidden`.        |
 
 Backward compatibility: the existing task list retains its current default unless the Work Hub explicitly requests `rootOnly=true`. This prevents other consumers from silently losing child tasks.
 
@@ -163,7 +165,7 @@ Create Activity events in the same transaction as task/subtask mutations and exp
 
 ### ST4 — Persisted Discussion
 
-Implement messages, one-level replies, mentions, soft-delete/moderation, and full membership authorization.
+Implement messages, one-level replies, mentions, author-only soft-delete, and full membership authorization.
 
 **Acceptance:** every Workspace member can collaborate in the task thread; non-members cannot read, mention, or post; discussion remains separate from the audit log.
 

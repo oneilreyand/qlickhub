@@ -27,7 +27,7 @@ describe('GlobalSnackbarHost Molecule', () => {
     render(
       <Provider store={store}>
         <GlobalSnackbarHost />
-      </Provider>
+      </Provider>,
     );
 
     act(() => {
@@ -49,7 +49,7 @@ describe('GlobalSnackbarHost Molecule', () => {
     render(
       <Provider store={store}>
         <GlobalSnackbarHost />
-      </Provider>
+      </Provider>,
     );
 
     act(() => {
@@ -62,5 +62,31 @@ describe('GlobalSnackbarHost Molecule', () => {
     fireEvent.click(closeBtn);
 
     expect(screen.queryByText('Manual close test')).not.toBeInTheDocument();
+  });
+
+  it('keeps long snackbar content centered and contained on mobile and tablet viewports', () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <GlobalSnackbarHost />
+      </Provider>,
+    );
+
+    act(() => {
+      store.dispatch(
+        enqueueSnackbar(
+          'https://example.com/a-very-long-unbroken-snackbar-message-that-must-stay-inside-the-viewport',
+          'warning',
+        ),
+      );
+    });
+
+    const message = screen.getByText(/a-very-long-unbroken-snackbar-message/);
+    const snackbar = message.parentElement;
+    const host = snackbar?.parentElement?.parentElement?.parentElement;
+
+    expect(host).toHaveClass('fixed', 'inset-x-4', 'mx-auto', 'w-auto', 'max-w-sm');
+    expect(host).not.toHaveClass('right-5', 'w-full');
+    expect(message).toHaveClass('min-w-0', 'break-words');
   });
 });

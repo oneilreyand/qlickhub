@@ -32,6 +32,36 @@ describe('RequirementFormModal Molecule', () => {
     });
   });
 
+  test('uses the shared rich-text editor and saves bold Markdown in Requirement details', async () => {
+    const handleSave = vi.fn().mockResolvedValue(undefined);
+
+    render(<RequirementFormModal isOpen={true} onClose={vi.fn()} onSave={handleSave} />);
+
+    expect(screen.getByTitle('Bold (Ctrl+B)')).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /write/i }));
+
+    const detailInput = screen.getByLabelText(
+      'Detailed Description (Optional)',
+    ) as HTMLTextAreaElement;
+    fireEvent.change(detailInput, { target: { value: 'Important rule' } });
+    detailInput.setSelectionRange(0, 'Important rule'.length);
+    fireEvent.click(screen.getByTitle('Bold (Ctrl+B)'));
+
+    fireEvent.change(screen.getByLabelText(/Requirement Title/i), {
+      target: { value: 'Formatted Requirement' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Create Requirement$/i }));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Formatted Requirement',
+          description: '**Important rule**',
+        }),
+      );
+    });
+  });
+
   test('validates URL format and shows error for invalid URL string', async () => {
     const handleSave = vi.fn();
     const handleClose = vi.fn();
@@ -41,7 +71,7 @@ describe('RequirementFormModal Molecule', () => {
     const titleInput = screen.getByLabelText(/Requirement Title/i);
     fireEvent.change(titleInput, { target: { value: 'Spec with bad URL' } });
 
-    const urlInput = screen.getByLabelText(/External Reference URL/i);
+    const urlInput = screen.getByLabelText(/Source \/ Reference URL/i);
     fireEvent.change(urlInput, { target: { value: 'not_a_valid_url' } });
 
     const submitBtn = screen.getByRole('button', { name: /^Create Requirement$/i });

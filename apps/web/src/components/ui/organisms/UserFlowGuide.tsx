@@ -254,7 +254,7 @@ const LoggedInRoleHeroBanner: React.FC<LoggedInRoleHeroBannerProps> = ({
           summary:
             'Anda bertanggung jawab atas perencanaan requirement (In/Out Scope, AC), pembagian subtask terarah ke developer, evaluasi kesiapan rilis, dan penerbitan Release Decision.',
           primaryActions: [
-            'Tulis Specification Brief & tautkan Requirement',
+            'Buat dan tautkan Requirement',
             'Bagi subtask sesuai Developer Specialties',
             'Evaluasi Readiness Snapshot & terbitkan Release Decision',
           ],
@@ -694,7 +694,7 @@ const OverviewFlowSection: React.FC<{
             </span>
             <h3 className="font-bold text-sm text-stone-900 dark:text-white">Product Planning</h3>
             <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-              PO tulis Specification Brief (In/Out Scope, AC), buat Test Cases, & pecah subtask.
+              PO membuat dan menautkan Requirement, merencanakan Test Case, serta memecah subtask.
             </p>
           </div>
 
@@ -997,16 +997,26 @@ const UserFlowSection: React.FC<{
           <div className="space-y-3 text-xs text-stone-700 dark:text-stone-300">
             <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
               <span className="font-bold text-stone-900 dark:text-white">
-                1. Penulisan Specification Brief & Requirement Linking
+                1. Product Brief & Feature Scope
               </span>
               <p className="text-[11px] leading-relaxed">
-                Tuliskan ruang lingkup (In Scope, Out Scope, Acceptance Criteria) di tab Specs &
-                Requirements. Tautkan link Figma/PRD untuk ketertelusuran tim penguji.
+                Gunakan tab Product Brief untuk konteks fitur, link PRD/Figma/spec eksternal, In
+                Scope, dan Out of Scope. Simpan perubahan sebagai versi baru.
               </p>
             </div>
             <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
               <span className="font-bold text-stone-900 dark:text-white">
-                2. Pemecahan Subtask Sesuai Developer Specialties
+                2. Requirement Linking & Acceptance Criteria
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                Buat atau tautkan Requirement Workspace melalui tab Requirements agar kebutuhan
+                produk dapat ditelusuri oleh tim delivery dan QA, lalu definisikan Acceptance
+                Criteria yang terukur pada setiap Requirement.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
+              <span className="font-bold text-stone-900 dark:text-white">
+                3. Pemecahan Subtask Sesuai Developer Specialties
               </span>
               <p className="text-[11px] leading-relaxed">
                 Pecah Feature menjadi subtask Frontend, Backend, Mobile, Fullstack, dan QA. Pilih
@@ -1015,7 +1025,7 @@ const UserFlowSection: React.FC<{
             </div>
             <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-1.5">
               <span className="font-bold text-stone-900 dark:text-white">
-                3. Penerbitan Release Decision & Penutupan Parent Feature
+                4. Penerbitan Release Decision & Penutupan Parent Feature
               </span>
               <p className="text-[11px] leading-relaxed">
                 Setelah QA memberikan QA Sign-off (Approved), buka Release Decision Desk untuk

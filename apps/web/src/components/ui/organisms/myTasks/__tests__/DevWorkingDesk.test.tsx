@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, render, screen, fireEvent } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { DevWorkingDesk } from '../DevWorkingDesk';
@@ -7,7 +7,23 @@ import authReducer from '../../../../../store/authSlice';
 import taskReducer from '../../../../../store/taskSlice';
 import workspaceReducer from '../../../../../store/workspaceSlice';
 import uiReducer from '../../../../../store/uiSlice';
-import type { Task } from '@qlick/contracts';
+import type { Task, TaskComment } from '@qlick/contracts';
+
+const taskServiceMock = vi.hoisted(() => ({
+  listTaskComments: vi.fn(),
+}));
+
+vi.mock('../../../../../lib/api/taskService', () => ({
+  taskService: taskServiceMock,
+}));
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolver) => {
+    resolve = resolver;
+  });
+  return { promise, resolve };
+};
 
 const createTestStore = () => {
   return configureStore({
@@ -54,7 +70,8 @@ const mockSubtask: Task = {
   parentTaskId: 't-parent-1',
   deliveryArea: 'frontend',
   title: 'Implement Navigation Bar Component',
-  description: 'Create responsive navigation with dark mode support.\n- **PR Link**: https://github.com/org/repo/pull/123\n- **Branch**: `feature/nav-bar`\n- **Staging URL**: https://staging.app.io/nav',
+  description:
+    'Create responsive navigation with dark mode support.\n- **PR Link**: https://github.com/org/repo/pull/123\n- **Branch**: `feature/nav-bar`\n- **Staging URL**: https://staging.app.io/nav',
   status: 'in_progress',
   priority: 'medium',
   reporterId: 'u-1',
@@ -78,7 +95,17 @@ const mockParent: Task = {
 };
 
 describe('DevWorkingDesk Organism', () => {
-  it('renders developer workstation with workflow stepper, schedule timeline, and separated PO vs Dev notes', () => {
+  beforeEach(() => {
+    taskServiceMock.listTaskComments.mockReset();
+    taskServiceMock.listTaskComments.mockResolvedValue({
+      comments: [],
+      total: 0,
+      page: 1,
+      limit: 50,
+    });
+  });
+
+  it('renders developer workstation with workflow stepper, schedule timeline, and separated PO vs Dev notes', async () => {
     const store = createTestStore();
     render(
       <Provider store={store}>
@@ -89,8 +116,11 @@ describe('DevWorkingDesk Organism', () => {
           currentUserId="u-2"
           onDataChanged={vi.fn()}
         />
-      </Provider>
+      </Provider>,
     );
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     // Header & Roles
     expect(screen.getByText('Frontend Workstation')).toBeInTheDocument();
@@ -108,7 +138,9 @@ describe('DevWorkingDesk Organism', () => {
 
     // PO Brief (read-only)
     expect(screen.getByText('PO Product Brief & Specifications')).toBeInTheDocument();
-    expect(screen.getByText(/PRD: Must include header, sidebar, and theme toggle/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/PRD: Must include header, sidebar, and theme toggle/i),
+    ).toBeInTheDocument();
 
     // Dev Deliverables inputs pre-populated from description
     const prInput = screen.getByDisplayValue('https://github.com/org/repo/pull/123');
@@ -119,7 +151,9 @@ describe('DevWorkingDesk Organism', () => {
     expect(stagingInput).toBeInTheDocument();
 
     // Dev implementation notes textarea
-    expect(screen.getByDisplayValue(/Create responsive navigation with dark mode support/i)).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue(/Create responsive navigation with dark mode support/i),
+    ).toBeInTheDocument();
 
     // 2-Tab Navigation
     expect(screen.getByText('Work & Deliverables')).toBeInTheDocument();
@@ -131,7 +165,7 @@ describe('DevWorkingDesk Organism', () => {
     expect(screen.getByText(/Subtask Collaboration Discussion/i)).toBeInTheDocument();
   });
 
-  it('opens Handoff to QA modal when clicking Handoff to QA button', () => {
+  it('opens Handoff to QA modal when clicking Handoff to QA button', async () => {
     const store = createTestStore();
     render(
       <Provider store={store}>
@@ -142,13 +176,85 @@ describe('DevWorkingDesk Organism', () => {
           currentUserId="u-2"
           onDataChanged={vi.fn()}
         />
-      </Provider>
+      </Provider>,
     );
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     const handoffBtn = screen.getByText('Handoff to QA');
     fireEvent.click(handoffBtn);
 
     expect(screen.getByText('Submit Handoff to QA Team')).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/E.g. Login with test-qa@qlick.io/i)).toBeInTheDocument();
+  });
+
+  it('ignores comments loaded for a previous subtask after switching tasks', async () => {
+    const firstRequest = deferred<{ comments: TaskComment[] }>();
+    const secondRequest = deferred<{ comments: TaskComment[] }>();
+    taskServiceMock.listTaskComments
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockReturnValueOnce(secondRequest.promise);
+
+    const previousComment: TaskComment = {
+      id: 'comment-previous',
+      workspaceId: 'ws-1',
+      taskId: mockSubtask.id,
+      authorId: 'u-1',
+      authorName: 'Alice PO',
+      parentCommentId: null,
+      body: 'Comment from the previous subtask',
+      editedAt: null,
+      deletedAt: null,
+      createdAt: '2026-09-11T01:00:00.000Z',
+      updatedAt: '2026-09-11T01:00:00.000Z',
+      mentions: [],
+    };
+    const currentComment: TaskComment = {
+      ...previousComment,
+      id: 'comment-current',
+      taskId: 'st-dev-2',
+      body: 'Comment from the current subtask',
+    };
+    const currentSubtask = { ...mockSubtask, id: 'st-dev-2', title: 'Current subtask' };
+    const store = createTestStore();
+    const view = render(
+      <Provider store={store}>
+        <DevWorkingDesk
+          subtask={mockSubtask}
+          parentTask={mockParent}
+          workspaceId="ws-1"
+          currentUserId="u-2"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    view.rerender(
+      <Provider store={store}>
+        <DevWorkingDesk
+          subtask={currentSubtask}
+          parentTask={mockParent}
+          workspaceId="ws-1"
+          currentUserId="u-2"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    await act(async () => {
+      secondRequest.resolve({ comments: [currentComment] });
+      await secondRequest.promise;
+    });
+    fireEvent.click(screen.getByText('Team Discussion'));
+    expect(screen.getByText(currentComment.body)).toBeInTheDocument();
+
+    await act(async () => {
+      firstRequest.resolve({ comments: [previousComment] });
+      await firstRequest.promise;
+    });
+
+    expect(screen.getByText(currentComment.body)).toBeInTheDocument();
+    expect(screen.queryByText(previousComment.body)).not.toBeInTheDocument();
   });
 });

@@ -18,6 +18,7 @@ The canonical delivery hierarchy is:
 
 ```text
 Workspace → Folder → Feature / Story (root Task)
+                           ├── Product Brief → Context / In Scope / Out of Scope
                            ├── Requirement → Acceptance Criteria
                            ├── Frontend / Backend / Mobile / QA Subtask
                            ├── Test Case → Test Run → immutable Test Result

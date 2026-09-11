@@ -109,17 +109,27 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   const [isSubmittingHandoff, setIsSubmittingHandoff] = useState(false);
 
   useEffect(() => {
+    let isCurrentRequest = true;
     const parsed = parseDeliverablesFromDescription(subtask.description);
     setPrUrl(parsed.pr);
     setBranchName(parsed.branch);
     setStagingUrl(parsed.staging);
     setTechnicalNotes(parsed.notes);
+    setComments([]);
 
     taskService
       .listTaskComments(workspaceId, subtask.id)
-      .then((res) => setComments(res.comments || []))
-      .catch(() => setComments([]));
-  }, [subtask, workspaceId]);
+      .then((res) => {
+        if (isCurrentRequest) setComments(res.comments || []);
+      })
+      .catch(() => {
+        if (isCurrentRequest) setComments([]);
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [subtask.description, subtask.id, workspaceId]);
 
   const handlePostComment = async (body: string, parentCommentId?: string | null) => {
     try {
@@ -131,34 +141,50 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       setComments((prev) => [...prev, newComment]);
       dispatch(enqueueSnackbar('Pesan berhasil ditambahkan', 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Gagal mengirim pesan', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Gagal mengirim pesan', 'error'),
+      );
     }
   };
 
   const handleUpdateComment = async (commentId: string, body: string) => {
     try {
-      const updated = await taskService.updateTaskComment(workspaceId, subtask.id, commentId, { body });
+      const updated = await taskService.updateTaskComment(workspaceId, subtask.id, commentId, {
+        body,
+      });
       setComments((prev) =>
         prev.map((c) => {
           if (c.id === commentId) {
-            return { ...c, ...updated, body, editedAt: updated.editedAt || new Date().toISOString() };
+            return {
+              ...c,
+              ...updated,
+              body,
+              editedAt: updated.editedAt || new Date().toISOString(),
+            };
           }
           if (c.replies) {
             return {
               ...c,
               replies: c.replies.map((r) =>
                 r.id === commentId
-                  ? { ...r, ...updated, body, editedAt: updated.editedAt || new Date().toISOString() }
-                  : r
+                  ? {
+                      ...r,
+                      ...updated,
+                      body,
+                      editedAt: updated.editedAt || new Date().toISOString(),
+                    }
+                  : r,
               ),
             };
           }
           return c;
-        })
+        }),
       );
       dispatch(enqueueSnackbar('Pesan berhasil diedit', 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Gagal mengedit pesan', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Gagal mengedit pesan', 'error'),
+      );
     }
   };
 
@@ -168,7 +194,9 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       setComments((prev) => prev.filter((c) => c.id !== commentId));
       dispatch(enqueueSnackbar('Pesan berhasil dihapus', 'success'));
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Gagal menghapus pesan', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Gagal menghapus pesan', 'error'),
+      );
     }
   };
 
@@ -183,12 +211,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             status: newStatus,
             reviewNotes: reviewNotes || undefined,
           },
-        })
+        }),
       ).unwrap();
       dispatch(enqueueSnackbar(`Status updated to ${newStatus.replace('_', ' ')}`, 'success'));
       onDataChanged();
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update status', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update status', 'error'),
+      );
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -199,7 +229,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
     pr: string,
     branch: string,
     staging: string,
-    extraHandoff?: string
+    extraHandoff?: string,
   ) => {
     const parts: string[] = [];
     if (notes.trim()) {
@@ -233,12 +263,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           input: {
             description: combined || undefined,
           },
-        })
+        }),
       ).unwrap();
       dispatch(enqueueSnackbar('Deliverables & technical implementation notes saved', 'success'));
       onDataChanged();
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to save notes', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to save notes', 'error'),
+      );
     } finally {
       setIsSavingNotes(false);
     }
@@ -252,7 +284,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
         prUrl,
         branchName,
         stagingUrl,
-        handoffNotes
+        handoffNotes,
       );
 
       await dispatch(
@@ -264,14 +296,18 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             description: combined || undefined,
             reviewNotes: handoffNotes.trim() || undefined,
           },
-        })
+        }),
       ).unwrap();
 
-      dispatch(enqueueSnackbar('Successfully handed off to QA team for review & verification', 'success'));
+      dispatch(
+        enqueueSnackbar('Successfully handed off to QA team for review & verification', 'success'),
+      );
       setIsHandoffModalOpen(false);
       onDataChanged();
     } catch (err) {
-      dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Failed to handoff to QA', 'error'));
+      dispatch(
+        enqueueSnackbar(err instanceof Error ? err.message : 'Failed to handoff to QA', 'error'),
+      );
     } finally {
       setIsSubmittingHandoff(false);
     }
@@ -318,10 +354,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   };
 
   // Schedule Timeline Calculation
-  const scheduleHealth = useMemo(
-    () => calculateSubtaskScheduleHealth(subtask),
-    [subtask]
-  );
+  const scheduleHealth = useMemo(() => calculateSubtaskScheduleHealth(subtask), [subtask]);
 
   const timelineStats = useMemo(() => {
     const today = new Date();
@@ -407,7 +440,9 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
             {parentTask && (
               <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 flex-wrap">
-                <span className="text-stone-400 font-bold uppercase text-[10px]">Parent Feature:</span>
+                <span className="text-stone-400 font-bold uppercase text-[10px]">
+                  Parent Feature:
+                </span>
                 <span className="font-semibold text-stone-800 dark:text-stone-200 truncate max-w-md">
                   {parentTask.title}
                 </span>
@@ -584,7 +619,9 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   <User className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-stone-400 block">Assigned Developer</span>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block">
+                    Assigned Developer
+                  </span>
                   <span className="text-xs sm:text-sm font-extrabold text-stone-800 dark:text-stone-200">
                     {getMemberName(subtask.assigneeId)}
                   </span>
@@ -601,7 +638,9 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   <ShieldCheck className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-stone-400 block">Product Owner (PO)</span>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block">
+                    Product Owner (PO)
+                  </span>
                   <span className="text-xs sm:text-sm font-extrabold text-stone-800 dark:text-stone-200">
                     {getMemberName(parentTask?.reporterId || subtask.reporterId)}
                   </span>
@@ -656,10 +695,10 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                       timelineStats.isCompleted
                         ? 'brand'
                         : timelineStats.isOverdue
-                        ? 'rose'
-                        : timelineStats.remainingDays !== null && timelineStats.remainingDays <= 2
-                        ? 'amber'
-                        : 'brand'
+                          ? 'rose'
+                          : timelineStats.remainingDays !== null && timelineStats.remainingDays <= 2
+                            ? 'amber'
+                            : 'brand'
                     }
                   />
                 </div>
@@ -670,10 +709,10 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                     timelineStats.isCompleted
                       ? 'bg-stone-50 text-stone-900 border-stone-200/80 dark:bg-stone-900/60 dark:text-stone-100 dark:border-stone-800'
                       : timelineStats.isOverdue
-                      ? 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                      : timelineStats.remainingDays !== null && timelineStats.remainingDays <= 2
-                      ? 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                      : 'bg-stone-50 text-stone-900 border-stone-200/80 dark:bg-stone-900/60 dark:text-stone-100 dark:border-stone-800'
+                        ? 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                        : timelineStats.remainingDays !== null && timelineStats.remainingDays <= 2
+                          ? 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                          : 'bg-stone-50 text-stone-900 border-stone-200/80 dark:bg-stone-900/60 dark:text-stone-100 dark:border-stone-800'
                   }`}
                 >
                   {timelineStats.isCompleted ? (
@@ -689,12 +728,12 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                       {timelineStats.isCompleted
                         ? 'Task Completed & Signed-off'
                         : timelineStats.isOverdue
-                        ? `⚠️ Overdue ${Math.abs(timelineStats.remainingDays || 0)} Days past commitment deadline (${timelineStats.dueDate})`
-                        : timelineStats.remainingDays === 0
-                        ? '⚡ Due Today! Ready for QA handoff'
-                        : timelineStats.remainingDays === 1
-                        ? '⚡ Due Tomorrow! Finalize dev deliverables'
-                        : `On Track — ${timelineStats.remainingDays} Days remaining until commitment deadline (${timelineStats.dueDate})`}
+                          ? `⚠️ Overdue ${Math.abs(timelineStats.remainingDays || 0)} Days past commitment deadline (${timelineStats.dueDate})`
+                          : timelineStats.remainingDays === 0
+                            ? '⚡ Due Today! Ready for QA handoff'
+                            : timelineStats.remainingDays === 1
+                              ? '⚡ Due Tomorrow! Finalize dev deliverables'
+                              : `On Track — ${timelineStats.remainingDays} Days remaining until commitment deadline (${timelineStats.dueDate})`}
                     </p>
                     <p className="text-[11px] opacity-85 mt-0.5">
                       {timelineStats.isOverdue
@@ -708,7 +747,8 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 flex items-center gap-3 text-xs text-stone-600 dark:text-stone-400">
                 <Calendar className="h-4 w-4 text-stone-400 shrink-0" />
                 <span>
-                  Subtask ini belum memiliki tanggal <strong>Start Date</strong> atau <strong>Due Date</strong>. Hubungi PO untuk menetapkan komitmen waktu.
+                  Subtask ini belum memiliki tanggal <strong>Start Date</strong> atau{' '}
+                  <strong>Due Date</strong>. Hubungi PO untuk menetapkan komitmen waktu.
                 </span>
               </div>
             )}
@@ -858,7 +898,8 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       >
         <div className="space-y-4 p-1">
           <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-            You are moving this subtask to <strong>Ready for QA (In Review)</strong>. Please supply instructions, staging link, and test accounts to help QA verify quickly.
+            You are moving this subtask to <strong>Ready for QA (In Review)</strong>. Please supply
+            instructions, staging link, and test accounts to help QA verify quickly.
           </p>
 
           <div className="space-y-3">

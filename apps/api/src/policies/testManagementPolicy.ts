@@ -24,7 +24,7 @@ const lifecycleTransitions: Record<
   readonly ('draft' | 'in_review' | 'active' | 'archived')[]
 > = {
   draft: ['in_review'],
-  in_review: ['active'],
+  in_review: ['draft', 'active'],
   active: ['archived'],
   archived: [],
 };

@@ -183,25 +183,21 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                 {scheduleOverlapAnalysis.primaryBottleneck.description}
               </span>
             </div>
-            <span className="text-[10px] font-bold underline shrink-0">View Timeline ➔</span>
+            <span className="text-[10px] font-bold underline shrink-0">
+              View Role &amp; Handoff ➔
+            </span>
           </div>
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 pt-1">
-          {/* PRD Readiness */}
+          {/* Requirements */}
           <div
             onClick={() => onSelectTab('prd')}
             className="p-2.5 rounded-xl border border-stone-200 bg-stone-50/70 hover:bg-stone-100 dark:border-stone-800 dark:bg-stone-950/50 dark:hover:bg-stone-800/60 cursor-pointer transition-all"
           >
-            <p className="text-[10px] font-bold text-stone-500 uppercase">PRD & Specs</p>
-            <p className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1 mt-0.5">
-              {productBrief ? (
-                <span className="text-stone-900 dark:text-[#B1E743] font-bold">
-                  v{productBrief.currentVersion.version} Ready
-                </span>
-              ) : (
-                <span className="text-stone-400">Draft</span>
-              )}
+            <p className="text-[10px] font-bold text-stone-500 uppercase">Requirements</p>
+            <p className="mt-0.5 text-xs font-bold text-stone-900 dark:text-[#B1E743]">
+              View linked items
             </p>
           </div>
 

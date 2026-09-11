@@ -303,6 +303,126 @@ describe('TaskDetailDrawer UI Component', () => {
     });
   });
 
+  test('keeps persisted detail behind an explicit loading state until initial requests settle', async () => {
+    let resolveSubtasks!: (value: {
+      tasks: Task[];
+      total: number;
+      page: number;
+      limit: number;
+    }) => void;
+    listSubtasksMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSubtasks = resolve;
+        }),
+    );
+
+    renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
+
+    expect(await screen.findByRole('status', { name: 'Memuat detail task' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Test Parent Task Title' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('0 items')).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveSubtasks({ tasks: [], total: 0, page: 1, limit: 50 });
+    });
+
+    expect(
+      await screen.findByRole('heading', { name: 'Test Parent Task Title' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Memuat detail task' })).not.toBeInTheDocument();
+  });
+
+  test('shows loading and retryable error drawers while a selected task is absent from the list', () => {
+    const onRetryDetail = vi.fn();
+    const { rerender } = renderWithRedux(
+      <TaskDetailDrawer task={null} folders={[]} pendingTaskId={mockTask.id} onClose={vi.fn()} />,
+    );
+
+    expect(screen.getByRole('status', { name: 'Memuat detail task' })).toBeInTheDocument();
+
+    rerender(
+      <Provider
+        store={configureStore({
+          reducer: {
+            auth: authReducer,
+            task: taskReducer,
+            workspace: workspaceReducer,
+            ui: uiReducer,
+          },
+        })}
+      >
+        <TaskDetailDrawer
+          task={null}
+          folders={[]}
+          pendingTaskId={mockTask.id}
+          detailLoadError="Jaringan terputus"
+          onRetryDetail={onRetryDetail}
+          onClose={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Jaringan terputus');
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
+    expect(onRetryDetail).toHaveBeenCalledOnce();
+  });
+
+  test('ignores a late initial response after the user switches to another task', async () => {
+    let resolveFirstSubtasks!: (value: {
+      tasks: Task[];
+      total: number;
+      page: number;
+      limit: number;
+    }) => void;
+    listSubtasksMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstSubtasks = resolve;
+          }),
+      )
+      .mockResolvedValueOnce({ tasks: [], total: 0, page: 1, limit: 50 });
+
+    const secondTask: Task = {
+      ...mockTask,
+      id: 'task-87654321-aaaa-bbbb-cccc-ddddeeeeffff',
+      title: 'Second persisted task',
+    };
+    const store = configureStore({
+      reducer: {
+        auth: authReducer,
+        task: taskReducer,
+        workspace: workspaceReducer,
+        ui: uiReducer,
+      },
+    });
+    const { rerender } = render(
+      <Provider store={store}>
+        <TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />
+      </Provider>,
+    );
+
+    expect(await screen.findByRole('status', { name: 'Memuat detail task' })).toBeInTheDocument();
+
+    rerender(
+      <Provider store={store}>
+        <TaskDetailDrawer task={secondTask} folders={[]} onClose={vi.fn()} />
+      </Provider>,
+    );
+
+    expect(await screen.findByRole('heading', { name: secondTask.title })).toBeInTheDocument();
+
+    await act(async () => {
+      resolveFirstSubtasks({ tasks: [], total: 0, page: 1, limit: 50 });
+    });
+
+    expect(screen.getByRole('heading', { name: secondTask.title })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: mockTask.title })).not.toBeInTheDocument();
+  });
+
   test('Renders task title, status, and tab controls', async () => {
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />);
 
@@ -359,6 +479,7 @@ describe('TaskDetailDrawer UI Component', () => {
     });
 
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
+    await screen.findByRole('heading', { name: mockTask.title });
     fireEvent.click(screen.getByRole('button', { name: /Activity/ }));
 
     expect(await screen.findByText('deleted attachment')).toBeInTheDocument();
@@ -368,6 +489,7 @@ describe('TaskDetailDrawer UI Component', () => {
   test('opens Delivery Trace inside the existing task drawer', async () => {
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'qa');
 
+    await screen.findByRole('heading', { name: mockTask.title });
     fireEvent.click(screen.getByRole('button', { name: 'Delivery Trace' }));
 
     expect(
@@ -425,6 +547,7 @@ describe('TaskDetailDrawer UI Component', () => {
 
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
 
+    await screen.findByRole('heading', { name: mockTask.title });
     fireEvent.click(screen.getByRole('button', { name: 'Bugs' }));
 
     expect(await screen.findByText('Checkout request returns 500')).toBeInTheDocument();
@@ -434,20 +557,32 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(screen.getByRole('button', { name: 'Close drawer' })).toBeInTheDocument();
   });
 
-  test('places the Specification Brief before requirements and supporting documents', async () => {
+  test('shows only Requirement management in the Requirements tab', async () => {
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
 
-    fireEvent.click(screen.getByRole('button', { name: /Specs & Requirements/ }));
+    await screen.findByRole('heading', { name: mockTask.title });
+    fireEvent.click(screen.getByRole('button', { name: 'Requirements' }));
 
-    const specificationBriefHeading = await screen.findByRole('heading', {
-      name: 'Specification Brief',
-    });
-    const requirementsSection = await screen.findByTestId('requirement-manager');
+    expect(await screen.findByTestId('requirement-manager')).toBeInTheDocument();
+    expect(screen.getByText('Linked Requirements (0)')).toBeInTheDocument();
+    expect(screen.queryByText('Specification Brief')).not.toBeInTheDocument();
+    expect(screen.queryByText(/QA Test Plans & Verification Docs/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New QA Doc/ })).not.toBeInTheDocument();
+  });
 
-    expect(
-      specificationBriefHeading.compareDocumentPosition(requirementsSection) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+  test('shows Feature scope and external references in a separate Product Brief tab', async () => {
+    renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
+
+    await screen.findByRole('heading', { name: mockTask.title });
+    fireEvent.click(screen.getByRole('button', { name: 'Product Brief' }));
+
+    expect(await screen.findByRole('heading', { name: 'Product Brief' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Saved payment methods')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Native mobile checkout')).toBeInTheDocument();
+    expect(screen.getByLabelText('Product context and external references')).toHaveValue(
+      '## Goal\nMake checkout clearer.',
+    );
+    expect(screen.queryByTestId('requirement-manager')).not.toBeInTheDocument();
   });
 
   test('renders Requirement Manager with structured requirement and external link', async () => {
@@ -477,7 +612,8 @@ describe('TaskDetailDrawer UI Component', () => {
 
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
 
-    fireEvent.click(screen.getByRole('button', { name: /Specs & Requirements/ }));
+    await screen.findByRole('heading', { name: mockTask.title });
+    fireEvent.click(screen.getByRole('button', { name: 'Requirements' }));
 
     expect(await screen.findByText('Checkout Prototype UI')).toBeInTheDocument();
     expect(screen.getByText('Linked to this task')).toBeInTheDocument();
@@ -508,9 +644,10 @@ describe('TaskDetailDrawer UI Component', () => {
 
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'qa');
 
-    fireEvent.click(screen.getByRole('button', { name: /Specs & Requirements/ }));
+    await screen.findByRole('heading', { name: mockTask.title });
+    fireEvent.click(screen.getByRole('button', { name: 'Requirements' }));
 
-    expect(await screen.findByText('Linked Specifications & Requirements (0)')).toBeInTheDocument();
+    expect(await screen.findByText('Linked Requirements (0)')).toBeInTheDocument();
     expect(screen.getByText('No requirement linked')).toBeInTheDocument();
     expect(screen.queryByText('Checkout Prototype UI')).not.toBeInTheDocument();
     expect(screen.queryByText(/Available Workspace Requirements/)).not.toBeInTheDocument();
@@ -673,6 +810,7 @@ describe('TaskDetailDrawer UI Component', () => {
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
 
     await waitFor(() => expect(listTaskActivitiesMock).toHaveBeenCalled());
+    await screen.findByRole('heading', { name: mockTask.title });
     listTaskActivitiesMock.mockClear();
     fireEvent.click(screen.getByRole('button', { name: /Subtasks/ }));
     fireEvent.click((await screen.findByText(deletedSubtask.title)).closest('button')!);
@@ -708,44 +846,23 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(screen.getByRole('dialog', { name: 'Delete task?' })).toBeInTheDocument();
   });
 
-  test('loads and saves the persisted Product Brief with separate scope', async () => {
+  test('keeps Product Brief data out of the Requirements-only tab', async () => {
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
 
-    fireEvent.click(screen.getByRole('button', { name: /Specs & Requirements/ }));
+    await screen.findByRole('heading', { name: mockTask.title });
+    fireEvent.click(screen.getByRole('button', { name: 'Requirements' }));
 
-    expect(await screen.findByDisplayValue('Checkout Product Brief')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Saved payment methods')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Native mobile checkout')).toBeInTheDocument();
-    expect(
-      screen.getByDisplayValue('User can review payment details before confirmation'),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Save new version' }));
-    await waitFor(() => {
-      expect(upsertProductBriefMock).toHaveBeenCalledWith(
-        mockTask.workspaceId,
-        mockTask.id,
-        expect.objectContaining({
-          title: 'Checkout Product Brief',
-          inScope: expect.arrayContaining([
-            expect.objectContaining({ text: 'Saved payment methods' }),
-          ]),
-          outScope: expect.arrayContaining([
-            expect.objectContaining({ text: 'Native mobile checkout' }),
-          ]),
-          acceptanceCriteria: expect.arrayContaining([
-            expect.objectContaining({
-              text: 'User can review payment details before confirmation',
-            }),
-          ]),
-        }),
-      );
-    });
+    expect(await screen.findByTestId('requirement-manager')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Checkout Product Brief')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Saved payment methods')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save new version' })).not.toBeInTheDocument();
+    expect(upsertProductBriefMock).not.toHaveBeenCalled();
   });
 
   test('renders human-friendly activity timeline items with actor and action descriptions', async () => {
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
 
+    await screen.findByRole('heading', { name: mockTask.title });
     fireEvent.click(screen.getByRole('button', { name: /Activity/ }));
 
     expect(await screen.findByText('Activity & Audit Trail')).toBeInTheDocument();

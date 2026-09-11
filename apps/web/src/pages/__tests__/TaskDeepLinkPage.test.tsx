@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -36,16 +36,24 @@ vi.mock('../../lib/hooks/useReleaseReadinessMap', () => ({
 vi.mock('../../components/ui/organisms/TaskDetailDrawer', () => ({
   TaskDetailDrawer: ({
     task,
+    pendingTaskId,
     parentTask,
     onClose,
     onNavigateToTask,
   }: {
     task: Task | null;
+    pendingTaskId?: string | null;
     parentTask?: Task | null;
     onClose: () => void;
     onNavigateToTask: (taskId: string) => void;
   }) => {
-    if (!task) return null;
+    if (!task) {
+      return pendingTaskId ? (
+        <div role="status" aria-label="Memuat detail task">
+          Loading {pendingTaskId}
+        </div>
+      ) : null;
+    }
     return (
       <div data-testid="task-deep-link-drawer">
         <span>{task.title}</span>
@@ -143,6 +151,28 @@ describe('TaskDeepLinkPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close task' }));
     expect(await screen.findByText('Work Hub destination')).toBeInTheDocument();
+  });
+
+  it('shows the detail loading drawer while the persisted task request is pending', async () => {
+    let resolveTask!: (value: Task) => void;
+    getTaskMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveTask = resolve;
+        }),
+    );
+    renderRoute();
+
+    expect(await screen.findByRole('status', { name: 'Memuat detail task' })).toHaveTextContent(
+      taskId,
+    );
+    expect(screen.queryByTestId('task-deep-link-drawer')).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveTask(task);
+    });
+
+    expect(await screen.findByTestId('task-deep-link-drawer')).toHaveTextContent(task.title);
   });
 
   it('renders an explicit forbidden state from the authenticated task endpoint', async () => {

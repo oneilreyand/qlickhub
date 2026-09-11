@@ -252,6 +252,26 @@ describe('TaskCommentBox Molecule Component', () => {
     );
   });
 
+  it.each(['thread', 'bubble'] as const)(
+    'never shows edit or delete actions for another account message in the %s layout',
+    (variant) => {
+      render(
+        <TaskCommentBox
+          variant={variant}
+          comments={mockComments}
+          currentUserId="user-1"
+          members={mockMembers}
+          onPostComment={vi.fn()}
+          onUpdateComment={vi.fn()}
+          onDeleteComment={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByRole('button', { name: /Edit message/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Delete message/i })).not.toBeInTheDocument();
+    },
+  );
+
   it('renders bubble variant with WhatsApp-style layout (self right, other left) and bottom input bar', async () => {
     const handlePostComment = vi.fn().mockResolvedValue(undefined);
     render(

@@ -9,7 +9,6 @@ interface NotificationDropdownProps {
   notifications: InAppNotification[];
   unreadCount: number;
   isLoading: boolean;
-  isFcmSupported: boolean;
   fcmPermission: NotificationPermission | 'default';
   isFcmRegistering: boolean;
   fcmRegistrationStatus: FcmRegistrationStatus;
@@ -25,7 +24,6 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   notifications,
   unreadCount,
   isLoading,
-  isFcmSupported,
   fcmPermission,
   isFcmRegistering,
   fcmRegistrationStatus,
@@ -125,27 +123,6 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
           </div>
         </div>
       )}
-
-      {isFcmSupported &&
-        (fcmRegistrationStatus === 'permission_required' ||
-          fcmRegistrationStatus === 'registering') && (
-          <div className="my-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2 dark:bg-amber-950/40 dark:border-amber-800/60 dark:text-amber-200">
-            <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span className="text-[11px] font-medium leading-tight">
-                Aktifkan notifikasi FCM untuk update tugas real-time.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={onRequestFcmPermission}
-              disabled={isFcmRegistering}
-              className="min-h-11 shrink-0 rounded-lg bg-amber-600 px-3 py-1 text-[10px] font-bold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-amber-500 dark:text-stone-900"
-            >
-              {isFcmRegistering ? 'Memproses...' : 'Izinkan'}
-            </button>
-          </div>
-        )}
 
       {fcmRegistrationStatus === 'denied' && (
         <div className="my-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-[11px] font-medium leading-tight text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">

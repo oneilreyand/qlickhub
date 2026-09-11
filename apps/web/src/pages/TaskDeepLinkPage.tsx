@@ -114,13 +114,24 @@ export const TaskDeepLinkPage: React.FC = () => {
     reloadReleaseReadiness();
   }, [reloadReleaseReadiness]);
 
-  if (!isInitialized || isWorkspaceLoading || isTaskLoading) {
+  if (!isInitialized || isWorkspaceLoading) {
     return (
       <Card className="mx-auto max-w-3xl space-y-4 p-5 sm:p-8" aria-label="Loading task deep link">
         <Skeleton className="h-5 w-48 rounded-lg" />
         <Skeleton className="h-12 w-full rounded-xl" />
         <Skeleton className="h-64 w-full rounded-xl" />
       </Card>
+    );
+  }
+
+  if (isTaskLoading) {
+    return (
+      <TaskDetailDrawer
+        task={null}
+        folders={folders}
+        pendingTaskId={taskId}
+        onClose={() => navigate(returnTo)}
+      />
     );
   }
 

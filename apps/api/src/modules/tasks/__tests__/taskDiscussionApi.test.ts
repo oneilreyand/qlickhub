@@ -10,10 +10,15 @@ import {
   WorkspaceMemberModel,
   UserModel,
 } from '../../../db/models/index.js';
-import { CreateTaskSchema, CreateTaskCommentSchema, TaskCommentQuerySchema } from '@qlick/contracts';
+import {
+  CreateTaskSchema,
+  CreateTaskCommentSchema,
+  TaskCommentQuerySchema,
+} from '@qlick/contracts';
 
 describe('Persisted Task Discussion Integration Tests (ST4)', () => {
   let owner: UserModel;
+  let adminMember: UserModel;
   let devMember: UserModel;
   let qaMember: UserModel;
   let nonMember: UserModel;
@@ -26,6 +31,13 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
       email: `st4-owner-${Date.now()}@example.com`,
       passwordHash: 'hashed_pw',
       name: 'Workspace Owner',
+      role: 'admin',
+    });
+
+    adminMember = await UserModel.create({
+      email: `st4-admin-${Date.now()}@example.com`,
+      passwordHash: 'hashed_pw',
+      name: 'Workspace Admin',
       role: 'admin',
     });
 
@@ -70,6 +82,12 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
 
     await WorkspaceMemberModel.create({
       workspaceId: workspace.id,
+      userId: adminMember.id,
+      role: 'admin',
+    });
+
+    await WorkspaceMemberModel.create({
+      workspaceId: workspace.id,
       userId: devMember.id,
       role: 'dev',
     });
@@ -91,7 +109,7 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
       CreateTaskSchema.parse({
         workspaceId: workspace.id,
         title: 'Discussion Feature Test Task',
-      })
+      }),
     );
 
     task = (await TaskModel.findByPk(createdTask.id))!;
@@ -104,6 +122,7 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
     await WorkspaceModel.destroy({ where: { id: workspace.id }, force: true });
     await WorkspaceModel.destroy({ where: { id: otherWorkspace.id }, force: true });
     await UserModel.destroy({ where: { id: owner.id }, force: true });
+    await UserModel.destroy({ where: { id: adminMember.id }, force: true });
     await UserModel.destroy({ where: { id: devMember.id }, force: true });
     await UserModel.destroy({ where: { id: qaMember.id }, force: true });
     await UserModel.destroy({ where: { id: nonMember.id }, force: true });
@@ -117,7 +136,7 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
       CreateTaskCommentSchema.parse({
         body: 'Hello team, initial FE setup is complete.',
         mentionedUserIds: [qaMember.id],
-      })
+      }),
     );
 
     assert.ok(rootComment.id);
@@ -133,7 +152,7 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
       CreateTaskCommentSchema.parse({
         parentCommentId: rootComment.id,
         body: 'Thanks! Starting test plan generation now.',
-      })
+      }),
     );
 
     assert.strictEqual(replyComment.parentCommentId, rootComment.id);
@@ -147,7 +166,7 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
       TaskCommentQuerySchema.parse({
         workspaceId: workspace.id,
         taskId: task.id,
-      })
+      }),
     );
     assert.strictEqual(thread.comments.length, 1);
     assert.strictEqual(thread.comments[0].replies?.length, 1);
@@ -161,7 +180,7 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
       task.id,
       CreateTaskCommentSchema.parse({
         body: 'Root message for reply check',
-      })
+      }),
     );
 
     const reply1 = await taskDiscussionService.createTaskComment(
@@ -171,7 +190,7 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
       CreateTaskCommentSchema.parse({
         parentCommentId: root.id,
         body: 'First level reply',
-      })
+      }),
     );
 
     await assert.rejects(
@@ -183,13 +202,13 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
           CreateTaskCommentSchema.parse({
             parentCommentId: reply1.id,
             body: 'Attempted nested reply',
-          })
+          }),
         );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('BAD_REQUEST'));
         return true;
-      }
+      },
     );
   });
 
@@ -203,13 +222,13 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
           CreateTaskCommentSchema.parse({
             body: 'Hey @Outsider check this',
             mentionedUserIds: [nonMember.id],
-          })
+          }),
         );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('BAD_REQUEST'));
         return true;
-      }
+      },
     );
   });
 
@@ -220,63 +239,155 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
       task.id,
       CreateTaskCommentSchema.parse({
         body: 'Original draft message',
-      })
+      }),
     );
 
     // Author edits message
-    const edited = await taskDiscussionService.updateTaskComment(devMember.id, workspace.id, task.id, comment.id, {
-      body: 'Updated message content',
-    });
+    const edited = await taskDiscussionService.updateTaskComment(
+      devMember.id,
+      workspace.id,
+      task.id,
+      comment.id,
+      {
+        body: 'Updated message content',
+      },
+    );
 
     assert.strictEqual(edited.body, 'Updated message content');
     assert.ok(edited.editedAt);
 
     // Author soft deletes message
-    const deleted = await taskDiscussionService.deleteTaskComment(devMember.id, workspace.id, task.id, comment.id);
+    const deleted = await taskDiscussionService.deleteTaskComment(
+      devMember.id,
+      workspace.id,
+      task.id,
+      comment.id,
+    );
     assert.strictEqual(deleted.body, '[This comment has been deleted]');
     assert.ok(deleted.deletedAt);
 
     // Attempting to edit deleted message -> Rejected
     await assert.rejects(
       async () => {
-        await taskDiscussionService.updateTaskComment(devMember.id, workspace.id, task.id, comment.id, {
-          body: 'Editing deleted message',
-        });
+        await taskDiscussionService.updateTaskComment(
+          devMember.id,
+          workspace.id,
+          task.id,
+          comment.id,
+          {
+            body: 'Editing deleted message',
+          },
+        );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('BAD_REQUEST'));
         return true;
-      }
+      },
     );
   });
 
-  test('Non-author cannot edit or delete another user message, but Owner/Admin can moderate', async () => {
+  test('Every non-author, including Workspace Owner and Admin, cannot edit or delete another account message', async () => {
     const devComment = await taskDiscussionService.createTaskComment(
       devMember.id,
       workspace.id,
       task.id,
       CreateTaskCommentSchema.parse({
         body: 'Dev comment for moderation test',
-      })
+      }),
     );
 
     // QA attempts to edit Dev's comment -> Forbidden
     await assert.rejects(
       async () => {
-        await taskDiscussionService.updateTaskComment(qaMember.id, workspace.id, task.id, devComment.id, {
-          body: 'Unpermitted edit',
-        });
+        await taskDiscussionService.updateTaskComment(
+          qaMember.id,
+          workspace.id,
+          task.id,
+          devComment.id,
+          {
+            body: 'Unpermitted edit',
+          },
+        );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
 
-    // Workspace Owner moderates (soft deletes) Dev's comment -> Allowed
-    const moderated = await taskDiscussionService.deleteTaskComment(owner.id, workspace.id, task.id, devComment.id);
-    assert.strictEqual(moderated.body, '[This comment has been deleted]');
-    assert.ok(moderated.deletedAt);
+    // Workspace Admin cannot use the role to edit Dev's comment.
+    await assert.rejects(
+      async () => {
+        await taskDiscussionService.updateTaskComment(
+          adminMember.id,
+          workspace.id,
+          task.id,
+          devComment.id,
+          {
+            body: 'Admin cross-account edit',
+          },
+        );
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('FORBIDDEN'));
+        return true;
+      },
+    );
+
+    // Workspace Owner cannot use the role to edit Dev's comment.
+    await assert.rejects(
+      async () => {
+        await taskDiscussionService.updateTaskComment(
+          owner.id,
+          workspace.id,
+          task.id,
+          devComment.id,
+          {
+            body: 'Owner cross-account edit',
+          },
+        );
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('FORBIDDEN'));
+        return true;
+      },
+    );
+
+    // Workspace Admin also cannot soft-delete Dev's comment.
+    await assert.rejects(
+      async () => {
+        await taskDiscussionService.deleteTaskComment(
+          adminMember.id,
+          workspace.id,
+          task.id,
+          devComment.id,
+        );
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('FORBIDDEN'));
+        return true;
+      },
+    );
+
+    // Workspace Owner also cannot soft-delete Dev's comment.
+    await assert.rejects(
+      async () => {
+        await taskDiscussionService.deleteTaskComment(
+          owner.id,
+          workspace.id,
+          task.id,
+          devComment.id,
+        );
+      },
+      (err: any) => {
+        assert.ok(String(err.message).includes('FORBIDDEN'));
+        return true;
+      },
+    );
+
+    const persisted = await TaskCommentModel.findByPk(devComment.id);
+    assert.strictEqual(persisted?.body, 'Dev comment for moderation test');
+    assert.strictEqual(persisted?.deletedAt, null);
   });
 
   test('Non-workspace member cannot read or post in discussion thread', async () => {
@@ -289,13 +400,13 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
           TaskCommentQuerySchema.parse({
             workspaceId: workspace.id,
             taskId: task.id,
-          })
+          }),
         );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
 
     await assert.rejects(
@@ -306,13 +417,13 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
           task.id,
           CreateTaskCommentSchema.parse({
             body: 'Outsider post attempt',
-          })
+          }),
         );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
   });
 });

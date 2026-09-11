@@ -342,11 +342,33 @@ function renderHumanActivityDescription(act: TaskActivity) {
     return <span className="text-stone-700 dark:text-stone-300">unlinked a requirement</span>;
   }
 
+  if (action === 'acceptance_criterion_created') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        added Acceptance Criterion{' '}
+        <span className="font-semibold text-stone-900 dark:text-stone-100">
+          {meta.code || 'AC'}
+        </span>
+      </span>
+    );
+  }
+  if (action === 'acceptance_criterion_updated') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        updated Acceptance Criterion{' '}
+        <span className="font-semibold text-stone-900 dark:text-stone-100">
+          {meta.code || 'AC'}
+        </span>
+        {meta.status ? ` (${meta.status})` : ''}
+      </span>
+    );
+  }
+
   // Specification Brief
   if (action.includes('brief')) {
     return (
       <span className="text-stone-700 dark:text-stone-300">
-        updated specification brief {meta.version ? `to version v${meta.version}` : ''}
+        updated Product Brief {meta.version ? `to version v${meta.version}` : ''}
       </span>
     );
   }

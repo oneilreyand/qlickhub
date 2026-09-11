@@ -230,6 +230,29 @@ describe('Header', () => {
     expect(screen.getByRole('button', { name: 'UI System' })).toBeInTheDocument();
   });
 
+  it('hides the Task Creation Policy shortcut from the profile menu', async () => {
+    const user = userEvent.setup();
+    renderHeaderForRole('owner');
+
+    await user.click(screen.getByRole('button', { name: 'User Profile Menu' }));
+
+    expect(screen.getAllByRole('button', { name: 'Workspace Settings' })).toHaveLength(2);
+    expect(screen.queryByText('Task Creation Policy')).not.toBeInTheDocument();
+  });
+
+  it('temporarily hides the User Flow guide controls', async () => {
+    const user = userEvent.setup();
+    renderHeaderForRole('owner');
+
+    expect(
+      screen.queryByRole('button', { name: 'User Flow & Quality Gate Guide' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'User Profile Menu' }));
+
+    expect(screen.queryByText('Panduan User Flow & Roles')).not.toBeInTheDocument();
+  });
+
   it('does not offer workspace creation to QA', async () => {
     const user = userEvent.setup();
     renderHeaderForRole('qa');

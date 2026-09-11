@@ -16,9 +16,14 @@ export const TaskHubDatePresetBar: React.FC<TaskHubDatePresetBarProps> = ({
   return (
     <div className="rounded-2xl border border-stone-200/80 bg-white p-3.5 dark:border-stone-800 dark:bg-[#1C1A19]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300">
-          <CalendarIcon className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-          <span>Smart Date Views:</span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300">
+            <CalendarIcon className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
+            <span>Feature schedule scope</span>
+          </div>
+          <p className="mt-1 pl-6 text-[11px] text-stone-500 dark:text-stone-400">
+            Choose which Features appear in the schedule.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -36,8 +41,8 @@ export const TaskHubDatePresetBar: React.FC<TaskHubDatePresetBarProps> = ({
                       ? 'bg-rose-600 text-white shadow-xs'
                       : 'bg-stone-900 text-white dark:bg-[#B1E743] dark:text-[#22201F] shadow-xs'
                     : isOverdue
-                    ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/50 dark:text-rose-300'
-                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700'
+                      ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/50 dark:text-rose-300'
+                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700'
                 }`}
               >
                 {v.label}

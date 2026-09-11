@@ -110,6 +110,8 @@ describe('SubtaskRoleTimeline Molecule', () => {
       />,
     );
 
+    expect(screen.getByText('Role & Handoff Timeline')).toBeInTheDocument();
+
     // Primary Bottleneck banner
     expect(screen.getByText(/Dev Backend Bottleneck/i)).toBeInTheDocument();
     expect(screen.getByText(/Backend subtasks are/i)).toBeInTheDocument();

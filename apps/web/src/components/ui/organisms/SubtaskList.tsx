@@ -71,9 +71,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
   const [selectedArea, setSelectedArea] = useState<DeliveryArea | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
-  const [emptyIllustrationSrc, setEmptyIllustrationSrc] = useState(
-    EMPTY_SUBTASKS_ILLUSTRATION_URL,
-  );
+  const [emptyIllustrationSrc, setEmptyIllustrationSrc] = useState(EMPTY_SUBTASKS_ILLUSTRATION_URL);
   const [emptyIllustrationFailed, setEmptyIllustrationFailed] = useState(false);
 
   React.useEffect(() => {
@@ -190,7 +188,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {/* View Mode Switcher (Accordion vs Role Timeline) */}
+            {/* View Mode Switcher (Accordion vs Role & Handoff Timeline) */}
             <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800/80 p-0.5 rounded-lg border border-stone-200/80 dark:border-stone-700/80">
               <button
                 type="button"
@@ -209,15 +207,16 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('timeline')}
+                aria-label="Role & Handoff Timeline"
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
                   viewMode === 'timeline'
                     ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                     : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
                 }`}
-                title="View cross-role timeline and overlap diagnostics"
+                title="View this Feature's role handoffs, overlap, and schedule health"
               >
                 <Clock className="h-3.5 w-3.5" />
-                <span>Role Timeline</span>
+                <span>Role & Handoff</span>
               </button>
             </div>
 

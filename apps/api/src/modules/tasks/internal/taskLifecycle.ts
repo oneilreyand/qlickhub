@@ -618,8 +618,15 @@ export async function updateTaskImpl(
         task.reviewedBy = actorId;
         changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
       } else if (input.status === 'done' && task.parentTaskId) {
-        task.reviewedBy = actorId;
-        changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
+        if (task.deliveryArea === 'qa') {
+          if (task.reviewedBy !== null) {
+            changes['reviewedBy'] = { old: task.reviewedBy, new: null };
+            task.reviewedBy = null;
+          }
+        } else {
+          changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
+          task.reviewedBy = actorId;
+        }
       }
 
       changes['status'] = { old: task.status, new: input.status };

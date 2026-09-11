@@ -7,7 +7,6 @@ const baseProps = {
   notifications: [],
   unreadCount: 0,
   isLoading: false,
-  isFcmSupported: true,
   fcmPermission: 'granted' as NotificationPermission,
   isFcmRegistering: false,
   fcmRegistrationError: null,
@@ -19,6 +18,22 @@ const baseProps = {
 };
 
 describe('NotificationDropdown mobile Web Push states', () => {
+  it.each(['permission_required', 'registering'] as const)(
+    'does not show the FCM activation banner for %s',
+    (fcmRegistrationStatus) => {
+      render(
+        <MemoryRouter>
+          <NotificationDropdown {...baseProps} fcmRegistrationStatus={fcmRegistrationStatus} />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByText('Aktifkan notifikasi FCM untuk update tugas real-time.'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Izinkan' })).not.toBeInTheDocument();
+    },
+  );
+
   it('shows active only after device registration succeeds', () => {
     render(
       <MemoryRouter>

@@ -79,6 +79,10 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const isTaskLoading = useAppSelector((state: RootState) => state.task?.isLoading || false);
   const taskError = useAppSelector((state: RootState) => state.task?.error || null);
   const selectedTaskId = useAppSelector((state: RootState) => state.task?.selectedTaskId || null);
+  const detailLoadingTaskId = useAppSelector(
+    (state: RootState) => state.task?.detailLoadingTaskId || null,
+  );
+  const detailError = useAppSelector((state: RootState) => state.task?.detailError || null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 250);
@@ -556,6 +560,15 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       <TaskDetailDrawer
         task={selectedTask}
         folders={folders}
+        pendingTaskId={selectedTaskId}
+        detailLoadError={detailLoadingTaskId === selectedTaskId ? null : detailError}
+        onRetryDetail={() => {
+          if (activeWorkspaceId && selectedTaskId) {
+            void dispatch(
+              fetchTaskById({ workspaceId: activeWorkspaceId, taskId: selectedTaskId }),
+            );
+          }
+        }}
         releaseReadinessState={
           selectedTask
             ? releaseReadinessStateByTaskId[selectedTask.parentTaskId || selectedTask.id]

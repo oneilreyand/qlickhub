@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
+  AcceptanceCriterion,
   Requirement,
   RequirementDetailResponse,
   RequirementStatus,
@@ -11,9 +12,11 @@ import { RequirementFormModal } from '../molecules/RequirementFormModal';
 import { Button } from '../atoms/Button';
 import { IconButton } from '../atoms/IconButton';
 import { Input } from '../atoms/Input';
+import { Textarea } from '../atoms/Textarea';
 import { Badge } from '../atoms/Badge';
 import { Skeleton } from '../atoms/Skeleton';
 import { Checkbox } from '../atoms/Checkbox';
+import { FormattedText } from '../atoms/FormattedText';
 import { EmptyState } from '../molecules/EmptyState';
 import { Modal } from '../molecules/Modal';
 import { Alert } from '../atoms/Alert';
@@ -37,6 +40,13 @@ export interface RequirementManagerProps {
   taskId?: string;
   userRole: WorkspaceRole;
   onRequirementChanged?: () => void;
+  initialState?: RequirementManagerInitialState;
+}
+
+export interface RequirementManagerInitialState {
+  requirements: Requirement[];
+  taskLinks: TaskRequirementLink[];
+  error: string | null;
 }
 
 export const RequirementManager: React.FC<RequirementManagerProps> = ({
@@ -44,12 +54,13 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
   taskId,
   userRole,
   onRequirementChanged,
+  initialState,
 }) => {
-  const [requirements, setRequirements] = useState<Requirement[]>([]);
-  const [taskLinks, setTaskLinks] = useState<TaskRequirementLink[]>([]);
+  const [requirements, setRequirements] = useState<Requirement[]>(initialState?.requirements || []);
+  const [taskLinks, setTaskLinks] = useState<TaskRequirementLink[]>(initialState?.taskLinks || []);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(!initialState);
+  const [error, setError] = useState<string | null>(initialState?.error || null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,6 +73,17 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
     Record<string, RequirementDetailResponse>
   >({});
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
+
+  // Acceptance Criterion editor state
+  const [criterionEditor, setCriterionEditor] = useState<{
+    requirementId: string;
+    criterion?: AcceptanceCriterion;
+  } | null>(null);
+  const [criterionText, setCriterionText] = useState('');
+  const [criterionError, setCriterionError] = useState<string | null>(null);
+  const [isCriterionSaving, setIsCriterionSaving] = useState(false);
+  const [criterionActionId, setCriterionActionId] = useState<string | null>(null);
 
   // Action loading state per requirement ID
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -93,21 +115,38 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
   }, [workspaceId, taskId]);
 
   useEffect(() => {
-    setTaskLinks([]);
     setExpandedReqId(null);
     setRequirementDetails({});
+    setDetailErrors({});
     setSelectedRequirementIds([]);
-    loadData();
-  }, [loadData]);
+    setCriterionEditor(null);
+    if (initialState) {
+      setRequirements(initialState.requirements);
+      setTaskLinks(initialState.taskLinks);
+      setError(initialState.error);
+      setIsLoading(false);
+      return;
+    }
+    setTaskLinks([]);
+    void loadData();
+  }, [initialState, loadData]);
 
   const loadDetail = async (reqId: string) => {
-    if (requirementDetails[reqId]) return;
+    if (requirementDetails[reqId] && !detailErrors[reqId]) return;
     setIsLoadingDetail(true);
+    setDetailErrors((current) => {
+      const next = { ...current };
+      delete next[reqId];
+      return next;
+    });
     try {
       const detail = await requirementService.getRequirement(workspaceId, reqId);
       setRequirementDetails((prev) => ({ ...prev, [reqId]: detail }));
-    } catch {
-      // Non-blocking detail load error
+    } catch (error) {
+      setDetailErrors((current) => ({
+        ...current,
+        [reqId]: error instanceof Error ? error.message : 'Unable to load Requirement details.',
+      }));
     } finally {
       setIsLoadingDetail(false);
     }
@@ -193,6 +232,112 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
         ? current.filter((id) => id !== requirementId)
         : [...current, requirementId],
     );
+  };
+
+  const openCriterionEditor = (requirementId: string, criterion?: AcceptanceCriterion) => {
+    setCriterionEditor({ requirementId, criterion });
+    setCriterionText(criterion?.text || '');
+    setCriterionError(null);
+  };
+
+  const closeCriterionEditor = () => {
+    if (isCriterionSaving) return;
+    setCriterionEditor(null);
+    setCriterionText('');
+    setCriterionError(null);
+  };
+
+  const handleSaveCriterion = async () => {
+    if (!canManage || !criterionEditor) return;
+    const text = criterionText.trim();
+    if (!text) {
+      setCriterionError('Acceptance Criterion is required.');
+      return;
+    }
+
+    setIsCriterionSaving(true);
+    setCriterionError(null);
+    try {
+      const saved = criterionEditor.criterion
+        ? await requirementService.updateAcceptanceCriterion(
+            workspaceId,
+            criterionEditor.requirementId,
+            criterionEditor.criterion.id,
+            { text },
+          )
+        : await requirementService.createAcceptanceCriterion(
+            workspaceId,
+            criterionEditor.requirementId,
+            { text },
+          );
+
+      setRequirementDetails((current) => {
+        const detail = current[criterionEditor.requirementId];
+        if (!detail) return current;
+        const existing = detail.acceptanceCriteria || [];
+        const acceptanceCriteria = criterionEditor.criterion
+          ? existing.map((criterion) => (criterion.id === saved.id ? saved : criterion))
+          : [...existing, saved].sort((a, b) => a.sequence - b.sequence);
+        return {
+          ...current,
+          [criterionEditor.requirementId]: { ...detail, acceptanceCriteria },
+        };
+      });
+      setCriterionEditor(null);
+      setCriterionText('');
+      onRequirementChanged?.();
+    } catch (error) {
+      setCriterionError(
+        error instanceof Error ? error.message : 'Unable to save the Acceptance Criterion.',
+      );
+    } finally {
+      setIsCriterionSaving(false);
+    }
+  };
+
+  const handleCriterionStatusChange = async (
+    requirementId: string,
+    criterion: AcceptanceCriterion,
+  ) => {
+    if (!canManage) return;
+    setCriterionActionId(criterion.id);
+    setDetailErrors((current) => {
+      const next = { ...current };
+      delete next[requirementId];
+      return next;
+    });
+    try {
+      const updated = await requirementService.updateAcceptanceCriterion(
+        workspaceId,
+        requirementId,
+        criterion.id,
+        { status: criterion.status === 'active' ? 'deprecated' : 'active' },
+      );
+      setRequirementDetails((current) => {
+        const detail = current[requirementId];
+        if (!detail) return current;
+        return {
+          ...current,
+          [requirementId]: {
+            ...detail,
+            acceptanceCriteria: (detail.acceptanceCriteria || []).map((item) =>
+              item.id === updated.id ? updated : item,
+            ),
+          },
+        };
+      });
+      onRequirementChanged?.();
+    } catch (error) {
+      setDetailErrors((current) => ({
+        ...current,
+        [requirementId]:
+          error instanceof Error
+            ? error.message
+            : 'Unable to update the Acceptance Criterion status.',
+      }));
+    } finally {
+      setCriterionActionId(null);
+    }
   };
 
   const handleToggleAllLinkedSelection = () => {
@@ -336,10 +481,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
           <h4 className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
             <FileText className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
             <span>
-              {isTaskContext
-                ? 'Linked Specifications & Requirements'
-                : 'Specifications & Requirements'}{' '}
-              ({linkedRequirements.length})
+              {isTaskContext ? 'Linked Requirements' : 'Requirements'} ({linkedRequirements.length})
             </span>
           </h4>
           <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
@@ -348,8 +490,8 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                 ? 'Review linked requirements or add an existing Workspace Requirement.'
                 : 'Requirements linked to this task. Product Owners and Admins manage links.'
               : canManage
-                ? 'Manage structured product requirements and link external specifications.'
-                : 'Read-only access. Product Owners and Admins manage requirements.'}
+                ? 'Manage structured Requirements, their Acceptance Criteria, and specific source links.'
+                : 'Read-only access. Product Owners and Admins manage Requirements and Acceptance Criteria.'}
           </p>
         </div>
 
@@ -431,8 +573,8 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
             searchQuery
               ? 'Try adjusting your search terms.'
               : canManage
-                ? 'Create your first requirement or embed an external spec link.'
-                : 'No specifications have been linked yet by the Product Owner.'
+                ? 'Create the first Requirement and define its testable Acceptance Criteria.'
+                : 'No Requirements have been linked yet by the Product Owner.'
           }
           icon={<FileText className="h-8 w-8 text-stone-400" />}
           actionLabel={canManage && !searchQuery ? 'Create Requirement' : undefined}
@@ -542,10 +684,12 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                           href={req.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 mt-1 hover:underline truncate max-w-md"
+                          aria-label={`Source / Reference: ${req.url}`}
+                          className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium text-emerald-600 hover:text-emerald-700 hover:underline dark:text-emerald-400 sm:max-w-md"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <ExternalLink className="h-3 w-3 shrink-0" />
+                          <span className="shrink-0">Source / Reference:</span>
                           <span className="truncate">{req.url}</span>
                         </a>
                       )}
@@ -617,11 +761,108 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                         <span className="font-semibold text-stone-600 dark:text-stone-400 block mb-0.5">
                           Description:
                         </span>
-                        <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap leading-relaxed">
-                          {req.description}
-                        </p>
+                        <FormattedText content={req.description} />
                       </div>
                     )}
+
+                    <div className="space-y-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="font-semibold text-stone-600 dark:text-stone-400">
+                          Acceptance Criteria (
+                          {detail ? (detail.acceptanceCriteria || []).length : '...'})
+                        </span>
+                        {canManage && detail && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            leftIcon={<Plus className="h-3.5 w-3.5" />}
+                            onClick={() => openCriterionEditor(req.id)}
+                          >
+                            Add Acceptance Criterion
+                          </Button>
+                        )}
+                      </div>
+
+                      {detailErrors[req.id] && (
+                        <Alert tone="error">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <span>{detailErrors[req.id]}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void loadDetail(req.id)}
+                            >
+                              Retry
+                            </Button>
+                          </div>
+                        </Alert>
+                      )}
+
+                      {isLoadingDetail && !detail ? (
+                        <div className="space-y-2" aria-label="Loading Acceptance Criteria">
+                          <Skeleton className="h-12 w-full rounded-xl" />
+                        </div>
+                      ) : detail && (detail.acceptanceCriteria || []).length > 0 ? (
+                        <div className="space-y-2">
+                          {(detail.acceptanceCriteria || []).map((criterion) => (
+                            <div
+                              key={criterion.id}
+                              className="flex flex-col gap-2 rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-950/50 sm:flex-row sm:items-start sm:justify-between"
+                            >
+                              <div className="flex min-w-0 items-start gap-2">
+                                <span className="shrink-0 rounded-md bg-stone-200 px-1.5 py-0.5 font-mono text-[10px] font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                                  {criterion.code}
+                                </span>
+                                <div className="min-w-0">
+                                  <p
+                                    className={`whitespace-pre-wrap leading-relaxed ${
+                                      criterion.status === 'deprecated'
+                                        ? 'text-stone-400 line-through dark:text-stone-500'
+                                        : 'text-stone-800 dark:text-stone-200'
+                                    }`}
+                                  >
+                                    {criterion.text}
+                                  </p>
+                                  {criterion.status === 'deprecated' && (
+                                    <span className="mt-1 inline-block text-[10px] font-semibold uppercase text-amber-600 dark:text-amber-400">
+                                      Deprecated
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {canManage && (
+                                <div className="flex shrink-0 flex-wrap gap-1.5 self-end sm:self-start">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => openCriterionEditor(req.id, criterion)}
+                                  >
+                                    Edit {criterion.code}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    isLoading={criterionActionId === criterion.id}
+                                    onClick={() =>
+                                      void handleCriterionStatusChange(req.id, criterion)
+                                    }
+                                  >
+                                    {criterion.status === 'active'
+                                      ? `Deactivate ${criterion.code}`
+                                      : `Reactivate ${criterion.code}`}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : detail ? (
+                        <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-3 text-[11px] text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-300">
+                          No Acceptance Criteria defined. Add testable outcomes before using this
+                          Requirement for delivery.
+                        </div>
+                      ) : null}
+                    </div>
 
                     {/* Linked tasks summary */}
                     <div>
@@ -670,6 +911,33 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
         initialData={editingRequirement}
         isSaving={isSaving}
       />
+
+      <Modal
+        isOpen={Boolean(criterionEditor)}
+        onClose={closeCriterionEditor}
+        title={
+          criterionEditor?.criterion ? 'Edit Acceptance Criterion' : 'Add Acceptance Criterion'
+        }
+        description="Define one observable and testable outcome for this Requirement."
+        primaryActionLabel={criterionEditor?.criterion ? 'Update Criterion' : 'Create Criterion'}
+        secondaryActionLabel="Cancel"
+        onPrimaryAction={() => void handleSaveCriterion()}
+        isPrimaryLoading={isCriterionSaving}
+        size="lg"
+      >
+        <div className="space-y-3">
+          {criterionError && <Alert tone="error">{criterionError}</Alert>}
+          <Textarea
+            label="Acceptance Criterion"
+            value={criterionText}
+            onChange={(event) => setCriterionText(event.target.value)}
+            placeholder="e.g. Given valid payment details, when the user confirms, then the order is created once."
+            rows={4}
+            disabled={isCriterionSaving}
+            autoFocus
+          />
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isBulkCorrectionOpen}

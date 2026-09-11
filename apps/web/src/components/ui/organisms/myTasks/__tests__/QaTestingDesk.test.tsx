@@ -206,14 +206,14 @@ const executionWorkspace = (runs: TestRun[] = []): TaskTestExecutionWorkspace =>
   ],
 });
 
-const renderDesk = (userRole = 'qa') =>
+const renderDesk = (userRole = 'qa', subtask: Task = mockQaSubtask, currentUserId = ids.qa) =>
   render(
     <Provider store={createTestStore()}>
       <QaTestingDesk
-        subtask={mockQaSubtask}
+        subtask={subtask}
         parentTask={mockFeatureTask}
         workspaceId={ids.workspace}
-        currentUserId={ids.qa}
+        currentUserId={currentUserId}
         userRole={userRole}
         onDataChanged={vi.fn()}
       />
@@ -258,6 +258,7 @@ describe('QaTestingDesk Organism', () => {
       },
     });
     bugServiceMocks.createBug.mockResolvedValue({ id: ids.bug });
+    taskServiceMocks.updateTask.mockResolvedValue({ ...mockQaSubtask, status: 'done' });
     releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue({
       workspaceId: ids.workspace,
       featureTaskId: ids.feature,
@@ -275,6 +276,62 @@ describe('QaTestingDesk Organism', () => {
         createdAt: now,
       },
     ]);
+  });
+
+  it('completes assigned QA execution directly without a self-review step', async () => {
+    const user = userEvent.setup();
+    renderDesk();
+
+    expect(screen.queryByRole('button', { name: 'Submit for Review' })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Completing this QA Subtask records the assigned test execution only/i),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Complete QA Execution' }));
+
+    await waitFor(() =>
+      expect(taskServiceMocks.updateTask).toHaveBeenCalledWith(ids.workspace, ids.subtask, {
+        status: 'done',
+        reviewNotes: undefined,
+      }),
+    );
+  });
+
+  it('reopens completed QA execution with an auditable reason', async () => {
+    const user = userEvent.setup();
+    const completedSubtask = { ...mockQaSubtask, status: 'done' as const };
+    taskServiceMocks.updateTask.mockResolvedValue({
+      ...completedSubtask,
+      status: 'in_progress',
+    });
+    renderDesk('qa', completedSubtask);
+
+    await user.click(screen.getByRole('button', { name: 'Reopen QA Execution' }));
+
+    await waitFor(() =>
+      expect(taskServiceMocks.updateTask).toHaveBeenCalledWith(ids.workspace, ids.subtask, {
+        status: 'in_progress',
+        reviewNotes: 'Reopened from Completed for re-testing.',
+      }),
+    );
+  });
+
+  it('offers an explicit recovery path for legacy QA subtasks in review', async () => {
+    const legacySubtask = { ...mockQaSubtask, status: 'in_review' as const };
+    renderDesk('qa', legacySubtask);
+
+    await screen.findByText('No QA Sign-off recorded');
+    await screen.findByText('No Test Cases linked to this Feature');
+    expect(screen.getByRole('button', { name: 'Resume Testing' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Complete QA Execution' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Approve Quality/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps QA Subtask status actions hidden from a QA member who is not the assignee', async () => {
+    renderDesk('qa', mockQaSubtask, ids.reporter);
+
+    await screen.findByText('No Test Cases linked to this Feature');
+    expect(screen.queryByRole('button', { name: 'Complete QA Execution' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Log Defect' })).toBeDisabled();
   });
 
   it('renders Canonical Test Management workspace with Native Authoring and Import buttons for Planners', async () => {

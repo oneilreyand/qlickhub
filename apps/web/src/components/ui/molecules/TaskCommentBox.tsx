@@ -37,7 +37,6 @@ export interface TaskCommentBoxProps {
   ) => Promise<void> | void;
   onUpdateComment?: (commentId: string, body: string) => Promise<void> | void;
   onDeleteComment?: (commentId: string) => Promise<void> | void;
-  canManageComments?: boolean;
   title?: string;
   showMentionChips?: boolean;
   placeholder?: string;
@@ -59,7 +58,6 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
   onPostComment,
   onUpdateComment,
   onDeleteComment,
-  canManageComments = true,
   title,
   showMentionChips = true,
   placeholder,
@@ -156,7 +154,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
   };
 
   const canManage = (comment: TaskComment) => {
-    return !comment.deletedAt && (comment.authorId === currentUserId || canManageComments);
+    return !comment.deletedAt && comment.authorId === currentUserId;
   };
 
   const handleSendRoot = async (e?: React.FormEvent) => {

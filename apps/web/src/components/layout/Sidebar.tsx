@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { selectCurrentUserRole } from '../../store/authSlice';
+import { featureVisibility } from '../../config/featureVisibility';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -85,6 +86,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const isExpanded = isHovered || Boolean(onCloseMobile);
 
   const visibleNavItems = navItems.filter((item) => {
+    if (item.path === '/user-flows') {
+      return featureVisibility.userFlowGuide;
+    }
     if (item.path === '/workspaces/settings') {
       return canAccessSettings;
     }

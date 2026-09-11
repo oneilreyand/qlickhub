@@ -28,6 +28,13 @@ import { DeliveryTraceSignal } from '../molecules/DeliveryTraceSignal';
 interface TaskDeliveryTracePanelProps {
   workspaceId: string;
   taskId: string;
+  initialState?: TaskDeliveryTraceInitialState;
+}
+
+export interface TaskDeliveryTraceInitialState {
+  trace: ParentTaskDeliveryTrace | null;
+  error: string | null;
+  permissionDenied: boolean;
 }
 
 function structuralBadge(status: DeliveryTraceStructuralStatus) {
@@ -89,11 +96,12 @@ function testCaseVariant(status: TestCaseStatus): BadgeProps['variant'] {
 export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
   workspaceId,
   taskId,
+  initialState,
 }) => {
-  const [trace, setTrace] = useState<ParentTaskDeliveryTrace | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [trace, setTrace] = useState<ParentTaskDeliveryTrace | null>(initialState?.trace || null);
+  const [isLoading, setIsLoading] = useState(!initialState);
+  const [error, setError] = useState<string | null>(initialState?.error || null);
+  const [permissionDenied, setPermissionDenied] = useState(initialState?.permissionDenied || false);
   const requestIdRef = useRef(0);
 
   const loadTrace = useCallback(async () => {
@@ -116,11 +124,19 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
   }, [taskId, workspaceId]);
 
   useEffect(() => {
+    if (initialState) {
+      requestIdRef.current += 1;
+      setTrace(initialState.trace);
+      setError(initialState.error);
+      setPermissionDenied(initialState.permissionDenied);
+      setIsLoading(false);
+      return;
+    }
     void loadTrace();
     return () => {
       requestIdRef.current += 1;
     };
-  }, [loadTrace]);
+  }, [initialState, loadTrace]);
 
   if (isLoading && !trace) {
     return (

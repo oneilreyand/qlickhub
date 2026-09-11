@@ -252,7 +252,7 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       2,
     );
 
-    for (const status of ['in_review', 'active']) {
+    for (const status of ['in_review', 'draft', 'in_review', 'active']) {
       const publishResponse = await fetch(
         `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}`,
         {
@@ -440,6 +440,8 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       body.activity.map((item) => item.action),
       [
         'test_case_created',
+        'test_case_status_changed',
+        'test_case_status_changed',
         'test_case_status_changed',
         'test_case_status_changed',
         'test_run_started',

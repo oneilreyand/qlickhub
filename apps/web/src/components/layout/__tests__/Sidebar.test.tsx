@@ -124,6 +124,12 @@ describe('Sidebar Role-based Visibility', () => {
     unmount();
   });
 
+  it('temporarily hides the User Flow Guide navigation entry', () => {
+    renderSidebar('owner');
+
+    expect(screen.queryByRole('link', { name: /User Flow Guide/i })).not.toBeInTheDocument();
+  });
+
   it('keeps Task Hub active on a canonical task deep link', () => {
     renderSidebar(
       'dev',

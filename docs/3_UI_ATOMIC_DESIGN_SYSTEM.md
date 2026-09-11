@@ -76,7 +76,7 @@ graph TD
         subgraph BodyGrid["3-Panel Desktop Grid Layout (/work)"]
             LeftPanel["Panel Kiri (240px)\nFolderTree\n- Workspace Root\n- Folders (L1)\n- Subfolders (L2)\n- Quick Action Button"]
             CenterPanel["Panel Tengah (Flex-1)\nTaskCollection & Timeline\n- View Toggle (Table / Timeline / Board)\n- Filter Bar (Status, Assignee, Priority)\n- Task Rows / Feature List\n- Readiness Progress Meter"]
-            RightPanel["Panel Kanan (480px / Drawer)\nTaskDetailDrawer (Full Context)\n- Header: Task Title & Status\n- Tab 1: Overview & Subtasks\n- Tab 2: Requirements & AC\n- Tab 3: QA Matrix & Test Runs\n- Tab 4: Bugs & Retest\n- Tab 5: QA Sign-off & Release"]
+            RightPanel["Panel Kanan (480px / Drawer)\nTaskDetailDrawer (Full Context)\n- Overview\n- Product Brief: Context & Scope\n- Requirements & AC\n- Delivery Trace & Tests\n- Bugs & Retest\n- Activity & Discussion"]
         end
 
         HeaderBlock --> BodyGrid
@@ -195,22 +195,23 @@ graph LR
 
 ### 🟣 Organisms
 
-| Komponen                    | File Path                                         | Penggunaan                                                                                    |
-| :-------------------------- | :------------------------------------------------ | :-------------------------------------------------------------------------------------------- |
-| `FolderTree`                | `organisms/FolderTree.tsx`                        | Pohon folder interaktif untuk navigasi struktur workspace.                                    |
-| `TaskCollection`            | `organisms/TaskCollection.tsx`                    | Daftar / tabel tugas utama dengan filter dan sorting.                                         |
-| `TaskTimelineView`          | `organisms/TaskTimelineView.tsx`                  | Visualisasi Gantt chart durasi subtask.                                                       |
-| `TaskDetailDrawer`          | `organisms/TaskDetailDrawer.tsx`                  | Organisme utama penampil seluruh konteks parent Task, Requirements, Tests, Bugs, dan Dokumen. |
-| `RequirementManager`        | `organisms/RequirementManager.tsx`                | Pengelola daftar Requirement dan Acceptance Criteria terkait fitur.                           |
-| `QaTraceabilityMatrix`      | `organisms/QaTraceabilityMatrix.tsx`              | Matriks ketertelusuran hubungan antara Requirement, Test Case, dan Bug.                       |
-| `ReleaseAssurancePanel`     | `organisms/ReleaseAssurancePanel.tsx`             | Panel evaluasi kesiapan rilis, QA Sign-off, dan PO Release Decision.                          |
-| `BugExperiencePanel`        | `organisms/BugExperiencePanel.tsx`                | Panel pencatatan bug, delegasi perbaikan ke developer, dan verifikasi retest.                 |
-| `EvidencePreviewModal`      | `organisms/EvidencePreviewModal.tsx`              | Modal preview media (Google Drive, video player YouTube/Loom, gambar fullscreen).             |
-| `MyTasksDashboard`          | `organisms/MyTasksDashboard.tsx`                  | Dashboard utama antrean kerja personal berbasis peran.                                        |
-| `QaTestingDesk`             | `organisms/myTasks/QaTestingDesk.tsx`             | Meja kerja QA untuk eksekusi test run, intake test case, dan logging hasil uji.               |
-| `DevWorkingDesk`            | `organisms/myTasks/DevWorkingDesk.tsx`            | Meja kerja Developer untuk mengelola subtask aktif dan perbaikan bug.                         |
-| `TestCaseImportWizardModal` | `organisms/myTasks/TestCaseImportWizardModal.tsx` | Wizard 3-langkah untuk impor Test Case dari spreadsheet CSV/XLSX.                             |
-| `WorkspaceMembersTable`     | `organisms/WorkspaceMembersTable.tsx`             | Tabel manajemen anggota workspace, peran, dan spesialisasi dev.                               |
+| Komponen                    | File Path                                            | Penggunaan                                                                                     |
+| :-------------------------- | :--------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
+| `FolderTree`                | `organisms/FolderTree.tsx`                           | Pohon folder interaktif untuk navigasi struktur workspace.                                     |
+| `TaskCollection`            | `organisms/TaskCollection.tsx`                       | Daftar / tabel tugas utama dengan filter dan sorting.                                          |
+| `TaskTimelineView`          | `organisms/TaskTimelineView.tsx`                     | Visualisasi Gantt chart durasi subtask.                                                        |
+| `TaskDetailDrawer`          | `organisms/TaskDetailDrawer.tsx`                     | Organisme utama penampil seluruh konteks parent Task, Requirements, Tests, Bugs, dan Dokumen.  |
+| `TaskDetailProductBriefTab` | `organisms/taskDetail/TaskDetailProductBriefTab.tsx` | Product Brief berversi untuk konteks, referensi eksternal, In Scope, dan Out of Scope Feature. |
+| `RequirementManager`        | `organisms/RequirementManager.tsx`                   | Pengelola daftar Requirement dan Acceptance Criteria terkait fitur.                            |
+| `QaTraceabilityMatrix`      | `organisms/QaTraceabilityMatrix.tsx`                 | Matriks ketertelusuran hubungan antara Requirement, Test Case, dan Bug.                        |
+| `ReleaseAssurancePanel`     | `organisms/ReleaseAssurancePanel.tsx`                | Panel evaluasi kesiapan rilis, QA Sign-off, dan PO Release Decision.                           |
+| `BugExperiencePanel`        | `organisms/BugExperiencePanel.tsx`                   | Panel pencatatan bug, delegasi perbaikan ke developer, dan verifikasi retest.                  |
+| `EvidencePreviewModal`      | `organisms/EvidencePreviewModal.tsx`                 | Modal preview media (Google Drive, video player YouTube/Loom, gambar fullscreen).              |
+| `MyTasksDashboard`          | `organisms/MyTasksDashboard.tsx`                     | Dashboard utama antrean kerja personal berbasis peran.                                         |
+| `QaTestingDesk`             | `organisms/myTasks/QaTestingDesk.tsx`                | Meja kerja QA untuk eksekusi test run, intake test case, dan logging hasil uji.                |
+| `DevWorkingDesk`            | `organisms/myTasks/DevWorkingDesk.tsx`               | Meja kerja Developer untuk mengelola subtask aktif dan perbaikan bug.                          |
+| `TestCaseImportWizardModal` | `organisms/myTasks/TestCaseImportWizardModal.tsx`    | Wizard 3-langkah untuk impor Test Case dari spreadsheet CSV/XLSX.                              |
+| `WorkspaceMembersTable`     | `organisms/WorkspaceMembersTable.tsx`                | Tabel manajemen anggota workspace, peran, dan spesialisasi dev.                                |
 
 ---
 

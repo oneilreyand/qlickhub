@@ -41,6 +41,13 @@ export interface BugExperiencePanelProps {
   mode: 'feature' | 'role_queue';
   featureTaskId?: string;
   onDataChanged?: () => void;
+  initialState?: BugExperienceInitialState;
+}
+
+export interface BugExperienceInitialState {
+  bugs: BugWithContext[];
+  error: string | null;
+  permissionDenied: boolean;
 }
 
 const severityVariant: Record<BugSeverity, 'blocked' | 'review' | 'info' | 'neutral'> = {
@@ -85,14 +92,15 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
   mode,
   featureTaskId,
   onDataChanged,
+  initialState,
 }) => {
   const dispatch = useAppDispatch();
   const role = userRole.toLowerCase();
   const copy = panelCopy(mode, role);
-  const [bugs, setBugs] = useState<BugWithContext[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [bugs, setBugs] = useState<BugWithContext[]>(initialState?.bugs || []);
+  const [isLoading, setIsLoading] = useState(!initialState);
+  const [error, setError] = useState<string | null>(initialState?.error || null);
+  const [permissionDenied, setPermissionDenied] = useState(initialState?.permissionDenied || false);
   const [updatingBugId, setUpdatingBugId] = useState<string | null>(null);
   const [resolveTarget, setResolveTarget] = useState<BugWithContext | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
@@ -164,8 +172,16 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
   }, [featureTaskId, mode, role, workspaceId]);
 
   useEffect(() => {
+    if (initialState) {
+      requestIdRef.current += 1;
+      setBugs(initialState.bugs);
+      setError(initialState.error);
+      setPermissionDenied(initialState.permissionDenied);
+      setIsLoading(false);
+      return;
+    }
     void loadBugs();
-  }, [loadBugs]);
+  }, [initialState, loadBugs]);
 
   const updateStatus = async (
     bug: BugWithContext,

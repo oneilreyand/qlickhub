@@ -383,7 +383,7 @@ export class TaskDiscussionService {
   }
 
   /**
-   * Updates an existing comment message body (author or owner/admin moderation).
+   * Updates an existing comment message body for its authenticated author.
    */
   async updateTaskComment(
     actorId: string,
@@ -393,7 +393,7 @@ export class TaskDiscussionService {
     input: UpdateTaskCommentInput,
   ): Promise<TaskComment> {
     const updated = await sequelize.transaction(async (transaction) => {
-      const membership = await requireActiveMember(workspaceId, actorId, transaction);
+      await requireActiveMember(workspaceId, actorId, transaction);
 
       const comment = await TaskCommentModel.findOne({
         where: { id: commentId, taskId, workspaceId },
@@ -427,10 +427,7 @@ export class TaskDiscussionService {
         throw new Error('BAD_REQUEST: Cannot edit a deleted comment.');
       }
 
-      const isAuthor = comment.authorId === actorId;
-      const isModerator = membership.role === 'owner' || membership.role === 'admin';
-
-      if (!isAuthor && !isModerator) {
+      if (comment.authorId !== actorId) {
         throw new Error('FORBIDDEN: You can edit only your own comments.');
       }
 
@@ -444,7 +441,7 @@ export class TaskDiscussionService {
           taskId,
           actorId,
           action: 'comment.edited',
-          metadataJson: { commentId: comment.id, isModerator },
+          metadataJson: { commentId: comment.id },
         },
         { transaction },
       );
@@ -465,7 +462,7 @@ export class TaskDiscussionService {
   }
 
   /**
-   * Soft deletes a comment message (author or owner/admin moderation).
+   * Soft deletes a comment message for its authenticated author.
    */
   async deleteTaskComment(
     actorId: string,
@@ -474,7 +471,7 @@ export class TaskDiscussionService {
     commentId: string,
   ): Promise<TaskComment> {
     const deleted = await sequelize.transaction(async (transaction) => {
-      const membership = await requireActiveMember(workspaceId, actorId, transaction);
+      await requireActiveMember(workspaceId, actorId, transaction);
 
       const comment = await TaskCommentModel.findOne({
         where: { id: commentId, taskId, workspaceId },
@@ -503,10 +500,7 @@ export class TaskDiscussionService {
         throw new Error('NOT_FOUND: Comment not found on this task.');
       }
 
-      const isAuthor = comment.authorId === actorId;
-      const isModerator = membership.role === 'owner' || membership.role === 'admin';
-
-      if (!isAuthor && !isModerator) {
+      if (comment.authorId !== actorId) {
         throw new Error('FORBIDDEN: You can delete only your own comments.');
       }
 
@@ -520,7 +514,7 @@ export class TaskDiscussionService {
           taskId,
           actorId,
           action: 'comment.deleted',
-          metadataJson: { commentId: comment.id, isModerator },
+          metadataJson: { commentId: comment.id },
         },
         { transaction },
       );

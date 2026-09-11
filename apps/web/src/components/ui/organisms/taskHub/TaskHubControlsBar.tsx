@@ -66,7 +66,11 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
                   ? 'bg-[#B1E743]/20 dark:bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border-[#B1E743]/40 dark:border-[#B1E743]/40 shadow-xs'
                   : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200/70 dark:hover:bg-stone-700 border-stone-200/80 dark:border-stone-700/80'
               }`}
-              title={isExpanded ? 'Collapse timeline to normal width' : 'Expand timeline to full width (hide sidebar)'}
+              title={
+                isExpanded
+                  ? 'Collapse timeline to normal width'
+                  : 'Expand timeline to full width (hide sidebar)'
+              }
               aria-label={isExpanded ? 'Normal width timeline' : 'Expand full width timeline'}
             >
               {isExpanded ? (
@@ -105,7 +109,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
         </div>
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
-          {/* View Mode Toggle Switcher: Table vs Timeline */}
+          {/* View Mode Toggle Switcher: Table vs Feature Schedule */}
           <div className="flex items-center rounded-xl bg-stone-100 dark:bg-stone-800/80 p-1 border border-stone-200/80 dark:border-stone-700/80 shrink-0">
             <button
               type="button"
@@ -122,6 +126,8 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
             <button
               type="button"
               onClick={() => onViewModeChange('timeline')}
+              aria-label="Feature Schedule"
+              title="View parent Features by Folder and expand one to see role subtasks"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'timeline'
                   ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
@@ -129,7 +135,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               }`}
             >
               <CalendarRange className="h-3.5 w-3.5 text-amber-500" />
-              <span>Timeline</span>
+              <span>Feature Schedule</span>
             </button>
           </div>
 
@@ -159,4 +165,3 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
     </div>
   );
 };
-

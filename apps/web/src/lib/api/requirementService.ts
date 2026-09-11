@@ -1,5 +1,6 @@
 import { apiClient } from './apiClient';
 import {
+  AcceptanceCriterion,
   Requirement,
   RequirementDetailResponse,
   TaskRequirementLink,
@@ -53,6 +54,37 @@ export const requirementService = {
       },
     );
     return res.requirement;
+  },
+
+  async createAcceptanceCriterion(
+    workspaceId: string,
+    requirementId: string,
+    input: { text: string; sequence?: number },
+  ): Promise<AcceptanceCriterion> {
+    const res = await apiClient<{ acceptanceCriterion: AcceptanceCriterion }>(
+      `/workspaces/${workspaceId}/requirements/${requirementId}/acceptance-criteria`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.acceptanceCriterion;
+  },
+
+  async updateAcceptanceCriterion(
+    workspaceId: string,
+    requirementId: string,
+    criterionId: string,
+    input: { text?: string; sequence?: number; status?: 'active' | 'deprecated' },
+  ): Promise<AcceptanceCriterion> {
+    const res = await apiClient<{ acceptanceCriterion: AcceptanceCriterion }>(
+      `/workspaces/${workspaceId}/requirements/${requirementId}/acceptance-criteria/${criterionId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.acceptanceCriterion;
   },
 
   async listTaskRequirementLinks(

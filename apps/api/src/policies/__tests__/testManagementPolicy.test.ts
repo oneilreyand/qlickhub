@@ -53,6 +53,7 @@ describe('Test Management Policy Unit Tests', () => {
     assert.doesNotThrow(() => assertCanUpdateTestCase('po', 'active', 'active'));
     assert.doesNotThrow(() => assertCanUpdateTestCase('admin', 'active', 'archived'));
     assert.doesNotThrow(() => assertCanUpdateTestCase('owner', 'in_review', 'active'));
+    assert.doesNotThrow(() => assertCanUpdateTestCase('po', 'in_review', 'draft'));
     assert.doesNotThrow(() => assertCanUpdateTestCase('qa', 'draft', 'draft'));
     assert.doesNotThrow(() => assertCanUpdateTestCase('qa', 'draft', 'in_review'));
     assert.throws(() => assertCanUpdateTestCase('qa', 'draft', 'active'), /QA can edit only draft/);

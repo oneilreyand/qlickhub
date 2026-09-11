@@ -579,12 +579,21 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 
   return (
     <div className="space-y-4 animate-fadeIn">
+      <div className="rounded-2xl border border-stone-200/90 bg-stone-50/70 px-3.5 py-3 dark:border-stone-800 dark:bg-stone-900/60 sm:px-4">
+        <p className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+          Feature Schedule
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+          Overview of parent Features grouped by Folder. Expand a Feature to see its role subtasks.
+        </p>
+      </div>
+
       {/* Timeline Controls Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-stone-50/70 dark:bg-stone-900/60 p-3 rounded-2xl border border-stone-200/80 dark:border-stone-800">
         {/* Scale Zoom Switcher */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold text-stone-500 dark:text-stone-400 mr-1">
-            Time Scale:
+            Calendar zoom:
           </span>
           {(['day', 'week', 'month'] as TimeScale[]).map((s) => (
             <button
@@ -616,7 +625,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               size="sm"
               className="min-h-11"
               onClick={() => setDateOffset((prev) => prev - 1)}
-              aria-label="Previous time frame"
+              aria-label="Previous calendar window"
               leftIcon={<ChevronLeft className="h-3.5 w-3.5" />}
             >
               Prev
@@ -635,7 +644,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
               size="sm"
               className="min-h-11"
               onClick={() => setDateOffset((prev) => prev + 1)}
-              aria-label="Next time frame"
+              aria-label="Next calendar window"
               rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
             >
               Next
@@ -692,7 +701,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 
       <div
         className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-[11px] font-semibold text-stone-600 dark:text-stone-300"
-        aria-label="Timeline legend"
+        aria-label="Feature schedule legend"
       >
         <span className="inline-flex items-center gap-1.5">
           <span
@@ -720,7 +729,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
           <div className="w-56 sm:w-80 md:w-[380px] shrink-0 sticky left-0 z-20 bg-white dark:bg-[#1C1A19] border-r border-stone-200 dark:border-stone-800 shadow-sm">
             {/* Header */}
             <div className="h-14 px-4 flex items-center justify-between border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-              <span>Task & Subtasks by Role</span>
+              <span>Feature & Role Subtasks</span>
               <span className="text-[10px] lowercase font-medium bg-stone-200/80 dark:bg-stone-800 text-stone-600 dark:text-stone-300 px-2 py-0.5 rounded-full">
                 {scheduledTasks.length} scheduled
               </span>
@@ -961,6 +970,14 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                           <React.Fragment key={`bar-group-${task.id}`}>
                             {/* Parent Task Bar */}
                             <div className="h-12 border-t border-stone-100 dark:border-stone-800/50 relative flex items-center">
+                              {barData.widthPx === 0 && (
+                                <div
+                                  role="status"
+                                  className="pl-3 text-[10px] font-medium italic text-stone-400 dark:text-stone-500"
+                                >
+                                  Outside visible window — use Prev/Next or adjust date scope
+                                </div>
+                              )}
                               {delayExtension && (
                                 <div
                                   style={delayExtension.style}
@@ -1063,6 +1080,11 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                                         key={`canvas-sub-${st.id}`}
                                         className="h-9 border-t border-stone-100/80 dark:border-stone-800/30 relative flex items-center bg-stone-50/20 dark:bg-stone-900/10"
                                       >
+                                        {stBarData.widthPx === 0 && (
+                                          <div className="pl-3 text-[10px] italic text-stone-400 dark:text-stone-500">
+                                            Outside visible window
+                                          </div>
+                                        )}
                                         {delayExtension && (
                                           <div
                                             style={delayExtension.style}

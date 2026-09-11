@@ -5,7 +5,6 @@ import {
   Menu,
   Moon,
   Sun,
-  Shield,
   Building2,
   Plus,
   Check,
@@ -37,6 +36,7 @@ import { Modal } from '../ui/molecules/Modal';
 import { UserProfileModal } from '../ui/organisms/UserProfileModal';
 import { ActiveSessionsModal } from '../auth/ActiveSessionsModal';
 import { useDismissableLayer } from '../../hooks/useDismissableLayer';
+import { featureVisibility } from '../../config/featureVisibility';
 
 interface HeaderProps {
   onToggleMobileSidebar: () => void;
@@ -101,7 +101,6 @@ export const Header: React.FC<HeaderProps> = ({
   ).toLowerCase();
   const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
   const canAccessUISystem = userRole === 'owner';
-  const canManageTaskPolicy = ['owner', 'admin'].includes(userRole);
 
   const handleOpenCreateModal = () => {
     setShowWorkspaceMenu(false);
@@ -317,15 +316,16 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right section: Notifications & User profile */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* User Flow Guide Button */}
-        <IconButton
-          onClick={() => navigate('/user-flows')}
-          label="User Flow & Quality Gate Guide"
-          size="sm"
-          className="rounded-full border border-stone-200/90 bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:text-white"
-        >
-          <BookOpen className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
-        </IconButton>
+        {featureVisibility.userFlowGuide && (
+          <IconButton
+            onClick={() => navigate('/user-flows')}
+            label="User Flow & Quality Gate Guide"
+            size="sm"
+            className="rounded-full border border-stone-200/90 bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:text-white"
+          >
+            <BookOpen className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
+          </IconButton>
+        )}
 
         {/* Quick Theme Toggle Button */}
         <IconButton
@@ -368,7 +368,9 @@ export const Header: React.FC<HeaderProps> = ({
                 <p className="text-xs font-semibold text-stone-900 capitalize dark:text-stone-100">
                   {userName}
                 </p>
-                <p className="truncate text-xs text-stone-500 dark:text-stone-400">{effectiveEmail}</p>
+                <p className="truncate text-xs text-stone-500 dark:text-stone-400">
+                  {effectiveEmail}
+                </p>
               </div>
 
               <div className="py-1">
@@ -396,17 +398,19 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>Perangkat & Sesi Aktif</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileOpen(false);
-                    navigate('/user-flows');
-                  }}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                >
-                  <BookOpen className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
-                  <span>Panduan User Flow & Roles</span>
-                </button>
+                {featureVisibility.userFlowGuide && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      navigate('/user-flows');
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                  >
+                    <BookOpen className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
+                    <span>Panduan User Flow & Roles</span>
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -431,19 +435,6 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <Building2 className="h-4 w-4 text-stone-400" />
                     <span>Workspace Settings</span>
-                  </button>
-                )}
-                {canManageTaskPolicy && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      navigate('/workspaces/settings#task-policy');
-                    }}
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                  >
-                    <Shield className="h-4 w-4 text-stone-400" />
-                    <span>Task Creation Policy</span>
                   </button>
                 )}
               </div>

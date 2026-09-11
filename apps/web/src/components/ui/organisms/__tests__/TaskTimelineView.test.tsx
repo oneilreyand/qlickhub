@@ -97,7 +97,7 @@ describe('TaskTimelineView', () => {
 
   it('renders loading skeleton when isLoading is true', () => {
     render(<TaskTimelineView tasks={[]} isLoading={true} onSelect={vi.fn()} />);
-    expect(screen.queryByText('Time Scale:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Calendar zoom:')).not.toBeInTheDocument();
   });
 
   it('renders empty message and illustration when tasks array is empty and not loading', () => {
@@ -127,6 +127,8 @@ describe('TaskTimelineView', () => {
     // Check Folder Names
     expect(screen.getByText('Frontend Workstream')).toBeInTheDocument();
     expect(screen.getByText('Backend API')).toBeInTheDocument();
+    expect(screen.getByText('Feature Schedule')).toBeInTheDocument();
+    expect(screen.getByText(/Outside visible window/)).toBeInTheDocument();
 
     // Check Task Titles
     expect(screen.getAllByText('Implement OAuth Flow').length).toBeGreaterThan(0);
@@ -141,7 +143,7 @@ describe('TaskTimelineView', () => {
     expect(dayBtn.className).toContain('bg-[#B1E743]');
     expect(screen.getByText('Aug 31, 2026 – Sep 28, 2026')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /next time frame/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next calendar window/i }));
     expect(screen.getByText('Sep 1, 2026 – Sep 29, 2026')).toBeInTheDocument();
 
     fireEvent.click(monthBtn);

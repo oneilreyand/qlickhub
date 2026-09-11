@@ -13,18 +13,34 @@ describe('OverviewBannerCarousel', () => {
 
     render(<OverviewBannerCarousel />);
 
-    expect(screen.getByRole('img', { name: 'Tugaskan tugas yang tepat ke orang yang tepat.' })).toBeVisible();
+    expect(
+      screen.getByRole('img', { name: 'Tugaskan tugas yang tepat ke orang yang tepat.' }),
+    ).toBeVisible();
 
     act(() => {
       vi.advanceTimersByTime(7000);
     });
 
-    expect(screen.getByRole('img', { name: 'Perbandingan biaya tools manajemen tugas.' })).toBeVisible();
+    expect(
+      screen.getByRole('img', { name: 'Perbandingan biaya tools manajemen tugas.' }),
+    ).toBeVisible();
   });
 
   it('keeps banner controls visually clean', () => {
     render(<OverviewBannerCarousel />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('replaces the illustration with a contextual icon in dark mode', () => {
+    render(<OverviewBannerCarousel />);
+
+    expect(
+      screen.getByRole('img', { name: 'Tugaskan tugas yang tepat ke orang yang tepat.' }),
+    ).toHaveClass('dark:hidden');
+    expect(screen.getByRole('img', { name: 'Task assignment overview icon' })).toHaveClass(
+      'hidden',
+      'dark:flex',
+    );
   });
 });

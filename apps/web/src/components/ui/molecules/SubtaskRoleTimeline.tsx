@@ -70,8 +70,8 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     const minDateStr = allDates[0];
     const maxDateStr = allDates[allDates.length - 1];
 
-    let start = new Date(minDateStr + 'T00:00:00');
-    let end = new Date(maxDateStr + 'T00:00:00');
+    const start = new Date(minDateStr + 'T00:00:00');
+    const end = new Date(maxDateStr + 'T00:00:00');
 
     // Buffer by 3 days before and 5 days after
     start.setDate(start.getDate() - 2);
@@ -241,6 +241,15 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
 
   return (
     <div className="space-y-4 animate-fadeIn">
+      <div className="rounded-2xl border border-stone-200/90 bg-stone-50/70 px-3.5 py-3 dark:border-stone-800 dark:bg-stone-900/60 sm:px-4">
+        <p className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+          Role &amp; Handoff Timeline
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+          Detailed schedule for this Feature: follow handoffs from PO to development and QA.
+        </p>
+      </div>
+
       {/* 1. Primary Bottleneck & Schedule Health Banner */}
       <div
         className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${

@@ -17,6 +17,8 @@ interface TaskState {
   selectedTaskId: string | null;
   queryFilter: Partial<Omit<TaskListQuery, 'workspaceId'>>;
   isLoading: boolean;
+  detailLoadingTaskId: string | null;
+  detailError: string | null;
   isMutating: boolean;
   error: string | null;
 }
@@ -29,6 +31,8 @@ const initialState: TaskState = {
   selectedTaskId: null,
   queryFilter: {},
   isLoading: false,
+  detailLoadingTaskId: null,
+  detailError: null,
   isMutating: false,
   error: null,
 };
@@ -131,6 +135,10 @@ const taskSlice = createSlice({
   reducers: {
     setSelectedTaskId: (state, action: PayloadAction<string | null>) => {
       state.selectedTaskId = action.payload;
+      if (action.payload === null) {
+        state.detailLoadingTaskId = null;
+        state.detailError = null;
+      }
     },
     setQueryFilter: (state, action: PayloadAction<Partial<Omit<TaskListQuery, 'workspaceId'>>>) => {
       state.queryFilter = { ...state.queryFilter, ...action.payload };
@@ -158,10 +166,23 @@ const taskSlice = createSlice({
         state.error = action.error.message || 'Failed to fetch tasks';
       })
       // fetchTaskById
+      .addCase(fetchTaskById.pending, (state, action) => {
+        state.detailLoadingTaskId = action.meta.arg.taskId;
+        state.detailError = null;
+      })
       .addCase(fetchTaskById.fulfilled, (state, action) => {
+        if (state.detailLoadingTaskId === action.meta.arg.taskId) {
+          state.detailLoadingTaskId = null;
+        }
         const index = state.tasks.findIndex((task) => task.id === action.payload.id);
         if (index === -1) state.tasks.push(action.payload);
         else state.tasks[index] = action.payload;
+      })
+      .addCase(fetchTaskById.rejected, (state, action) => {
+        if (state.detailLoadingTaskId === action.meta.arg.taskId) {
+          state.detailLoadingTaskId = null;
+          state.detailError = action.error.message || 'Failed to load task detail';
+        }
       })
       // createTask
       .addCase(createTask.pending, (state) => {

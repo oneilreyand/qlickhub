@@ -105,7 +105,7 @@ describe('UserFlowGuide', () => {
     const poRoleBtn = screen.getAllByRole('button', { name: /Product Owner \(PO\)/i })[0];
     fireEvent.click(poRoleBtn);
     expect(screen.getByText('Alur Kerja: Product Owner (PO)')).toBeInTheDocument();
-    expect(screen.getByText(/Penulisan Specification Brief/i)).toBeInTheDocument();
+    expect(screen.getByText(/Requirement Linking/i)).toBeInTheDocument();
 
     // Switch to Owner/Admin
     const adminRoleBtn = screen.getAllByRole('button', { name: /Owner & Admin/i })[0];

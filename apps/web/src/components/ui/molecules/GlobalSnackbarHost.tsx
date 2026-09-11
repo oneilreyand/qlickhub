@@ -11,19 +11,16 @@ export const GlobalSnackbarHost: React.FC = () => {
     (id: string) => {
       dispatch(dismissSnackbar(id));
     },
-    [dispatch]
+    [dispatch],
   );
 
   if (!notifications.length) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <div className="pointer-events-none fixed inset-x-4 bottom-5 z-50 mx-auto flex w-auto max-w-sm flex-col gap-2 sm:inset-x-6">
       {notifications.map((n) => (
         <div key={n.id} className="pointer-events-auto">
-          <SnackbarItem
-            notification={n}
-            onClose={() => handleDismiss(n.id)}
-          />
+          <SnackbarItem notification={n} onClose={() => handleDismiss(n.id)} />
         </div>
       ))}
     </div>
