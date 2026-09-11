@@ -33,6 +33,12 @@ Perubahan mencakup autentikasi, navigasi, Task Hub, detail Task/Subtask, My Task
 - `npm run build --workspace=@qlick/web` — passed; Vite mentransformasi 1.701 modul dan menghasilkan bundle produksi.
 - Locale audit `rg -n "en-US|toLocaleDateString\(\)|toLocaleString\(\)" apps/web/src` — tidak menemukan locale tanggal Inggris atau pemanggilan tanggal tanpa locale; satu `toLocaleString()` tersisa pada `AnimatedCounter` hanya untuk format angka.
 - `npm test --workspace=@qlick/web -- --run` — passed; 152/152 test files dan 392/392 test cases lulus.
+- `npm run validate` — passed; docs governance, lint (0 error; 23 warning yang sudah ada), dan seluruh typecheck lulus.
+- `npm run build` — passed; contracts, API, dan frontend production build berhasil; Vite mentransformasi 1.701 modul.
+- `git diff --check` — passed.
+- Commit `e555e44` — pushed ke `main`.
+- Vercel production deployment `dpl_4MNS8DYYvHenQTNoqtm6spxcFLLF` — `Ready`, alias `https://qlickhub.vercel.app` aktif.
+- Smoke check production — `/` `200`, `/login` `200`, `/v1/health` `200`, `/v1/workspaces` `401` tanpa sesi (guard autentikasi aktif).
 - Warnings: beberapa test masih menghasilkan peringatan React `act(...)` pada komponen asynchronous yang sudah ada sebelumnya.
 
 ## Risks or follow-up
@@ -41,4 +47,4 @@ Perubahan mencakup autentikasi, navigasi, Task Hub, detail Task/Subtask, My Task
 
 ## TODO update
 
-- `INDONESIAN-UI-LANGUAGE-CONSISTENCY` → **Ready for production release**
+- `INDONESIAN-UI-LANGUAGE-CONSISTENCY` → **Production released**
