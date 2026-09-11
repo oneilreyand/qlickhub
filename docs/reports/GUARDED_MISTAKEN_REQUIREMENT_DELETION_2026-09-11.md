@@ -48,7 +48,8 @@ A Planner can select one or many Requirements from a Task correction flow and pe
 ## Risks or follow-up
 
 - No migration or data backfill is required.
-- The change is implemented and verified locally but has not been committed, pushed, or deployed by this task.
+- The implementation was subsequently committed and released to Production; see
+  `docs/reports/PRODUCTION_RELEASE_GUARDED_MISTAKEN_REQUIREMENT_DELETION_2026-09-11.md`.
 - Existing unrelated local Requirement code-suggestion changes were preserved and excluded from this implementation report.
 
 ## TODO update
