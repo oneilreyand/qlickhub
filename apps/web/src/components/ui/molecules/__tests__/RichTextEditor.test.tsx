@@ -90,6 +90,22 @@ describe('RichTextEditor Molecule', () => {
     expect(focusModePanel).not.toHaveClass('inset-4');
   });
 
+  it('fills an available column height without changing the default editor behavior', () => {
+    render(
+      <RichTextEditor
+        label="Task Description"
+        value="Column-aligned content"
+        onChange={vi.fn()}
+        fillHeight
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /write/i }));
+    const textarea = screen.getByDisplayValue('Column-aligned content');
+    expect(textarea).toHaveClass('flex-1', 'resize-none');
+    expect(textarea.parentElement).toHaveClass('flex-1', 'flex-col');
+  });
+
   it('disables textarea and formatting buttons when disabled is true without dimming the preview', () => {
     const handleChange = vi.fn();
     render(

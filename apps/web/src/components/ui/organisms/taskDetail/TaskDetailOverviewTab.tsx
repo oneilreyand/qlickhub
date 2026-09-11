@@ -118,23 +118,24 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
           You can update this assigned subtask's description and status only.
         </Alert>
       )}
-      {/* 2-Column Split Layout on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-        {/* Left Column: Task Overview & Description (Half Page) */}
-        <div className="space-y-3 min-w-0">
+      {/* Two columns only on wide desktop; tablets and phones stay stacked. */}
+      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-2">
+        {/* Left Column: Task Overview & Description matches the right column height. */}
+        <div className="min-w-0 xl:h-full">
           <RichTextEditor
             id="task-description"
             label="Task Overview & Description"
             value={description}
             onChange={onDescriptionChange}
             minRows={10}
+            fillHeight
             disabled={!canEditTask}
             placeholder="High-level task summary, objective, and requirements with paragraphs, bullet points, headers..."
           />
         </div>
 
         {/* Right Column: Delivery & Multi-Role Readiness + Status & Planning */}
-        <div className="space-y-4 min-w-0">
+        <div className="min-w-0 space-y-4 xl:h-full">
           {releaseReadinessState && (
             <Card className="space-y-2 border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-950/40">
               <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
@@ -277,7 +278,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
           </Card>
 
           <Card className="p-4 space-y-4 border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900/60">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label
                   htmlFor="task-status"
@@ -348,7 +349,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label
                   htmlFor="task-start-date"

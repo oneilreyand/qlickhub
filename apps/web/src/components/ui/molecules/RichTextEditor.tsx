@@ -36,6 +36,7 @@ export interface RichTextEditorProps {
   helperText?: string;
   className?: string;
   defaultTab?: 'write' | 'preview';
+  fillHeight?: boolean;
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -51,6 +52,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   helperText,
   className = '',
   defaultTab = 'preview',
+  fillHeight = false,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>(defaultTab);
@@ -303,7 +305,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const charCount = value.length;
 
   return (
-    <div className={`w-full space-y-1.5 ${className}`}>
+    <div className={`w-full space-y-1.5 ${fillHeight ? 'flex h-full flex-col' : ''} ${className}`}>
       {/* Backdrop when fullscreen */}
       {isFullscreen && (
         <div
@@ -329,9 +331,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         className={`rounded-xl border transition-all overflow-hidden bg-white dark:bg-stone-900 ${
           isFullscreen
             ? 'fixed inset-x-4 bottom-4 top-24 sm:inset-x-10 sm:bottom-10 sm:top-28 z-50 flex flex-col shadow-2xl border-stone-300 dark:border-stone-700'
-            : error
-              ? 'border-rose-500 ring-1 ring-rose-500/20'
-              : 'border-stone-200 focus-within:border-stone-400 focus-within:ring-2 focus-within:ring-stone-400/10 dark:border-stone-800 dark:focus-within:border-stone-700'
+            : `${fillHeight ? 'flex min-h-0 flex-1 flex-col' : ''} ${
+                error
+                  ? 'border-rose-500 ring-1 ring-rose-500/20'
+                  : 'border-stone-200 focus-within:border-stone-400 focus-within:ring-2 focus-within:ring-stone-400/10 dark:border-stone-800 dark:focus-within:border-stone-700'
+              }`
         }`}
       >
         {/* Formatting Toolbar */}
@@ -533,7 +537,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <div
           className={
             activeTab === 'write'
-              ? `p-2.5 ${isFullscreen ? 'flex-1 overflow-y-auto' : ''}`
+              ? `p-2.5 ${isFullscreen || fillHeight ? 'flex min-h-0 flex-1 flex-col overflow-y-auto' : ''}`
               : 'hidden'
           }
         >
@@ -548,14 +552,22 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             required={required}
             rows={minRows}
             className={`w-full bg-transparent text-xs text-stone-800 dark:text-stone-200 placeholder-stone-400 outline-none leading-relaxed font-sans disabled:cursor-not-allowed disabled:opacity-70 ${
-              isFullscreen ? 'h-full resize-none' : 'resize-y min-h-[80px]'
+              isFullscreen
+                ? 'h-full resize-none'
+                : fillHeight
+                  ? 'min-h-[80px] flex-1 resize-none'
+                  : 'resize-y min-h-[80px]'
             }`}
           />
         </div>
         {activeTab === 'preview' && (
           <div
             className={`p-4 overflow-y-auto bg-stone-50/50 dark:bg-stone-950/40 ${
-              isFullscreen ? 'flex-1 min-h-[300px]' : 'min-h-[100px] max-h-[420px]'
+              isFullscreen
+                ? 'min-h-0 flex-1'
+                : fillHeight
+                  ? 'min-h-[100px] flex-1'
+                  : 'min-h-[100px] max-h-[420px]'
             }`}
           >
             {value && value.trim() ? (
