@@ -32,15 +32,11 @@ describe('OverviewBannerCarousel', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('replaces the illustration with a contextual icon in dark mode', () => {
+  it('preserves the banner image presentation in dark mode', () => {
     render(<OverviewBannerCarousel />);
 
     expect(
       screen.getByRole('img', { name: 'Tugaskan tugas yang tepat ke orang yang tepat.' }),
-    ).toHaveClass('dark:hidden');
-    expect(screen.getByRole('img', { name: 'Task assignment overview icon' })).toHaveClass(
-      'hidden',
-      'dark:flex',
-    );
+    ).toHaveClass('dark:brightness-95');
   });
 });
