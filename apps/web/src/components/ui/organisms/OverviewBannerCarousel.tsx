@@ -59,7 +59,7 @@ export const OverviewBannerCarousel: React.FC = () => {
             src={slide.src}
             alt={index === activeSlide ? slide.alt : ''}
             aria-hidden={index !== activeSlide}
-            className={`absolute inset-0 h-full w-full object-cover object-center transition-[opacity,transform] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${
+            className={`absolute inset-0 h-full w-full object-cover object-center transition-[opacity,transform] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform dark:brightness-95 ${
               index === activeSlide ? 'scale-100 opacity-100' : 'scale-[1.045] opacity-0'
             }`}
           />

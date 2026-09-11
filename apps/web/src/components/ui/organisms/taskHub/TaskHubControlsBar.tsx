@@ -47,7 +47,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
             <Folder className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <div className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+            <div className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
               Folder Scope
             </div>
             <h2 className="text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100 truncate">
@@ -83,7 +83,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
             </button>
           )}
 
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-[11px]">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-xs border border-stone-200/70 dark:border-stone-700/70">
             <AnimatedCounter
               value={visibleTasksCount}
               suffix={visibleTasksCount === 1 ? ' task' : ' tasks'}

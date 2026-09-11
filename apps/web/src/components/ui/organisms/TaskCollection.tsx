@@ -44,26 +44,26 @@ function getPriorityBadge(priority: Task['priority']) {
   switch (priority) {
     case 'urgent':
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300 whitespace-nowrap shrink-0">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300 whitespace-nowrap shrink-0">
           Urgent
         </span>
       );
     case 'high':
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 whitespace-nowrap shrink-0">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 whitespace-nowrap shrink-0">
           High
         </span>
       );
     case 'medium':
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 whitespace-nowrap shrink-0">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 whitespace-nowrap shrink-0">
           Medium
         </span>
       );
     case 'low':
     default:
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 whitespace-nowrap shrink-0">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 whitespace-nowrap shrink-0">
           Low
         </span>
       );
@@ -88,32 +88,32 @@ function renderSubtaskSummary(summary?: Task['subtaskSummary']) {
   if (!summary || summary.total === 0) return null;
 
   return (
-    <div className="flex items-center gap-1.5 text-[10px] text-stone-500 dark:text-stone-400 mt-1 flex-wrap">
-      <span className="font-semibold bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 rounded text-stone-700 dark:text-stone-300">
+    <div className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400 mt-1 flex-wrap">
+      <span className="font-semibold bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded text-stone-700 dark:text-stone-300">
         Subtasks {summary.completed}/{summary.total}
       </span>
       {summary.areas.frontend.total > 0 && (
-        <span className="bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 px-1.5 py-0.5 rounded font-mono">
+        <span className="bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 px-2 py-0.5 rounded font-mono font-medium">
           FE {summary.areas.frontend.completed}/{summary.areas.frontend.total}
         </span>
       )}
       {summary.areas.backend.total > 0 && (
-        <span className="bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] px-1.5 py-0.5 rounded font-mono font-bold">
+        <span className="bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] px-2 py-0.5 rounded font-mono font-bold">
           BE {summary.areas.backend.completed}/{summary.areas.backend.total}
         </span>
       )}
       {summary.areas.mobile.total > 0 && (
-        <span className="bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 px-1.5 py-0.5 rounded font-mono">
+        <span className="bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 px-2 py-0.5 rounded font-mono font-medium">
           MOB {summary.areas.mobile.completed}/{summary.areas.mobile.total}
         </span>
       )}
       {summary.areas.fullstack.total > 0 && (
-        <span className="bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] px-1.5 py-0.5 rounded font-mono font-bold">
+        <span className="bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] px-2 py-0.5 rounded font-mono font-bold">
           FS {summary.areas.fullstack.completed}/{summary.areas.fullstack.total}
         </span>
       )}
       {summary.areas.qa.total > 0 && (
-        <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 px-1.5 py-0.5 rounded font-mono">
+        <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 rounded font-mono font-medium">
           QA {summary.areas.qa.completed}/{summary.areas.qa.total}
         </span>
       )}
@@ -240,12 +240,12 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                           }`}
                         >
                           <div className="flex justify-between items-center gap-2">
-                            <span className="font-mono text-[11px] font-bold text-stone-500 dark:text-stone-400 shrink-0">
+                            <span className="font-mono text-xs font-bold text-stone-500 dark:text-stone-400 shrink-0">
                               {task.id.substring(0, 8)}
                             </span>
                             <TaskStatusBadge state={task.status} />
                           </div>
-                          <p className="text-xs font-bold text-stone-900 dark:text-stone-100 leading-snug break-words">
+                          <p className="text-sm font-bold text-stone-900 dark:text-stone-100 leading-snug break-words">
                             {task.title}
                           </p>
                           {renderSubtaskSummary(task.subtaskSummary)}
@@ -260,15 +260,15 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                               state={releaseReadinessStateByTaskId[task.id]}
                             />
                           )}
-                          <div className="flex items-center justify-between gap-2 text-[11px] text-stone-500 dark:text-stone-400 flex-wrap">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 font-medium text-stone-700 dark:text-stone-300 max-w-[180px] truncate">
-                              <Folder className="h-3 w-3 text-amber-500 shrink-0" />
+                          <div className="flex items-center justify-between gap-2 text-xs text-stone-600 dark:text-stone-400 flex-wrap">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-stone-100 dark:bg-stone-800 font-medium text-stone-700 dark:text-stone-300 max-w-[180px] truncate text-xs">
+                              <Folder className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                               <span className="truncate">{folderName}</span>
                             </span>
                             {getPriorityBadge(task.priority)}
                           </div>
                           {(task.startDate || task.dueDate) && (
-                            <div className="flex items-center gap-1.5 text-[11px] text-stone-500 dark:text-stone-400 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-400 whitespace-nowrap">
                               <Calendar className="h-3.5 w-3.5 text-stone-400 shrink-0" />
                               <span>
                                 {task.startDate || 'Any'} → {task.dueDate || 'No due date'}
@@ -297,14 +297,14 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
       <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-left text-xs min-w-[650px]">
           <thead>
-            <tr className="border-b border-stone-200 bg-stone-50/50 text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-400">
-              <th className="py-3 px-3.5">Task ID / Title</th>
-              <th className="py-3 px-3.5 whitespace-nowrap">Folder Location</th>
-              <th className="py-3 px-3.5 whitespace-nowrap">Priority</th>
-              <th className="py-3 px-3.5 whitespace-nowrap">Dates</th>
-              <th className="py-3 px-3.5 whitespace-nowrap">Delivery &amp; Release</th>
-              <th className="py-3 px-3.5 whitespace-nowrap">Status</th>
-              <th className="py-3 px-3.5 text-right whitespace-nowrap">Actions</th>
+            <tr className="border-b border-stone-200 bg-stone-50/50 text-xs font-bold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-300">
+              <th className="py-3.5 px-3.5">Task ID / Title</th>
+              <th className="py-3.5 px-3.5 whitespace-nowrap">Folder Location</th>
+              <th className="py-3.5 px-3.5 whitespace-nowrap">Priority</th>
+              <th className="py-3.5 px-3.5 whitespace-nowrap">Dates</th>
+              <th className="py-3.5 px-3.5 whitespace-nowrap">Delivery &amp; Release</th>
+              <th className="py-3.5 px-3.5 whitespace-nowrap">Status</th>
+              <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
@@ -341,21 +341,21 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                             }`}
                           >
                             <td className="py-3.5 px-3.5 max-w-xs md:max-w-md">
-                              <span className="font-mono text-[10px] font-bold text-stone-400 dark:text-stone-500 block">
+                              <span className="font-mono text-xs font-semibold text-stone-500 dark:text-stone-400 block">
                                 {task.id.substring(0, 8)}
                               </span>
-                              <p className="font-semibold text-stone-900 dark:text-stone-100 leading-snug break-words">
+                              <p className="font-bold text-stone-900 dark:text-stone-100 leading-snug break-words text-sm">
                                 {task.title}
                               </p>
                               {task.description && (
-                                <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate max-w-sm mt-0.5">
+                                <p className="text-xs text-stone-600 dark:text-stone-400 truncate max-w-sm mt-0.5">
                                   {stripMarkdown(task.description)}
                                 </p>
                               )}
                               {renderSubtaskSummary(task.subtaskSummary)}
                             </td>
                             <td className="py-3.5 px-3.5 whitespace-nowrap">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 font-medium text-stone-700 dark:text-stone-300">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 font-medium text-stone-700 dark:text-stone-300 text-xs">
                                 <Folder className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                                 <span className="max-w-[140px] truncate">{folderName}</span>
                               </span>
@@ -365,17 +365,17 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                             </td>
                             <td className="py-3.5 px-3.5 whitespace-nowrap">
                               {task.startDate || task.dueDate ? (
-                                <div className="flex items-center gap-1.5 text-[11px] text-stone-600 dark:text-stone-400">
+                                <div className="flex items-center gap-1.5 text-xs text-stone-700 dark:text-stone-300">
                                   <Calendar className="h-3.5 w-3.5 text-stone-400 shrink-0" />
                                   <span>
                                     {task.startDate || '—'} /{' '}
-                                    <strong className="text-stone-800 dark:text-stone-200">
+                                    <strong className="text-stone-900 dark:text-stone-100">
                                       {task.dueDate || '—'}
                                     </strong>
                                   </span>
                                 </div>
                               ) : (
-                                <span className="text-[11px] text-stone-400">—</span>
+                                <span className="text-xs text-stone-400">—</span>
                               )}
                             </td>
                             <td className="space-y-2 py-3.5 px-3.5 min-w-[190px]">
@@ -390,7 +390,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                                   state={releaseReadinessStateByTaskId[task.id]}
                                 />
                               ) : (
-                                <span className="text-[11px] text-stone-400">—</span>
+                                <span className="text-xs text-stone-400">—</span>
                               )}
                             </td>
                             <td className="py-3.5 px-3.5 whitespace-nowrap">
