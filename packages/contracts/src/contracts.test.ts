@@ -730,6 +730,24 @@ describe('Contracts Validation Suite', () => {
           action: 'unlink',
         }),
       );
+
+      const deletion = BulkCorrectTaskRequirementsSchema.parse({
+        workspaceId: validUuid,
+        requirementIds: [validUuid],
+        action: 'delete',
+        confirmation: 'DELETE',
+      });
+      assert.strictEqual(deletion.action, 'delete');
+      assert.strictEqual(deletion.confirmation, 'DELETE');
+
+      assert.throws(() =>
+        BulkCorrectTaskRequirementsSchema.parse({
+          workspaceId: validUuid,
+          requirementIds: [validUuid],
+          action: 'delete',
+          confirmation: 'delete',
+        }),
+      );
     });
   });
 

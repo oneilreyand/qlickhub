@@ -152,7 +152,8 @@ export const BulkCorrectTaskRequirementsSchema = z
   .object({
     workspaceId: z.string().uuid(),
     requirementIds: z.array(z.string().uuid()).min(1).max(50),
-    action: z.enum(['unlink', 'deprecate']),
+    action: z.enum(['unlink', 'deprecate', 'delete']),
+    confirmation: z.string().max(16).optional(),
   })
   .superRefine((data, context) => {
     if (new Set(data.requirementIds).size !== data.requirementIds.length) {
@@ -162,12 +163,19 @@ export const BulkCorrectTaskRequirementsSchema = z
         message: 'Each Requirement may be selected only once.',
       });
     }
+    if (data.action === 'delete' && data.confirmation !== 'DELETE') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['confirmation'],
+        message: 'Type DELETE to confirm permanent Requirement deletion.',
+      });
+    }
   });
 
 export type BulkCorrectTaskRequirementsInput = z.infer<typeof BulkCorrectTaskRequirementsSchema>;
 
 export const BulkCorrectTaskRequirementsResponseSchema = z.object({
-  action: z.enum(['unlink', 'deprecate']),
+  action: z.enum(['unlink', 'deprecate', 'delete']),
   affectedCount: z.number().int().nonnegative(),
 });
 

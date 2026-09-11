@@ -13,6 +13,9 @@ import {
   TaskRequirementModel,
   TaskActivityModel,
   QaDocumentVersionModel,
+  RequirementTestCaseModel,
+  TestCaseModel,
+  TestCaseRequirementModel,
 } from '../../../db/models/index.js';
 import { accessTokenCookieName, signToken } from '../../auth/jwt.js';
 import { sessionManager } from '../../auth/sessionManager.js';
@@ -476,6 +479,214 @@ describe('Requirement HTTP API Integration Tests (AGY-1.1 and AGY-1.2)', () => {
     assert.strictEqual(activity?.metadataJson?.affectedCount, 2);
   });
 
+  test('PO can atomically delete selected mistaken Requirements and their definition-owned Acceptance Criteria', async () => {
+    const stamp = Date.now();
+    const [first, second] = await Promise.all(
+      [`REQ-DELETE-01-${stamp}`, `REQ-DELETE-02-${stamp}`].map((code, index) =>
+        RequirementModel.create({
+          workspaceId: workspace1.id,
+          code,
+          title: `Mistaken Requirement ${index + 1}`,
+          createdBy: poUser.id,
+        }),
+      ),
+    );
+    await AcceptanceCriterionModel.create({
+      workspaceId: workspace1.id,
+      requirementId: first.id,
+      sequence: 1,
+      text: 'Definition-owned criterion for an unused mistaken Requirement.',
+      createdBy: poUser.id,
+    });
+    await TaskRequirementModel.bulkCreate(
+      [first, second].map((requirement) => ({
+        workspaceId: workspace1.id,
+        taskId: task1.id,
+        requirementId: requirement.id,
+        linkedBy: poUser.id,
+      })),
+    );
+
+    const response = await fetch(
+      `${baseUrl}/workspaces/${workspace1.id}/tasks/${task1.id}/requirements/bulk-correction`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({
+          requirementIds: [first.id, second.id],
+          action: 'delete',
+          confirmation: 'DELETE',
+        }),
+      },
+    );
+
+    assert.strictEqual(response.status, 200);
+    assert.deepStrictEqual(await response.json(), { action: 'delete', affectedCount: 2 });
+    assert.strictEqual(await RequirementModel.count({ where: { id: [first.id, second.id] } }), 0);
+    assert.strictEqual(
+      await TaskRequirementModel.count({ where: { requirementId: [first.id, second.id] } }),
+      0,
+    );
+    assert.strictEqual(
+      await AcceptanceCriterionModel.count({ where: { requirementId: first.id } }),
+      0,
+    );
+
+    const activity = await TaskActivityModel.findOne({
+      where: { taskId: task1.id, action: 'requirements_bulk_deleted' },
+      order: [['createdAt', 'DESC']],
+    });
+    assert.strictEqual(activity?.metadataJson?.affectedCount, 2);
+    assert.deepStrictEqual(
+      ((activity?.metadataJson?.requirements || []) as Array<{ id: string }>).map(
+        (item) => item.id,
+      ),
+      [first.id, second.id],
+    );
+  });
+
+  test('permanent Requirement deletion rejects missing confirmation and rolls back a batch with Test Case history', async () => {
+    const stamp = Date.now();
+    const [protectedRequirement, companionRequirement] = await Promise.all(
+      [`REQ-PROTECTED-01-${stamp}`, `REQ-PROTECTED-02-${stamp}`].map((code, index) =>
+        RequirementModel.create({
+          workspaceId: workspace1.id,
+          code,
+          title: `Protected Requirement ${index + 1}`,
+          createdBy: poUser.id,
+        }),
+      ),
+    );
+    await TaskRequirementModel.bulkCreate(
+      [protectedRequirement, companionRequirement].map((requirement) => ({
+        workspaceId: workspace1.id,
+        taskId: task1.id,
+        requirementId: requirement.id,
+        linkedBy: poUser.id,
+      })),
+    );
+
+    const missingConfirmation = await fetch(
+      `${baseUrl}/workspaces/${workspace1.id}/tasks/${task1.id}/requirements/bulk-correction`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({
+          requirementIds: [protectedRequirement.id],
+          action: 'delete',
+        }),
+      },
+    );
+    assert.strictEqual(missingConfirmation.status, 400);
+
+    await RequirementTestCaseModel.create({
+      workspaceId: workspace1.id,
+      requirementId: protectedRequirement.id,
+      title: 'Retained legacy Test Case',
+      createdBy: qaUser.id,
+    });
+    const canonicalTestCase = await TestCaseModel.create({
+      workspaceId: workspace1.id,
+      title: 'Retained canonical Test Case',
+      createdBy: qaUser.id,
+    });
+    await TestCaseRequirementModel.create({
+      workspaceId: workspace1.id,
+      testCaseId: canonicalTestCase.id,
+      requirementId: protectedRequirement.id,
+      linkedBy: qaUser.id,
+    });
+
+    const blockedResponse = await fetch(
+      `${baseUrl}/workspaces/${workspace1.id}/tasks/${task1.id}/requirements/bulk-correction`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({
+          requirementIds: [protectedRequirement.id, companionRequirement.id],
+          action: 'delete',
+          confirmation: 'DELETE',
+        }),
+      },
+    );
+
+    assert.strictEqual(blockedResponse.status, 409);
+    assert.strictEqual(
+      await RequirementModel.count({
+        where: { id: [protectedRequirement.id, companionRequirement.id] },
+      }),
+      2,
+    );
+    assert.strictEqual(
+      await TaskRequirementModel.count({
+        where: {
+          taskId: task1.id,
+          requirementId: [protectedRequirement.id, companionRequirement.id],
+        },
+      }),
+      2,
+    );
+    assert.strictEqual(
+      await TaskActivityModel.count({
+        where: { taskId: task1.id, action: 'requirements_bulk_deleted' },
+      }),
+      1,
+      'only the earlier successful batch may create a deletion activity',
+    );
+  });
+
+  test('permanent Requirement deletion rejects a Requirement linked to another Subtask', async () => {
+    const stamp = Date.now();
+    const requirement = await RequirementModel.create({
+      workspaceId: workspace1.id,
+      code: `REQ-MULTI-LINK-${stamp}`,
+      title: 'Requirement already used by another Subtask',
+      createdBy: poUser.id,
+    });
+    const subtask = await TaskModel.create({
+      workspaceId: workspace1.id,
+      parentTaskId: task1.id,
+      title: 'Subtask using protected Requirement',
+      status: 'todo',
+      priority: 'medium',
+      deliveryArea: 'qa',
+      reporterId: poUser.id,
+      assigneeId: qaUser.id,
+    });
+    await TaskRequirementModel.bulkCreate(
+      [task1.id, subtask.id].map((taskId) => ({
+        workspaceId: workspace1.id,
+        taskId,
+        requirementId: requirement.id,
+        linkedBy: poUser.id,
+      })),
+    );
+
+    const response = await fetch(
+      `${baseUrl}/workspaces/${workspace1.id}/tasks/${task1.id}/requirements/bulk-correction`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({
+          requirementIds: [requirement.id],
+          action: 'delete',
+          confirmation: 'DELETE',
+        }),
+      },
+    );
+
+    assert.strictEqual(response.status, 409);
+    assert.strictEqual(await RequirementModel.count({ where: { id: requirement.id } }), 1);
+    assert.strictEqual(
+      await TaskRequirementModel.count({ where: { requirementId: requirement.id } }),
+      2,
+    );
+
+    await TaskRequirementModel.destroy({ where: { requirementId: requirement.id } });
+    await RequirementModel.destroy({ where: { id: requirement.id } });
+    await TaskModel.destroy({ where: { id: subtask.id }, force: true });
+  });
+
   test('Dev and QA members have authorized read access (list, detail), but mutations return 403 Forbidden', async () => {
     // 1. Dev & QA list workspace requirements
     const devListRes = await fetch(`${baseUrl}/workspaces/${workspace1.id}/requirements`, {
@@ -552,6 +763,20 @@ describe('Requirement HTTP API Integration Tests (AGY-1.1 and AGY-1.2)', () => {
       },
     );
     assert.strictEqual(devUnlinkRes.status, 403);
+
+    const devDeleteRes = await fetch(
+      `${baseUrl}/workspaces/${workspace1.id}/tasks/${task1.id}/requirements/bulk-correction`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: devCookie },
+        body: JSON.stringify({
+          requirementIds: [targetReqId],
+          action: 'delete',
+          confirmation: 'DELETE',
+        }),
+      },
+    );
+    assert.strictEqual(devDeleteRes.status, 403);
 
     // 4. QA mutations -> 403 Forbidden
     const qaCreateRes = await fetch(`${baseUrl}/workspaces/${workspace1.id}/requirements`, {

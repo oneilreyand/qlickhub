@@ -487,6 +487,31 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(screen.getByText('obsolete-wireframe.png')).toBeInTheDocument();
   });
 
+  test('renders bulk Requirement deletion activity as a human-readable audit entry', async () => {
+    listTaskActivitiesMock.mockResolvedValueOnce({
+      activities: [
+        {
+          id: '123e4567-e89b-12d3-a456-426614174022',
+          workspaceId: mockTask.workspaceId,
+          taskId: mockTask.id,
+          actorName: 'Product Owner Alice',
+          action: 'requirements_bulk_deleted',
+          metadataJson: { affectedCount: 9 },
+          createdAt: '2026-09-11T00:00:00.000Z',
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+
+    renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
+    await screen.findByRole('heading', { name: mockTask.title });
+    fireEvent.click(screen.getByRole('button', { name: /Activity/ }));
+
+    expect(await screen.findByText('9 mistaken Requirements')).toBeInTheDocument();
+  });
+
   test('opens Delivery Trace inside the existing task drawer', async () => {
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'qa');
 

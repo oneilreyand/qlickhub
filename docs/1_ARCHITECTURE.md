@@ -126,6 +126,21 @@ erDiagram
    dipertahankan sebagai histori tetapi bukan sumber kanonikal. Keputusan lengkap dicatat dalam
    [ADR-010](adr/ADR-010-PRODUCT-BRIEF-REQUIREMENT-CONTEXT-OWNERSHIP.md).
 
+### Penghapusan Permanen Requirement yang Salah Dibuat
+
+- Permanent deletion hanya merupakan jalur koreksi untuk Requirement yang salah dibuat dan belum
+  menjadi bagian dari bukti delivery. Deprecated tetap menjadi jalur untuk Requirement yang pernah
+  dipakai atau hanya sudah tidak berlaku.
+- Hanya Planner dengan membership aktif (`owner`, `admin`, `po`) yang dapat menjalankannya melalui
+  backend terotentikasi dengan konfirmasi eksplisit.
+- Requirement yang dipilih wajib sedang tertaut ke Task konteks dan tidak boleh tertaut ke Task atau
+  Subtask lain, Test Case legacy/kanonikal, atau Bug. Satu dependency saja menggagalkan seluruh batch.
+- Transaksi menghapus link pada Task konteks, Acceptance Criteria milik Requirement, dan Requirement,
+  lalu menyimpan ringkasan kode/judul pada Task Activity. Hasil pengujian dan histori delivery tidak
+  pernah dihapus oleh jalur ini.
+- Keputusan lengkap dicatat dalam
+  [ADR-012](adr/ADR-012-GUARDED-MISTAKEN-REQUIREMENT-DELETION.md).
+
 ---
 
 ## 5. Model Keamanan & Otorisasi (RBAC)

@@ -124,6 +124,28 @@ describe('RequirementManager Organism', () => {
     expect(screen.getByText('Available Workspace Requirements (2)')).toBeInTheDocument();
   });
 
+  test('suggests the next unused Requirement code from the current Task code series', async () => {
+    listTaskRequirementLinksMock.mockResolvedValueOnce([
+      {
+        id: 'link-1',
+        workspaceId: 'ws-1',
+        taskId: 'task-1',
+        requirementId: 'req-1',
+        linkedBy: 'user-po',
+        createdAt: '2026-08-21T00:00:00.000Z',
+      },
+    ]);
+
+    render(<RequirementManager workspaceId="ws-1" taskId="task-1" userRole="po" />);
+
+    fireEvent.click(await screen.findByTestId('create-requirement-btn'));
+
+    expect(screen.getByLabelText('Requirement Code (Suggested)')).toHaveValue('REQ-103');
+    expect(
+      screen.getByText(/Suggested from the Requirement codes linked to this Task/i),
+    ).toBeInTheDocument();
+  });
+
   test('creates and links a Requirement before handing it to Subtask planning', async () => {
     const createdRequirement = {
       ...mockRequirements[0],
@@ -257,7 +279,12 @@ describe('RequirementManager Organism', () => {
     fireEvent.click(screen.getByTestId('bulk-correct-requirements-btn'));
 
     expect(screen.getByRole('dialog', { name: /Correct 2 Requirements/i })).toBeInTheDocument();
-    expect(screen.getByText(/never deletes a Requirement or its history/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Choose how to correct only the selected Requirements/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Existing Test Case, Bug, and activity history are retained/i),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Unlink selected' }));
 
     await waitFor(() => {
@@ -266,6 +293,81 @@ describe('RequirementManager Organism', () => {
         action: 'unlink',
       });
     });
+  });
+
+  test('requires typed confirmation before permanently deleting selected mistaken Requirements', async () => {
+    listTaskRequirementLinksMock.mockResolvedValue([
+      {
+        id: 'link-1',
+        workspaceId: 'ws-1',
+        taskId: 'task-1',
+        requirementId: 'req-1',
+        linkedBy: 'user-po',
+        createdAt: '2026-09-11T00:00:00.000Z',
+      },
+      {
+        id: 'link-2',
+        workspaceId: 'ws-1',
+        taskId: 'task-1',
+        requirementId: 'req-2',
+        linkedBy: 'user-po',
+        createdAt: '2026-09-11T00:00:00.000Z',
+      },
+    ]);
+    bulkCorrectTaskRequirementsMock.mockResolvedValueOnce({ action: 'delete', affectedCount: 2 });
+
+    render(<RequirementManager workspaceId="ws-1" taskId="task-1" userRole="po" />);
+
+    fireEvent.click(await screen.findByLabelText('Select all 2 linked Requirements'));
+    fireEvent.click(screen.getByTestId('bulk-correct-requirements-btn'));
+    fireEvent.click(screen.getByRole('button', { name: /Delete mistaken Requirements/i }));
+
+    const confirmButton = screen.getByRole('button', { name: 'Delete permanently' });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Type DELETE to confirm'), {
+      target: { value: 'DELETE' },
+    });
+    expect(confirmButton).toBeEnabled();
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(bulkCorrectTaskRequirementsMock).toHaveBeenCalledWith('ws-1', 'task-1', {
+        requirementIds: ['req-1', 'req-2'],
+        action: 'delete',
+        confirmation: 'DELETE',
+      });
+    });
+  });
+
+  test('keeps the destructive correction open and explains a backend safety rejection', async () => {
+    listTaskRequirementLinksMock.mockResolvedValue([
+      {
+        id: 'link-1',
+        workspaceId: 'ws-1',
+        taskId: 'task-1',
+        requirementId: 'req-1',
+        linkedBy: 'user-po',
+        createdAt: '2026-09-11T00:00:00.000Z',
+      },
+    ]);
+    bulkCorrectTaskRequirementsMock.mockRejectedValueOnce(
+      new Error('Requirement is used by a Test Case. Mark it as deprecated instead.'),
+    );
+
+    render(<RequirementManager workspaceId="ws-1" taskId="task-1" userRole="po" />);
+
+    fireEvent.click(await screen.findByLabelText(/Select REQ-101/i));
+    fireEvent.click(screen.getByTestId('bulk-correct-requirements-btn'));
+    fireEvent.click(screen.getByRole('button', { name: /Delete mistaken Requirements/i }));
+    fireEvent.change(screen.getByLabelText('Type DELETE to confirm'), {
+      target: { value: 'DELETE' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete permanently' }));
+
+    expect(
+      await screen.findByText(/Requirement is used by a Test Case. Mark it as deprecated instead/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /Correct 1 Requirement/i })).toBeInTheDocument();
   });
 
   test('renders read-only badge and hides New Requirement button for Dev and QA roles', async () => {

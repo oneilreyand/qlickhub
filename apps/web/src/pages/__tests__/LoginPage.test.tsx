@@ -41,15 +41,19 @@ describe('LoginPage Component', () => {
       </Provider>,
     );
 
-    // Checks hero image src
-    const images = screen.getAllByRole('img');
-    const heroImage = images.find((img) =>
-      img.getAttribute('src')?.includes('ChatGPT_Image_Aug_19_2026_03_01_47_PM.png'),
+    // Both responsive hero images remain visible in light and dark themes.
+    const desktopHeroImage = screen.getByAltText('QA Management Platform Illustration');
+    const mobileHeroImage = screen.getByAltText('Qlick Hub Platform');
+    expect(desktopHeroImage.getAttribute('src')).toContain(
+      'ChatGPT_Image_Aug_19_2026_03_01_47_PM.png',
     );
-    expect(heroImage).toBeDefined();
-    expect(heroImage).toHaveClass('dark:hidden');
-    expect(screen.getByTestId('login-dark-mode-icon-desktop')).toHaveClass('hidden', 'dark:grid');
-    expect(screen.getByTestId('login-dark-mode-icon-mobile')).toHaveClass('hidden', 'dark:flex');
+    expect(mobileHeroImage.getAttribute('src')).toContain(
+      'ChatGPT_Image_Aug_19_2026_03_01_47_PM.png',
+    );
+    expect(desktopHeroImage).not.toHaveClass('dark:hidden');
+    expect(mobileHeroImage).not.toHaveClass('dark:hidden');
+    expect(screen.queryByTestId('login-dark-mode-icon-desktop')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('login-dark-mode-icon-mobile')).not.toBeInTheDocument();
 
     // Checks header & copy
     expect(screen.getByText('Selamat Datang Kembali')).toBeInTheDocument();

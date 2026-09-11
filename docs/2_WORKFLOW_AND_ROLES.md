@@ -69,6 +69,15 @@ QA membaca kedua konteks tersebut, tetapi hanya Planner (`owner`, `admin`, `po`)
 memutasinya. Requirement tetap menjadi target coverage Test Case kanonikal. Aturan lengkap berada
 pada [ADR-010](adr/ADR-010-PRODUCT-BRIEF-REQUIREMENT-CONTEXT-OWNERSHIP.md).
 
+### Koreksi Requirement yang Salah Dibuat
+
+Planner memilih Requirement yang salah pada Task konteks dan menggunakan koreksi massal dengan
+konfirmasi `DELETE`. Backend menghapus permanen hanya jika setiap Requirement tidak memiliki link
+ke Task/Subtask lain, Test Case legacy/kanonikal, atau Bug. Acceptance Criteria sebagai bagian dari
+definisi Requirement ikut dihapus, sedangkan ringkasan koreksi tetap tercatat pada Task Activity.
+Batch bersifat all-or-nothing. Jika Requirement sudah menjadi bagian dari delivery, Planner harus
+menggunakan status `deprecated` agar traceability dan bukti QA tetap utuh.
+
 ### Aturan Discussion Lintas Peran
 
 Semua Project Member aktif dapat membaca, mengirim pesan, membalas, dan menyebut anggota Workspace

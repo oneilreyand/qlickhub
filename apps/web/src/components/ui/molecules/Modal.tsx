@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { Button } from '../atoms/Button';
+import { Button, type ButtonProps } from '../atoms/Button';
 import { IconButton } from '../atoms/IconButton';
 
 export interface ModalProps {
@@ -16,6 +16,8 @@ export interface ModalProps {
   additionalActionLabel?: string;
   onAdditionalAction?: () => void;
   isPrimaryLoading?: boolean;
+  isPrimaryDisabled?: boolean;
+  primaryActionVariant?: ButtonProps['variant'];
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
 
@@ -31,6 +33,8 @@ export const Modal: React.FC<ModalProps> = ({
   additionalActionLabel,
   onAdditionalAction,
   isPrimaryLoading = false,
+  isPrimaryDisabled = false,
+  primaryActionVariant = 'primary',
   size = 'md',
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -168,9 +172,10 @@ export const Modal: React.FC<ModalProps> = ({
             )}
             {primaryActionLabel && (
               <Button
-                variant="primary"
+                variant={primaryActionVariant}
                 size="sm"
                 isLoading={isPrimaryLoading}
+                disabled={isPrimaryDisabled}
                 onClick={onPrimaryAction}
                 className="w-full sm:w-auto"
               >

@@ -5,6 +5,9 @@ import {
   TaskRequirementModel,
   TaskModel,
   TaskActivityModel,
+  RequirementTestCaseModel,
+  TestCaseRequirementModel,
+  BugModel,
 } from '../../db/models/index.js';
 import {
   assertCanReadRequirements,
@@ -625,7 +628,7 @@ export class RequirementService {
           where: { id: { [Op.in]: links.map((link) => link.id) } },
           transaction,
         });
-      } else {
+      } else if (input.action === 'deprecate') {
         await RequirementModel.update(
           { status: 'deprecated' },
           {
@@ -633,6 +636,55 @@ export class RequirementService {
             transaction,
           },
         );
+      } else {
+        if (input.confirmation !== 'DELETE') {
+          throw new Error('BAD_REQUEST: Type DELETE to confirm permanent Requirement deletion.');
+        }
+
+        const allTaskLinks = await TaskRequirementModel.count({
+          where: {
+            workspaceId,
+            requirementId: { [Op.in]: input.requirementIds },
+          },
+          transaction,
+        });
+        if (allTaskLinks !== input.requirementIds.length) {
+          throw new Error(
+            'CONFLICT: Permanent deletion is allowed only when every selected Requirement is linked exclusively to this task. Unlink other Task or Subtask mappings, or mark the Requirement as deprecated.',
+          );
+        }
+
+        const legacyTestCases = await RequirementTestCaseModel.count({
+          where: { workspaceId, requirementId: { [Op.in]: input.requirementIds } },
+          transaction,
+        });
+        const canonicalTestCases = await TestCaseRequirementModel.count({
+          where: { workspaceId, requirementId: { [Op.in]: input.requirementIds } },
+          transaction,
+        });
+        const bugs = await BugModel.count({
+          where: { workspaceId, requirementId: { [Op.in]: input.requirementIds } },
+          transaction,
+        });
+
+        if (legacyTestCases > 0 || canonicalTestCases > 0 || bugs > 0) {
+          throw new Error(
+            `CONFLICT: Permanent deletion cannot remove Requirements used by delivery history (${legacyTestCases} legacy Test Case reference(s), ${canonicalTestCases} Test Case mapping(s), ${bugs} Bug reference(s)). Mark them as deprecated instead.`,
+          );
+        }
+
+        await TaskRequirementModel.destroy({
+          where: { id: { [Op.in]: links.map((link) => link.id) } },
+          transaction,
+        });
+        await AcceptanceCriterionModel.destroy({
+          where: { workspaceId, requirementId: { [Op.in]: input.requirementIds } },
+          transaction,
+        });
+        await RequirementModel.destroy({
+          where: { workspaceId, id: { [Op.in]: input.requirementIds } },
+          transaction,
+        });
       }
 
       await TaskActivityModel.create(
@@ -643,7 +695,9 @@ export class RequirementService {
           action:
             input.action === 'unlink'
               ? 'requirements_bulk_unlinked'
-              : 'requirements_bulk_deprecated',
+              : input.action === 'deprecate'
+                ? 'requirements_bulk_deprecated'
+                : 'requirements_bulk_deleted',
           metadataJson: {
             affectedCount: input.requirementIds.length,
             requirements: requirementSummaries,

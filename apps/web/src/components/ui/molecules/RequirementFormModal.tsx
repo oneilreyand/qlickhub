@@ -19,6 +19,7 @@ export interface RequirementFormModalProps {
   }) => Promise<void>;
   onSaveAndPlan?: RequirementFormModalProps['onSave'];
   initialData?: Partial<Requirement> | null;
+  suggestedCode?: string;
   title?: string;
   isSaving?: boolean;
 }
@@ -29,6 +30,7 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
   onSave,
   onSaveAndPlan,
   initialData,
+  suggestedCode,
   title = initialData ? 'Edit Requirement' : 'Create Requirement',
   isSaving = false,
 }) => {
@@ -41,14 +43,14 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setCode(initialData?.code || '');
+      setCode(initialData?.code || suggestedCode || '');
       setReqTitle(initialData?.title || '');
       setUrl(initialData?.url || '');
       setDescription(initialData?.description || '');
       setStatus(initialData?.status || 'active');
       setValidationError(null);
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, suggestedCode]);
 
   const validateUrl = (value: string): boolean => {
     if (!value.trim()) return true;
@@ -130,13 +132,31 @@ export const RequirementFormModal: React.FC<RequirementFormModalProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input
-            label="Requirement Code (Optional)"
+            id="requirement-code"
+            label={
+              suggestedCode && !initialData
+                ? 'Requirement Code (Suggested)'
+                : 'Requirement Code (Optional)'
+            }
             placeholder="e.g. REQ-101 (Auto-generated if empty)"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             disabled={isSaving}
             leftIcon={<Hash className="h-4 w-4" />}
+            aria-describedby={
+              suggestedCode && !initialData ? 'requirement-code-guidance' : undefined
+            }
           />
+
+          {suggestedCode && !initialData && (
+            <p
+              id="requirement-code-guidance"
+              className="self-center text-xs text-stone-500 dark:text-stone-400"
+            >
+              Suggested from the Requirement codes linked to this Task. You can edit it before
+              saving.
+            </p>
+          )}
 
           {initialData && (
             <Select

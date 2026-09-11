@@ -48,6 +48,8 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 function getActivityIcon(action: string) {
+  if (action === 'requirements_bulk_deleted')
+    return <Trash2 className="h-3.5 w-3.5 text-rose-500" />;
   if (action === 'qa.sign_off.created')
     return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
   if (action === 'release.decision.created')
@@ -328,6 +330,18 @@ function renderHumanActivityDescription(act: TaskActivity) {
   }
 
   // Requirement linked/unlinked
+  if (action === 'requirements_bulk_deleted') {
+    const affectedCount = Number(meta.affectedCount) || 0;
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        permanently deleted{' '}
+        <span className="font-semibold text-rose-600 dark:text-rose-400">
+          {affectedCount} mistaken Requirement{affectedCount === 1 ? '' : 's'}
+        </span>
+      </span>
+    );
+  }
+
   if (action === 'requirement.linked' || action === 'requirement_linked') {
     return (
       <span className="text-stone-700 dark:text-stone-300">

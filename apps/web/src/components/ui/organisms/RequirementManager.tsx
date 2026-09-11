@@ -8,6 +8,7 @@ import {
   WorkspaceRole,
 } from '@qlick/contracts';
 import { requirementService } from '../../../lib/api/requirementService';
+import { suggestRequirementCode } from '../../../lib/requirements/suggestRequirementCode';
 import { RequirementFormModal } from '../molecules/RequirementFormModal';
 import { Button } from '../atoms/Button';
 import { IconButton } from '../atoms/IconButton';
@@ -33,6 +34,7 @@ import {
   CheckCircle2,
   Layers,
   Lock,
+  Trash2,
 } from 'lucide-react';
 
 export interface RequirementManagerProps {
@@ -91,7 +93,8 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [selectedRequirementIds, setSelectedRequirementIds] = useState<string[]>([]);
   const [isBulkCorrectionOpen, setIsBulkCorrectionOpen] = useState(false);
-  const [bulkAction, setBulkAction] = useState<'unlink' | 'deprecate'>('unlink');
+  const [bulkAction, setBulkAction] = useState<'unlink' | 'deprecate' | 'delete'>('unlink');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   const canManage = ['owner', 'admin', 'po'].includes(userRole);
@@ -369,8 +372,10 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
       await requirementService.bulkCorrectTaskRequirements(workspaceId, taskId, {
         requirementIds: selectedRequirementIds,
         action: bulkAction,
+        ...(bulkAction === 'delete' ? { confirmation: deleteConfirmation } : {}),
       });
       setSelectedRequirementIds([]);
+      setDeleteConfirmation('');
       setIsBulkCorrectionOpen(false);
       await loadData();
       onRequirementChanged?.();
@@ -414,6 +419,9 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
     filteredLinkedRequirements.every((requirement) =>
       selectedRequirementIds.includes(requirement.id),
     );
+  const suggestedCode = taskId
+    ? suggestRequirementCode(linkedRequirements, requirements)
+    : undefined;
 
   type RequirementDisplayEntry =
     | { kind: 'requirement'; requirement: Requirement }
@@ -528,6 +536,8 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                 size="sm"
                 variant="primary"
                 leftIcon={<Plus className="h-3.5 w-3.5" />}
+                disabled={isLoading}
+                title={isLoading ? 'Loading Requirement codes' : undefined}
                 onClick={() => {
                   setEditingRequirement(null);
                   setIsModalOpen(true);
@@ -922,6 +932,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
             : undefined
         }
         initialData={editingRequirement}
+        suggestedCode={editingRequirement ? undefined : suggestedCode}
         isSaving={isSaving}
       />
 
@@ -954,17 +965,30 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
 
       <Modal
         isOpen={isBulkCorrectionOpen}
-        onClose={() => !isBulkSaving && setIsBulkCorrectionOpen(false)}
+        onClose={() => {
+          if (!isBulkSaving) {
+            setIsBulkCorrectionOpen(false);
+            setDeleteConfirmation('');
+          }
+        }}
         title={`Correct ${selectedLinkedRequirementCount} Requirement${selectedLinkedRequirementCount === 1 ? '' : 's'}`}
-        description="This change is limited to Requirements currently linked to this Feature. It never deletes a Requirement or its history."
-        primaryActionLabel={bulkAction === 'unlink' ? 'Unlink selected' : 'Deprecate selected'}
+        description="Choose how to correct only the selected Requirements currently linked to this task."
+        primaryActionLabel={
+          bulkAction === 'unlink'
+            ? 'Unlink selected'
+            : bulkAction === 'deprecate'
+              ? 'Deprecate selected'
+              : 'Delete permanently'
+        }
         secondaryActionLabel="Cancel"
         onPrimaryAction={handleBulkCorrection}
         isPrimaryLoading={isBulkSaving}
+        isPrimaryDisabled={bulkAction === 'delete' && deleteConfirmation !== 'DELETE'}
+        primaryActionVariant={bulkAction === 'delete' ? 'destructive' : 'primary'}
         size="lg"
       >
         <div className="space-y-4">
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-3">
             <Button
               type="button"
               aria-pressed={bulkAction === 'unlink'}
@@ -1002,12 +1026,44 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                 </span>
               </span>
             </Button>
+            <Button
+              type="button"
+              aria-pressed={bulkAction === 'delete'}
+              onClick={() => setBulkAction('delete')}
+              variant={bulkAction === 'delete' ? 'destructive' : 'outline'}
+              className="h-auto min-h-[88px] justify-start whitespace-normal px-3 py-2.5 text-left"
+              leftIcon={<Trash2 className="h-4 w-4" />}
+            >
+              <span>
+                <span className="block text-sm font-semibold">Delete mistaken Requirements</span>
+                <span className="mt-0.5 block text-xs font-normal opacity-80">
+                  Permanently removes only unused mistakes after backend safety checks.
+                </span>
+              </span>
+            </Button>
           </div>
 
-          <Alert tone="info">
-            Existing Test Case, Bug, and activity history are retained. This operation is recorded
-            in the Feature activity log.
-          </Alert>
+          {bulkAction === 'delete' ? (
+            <div className="space-y-3">
+              <Alert tone="warning" title="Permanent and irreversible">
+                Deletion is rejected if a selected Requirement is linked elsewhere or used by a Test
+                Case or Bug. Use deprecated when delivery history exists.
+              </Alert>
+              <Input
+                label="Type DELETE to confirm"
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                placeholder="DELETE"
+                autoComplete="off"
+                disabled={isBulkSaving}
+              />
+            </div>
+          ) : (
+            <Alert tone="info">
+              Existing Test Case, Bug, and activity history are retained. This operation is recorded
+              in the Feature activity log.
+            </Alert>
+          )}
         </div>
       </Modal>
     </div>

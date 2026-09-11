@@ -60,6 +60,24 @@ describe('RequirementFormModal Molecule', () => {
     });
   });
 
+  test('prefills an editable code suggestion when creating from a Task', () => {
+    render(
+      <RequirementFormModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        suggestedCode="REQ-103"
+      />,
+    );
+
+    const codeInput = screen.getByLabelText('Requirement Code (Suggested)');
+    expect(codeInput).toHaveValue('REQ-103');
+    expect(codeInput).toHaveAttribute('aria-describedby', 'requirement-code-guidance');
+
+    fireEvent.change(codeInput, { target: { value: 'REQ-CHECKOUT-001' } });
+    expect(codeInput).toHaveValue('REQ-CHECKOUT-001');
+  });
+
   test('uses the shared rich-text editor and saves bold Markdown in Requirement details', async () => {
     const handleSave = vi.fn().mockResolvedValue(undefined);
 
@@ -132,10 +150,12 @@ describe('RequirementFormModal Molecule', () => {
         onClose={handleClose}
         onSave={handleSave}
         initialData={initialData}
+        suggestedCode="REQ-999"
       />,
     );
 
     expect(screen.getByRole('heading', { name: 'Edit Requirement' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('REQ-101')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument();
     expect(screen.getByDisplayValue('https://www.figma.com/file/123')).toBeInTheDocument();
 
