@@ -37,9 +37,8 @@ import { Alert } from '../components/ui/atoms/Alert';
 
 export const WorkspaceSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { workspaces, activeWorkspaceId, members, isMembersLoading } = useAppSelector(
-    (state) => state.workspace,
-  );
+  const { workspaces, activeWorkspaceId, members, isMembersLoading, isLoading, isInitialized } =
+    useAppSelector((state) => state.workspace);
   const currentUserRole = useAppSelector(selectCurrentUserRole);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
@@ -352,6 +351,18 @@ export const WorkspaceSettingsPage: React.FC = () => {
       setIsRemovingMember(false);
     }
   };
+
+  // While workspaces are being loaded or not yet initialized, render accessible loading state
+  if (!isInitialized || (isLoading && workspaces.length === 0)) {
+    return (
+      <div
+        className="py-24 flex items-center justify-center"
+        aria-label="Memuat pengaturan workspace"
+      >
+        <div className="h-8 w-8 rounded-full border-2 border-stone-300 border-t-stone-800 dark:border-stone-700 dark:border-t-[#B1E743] animate-spin" />
+      </div>
+    );
+  }
 
   // If no workspaces exist yet, render empty onboarding
   if (!activeWorkspace || workspaces.length === 0) {

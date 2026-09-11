@@ -311,3 +311,99 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     });
   });
 });
+
+describe('WorkspaceSettingsPage Loading and Initial Refresh Guard', () => {
+  it('shows accessible loading spinner and prevents empty onboarding flash during page refresh', () => {
+    // Simulates initial page load / refresh before fetchWorkspaces finishes
+    const store = configureStore({
+      reducer: {
+        workspace: workspaceReducer,
+        auth: authReducer,
+        ui: uiReducer,
+      },
+      preloadedState: {
+        auth: {
+          currentUser: {
+            id: 'user-owner',
+            email: 'alice@qlick.test',
+            name: 'Alice Owner',
+            role: 'owner',
+            onboardingCompletedAt: null,
+          },
+          isAuthenticated: true,
+          showOnboardingModal: false,
+          status: 'idle' as const,
+          error: null,
+        },
+        workspace: {
+          workspaces: [],
+          activeWorkspaceId: null,
+          members: [],
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: false,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <WorkspaceSettingsPage />
+      </Provider>,
+    );
+
+    // Accessible loading spinner should be visible
+    expect(screen.getByLabelText('Memuat pengaturan workspace')).toBeInTheDocument();
+    // "Buat Workspace Pertama Anda" should NOT be shown
+    expect(
+      screen.queryByRole('heading', { name: /buat workspace pertama/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders EmptyWorkspaceOnboarding only when initialization is complete and workspace count is 0', async () => {
+    vi.mocked(workspaceService.getWorkspaces).mockResolvedValueOnce([]);
+    const store = configureStore({
+      reducer: {
+        workspace: workspaceReducer,
+        auth: authReducer,
+        ui: uiReducer,
+      },
+      preloadedState: {
+        auth: {
+          currentUser: {
+            id: 'user-owner',
+            email: 'alice@qlick.test',
+            name: 'Alice Owner',
+            role: 'owner',
+            onboardingCompletedAt: null,
+          },
+          isAuthenticated: true,
+          showOnboardingModal: false,
+          status: 'idle' as const,
+          error: null,
+        },
+        workspace: {
+          workspaces: [],
+          activeWorkspaceId: null,
+          members: [],
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: true,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <WorkspaceSettingsPage />
+      </Provider>,
+    );
+
+    // Initialized with 0 workspaces -> should show onboarding
+    expect(
+      await screen.findByRole('heading', { name: /buat workspace pertama/i }),
+    ).toBeInTheDocument();
+  });
+});

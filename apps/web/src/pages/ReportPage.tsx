@@ -16,6 +16,7 @@ export const ReportPage: React.FC = () => {
     workspaces,
     members,
     isLoading: isWorkspaceLoading,
+    isInitialized: isWorkspaceInitialized,
   } = useAppSelector((state) => state.workspace);
   const { tasks, total, isLoading, error } = useAppSelector((state) => state.report);
   const [dateRange, setDateRange] = useState<DateRange>();
@@ -45,7 +46,15 @@ export const ReportPage: React.FC = () => {
   const { stateByFeatureTaskId: releaseReadinessStateByFeatureId, reload: reloadReleaseReadiness } =
     useReleaseReadinessMap(activeWorkspaceId || undefined, featureTaskIds);
 
-  if (!isWorkspaceLoading && workspaces.length === 0) {
+  if (!isWorkspaceInitialized || (isWorkspaceLoading && workspaces.length === 0)) {
+    return (
+      <div className="py-24 flex items-center justify-center" aria-label="Memuat laporan workspace">
+        <div className="h-8 w-8 rounded-full border-2 border-stone-300 border-t-stone-800 dark:border-stone-700 dark:border-t-[#B1E743] animate-spin" />
+      </div>
+    );
+  }
+
+  if (workspaces.length === 0) {
     return <EmptyWorkspaceOnboarding />;
   }
 
