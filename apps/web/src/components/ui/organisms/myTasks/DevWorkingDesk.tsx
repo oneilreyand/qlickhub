@@ -605,6 +605,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           activeTabId={activeTab}
           onChange={(id) => setActiveTab(id as 'work' | 'discussion')}
           variant="underline"
+          ariaLabel="Bagian area kerja Developer"
         />
       </div>
 

@@ -35,7 +35,7 @@ describe('MyTaskFeatureContext', () => {
     expect(screen.getByText('Struktur lengkap')).toBeInTheDocument();
     expect(screen.getByText('Pengujian lulus')).toBeInTheDocument();
     expect(screen.getByText('Rilis terblokir · 1 gate perlu ditindaklanjuti')).toBeInTheDocument();
-    expect(screen.getByText(/1\/2 development subtasks are complete/)).toBeInTheDocument();
+    expect(screen.getByText(/1\/2 Subtask pengembangan telah selesai/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Kembali ke Feature' }));
     expect(onOpenFeature).toHaveBeenCalledWith(trace.featureTask.id);
   });

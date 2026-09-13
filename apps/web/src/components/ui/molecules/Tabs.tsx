@@ -13,6 +13,7 @@ export interface TabsProps {
   activeTabId: string;
   onChange: (id: string) => void;
   variant?: 'underline' | 'pills';
+  ariaLabel?: string;
 }
 
 export const Tabs: React.FC<TabsProps> = ({
@@ -20,24 +21,53 @@ export const Tabs: React.FC<TabsProps> = ({
   activeTabId,
   onChange,
   variant = 'underline',
+  ariaLabel = 'Navigasi tab',
 }) => {
-  const activeTabRef = React.useRef<HTMLButtonElement>(null);
+  const tabRefs = React.useRef(new Map<string, HTMLButtonElement>());
 
   React.useEffect(() => {
-    activeTabRef.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    tabRefs.current.get(activeTabId)?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }, [activeTabId]);
+
+  const registerTab = (tabId: string, node: HTMLButtonElement | null) => {
+    if (node) tabRefs.current.set(tabId, node);
+    else tabRefs.current.delete(tabId);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
+    if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = tabs.length - 1;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextTab = tabs[nextIndex];
+    tabRefs.current.get(nextTab.id)?.focus();
+    onChange(nextTab.id);
+  };
 
   if (variant === 'pills') {
     return (
-      <div className="flex w-full max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-stone-200/80 bg-white/80 p-1.5 shadow-xs dark:border-stone-800 dark:bg-stone-900/80 sm:inline-flex sm:w-auto sm:rounded-full">
-        {tabs.map((tab) => {
+      <div
+        role="tablist"
+        aria-label={ariaLabel}
+        aria-orientation="horizontal"
+        className="flex w-full max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-stone-200/80 bg-white/80 p-1.5 shadow-xs dark:border-stone-800 dark:bg-stone-900/80 sm:inline-flex sm:w-auto sm:rounded-full"
+      >
+        {tabs.map((tab, index) => {
           const isActive = tab.id === activeTabId;
           return (
             <button
-              ref={isActive ? activeTabRef : undefined}
+              ref={(node) => registerTab(tab.id, node)}
               key={tab.id}
               type="button"
+              role="tab"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
               onClick={() => onChange(tab.id)}
+              onKeyDown={(event) => handleKeyDown(event, index)}
               className={`flex min-h-[44px] shrink-0 items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 isActive
                   ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
@@ -67,14 +97,24 @@ export const Tabs: React.FC<TabsProps> = ({
 
   return (
     <div className="border-b border-stone-200 dark:border-stone-800">
-      <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
-        {tabs.map((tab) => {
+      <nav
+        className="-mb-px flex space-x-6 overflow-x-auto"
+        role="tablist"
+        aria-label={ariaLabel}
+        aria-orientation="horizontal"
+      >
+        {tabs.map((tab, index) => {
           const isActive = tab.id === activeTabId;
           return (
             <button
+              ref={(node) => registerTab(tab.id, node)}
               key={tab.id}
               type="button"
+              role="tab"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
               onClick={() => onChange(tab.id)}
+              onKeyDown={(event) => handleKeyDown(event, index)}
               className={`flex min-h-[44px] items-center gap-2 border-b-2 py-3 px-1 text-xs font-semibold transition-all ${
                 isActive
                   ? 'border-[#B1E743] text-stone-900 font-bold dark:border-[#B1E743] dark:text-[#B1E743]'

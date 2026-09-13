@@ -3,6 +3,7 @@ import { CheckCircle2, LockKeyhole, ShieldAlert, XCircle } from 'lucide-react';
 import { Badge } from '../atoms/Badge';
 import { Skeleton } from '../atoms/Skeleton';
 import type { ReleaseReadinessViewState } from '../../../lib/hooks/useReleaseReadinessMap';
+import { getIndonesianReleaseGateCopy } from '../../../lib/i18n/indonesianCopy';
 
 export interface ReleaseReadinessSignalProps {
   state?: ReleaseReadinessViewState;
@@ -72,12 +73,15 @@ export const ReleaseReadinessSignal: React.FC<ReleaseReadinessSignalProps> = ({
           className="max-w-xl space-y-1 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400"
           aria-label="Gate rilis yang perlu ditindaklanjuti"
         >
-          {failedGates.map((gate) => (
-            <li key={gate.code}>
-              <span className="font-bold text-stone-800 dark:text-stone-200">{gate.label}: </span>
-              {gate.reason}
-            </li>
-          ))}
+          {failedGates.map((gate) => {
+            const copy = getIndonesianReleaseGateCopy(gate);
+            return (
+              <li key={gate.code}>
+                <span className="font-bold text-stone-800 dark:text-stone-200">{copy.label}: </span>
+                {copy.reason}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

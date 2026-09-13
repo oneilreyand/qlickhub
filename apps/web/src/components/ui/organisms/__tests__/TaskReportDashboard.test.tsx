@@ -73,7 +73,7 @@ describe('TaskReportDashboard', () => {
 
     const readinessPanel = screen.getByTestId('report-release-readiness');
     expect(readinessPanel).toHaveTextContent('Rilis terblokir · 1 gate perlu ditindaklanjuti');
-    expect(readinessPanel).toHaveTextContent('1/2 development subtasks are complete.');
+    expect(readinessPanel).toHaveTextContent('1/2 Subtask pengembangan telah selesai.');
   });
 
   it('derives delivery metrics, cross-functional delivery areas, and attention queue from persisted tasks', () => {

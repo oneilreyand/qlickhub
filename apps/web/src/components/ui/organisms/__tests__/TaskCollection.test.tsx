@@ -51,7 +51,7 @@ describe('TaskCollection Organism', () => {
     render(<TaskCollection tasks={mockTasks} folders={[]} isLoading={false} onSelect={vi.fn()} />);
 
     // Initial state: Both tasks visible, button says "Tutup Semua"
-    expect(screen.getByText(/status groups/i)).toBeInTheDocument();
+    expect(screen.getByText('grup status').parentElement).toHaveTextContent('2 grup status');
     const collapseButton = screen.getByRole('button', { name: /tutup semua/i });
     expect(collapseButton).toBeInTheDocument();
 
@@ -105,7 +105,7 @@ describe('TaskCollection Organism', () => {
     expect(screen.getAllByText('Cakupan 1/2 Requirement')).toHaveLength(2);
     expect(screen.getAllByText('1 pengujian gagal')).toHaveLength(2);
     expect(screen.getAllByText('Jejak dibatasi')).toHaveLength(2);
-    expect(screen.getByRole('columnheader', { name: 'Delivery & Release' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Delivery & Rilis' })).toBeInTheDocument();
   });
 
   it('renders the shared backend Release Readiness signal in mobile and desktop rows', () => {
@@ -122,7 +122,7 @@ describe('TaskCollection Organism', () => {
     );
 
     expect(screen.getAllByText('Rilis terblokir · 1 gate perlu ditindaklanjuti')).toHaveLength(2);
-    expect(screen.getByRole('columnheader', { name: 'Delivery & Release' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Delivery & Rilis' })).toBeInTheDocument();
   });
 
   it('opens a task from the keyboard without hiding its collection', () => {
@@ -131,7 +131,9 @@ describe('TaskCollection Organism', () => {
       <TaskCollection tasks={[mockTasks[0]]} folders={[]} isLoading={false} onSelect={onSelect} />,
     );
 
-    fireEvent.keyDown(screen.getByLabelText('Inspect task Design Wireframes'), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByLabelText('Lihat detail Task Design Wireframes'), {
+      key: 'Enter',
+    });
 
     expect(onSelect).toHaveBeenCalledWith(mockTasks[0]);
     expect(screen.getAllByText('Design Wireframes').length).toBeGreaterThanOrEqual(1);

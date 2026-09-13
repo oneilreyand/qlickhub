@@ -45,26 +45,26 @@ function getPriorityBadge(priority: Task['priority']) {
     case 'urgent':
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300 whitespace-nowrap shrink-0">
-          Urgent
+          Mendesak
         </span>
       );
     case 'high':
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 whitespace-nowrap shrink-0">
-          High
+          Tinggi
         </span>
       );
     case 'medium':
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 whitespace-nowrap shrink-0">
-          Medium
+          Sedang
         </span>
       );
     case 'low':
     default:
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 whitespace-nowrap shrink-0">
-          Low
+          Rendah
         </span>
       );
   }
@@ -173,7 +173,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
             <span className="font-bold text-stone-700 dark:text-stone-300">
               {groupedTasks.length}
             </span>{' '}
-            {groupedTasks.length === 1 ? 'status group' : 'status groups'}
+            grup status
           </div>
           <Button
             variant="ghost"
@@ -218,14 +218,14 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                     group.tasks.map((task) => {
                       const folderName = task.folderId
                         ? folderMap.get(task.folderId) || 'Folder'
-                        : 'Unfiled';
+                        : 'Tanpa Folder';
                       const deliveryTraceState = deliveryTraceStateByTaskId[task.id];
                       return (
                         <Card
                           key={task.id}
                           role="button"
                           tabIndex={0}
-                          aria-label={`Inspect task ${task.title}`}
+                          aria-label={`Lihat detail Task ${task.title}`}
                           onClick={() => onSelect(task)}
                           onKeyDown={(event) => {
                             if (isActivationKey(event)) {
@@ -281,7 +281,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                               size="sm"
                               rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
                             >
-                              Inspect
+                              Lihat Detail
                             </Button>
                           </div>
                         </Card>
@@ -298,11 +298,11 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
         <table className="w-full text-left text-xs min-w-[650px]">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50/50 text-xs font-bold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-300">
-              <th className="py-3.5 px-3.5">Task ID / Title</th>
+              <th className="py-3.5 px-3.5">ID / Judul Task</th>
               <th className="py-3.5 px-3.5 whitespace-nowrap">Lokasi Folder</th>
               <th className="py-3.5 px-3.5 whitespace-nowrap">Prioritas</th>
               <th className="py-3.5 px-3.5 whitespace-nowrap">Tanggal</th>
-              <th className="py-3.5 px-3.5 whitespace-nowrap">Delivery &amp; Release</th>
+              <th className="py-3.5 px-3.5 whitespace-nowrap">Delivery &amp; Rilis</th>
               <th className="py-3.5 px-3.5 whitespace-nowrap">Status</th>
               <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Aksi</th>
             </tr>
@@ -323,7 +323,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                     : group.tasks.map((task) => {
                         const folderName = task.folderId
                           ? folderMap.get(task.folderId) || 'Folder'
-                          : 'Unfiled';
+                          : 'Tanpa Folder';
                         const deliveryTraceState = deliveryTraceStateByTaskId[task.id];
                         return (
                           <tr
@@ -406,7 +406,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                                 }}
                                 rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
                               >
-                                Inspect
+                                Lihat Detail
                               </Button>
                             </td>
                           </tr>

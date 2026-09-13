@@ -157,9 +157,7 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
     const drawerToolbar = screen.getByRole('toolbar', {
       name: 'Payment Integration Milestone navigation and controls',
     });
-    expect(drawerToolbar).toContainElement(
-      screen.getByRole('button', { name: 'Kokpit PO & iCard' }),
-    );
+    expect(drawerToolbar).toContainElement(screen.getByRole('tab', { name: 'Kokpit PO & iCard' }));
     expect(drawerToolbar).toContainElement(
       screen.getByRole('button', { name: 'Kembali ke tampilan normal' }),
     );
@@ -284,10 +282,10 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByRole('button', { name: 'Bukti QA' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Kokpit PO & iCard' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Bukti QA' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Kokpit PO & iCard' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Bukti QA' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Bukti QA' }));
     expect(await screen.findByText('Pengelolaan & Eksekusi Test Case')).toBeInTheDocument();
     expect(
       await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),

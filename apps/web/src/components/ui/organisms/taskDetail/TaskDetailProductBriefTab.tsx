@@ -25,6 +25,7 @@ export interface TaskDetailProductBriefTabProps {
   loadError: string | null;
   onReload: () => void;
   onSaved?: (brief: ProductBrief) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 const isPlanner = (role: string) => ['owner', 'admin', 'po'].includes(role);
@@ -43,14 +44,25 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
   loadError,
   onReload,
   onSaved,
+  onDirtyChange,
 }) => {
   const canPlan = isPlanner(userRole);
   const [currentBrief, setCurrentBrief] = useState(productBrief);
-  const [title, setTitle] = useState('');
-  const [contentMarkdown, setContentMarkdown] = useState('');
-  const [inScope, setInScope] = useState<ProductBriefScopeItem[]>([]);
-  const [outScope, setOutScope] = useState<ProductBriefScopeItem[]>([]);
-  const [status, setStatus] = useState<ProductBriefStatus>('draft');
+  const [title, setTitle] = useState(
+    productBrief?.document.title || `Ringkasan Produk ${task.title}`,
+  );
+  const [contentMarkdown, setContentMarkdown] = useState(
+    productBrief?.currentVersion.contentMarkdown || '',
+  );
+  const [inScope, setInScope] = useState<ProductBriefScopeItem[]>(
+    productBrief?.currentVersion.inScope || [],
+  );
+  const [outScope, setOutScope] = useState<ProductBriefScopeItem[]>(
+    productBrief?.currentVersion.outScope || [],
+  );
+  const [status, setStatus] = useState<ProductBriefStatus>(
+    productBrief?.document.status || 'draft',
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -63,6 +75,27 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
     setStatus(productBrief?.document.status || 'draft');
     setSaveError(null);
   }, [productBrief, task.id, task.title]);
+
+  const normalizedScope = (items: ProductBriefScopeItem[]) =>
+    items
+      .filter((item) => item.text.trim())
+      .map((item, position) => ({ ...item, text: item.text.trim(), position }));
+  const normalizedCurrentScope = (items: ProductBriefScopeItem[]) =>
+    items.map(({ id, text, position }) => ({ id, text: text.trim(), position }));
+  const initialTitle = currentBrief?.document.title || `Ringkasan Produk ${task.title}`;
+  const hasUnsavedChanges =
+    canPlan &&
+    (title.trim() !== initialTitle ||
+      contentMarkdown !== (currentBrief?.currentVersion.contentMarkdown || '') ||
+      status !== (currentBrief?.document.status || 'draft') ||
+      JSON.stringify(normalizedScope(inScope)) !==
+        JSON.stringify(normalizedCurrentScope(currentBrief?.currentVersion.inScope || [])) ||
+      JSON.stringify(normalizedScope(outScope)) !==
+        JSON.stringify(normalizedCurrentScope(currentBrief?.currentVersion.outScope || [])));
+
+  useEffect(() => {
+    onDirtyChange?.(hasUnsavedChanges);
+  }, [hasUnsavedChanges, onDirtyChange]);
 
   const updateScopeItem = (kind: 'in' | 'out', id: string, text: string) => {
     const update = (items: ProductBriefScopeItem[]) =>
@@ -77,11 +110,6 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
     if (kind === 'in') setInScope(remove);
     else setOutScope(remove);
   };
-
-  const normalizedScope = (items: ProductBriefScopeItem[]) =>
-    items
-      .filter((item) => item.text.trim())
-      .map((item, position) => ({ ...item, text: item.text.trim(), position }));
 
   const handleSave = async () => {
     const normalizedTitle = title.trim();
@@ -248,6 +276,11 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
         </Alert>
       )}
       {saveError && <Alert tone="error">{saveError}</Alert>}
+      {hasUnsavedChanges && (
+        <Alert tone="warning" title="Perubahan belum disimpan">
+          Simpan sebagai versi baru sebelum berpindah bagian atau menutup detail Task.
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
         <Input
@@ -308,7 +341,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
             size="sm"
             variant="primary"
             isLoading={isSaving}
-            disabled={!title.trim()}
+            disabled={!title.trim() || !hasUnsavedChanges}
             onClick={() => void handleSave()}
           >
             Simpan Versi Baru

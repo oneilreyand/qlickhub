@@ -482,6 +482,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                 activeTabId={activeTab}
                 onChange={handleTabChange}
                 variant="underline"
+                ariaLabel="Bagian detail Subtask"
               />
             </div>
 

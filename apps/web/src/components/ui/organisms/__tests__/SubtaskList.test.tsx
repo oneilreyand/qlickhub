@@ -238,9 +238,9 @@ describe('SubtaskList Organism Component', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
 
     // Inner tabs should now be rendered (Description, Discussion, Details)
-    expect(await screen.findByRole('button', { name: /^Deskripsi$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Diskusi/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Detail$/i })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: /^Deskripsi$/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^Diskusi/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^Detail$/i })).toBeInTheDocument();
   });
 
   it('displays real-time unread discussion badge on subtask row when message arrives from another member', async () => {
@@ -300,7 +300,7 @@ describe('SubtaskList Organism Component', () => {
     );
 
     fireEvent.click(screen.getByText('Build Subtask Accordion UI').closest('button')!);
-    fireEvent.click(await screen.findByRole('button', { name: /^Detail$/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /^Detail$/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Hapus Subtask' }));
 
     const confirmation = await screen.findByRole('dialog', { name: 'Hapus Subtask?' });
@@ -336,7 +336,7 @@ describe('SubtaskList Organism Component', () => {
       />,
     );
     fireEvent.click(screen.getByText('Build Subtask Accordion UI').closest('button')!);
-    fireEvent.click(await screen.findByRole('button', { name: /^detail$/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /^detail$/i }));
     expect(screen.queryByRole('button', { name: 'Hapus Subtask' })).not.toBeInTheDocument();
     firstRender.unmount();
 
@@ -354,7 +354,7 @@ describe('SubtaskList Organism Component', () => {
       />,
     );
     fireEvent.click(screen.getByText('Build Subtask Accordion UI').closest('button')!);
-    fireEvent.click(await screen.findByRole('button', { name: /^detail$/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /^detail$/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Hapus Subtask' }));
     const confirmation = await screen.findByRole('dialog', { name: 'Hapus Subtask?' });
     fireEvent.click(within(confirmation).getByRole('button', { name: 'Hapus Subtask' }));

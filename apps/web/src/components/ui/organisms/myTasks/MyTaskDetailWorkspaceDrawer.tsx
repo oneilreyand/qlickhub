@@ -160,6 +160,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
             activeTabId={activeViewMode}
             onChange={handleRoleTabChange}
             variant="pills"
+            ariaLabel="Tampilan kerja berdasarkan peran"
           />
         </div>
         <span className="hidden shrink-0 px-2 text-xs font-bold capitalize text-stone-700 dark:text-stone-300 sm:inline">

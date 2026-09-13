@@ -312,6 +312,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         variant="pills"
         activeTabId={activeBucket.code}
         onChange={setActiveBucketCode}
+        ariaLabel="Filter antrean kerja"
         tabs={buckets.map((bucket) => ({
           id: bucket.code,
           label: bucketLabels[bucket.code],

@@ -135,4 +135,34 @@ describe('TaskDetailProductBriefTab', () => {
     expect(screen.getByDisplayValue('Card checkout')).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Simpan Versi Baru' })).not.toBeInTheDocument();
   });
+
+  test('announces unsaved changes and clears the dirty state after saving', async () => {
+    const onDirtyChange = vi.fn();
+    render(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="po"
+        productBrief={brief}
+        loadError={null}
+        onReload={vi.fn()}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
+
+    expect(screen.queryByText('Perubahan belum disimpan')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simpan Versi Baru' })).toBeDisabled();
+
+    fireEvent.change(screen.getByDisplayValue('Card checkout'), {
+      target: { value: 'Card checkout baru' },
+    });
+
+    expect(screen.getByText('Perubahan belum disimpan')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simpan Versi Baru' })).toBeEnabled();
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan Versi Baru' }));
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
+    expect(screen.queryByText('Perubahan belum disimpan')).not.toBeInTheDocument();
+  });
 });

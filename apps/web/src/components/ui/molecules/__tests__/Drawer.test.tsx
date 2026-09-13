@@ -84,6 +84,48 @@ describe('Drawer', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('stays open when the parent blocks closing to resolve unsaved changes', () => {
+    const onClose = vi.fn(() => false);
+
+    render(
+      <Drawer isOpen onClose={onClose} title="Task belum disimpan" allowFullScreen={false}>
+        <p>Perubahan masih ada</p>
+      </Drawer>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tutup panel' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Perubahan masih ada')).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Task belum disimpan content' }).parentElement,
+    ).not.toHaveClass('animate-slideOutRight');
+  });
+
+  it('leaves the drawer unchanged when a nested dialog owns Escape', () => {
+    const onClose = vi.fn();
+    const onToggleFullScreen = vi.fn();
+
+    render(
+      <Drawer
+        isOpen
+        onClose={onClose}
+        title="Task dengan dialog"
+        defaultFullScreen
+        closeOnEscape={false}
+        onToggleFullScreen={onToggleFullScreen}
+      >
+        <p>Dialog sedang terbuka</p>
+      </Drawer>,
+    );
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onToggleFullScreen).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Kembali ke tampilan normal' })).toBeInTheDocument();
+  });
+
   it('can keep the application header above the drawer overlay', () => {
     render(
       <Drawer isOpen onClose={vi.fn()} title="My task details" preserveAppHeader>

@@ -318,10 +318,10 @@ describe('ReleaseAssurancePanel', () => {
     const user = userEvent.setup();
     renderPanel('release');
 
-    expect(await screen.findByText('1/2 development subtasks are complete.')).toBeInTheDocument();
+    expect(await screen.findByText('1/2 Subtask pengembangan telah selesai.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Catat Keputusan Rilis' }));
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText('1/2 development subtasks are complete.')).toBeInTheDocument();
+    expect(within(dialog).getByText('1/2 Subtask pengembangan telah selesai.')).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Catat Keputusan' }));
     expect(await within(dialog).findByText(/Alasan override wajib diisi/)).toBeInTheDocument();
   });

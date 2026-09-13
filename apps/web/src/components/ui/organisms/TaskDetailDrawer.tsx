@@ -28,6 +28,7 @@ import { getTaskScheduleValidationIssue } from '@qlick/contracts';
 import { getIndonesianTaskScheduleMessage } from '../../../lib/i18n/indonesianCopy';
 
 import { Drawer } from '../molecules/Drawer';
+import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
 import { Skeleton } from '../atoms/Skeleton';
 import { TaskCommentBox } from '../molecules/TaskCommentBox';
@@ -153,6 +154,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
+  const [isProductBriefDirty, setIsProductBriefDirty] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<
+    { type: 'tab'; tabId: string } | { type: 'close' } | null
+  >(null);
 
   // Persisted Product Brief remains available to read-only schedule context.
   const [productBrief, setProductBrief] = useState<ProductBrief | null>(null);
@@ -196,6 +201,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   useEffect(() => {
     setUnreadSubtaskCommentMap({});
   }, [task?.id]);
+
+  useEffect(() => {
+    if (!task) {
+      setIsProductBriefDirty(false);
+      setPendingNavigation(null);
+    }
+  }, [task]);
 
   // Connect realtime SSE event listener for task & subtask discussions
   useRealtimeEvents({
@@ -327,6 +339,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         setStartDate(task.startDate || '');
         setDueDate(task.dueDate || '');
         setActiveTab('overview');
+        setIsProductBriefDirty(false);
+        setPendingNavigation(null);
         setActivityPage(1);
         setCommentsPage(1);
         setHasUnreadDiscussion(false);
@@ -546,6 +560,26 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
+  const taskDraftIsDirty = Boolean(
+    task &&
+    (description !== (task.description || '') ||
+      status !== task.status ||
+      priority !== task.priority ||
+      folderId !== (task.folderId || null) ||
+      startDate !== (task.startDate || '') ||
+      dueDate !== (task.dueDate || '')),
+  );
+
+  useEffect(() => {
+    if (!taskDraftIsDirty && !isProductBriefDirty) return;
+    const protectBrowserNavigation = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', protectBrowserNavigation);
+    return () => window.removeEventListener('beforeunload', protectBrowserNavigation);
+  }, [taskDraftIsDirty, isProductBriefDirty]);
+
   if (!task) {
     if (!pendingTaskId) return null;
 
@@ -556,6 +590,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         width="4xl"
         defaultFullScreen={true}
         allowFullScreen={true}
+        closeOnEscape={!pendingNavigation}
         title={detailLoadError ? 'Detail task tidak tersedia' : 'Memuat detail task'}
         subtitle={
           detailLoadError
@@ -914,12 +949,53 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
-  const handleTabChange = (tabId: string) => {
+  const commitTabChange = (tabId: string) => {
     setActiveTab(tabId);
     if (tabId === 'discussion') {
       setHasUnreadDiscussion(false);
       setUnreadDiscussionCount(0);
     }
+  };
+
+  const activeSectionIsDirty =
+    (activeTab === 'overview' && taskDraftIsDirty) ||
+    (activeTab === 'brief' && isProductBriefDirty);
+
+  const handleTabChange = (tabId: string) => {
+    if (tabId === activeTab) return;
+    if (activeSectionIsDirty) {
+      setPendingNavigation({ type: 'tab', tabId });
+      return;
+    }
+    commitTabChange(tabId);
+  };
+
+  const handleRequestClose = () => {
+    if (activeSectionIsDirty) {
+      setPendingNavigation({ type: 'close' });
+      return false;
+    }
+    onClose();
+    return true;
+  };
+
+  const discardDraftAndContinue = () => {
+    const pending = pendingNavigation;
+    setPendingNavigation(null);
+    if (!pending) return;
+
+    if (activeTab === 'overview' && task) {
+      setDescription(task.description || '');
+      setStatus(task.status);
+      setPriority(task.priority);
+      setFolderId(task.folderId || null);
+      setStartDate(task.startDate || '');
+      setDueDate(task.dueDate || '');
+    }
+    if (activeTab === 'brief') setIsProductBriefDirty(false);
+
+    if (pending.type === 'close') onClose();
+    else commitTabChange(pending.tabId);
   };
 
   const detailTabs: TabItem[] = [
@@ -969,7 +1045,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     <>
       <Drawer
         isOpen={Boolean(task)}
-        onClose={onClose}
+        onClose={handleRequestClose}
         width="4xl"
         defaultFullScreen={true}
         allowFullScreen={true}
@@ -981,65 +1057,74 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             activeTabId={activeTab}
             onChange={handleTabChange}
             variant="pills"
+            ariaLabel="Bagian detail Task"
           />
         }
         footer={
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              {canCompleteThisTask && (
-                <>
+          activeTab === 'overview' ? (
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                {canCompleteThisTask && (
+                  <>
+                    <Button
+                      variant={task.status === 'done' ? 'outline' : 'primary'}
+                      size="sm"
+                      onClick={handleToggleComplete}
+                      isLoading={isSaving}
+                      leftIcon={
+                        task.status === 'done' ? (
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        ) : (
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        )
+                      }
+                    >
+                      {task.status === 'done'
+                        ? isSubtask
+                          ? 'Buka Kembali Subtask'
+                          : 'Buka Kembali Task'
+                        : isSubtask
+                          ? 'Setujui Subtask (Selesai)'
+                          : 'Selesaikan Task'}
+                    </Button>
+                    {hasIncompleteSubtasks && task.status !== 'done' && (
+                      <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 hidden sm:inline">
+                        ({incompleteSubtasks.length} subtask tertunda)
+                      </span>
+                    )}
+                  </>
+                )}
+                {canPlan && (
                   <Button
-                    variant={task.status === 'done' ? 'outline' : 'primary'}
+                    variant="destructive"
                     size="sm"
-                    onClick={handleToggleComplete}
-                    isLoading={isSaving}
-                    leftIcon={
-                      task.status === 'done' ? (
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      ) : (
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                      )
-                    }
+                    onClick={() => setIsDeleteConfirmationOpen(true)}
+                    disabled={isSaving || isDeletingTask}
+                    leftIcon={<Trash2 className="h-3.5 w-3.5" />}
                   >
-                    {task.status === 'done'
-                      ? isSubtask
-                        ? 'Buka Kembali Subtask'
-                        : 'Buka Kembali Task'
-                      : isSubtask
-                        ? 'Setujui Subtask (Selesai)'
-                        : 'Selesaikan Task'}
+                    {isSubtask ? 'Hapus Subtask' : 'Hapus Task'}
                   </Button>
-                  {hasIncompleteSubtasks && task.status !== 'done' && (
-                    <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 hidden sm:inline">
-                      ({incompleteSubtasks.length} subtask tertunda)
-                    </span>
-                  )}
-                </>
-              )}
-              {canPlan && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setIsDeleteConfirmationOpen(true)}
-                  disabled={isSaving || isDeletingTask}
-                  leftIcon={<Trash2 className="h-3.5 w-3.5" />}
-                >
-                  {isSubtask ? 'Hapus Subtask' : 'Hapus Task'}
-                </Button>
-              )}
-            </div>
+                )}
+              </div>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={onClose}>
-                Batal
-              </Button>
-              {canEditTask && (
-                <Button variant="primary" size="sm" isLoading={isSaving} onClick={handleSave}>
-                  Simpan Perubahan
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={handleRequestClose}>
+                  Batal
                 </Button>
-              )}
+                {canEditTask && (
+                  <Button variant="primary" size="sm" isLoading={isSaving} onClick={handleSave}>
+                    Simpan Perubahan
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex w-full justify-end">
+              <Button variant="outline" size="sm" onClick={handleRequestClose}>
+                Tutup Detail
+              </Button>
+            </div>
+          )
         }
       >
         <div className="space-y-4">
@@ -1090,8 +1175,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               onReload={() => void loadProductBrief()}
               onSaved={(brief) => {
                 setProductBrief(brief);
+                setIsProductBriefDirty(false);
                 void loadActivity(1);
               }}
+              onDirtyChange={setIsProductBriefDirty}
             />
           )}
 
@@ -1233,6 +1320,24 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         isDeleting={isDeletingTask}
         onConfirmDelete={() => void handleDeleteTask()}
       />
+
+      <Modal
+        isOpen={Boolean(pendingNavigation)}
+        onClose={() => setPendingNavigation(null)}
+        title="Perubahan belum disimpan"
+        description="Perubahan pada bagian ini belum tersimpan."
+        primaryActionLabel="Buang Perubahan"
+        primaryActionVariant="destructive"
+        onPrimaryAction={discardDraftAndContinue}
+        secondaryActionLabel="Tetap Mengedit"
+        size="sm"
+      >
+        <p>
+          {activeTab === 'brief'
+            ? 'Simpan Ringkasan Produk sebagai versi baru agar perubahan tidak hilang.'
+            : 'Simpan perubahan Task terlebih dahulu agar perubahan tidak hilang.'}
+        </p>
+      </Modal>
     </>
   );
 };

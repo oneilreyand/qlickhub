@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { X, Maximize2, Minimize2 } from 'lucide-react';
 import { IconButton } from '../atoms/IconButton';
 
 export interface DrawerProps {
   isOpen: boolean;
-  onClose: () => void;
+  /** Return false when a parent needs to keep the drawer open, for example to confirm a dirty form. */
+  onClose: () => void | boolean;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export interface DrawerProps {
   headerActions?: React.ReactNode;
   toolbar?: React.ReactNode;
   preserveAppHeader?: boolean;
+  closeOnEscape?: boolean;
 }
 
 export const Drawer: React.FC<DrawerProps> = ({
@@ -34,6 +36,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   headerActions,
   toolbar,
   preserveAppHeader = false,
+  closeOnEscape = true,
 }) => {
   const [internalFullScreen, setInternalFullScreen] = useState(defaultFullScreen);
   const isFullScreen =
@@ -61,15 +64,16 @@ export const Drawer: React.FC<DrawerProps> = ({
     };
   }, [isOpen, defaultFullScreen, shouldRender]);
 
-  const handleInitiateClose = () => {
+  const handleInitiateClose = useCallback(() => {
     if (isClosing) return;
+    if (onClose() === false) return;
     setIsClosing(true);
-    onClose();
-  };
+  }, [isClosing, onClose]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (!closeOnEscape) return;
         if (isFullScreen) {
           setInternalFullScreen(false);
           onToggleFullScreen?.(false);
@@ -86,7 +90,7 @@ export const Drawer: React.FC<DrawerProps> = ({
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [shouldRender, isFullScreen, isClosing, onClose, onToggleFullScreen]);
+  }, [shouldRender, isFullScreen, onToggleFullScreen, handleInitiateClose, closeOnEscape]);
 
   if (!shouldRender) return null;
 

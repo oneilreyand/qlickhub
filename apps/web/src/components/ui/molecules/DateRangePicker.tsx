@@ -18,7 +18,7 @@ export interface DateRangePickerProps {
 export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   value,
   onChange,
-  placeholder = 'Select date range',
+  placeholder = 'Pilih rentang tanggal',
   className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -91,45 +91,43 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   return (
     <div className={`relative inline-block text-left ${className}`} ref={containerRef}>
-      {/* Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        aria-label="Pick date range"
-        className={`inline-flex min-h-[44px] items-center justify-between gap-2.5 rounded-xl border px-3.5 text-xs font-semibold shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-[#B1E743]/30 ${
-          internalRange
-            ? 'border-[#B1E743] bg-[#B1E743] text-[#141413] font-bold dark:border-[#B1E743] dark:bg-[#B1E743] dark:text-[#141413]'
-            : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 opacity-70" />
-          <span>{labelText}</span>
-        </div>
-        {internalRange ? (
+      {/* Trigger controls */}
+      <div className="relative inline-flex">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-expanded={isOpen}
+          aria-label="Pilih rentang tanggal"
+          className={`inline-flex min-h-[44px] items-center justify-between gap-2.5 rounded-xl border px-3.5 text-xs font-semibold shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-[#B1E743]/30 ${
+            internalRange
+              ? 'border-[#B1E743] bg-[#B1E743] pr-10 text-[#141413] font-bold dark:border-[#B1E743] dark:bg-[#B1E743] dark:text-[#141413]'
+              : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 opacity-70" />
+            <span>{labelText}</span>
+          </span>
+          {!internalRange && <ChevronDown className="h-4 w-4 text-stone-400 dark:text-stone-500" />}
+        </button>
+        {internalRange && (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleClear();
-            }}
+            onClick={handleClear}
             aria-label="Hapus rentang tanggal"
-            className="grid h-4 w-4 place-items-center rounded-full opacity-80 hover:opacity-100"
+            className="absolute right-3 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full text-[#141413]/80 hover:bg-[#141413]/10 hover:text-[#141413] focus:outline-none focus:ring-2 focus:ring-[#141413]/30"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
-        ) : (
-          <ChevronDown className="h-4 w-4 text-stone-400 dark:text-stone-500" />
         )}
-      </button>
+      </div>
 
       {/* Popover Card */}
       {isOpen && (
         <div className="absolute left-0 mt-2 w-72 rounded-2xl border border-stone-200 bg-white p-4 shadow-2xl ring-1 ring-stone-900/5 z-40 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100">
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-              Presets
+              Pilihan Cepat
             </h4>
             <div className="grid grid-cols-2 gap-1.5">
               <button
@@ -137,39 +135,39 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 onClick={() => handleApplyPreset('today')}
                 className="rounded-xl border border-stone-100 bg-stone-50 px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-900 dark:border-stone-800 dark:bg-stone-800/60 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100 transition-colors"
               >
-                Today
+                Hari Ini
               </button>
               <button
                 type="button"
                 onClick={() => handleApplyPreset('7days')}
                 className="rounded-xl border border-stone-100 bg-stone-50 px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-900 dark:border-stone-800 dark:bg-stone-800/60 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100 transition-colors"
               >
-                Last 7 Days
+                7 Hari Terakhir
               </button>
               <button
                 type="button"
                 onClick={() => handleApplyPreset('30days')}
                 className="rounded-xl border border-stone-100 bg-stone-50 px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-900 dark:border-stone-800 dark:bg-stone-800/60 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100 transition-colors"
               >
-                Last 30 Days
+                30 Hari Terakhir
               </button>
               <button
                 type="button"
                 onClick={() => handleApplyPreset('thisMonth')}
                 className="rounded-xl border border-stone-100 bg-stone-50 px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-900 dark:border-stone-800 dark:bg-stone-800/60 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100 transition-colors"
               >
-                This Month
+                Bulan Ini
               </button>
             </div>
 
             <div className="border-t border-stone-100 pt-3 dark:border-stone-800">
               <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 dark:text-stone-400">
-                Custom Range
+                Rentang Khusus
               </h4>
               <div className="space-y-2">
                 <div>
                   <label className="block text-[10px] font-semibold text-stone-500 mb-1 dark:text-stone-400">
-                    Start Date
+                    Tanggal Mulai
                   </label>
                   <input
                     type="date"
@@ -185,7 +183,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 </div>
                 <div>
                   <label className="block text-[10px] font-semibold text-stone-500 mb-1 dark:text-stone-400">
-                    End Date
+                    Tanggal Akhir
                   </label>
                   <input
                     type="date"
@@ -208,7 +206,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 onClick={handleClear}
                 className="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
               >
-                Clear
+                Hapus
               </button>
               <button
                 type="button"
@@ -216,7 +214,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 disabled={!internalRange?.startDate || !internalRange?.endDate}
                 className="rounded-xl bg-[#B1E743] px-3 py-1.5 text-xs font-bold text-[#141413] shadow-xs hover:bg-[#9ed434] active:bg-[#8cc026] disabled:opacity-40 transition-all dark:bg-[#B1E743] dark:text-[#141413]"
               >
-                Apply Range
+                Terapkan Rentang
               </button>
             </div>
           </div>

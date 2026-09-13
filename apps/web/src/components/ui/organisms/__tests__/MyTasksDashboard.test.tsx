@@ -57,11 +57,9 @@ describe('MyTasksDashboard Organism', () => {
     expect(
       screen.getByText('Prioritas Developer ditentukan dari alur Workspace yang tersimpan.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Pekerjaan yang Ditugaskan/ })).toHaveTextContent(
-      '1',
-    );
-    expect(screen.getByRole('button', { name: /Masukan Review/ })).toHaveTextContent('0');
-    expect(screen.getByRole('button', { name: /Perbaikan Bug/ })).toHaveTextContent('1');
+    expect(screen.getByRole('tab', { name: /Pekerjaan yang Ditugaskan/ })).toHaveTextContent('1');
+    expect(screen.getByRole('tab', { name: /Masukan Review/ })).toHaveTextContent('0');
+    expect(screen.getByRole('tab', { name: /Perbaikan Bug/ })).toHaveTextContent('1');
     expect(
       screen.getByText('Subtask frontend ini ditugaskan kepada Anda dan berstatus in progress.'),
     ).toBeInTheDocument();
@@ -141,9 +139,9 @@ describe('MyTasksDashboard Organism', () => {
     };
 
     assertIllustration('Ilustrasi tidak ada pekerjaan Requirement');
-    fireEvent.click(screen.getByRole('button', { name: /Keputusan Rilis/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /Keputusan Rilis/ }));
     assertIllustration('Ilustrasi tidak ada keputusan rilis');
-    fireEvent.click(screen.getByRole('button', { name: /Pekerjaan Timeline/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /Pekerjaan Timeline/ }));
     assertIllustration('Ilustrasi tidak ada pekerjaan timeline');
   });
 
@@ -163,7 +161,7 @@ describe('MyTasksDashboard Organism', () => {
       </Provider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Perbaikan Bug/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /Perbaikan Bug/ }));
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Buka Checkout total mismatch. Tindakan berikutnya: Mulai Perbaikan Bug',

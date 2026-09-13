@@ -29,6 +29,7 @@ import { Textarea } from '../atoms/Textarea';
 import { EmptyState } from '../molecules/EmptyState';
 import { Modal } from '../molecules/Modal';
 import { releaseDecisionService } from '../../../lib/api/releaseDecisionService';
+import { getIndonesianReleaseGateCopy } from '../../../lib/i18n/indonesianCopy';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type { RootState } from '../../../store/store';
 import { enqueueSnackbar } from '../../../store/uiSlice';
@@ -121,28 +122,31 @@ const SnapshotGates: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) 
         )}
       </div>
       <ul className="space-y-1.5">
-        {snapshot.evaluation.gates.map((gate) => (
-          <li
-            key={gate.code}
-            className="flex items-start gap-2 rounded-xl border border-stone-200 p-2.5 text-xs dark:border-stone-800"
-          >
-            {gate.status === 'passed' ? (
-              <CheckCircle2
-                className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-                aria-hidden="true"
-              />
-            ) : (
-              <XCircle
-                className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
-                aria-hidden="true"
-              />
-            )}
-            <span>
-              <span className="font-bold text-stone-900 dark:text-stone-100">{gate.label}: </span>
-              <span className="text-stone-600 dark:text-stone-400">{gate.reason}</span>
-            </span>
-          </li>
-        ))}
+        {snapshot.evaluation.gates.map((gate) => {
+          const copy = getIndonesianReleaseGateCopy(gate);
+          return (
+            <li
+              key={gate.code}
+              className="flex items-start gap-2 rounded-xl border border-stone-200 p-2.5 text-xs dark:border-stone-800"
+            >
+              {gate.status === 'passed' ? (
+                <CheckCircle2
+                  className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                  aria-hidden="true"
+                />
+              ) : (
+                <XCircle
+                  className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                  aria-hidden="true"
+                />
+              )}
+              <span>
+                <span className="font-bold text-stone-900 dark:text-stone-100">{copy.label}: </span>
+                <span className="text-stone-600 dark:text-stone-400">{copy.reason}</span>
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

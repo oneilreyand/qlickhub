@@ -19,10 +19,10 @@ export const TaskHubDatePresetBar: React.FC<TaskHubDatePresetBarProps> = ({
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300">
             <CalendarIcon className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-            <span>Feature schedule scope</span>
+            <span>Cakupan jadwal Feature</span>
           </div>
           <p className="mt-1 pl-6 text-[11px] text-stone-500 dark:text-stone-400">
-            Choose which Features appear in the schedule.
+            Pilih Feature yang ingin ditampilkan dalam jadwal.
           </p>
         </div>
 

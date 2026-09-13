@@ -35,10 +35,11 @@ describe('ReleaseReadinessSignal', () => {
     );
 
     expect(screen.getByText('Rilis terblokir · 2 gate perlu ditindaklanjuti')).toBeInTheDocument();
-    expect(screen.getByText(/1\/2 development subtasks are complete/)).toBeInTheDocument();
+    expect(screen.getByText(/1\/2 Subtask pengembangan telah selesai/)).toBeInTheDocument();
     expect(
-      screen.getByText('No completed Test Run is recorded for the active mapped Test Cases.'),
+      screen.getByText('Belum ada Test Run selesai untuk Test Case aktif yang tertaut.'),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Hasil Test Run terbaru/)).toBeInTheDocument();
     expect(screen.getByLabelText('Gate rilis yang perlu ditindaklanjuti')).toBeInTheDocument();
   });
 
