@@ -56,3 +56,19 @@ Perubahan Onboarding Wizard (`RoleOnboardingModal`) dan Session Timeout Modal (`
   - `npm run typecheck`: `@qlick/contracts`, `@qlick/api`, dan `@qlick/web` semuanya 0 error.
 - `npm run env:check`: lulus 0 warning, tidak ada secret yang tercetak.
 - `npm run build`: lulus build produksi untuk packages/contracts, apps/api, dan apps/web (1.708 modul ditransformasi oleh Vite).
+- **Vercel Production Deployment**:
+  - Deployment ID: `dpl_BTAjpxKU1WeDadxSErExcfP8xHnW`
+  - URL Deployment: `https://qlickhub-ce2vei57y-oneilreyands-projects.vercel.app`
+  - Alias Kanonikal: `https://qlickhub.vercel.app`
+  - Ready State: `READY`
+  - Cloud Build: Sukses men-transform 1.708 modul Vite dan bundle monorepo dalam 8,54s.
+- **Live Production Smoke Verification**:
+  - `curl -sI https://qlickhub.vercel.app/`: HTTP/2 200 OK.
+  - `curl -sI https://qlickhub.vercel.app/login`: HTTP/2 200 OK.
+  - `curl -sI https://qlickhub.vercel.app/v1`: HTTP/2 200 OK.
+  - `curl -s https://qlickhub.vercel.app/v1/health`: `{"status":"ok","service":"authentication-api","timestamp":"...","database":{"status":"connected"}}`.
+  - `curl -sI https://qlickhub.vercel.app/v1/workspaces`: HTTP/2 401 Unauthorized (authorization guard terverifikasi aktif).
+  - Verifikasi konten bundle aktif:
+    - Entry chunk `dist/assets/index-DRHP72og.js`: HTTP/2 200 (388.92 kB).
+    - AppLayout chunk `dist/assets/AppLayout-BZR8xleO.js`: Terbukti memuat string `qlick_last_activity_at`, `idle_timeout`, dan teks alur Onboarding baru `Product Brief`.
+
