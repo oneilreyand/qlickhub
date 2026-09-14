@@ -6,14 +6,17 @@ Workspace development `essensial` ke `kerjaa` tanpa mengaktifkan hard gate.
 ## Outcome
 
 Instruksi pengguna 14 September 2026 menetapkan Workspace development `kerjaa` sebagai target pilot
-baru. Workspace aktif tersebut ditemukan dengan nama dan slug `kerjaa`. Audit baca-saja tidak
-mengubah record apa pun dan menemukan bahwa kohor belum siap: hanya terdapat satu Owner aktif,
-tanpa anggota Development atau QA, root Feature, Subtask, Requirement/Acceptance Criteria, Product
-Brief, review kesiapan, baseline, atau Temuan Requirement.
+baru. Audit baca-saja awal menemukan Workspace tersebut masih kosong selain satu Owner. Audit ulang
+pada database Production kemudian mengonfirmasi data nyata telah ditambahkan: satu Owner, satu
+Developer, satu QA, root Feature `billing v3`, tiga Subtask, dua Requirement aktif beserta Acceptance
+Criteria aktif, dan Product Brief utama versi 1 yang approved.
 
-Pilot tetap berstatus blocked. Setelah peserta dan Feature nyata tersedia, tanggal mulai baru harus
-ditetapkan secara eksplisit agar jendela observasi empat minggu tidak dipendekkan. Laporan kickoff
-Workspace `essensial` tetap dipertahankan sebagai histori keputusan sebelumnya, bukan status aktif.
+Kohor dan artefak planning dasar kini tersedia, tetapi pilot tetap berstatus blocked karena belum
+ada review kesiapan Developer/QA maupun baseline Feature. Assignee Developer dan QA harus mengirim
+review mereka sendiri melalui panel **Kesiapan Feature**, kemudian Owner menetapkan baseline normal
+bila kelima pemeriksaan backend lulus. Tanggal mulai dan akhir empat minggu ditetapkan eksplisit
+setelah baseline tersedia, tanpa backdate. Laporan kickoff Workspace `essensial` tetap dipertahankan
+sebagai histori keputusan sebelumnya, bukan status aktif.
 
 ## Source of truth and impact
 
@@ -25,7 +28,7 @@ Workspace `essensial` tetap dipertahankan sebagai histori keputusan sebelumnya, 
 - **Policy IDs:** `DOMAIN-002`, `DOMAIN-003`, `DOMAIN-004`, `AUTH-001`, `AUTH-002`, `FLOW-002`,
   `FLOW-005`, `QA-005`, `DATA-001`, `DATA-002`, `DATA-004`, `DATA-005`, `CONTRACT-001`, `TEST-001`,
   `DOC-002`, `DOC-003`, `DOC-004`.
-- **Data/interface impact:** tidak ada. Audit hanya membaca agregat database development dan tidak
+- **Data/interface impact:** tidak ada. Audit hanya membaca agregat database Production dan tidak
   membuat atau mengubah anggota, Task, Requirement, dokumen, review, baseline, maupun temuan.
 - **Authorization impact:** tidak ada. Batas peran P1A/P1B dan kewajiban assignee Development/QA
   tetap mengikuti policy backend yang ada.
@@ -34,32 +37,36 @@ Workspace `essensial` tetap dipertahankan sebagai histori keputusan sebelumnya, 
 
 ## Changed files
 
-- `TODO.md` — mengganti target aktif P1C dan mencatat blocker faktual Workspace `kerjaa`.
-- `docs/plans/SDLC_QUALITY_AND_RELEASE_PLAN.md` — menyelaraskan target serta langkah pertama pilot.
-- `docs/features/SDLC_QUALITY_AND_RELEASE.md` — memperbarui status Feature Card dan baseline target.
+- `TODO.md` — mencatat kelengkapan kohor terbaru dan blocker review/baseline.
+- `docs/plans/SDLC_QUALITY_AND_RELEASE_PLAN.md` — menyelaraskan status Production serta langkah
+  berikutnya untuk memulai pilot.
+- `docs/features/SDLC_QUALITY_AND_RELEASE.md` — memperbarui status Feature Card dengan bukti terbaru.
 - `docs/reports/SDLC_P1C_KERJAA_OBSERVATION_PILOT_RETARGET_2026-09-14.md` — mencatat keputusan,
   audit baca-saja, dan handoff.
 
 ## Validation
 
-- Daftar Workspace development baca-saja — menemukan tepat satu Workspace aktif bernama `kerjaa`
-  dengan slug `kerjaa`.
-- Audit agregat Sequelize baca-saja pada Workspace `kerjaa` — anggota aktif: Owner 1, Admin 0,
-  Product Owner 0, Developer 0, QA 0; root Feature 0; Subtask 0; Requirement aktif 0; Acceptance
-  Criteria aktif 0; Product Brief 0; review kesiapan 0; baseline 0; Temuan Requirement 0.
+- Audit PostgreSQL baca-saja menggunakan alias database Production eksplisit — menemukan tepat satu
+  Workspace aktif bernama dan berslug `kerjaa`; transaksi diakhiri tanpa commit data bisnis.
+- Audit kohor Production — anggota aktif: Owner 1, Admin 0, Product Owner 0, Developer 1, QA 1;
+  root Feature 1 (`billing v3`); Subtask 3, termasuk satu Development yang ditugaskan kepada
+  Developer dan satu QA yang ditugaskan kepada QA.
+- Audit artefak Feature `billing v3` — dua Requirement aktif, masing-masing memiliki satu Acceptance
+  Criterion aktif; satu Product Brief utama versi 1 berstatus approved; review kesiapan 0; baseline
+  0; Temuan Requirement 0.
 - `npm run docs:check` — lulus 5/5 test governance, 0 gagal dan 0 dilewati; validasi tautan dan
   policy registry lulus.
 - `git diff --check` — lulus tanpa whitespace error.
 
 ## Risks or follow-up
 
-- **Blocker:** Owner perlu menambahkan anggota Product/Development/QA nyata sesuai kebutuhan kohor,
-  membuat root Feature pilot nyata, serta membuat dan menugaskan Subtask Development dan QA.
-- Planner kemudian perlu menyetujui Product Brief, menautkan minimal satu Requirement aktif dengan
-  Acceptance Criteria aktif, meminta review kesiapan Development dan QA, lalu menetapkan baseline.
+- **Blocker:** assignee Developer dan QA perlu mengirim review kesiapan mereka sendiri pada Feature
+  `billing v3`; identitas dan pendapat review tidak boleh diwakili atau direkayasa oleh agen.
+- Setelah kedua review tersedia, Owner perlu menetapkan baseline normal melalui UI bila kelima
+  pemeriksaan backend lulus.
 - Jangan membuat identitas, histori, Test Result, atau bukti QA palsu untuk membuka blocker.
-- Tanggal mulai pilot lama tidak dibawa ke target baru; tetapkan jendela empat minggu setelah semua
-  prasyarat tersedia.
+- Tanggal mulai pilot lama tidak dibawa ke target baru; tetapkan jendela empat minggu setelah
+  baseline tersedia, tanpa backdate.
 
 ## TODO update
 

@@ -1,6 +1,6 @@
 # SDLC-QUALITY-RELEASE — Kualitas Delivery dan Paket Rilis
 
-**Status:** Active — P1A/P1B selesai lokal; preflight P1C Kerjaa blocked; P2–P6 belum aktif
+**Status:** Active — P1A/P1B tersedia di Production; P1C Kerjaa menunggu review/baseline; P2–P6 belum aktif
 **Owner:** Product dan Engineering; QA sebagai pemangku kepentingan
 **Last reviewed:** 2026-09-14
 **Applicable Policy IDs:** `DOMAIN-002`, `DOMAIN-003`, `DOMAIN-004`, `AUTH-001`, `AUTH-002`, `FLOW-002`, `FLOW-005`, `FLOW-006`, `QA-001`, `QA-002`, `QA-003`, `QA-004`, `QA-005`, `RELEASE-001`, `RELEASE-002`, `DATA-001`, `DATA-002`, `DATA-004`, `DATA-005`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-002`, `DOC-003`, `DOC-004`
@@ -18,10 +18,11 @@ berikutnya.
 
 Atas keputusan pengguna 14 September 2026, target pilot empat minggu dipindahkan dari Workspace
 development `essensial` ke `kerjaa`; migrasi additive 67–69 tetap sudah tersedia. Audit read-only
-menemukan `kerjaa` baru memiliki satu Owner, tanpa anggota Development/QA, root Feature, Subtask,
-Requirement/AC, Product Brief, review kesiapan, baseline, atau temuan. Karena itu pilot belum
-memiliki jendela observasi yang sah. Keputusan retarget dan baseline kelengkapan dicatat pada
-[laporan retarget P1C](../reports/SDLC_P1C_KERJAA_OBSERVATION_PILOT_RETARGET_2026-09-14.md).
+Production terbaru mengonfirmasi satu Owner, satu Developer, satu QA, root Feature `billing v3`,
+tiga Subtask yang mencakup Development/QA, dua Requirement aktif beserta Acceptance Criteria, dan
+Product Brief utama versi 1 yang approved. Review kesiapan Developer/QA dan baseline Feature belum
+tersedia, sehingga pilot belum memiliki jendela observasi yang sah. Bukti audit dan blocker terbaru
+dicatat pada [laporan P1C](../reports/SDLC_P1C_KERJAA_OBSERVATION_PILOT_RETARGET_2026-09-14.md).
 
 ## 1. Tujuan dan Pengguna
 
@@ -110,9 +111,9 @@ visual; hasil lengkap dicatat pada
 
 ## 9. Release dan Readiness
 
-P1A/P1B hanya pencatatan observasi dan tidak mengubah gate Subtask atau release readiness yang aktif.
-Task selesai, QA sign-off, keputusan PO, deployment, dan verifikasi Production tetap berbeda.
-Perubahan ini belum dideploy atau dimigrasikan ke Production; operasi Production mengikuti
+P1A/P1B sudah tersedia di Production hanya sebagai pencatatan observasi dan tidak mengubah gate
+Subtask atau release readiness yang aktif. Task selesai, QA sign-off, keputusan PO, deployment, dan
+verifikasi Production tetap berbeda. Operasi Production berikutnya tetap mengikuti
 [runbook aktif](../DEPLOYMENT_AND_ENVIRONMENTS.md).
 
 ## 10. Traceability

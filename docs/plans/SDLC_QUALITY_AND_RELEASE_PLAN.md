@@ -1,6 +1,6 @@
 # Rencana SDLC, Kualitas Tim, dan Paket Rilis
 
-**Status:** Active bertahap — P0/P1A/P1B selesai lokal; P1C blocked; K4–K7/K9–K10 menunggu keputusan
+**Status:** Active bertahap — P0/P1A/P1B tersedia di Production; P1C blocked; K4–K7/K9–K10 menunggu keputusan
 **Disusun:** Codex, 2026-09-12
 **Pemilik keputusan yang diusulkan:** Product dan Engineering bersama perwakilan QA
 **Cakupan pekerjaan saat ini:** pelacakan implementasi bertahap; bukan otorisasi deployment atau enforcement Production
@@ -142,8 +142,8 @@ yang relevan. ID P0–P6 adalah urutan lokal rencana, bukan klaim item implement
 
 Paket keputusan, audit agregat Lokal/Production, rekonsiliasi sumber, dan peta pembaca tersedia di
 [audit P0](SDLC_P0_DECISION_AND_DATA_AUDIT.md). K1–K3/K8 sudah disetujui; ADR-013, Architecture,
-Workflow, dan Policy Registry sudah diselaraskan. P1A/P1B selesai secara lokal dalam mode
-observasi; preflight P1C diblokir oleh prasyarat anggota dan Subtask QA pada Workspace pilot.
+Workflow, dan Policy Registry sudah diselaraskan. P1A/P1B tersedia di Production dalam mode
+observasi; preflight P1C kini diblokir oleh review kesiapan Dev/QA dan baseline Feature.
 
 - Selesaikan K1–K3/K8 untuk tahap awal, lalu keputusan tahap lain sesuai dependensinya.
 - Rekonsiliasi perbedaan sumber pada §2, dokumentasikan keputusan di ADR/SSoT, perbarui Feature Card.
@@ -156,10 +156,11 @@ observasi; preflight P1C diblokir oleh prasyarat anggota dan Subtask QA pada Wor
 
 ### P1 — Kesiapan Requirement dan pencegahan cacat
 
-- **Status:** P1A dan P1B mode observasi selesai di implementasi lokal. Atas keputusan pengguna
-  14 September 2026, target P1C dipindahkan ke Workspace development `kerjaa`. Pilot belum mulai
-  karena Workspace belum memiliki anggota Development/QA, root Feature, atau Subtask; hard gate
-  tetap nonaktif.
+- **Status:** P1A dan P1B mode observasi sudah tersedia di Production. Atas keputusan pengguna
+  14 September 2026, target P1C dipindahkan ke Workspace development `kerjaa`. Audit Production
+  terbaru menemukan Owner, Developer, QA, root Feature `billing v3`, Subtask Development/QA,
+  Requirement/AC aktif, dan Product Brief approved. Pilot belum mulai karena review kesiapan
+  Developer/QA serta baseline Feature belum tersedia; hard gate tetap nonaktif.
 - P1a: baseline Requirement/AC berversi dan histori perubahan dalam konteks Feature. Slice P1A
   mengirim snapshot immutable dan deteksi perubahan tanpa mengubah sumber kanonikal Requirement.
 - P1b: Temuan Requirement, klarifikasi, posisi triage Product–Development–QA, hasil konsensus atau
@@ -311,8 +312,8 @@ bukan klaim sertifikasi atau kepatuhan universal.
 | Data frontend     | `apps/web/src/lib/api/`, `apps/web/src/store/reportSlice.ts`, store terkait                                                                                                         | Shared-contract services/Redux Thunk untuk endpoint baru                     |
 | Pengujian/operasi | `__tests__` modul terkait, `apps/api/scripts/`, `docs/DEPLOYMENT_AND_ENVIRONMENTS.md`                                                                                               | Kasus scope/evidence/release/migration dan runbook sesuai integrasi terpilih |
 
-Lokasi P1A/P1B di atas sudah final pada implementasi lokal. Lokasi slice setelahnya tetap dikonfirmasi
-saat item tersebut diklaim.
+Lokasi P1A/P1B di atas sudah final dan implementasinya tersedia di Production. Lokasi slice
+setelahnya tetap dikonfirmasi saat item tersebut diklaim.
 
 ## 9. Authorization, migrasi, dan rollout
 
@@ -387,10 +388,12 @@ Production dapat ditelusuri. Dashboard tidak dianggap selesai jika angkanya tak 
 ## 11. Handoff dan langkah pertama
 
 - P0 selesai setelah keputusan K1–K3/K8, audit data, ADR, dan SSoT diselaraskan.
-- P1A dan P1B selesai secara lokal dalam mode observasi; hard gate tetap nonaktif.
-- Pekerjaan berikutnya adalah memenuhi prasyarat lintas peran P1C pada Workspace development
-  `kerjaa`, lalu menetapkan jendela pilot empat minggu secara eksplisit. Jangan membuat anggota,
-  Feature, Subtask, Test Result, atau bukti QA palsu untuk membuka blocker.
+- P1A dan P1B tersedia di Production dalam mode observasi; hard gate tetap nonaktif.
+- Pekerjaan berikutnya adalah meminta assignee Developer dan QA pada Feature `billing v3` mengirim
+  review melalui panel **Kesiapan Feature**, lalu Owner menetapkan baseline normal bila kelima
+  pemeriksaan backend lulus. Setelah baseline tersedia, tetapkan jendela pilot empat minggu secara
+  eksplisit tanpa backdate. Jangan membuat review, baseline, Test Result, atau bukti QA palsu untuk
+  membuka blocker.
 - P2–P6 belum aktif. Buat dan klaim satu item pelaksanaan per slice setelah dependensi serta keputusan
   relevan selesai; jangan langsung membangun dashboard atau menjalankan migrasi Production.
 - [Feature Card Draft](../features/SDLC_QUALITY_AND_RELEASE.md) menjadi penghubung lintas lapisan.
