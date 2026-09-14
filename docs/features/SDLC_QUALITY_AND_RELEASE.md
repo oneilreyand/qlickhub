@@ -18,11 +18,14 @@ berikutnya.
 
 Atas keputusan pengguna 14 September 2026, target pilot empat minggu dipindahkan dari Workspace
 development `essensial` ke `kerjaa`; migrasi additive 67–69 tetap sudah tersedia. Audit read-only
-Production terbaru mengonfirmasi satu Owner, satu Developer, satu QA, root Feature `billing v3`,
+Production terbaru mengonfirmasi satu Owner, satu Developer, dua QA, root Feature `billing v3`,
 tiga Subtask yang mencakup Development/QA, dua Requirement aktif beserta Acceptance Criteria, dan
-Product Brief utama versi 1 yang approved. Review kesiapan Developer/QA dan baseline Feature belum
-tersedia, sehingga pilot belum memiliki jendela observasi yang sah. Bukti audit dan blocker terbaru
-dicatat pada [laporan P1C](../reports/SDLC_P1C_KERJAA_OBSERVATION_PILOT_RETARGET_2026-09-14.md).
+Product Brief utama versi 1 yang approved. Subtask QA `test billing v3` sudah dipindahkan kepada
+akun QA Production baru; Activity/notifikasi persisten dan endpoint readiness membuktikan capability
+review QA aktif. Review QA `ready` kemudian disimpan berdasarkan rekomendasi dan catatan yang
+disetujui pengguna. Review kesiapan Developer dan baseline Feature belum tersedia, sehingga pilot
+belum memiliki jendela observasi yang sah. Bukti audit dan blocker terbaru dicatat pada
+[laporan P1C](../reports/SDLC_P1C_KERJAA_OBSERVATION_PILOT_RETARGET_2026-09-14.md).
 
 ## 1. Tujuan dan Pengguna
 
@@ -108,6 +111,10 @@ Evidence P1B mencakup kontrak, migrasi PostgreSQL bersih/upgrade, isolasi Worksp
 immutability, konsensus/koreksi/sengketa, guard penghapusan, komponen frontend, regresi, build, dan
 visual; hasil lengkap dicatat pada
 [laporan P1B](../reports/SDLC_P1B_REQUIREMENT_FINDING_TRIAGE_2026-09-13.md).
+Preflight P1C juga membuktikan reassignment Subtask QA tersimpan bersama Activity/notifikasi,
+login akun QA baru berhasil, dan endpoint readiness mengembalikan capability submit review QA.
+Review QA `ready` berikutnya dibuat melalui API Production menggunakan isi yang disetujui pengguna
+dan kembali terbaca sebagai review QA terbaru. Review Developer dan baseline belum dibuat.
 
 ## 9. Release dan Readiness
 
