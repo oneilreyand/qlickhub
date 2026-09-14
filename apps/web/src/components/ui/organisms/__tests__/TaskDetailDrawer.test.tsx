@@ -435,7 +435,7 @@ describe('TaskDetailDrawer UI Component', () => {
       await screen.findByRole('heading', { name: 'Test Parent Task Title' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Ringkasan')).toBeInTheDocument();
-    expect(screen.getByText(/Subtask/)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Subtask (0)' })).toBeInTheDocument();
     expect(screen.getByText(/^Aktivitas \(/)).toBeInTheDocument();
     expect(screen.getByText(/Diskusi/)).toBeInTheDocument();
 

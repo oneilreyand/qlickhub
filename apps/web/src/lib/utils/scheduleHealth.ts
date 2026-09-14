@@ -369,7 +369,7 @@ export function calculateRoleOverlapAndBottlenecks(
       new Set(items.map((i) => i.assigneeId).filter((id): id is string => Boolean(id))),
     ).map((id) => ({
       id,
-      name: memberMap.get(id) || 'Team Member',
+      name: memberMap.get(id) || 'Anggota Tim',
     }));
 
     return {
@@ -393,8 +393,8 @@ export function calculateRoleOverlapAndBottlenecks(
   const poAssigneeId = productBrief?.document.ownerId || parentTask.reporterId;
   const poStage: RoleTimelineStage = {
     role: 'po',
-    name: 'Product Planning & Specs',
-    shortLabel: 'PO Specs',
+    name: 'Perencanaan & Spesifikasi Produk',
+    shortLabel: 'Spesifikasi PO',
     subtasks: [],
     status: productBrief ? 'done' : 'in_progress',
     health: productBrief ? 'completed' : subtasks.length === 0 ? 'at_risk' : 'on_track',
@@ -406,12 +406,12 @@ export function calculateRoleOverlapAndBottlenecks(
       ? [{ id: poAssigneeId, name: memberMap.get(poAssigneeId) || 'Product Owner' }]
       : [],
     overlapWithNextDays: 0,
-    blockerReason: !productBrief ? 'Product brief specification is still in draft' : undefined,
+    blockerReason: !productBrief ? 'Ringkasan Produk masih berstatus draf' : undefined,
   };
 
-  const beStage = aggregateStage('backend', 'Backend API & Database', 'Dev BE', beSubtasks);
-  const feStage = aggregateStage('frontend', 'Frontend UI & Integration', 'Dev FE', feSubtasks);
-  const qaStage = aggregateStage('qa', 'QA Verification & Testing', 'QA', qaSubtasks);
+  const beStage = aggregateStage('backend', 'API & Database Backend', 'Dev BE', beSubtasks);
+  const feStage = aggregateStage('frontend', 'UI & Integrasi Frontend', 'Dev FE', feSubtasks);
+  const qaStage = aggregateStage('qa', 'Verifikasi & Pengujian QA', 'QA', qaSubtasks);
 
   // Overlap calculations:
   // 1. BE -> FE overlap: If BE is still in progress past FE's start date, or BE due date > FE start date
@@ -480,36 +480,35 @@ export function calculateRoleOverlapAndBottlenecks(
     primaryBottleneck = {
       role: 'backend',
       severity: 'at_risk',
-      title: 'Dev Backend At Risk',
-      description:
-        beStage.blockerReason ||
-        'Backend subtask due date is approaching or revisions are requested.',
+      title: 'Dev Backend Berisiko',
+      description: beStage.blockerReason || 'Tenggat Subtask Backend mendekat atau revisi diminta.',
       overlapDays: beStage.overlapWithNextDays,
     };
   } else if (feStage.health === 'at_risk' || feStage.status === 'changes_requested') {
     primaryBottleneck = {
       role: 'frontend',
       severity: 'at_risk',
-      title: 'Dev Frontend At Risk',
+      title: 'Dev Frontend Berisiko',
       description:
-        feStage.blockerReason ||
-        'Frontend subtask due date is approaching or revisions are requested.',
+        feStage.blockerReason || 'Tenggat Subtask Frontend mendekat atau revisi diminta.',
       overlapDays: feStage.overlapWithNextDays,
     };
   } else if (qaStage.health === 'at_risk' || qaStage.status === 'changes_requested') {
     primaryBottleneck = {
       role: 'qa',
       severity: 'at_risk',
-      title: 'QA Verification At Risk',
-      description: qaStage.blockerReason || 'QA testing window is narrow or pending sign-off.',
+      title: 'Verifikasi QA Berisiko',
+      description:
+        qaStage.blockerReason || 'Waktu pengujian QA sempit atau persetujuan masih tertunda.',
       overlapDays: 0,
     };
   } else if (subtasks.length === 0) {
     primaryBottleneck = {
       role: 'po',
       severity: 'at_risk',
-      title: 'PO Planning Pending',
-      description: 'Parent task has no subtasks planned yet across Dev Frontend, Backend, or QA.',
+      title: 'Perencanaan PO Tertunda',
+      description:
+        'Feature belum memiliki Subtask yang direncanakan untuk Dev Frontend, Backend, atau QA.',
       overlapDays: 0,
     };
   }

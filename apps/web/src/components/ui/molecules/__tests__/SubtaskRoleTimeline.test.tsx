@@ -117,7 +117,7 @@ describe('SubtaskRoleTimeline Molecule', () => {
     expect(screen.getByText(/Subtask Backend terlambat/i)).toBeInTheDocument();
 
     // Cross-role handoff pipeline stage cards
-    expect(screen.getByText('PO Specs')).toBeInTheDocument();
+    expect(screen.getByText('Spesifikasi PO')).toBeInTheDocument();
     expect(screen.getByText('Dev BE')).toBeInTheDocument();
     expect(screen.getByText('Dev FE')).toBeInTheDocument();
     expect(screen.getAllByText('QA').length).toBeGreaterThan(0);
@@ -173,7 +173,18 @@ describe('SubtaskRoleTimeline Molecule', () => {
       />,
     );
 
-    expect(screen.getByRole('grid', { name: 'Role schedule calendar' })).toBeInTheDocument();
+    expect(screen.getByRole('grid', { name: 'Kalender jadwal peran' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Jadwal rinci Feature ini untuk mengikuti handoff dari PO ke Development dan QA.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: `Semua (${mockSubtasks.length})` }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Peran & Subtask')).toBeInTheDocument();
+    expect(screen.getByText('Kondisi')).toBeInTheDocument();
+    expect(screen.getByText('Terlambat')).toBeInTheDocument();
     expect(screen.getByText('Agustus 2026')).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', { name: /sabtu, 1 agustus 2026/i }),

@@ -246,7 +246,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
           Timeline Peran &amp; Handoff
         </p>
         <p className="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
-          Detailed schedule for this Feature: follow handoffs from PO to development and QA.
+          Jadwal rinci Feature ini untuk mengikuti handoff dari PO ke Development dan QA.
         </p>
       </div>
 
@@ -278,10 +278,10 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                   status={analysis.overallHealth}
                   label={
                     analysis.overallHealth === 'delayed'
-                      ? `${bottleneck.overlapDays}d Slippage`
+                      ? `${bottleneck.overlapDays} hari tergeser`
                       : analysis.overallHealth === 'at_risk'
-                        ? 'At Risk'
-                        : 'On Track'
+                        ? 'Berisiko'
+                        : 'Sesuai Jadwal'
                   }
                 />
               </div>
@@ -293,7 +293,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
 
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
             <span className="text-[11px] font-semibold opacity-80">
-              {analysis.summary.completedSubtasks}/{analysis.summary.totalSubtasks} Subtasks Done
+              {analysis.summary.completedSubtasks}/{analysis.summary.totalSubtasks} Subtask Selesai
             </span>
           </div>
         </div>
@@ -307,7 +307,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
             <span>Alur Handoff Antarperan</span>
           </span>
           <span className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
-            PO Specs ➔ Dev Backend ➔ Dev Frontend ➔ QA Verification
+            Spesifikasi PO ➔ Dev Backend ➔ Dev Frontend ➔ Verifikasi QA
           </span>
         </div>
 
@@ -355,14 +355,14 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                     status={stage.health}
                     label={
                       isDelayed
-                        ? `${stage.daysOverdue}d Late`
+                        ? `${stage.daysOverdue} hari terlambat`
                         : isDone
-                          ? 'Done'
+                          ? 'Selesai'
                           : isAtRisk
-                            ? 'At Risk'
+                            ? 'Berisiko'
                             : stage.status === 'unscheduled'
-                              ? 'Unscheduled'
-                              : 'On Track'
+                              ? 'Belum Dijadwalkan'
+                              : 'Sesuai Jadwal'
                     }
                     compact={false}
                   />
@@ -372,7 +372,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                 <div className="space-y-1 text-[11px] text-stone-600 dark:text-stone-300">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-stone-400 dark:text-stone-500 uppercase font-semibold">
-                      Planned:
+                      Rencana:
                     </span>
                     <span className="font-mono font-medium">
                       {formatShortDate(stage.startDate)} → {formatShortDate(stage.dueDate)}
@@ -383,7 +383,10 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                   {stage.overlapWithNextDays > 0 && !isLast && (
                     <div className="flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 pt-0.5">
                       <AlertTriangle className="h-3 w-3 shrink-0" />
-                      <span>Overlaps next role by +{stage.overlapWithNextDays}d</span>
+                      <span>
+                        Tumpang tindih dengan peran berikutnya selama {stage.overlapWithNextDays}{' '}
+                        hari
+                      </span>
                     </div>
                   )}
                 </div>
@@ -395,15 +398,15 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                     <span className="truncate">
                       {stage.assignees.length > 0
                         ? stage.assignees.map((a) => a.name).join(', ')
-                        : 'Unassigned'}
+                        : 'Belum Ditugaskan'}
                     </span>
                   </div>
                   <span className="font-mono">
                     {stage.role === 'po'
                       ? productBrief
                         ? 'v' + productBrief.currentVersion.version
-                        : 'Draft'
-                      : `${stage.subtasks.filter((s) => s.status === 'done').length}/${stage.subtasks.length} tasks`}
+                        : 'Draf'
+                      : `${stage.subtasks.filter((s) => s.status === 'done').length}/${stage.subtasks.length} Subtask`}
                   </span>
                 </div>
               </div>
@@ -416,7 +419,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800/70 p-1 rounded-xl flex-wrap">
           {[
-            { id: 'all', label: `All (${subtasks.length})` },
+            { id: 'all', label: `Semua (${subtasks.length})` },
             {
               id: 'backend',
               label: `BE (${subtasks.filter((s) => s.deliveryArea === 'backend').length})`,
@@ -476,7 +479,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> QA
           </span>
           <span className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Late
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Terlambat
           </span>
         </div>
       </div>
@@ -487,8 +490,8 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
           {/* Left Column: Subtask Label & Role */}
           <div className="w-64 sm:w-72 md:w-80 shrink-0 sticky left-0 z-20 bg-white dark:bg-[#1C1A19] border-r border-stone-200 dark:border-stone-800 shadow-xs">
             <div className="h-[72px] px-3 flex items-end justify-between pb-2.5 border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80 text-[10px] font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-              <span>Role & Subtask</span>
-              <span>Health</span>
+              <span>Peran &amp; Subtask</span>
+              <span>Kondisi</span>
             </div>
 
             {filteredSubtasks.map((st) => {
@@ -523,7 +526,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
               style={{ width: `${dayColumns.length * 44}px` }}
               className="relative select-none"
               role="grid"
-              aria-label="Role schedule calendar"
+              aria-label="Kalender jadwal peran"
             >
               {/* Calendar header: month grouping makes the date range legible at a glance. */}
               <div className="h-7 flex border-b border-stone-200 dark:border-stone-800 bg-stone-100/80 dark:bg-stone-900">
@@ -590,7 +593,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                   className="absolute top-0 bottom-0 z-10 w-0.5 bg-amber-500 shadow-sm pointer-events-none"
                 >
                   <div className="absolute top-0.5 -translate-x-1/2 bg-amber-500 text-white text-[8px] font-extrabold px-1 rounded-full uppercase tracking-tighter shadow-xs">
-                    Today
+                    Hari Ini
                   </div>
                 </div>
               )}
@@ -630,7 +633,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                       </div>
                     ) : (
                       <div className="pl-3 flex items-center gap-1 text-[11px] text-stone-400 italic">
-                        <span>Unscheduled (Click Details tab to add dates)</span>
+                        <span>Belum dijadwalkan (Tambahkan tanggal di tab Detail)</span>
                       </div>
                     )}
                   </div>
