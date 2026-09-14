@@ -1118,6 +1118,18 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(input.testType, 'e2e');
     });
 
+    test('accepts an edge-case scenario without requiring a manual Test Case number', () => {
+      const input = CreateTestCaseSchema.parse({
+        workspaceId,
+        title: 'Verify maximum cart value boundary',
+        scenarioKind: 'edge',
+        requirementIds: [requirementA],
+      });
+
+      assert.strictEqual(input.scenarioKind, 'edge');
+      assert.strictEqual(input.externalReference, undefined);
+    });
+
     test('keeps Test Run metadata separate from its immutable Result', () => {
       const run = CreateTestRunSchema.parse({
         workspaceId,

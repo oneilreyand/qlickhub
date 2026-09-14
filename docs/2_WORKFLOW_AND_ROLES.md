@@ -224,6 +224,12 @@ stateDiagram-v2
     archived --> [*]
 ```
 
+- QA tidak perlu mengetik nomor saat membuat Test Case native. Backend mengalokasikan nomor
+  `TC-xxxx` per Workspace ketika draf disimpan; nomor yang sudah terbit ditampilkan hanya-baca pada
+  form edit. Referensi eksplisit tetap tersedia untuk integrasi dan spreadsheet lama.
+- Jenis skenario terdiri dari `positive` (alur utama), `negative` (kegagalan/penolakan), dan `edge`
+  (kondisi batas). Jenis skenario tidak mengubah lifecycle maupun kewenangan penerbitan Test Case.
+
 ### B. Hasil Uji yang Imutabel (_Immutable Test Results_)
 
 - Setiap eksekusi menghasilkan record `TestResult` yang append-only dengan status: `passed`, `failed`, `blocked`, atau `skipped`.
@@ -252,6 +258,9 @@ graph TD
     class Commit,DoneIntake success;
     class DownloadReport fail;
 ```
+
+Kolom nomor Test Case pada spreadsheet bersifat opsional. Baris kosong memperoleh nomor otomatis
+saat commit; `scenario_kind` menerima `positive`, `negative`, atau `edge`.
 
 ---
 

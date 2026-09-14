@@ -9,7 +9,7 @@ export type TestCaseDefinitionStatus = z.infer<typeof TestCaseDefinitionStatusSc
 export const TestCasePrioritySchema = z.enum(['high', 'medium', 'low']);
 export type TestCasePriority = z.infer<typeof TestCasePrioritySchema>;
 
-export const TestCaseScenarioKindSchema = z.enum(['positive', 'negative']);
+export const TestCaseScenarioKindSchema = z.enum(['positive', 'negative', 'edge']);
 export type TestCaseScenarioKind = z.infer<typeof TestCaseScenarioKindSchema>;
 
 export const TestCaseSourceSchema = z.enum(['native', 'spreadsheet_import']);

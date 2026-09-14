@@ -68,6 +68,11 @@ describe('TestCaseFormModal', () => {
     expect(screen.getByRole('combobox', { name: 'Prioritas' })).toHaveClass('bg-white');
     expect(screen.getByRole('combobox', { name: 'Jenis Skenario' })).toHaveClass('bg-white');
     expect(screen.getByRole('combobox', { name: 'Jenis Pengujian' })).toHaveClass('bg-white');
+    expect(screen.getByRole('textbox', { name: 'Nomor Test Case' })).toHaveValue(
+      'Otomatis saat disimpan',
+    );
+    expect(screen.getByRole('textbox', { name: 'Nomor Test Case' })).toHaveAttribute('readonly');
+    expect(screen.getByRole('option', { name: 'Edge Case (Kondisi Batas)' })).toBeInTheDocument();
   });
 
   it('renders "Ajukan untuk Review" as primary action and "Simpan Draf" as outline with guidance notes', async () => {
@@ -88,7 +93,9 @@ describe('TestCaseFormModal', () => {
 
     // Guidance text is visible
     expect(
-      screen.getByText(/Simpan Draf untuk pengerjaan internal QA. Ajukan untuk Review agar Product Owner dapat mengaktifkannya/i),
+      screen.getByText(
+        /Simpan Draf untuk pengerjaan internal QA. Ajukan untuk Review agar Product Owner dapat mengaktifkannya/i,
+      ),
     ).toBeInTheDocument();
 
     const submitReviewBtn = screen.getByRole('button', { name: /Ajukan untuk Review/i });
@@ -98,9 +105,12 @@ describe('TestCaseFormModal', () => {
     expect(draftBtn).toBeInTheDocument();
 
     // Fill form
-    await user.type(screen.getByPlaceholderText(/Contoh: Verifikasi checkout/i), 'Checkout E2E Flow');
+    await user.type(
+      screen.getByPlaceholderText(/Contoh: Verifikasi checkout/i),
+      'Checkout E2E Flow',
+    );
 
-    const createdTestCase: TestCase = {
+    const draftTestCase: TestCase = {
       id: 'tc-1',
       workspaceId,
       title: 'Checkout E2E Flow',
@@ -108,7 +118,7 @@ describe('TestCaseFormModal', () => {
       description: null,
       testType: 'e2e',
       priority: 'high',
-      status: 'in_review',
+      status: 'draft',
       scenarioKind: 'positive',
       source: 'native',
       preconditions: null,
@@ -120,21 +130,32 @@ describe('TestCaseFormModal', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    serviceMocks.createTestCase.mockResolvedValue(createdTestCase);
+    const submittedTestCase: TestCase = { ...draftTestCase, status: 'in_review' };
+    serviceMocks.createTestCase.mockResolvedValue(draftTestCase);
+    serviceMocks.updateTestCase.mockResolvedValue(submittedTestCase);
 
     // Click Ajukan untuk Review
     await user.click(submitReviewBtn);
 
     await waitFor(() =>
-      expect(serviceMocks.createTestCase).toHaveBeenCalledWith(
-        workspaceId,
-        expect.objectContaining({
-          title: 'Checkout E2E Flow',
-          status: 'in_review',
-        }),
-      ),
+      expect(serviceMocks.createTestCase).toHaveBeenCalledWith(workspaceId, {
+        title: 'Checkout E2E Flow',
+        priority: 'medium',
+        status: 'draft',
+        scenarioKind: 'positive',
+        source: 'native',
+        testType: 'manual',
+        preconditions: null,
+        steps: [],
+        expectedResult: null,
+        testData: null,
+        requirementIds: ['req-1'],
+      }),
     );
-    expect(onSuccess).toHaveBeenCalledWith(createdTestCase);
+    expect(serviceMocks.updateTestCase).toHaveBeenCalledWith(workspaceId, 'tc-1', {
+      status: 'in_review',
+    });
+    expect(onSuccess).toHaveBeenCalledWith(submittedTestCase);
     expect(onClose).toHaveBeenCalled();
   });
 

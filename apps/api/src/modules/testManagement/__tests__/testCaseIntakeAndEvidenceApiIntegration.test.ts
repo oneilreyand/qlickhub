@@ -29,6 +29,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
   let workspaceB: WorkspaceModel;
   let requirementA1: RequirementModel;
   let requirementA2: RequirementModel;
+  let requirementB1: RequirementModel;
   let featureTaskA: TaskModel;
   let taskAttachmentA: TaskAttachmentModel;
   let createdCaseId: string;
@@ -126,6 +127,15 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       code: 'REQ-INTAKE-002',
       title: 'Order Confirmation Receipt',
       description: 'Send receipt email',
+      status: 'active',
+      createdBy: po.id,
+    });
+
+    requirementB1 = await RequirementModel.create({
+      workspaceId: workspaceB.id,
+      code: 'REQ-INTAKE-B-001',
+      title: 'Workspace B checkout boundary',
+      description: 'Verify numbering remains scoped to Workspace B',
       status: 'active',
       createdBy: po.id,
     });
@@ -240,6 +250,51 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(data.testCase.scenarioKind, 'positive');
       assert.strictEqual(data.testCase.source, 'native');
       createdCaseId = data.testCase.id;
+    });
+
+    test('blank references are numbered atomically per Workspace and edge scenarios persist', async () => {
+      const create = (
+        workspaceId: string,
+        requirementId: string,
+        title: string,
+        scenarioKind: string,
+      ) =>
+        fetch(`${baseUrl}/workspaces/${workspaceId}/test-cases`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          body: JSON.stringify({
+            title,
+            testType: 'manual',
+            status: 'draft',
+            scenarioKind,
+            requirementIds: [requirementId],
+          }),
+        });
+
+      const [workspaceAFirst, workspaceASecond, workspaceBFirst] = await Promise.all([
+        create(workspaceA.id, requirementA1.id, 'Maximum cart amount', 'edge'),
+        create(workspaceA.id, requirementA1.id, 'Minimum cart amount', 'positive'),
+        create(workspaceB.id, requirementB1.id, 'Workspace B first automatic case', 'edge'),
+      ]);
+
+      assert.strictEqual(workspaceAFirst.status, 201);
+      assert.strictEqual(workspaceASecond.status, 201);
+      assert.strictEqual(workspaceBFirst.status, 201);
+
+      const [aFirstBody, aSecondBody, bFirstBody] = (await Promise.all([
+        workspaceAFirst.json(),
+        workspaceASecond.json(),
+        workspaceBFirst.json(),
+      ])) as any[];
+      const workspaceAReferences = [
+        aFirstBody.testCase.externalReference,
+        aSecondBody.testCase.externalReference,
+      ].sort();
+
+      assert.deepStrictEqual(workspaceAReferences, ['TC-0001', 'TC-0002']);
+      assert.strictEqual(bFirstBody.testCase.externalReference, 'TC-0001');
+      assert.strictEqual(aFirstBody.testCase.scenarioKind, 'edge');
+      assert.strictEqual(bFirstBody.testCase.scenarioKind, 'edge');
     });
 
     test('PO progresses its draft through review before publishing it', async () => {
@@ -453,6 +508,45 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
         where: { workspaceId: workspaceA.id, externalReference: 'TC-QA-IMPORT' },
       });
       assert.strictEqual(imported?.status, 'draft');
+    });
+
+    test('blank spreadsheet references receive automatic numbers and edge scenarios are accepted', async () => {
+      const csvContent = [
+        'Test Case ID,Title,Requirement Code,Scenario Kind',
+        ',Imported maximum boundary,REQ-INTAKE-001,edge',
+      ].join('\n');
+      const previewRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/preview`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({ fileName: 'qa_edge_case.csv', fileContent: csvContent }),
+        },
+      );
+      assert.strictEqual(previewRes.status, 200);
+      const previewData = (await previewRes.json()) as any;
+      assert.strictEqual(previewData.preview.rows[0].externalReference, null);
+      assert.strictEqual(previewData.preview.rows[0].scenarioKind, 'edge');
+
+      const commitRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/commit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({
+            importSessionId: previewData.preview.importSessionId,
+            contentHash: previewData.preview.contentHash,
+            mode: 'create_only',
+          }),
+        },
+      );
+      assert.strictEqual(commitRes.status, 201);
+
+      const imported = await TestCaseModel.findOne({
+        where: { workspaceId: workspaceA.id, title: 'Imported maximum boundary' },
+      });
+      assert.match(imported?.externalReference || '', /^TC-\d{4,}$/);
+      assert.strictEqual(imported?.scenarioKind, 'edge');
     });
 
     test('PO commits import in create_only mode creates draft cases and records audit', async () => {

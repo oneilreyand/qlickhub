@@ -184,6 +184,20 @@ erDiagram
 - Keputusan lengkap dicatat dalam
   [ADR-012](adr/ADR-012-GUARDED-MISTAKEN-REQUIREMENT-DELETION.md).
 
+### Identitas Test Case Otomatis
+
+- `test_cases.external_reference` tetap menjadi identitas tampilan unik dalam satu Workspace dan
+  tetap menerima referensi eksplisit dari integrasi atau impor lama.
+- Insert baru tanpa referensi memperoleh nomor `TC-0001`, `TC-0002`, dan seterusnya dari
+  `test_case_reference_counters`. Counter dimiliki Workspace, tidak digunakan ulang setelah Test
+  Case dihapus, dan dialokasikan oleh trigger PostgreSQL agar aman terhadap penyimpanan bersamaan.
+- Referensi eksplisit berbentuk `TC-<angka>` memajukan counter Workspace bila angkanya lebih besar;
+  referensi non-numerik tidak mengubah counter. Unique index kanonikal pada
+  `(workspace_id, external_reference)` tetap menjadi pertahanan konflik terakhir.
+- `scenario_kind` menerima `positive`, `negative`, atau `edge`. Nilai `edge` digunakan untuk
+  kondisi batas yang valid tetapi berada pada nilai minimum, maksimum, kosong, transisi, atau batas
+  aturan bisnis.
+
 ---
 
 ## 5. Model Keamanan & Otorisasi (RBAC)

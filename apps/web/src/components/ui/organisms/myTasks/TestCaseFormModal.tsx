@@ -45,9 +45,6 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
   const isEditing = Boolean(initialTestCase);
 
   const [title, setTitle] = useState(initialTestCase?.title || '');
-  const [externalReference, setExternalReference] = useState(
-    initialTestCase?.externalReference || '',
-  );
   const [priority, setPriority] = useState<TestCasePriority>(initialTestCase?.priority || 'medium');
   const [scenarioKind, setScenarioKind] = useState<TestCaseScenarioKind>(
     initialTestCase?.scenarioKind || 'positive',
@@ -74,7 +71,6 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
     if (!isOpen) return;
 
     setTitle(initialTestCase?.title || '');
-    setExternalReference(initialTestCase?.externalReference || '');
     setPriority(initialTestCase?.priority || 'medium');
     setScenarioKind(initialTestCase?.scenarioKind || 'positive');
     setTestType(initialTestCase?.testType || 'manual');
@@ -133,7 +129,6 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
           initialTestCase.id,
           {
             title: title.trim(),
-            externalReference: externalReference.trim() || null,
             priority,
             status: targetStatus,
             scenarioKind,
@@ -150,9 +145,8 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
       } else {
         const created = await testManagementService.createTestCase(workspaceId, {
           title: title.trim(),
-          externalReference: externalReference.trim() || null,
           priority,
-          status: targetStatus,
+          status: 'draft',
           scenarioKind,
           source: 'native',
           testType,
@@ -162,7 +156,13 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
           testData: testData.trim() || null,
           requirementIds: selectedReqIds,
         });
-        onSuccess(created);
+        const saved =
+          targetStatus === 'in_review'
+            ? await testManagementService.updateTestCase(workspaceId, created.id, {
+                status: 'in_review',
+              })
+            : created;
+        onSuccess(saved);
         onClose();
       }
     } catch (err: unknown) {
@@ -215,11 +215,18 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
           <div>
             <Input
               id="test-case-external-reference"
-              label="ID Test Case (Referensi Eksternal)"
-              value={externalReference}
-              onChange={(e) => setExternalReference(e.target.value)}
-              placeholder="Contoh: TC-001"
+              label="Nomor Test Case"
+              value={initialTestCase?.externalReference || 'Otomatis saat disimpan'}
+              readOnly
+              aria-describedby="test-case-external-reference-help"
+              className="cursor-default bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"
             />
+            <p
+              id="test-case-external-reference-help"
+              className="mt-1 text-xs text-stone-500 dark:text-stone-400"
+            >
+              Nomor unik dibuat otomatis per Workspace.
+            </p>
           </div>
         </div>
 
@@ -244,6 +251,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
           >
             <option value="positive">Positif (Alur Utama)</option>
             <option value="negative">Negatif (Kasus Khusus / Error)</option>
+            <option value="edge">Edge Case (Kondisi Batas)</option>
           </Select>
 
           <Select
@@ -360,7 +368,9 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
       {/* Action Footer */}
       <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-stone-200 pt-5 dark:border-stone-800">
         <p className="text-xs text-stone-500 dark:text-stone-400">
-          <span className="font-semibold text-stone-700 dark:text-stone-300">Panduan:</span> Simpan Draf untuk pengerjaan internal QA. Ajukan untuk Review agar Product Owner dapat mengaktifkannya untuk eksekusi.
+          <span className="font-semibold text-stone-700 dark:text-stone-300">Panduan:</span> Simpan
+          Draf untuk pengerjaan internal QA. Ajukan untuk Review agar Product Owner dapat
+          mengaktifkannya untuk eksekusi.
         </p>
 
         <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
