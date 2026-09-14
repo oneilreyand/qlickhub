@@ -75,9 +75,18 @@ export { EMPTY_ACTIVITY_ILLUSTRATION_URL };
 
 const PAGE_SIZE = 50;
 
+const TaskDetailLoadingToolbar: React.FC = () => (
+  <div className="flex items-center gap-2" aria-hidden="true">
+    <Skeleton className="h-8 w-24 rounded-full" />
+    <Skeleton className="h-8 w-28 rounded-full" />
+    <Skeleton className="h-8 w-24 rounded-full" />
+    <Skeleton className="h-8 w-20 rounded-full" />
+  </div>
+);
+
 const TaskDetailLoadingBody: React.FC = () => (
   <div
-    className="mx-auto w-full max-w-4xl space-y-5 py-3"
+    className="w-full space-y-5 py-3"
     role="status"
     aria-label="Memuat detail task"
     aria-live="polite"
@@ -87,10 +96,10 @@ const TaskDetailLoadingBody: React.FC = () => (
       <Skeleton className="h-5 w-52 rounded-lg" />
       <Skeleton className="h-4 w-72 max-w-full rounded-lg" />
     </div>
-    <Skeleton className="h-14 w-full rounded-2xl" />
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <Skeleton className="h-40 w-full rounded-2xl" />
-      <Skeleton className="h-40 w-full rounded-2xl" />
+    <Skeleton className="h-16 w-full rounded-2xl" />
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Skeleton className="h-44 w-full rounded-2xl sm:col-span-2" />
+      <Skeleton className="h-44 w-full rounded-2xl" />
     </div>
     <Skeleton className="h-56 w-full rounded-2xl" />
     <p className="text-center text-xs font-semibold text-stone-500 dark:text-stone-400">
@@ -597,6 +606,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             ? `Task ID: ${pendingTaskId.substring(0, 8)}`
             : 'Mengambil data terbaru dari Workspace…'
         }
+        toolbar={detailLoadError ? undefined : <TaskDetailLoadingToolbar />}
       >
         {detailLoadError ? (
           <div
@@ -640,6 +650,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         allowFullScreen={true}
         title="Memuat detail task"
         subtitle="Mengambil data terbaru dari Workspace…"
+        toolbar={<TaskDetailLoadingToolbar />}
       >
         <TaskDetailLoadingBody />
       </Drawer>

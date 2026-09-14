@@ -30,7 +30,7 @@ export const getRoleMeta = (role: string = '') => {
         icon: Layers,
         colorClass: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-[#B1E743]',
         summary:
-          'Anda memimpin perencanaan folder sprint, spesifikasi parent task, delegasi subtask ke Dev & QA, dan final acceptance.',
+          'Anda memimpin perencanaan folder sprint, Product Brief, penyusunan Requirements (Acceptance Criteria), delegasi Subtask, dan Keputusan Rilis.',
       };
     case 'dev':
       return {
@@ -40,7 +40,7 @@ export const getRoleMeta = (role: string = '') => {
         icon: Code2,
         colorClass: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-[#B1E743]',
         summary:
-          'Fokus Anda adalah eksekusi subtask di My Tasks, pembaruan status coding (In Progress ➔ In Review), dan diskusi teknis tim.',
+          'Fokus Anda adalah eksekusi subtask di My Tasks, pembaruan status pengerjaan (In Progress ➔ In Review), resolusi Bug, dan diskusi teknis tim.',
       };
     case 'qa':
       return {
@@ -50,7 +50,7 @@ export const getRoleMeta = (role: string = '') => {
         icon: TestTube,
         colorClass: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-[#B1E743]',
         summary:
-          'Anda adalah gatekeeper kualitas yang mereview subtask, memberi catatan review/bug, memvalidasi status Done, dan menjaga Traceability.',
+          'Anda adalah gatekeeper kualitas yang mengeksekusi Subtask QA, mereview subtask pengembang, menjalankan Test Run, mencatat Bug, dan menerbitkan QA Sign-off.',
       };
     default:
       return {

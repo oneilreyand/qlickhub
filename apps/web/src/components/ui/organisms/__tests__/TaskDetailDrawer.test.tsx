@@ -346,7 +346,10 @@ describe('TaskDetailDrawer UI Component', () => {
       <TaskDetailDrawer task={null} folders={[]} pendingTaskId={mockTask.id} onClose={vi.fn()} />,
     );
 
-    expect(screen.getByRole('status', { name: 'Memuat detail task' })).toBeInTheDocument();
+    const loadingBody = screen.getByRole('status', { name: 'Memuat detail task' });
+    expect(loadingBody).toBeInTheDocument();
+    expect(loadingBody).toHaveClass('w-full');
+    expect(loadingBody).not.toHaveClass('max-w-4xl');
 
     rerender(
       <Provider

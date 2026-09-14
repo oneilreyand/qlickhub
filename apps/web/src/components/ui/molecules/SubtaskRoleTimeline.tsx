@@ -53,8 +53,11 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     return calculateRoleOverlapAndBottlenecks(parentTask, subtasks, productBrief, members, today);
   }, [parentTask, subtasks, productBrief, members, today]);
 
+  // Minimum calendar span (in days) to guarantee a full, non-empty calendar grid
+  const MIN_TIMELINE_DAYS = 21;
+
   // Determine timeline boundary dates
-  const { startDateRange, endDateRange, dayColumns } = useMemo(() => {
+  const { startDateRange, dayColumns } = useMemo(() => {
     const allDates: string[] = [];
     if (parentTask.startDate) allDates.push(parentTask.startDate);
     if (parentTask.dueDate) allDates.push(parentTask.dueDate);
@@ -74,8 +77,18 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     const end = new Date(maxDateStr + 'T00:00:00');
 
     // Buffer by 3 days before and 5 days after
-    start.setDate(start.getDate() - 2);
-    end.setDate(end.getDate() + 4);
+    start.setDate(start.getDate() - 3);
+    end.setDate(end.getDate() + 5);
+
+    // Guarantee minimum calendar days so short tasks or empty dates don't produce a blank/void area
+    const currentSpanDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+    if (currentSpanDays < MIN_TIMELINE_DAYS) {
+      const neededDays = MIN_TIMELINE_DAYS - currentSpanDays;
+      const padBefore = Math.floor(neededDays / 2);
+      const padAfter = Math.ceil(neededDays / 2);
+      start.setDate(start.getDate() - padBefore);
+      end.setDate(end.getDate() + padAfter);
+    }
 
     const cols: Array<{
       key: string;
@@ -110,7 +123,8 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     };
   }, [parentTask, subtasks, todayStr]);
 
-  const totalDurationMs = Math.max(endDateRange.getTime() - startDateRange.getTime(), 1);
+  // Total duration in ms matches exact day columns to ensure pixel-perfect alignment
+  const totalDurationMs = Math.max(dayColumns.length * 86400000, 1);
 
   const calendarMonths = useMemo(() => {
     return dayColumns.reduce<Array<{ key: string; label: string; days: number }>>((months, day) => {
@@ -521,7 +535,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
           </div>
 
           {/* Right Column: calendar header plus day-by-day role swimlanes */}
-          <div className="flex-1 min-w-[720px]">
+          <div className="flex-1 min-w-0">
             <div
               style={{ width: `${dayColumns.length * 44}px` }}
               className="relative select-none"
@@ -632,7 +646,8 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                         </div>
                       </div>
                     ) : (
-                      <div className="pl-3 flex items-center gap-1 text-[11px] text-stone-400 italic">
+                      <div className="pl-3 flex items-center gap-1.5 text-[11px] text-stone-400 dark:text-stone-500 italic">
+                        <Clock className="h-3.5 w-3.5 shrink-0 opacity-60" />
                         <span>Belum dijadwalkan (Tambahkan tanggal di tab Detail)</span>
                       </div>
                     )}

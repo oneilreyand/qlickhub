@@ -193,4 +193,38 @@ describe('SubtaskRoleTimeline Molecule', () => {
       screen.getByRole('img', { name: /Payment Gateway API Integration.*1 Agu.*10 Agu/i }),
     ).toBeInTheDocument();
   });
+
+  it('guarantees at least 21 calendar day columns for short-range or unscheduled tasks to avoid empty void', () => {
+    const unscheduledParentTask: Task = {
+      ...mockParentTask,
+      startDate: undefined,
+      dueDate: undefined,
+    };
+    const shortSubtasks: Task[] = [
+      {
+        ...mockSubtasks[0],
+        startDate: undefined,
+        dueDate: undefined,
+      },
+      {
+        ...mockSubtasks[1],
+        startDate: '2026-09-14',
+        dueDate: '2026-09-15',
+      },
+    ];
+
+    render(
+      <SubtaskRoleTimeline
+        parentTask={unscheduledParentTask}
+        subtasks={shortSubtasks}
+        members={mockMembers}
+      />,
+    );
+
+    const columnHeaders = screen.getAllByRole('columnheader');
+    expect(columnHeaders.length).toBeGreaterThanOrEqual(21);
+    expect(
+      screen.getByText('Belum dijadwalkan (Tambahkan tanggal di tab Detail)'),
+    ).toBeInTheDocument();
+  });
 });

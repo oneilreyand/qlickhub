@@ -162,7 +162,7 @@ export const authService = {
     return response.data;
   },
 
-  async logout() {
+  async logout(redirectTo = '/login') {
     try {
       await unregisterCurrentFcmDevice();
     } catch {
@@ -175,8 +175,14 @@ export const authService = {
       // Clear session-scoped browser state even if the session already expired.
     }
     clearSessionScopedData();
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
+    try {
+      const targetPath = redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`;
+      const currentPathWithSearch = `${window.location.pathname}${window.location.search}`;
+      if (currentPathWithSearch !== targetPath) {
+        window.location.href = targetPath;
+      }
+    } catch {
+      // Ignore jsdom navigation limits in test environments
     }
   },
 };

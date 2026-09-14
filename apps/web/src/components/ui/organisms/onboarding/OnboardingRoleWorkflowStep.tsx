@@ -48,14 +48,14 @@ export const OnboardingRoleWorkflowStep: React.FC<OnboardingRoleWorkflowStepProp
                 <span className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 dark:text-[#B1E743] text-emerald-800 flex items-center justify-center text-[10px] font-extrabold">
                   2
                 </span>
-                <span>Rancang Parent Task & Link</span>
+                <span>Product Brief & Requirements</span>
               </div>
               <h4 className="font-bold text-xs text-stone-900 dark:text-white">
-                Definisikan Spesifikasi
+                Definisikan Kebutuhan & AC
               </h4>
               <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed">
-                Tulis Product Brief, sematkan link referensi (🎨 Figma, 📊 Sheets, 📄 PRD), dan
-                tetapkan prioritas.
+                Tulis Product Brief (🎨 Figma, 📄 PRD) serta rumuskan Requirements dengan Kriteria
+                Penerimaan (<em>Acceptance Criteria</em>) yang stabil.
               </p>
             </div>
 
@@ -64,14 +64,14 @@ export const OnboardingRoleWorkflowStep: React.FC<OnboardingRoleWorkflowStepProp
                 <span className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 dark:text-[#B1E743] text-emerald-800 flex items-center justify-center text-[10px] font-extrabold">
                   3
                 </span>
-                <span>Breakdown Subtask FE/BE/QA</span>
+                <span>Breakdown Subtask Spesialisasi</span>
               </div>
               <h4 className="font-bold text-xs text-stone-900 dark:text-white">
                 Delegasi ke Pelaksana
               </h4>
               <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed">
-                Pecah parent task menjadi subtask terarah ke Dev Frontend, Dev Backend, dan QA
-                Engineer.
+                Pecah parent task ke subtask terarah sesuai spesialisasi: Frontend, Backend, Mobile,
+                Fullstack, dan Subtask QA terpisah.
               </p>
             </div>
 
@@ -80,21 +80,21 @@ export const OnboardingRoleWorkflowStep: React.FC<OnboardingRoleWorkflowStepProp
                 <span className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 dark:text-[#B1E743] text-emerald-800 flex items-center justify-center text-[10px] font-extrabold">
                   4
                 </span>
-                <span>Final Acceptance</span>
+                <span>Penyelesaian & Gerbang Rilis</span>
               </div>
               <h4 className="font-bold text-xs text-stone-900 dark:text-white">
-                Penyelesaian Parent Task
+                Evaluasi Release Decision
               </h4>
               <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed">
-                Setelah seluruh subtask FE, BE, dan QA tervalidasi Done oleh QA, Anda dapat
-                menyelesaikan parent task rilis.
+                Tinjau jaminan QA Sign-off, pantau coverage requirement dan pass rate uji, lalu
+                terbitkan Keputusan Rilis (<em>Release Decision</em>) untuk menyelesaikan fitur.
               </p>
             </div>
           </div>
 
           <Alert tone="info" title="Hak Akses Product Owner">
-            Hanya PO dan Admin yang berwenang merumuskan parent task, mengatur folder sprint, dan
-            menyematkan link referensi dokumen.
+            Hanya PO dan Admin yang berwenang merumuskan parent task, mengatur folder sprint,
+            mengelola Requirements, dan menerbitkan Release Decision.
           </Alert>
         </div>
       )}
@@ -156,14 +156,14 @@ export const OnboardingRoleWorkflowStep: React.FC<OnboardingRoleWorkflowStepProp
                 <span className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 dark:text-[#B1E743] text-emerald-800 flex items-center justify-center text-[10px] font-extrabold">
                   4
                 </span>
-                <span>Kolaborasi & Evidence</span>
+                <span>Kolaborasi & Resolusi Bug</span>
               </div>
               <h4 className="font-bold text-xs text-stone-900 dark:text-white">
-                Diskusi & Bukti Kerja
+                Diskusi & Perbaikan Defect
               </h4>
               <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed">
-                Gunakan tab diskusi subtask untuk <code>@mention</code> rekan tim dan lampirkan
-                bukti screenshot/video pekerjaan Anda.
+                Gunakan tab diskusi subtask untuk <code>@mention</code> rekan tim dan lampirkan bukti media.
+                Perbaiki Bug yang dicatat QA dan tandai status <em>Resolved</em> untuk retest.
               </p>
             </div>
           </div>
@@ -187,11 +187,11 @@ export const OnboardingRoleWorkflowStep: React.FC<OnboardingRoleWorkflowStepProp
                 <span>Quality Gatekeeper</span>
               </div>
               <h4 className="font-bold text-xs text-stone-900 dark:text-white">
-                Pantau Subtask In Review
+                Subtask QA & Review Dev
               </h4>
               <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed">
-                Tinjau subtask FE dan BE yang diajukan ke status <em>In Review</em> untuk dilakukan
-                pengujian fungsional dan regresi.
+                Jalankan Subtask QA mandiri Anda (<em>Todo ➔ In Progress ➔ Done</em>) dan tinjau subtask
+                pengembang yang diajukan ke status <em>In Review</em>.
               </p>
             </div>
 
@@ -203,11 +203,11 @@ export const OnboardingRoleWorkflowStep: React.FC<OnboardingRoleWorkflowStepProp
                 <span>Catatan Review & Laporan Bug</span>
               </div>
               <h4 className="font-bold text-xs text-stone-900 dark:text-white">
-                Changes Requested
+                Changes Requested & Defect
               </h4>
               <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed">
-                Jika terdapat kendala atau bug, ajukan status <em>Changes Requested</em> disertai
-                catatan temuan untuk diperbaiki Dev.
+                Jika terdapat kendala, ajukan status <em>Changes Requested</em> atau catat Bug mandiri
+                disertai bukti media untuk diperbaiki oleh Developer.
               </p>
             </div>
 
@@ -216,14 +216,14 @@ export const OnboardingRoleWorkflowStep: React.FC<OnboardingRoleWorkflowStepProp
                 <span className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 dark:text-[#B1E743] text-emerald-800 flex items-center justify-center text-[10px] font-extrabold">
                   3
                 </span>
-                <span>Validasi Done</span>
+                <span>QA Testing Desk & Test Runs</span>
               </div>
               <h4 className="font-bold text-xs text-stone-900 dark:text-white">
-                Persetujuan Kualitas
+                Eksekusi Pengujian Terpadu
               </h4>
               <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed">
-                Setelah semua kriteria pengujian terpenuhi, QA berwenang memindahkan status subtask
-                ke <strong>Done</strong>.
+                Buka QA Testing Desk di My Tasks untuk mengeksekusi Test Run pada Test Case aktif yang
+                ditautkan ke Requirement fitur di Task Hub.
               </p>
             </div>
 
@@ -232,19 +232,19 @@ export const OnboardingRoleWorkflowStep: React.FC<OnboardingRoleWorkflowStepProp
                 <span className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 dark:text-[#B1E743] text-emerald-800 flex items-center justify-center text-[10px] font-extrabold">
                   4
                 </span>
-                <span>Traceability & Test Cases</span>
+                <span>Traceability & QA Sign-off</span>
               </div>
-              <h4 className="font-bold text-xs text-stone-900 dark:text-white">Matriks Kualitas</h4>
+              <h4 className="font-bold text-xs text-stone-900 dark:text-white">Jaminan Kualitas Rilis</h4>
               <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed">
-                Hubungkan dokumen strategi QA dan test case ke requirement fitur di menu{' '}
-                <strong>Report</strong>.
+                Validasi pemenuhan seluruh kriteria penerimaan, rekam hasil uji immutable, dan terbitkan
+                dokumen formal <strong>QA Sign-off</strong> sebagai syarat rilis.
               </p>
             </div>
           </div>
 
           <Alert tone="info" title="Wewenang Quality Assurance">
-            QA adalah pihak yang menjamin standar rilis aplikasi. Setiap persetujuan status ke Done
-            tercatat secara permanen di Immutable Activity Log.
+            QA adalah pihak yang menjamin standar rilis aplikasi. Setiap hasil pengujian, resolusi bug,
+            dan persetujuan QA Sign-off tercatat permanen di Immutable Activity Log.
           </Alert>
         </div>
       )}
