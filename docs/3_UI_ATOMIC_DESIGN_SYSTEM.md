@@ -185,6 +185,7 @@ graph LR
 | `TaskScheduleHealthBadge` | `molecules/TaskScheduleHealthBadge.tsx` | Status kesehatan jadwal task (on-track / overdue).            |
 | `DateRangePicker`         | `molecules/DateRangePicker.tsx`         | Pemilih rentang tanggal target jadwal rilis.                  |
 | `EvidenceCard`            | `molecules/EvidenceCard.tsx`            | Kartu ringkasan bukti pengujian (thumbnail & tautan).         |
+| `EmptyState`              | `molecules/EmptyState.tsx`              | State kosong dengan ilustrasi lintas tema atau fallback ikon. |
 | `SearchInput`             | `molecules/SearchInput.tsx`             | Input pencarian dengan ikon dan tombol reset instan.          |
 | `SubtaskRoleTimeline`     | `molecules/SubtaskRoleTimeline.tsx`     | Timeline visual perjalanan subtask dari Dev ke QA.            |
 | `TaskHierarchyBreadcrumb` | `molecules/TaskHierarchyBreadcrumb.tsx` | Remah roti hierarki navigasi `Workspace > Folder > Task`.     |

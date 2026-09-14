@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { EmptyState } from '../EmptyState';
 
 describe('EmptyState', () => {
-  it('uses the illustration in light mode and the supplied icon in dark mode', () => {
+  it('keeps the illustration visible across light and dark themes', () => {
     render(
       <EmptyState
         icon={<CheckCircle2 data-testid="empty-state-icon" />}
@@ -16,10 +16,10 @@ describe('EmptyState', () => {
       />,
     );
 
-    expect(screen.getByRole('img', { name: 'Empty queue illustration' })).toHaveClass(
+    expect(screen.getByRole('img', { name: 'Empty queue illustration' })).not.toHaveClass(
       'dark:hidden',
     );
-    expect(screen.getByTestId('empty-state-icon').parentElement).toHaveClass('hidden', 'dark:grid');
+    expect(screen.queryByTestId('empty-state-icon')).not.toBeInTheDocument();
   });
 
   it('keeps the supplied icon visible when no illustration exists', () => {

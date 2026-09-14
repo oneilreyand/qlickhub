@@ -26,15 +26,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <img
           src={illustrationSrc}
           alt={illustrationAlt}
-          className="h-32 w-auto max-w-full object-contain sm:h-40 dark:hidden"
+          className="h-32 w-auto max-w-full object-contain sm:h-40"
         />
-      ) : null}
-      <div
-        aria-hidden="true"
-        className={`${illustrationSrc ? 'hidden dark:grid' : 'grid'} h-12 w-12 place-items-center rounded-2xl border border-stone-200 bg-white text-[#141413] shadow-sm dark:border-stone-800 dark:bg-stone-800 dark:text-[#B1E743]`}
-      >
-        {icon}
-      </div>
+      ) : (
+        <div
+          aria-hidden="true"
+          className="grid h-12 w-12 place-items-center rounded-2xl border border-stone-200 bg-white text-[#141413] shadow-sm dark:border-stone-800 dark:bg-stone-800 dark:text-[#B1E743]"
+        >
+          {icon}
+        </div>
+      )}
       <h3 className="mt-4 text-base font-bold text-stone-900 dark:text-stone-100">{title}</h3>
       <p className="mt-1 max-w-sm text-xs leading-relaxed text-stone-500 dark:text-stone-400">
         {description}
