@@ -6,30 +6,49 @@ import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { ErrorBoundary } from '../components/ui/organisms/ErrorBoundary';
+import { loadRouteModuleWithRecovery } from '../lib/routeChunkRecovery';
 
 const AppLayout = lazy(async () => ({
-  default: (await import('../components/layout/AppLayout')).AppLayout,
+  default: (
+    await loadRouteModuleWithRecovery('app-layout', () => import('../components/layout/AppLayout'))
+  ).AppLayout,
 }));
 const ComponentGalleryPage = lazy(async () => ({
-  default: (await import('../pages/ComponentGalleryPage')).ComponentGalleryPage,
+  default: (
+    await loadRouteModuleWithRecovery(
+      'component-gallery',
+      () => import('../pages/ComponentGalleryPage'),
+    )
+  ).ComponentGalleryPage,
 }));
 const WorkHubPage = lazy(async () => ({
-  default: (await import('../pages/WorkHubPage')).WorkHubPage,
+  default: (await loadRouteModuleWithRecovery('work-hub', () => import('../pages/WorkHubPage')))
+    .WorkHubPage,
 }));
 const WorkspaceSettingsPage = lazy(async () => ({
-  default: (await import('../pages/WorkspaceSettingsPage')).WorkspaceSettingsPage,
+  default: (
+    await loadRouteModuleWithRecovery(
+      'workspace-settings',
+      () => import('../pages/WorkspaceSettingsPage'),
+    )
+  ).WorkspaceSettingsPage,
 }));
 const MyTasksPage = lazy(async () => ({
-  default: (await import('../pages/MyTasksPage')).MyTasksPage,
+  default: (await loadRouteModuleWithRecovery('my-tasks', () => import('../pages/MyTasksPage')))
+    .MyTasksPage,
 }));
 const ReportPage = lazy(async () => ({
-  default: (await import('../pages/ReportPage')).ReportPage,
+  default: (await loadRouteModuleWithRecovery('reports', () => import('../pages/ReportPage')))
+    .ReportPage,
 }));
 const UserFlowPage = lazy(async () => ({
-  default: (await import('../pages/UserFlowPage')).UserFlowPage,
+  default: (await loadRouteModuleWithRecovery('user-flows', () => import('../pages/UserFlowPage')))
+    .UserFlowPage,
 }));
 const TaskDeepLinkPage = lazy(async () => ({
-  default: (await import('../pages/TaskDeepLinkPage')).TaskDeepLinkPage,
+  default: (
+    await loadRouteModuleWithRecovery('task-deep-link', () => import('../pages/TaskDeepLinkPage'))
+  ).TaskDeepLinkPage,
 }));
 
 const protectedPageFallback = (

@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Card } from '../atoms/Card';
 import { Button } from '../atoms/Button';
+import { isRouteChunkLoadError } from '../../../lib/routeChunkRecovery';
 
 export const ERROR_BOUNDARY_ILLUSTRATION_URL =
   'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1787020942/404.png';
@@ -12,6 +13,7 @@ export interface ErrorBoundaryFallbackProps {
   title?: string;
   description?: string;
   showHomeButton?: boolean;
+  reloadPage?: () => void;
 }
 
 export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
@@ -20,8 +22,13 @@ export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
   title = 'Terjadi Kesalahan',
   description = 'Terjadi kendala saat menampilkan bagian ini. Coba muat ulang atau kembali ke Work Hub.',
   showHomeButton = true,
+  reloadPage = () => window.location.reload(),
 }) => {
   const handleReload = () => {
+    if (error && isRouteChunkLoadError(error)) {
+      reloadPage();
+      return;
+    }
     if (resetErrorBoundary) {
       resetErrorBoundary();
     } else {

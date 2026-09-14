@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { authService } from '../../lib/api/authService';
@@ -16,6 +16,7 @@ import { IconButton } from '../ui/atoms/IconButton';
 import { SessionTimeoutModal } from '../auth/SessionTimeoutModal';
 import { RoleOnboardingModal } from '../ui/organisms/RoleOnboardingModal';
 import { isOnboardingDismissed } from '../../lib/storage/browserStorage';
+import { ErrorBoundary } from '../ui/organisms/ErrorBoundary';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ interface AppLayoutProps {
 
 export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const mobileOpen = useAppSelector((state) => state.ui.mobileSidebarOpen);
   const currentUser = useAppSelector(selectCurrentUser);
@@ -88,7 +90,7 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
 
       {/* Main Content Area */}
       <main className="mx-auto w-full min-w-0 max-w-full flex-1 px-4 py-4 sm:px-8 sm:py-6 lg:py-8">
-        {children}
+        <ErrorBoundary key={`${location.pathname}${location.search}`}>{children}</ErrorBoundary>
       </main>
       <GlobalSnackbarHost />
       <SessionTimeoutModal />

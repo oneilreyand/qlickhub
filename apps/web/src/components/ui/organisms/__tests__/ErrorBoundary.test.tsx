@@ -60,4 +60,21 @@ describe('ErrorBoundary & ErrorBoundaryFallback Organism', () => {
     fireEvent.click(tryAgainButton);
     expect(handleReset).toHaveBeenCalledTimes(1);
   });
+
+  it('performs a full reload for a stale lazy route chunk instead of only resetting the boundary', () => {
+    const handleReset = vi.fn();
+    const reloadPage = vi.fn();
+    render(
+      <ErrorBoundaryFallback
+        error={new TypeError('Failed to fetch dynamically imported module')}
+        resetErrorBoundary={handleReset}
+        reloadPage={reloadPage}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /coba lagi/i }));
+
+    expect(reloadPage).toHaveBeenCalledTimes(1);
+    expect(handleReset).not.toHaveBeenCalled();
+  });
 });
