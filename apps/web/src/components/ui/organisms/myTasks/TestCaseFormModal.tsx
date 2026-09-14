@@ -9,8 +9,11 @@ import type {
   WorkspaceRole,
 } from '@qlick/contracts';
 import { testManagementService } from '../../../../lib/api/testManagementService';
+import { Alert } from '../../atoms/Alert';
 import { Button } from '../../atoms/Button';
+import { IconButton } from '../../atoms/IconButton';
 import { Input } from '../../atoms/Input';
+import { Select } from '../../atoms/Select';
 import { Textarea } from '../../atoms/Textarea';
 import { Modal } from '../../molecules/Modal';
 
@@ -180,25 +183,28 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
     >
       <div className="space-y-5 max-h-[72vh] overflow-y-auto pr-1">
         {errorMessage && (
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center justify-between">
-            <span>{errorMessage}</span>
-            <button
-              type="button"
+          <div className="relative">
+            <Alert tone="error">
+              <span className="block pr-10">{errorMessage}</span>
+            </Alert>
+            <IconButton
+              label="Tutup pesan error"
+              size="sm"
+              variant="danger"
               onClick={() => setErrorMessage(null)}
-              className="text-red-400 hover:text-red-200"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2"
             >
-              <X className="w-4 h-4" />
-            </button>
+              <X className="h-4 w-4" />
+            </IconButton>
           </div>
         )}
 
         {/* Basic fields */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Judul <span className="text-red-400">*</span>
-            </label>
             <Input
+              id="test-case-title"
+              label="Judul *"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Contoh: Verifikasi checkout kartu pelanggan lama"
@@ -207,10 +213,9 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              ID Test Case (Referensi Eksternal)
-            </label>
             <Input
+              id="test-case-external-reference"
+              label="ID Test Case (Referensi Eksternal)"
               value={externalReference}
               onChange={(e) => setExternalReference(e.target.value)}
               placeholder="Contoh: TC-001"
@@ -220,58 +225,46 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
 
         {/* Metadata Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Prioritas
-            </label>
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as TestCasePriority)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="high">Tinggi</option>
-              <option value="medium">Sedang</option>
-              <option value="low">Rendah</option>
-            </select>
-          </div>
+          <Select
+            id="test-case-priority"
+            label="Prioritas"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as TestCasePriority)}
+          >
+            <option value="high">Tinggi</option>
+            <option value="medium">Sedang</option>
+            <option value="low">Rendah</option>
+          </Select>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Jenis Skenario
-            </label>
-            <select
-              value={scenarioKind}
-              onChange={(e) => setScenarioKind(e.target.value as TestCaseScenarioKind)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="positive">Positif (Alur Utama)</option>
-              <option value="negative">Negatif (Kasus Khusus / Error)</option>
-            </select>
-          </div>
+          <Select
+            id="test-case-scenario-kind"
+            label="Jenis Skenario"
+            value={scenarioKind}
+            onChange={(e) => setScenarioKind(e.target.value as TestCaseScenarioKind)}
+          >
+            <option value="positive">Positif (Alur Utama)</option>
+            <option value="negative">Negatif (Kasus Khusus / Error)</option>
+          </Select>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Jenis Pengujian
-            </label>
-            <select
-              value={testType}
-              onChange={(e) => setTestType(e.target.value as CanonicalTestCaseType)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="manual">Manual</option>
-              <option value="e2e">E2E</option>
-              <option value="integration">Integrasi</option>
-              <option value="unit">Unit</option>
-            </select>
-          </div>
+          <Select
+            id="test-case-test-type"
+            label="Jenis Pengujian"
+            value={testType}
+            onChange={(e) => setTestType(e.target.value as CanonicalTestCaseType)}
+          >
+            <option value="manual">Manual</option>
+            <option value="e2e">E2E</option>
+            <option value="integration">Integrasi</option>
+            <option value="unit">Unit</option>
+          </Select>
         </div>
 
         {/* Linked Requirements */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-            Requirement Tertaut <span className="text-red-400">*</span>
-          </label>
-          <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-slate-800/60 rounded-xl border border-slate-700">
+        <fieldset>
+          <legend className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-stone-300">
+            Requirement Tertaut <span className="text-rose-600 dark:text-rose-400">*</span>
+          </legend>
+          <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto rounded-xl border border-stone-200 bg-stone-50 p-2 dark:border-stone-800 dark:bg-stone-900">
             {requirements.map((req) => {
               const isSelected = selectedReqIds.includes(req.id);
               return (
@@ -279,10 +272,11 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
                   type="button"
                   key={req.id}
                   onClick={() => toggleRequirement(req.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  aria-pressed={isSelected}
+                  className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${
                     isSelected
-                      ? 'bg-primary/20 border border-primary text-primary font-semibold'
-                      : 'bg-slate-700/50 border border-slate-600 text-slate-300 hover:bg-slate-700'
+                      ? 'border-brand-500 bg-brand-500 text-[#141413] font-semibold hover:bg-brand-600'
+                      : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700'
                   }`}
                 >
                   <span className="font-mono">{req.code}</span>
@@ -291,58 +285,50 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
               );
             })}
           </div>
-        </div>
+        </fieldset>
 
         {/* Preconditions */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-            Prasyarat
-          </label>
-          <Textarea
-            value={preconditions}
-            onChange={(e) => setPreconditions(e.target.value)}
-            placeholder="Contoh: Pengguna sudah masuk dan memiliki item di keranjang"
-            rows={2}
-          />
-        </div>
+        <Textarea
+          id="test-case-preconditions"
+          label="Prasyarat"
+          value={preconditions}
+          onChange={(e) => setPreconditions(e.target.value)}
+          placeholder="Contoh: Pengguna sudah masuk dan memiliki item di keranjang"
+          rows={2}
+        />
 
         {/* Steps List Builder */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
               Langkah Pengujian
-            </label>
-            <button
-              type="button"
-              onClick={handleAddStep}
-              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
+            </span>
+            <Button variant="ghost" onClick={handleAddStep} leftIcon={<Plus className="h-4 w-4" />}>
               Tambah Langkah
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-2">
             {steps.map((step, index) => (
               <div key={index} className="flex items-center gap-2">
-                <span className="text-xs font-mono text-slate-400 w-6 text-right flex-shrink-0">
+                <span className="w-6 flex-shrink-0 text-right font-mono text-xs text-stone-500 dark:text-stone-400">
                   {index + 1}.
                 </span>
                 <Input
+                  aria-label={`Langkah pengujian ${index + 1}`}
                   value={step}
                   onChange={(e) => handleStepChange(index, e.target.value)}
                   placeholder={`Langkah ${index + 1}`}
                   className="flex-1"
                 />
                 {steps.length > 1 && (
-                  <button
-                    type="button"
+                  <IconButton
+                    label={`Hapus langkah ${index + 1}`}
+                    variant="danger"
                     onClick={() => handleRemoveStep(index)}
-                    className="p-2 text-slate-400 hover:text-red-400 transition-colors"
-                    title="Hapus langkah"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <Trash2 className="h-4 w-4" />
+                  </IconButton>
                 )}
               </div>
             ))}
@@ -351,34 +337,28 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
 
         {/* Expected Result & Test Data */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Hasil yang Diharapkan
-            </label>
-            <Textarea
-              value={expectedResult}
-              onChange={(e) => setExpectedResult(e.target.value)}
-              placeholder="Contoh: Pesan berhasil tampil bersama ID pesanan"
-              rows={2}
-            />
-          </div>
+          <Textarea
+            id="test-case-expected-result"
+            label="Hasil yang Diharapkan"
+            value={expectedResult}
+            onChange={(e) => setExpectedResult(e.target.value)}
+            placeholder="Contoh: Pesan berhasil tampil bersama ID pesanan"
+            rows={2}
+          />
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Data Pengujian
-            </label>
-            <Textarea
-              value={testData}
-              onChange={(e) => setTestData(e.target.value)}
-              placeholder="Contoh: Kartu 4242-4242-4242-4242, CVV 123"
-              rows={2}
-            />
-          </div>
+          <Textarea
+            id="test-case-data"
+            label="Data Pengujian"
+            value={testData}
+            onChange={(e) => setTestData(e.target.value)}
+            placeholder="Contoh: Kartu 4242-4242-4242-4242, CVV 123"
+            rows={2}
+          />
         </div>
       </div>
 
       {/* Action Footer */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-5 mt-4 border-t border-slate-800">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-5 dark:border-stone-800">
         <Button variant="ghost" onClick={onClose} disabled={loading}>
           Batal
         </Button>
