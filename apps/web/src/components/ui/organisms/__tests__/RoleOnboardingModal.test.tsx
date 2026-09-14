@@ -193,8 +193,8 @@ describe('RoleOnboardingModal Organism', () => {
     fireEvent.click(screen.getByText('Lanjutkan'));
     expect(screen.getByText('Quality Gatekeeper')).toBeInTheDocument();
     expect(screen.getByText('Catatan Review & Laporan Bug')).toBeInTheDocument();
-    expect(screen.getByText('Validasi Done')).toBeInTheDocument();
-    expect(screen.getByText('Traceability & Test Cases')).toBeInTheDocument();
+    expect(screen.getByText('QA Testing Desk & Test Runs')).toBeInTheDocument();
+    expect(screen.getByText('Traceability & QA Sign-off')).toBeInTheDocument();
   });
 
   it('allows navigating back from Step 2 to Step 1', () => {

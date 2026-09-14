@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Clock } from 'lucide-react';
 import { Modal } from '../ui/molecules/Modal';
 import { authService } from '../../lib/api/authService';
+import { useAppDispatch } from '../../store/hooks';
+import { enqueueSnackbar } from '../../store/uiSlice';
+
+const LAST_ACTIVITY_KEY = 'qlick_last_activity_at';
 
 interface SessionTimeoutModalProps {
   /**
@@ -28,18 +32,31 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
   activeRefreshIntervalMinutes = 10,
 }) => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [isWarningOpen, setIsWarningOpen] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(countdownSeconds);
   const [isExtending, setIsExtending] = useState(false);
 
+  const getStoredActivityTime = (): number => {
+    try {
+      const raw = localStorage.getItem(LAST_ACTIVITY_KEY);
+      if (!raw) return 0;
+      const parsed = Number(raw);
+      return !Number.isNaN(parsed) && parsed > 0 ? parsed : 0;
+    } catch {
+      return 0;
+    }
+  };
+
   const lastActivityTimeRef = useRef<number>(Date.now());
   const lastRefreshTimeRef = useRef<number>(Date.now());
+  const lastWriteTimeRef = useRef<number>(0);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleLogoutDueToInactivity = useCallback(async () => {
     setIsWarningOpen(false);
     try {
-      await authService.logout();
+      await authService.logout('/login?reason=idle_timeout');
     } catch {
       // ignore
     } finally {
@@ -51,10 +68,17 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
     setIsExtending(true);
     try {
       await authService.refreshSession();
-      lastActivityTimeRef.current = Date.now();
-      lastRefreshTimeRef.current = Date.now();
+      const now = Date.now();
+      lastActivityTimeRef.current = now;
+      lastRefreshTimeRef.current = now;
+      try {
+        localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+      } catch {
+        // ignore
+      }
       setIsWarningOpen(false);
       setRemainingSeconds(countdownSeconds);
+      dispatch(enqueueSnackbar('Sesi Anda berhasil diperpanjang.', 'success'));
     } catch {
       // If refresh fails, session is already invalid
       await handleLogoutDueToInactivity();
@@ -63,11 +87,47 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
     }
   };
 
+  // Cross-tab synchronization via storage event
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === LAST_ACTIVITY_KEY && e.newValue) {
+        const externalActivityTime = Number(e.newValue);
+        if (
+          !Number.isNaN(externalActivityTime) &&
+          externalActivityTime > lastActivityTimeRef.current
+        ) {
+          lastActivityTimeRef.current = externalActivityTime;
+          // Active in another tab: dismiss warning modal and reset countdown
+          setIsWarningOpen(false);
+          setRemainingSeconds(countdownSeconds);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [countdownSeconds]);
+
   // Activity listener: tracks user interaction and performs throttled background refresh
   useEffect(() => {
-    const onUserActivity = () => {
+    const onUserActivity = (evt: Event) => {
       const now = Date.now();
       lastActivityTimeRef.current = now;
+
+      // Throttle localStorage writes to once every 2 seconds for continuous events (mousemove/scroll),
+      // but update immediately for discrete user interaction events.
+      const isDiscrete =
+        evt.type === 'keydown' || evt.type === 'mousedown' || evt.type === 'touchstart';
+      if (isDiscrete || now - lastWriteTimeRef.current >= 2000) {
+        lastWriteTimeRef.current = now;
+        try {
+          localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+        } catch {
+          // ignore
+        }
+      }
 
       // If warning modal is not open, check if we should do a background keep-alive refresh
       if (!isWarningOpen) {
@@ -88,12 +148,25 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
     const checkIdleInterval = setInterval(() => {
       if (isWarningOpen) return;
       const now = Date.now();
-      const idleTime = now - lastActivityTimeRef.current;
-      const warningThreshold = idleMinutesBeforeWarning * 60 * 1000;
+      const stored = getStoredActivityTime();
+      const effectiveLastActivity =
+        stored > 0 ? Math.max(lastActivityTimeRef.current, stored) : lastActivityTimeRef.current;
+      lastActivityTimeRef.current = effectiveLastActivity;
 
-      if (idleTime >= warningThreshold) {
+      const idleTime = now - effectiveLastActivity;
+      const warningThreshold = idleMinutesBeforeWarning * 60 * 1000;
+      const totalTimeoutThreshold = warningThreshold + countdownSeconds * 1000;
+
+      if (idleTime >= totalTimeoutThreshold) {
+        // Exceeded total allowable inactivity duration (e.g. computer sleep)
+        handleLogoutDueToInactivity();
+      } else if (idleTime >= warningThreshold) {
+        const remaining = Math.max(
+          1,
+          Math.ceil((totalTimeoutThreshold - idleTime) / 1000),
+        );
         setIsWarningOpen(true);
-        setRemainingSeconds(countdownSeconds);
+        setRemainingSeconds(remaining);
       }
     }, 15000); // check every 15 seconds
 
@@ -101,7 +174,13 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
       events.forEach((evt) => window.removeEventListener(evt, onUserActivity));
       clearInterval(checkIdleInterval);
     };
-  }, [idleMinutesBeforeWarning, activeRefreshIntervalMinutes, isWarningOpen, countdownSeconds]);
+  }, [
+    idleMinutesBeforeWarning,
+    activeRefreshIntervalMinutes,
+    isWarningOpen,
+    countdownSeconds,
+    handleLogoutDueToInactivity,
+  ]);
 
   // Countdown timer when warning modal is active
   useEffect(() => {
@@ -138,7 +217,7 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
   return (
     <Modal
       isOpen={isWarningOpen}
-      onClose={() => {}}
+      onClose={handleLogoutDueToInactivity}
       title="Sesi Anda Akan Berakhir"
       primaryActionLabel="Tetap Masuk (Perpanjang Sesi)"
       onPrimaryAction={handleExtendSession}
@@ -155,7 +234,12 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
           <p className="text-sm text-stone-600 dark:text-stone-300">
             Anda telah tidak aktif selama beberapa waktu. Untuk menjaga keamanan data Anda, sesi akan diakhiri secara otomatis dalam:
           </p>
-          <div className="text-3xl font-black font-mono tracking-tight text-amber-600 dark:text-amber-400 py-2">
+          <div
+            role="timer"
+            aria-live="polite"
+            aria-atomic="true"
+            className="text-3xl font-black font-mono tracking-tight text-amber-600 dark:text-amber-400 py-2"
+          >
             {formatCountdown(remainingSeconds)}
           </div>
           <p className="text-xs text-stone-400 dark:text-stone-500">
@@ -166,3 +250,4 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
     </Modal>
   );
 };
+

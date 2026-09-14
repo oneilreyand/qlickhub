@@ -131,8 +131,7 @@ export const OnboardingQuickLaunchStep: React.FC<OnboardingQuickLaunchStepProps>
           <BookOpen className="w-4 h-4 text-emerald-600 dark:text-[#B1E743] shrink-0" />
           <span>
             Butuh menyegarkan ingatan? Anda dapat membuka kembali panduan kapan saja melalui{' '}
-            <strong>Menu Profil</strong> (kanan atas) atau halaman{' '}
-            <strong>Panduan Alur Pengguna</strong>.
+            <strong>Menu Profil</strong> (kanan atas) &gt; <strong>Mulai Ulang Onboarding</strong>.
           </span>
         </div>
       </div>

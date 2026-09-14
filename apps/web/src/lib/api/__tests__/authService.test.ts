@@ -42,4 +42,11 @@ describe('authService logout Web Push cleanup', () => {
     expect(mocks.apiClient).toHaveBeenCalledWith('/auth/logout', { method: 'POST' });
     expect(mocks.clearSessionScopedData).toHaveBeenCalledOnce();
   });
+
+  it('supports custom redirectTo target during logout', async () => {
+    window.history.replaceState({}, '', '/login?reason=idle_timeout');
+    await expect(authService.logout('/login?reason=idle_timeout')).resolves.toBeUndefined();
+    expect(mocks.apiClient).toHaveBeenCalledWith('/auth/logout', { method: 'POST' });
+    expect(mocks.clearSessionScopedData).toHaveBeenCalledOnce();
+  });
 });
