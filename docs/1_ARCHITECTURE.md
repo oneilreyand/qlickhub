@@ -47,7 +47,7 @@ graph TB
     end
 
     subgraph DataStorage["Data & Storage Infrastructure"]
-        Postgres[("PostgreSQL Database\n(39 Canonical Tables)")]
+        Postgres[("PostgreSQL Database\n(Canonical Migrations)")]
         GDrive[("Google Drive Connector\n(Encrypted Attachments)")]
     end
 
@@ -82,6 +82,8 @@ graph TB
 | **Product Brief**               | Dokumen primer berversi pada Feature yang memiliki konteks, referensi eksternal, In Scope, dan Out of Scope.                          | _requirement list, test checklist_  |
 | **Requirement**                 | Definisi spesifikasi kebutuhan berskala Workspace yang dapat dihubungkan ke banyak task (_many-to-many_).                             | _spec item, task requirement_       |
 | **Acceptance Criteria**         | Kriteria penerimaan yang terdefinisi di bawah Requirement dengan identitas UUID stabil.                                               | _checklist item, acceptance bullet_ |
+| **Temuan Requirement**          | Catatan kekurangan Requirement dalam konteks satu Feature sebelum atau selama delivery; bukan Test Result atau Bug.                   | _QA failure, employee mistake_      |
+| **Posisi Triage**               | Pandangan append-only Product, Development, atau QA tentang klasifikasi penyebab proses suatu temuan.                                 | _individual score, blame label_     |
 | **Evidence**                    | Bukti pengujian terotentikasi dan persisten (tangkapan layar, rekaman video, log) yang diunggah ke storage atau ditautkan via HTTPS.  | _proof, attachment link_            |
 
 ---
@@ -105,6 +107,15 @@ erDiagram
     TASK ||--o{ QA_DOCUMENT : "references"
     TASK ||--o{ QA_SIGNOFF : "validated by"
     TASK ||--o{ RELEASE_DECISION : "gated by"
+    TASK ||--o{ FEATURE_READINESS_REVIEW : "reviewed for readiness"
+    TASK ||--o{ FEATURE_READINESS_BASELINE : "captures readiness"
+    FEATURE_READINESS_BASELINE ||--|{ REQUIREMENT : "snapshots"
+    TASK ||--o{ REQUIREMENT_FINDING : "captures requirement gaps"
+    REQUIREMENT ||--o{ REQUIREMENT_FINDING : "referenced by snapshot"
+    REQUIREMENT_FINDING ||--o{ FINDING_CLARIFICATION : "clarified through"
+    REQUIREMENT_FINDING ||--o{ TRIAGE_POSITION : "reviewed by roles"
+    REQUIREMENT_FINDING ||--o{ TRIAGE_DECISION : "classified through"
+    REQUIREMENT_FINDING ||--o{ FINDING_STATUS_EVENT : "resolved or reopened"
 
     TASK ||--o{ TEST_CASE : "covered by"
     TEST_CASE ||--o{ TEST_RUN : "executed in"
@@ -126,6 +137,37 @@ erDiagram
    dipertahankan sebagai histori tetapi bukan sumber kanonikal. Keputusan lengkap dicatat dalam
    [ADR-010](adr/ADR-010-PRODUCT-BRIEF-REQUIREMENT-CONTEXT-OWNERSHIP.md).
 
+### Baseline Kesiapan Feature
+
+- Status Requirement `active` menyatakan definisi Requirement dapat digunakan; status itu bukan
+  bukti bahwa satu Feature sudah **Siap Dikerjakan**.
+- Baseline kesiapan mengikat root Feature pada versi Product Brief, Requirement, dan Acceptance
+  Criteria yang telah ditinjau. Requirement tetap satu entitas Workspace dan tidak diduplikasi per
+  Feature; perubahan definisi bersama tidak diam-diam mengganti baseline Feature lain.
+- Planner pemilik Feature menetapkan baseline setelah masukan Development dan QA tercatat. Temuan
+  kritis yang belum selesai menghalangi pekerjaan baru terhadap baseline tersebut.
+- Pengecualian darurat hanya dapat ditetapkan Owner/Admin aktif dengan scope, alasan, masa berlaku,
+  dan event audit append-only. Pengecualian tidak menghapus temuan atau menyatakan data lengkap.
+- Data lama tanpa bukti deterministik tetap berstatus belum terverifikasi/tidak tersedia dan tidak
+  boleh direkayasa dari keadaan terbaru atau catatan bebas.
+- P1A menyediakan record review dan baseline append-only, snapshot Product Brief/Requirement/AC,
+  deteksi perubahan, RBAC, audit, dan guard penghapusan dalam **mode observasi**. Baseline belum
+  menghalangi pembuatan atau dimulainya Subtask; enforcement penuh baru boleh diaktifkan setelah
+  pilot, remediasi data, dan keputusan rollout berikutnya.
+- P1B menyediakan Temuan Requirement yang wajib menunjuk Requirement dalam cakupan root Feature,
+  snapshot Requirement saat pelaporan, klarifikasi, posisi Product–Development–QA, keputusan triage
+  berversi, serta status selesai/dibuka kembali. Seluruh record tersebut append-only dan tidak
+  menghasilkan Test Result atau Bug.
+- Posisi terbaru ketiga kelompok yang sama menghasilkan keputusan konsensus deterministik. Bila
+  seluruh kelompok sudah memberi posisi tetapi berbeda, hanya Owner/Admin aktif yang dapat mencatat
+  klasifikasi proses; keputusan menyimpan ID posisi yang menjadi dasarnya dan pendapat berbeda tidak
+  dihapus. Planner dapat menyelesaikan temuan hanya ketika hasil triage masih sesuai posisi terbaru.
+- Temuan kritis terbuka dihitung backend dan ditampilkan sebagai penghalang dalam mode observasi.
+  P1B belum mengubah state machine Subtask atau release readiness; hard gate tetap menunggu pilot dan
+  keputusan rollout P1C.
+- Keputusan lengkap dicatat dalam
+  [ADR-013](adr/ADR-013-SDLC-READINESS-TRIAGE-REVIEW-AND-LEGACY-GOVERNANCE.md).
+
 ### Penghapusan Permanen Requirement yang Salah Dibuat
 
 - Permanent deletion hanya merupakan jalur koreksi untuk Requirement yang salah dibuat dan belum
@@ -134,7 +176,8 @@ erDiagram
 - Hanya Planner dengan membership aktif (`owner`, `admin`, `po`) yang dapat menjalankannya melalui
   backend terotentikasi dengan konfirmasi eksplisit.
 - Requirement yang dipilih wajib sedang tertaut ke Task konteks dan tidak boleh tertaut ke Task atau
-  Subtask lain, Test Case legacy/kanonikal, atau Bug. Satu dependency saja menggagalkan seluruh batch.
+  Subtask lain, Test Case legacy/kanonikal, Bug, baseline kesiapan, atau Temuan Requirement. Satu
+  dependency saja menggagalkan seluruh batch.
 - Transaksi menghapus link pada Task konteks, Acceptance Criteria milik Requirement, dan Requirement,
   lalu menyimpan ringkasan kode/judul pada Task Activity. Hasil pengujian dan histori delivery tidak
   pernah dihapus oleh jalur ini.
@@ -251,7 +294,7 @@ Keputusan ini dijelaskan dalam
 ### B. Prinsip Database & Mutasi Data
 
 1. **PostgreSQL Default**: Seluruh data persisten dikelola via Sequelize dengan relasi formal dan foreign key. Raw SQL berparameter hanya digunakan untuk kebutuhan PostgreSQL-spesifik (`pgvector`, indeks khusus, analitik).
-2. **Kanonikal Migrasi**: Setiap perubahan skema tabel wajib melalui file migrasi Sequelize di `apps/api/src/database/migrations/`.
+2. **Kanonikal Migrasi**: Setiap perubahan skema tabel wajib melalui file migrasi Sequelize di `apps/api/src/db/migrations/`, sesuai konfigurasi Sequelize CLI aktif.
 3. **Transaksi & Audit**: Semua mutasi data jamak (_multi-record writes_) wajib dibungkus dalam `sequelize.transaction()` dan mencatat riwayat ke tabel audit/aktivitas Workspace.
 
 ### C. Penyimpanan Berkas & Bukti (_Evidence Storage_)

@@ -84,6 +84,11 @@ import {
   TestCaseImportDryRunRowSchema,
   TestCaseImportPreviewResponseSchema,
   CommitTestCaseImportSchema,
+  CreateFeatureReadinessReviewSchema,
+  CreateFeatureReadinessBaselineSchema,
+  CreateRequirementFindingSchema,
+  CreateRequirementFindingTriagePositionSchema,
+  RequirementFindingStateSchema,
 } from './index.js';
 
 describe('Contracts Validation Suite', () => {
@@ -1901,6 +1906,209 @@ describe('Contracts Validation Suite', () => {
       });
       assert.strictEqual(res.success, true);
       assert.strictEqual(res.onboardingCompletedAt, '2026-08-19T12:30:00.000Z');
+    });
+  });
+
+  describe('Feature readiness contracts', () => {
+    const workspaceId = '123e4567-e89b-12d3-a456-426614174000';
+    const featureTaskId = '223e4567-e89b-12d3-a456-426614174001';
+
+    test('requires impact only when Development or QA requests changes', () => {
+      const ready = CreateFeatureReadinessReviewSchema.parse({
+        workspaceId,
+        featureTaskId,
+        recommendation: 'ready',
+        notes: 'Requirement dapat dikerjakan dan diuji.',
+      });
+      assert.strictEqual(ready.recommendation, 'ready');
+
+      assert.throws(() =>
+        CreateFeatureReadinessReviewSchema.parse({
+          workspaceId,
+          featureTaskId,
+          recommendation: 'changes_requested',
+          notes: 'Alur gagal belum dijelaskan.',
+        }),
+      );
+      assert.throws(() =>
+        CreateFeatureReadinessReviewSchema.parse({
+          workspaceId,
+          featureTaskId,
+          recommendation: 'ready',
+          notes: 'Sudah siap.',
+          concernSeverity: 'high',
+        }),
+      );
+    });
+
+    test('requires a paired, future expiry for a readiness exception', () => {
+      const overrideExpiresAt = new Date(Date.now() + 86_400_000).toISOString();
+      const parsed = CreateFeatureReadinessBaselineSchema.parse({
+        workspaceId,
+        featureTaskId,
+        overrideReason: 'Pilot internal dibatasi satu hari.',
+        overrideExpiresAt,
+      });
+      assert.strictEqual(parsed.overrideExpiresAt, overrideExpiresAt);
+
+      assert.throws(() =>
+        CreateFeatureReadinessBaselineSchema.parse({
+          workspaceId,
+          featureTaskId,
+          overrideReason: 'Tanpa batas waktu.',
+        }),
+      );
+      assert.throws(() =>
+        CreateFeatureReadinessBaselineSchema.parse({
+          workspaceId,
+          featureTaskId,
+          overrideReason: 'Sudah kedaluwarsa.',
+          overrideExpiresAt: '2020-01-01T00:00:00.000Z',
+        }),
+      );
+    });
+  });
+
+  describe('Requirement finding and triage contracts', () => {
+    const workspaceId = '123e4567-e89b-12d3-a456-426614174000';
+    const featureTaskId = '223e4567-e89b-12d3-a456-426614174001';
+    const requirementId = '323e4567-e89b-12d3-a456-426614174002';
+    const findingId = '423e4567-e89b-12d3-a456-426614174003';
+    const actorId = '523e4567-e89b-12d3-a456-426614174004';
+    const productPositionId = '623e4567-e89b-12d3-a456-426614174005';
+    const developmentPositionId = '723e4567-e89b-12d3-a456-426614174006';
+    const qaPositionId = '823e4567-e89b-12d3-a456-426614174007';
+    const decisionId = '923e4567-e89b-12d3-a456-426614174008';
+    const timestamp = '2026-09-13T10:00:00.000Z';
+
+    test('requires a linked context and bounded human explanation for a finding and position', () => {
+      const finding = CreateRequirementFindingSchema.parse({
+        workspaceId,
+        featureTaskId,
+        requirementId,
+        category: 'missing_flow',
+        severity: 'critical',
+        summary: 'Alur pembayaran gagal belum dijelaskan',
+        details: 'Requirement hanya menjelaskan kondisi berhasil.',
+        proposedCause: 'requirement_definition',
+      });
+      assert.strictEqual(finding.severity, 'critical');
+
+      assert.throws(() =>
+        CreateRequirementFindingSchema.parse({
+          ...finding,
+          summary: '   ',
+        }),
+      );
+      assert.throws(() =>
+        CreateRequirementFindingTriagePositionSchema.parse({
+          workspaceId,
+          featureTaskId,
+          findingId,
+          classification: 'requirement_definition',
+          rationale: '',
+        }),
+      );
+    });
+
+    test('preserves the exact cross-role positions behind a versioned decision', () => {
+      const positions = {
+        product: {
+          id: productPositionId,
+          workspaceId,
+          findingId,
+          participantGroup: 'product' as const,
+          classification: 'shared' as const,
+          rationale: 'Product perlu memperjelas aturan.',
+          createdBy: actorId,
+          createdAt: timestamp,
+        },
+        development: {
+          id: developmentPositionId,
+          workspaceId,
+          findingId,
+          participantGroup: 'development' as const,
+          classification: 'shared' as const,
+          rationale: 'Batas teknis perlu ditambahkan.',
+          createdBy: actorId,
+          createdAt: timestamp,
+        },
+        qa: {
+          id: qaPositionId,
+          workspaceId,
+          findingId,
+          participantGroup: 'qa' as const,
+          classification: 'shared' as const,
+          rationale: 'Kondisi gagal perlu dapat diuji.',
+          createdBy: actorId,
+          createdAt: timestamp,
+        },
+      };
+      const decision = {
+        id: decisionId,
+        workspaceId,
+        findingId,
+        version: 1,
+        classification: 'shared' as const,
+        mode: 'consensus' as const,
+        rationale: 'Ketiga kelompok sepakat.',
+        positionIds: {
+          product: productPositionId,
+          development: developmentPositionId,
+          qa: qaPositionId,
+        },
+        supersedesDecisionId: null,
+        recordedBy: actorId,
+        recordedAt: timestamp,
+      };
+      const state = RequirementFindingStateSchema.parse({
+        workspaceId,
+        featureTaskId,
+        mode: 'observation',
+        openCriticalCount: 1,
+        requirements: [{ id: requirementId, code: 'REQ-1', title: 'Pembayaran', status: 'active' }],
+        findings: [
+          {
+            id: findingId,
+            workspaceId,
+            featureTaskId,
+            requirement: {
+              id: requirementId,
+              code: 'REQ-1',
+              title: 'Pembayaran',
+              status: 'active',
+            },
+            category: 'missing_flow',
+            severity: 'critical',
+            summary: 'Alur gagal belum dijelaskan',
+            details: 'Tambahkan aturan dan respons kegagalan.',
+            proposedCause: 'shared',
+            reporterGroup: 'qa',
+            reportedBy: actorId,
+            reportedAt: timestamp,
+            status: 'open',
+            blocksNewWork: true,
+            latestStatusEvent: null,
+            clarifications: [],
+            latestPositions: positions,
+            missingTriageGroups: [],
+            hasTriageDisagreement: false,
+            currentDecision: decision,
+            decisionIsCurrent: true,
+            decisionHistory: [decision],
+          },
+        ],
+        capabilities: {
+          canCreateFinding: true,
+          canAddClarification: true,
+          canParticipateTriage: true,
+          triageGroup: 'qa',
+          canGovernDispute: false,
+          canResolve: false,
+        },
+      });
+      assert.strictEqual(state.findings[0].currentDecision?.positionIds.qa, qaPositionId);
+      assert.strictEqual(state.findings[0].blocksNewWork, true);
     });
   });
 });

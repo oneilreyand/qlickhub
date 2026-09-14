@@ -8,6 +8,8 @@ import {
   RequirementTestCaseModel,
   TestCaseRequirementModel,
   BugModel,
+  FeatureReadinessBaselineRequirementModel,
+  RequirementFindingModel,
 } from '../../db/models/index.js';
 import {
   assertCanReadRequirements,
@@ -666,10 +668,24 @@ export class RequirementService {
           where: { workspaceId, requirementId: { [Op.in]: input.requirementIds } },
           transaction,
         });
+        const readinessBaselines = await FeatureReadinessBaselineRequirementModel.count({
+          where: { workspaceId, requirementId: { [Op.in]: input.requirementIds } },
+          transaction,
+        });
+        const requirementFindings = await RequirementFindingModel.count({
+          where: { workspaceId, requirementId: { [Op.in]: input.requirementIds } },
+          transaction,
+        });
 
-        if (legacyTestCases > 0 || canonicalTestCases > 0 || bugs > 0) {
+        if (
+          legacyTestCases > 0 ||
+          canonicalTestCases > 0 ||
+          bugs > 0 ||
+          readinessBaselines > 0 ||
+          requirementFindings > 0
+        ) {
           throw new Error(
-            `CONFLICT: Permanent deletion cannot remove Requirements used by delivery history (${legacyTestCases} legacy Test Case reference(s), ${canonicalTestCases} Test Case mapping(s), ${bugs} Bug reference(s)). Mark them as deprecated instead.`,
+            `CONFLICT: Permanent deletion cannot remove Requirements used by delivery history (${legacyTestCases} legacy Test Case reference(s), ${canonicalTestCases} Test Case mapping(s), ${bugs} Bug reference(s), ${readinessBaselines} readiness baseline reference(s), ${requirementFindings} Requirement finding(s)). Mark them as deprecated instead.`,
           );
         }
 

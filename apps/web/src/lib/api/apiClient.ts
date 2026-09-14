@@ -44,6 +44,55 @@ export function getHumanReadableApiErrorMessage(
     return 'Data belum dapat dihapus karena masih memiliki Requirement, dokumen, atau lampiran terkait. Lepaskan data yang diizinkan terlebih dahulu. Riwayat QA, Bug, sign-off, dan keputusan rilis tetap dipertahankan.';
   }
 
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('latest readiness baseline still matches')
+  ) {
+    return 'Baseline terbaru masih sesuai dengan acuan saat ini. Baseline baru diperlukan setelah Product Brief, Requirement, Kriteria Penerimaan, atau masukan tim berubah.';
+  }
+
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('latest development and qa readiness inputs')
+  ) {
+    return 'Masukan terbaru dari Development dan QA harus sama-sama menyatakan siap. Owner atau Admin dapat mencatat pengecualian sementara bila benar-benar diperlukan.';
+  }
+
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('an approved product brief')
+  ) {
+    return 'Baseline memerlukan Product Brief yang disetujui, minimal satu Requirement aktif, dan Kriteria Penerimaan aktif untuk setiap Requirement.';
+  }
+
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('must reference a requirement linked')
+  ) {
+    return 'Temuan harus terkait dengan Requirement yang masih berada dalam cakupan Feature ini. Muat ulang daftar Requirement lalu coba lagi.';
+  }
+
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('current triage decision is required')
+  ) {
+    return 'Temuan baru dapat diselesaikan setelah posisi terbaru Product, Development, dan QA memiliki hasil triage yang masih berlaku.';
+  }
+
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('reopen this requirement finding')
+  ) {
+    return 'Temuan yang sudah selesai harus dibuka kembali sebelum posisi triage diubah.';
+  }
+
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('must each record a position')
+  ) {
+    return 'Product, Development, dan QA masing-masing harus mencatat posisi sebelum Owner atau Admin menyelesaikan perbedaan pendapat.';
+  }
+
   if (normalizedCode === 'FORBIDDEN' || status === 403) {
     return 'Anda tidak memiliki izin untuk melakukan tindakan ini.';
   }

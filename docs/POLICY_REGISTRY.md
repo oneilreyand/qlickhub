@@ -2,7 +2,7 @@
 
 **Status:** Active policy index  
 **Owner:** Product and Engineering  
-**Last reviewed:** 2026-09-10
+**Last reviewed:** 2026-09-13
 **Scope:** Stable identifiers for rules already approved in Qlick Hub SSoT documents.
 
 This registry gives humans, tests, Feature Knowledge Cards, reports, and AI agents a stable way
@@ -40,37 +40,41 @@ then update this index.
 
 ## Delivery Workflow
 
-| Policy ID | Rule summary                                                                   | Canonical source                                                                    |
-| --------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| FLOW-001  | Developers execute assigned Subtasks through the approved transition sequence. | [Workflow §4](2_WORKFLOW_AND_ROLES.md#4-siklus-hidup-subtask-subtask-state-machine) |
-| FLOW-002  | Planning fields remain controlled by owner, admin, or PO.                      | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                      |
-| FLOW-003  | Developer assignment must match Workspace specialty and Subtask delivery area. | [Workflow §3](2_WORKFLOW_AND_ROLES.md#3-spesialisasi-developer--penugasan-subtask)  |
-| FLOW-004  | Task/Subtask timelines are either blank or contain an ordered Start/Due pair.  | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                      |
+| Policy ID | Rule summary                                                                                                                                                 | Canonical source                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| FLOW-001  | Developers execute assigned Subtasks through the approved transition sequence.                                                                               | [Workflow §4](2_WORKFLOW_AND_ROLES.md#4-siklus-hidup-subtask-subtask-state-machine) |
+| FLOW-002  | Planning fields remain controlled by owner, admin, or PO.                                                                                                    | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                      |
+| FLOW-003  | Developer assignment must match Workspace specialty and Subtask delivery area.                                                                               | [Workflow §3](2_WORKFLOW_AND_ROLES.md#3-spesialisasi-developer--penugasan-subtask)  |
+| FLOW-004  | Task/Subtask timelines are either blank or contain an ordered Start/Due pair.                                                                                | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                      |
+| FLOW-005  | A Planner sets Feature readiness after recorded Dev/QA input; critical findings block new work unless an Owner/Admin records an audited emergency exception. | [Workflow §2](2_WORKFLOW_AND_ROLES.md#kesiapan-requirement-dan-triage-temuan)       |
+| FLOW-006  | Review rounds are counted per Development Subtask and review type; a material baseline change supersedes rather than fails the old round.                    | [Workflow §4](2_WORKFLOW_AND_ROLES.md#definisi-putaran-review-dan-pengembalian)     |
 
 ## QA and Release
 
-| Policy ID   | Rule summary                                                                                                                  | Canonical source                                                                                  |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| QA-001      | QA authors draft Test Cases; PO/admin publication is required before active execution.                                        | [Workflow §5](2_WORKFLOW_AND_ROLES.md#5-manajemen-pengujian-native-qa-qa-test-management)         |
-| QA-002      | Test Results are immutable, append-only execution records.                                                                    | [Workflow §5](2_WORKFLOW_AND_ROLES.md#b-hasil-uji-yang-imutabel-immutable-test-results)           |
-| QA-003      | A Developer cannot close a Bug; independent QA retest determines closure or reopening.                                        | [Workflow §6](2_WORKFLOW_AND_ROLES.md#6-siklus-defek--retest-bug--retest-lifecycle)               |
-| QA-004      | QA work is assigned through a QA Subtask whose assignee executes `todo → in_progress → done`; QA Subtasks do not self-review. | [Workflow §4](2_WORKFLOW_AND_ROLES.md#b-subtask-qa)                                               |
-| RELEASE-001 | Readiness is derived by the backend from coverage, pass rate, and unresolved severe Bugs.                                     | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
-| RELEASE-002 | QA submits quality sign-off; PO owns the formal release decision.                                                             | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
+| Policy ID   | Rule summary                                                                                                                    | Canonical source                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| QA-001      | QA authors draft Test Cases; PO/admin publication is required before active execution.                                          | [Workflow §5](2_WORKFLOW_AND_ROLES.md#5-manajemen-pengujian-native-qa-qa-test-management)         |
+| QA-002      | Test Results are immutable, append-only execution records.                                                                      | [Workflow §5](2_WORKFLOW_AND_ROLES.md#b-hasil-uji-yang-imutabel-immutable-test-results)           |
+| QA-003      | A Developer cannot close a Bug; independent QA retest determines closure or reopening.                                          | [Workflow §6](2_WORKFLOW_AND_ROLES.md#6-siklus-defek--retest-bug--retest-lifecycle)               |
+| QA-004      | QA work is assigned through a QA Subtask whose assignee executes `todo → in_progress → done`; QA Subtasks do not self-review.   | [Workflow §4](2_WORKFLOW_AND_ROLES.md#b-subtask-qa)                                               |
+| QA-005      | Finding cause is proposed by the reporter and agreed through cross-role triage; shared/unknown and preserved dissent are valid. | [Workflow §2](2_WORKFLOW_AND_ROLES.md#kesiapan-requirement-dan-triage-temuan)                     |
+| RELEASE-001 | Readiness is derived by the backend from coverage, pass rate, and unresolved severe Bugs.                                       | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
+| RELEASE-002 | QA submits quality sign-off; PO owns the formal release decision.                                                               | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
 
 ## Data, Interface, UI, and AI
 
-| Policy ID    | Rule summary                                                                                                                                       | Canonical source                                                                                                 |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| DATA-001     | Production workflow data must be persisted and returned through authenticated backend interfaces.                                                  | [Agent Guidelines §3](4_AGENT_DEV_GUIDELINES.md#3-kebijakan-basis-data--bukti-pengujian-database--test-evidence) |
-| DATA-002     | Schema changes use canonical Sequelize migrations and PostgreSQL validation.                                                                       | [Architecture §6](1_ARCHITECTURE.md#6-arsitektur-teknis--database)                                               |
-| DATA-003     | Permanent Workspace deletion removes all Workspace-owned records and stored attachments while retaining users.                                     | [Architecture §5](1_ARCHITECTURE.md#penghapusan-permanen-workspace)                                              |
-| DATA-004     | Permanent Requirement deletion is Planner-only, typed-confirmed, atomic, audited, and limited to records without downstream delivery dependencies. | [Architecture §4](1_ARCHITECTURE.md#penghapusan-permanen-requirement-yang-salah-dibuat)                          |
-| CONTRACT-001 | `packages/contracts` is the shared API contract boundary between frontend and backend.                                                             | [Architecture §6](1_ARCHITECTURE.md#6-arsitektur-teknis--database)                                               |
-| UI-001       | Frontend work reuses the Atomic Design system and approved Stitch tokens.                                                                          | [UI Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                                                 |
-| UI-002       | Data-driven UI covers loading, empty, error, disabled, and permission-denied states when applicable.                                               | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                                                                    |
-| AI-001       | AI produces cited drafts and may not autonomously mutate production data without explicit user Apply action.                                       | [Architecture §6](1_ARCHITECTURE.md#d-batasan-tata-kelola-ai-ai-governance)                                      |
-| TEST-001     | Database/interface integration tests use disposable PostgreSQL with canonical migrations.                                                          | [Agent Guidelines §3](4_AGENT_DEV_GUIDELINES.md#3-kebijakan-basis-data--bukti-pengujian-database--test-evidence) |
+| Policy ID    | Rule summary                                                                                                                                                                          | Canonical source                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| DATA-001     | Production workflow data must be persisted and returned through authenticated backend interfaces.                                                                                     | [Agent Guidelines §3](4_AGENT_DEV_GUIDELINES.md#3-kebijakan-basis-data--bukti-pengujian-database--test-evidence) |
+| DATA-002     | Schema changes use canonical Sequelize migrations and PostgreSQL validation.                                                                                                          | [Architecture §6](1_ARCHITECTURE.md#6-arsitektur-teknis--database)                                               |
+| DATA-003     | Permanent Workspace deletion removes all Workspace-owned records and stored attachments while retaining users.                                                                        | [Architecture §5](1_ARCHITECTURE.md#penghapusan-permanen-workspace)                                              |
+| DATA-004     | Permanent Requirement deletion is Planner-only, typed-confirmed, atomic, audited, and limited to records without downstream delivery dependencies.                                    | [Architecture §4](1_ARCHITECTURE.md#penghapusan-permanen-requirement-yang-salah-dibuat)                          |
+| DATA-005     | Historical SDLC facts are never fabricated; deterministic evidence may be backfilled, otherwise values remain unverified/unavailable and zero-denominator metrics remain unavailable. | [Workflow §7](2_WORKFLOW_AND_ROLES.md#data-legacy-dan-awal-pengukuran)                                           |
+| CONTRACT-001 | `packages/contracts` is the shared API contract boundary between frontend and backend.                                                                                                | [Architecture §6](1_ARCHITECTURE.md#6-arsitektur-teknis--database)                                               |
+| UI-001       | Frontend work reuses the Atomic Design system and approved Stitch tokens.                                                                                                             | [UI Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                                                 |
+| UI-002       | Data-driven UI covers loading, empty, error, disabled, and permission-denied states when applicable.                                                                                  | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                                                                    |
+| AI-001       | AI produces cited drafts and may not autonomously mutate production data without explicit user Apply action.                                                                          | [Architecture §6](1_ARCHITECTURE.md#d-batasan-tata-kelola-ai-ai-governance)                                      |
+| TEST-001     | Database/interface integration tests use disposable PostgreSQL with canonical migrations.                                                                                             | [Agent Guidelines §3](4_AGENT_DEV_GUIDELINES.md#3-kebijakan-basis-data--bukti-pengujian-database--test-evidence) |
 
 ## Documentation Governance
 

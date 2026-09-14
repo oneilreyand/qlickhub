@@ -18,6 +18,7 @@ import { attachmentRoutes } from './modules/attachments/attachmentRoutes.js';
 import { realtimeRoutes } from './modules/realtime/realtimeRoutes.js';
 import { metaRoutes } from './modules/meta/metaRoutes.js';
 import { workQueueRoutes } from './modules/workQueue/workQueueRoutes.js';
+import { featureReadinessRoutes } from './modules/featureReadiness/featureReadinessRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
 import { rejectArchivedWorkspaceMutation } from './http/middleware/workspaceArchive.js';
@@ -63,6 +64,7 @@ export const createApp = () => {
   app.use('/v1', rejectArchivedWorkspaceMutation);
   app.use('/v1/auth', authRouter);
   app.use('/v1', workQueueRoutes);
+  app.use('/v1', featureReadinessRoutes);
   app.use('/v1/workspaces', workspaceRoutes);
   app.use('/v1/workspaces/:workspaceId/folders', folderRoutes);
   app.use('/v1/projects/:projectId/folders', folderRoutes);

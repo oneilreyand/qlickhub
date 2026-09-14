@@ -5,6 +5,9 @@ import {
   BugActivityModel,
   BugEvidenceLinkModel,
   BugModel,
+  FeatureReadinessBaselineModel,
+  FeatureReadinessBaselineRequirementModel,
+  FeatureReadinessReviewModel,
   FolderActivityModel,
   NotificationModel,
   QaDocumentModel,
@@ -13,6 +16,11 @@ import {
   QaSignOffModel,
   ReleaseDecisionCancellationModel,
   ReleaseDecisionModel,
+  RequirementFindingClarificationModel,
+  RequirementFindingModel,
+  RequirementFindingStatusEventModel,
+  RequirementFindingTriageDecisionModel,
+  RequirementFindingTriagePositionModel,
   RequirementModel,
   RequirementTestCaseModel,
   TaskActivityModel,
@@ -283,6 +291,38 @@ export async function permanentlyDeleteWorkspace(
     await RequirementTestCaseModel.destroy({ where: { workspaceId }, transaction, force: true });
     await TestCaseImportModel.destroy({ where: { workspaceId }, transaction, force: true });
     await TestCaseModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await RequirementFindingStatusEventModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
+    await RequirementFindingTriageDecisionModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
+    await RequirementFindingTriagePositionModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
+    await RequirementFindingClarificationModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
+    await RequirementFindingModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await FeatureReadinessBaselineRequirementModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
+    await FeatureReadinessBaselineModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
+    await FeatureReadinessReviewModel.destroy({ where: { workspaceId }, transaction, force: true });
     await TaskDocumentModel.destroy({ where: { workspaceId }, transaction, force: true });
     await QaDocumentVersionModel.destroy({ where: { workspaceId }, transaction, force: true });
     await QaDocumentModel.destroy({ where: { workspaceId }, transaction, force: true });

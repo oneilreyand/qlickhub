@@ -203,6 +203,8 @@ graph LR
 | `TaskDetailDrawer`          | `organisms/TaskDetailDrawer.tsx`                     | Organisme utama penampil seluruh konteks parent Task, Requirements, Tests, Bugs, dan Dokumen.  |
 | `TaskDetailProductBriefTab` | `organisms/taskDetail/TaskDetailProductBriefTab.tsx` | Product Brief berversi untuk konteks, referensi eksternal, In Scope, dan Out of Scope Feature. |
 | `RequirementManager`        | `organisms/RequirementManager.tsx`                   | Pengelola daftar Requirement dan Acceptance Criteria terkait fitur.                            |
+| `FeatureReadinessPanel`     | `organisms/FeatureReadinessPanel.tsx`                | Pemeriksaan dan baseline kesiapan root Feature dalam mode observasi.                           |
+| `RequirementFindingPanel`   | `organisms/RequirementFindingPanel.tsx`              | Temuan Requirement, klarifikasi, triage lintas peran, dan penyelesaian pada root Feature.      |
 | `QaTraceabilityMatrix`      | `organisms/QaTraceabilityMatrix.tsx`                 | Matriks ketertelusuran hubungan antara Requirement, Test Case, dan Bug.                        |
 | `ReleaseAssurancePanel`     | `organisms/ReleaseAssurancePanel.tsx`                | Panel evaluasi kesiapan rilis, QA Sign-off, dan PO Release Decision.                           |
 | `BugExperiencePanel`        | `organisms/BugExperiencePanel.tsx`                   | Panel pencatatan bug, delegasi perbaikan ke developer, dan verifikasi retest.                  |

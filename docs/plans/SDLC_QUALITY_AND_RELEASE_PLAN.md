@@ -1,9 +1,9 @@
 # Rencana SDLC, Kualitas Tim, dan Paket Rilis
 
-**Status:** Draft — menunggu keputusan produk sebelum implementasi
+**Status:** Active bertahap — P0/P1A/P1B selesai lokal; P1C blocked; K4–K7/K9–K10 menunggu keputusan
 **Disusun:** Codex, 2026-09-12
 **Pemilik keputusan yang diusulkan:** Product dan Engineering bersama perwakilan QA
-**Cakupan pekerjaan saat ini:** dokumentasi rencana, bukan implementasi atau otorisasi deployment
+**Cakupan pekerjaan saat ini:** pelacakan implementasi bertahap; bukan otorisasi deployment atau enforcement Production
 
 ## 1. Hasil yang dituju
 
@@ -34,8 +34,10 @@ belum diaudit dalam penyusunan rencana.
 | Laporan         | [TaskReportDashboard](../../apps/web/src/components/ui/organisms/TaskReportDashboard.tsx) menghitung keadaan/penugasan saat ini                                                          | Analitik longitudinal harus dihitung backend dari seluruh sumber yang relevan, bukan halaman Task yang sedang dimuat |
 | Backlog         | [TODO](../../TODO.md), QA-E2E-01 dan [ADR-011](../adr/ADR-011-QA-SUBTASK-LIFECYCLE-ALIGNMENT.md) sudah menunda Feature-scoped runs, evidence gate, retest attempts, dan rework analytics | Tahap di bawah melanjutkan pekerjaan tersebut, bukan mengulang lifecycle QA yang selesai                             |
 
-Pemeriksaan ini statis. Tidak ada pengukuran jumlah pengembalian, status migrasi, atau status
-deployment Production terbaru. Catatan hasil lama di TODO tidak menggantikan verifikasi target saat eksekusi.
+Pemeriksaan statis ini telah dilanjutkan dengan [paket keputusan dan audit data P0](SDLC_P0_DECISION_AND_DATA_AUDIT.md).
+Audit agregat read-only 2026-09-13 menemukan bahwa Production belum memiliki Test Run/Result, Bug,
+QA sign-off, release decision, atau event pengembalian; karena itu KPI historis berstatus belum
+tersedia, bukan nol. Catatan hasil lama di TODO tetap tidak menggantikan verifikasi target saat eksekusi.
 
 ### Perbedaan sumber yang harus direkonsiliasi pada tahap keputusan
 
@@ -70,6 +72,10 @@ sebelum implementasi. Feature Card tetap Draft sampai keputusan relevan selesai.
 
 Tidak ada pilihan pada tabel ini yang otomatis disetujui hanya karena rencana sudah dibuat.
 Persetujuan boleh per tahap; tidak perlu menunggu semua keputusan untuk menyelesaikan desain tahap awal.
+
+K1, K2, K3, dan K8 disetujui pada 2026-09-13 dan dicatat dalam
+[ADR-013](../adr/ADR-013-SDLC-READINESS-TRIAGE-REVIEW-AND-LEGACY-GOVERNANCE.md). K4–K7 serta K9–K10
+tetap berupa usulan dan tidak boleh dianggap aktif.
 
 | ID lokal | Keputusan                                                                 | Rekomendasi awal                                                                                                                                                                                            | Menghalangi |
 | -------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
@@ -134,6 +140,11 @@ yang relevan. ID P0–P6 adalah urutan lokal rencana, bukan klaim item implement
 
 ### P0 — Keputusan, audit data, dan penyelarasan sumber
 
+Paket keputusan, audit agregat Lokal/Production, rekonsiliasi sumber, dan peta pembaca tersedia di
+[audit P0](SDLC_P0_DECISION_AND_DATA_AUDIT.md). K1–K3/K8 sudah disetujui; ADR-013, Architecture,
+Workflow, dan Policy Registry sudah diselaraskan. P1A/P1B selesai secara lokal dalam mode
+observasi; preflight P1C diblokir oleh prasyarat anggota dan Subtask QA pada Workspace pilot.
+
 - Selesaikan K1–K3/K8 untuk tahap awal, lalu keputusan tahap lain sesuai dependensinya.
 - Rekonsiliasi perbedaan sumber pada §2, dokumentasikan keputusan di ADR/SSoT, perbarui Feature Card.
 - Audit read-only pada environment yang telah dikonfirmasi: kelengkapan histori status, hasil QA,
@@ -145,9 +156,19 @@ yang relevan. ID P0–P6 adalah urutan lokal rencana, bukan klaim item implement
 
 ### P1 — Kesiapan Requirement dan pencegahan cacat
 
-- P1a: baseline Requirement/AC berversi dan histori perubahan dalam konteks Feature.
-- P1b: Temuan Requirement, klarifikasi, dan triage tanpa mewajibkan hasil QA palsu.
-- P1c: panel Siap Dikerjakan dan masukan Dev/QA; enforcement mengikuti K1/K8.
+- **Status:** P1A dan P1B mode observasi selesai di implementasi lokal. Preflight P1C memilih
+  Workspace development `essensial`, tetapi pilot belum mulai karena belum ada anggota/Subtask QA;
+  hard gate tetap nonaktif.
+- P1a: baseline Requirement/AC berversi dan histori perubahan dalam konteks Feature. Slice P1A
+  mengirim snapshot immutable dan deteksi perubahan tanpa mengubah sumber kanonikal Requirement.
+- P1b: Temuan Requirement, klarifikasi, posisi triage Product–Development–QA, hasil konsensus atau
+  pemutus sengketa yang berversi, dan riwayat penyelesaian tanpa mewajibkan hasil QA palsu. Temuan
+  kritis terbuka dihitung backend tetapi belum menolak transisi Subtask selama mode observasi.
+- P1c: panel Siap Dikerjakan dan masukan Dev/QA. P1A mengirim pencatatan serta presentasi dalam
+  mode observasi; enforcement K1/K8 menunggu pilot dan slice lanjutan. Periode awal yang direncanakan
+  adalah 13 September–11 Oktober 2026, tetapi harus digeser bila prasyarat lintas peran belum lengkap
+  agar jendela observasi tidak dipendekkan diam-diam. Baseline kickoff tercatat pada
+  [laporan P1C](../reports/SDLC_P1C_ESSENSIAL_OBSERVATION_PILOT_KICKOFF_2026-09-13.md).
 - Checklist berbasis risiko: masalah/tujuan, alur utama dan kegagalan, role/izin, aturan/data,
   dependensi, AC yang bisa diuji, scope, dan kebutuhan non-fungsional relevan. N/A memerlukan alasan.
 - **Diterima bila:** Dev/QA dapat memberi masukan tanpa mengubah planning; perubahan AC membuat
@@ -278,17 +299,18 @@ bukan klaim sertifikasi atau kepatuhan universal.
 
 ### Peta perubahan saat implementasi
 
-| Area              | Berkas/lokasi yang ditemukan                                                                                                                                              | Tambahan yang mungkin diperlukan                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Kebijakan         | `docs/1_ARCHITECTURE.md`, `docs/2_WORKFLOW_AND_ROLES.md`, `docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`, `docs/POLICY_REGISTRY.md`, `docs/adr/`                                     | ADR per keputusan; Feature Card per slice besar                                   |
-| Kontrak           | `packages/contracts/src/requirement.ts`, `activity.ts`, `testManagement.ts`, `bug.ts`, `releaseDecision.ts`                                                               | Kontrak baseline/review/paket/deployment/analitik sesuai keputusan                |
-| Persistensi       | `apps/api/src/db/models/`, `apps/api/src/db/migrations/`, asosiasi/index model                                                                                            | Relasi eksplisit, index analitik, constraint Workspace, audit                     |
-| Backend           | `apps/api/src/modules/requirements/`, `tasks/internal/taskLifecycle.ts`, `testManagement/`, `bugs/`, `releaseDecisions/`                                                  | Modul review/paket/analitik bila tidak cocok dengan tanggung jawab modul yang ada |
-| Frontend          | `RequirementManager.tsx`, `taskDetail/`, `myTasks/QaTestingDesk.tsx`, `BugExperiencePanel.tsx`, `ReleaseAssurancePanel.tsx`, `TaskReportDashboard.tsx` dalam UI organisms | Organisme kecil reusable untuk baseline, putaran, dan paket                       |
-| Data frontend     | `apps/web/src/lib/api/`, `apps/web/src/store/reportSlice.ts`, store terkait                                                                                               | Shared-contract services/Redux Thunk untuk endpoint baru                          |
-| Pengujian/operasi | `__tests__` modul terkait, `apps/api/scripts/`, `docs/DEPLOYMENT_AND_ENVIRONMENTS.md`                                                                                     | Kasus scope/evidence/release/migration dan runbook sesuai integrasi terpilih      |
+| Area              | Berkas/lokasi yang ditemukan                                                                                                                                                        | Tambahan yang mungkin diperlukan                                             |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Kebijakan         | `docs/1_ARCHITECTURE.md`, `docs/2_WORKFLOW_AND_ROLES.md`, `docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`, `docs/POLICY_REGISTRY.md`, `docs/adr/`                                               | ADR per keputusan; Feature Card per slice besar                              |
+| Kontrak           | `packages/contracts/src/requirement.ts`, `featureReadiness.ts`, `activity.ts`, `testManagement.ts`, `bug.ts`, `releaseDecision.ts`                                                  | Kontrak paket/deployment/analitik sesuai keputusan                           |
+| Persistensi       | `apps/api/src/db/models/`, `apps/api/src/db/migrations/`, asosiasi/index model                                                                                                      | Relasi eksplisit, index analitik, constraint Workspace, audit                |
+| Backend           | `apps/api/src/modules/featureReadiness/`, `requirements/`, `tasks/internal/taskLifecycle.ts`, `testManagement/`, `bugs/`, `releaseDecisions/`                                       | Modul paket/analitik bila tidak cocok dengan tanggung jawab modul yang ada   |
+| Frontend          | `FeatureReadinessPanel.tsx`, `RequirementManager.tsx`, `taskDetail/`, `myTasks/QaTestingDesk.tsx`, `BugExperiencePanel.tsx`, `ReleaseAssurancePanel.tsx`, `TaskReportDashboard.tsx` | Organisme kecil reusable untuk putaran dan paket                             |
+| Data frontend     | `apps/web/src/lib/api/`, `apps/web/src/store/reportSlice.ts`, store terkait                                                                                                         | Shared-contract services/Redux Thunk untuk endpoint baru                     |
+| Pengujian/operasi | `__tests__` modul terkait, `apps/api/scripts/`, `docs/DEPLOYMENT_AND_ENVIRONMENTS.md`                                                                                               | Kasus scope/evidence/release/migration dan runbook sesuai integrasi terpilih |
 
-Nama berkas baru belum final. Tidak ada perubahan aplikasi pada tahap penyusunan rencana ini.
+Lokasi P1A/P1B di atas sudah final pada implementasi lokal. Lokasi slice setelahnya tetap dikonfirmasi
+saat item tersebut diklaim.
 
 ## 9. Authorization, migrasi, dan rollout
 
@@ -362,10 +384,13 @@ Production dapat ditelusuri. Dashboard tidak dianggap selesai jika angkanya tak 
 
 ## 11. Handoff dan langkah pertama
 
-- Pekerjaan sekarang: selesaikan rencana dan dokumentasi terkait, jalankan docs check, lalu laporkan.
-- Setelah persetujuan: mulai P0, bukan langsung dashboard atau migrasi Production.
-- P1–P6 belum diklaim/dikerjakan. Buat item pelaksanaan per slice setelah keputusan relevan selesai;
-  jangan menandai keseluruhan SDLC selesai karena dokumen ini selesai.
+- P0 selesai setelah keputusan K1–K3/K8, audit data, ADR, dan SSoT diselaraskan.
+- P1A dan P1B selesai secara lokal dalam mode observasi; hard gate tetap nonaktif.
+- Pekerjaan berikutnya adalah memenuhi prasyarat lintas peran P1C pada Workspace development
+  `essensial`, lalu memulai ulang jendela pilot empat minggu secara eksplisit. Jangan membuat anggota,
+  Subtask, Test Result, atau bukti QA palsu untuk membuka blocker.
+- P2–P6 belum aktif. Buat dan klaim satu item pelaksanaan per slice setelah dependensi serta keputusan
+  relevan selesai; jangan langsung membangun dashboard atau menjalankan migrasi Production.
 - [Feature Card Draft](../features/SDLC_QUALITY_AND_RELEASE.md) menjadi penghubung lintas lapisan.
 - [Laporan penyusunan rencana](../reports/SDLC_QUALITY_RELEASE_PLAN_2026-09-12.md) mencatat verifikasi
   dokumentasi saja; [TODO](../../TODO.md) memisahkan status plan dari implementasi.

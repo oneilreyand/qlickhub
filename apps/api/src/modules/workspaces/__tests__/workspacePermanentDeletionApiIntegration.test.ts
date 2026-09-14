@@ -6,8 +6,16 @@ import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
   AuthSecurityEventModel,
+  FeatureReadinessReviewModel,
+  RequirementFindingClarificationModel,
+  RequirementFindingModel,
+  RequirementFindingStatusEventModel,
+  RequirementFindingTriageDecisionModel,
+  RequirementFindingTriagePositionModel,
+  RequirementModel,
   TaskAttachmentModel,
   TaskModel,
+  TaskRequirementModel,
   UserModel,
   WorkFolderModel,
   WorkspaceMemberModel,
@@ -27,6 +35,7 @@ describe('Permanent Workspace deletion HTTP/PostgreSQL integration', () => {
   let ownerCookie: string;
   let adminCookie: string;
   let storedRef: string;
+  let findingId: string;
 
   const request = (path: string, cookie: string, init?: RequestInit) =>
     fetch(`${baseUrl}${path}`, {
@@ -77,6 +86,100 @@ describe('Permanent Workspace deletion HTTP/PostgreSQL integration', () => {
       status: 'todo',
       priority: 'medium',
     });
+    const requirement = await RequirementModel.create({
+      workspaceId: workspace.id,
+      code: `REQ-DELETE-${stamp}`,
+      title: 'Requirement with triage history',
+      description: 'Persists P1B evidence until its Workspace is permanently deleted.',
+      status: 'active',
+      createdBy: owner.id,
+    });
+    await FeatureReadinessReviewModel.create({
+      workspaceId: workspace.id,
+      featureTaskId: task.id,
+      reviewerRole: 'dev',
+      recommendation: 'changes_requested',
+      notes: 'Deletion fixture readiness review.',
+      concernSeverity: 'medium',
+      createdBy: admin.id,
+    });
+    await TaskRequirementModel.create({
+      workspaceId: workspace.id,
+      taskId: task.id,
+      requirementId: requirement.id,
+      linkedBy: owner.id,
+    });
+    const finding = await RequirementFindingModel.create({
+      workspaceId: workspace.id,
+      featureTaskId: task.id,
+      requirementId: requirement.id,
+      requirementCode: requirement.code,
+      requirementTitle: requirement.title,
+      requirementStatus: requirement.status,
+      category: 'missing_flow',
+      severity: 'critical',
+      summary: 'Deletion fixture finding',
+      details: 'Ensures permanent Workspace deletion includes all P1B evidence.',
+      proposedCause: 'shared',
+      reporterGroup: 'product',
+      reportedBy: owner.id,
+    });
+    findingId = finding.id;
+    await RequirementFindingClarificationModel.create({
+      workspaceId: workspace.id,
+      findingId,
+      message: 'Deletion fixture clarification.',
+      authorGroup: 'product',
+      createdBy: owner.id,
+    });
+    const positions = await RequirementFindingTriagePositionModel.bulkCreate([
+      {
+        workspaceId: workspace.id,
+        findingId,
+        participantGroup: 'product',
+        classification: 'shared',
+        rationale: 'Product fixture position.',
+        createdBy: owner.id,
+      },
+      {
+        workspaceId: workspace.id,
+        findingId,
+        participantGroup: 'development',
+        classification: 'shared',
+        rationale: 'Development fixture position.',
+        createdBy: admin.id,
+      },
+      {
+        workspaceId: workspace.id,
+        findingId,
+        participantGroup: 'qa',
+        classification: 'shared',
+        rationale: 'QA fixture position.',
+        createdBy: admin.id,
+      },
+    ]);
+    await RequirementFindingTriageDecisionModel.create({
+      workspaceId: workspace.id,
+      findingId,
+      version: 1,
+      classification: 'shared',
+      mode: 'consensus',
+      rationale: 'Deletion fixture decision.',
+      positionIds: {
+        product: positions[0].id,
+        development: positions[1].id,
+        qa: positions[2].id,
+      },
+      supersedesDecisionId: null,
+      recordedBy: owner.id,
+    });
+    await RequirementFindingStatusEventModel.create({
+      workspaceId: workspace.id,
+      findingId,
+      action: 'resolved',
+      reason: 'Deletion fixture status.',
+      createdBy: owner.id,
+    });
     const stored = await storageService.saveFile({
       buffer: Buffer.from('permanent deletion evidence'),
       fileName: 'evidence.txt',
@@ -123,8 +226,16 @@ describe('Permanent Workspace deletion HTTP/PostgreSQL integration', () => {
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
     if (workspace) {
       await AuthSecurityEventModel.destroy({ where: { workspaceId: workspace.id } });
+      await FeatureReadinessReviewModel.destroy({ where: { workspaceId: workspace.id } });
+      await RequirementFindingStatusEventModel.destroy({ where: { workspaceId: workspace.id } });
+      await RequirementFindingTriageDecisionModel.destroy({ where: { workspaceId: workspace.id } });
+      await RequirementFindingTriagePositionModel.destroy({ where: { workspaceId: workspace.id } });
+      await RequirementFindingClarificationModel.destroy({ where: { workspaceId: workspace.id } });
+      await RequirementFindingModel.destroy({ where: { workspaceId: workspace.id } });
       await TaskAttachmentModel.destroy({ where: { workspaceId: workspace.id } });
+      await TaskRequirementModel.destroy({ where: { workspaceId: workspace.id } });
       await TaskModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await RequirementModel.destroy({ where: { workspaceId: workspace.id } });
       await WorkFolderModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await WorkspaceMembershipActivityModel.destroy({ where: { workspaceId: workspace.id } });
       await WorkspaceMemberModel.destroy({ where: { workspaceId: workspace.id }, force: true });
@@ -181,6 +292,11 @@ describe('Permanent Workspace deletion HTTP/PostgreSQL integration', () => {
     );
     assert.strictEqual(
       await AuthSecurityEventModel.findOne({ where: { workspaceId: workspace.id } }),
+      null,
+    );
+    assert.strictEqual(await RequirementFindingModel.findByPk(findingId), null);
+    assert.strictEqual(
+      await FeatureReadinessReviewModel.findOne({ where: { workspaceId: workspace.id } }),
       null,
     );
     assert.ok(await UserModel.findByPk(owner.id));

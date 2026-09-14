@@ -51,4 +51,21 @@ describe('apiClient error metadata', () => {
       'Terjadi gangguan pada layanan. Coba lagi beberapa saat.',
     );
   });
+
+  it('explains Requirement finding scope and triage blockers in natural Indonesian', () => {
+    expect(
+      getHumanReadableApiErrorMessage(
+        409,
+        'CONFLICT',
+        'A Requirement finding must reference a Requirement linked to this Feature.',
+      ),
+    ).toMatch(/masih berada dalam cakupan Feature/i);
+    expect(
+      getHumanReadableApiErrorMessage(
+        409,
+        'CONFLICT',
+        'A current triage decision is required before resolving a Requirement finding.',
+      ),
+    ).toMatch(/posisi terbaru Product, Development, dan QA/i);
+  });
 });

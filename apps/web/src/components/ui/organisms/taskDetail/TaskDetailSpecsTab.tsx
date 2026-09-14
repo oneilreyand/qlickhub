@@ -2,6 +2,8 @@ import React from 'react';
 import type { Requirement, Task } from '@qlick/contracts';
 
 import { Card } from '../../atoms/Card';
+import { FeatureReadinessPanel } from '../FeatureReadinessPanel';
+import { RequirementFindingPanel } from '../RequirementFindingPanel';
 import { RequirementManager, type RequirementManagerInitialState } from '../RequirementManager';
 
 export interface TaskDetailSpecsTabProps {
@@ -23,14 +25,30 @@ export const TaskDetailSpecsTab: React.FC<TaskDetailSpecsTabProps> = ({
 }) => {
   return (
     <Card className="border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900/90 sm:p-5">
-      <RequirementManager
-        workspaceId={activeWorkspaceId || task.workspaceId}
-        taskId={task.id}
-        userRole={(userRole || 'dev') as any}
-        onRequirementChanged={onRequirementChanged}
-        onPlanSubtask={onPlanSubtask}
-        initialState={requirementInitialState}
-      />
+      <div className="space-y-5">
+        {!task.parentTaskId ? (
+          <>
+            <FeatureReadinessPanel
+              workspaceId={activeWorkspaceId || task.workspaceId}
+              featureTaskId={task.id}
+              onDataChanged={onRequirementChanged}
+            />
+            <RequirementFindingPanel
+              workspaceId={activeWorkspaceId || task.workspaceId}
+              featureTaskId={task.id}
+              onDataChanged={onRequirementChanged}
+            />
+          </>
+        ) : null}
+        <RequirementManager
+          workspaceId={activeWorkspaceId || task.workspaceId}
+          taskId={task.id}
+          userRole={(userRole || 'dev') as any}
+          onRequirementChanged={onRequirementChanged}
+          onPlanSubtask={onPlanSubtask}
+          initialState={requirementInitialState}
+        />
+      </div>
     </Card>
   );
 };

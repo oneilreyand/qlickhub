@@ -45,7 +45,7 @@ sequenceDiagram
     Note over PO,QA: Tahap 4: Sign-off & Gerbang Rilis
     QA->>PO: Terbitkan QA Sign-off Form (Jaminan Kualitas)
     PO->>Owner: Evaluasi Snapshot Kesiapan Backend (Pass Rate %, Coverage %)
-    PO->>PO: Terbitkan Release Decision (Approved / Rejected / Conditional)
+    PO->>PO: Terbitkan Release Decision (approved / rejected; override beralasan bila gate gagal)
     PO->>Owner: Tutup Parent Feature Task secara eksplisit
 ```
 
@@ -68,6 +68,30 @@ yang dapat digunakan ulang, URL sumber yang spesifik, dan Acceptance Criteria st
 QA membaca kedua konteks tersebut, tetapi hanya Planner (`owner`, `admin`, `po`) yang dapat
 memutasinya. Requirement tetap menjadi target coverage Test Case kanonikal. Aturan lengkap berada
 pada [ADR-010](adr/ADR-010-PRODUCT-BRIEF-REQUIREMENT-CONTEXT-OWNERSHIP.md).
+
+### Kesiapan Requirement dan Triage Temuan
+
+1. Planner pemilik root Feature menetapkan baseline **Siap Dikerjakan** hanya setelah masukan
+   Development dan QA tercatat. Requirement `active` tidak otomatis berarti Feature siap dimulai.
+2. Development dan QA dapat memberi masukan atau mencatat temuan, tetapi tidak dapat memutasi
+   planning maupun menetapkan readiness. Authorization aksi final tetap ditegakkan backend.
+3. Temuan kritis terbuka menghalangi pekerjaan baru. Owner/Admin aktif dapat membuat pengecualian
+   darurat dengan scope, alasan, masa berlaku, dan audit append-only; pengecualian tidak menghapus
+   temuan.
+4. Pelapor mengusulkan klasifikasi penyebab. Product, Engineering, dan QA melakukan triage;
+   penyebab bersama dan belum diketahui adalah hasil yang sah. Jika tidak tercapai kesepakatan,
+   Owner/Admin mencatat klasifikasi proses dan seluruh pendapat berbeda tetap dipertahankan.
+5. Klasifikasi dipakai untuk perbaikan proses, bukan skor atau ranking karyawan. Koreksi berikutnya
+   berversi dan merujuk hasil sebelumnya.
+6. P1A mengaktifkan pencatatan masukan assignee Development/QA dan baseline append-only pada panel
+   Requirement root Feature dalam **mode observasi**. P1B menambahkan Temuan Requirement yang
+   terikat ke Requirement dalam cakupan Feature, klarifikasi, posisi triage append-only dari Product,
+   Development, dan QA, keputusan konsensus deterministik atau pemutus sengketa Owner/Admin, serta
+   riwayat selesai/dibuka kembali oleh Planner. Hasil triage menyimpan posisi yang menjadi dasar dan
+   koreksi menjadi versi baru; tidak ada Test Result atau Bug yang dibuat untuk temuan pra-coding.
+   Temuan kritis terbuka terlihat sebagai penghalang, tetapi sistem belum menolak pembuatan atau
+   dimulainya Subtask. Hard gate tetap menunggu hasil pilot dan slice P1C. Keputusan canonical tercatat pada
+   [ADR-013](adr/ADR-013-SDLC-READINESS-TRIAGE-REVIEW-AND-LEGACY-GOVERNANCE.md).
 
 ### Koreksi Requirement yang Salah Dibuat
 
@@ -170,6 +194,20 @@ memulihkan record lama.
 5. **Kelengkapan Timeline Task dan Subtask**: Jadwal boleh tidak ditentukan dengan mengosongkan `startDate` dan `dueDate`. Jika jadwal ditentukan, kedua tanggal wajib diisi dan `startDate` tidak boleh melewati `dueDate`. Aturan ini berlaku saat pembuatan maupun perubahan Task dan Subtask serta ditegakkan kembali oleh backend dan database.
 6. **Batas Evidence Gate**: Sampai Test Run memiliki scope Feature yang eksplisit, penyelesaian Subtask QA belum boleh diklaim sebagai bukti readiness. Readiness tetap dihitung backend melalui §7; pemasangan evidence gate pada transisi Subtask QA dilakukan setelah scope Test Run tidak dapat bercampur antar-Feature.
 
+### Definisi Putaran Review dan Pengembalian
+
+- Satu putaran review dimiliki oleh satu Development Subtask, satu jenis review, dan satu baseline.
+  Review teknis dan review QA dicatat sebagai jenis berbeda; Subtask QA tetap mengikuti lifecycle
+  eksekusi pada bagian B dan bukan unit pengembalian Dev.
+- Outcome kembali dihitung sekali pada putaran Development Subtask. Root Feature tidak dihitung lagi.
+- Perubahan baseline atau scope material ketika review berjalan menutup putaran lama sebagai
+  `superseded` dengan alasan, bukan otomatis sebagai kegagalan Development. Handoff berikutnya
+  memulai putaran baru terhadap baseline baru.
+- Field Task `reviewedBy` dan `reviewNotes` yang ada tetap merupakan keadaan terbaru, bukan sumber
+  lengkap analitik historis. Event putaran append-only ditambahkan pada P2 sebelum metrik diaktifkan.
+- Keputusan lengkap tercatat pada
+  [ADR-013](adr/ADR-013-SDLC-READINESS-TRIAGE-REVIEW-AND-LEGACY-GOVERNANCE.md).
+
 ---
 
 ## 5. Manajemen Pengujian Native QA (_QA Test Management_)
@@ -234,7 +272,7 @@ graph TD
     DevResolve --> IndependentRetest["QA: Independent Retest Execution"]
 
     IndependentRetest --> RetestDecision{"Retest Lolos?"}
-    RetestDecision -- "Ya (Pass)" --> CloseBug["Bug Status: CLOSED"]
+    RetestDecision -- "Ya (Pass)" --> CloseBug["Bug Status API: verified"]
     RetestDecision -- "Tidak (Fail)" --> ReopenBug["Kembali ke Developer: in_progress"]
     ReopenBug --> AssignFix
 
@@ -271,17 +309,37 @@ graph TD
     subgraph PODecisionBlock["3. PO Release Decision"]
         QASubmit --> POAction{"PO Release Decision"}
         POAction -->|"Approved"| RelApproved["Status: Approved for Production Deployment"]
-        POAction -->|"Conditional"| RelConditional["Status: Approved with Documented Constraints"]
+        POAction -->|"Approved + override reason"| RelOverride["Status API: approved; failed gates retained"]
         POAction -->|"Rejected"| RelRejected["Status: Rejected (Remediation Needed)"]
     end
 
     RelApproved --> CloseParentTask["Planner Menutup Parent Feature Task"]
+    RelOverride --> CloseParentTask
 
     classDef pass fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D;
     classDef warn fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F;
     classDef fail fill:#FEE2E2,stroke:#EF4444,stroke-width:2px,color:#991B1B;
 
     class RelApproved,CloseParentTask pass;
-    class RelConditional warn;
+    class RelOverride warn;
     class RelRejected,QABlock fail;
 ```
+
+Kontrak aktif hanya memiliki outcome `approved` dan `rejected`. Persetujuan ketika readiness gate
+gagal tetap disimpan sebagai `approved` dengan `overrideReason`; snapshot gate yang gagal tidak
+dihapus. `Conditional` bukan enum API aktif. Perubahan lebih lanjut pada kebijakan override dan
+paket rilis menunggu keputusan K6.
+
+### Data Legacy dan Awal Pengukuran
+
+- Baseline, reviewer, penyebab, build, kandidat, atau deployment lama hanya boleh diisi ulang jika
+  bukti persisten menentukan nilainya secara deterministik. Nilai ambigu tetap belum terverifikasi
+  atau tidak tersedia.
+- Pencatatan baru dimulai melalui pilot/observation mode untuk Feature baru. Pekerjaan aktif mendapat
+  jalur remediasi; hard enforcement baru dapat diaktifkan setelah Product, Engineering, dan QA
+  meninjau kelengkapan data.
+- Setiap metrik wajib menyertakan periode/kohor, versi definisi, denominator atau ukuran sampel,
+  pengecualian, dan status kelengkapan. Denominator nol menghasilkan tidak tersedia, bukan nol.
+- Durasi pilot, ambang sampel, retensi, dan akses analitik individu tetap merupakan keputusan K4/K9.
+  Aturan lengkap tercatat pada
+  [ADR-013](adr/ADR-013-SDLC-READINESS-TRIAGE-REVIEW-AND-LEGACY-GOVERNANCE.md).

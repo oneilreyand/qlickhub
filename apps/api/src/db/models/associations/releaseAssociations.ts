@@ -10,8 +10,180 @@ import { QaSignOffModel } from '../qaSignOff.js';
 import { QaSignOffCancellationModel } from '../qaSignOffCancellation.js';
 import { ReleaseDecisionModel } from '../releaseDecision.js';
 import { ReleaseDecisionCancellationModel } from '../releaseDecisionCancellation.js';
+import { FeatureReadinessReviewModel } from '../featureReadinessReview.js';
+import { FeatureReadinessBaselineModel } from '../featureReadinessBaseline.js';
+import { FeatureReadinessBaselineRequirementModel } from '../featureReadinessBaselineRequirement.js';
+import { RequirementFindingModel } from '../requirementFinding.js';
+import { RequirementFindingClarificationModel } from '../requirementFindingClarification.js';
+import { RequirementFindingTriagePositionModel } from '../requirementFindingTriagePosition.js';
+import { RequirementFindingTriageDecisionModel } from '../requirementFindingTriageDecision.js';
+import { RequirementFindingStatusEventModel } from '../requirementFindingStatusEvent.js';
 
 export function setupReleaseAssociations() {
+  WorkspaceModel.hasMany(RequirementFindingModel, {
+    foreignKey: 'workspaceId',
+    as: 'requirementFindings',
+    onDelete: 'CASCADE',
+  });
+  RequirementFindingModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+  TaskModel.hasMany(RequirementFindingModel, {
+    foreignKey: 'featureTaskId',
+    as: 'requirementFindings',
+    onDelete: 'RESTRICT',
+  });
+  RequirementFindingModel.belongsTo(TaskModel, {
+    foreignKey: 'featureTaskId',
+    as: 'featureTask',
+    onDelete: 'RESTRICT',
+  });
+  RequirementModel.hasMany(RequirementFindingModel, {
+    foreignKey: 'requirementId',
+    as: 'findings',
+    onDelete: 'RESTRICT',
+  });
+  RequirementFindingModel.belongsTo(RequirementModel, {
+    foreignKey: 'requirementId',
+    as: 'requirement',
+    onDelete: 'RESTRICT',
+  });
+  UserModel.hasMany(RequirementFindingModel, {
+    foreignKey: 'reportedBy',
+    as: 'reportedRequirementFindings',
+    onDelete: 'RESTRICT',
+  });
+  RequirementFindingModel.belongsTo(UserModel, {
+    foreignKey: 'reportedBy',
+    as: 'reporter',
+    onDelete: 'RESTRICT',
+  });
+
+  RequirementFindingModel.hasMany(RequirementFindingClarificationModel, {
+    foreignKey: 'findingId',
+    as: 'clarifications',
+    onDelete: 'CASCADE',
+  });
+  RequirementFindingClarificationModel.belongsTo(RequirementFindingModel, {
+    foreignKey: 'findingId',
+    as: 'finding',
+    onDelete: 'CASCADE',
+  });
+  RequirementFindingModel.hasMany(RequirementFindingTriagePositionModel, {
+    foreignKey: 'findingId',
+    as: 'triagePositions',
+    onDelete: 'CASCADE',
+  });
+  RequirementFindingTriagePositionModel.belongsTo(RequirementFindingModel, {
+    foreignKey: 'findingId',
+    as: 'finding',
+    onDelete: 'CASCADE',
+  });
+  RequirementFindingModel.hasMany(RequirementFindingTriageDecisionModel, {
+    foreignKey: 'findingId',
+    as: 'triageDecisions',
+    onDelete: 'CASCADE',
+  });
+  RequirementFindingTriageDecisionModel.belongsTo(RequirementFindingModel, {
+    foreignKey: 'findingId',
+    as: 'finding',
+    onDelete: 'CASCADE',
+  });
+  RequirementFindingModel.hasMany(RequirementFindingStatusEventModel, {
+    foreignKey: 'findingId',
+    as: 'statusEvents',
+    onDelete: 'CASCADE',
+  });
+  RequirementFindingStatusEventModel.belongsTo(RequirementFindingModel, {
+    foreignKey: 'findingId',
+    as: 'finding',
+    onDelete: 'CASCADE',
+  });
+
+  WorkspaceModel.hasMany(FeatureReadinessReviewModel, {
+    foreignKey: 'workspaceId',
+    as: 'featureReadinessReviews',
+    onDelete: 'CASCADE',
+  });
+  FeatureReadinessReviewModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+  TaskModel.hasMany(FeatureReadinessReviewModel, {
+    foreignKey: 'featureTaskId',
+    as: 'readinessReviews',
+    onDelete: 'RESTRICT',
+  });
+  FeatureReadinessReviewModel.belongsTo(TaskModel, {
+    foreignKey: 'featureTaskId',
+    as: 'featureTask',
+    onDelete: 'RESTRICT',
+  });
+  UserModel.hasMany(FeatureReadinessReviewModel, {
+    foreignKey: 'createdBy',
+    as: 'featureReadinessReviews',
+    onDelete: 'RESTRICT',
+  });
+  FeatureReadinessReviewModel.belongsTo(UserModel, {
+    foreignKey: 'createdBy',
+    as: 'reviewer',
+    onDelete: 'RESTRICT',
+  });
+
+  WorkspaceModel.hasMany(FeatureReadinessBaselineModel, {
+    foreignKey: 'workspaceId',
+    as: 'featureReadinessBaselines',
+    onDelete: 'CASCADE',
+  });
+  FeatureReadinessBaselineModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+  TaskModel.hasMany(FeatureReadinessBaselineModel, {
+    foreignKey: 'featureTaskId',
+    as: 'readinessBaselines',
+    onDelete: 'RESTRICT',
+  });
+  FeatureReadinessBaselineModel.belongsTo(TaskModel, {
+    foreignKey: 'featureTaskId',
+    as: 'featureTask',
+    onDelete: 'RESTRICT',
+  });
+  UserModel.hasMany(FeatureReadinessBaselineModel, {
+    foreignKey: 'establishedBy',
+    as: 'establishedFeatureReadinessBaselines',
+    onDelete: 'RESTRICT',
+  });
+  FeatureReadinessBaselineModel.belongsTo(UserModel, {
+    foreignKey: 'establishedBy',
+    as: 'establisher',
+    onDelete: 'RESTRICT',
+  });
+  FeatureReadinessBaselineModel.hasMany(FeatureReadinessBaselineRequirementModel, {
+    foreignKey: 'baselineId',
+    as: 'requirementLinks',
+    onDelete: 'CASCADE',
+  });
+  FeatureReadinessBaselineRequirementModel.belongsTo(FeatureReadinessBaselineModel, {
+    foreignKey: 'baselineId',
+    as: 'baseline',
+    onDelete: 'CASCADE',
+  });
+  RequirementModel.hasMany(FeatureReadinessBaselineRequirementModel, {
+    foreignKey: 'requirementId',
+    as: 'readinessBaselineLinks',
+    onDelete: 'RESTRICT',
+  });
+  FeatureReadinessBaselineRequirementModel.belongsTo(RequirementModel, {
+    foreignKey: 'requirementId',
+    as: 'requirement',
+    onDelete: 'RESTRICT',
+  });
+
   // Requirement & Task Requirement Link Associations
   WorkspaceModel.hasMany(RequirementModel, {
     foreignKey: 'workspaceId',

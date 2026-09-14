@@ -26,6 +26,9 @@ import {
   QaSignOffCancellationModel,
   ReleaseDecisionModel,
   ReleaseDecisionCancellationModel,
+  FeatureReadinessReviewModel,
+  FeatureReadinessBaselineModel,
+  RequirementFindingModel,
 } from '../../../db/models/index.js';
 import { logActivity } from './taskLifecycle.js';
 
@@ -80,6 +83,18 @@ export async function deleteTaskImpl(
       where: { workspaceId, featureTaskId: { [Op.in]: targetTaskIds } },
       transaction,
     });
+    const readinessReviews = await FeatureReadinessReviewModel.count({
+      where: { workspaceId, featureTaskId: { [Op.in]: targetTaskIds } },
+      transaction,
+    });
+    const readinessBaselines = await FeatureReadinessBaselineModel.count({
+      where: { workspaceId, featureTaskId: { [Op.in]: targetTaskIds } },
+      transaction,
+    });
+    const requirementFindings = await RequirementFindingModel.count({
+      where: { workspaceId, featureTaskId: { [Op.in]: targetTaskIds } },
+      transaction,
+    });
     const qaSignOffs = await QaSignOffModel.count({
       where: {
         workspaceId,
@@ -104,11 +119,14 @@ export async function deleteTaskImpl(
       documentLinks > 0 ||
       attachments > 0 ||
       bugs > 0 ||
+      readinessReviews > 0 ||
+      readinessBaselines > 0 ||
+      requirementFindings > 0 ||
       qaSignOffs > 0 ||
       releaseDecisions > 0
     ) {
       throw new Error(
-        `CONFLICT: Unlink or remove permitted Task records before deletion. Immutable delivery history cannot be deleted (${requirementLinks} Requirement link(s), ${documentLinks} document link(s), ${attachments} attachment(s), ${bugs} Bug(s), ${qaSignOffs} active QA Sign-off(s), ${releaseDecisions} active Release Decision(s)).`,
+        `CONFLICT: Unlink or remove permitted Task records before deletion. Immutable delivery history cannot be deleted (${requirementLinks} Requirement link(s), ${documentLinks} document link(s), ${attachments} attachment(s), ${bugs} Bug(s), ${readinessReviews} readiness review(s), ${readinessBaselines} readiness baseline(s), ${requirementFindings} Requirement finding(s), ${qaSignOffs} active QA Sign-off(s), ${releaseDecisions} active Release Decision(s)).`,
       );
     }
 
