@@ -1,8 +1,8 @@
 # SDLC-QUALITY-RELEASE — Kualitas Delivery dan Paket Rilis
 
-**Status:** Active — P1A/P1B selesai lokal; preflight P1C Essensial blocked; P2–P6 belum aktif
+**Status:** Active — P1A/P1B selesai lokal; preflight P1C Kerjaa blocked; P2–P6 belum aktif
 **Owner:** Product dan Engineering; QA sebagai pemangku kepentingan
-**Last reviewed:** 2026-09-13
+**Last reviewed:** 2026-09-14
 **Applicable Policy IDs:** `DOMAIN-002`, `DOMAIN-003`, `DOMAIN-004`, `AUTH-001`, `AUTH-002`, `FLOW-002`, `FLOW-005`, `FLOW-006`, `QA-001`, `QA-002`, `QA-003`, `QA-004`, `QA-005`, `RELEASE-001`, `RELEASE-002`, `DATA-001`, `DATA-002`, `DATA-004`, `DATA-005`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-002`, `DOC-003`, `DOC-004`
 
 Card ini menghubungkan rencana lintas lapisan, bukan menetapkan kebijakan baru. Sumber detail usulan
@@ -16,10 +16,12 @@ Requirement, klarifikasi, posisi lintas peran, keputusan triage berversi, dan ri
 review round, analitik, paket rilis, deployment evidence, serta enforcement masih mengikuti slice
 berikutnya.
 
-Preflight pilot empat minggu memilih Workspace development `essensial` dan menerapkan migrasi
-additive 67–69. Pilot belum menghasilkan jendela observasi yang sah karena belum ada anggota atau
-Subtask QA. Baseline awal dan remediasi dicatat pada
-[laporan kickoff P1C](../reports/SDLC_P1C_ESSENSIAL_OBSERVATION_PILOT_KICKOFF_2026-09-13.md).
+Atas keputusan pengguna 14 September 2026, target pilot empat minggu dipindahkan dari Workspace
+development `essensial` ke `kerjaa`; migrasi additive 67–69 tetap sudah tersedia. Audit read-only
+menemukan `kerjaa` baru memiliki satu Owner, tanpa anggota Development/QA, root Feature, Subtask,
+Requirement/AC, Product Brief, review kesiapan, baseline, atau temuan. Karena itu pilot belum
+memiliki jendela observasi yang sah. Keputusan retarget dan baseline kelengkapan dicatat pada
+[laporan retarget P1C](../reports/SDLC_P1C_KERJAA_OBSERVATION_PILOT_RETARGET_2026-09-14.md).
 
 ## 1. Tujuan dan Pengguna
 

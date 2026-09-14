@@ -156,9 +156,10 @@ observasi; preflight P1C diblokir oleh prasyarat anggota dan Subtask QA pada Wor
 
 ### P1 — Kesiapan Requirement dan pencegahan cacat
 
-- **Status:** P1A dan P1B mode observasi selesai di implementasi lokal. Preflight P1C memilih
-  Workspace development `essensial`, tetapi pilot belum mulai karena belum ada anggota/Subtask QA;
-  hard gate tetap nonaktif.
+- **Status:** P1A dan P1B mode observasi selesai di implementasi lokal. Atas keputusan pengguna
+  14 September 2026, target P1C dipindahkan ke Workspace development `kerjaa`. Pilot belum mulai
+  karena Workspace belum memiliki anggota Development/QA, root Feature, atau Subtask; hard gate
+  tetap nonaktif.
 - P1a: baseline Requirement/AC berversi dan histori perubahan dalam konteks Feature. Slice P1A
   mengirim snapshot immutable dan deteksi perubahan tanpa mengubah sumber kanonikal Requirement.
 - P1b: Temuan Requirement, klarifikasi, posisi triage Product–Development–QA, hasil konsensus atau
@@ -167,8 +168,9 @@ observasi; preflight P1C diblokir oleh prasyarat anggota dan Subtask QA pada Wor
 - P1c: panel Siap Dikerjakan dan masukan Dev/QA. P1A mengirim pencatatan serta presentasi dalam
   mode observasi; enforcement K1/K8 menunggu pilot dan slice lanjutan. Periode awal yang direncanakan
   adalah 13 September–11 Oktober 2026, tetapi harus digeser bila prasyarat lintas peran belum lengkap
-  agar jendela observasi tidak dipendekkan diam-diam. Baseline kickoff tercatat pada
-  [laporan P1C](../reports/SDLC_P1C_ESSENSIAL_OBSERVATION_PILOT_KICKOFF_2026-09-13.md).
+  agar jendela observasi tidak dipendekkan diam-diam. Keputusan retarget dan baseline kelengkapan
+  terbaru tercatat pada
+  [laporan P1C Kerjaa](../reports/SDLC_P1C_KERJAA_OBSERVATION_PILOT_RETARGET_2026-09-14.md).
 - Checklist berbasis risiko: masalah/tujuan, alur utama dan kegagalan, role/izin, aturan/data,
   dependensi, AC yang bisa diuji, scope, dan kebutuhan non-fungsional relevan. N/A memerlukan alasan.
 - **Diterima bila:** Dev/QA dapat memberi masukan tanpa mengubah planning; perubahan AC membuat
@@ -387,8 +389,8 @@ Production dapat ditelusuri. Dashboard tidak dianggap selesai jika angkanya tak 
 - P0 selesai setelah keputusan K1–K3/K8, audit data, ADR, dan SSoT diselaraskan.
 - P1A dan P1B selesai secara lokal dalam mode observasi; hard gate tetap nonaktif.
 - Pekerjaan berikutnya adalah memenuhi prasyarat lintas peran P1C pada Workspace development
-  `essensial`, lalu memulai ulang jendela pilot empat minggu secara eksplisit. Jangan membuat anggota,
-  Subtask, Test Result, atau bukti QA palsu untuk membuka blocker.
+  `kerjaa`, lalu menetapkan jendela pilot empat minggu secara eksplisit. Jangan membuat anggota,
+  Feature, Subtask, Test Result, atau bukti QA palsu untuk membuka blocker.
 - P2–P6 belum aktif. Buat dan klaim satu item pelaksanaan per slice setelah dependensi serta keputusan
   relevan selesai; jangan langsung membangun dashboard atau menjalankan migrasi Production.
 - [Feature Card Draft](../features/SDLC_QUALITY_AND_RELEASE.md) menjadi penghubung lintas lapisan.
