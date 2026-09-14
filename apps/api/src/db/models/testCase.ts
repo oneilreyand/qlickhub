@@ -14,7 +14,7 @@ export interface TestCaseAttributes {
   steps: string[];
   expectedResult?: string | null;
   testData?: string | null;
-  scenarioKind: 'positive' | 'negative';
+  scenarioKind: 'positive' | 'negative' | 'edge';
   source: 'native' | 'spreadsheet_import';
   createdBy: string;
   createdAt?: Date;
@@ -55,7 +55,7 @@ export class TestCaseModel
   declare steps: string[];
   declare expectedResult: string | null;
   declare testData: string | null;
-  declare scenarioKind: 'positive' | 'negative';
+  declare scenarioKind: 'positive' | 'negative' | 'edge';
   declare source: 'native' | 'spreadsheet_import';
   declare createdBy: string;
   declare readonly createdAt: Date;

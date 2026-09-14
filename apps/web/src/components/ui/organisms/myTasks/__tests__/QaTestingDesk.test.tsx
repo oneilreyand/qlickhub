@@ -370,15 +370,18 @@ describe('QaTestingDesk Organism', () => {
       within(dialog).getByPlaceholderText(/Verifikasi checkout kartu pelanggan lama/i),
       'QA can author the first Test Case',
     );
+    await user.selectOptions(
+      within(dialog).getByRole('combobox', { name: 'Jenis Skenario' }),
+      'edge',
+    );
     await user.click(within(dialog).getByRole('button', { name: 'Simpan Draf' }));
 
     await waitFor(() =>
       expect(serviceMocks.createTestCase).toHaveBeenCalledWith(ids.workspace, {
         title: 'QA can author the first Test Case',
-        externalReference: null,
         priority: 'medium',
         status: 'draft',
-        scenarioKind: 'positive',
+        scenarioKind: 'edge',
         source: 'native',
         testType: 'manual',
         preconditions: null,

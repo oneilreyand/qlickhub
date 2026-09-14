@@ -44,5 +44,10 @@ describe('TestCaseFormModal', () => {
     expect(screen.getByRole('combobox', { name: 'Prioritas' })).toHaveClass('bg-white');
     expect(screen.getByRole('combobox', { name: 'Jenis Skenario' })).toHaveClass('bg-white');
     expect(screen.getByRole('combobox', { name: 'Jenis Pengujian' })).toHaveClass('bg-white');
+    expect(screen.getByRole('textbox', { name: 'Nomor Test Case' })).toHaveValue(
+      'Otomatis saat disimpan',
+    );
+    expect(screen.getByRole('textbox', { name: 'Nomor Test Case' })).toHaveAttribute('readonly');
+    expect(screen.getByRole('option', { name: 'Edge Case (Kondisi Batas)' })).toBeInTheDocument();
   });
 });

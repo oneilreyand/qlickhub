@@ -45,9 +45,6 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
   const isEditing = Boolean(initialTestCase);
 
   const [title, setTitle] = useState(initialTestCase?.title || '');
-  const [externalReference, setExternalReference] = useState(
-    initialTestCase?.externalReference || '',
-  );
   const [priority, setPriority] = useState<TestCasePriority>(initialTestCase?.priority || 'medium');
   const [scenarioKind, setScenarioKind] = useState<TestCaseScenarioKind>(
     initialTestCase?.scenarioKind || 'positive',
@@ -74,7 +71,6 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
     if (!isOpen) return;
 
     setTitle(initialTestCase?.title || '');
-    setExternalReference(initialTestCase?.externalReference || '');
     setPriority(initialTestCase?.priority || 'medium');
     setScenarioKind(initialTestCase?.scenarioKind || 'positive');
     setTestType(initialTestCase?.testType || 'manual');
@@ -133,7 +129,6 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
           initialTestCase.id,
           {
             title: title.trim(),
-            externalReference: externalReference.trim() || null,
             priority,
             status: targetStatus,
             scenarioKind,
@@ -150,7 +145,6 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
       } else {
         const created = await testManagementService.createTestCase(workspaceId, {
           title: title.trim(),
-          externalReference: externalReference.trim() || null,
           priority,
           status: targetStatus,
           scenarioKind,
@@ -215,11 +209,18 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
           <div>
             <Input
               id="test-case-external-reference"
-              label="ID Test Case (Referensi Eksternal)"
-              value={externalReference}
-              onChange={(e) => setExternalReference(e.target.value)}
-              placeholder="Contoh: TC-001"
+              label="Nomor Test Case"
+              value={initialTestCase?.externalReference || 'Otomatis saat disimpan'}
+              readOnly
+              aria-describedby="test-case-external-reference-help"
+              className="cursor-default bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"
             />
+            <p
+              id="test-case-external-reference-help"
+              className="mt-1 text-xs text-stone-500 dark:text-stone-400"
+            >
+              Nomor unik dibuat otomatis per Workspace.
+            </p>
           </div>
         </div>
 
@@ -244,6 +245,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
           >
             <option value="positive">Positif (Alur Utama)</option>
             <option value="negative">Negatif (Kasus Khusus / Error)</option>
+            <option value="edge">Edge Case (Kondisi Batas)</option>
           </Select>
 
           <Select

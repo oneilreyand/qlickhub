@@ -49,7 +49,7 @@ export class TestCaseImportService {
     ];
     const sampleRows = [
       [
-        'TC-001',
+        '',
         'Verify returning customer saved card checkout',
         'REQ-001',
         '1. Navigate to /cart\n2. Select saved visa card\n3. Click Confirm Payment',
@@ -61,7 +61,7 @@ export class TestCaseImportService {
         'User is logged in with active cart and saved payment card',
       ],
       [
-        'TC-002',
+        '',
         'Reject checkout when payment card has expired',
         'REQ-001',
         '1. Navigate to /cart\n2. Select expired card\n3. Click Confirm Payment',
@@ -71,6 +71,18 @@ export class TestCaseImportService {
         'negative',
         'manual',
         'User is on checkout screen',
+      ],
+      [
+        '',
+        'Handle checkout at the maximum permitted cart value',
+        'REQ-001',
+        '1. Set cart total to the maximum allowed value\n2. Confirm Payment',
+        'Payment succeeds without rounding or limit errors',
+        'Maximum permitted cart value',
+        'medium',
+        'edge',
+        'manual',
+        'User is logged in with a cart at the documented maximum boundary',
       ],
     ];
 
@@ -164,12 +176,14 @@ export class TestCaseImportService {
       }
 
       // Normalize Scenario Kind
-      let scenarioKind: 'positive' | 'negative' = 'positive';
+      let scenarioKind: 'positive' | 'negative' | 'edge' = 'positive';
       const rawScenario = (data.scenario_kind || '').trim().toLowerCase();
-      if (rawScenario === 'positive' || rawScenario === 'negative') {
+      if (rawScenario === 'positive' || rawScenario === 'negative' || rawScenario === 'edge') {
         scenarioKind = rawScenario;
       } else if (rawScenario.length > 0) {
-        errors.push(`Invalid scenario kind "${data.scenario_kind}". Allowed: positive, negative.`);
+        errors.push(
+          `Invalid scenario kind "${data.scenario_kind}". Allowed: positive, negative, edge.`,
+        );
       }
 
       // Normalize Test Type
@@ -505,13 +519,13 @@ export class TestCaseImportService {
           }
 
           // Strict Scenario Kind
-          let scenarioKind: 'positive' | 'negative' = 'positive';
+          let scenarioKind: 'positive' | 'negative' | 'edge' = 'positive';
           const rawScenario = (payload.scenarioKind || '').trim().toLowerCase();
-          if (rawScenario === 'positive' || rawScenario === 'negative') {
+          if (rawScenario === 'positive' || rawScenario === 'negative' || rawScenario === 'edge') {
             scenarioKind = rawScenario;
           } else if (rawScenario.length > 0) {
             rowValidationErrors.push(
-              `Invalid scenario kind "${payload.scenarioKind}". Allowed: positive, negative.`,
+              `Invalid scenario kind "${payload.scenarioKind}". Allowed: positive, negative, edge.`,
             );
           }
 
@@ -638,8 +652,8 @@ export class TestCaseImportService {
               { transaction },
             );
 
-            if (extRef) {
-              existingByExtRef.set(extRef.toUpperCase(), createdCase);
+            if (createdCase.externalReference) {
+              existingByExtRef.set(createdCase.externalReference.toUpperCase(), createdCase);
             }
 
             await TestCaseRequirementModel.create(
@@ -661,7 +675,7 @@ export class TestCaseImportService {
                 metadata: {
                   importId: stagedImport.id,
                   source: 'spreadsheet_import',
-                  externalReference: extRef,
+                  externalReference: createdCase.externalReference,
                 },
               },
               { transaction },
