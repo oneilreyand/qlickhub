@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { WorkQueueItem } from '@qlick/contracts';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Task, WorkQueueItem } from '@qlick/contracts';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { RootState } from '../store/store';
@@ -9,6 +9,7 @@ import { enqueueSnackbar } from '../store/uiSlice';
 import { MyTaskDetailWorkspaceDrawer, MyTasksDashboard } from '../features/myTasks';
 import { CreateTaskModal } from '../features/tasks';
 import { EmptyWorkspaceOnboarding } from '../features/workspaces';
+import { useCreatedByMeTasks } from '../lib/hooks/useCreatedByMeTasks';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { useRoleAwareWorkQueue } from '../lib/hooks/useRoleAwareWorkQueue';
 
@@ -35,7 +36,7 @@ export const MyTasksPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const queueTriggerRef = useRef<HTMLElement | null>(null);
 
-  const reloadTasks = () => {
+  const reloadTasks = useCallback(() => {
     if (activeWorkspaceId) {
       dispatch(
         fetchTasks({
@@ -47,11 +48,11 @@ export const MyTasksPage: React.FC = () => {
         }),
       );
     }
-  };
+  }, [activeWorkspaceId, dispatch]);
 
   useEffect(() => {
     reloadTasks();
-  }, [activeWorkspaceId, currentUserId, dispatch]);
+  }, [currentUserId, reloadTasks]);
 
   useEffect(() => {
     return () => {
@@ -69,16 +70,17 @@ export const MyTasksPage: React.FC = () => {
   const { state: workQueueState, reload: reloadWorkQueue } = useRoleAwareWorkQueue(
     activeWorkspaceId || undefined,
   );
+  const createdTasks = useCreatedByMeTasks(activeWorkspaceId || undefined);
 
-  const handleOpenQueueItem = async (item: WorkQueueItem) => {
-    if (!activeWorkspaceId || item.subjectType === 'bug') return;
+  const handleOpenTaskById = async (taskId: string) => {
+    if (!activeWorkspaceId) return;
     queueTriggerRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     try {
       const task = await dispatch(
         fetchTaskById({
           workspaceId: activeWorkspaceId,
-          taskId: item.subjectId,
+          taskId,
         }),
       ).unwrap();
       dispatch(setSelectedTaskId(task.id));
@@ -90,6 +92,15 @@ export const MyTasksPage: React.FC = () => {
         ),
       );
     }
+  };
+
+  const handleOpenQueueItem = async (item: WorkQueueItem) => {
+    if (item.subjectType === 'bug') return;
+    await handleOpenTaskById(item.subjectId);
+  };
+
+  const handleOpenCreatedTask = async (task: Task) => {
+    await handleOpenTaskById(task.id);
   };
 
   const handleCloseDrawer = () => {
@@ -116,8 +127,18 @@ export const MyTasksPage: React.FC = () => {
         userRole={userRole}
         workspaceId={activeWorkspaceId || undefined}
         queueState={workQueueState}
+        createdTasksState={createdTasks.state}
+        createdTasksSearch={createdTasks.filters.search}
+        createdTasksStatus={createdTasks.filters.status}
+        createdTasksPriority={createdTasks.filters.priority}
         onRefreshQueue={reloadWorkQueue}
+        onRefreshCreatedTasks={createdTasks.reload}
         onOpenQueueItem={handleOpenQueueItem}
+        onOpenCreatedTask={handleOpenCreatedTask}
+        onCreatedTasksSearchChange={createdTasks.setSearch}
+        onCreatedTasksStatusChange={createdTasks.setStatus}
+        onCreatedTasksPriorityChange={createdTasks.setPriority}
+        onCreatedTasksPageChange={createdTasks.setPage}
         onBugDataChanged={reloadWorkQueue}
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
       />
@@ -144,6 +165,7 @@ export const MyTasksPage: React.FC = () => {
           reloadTasks();
           reloadReleaseReadiness();
           reloadWorkQueue();
+          createdTasks.reload();
         }}
       />
 
@@ -151,7 +173,11 @@ export const MyTasksPage: React.FC = () => {
       <CreateTaskModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onCreated={reloadWorkQueue}
+        onCreated={() => {
+          reloadTasks();
+          reloadWorkQueue();
+          createdTasks.reload();
+        }}
         folders={folders}
       />
     </>

@@ -144,9 +144,13 @@ export async function listTasksImpl(
 
   const where: any = { workspaceId };
 
-  // My Tasks specific scoping (PO sees their created/assigned parent tasks; Dev & QA see their assigned subtasks)
+  // `myTasksOnly + rootOnly` is the cross-role "Created by me" view. Keep
+  // reporter scope explicit so later search filters cannot replace it.
   if (query.myTasksOnly && actorId) {
-    if (actorRole === 'owner' || actorRole === 'admin' || actorRole === 'po') {
+    if (query.rootOnly) {
+      where.reporterId = actorId;
+      where.parentTaskId = null;
+    } else if (actorRole === 'owner' || actorRole === 'admin' || actorRole === 'po') {
       where[Op.or] = [{ reporterId: actorId }, { assigneeId: actorId }];
       if (!query.parentTaskId) {
         where.parentTaskId = null;

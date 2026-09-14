@@ -471,12 +471,18 @@ describe('Contracts Validation Suite', () => {
         datePreset: 'this_week',
         unfiledOnly: 'true',
         includeDescendants: 'true',
+        myTasksOnly: 'true',
+        rootOnly: 'true',
+        includeSubtaskSummary: 'true',
         page: '2',
         limit: '20',
       });
       assert.strictEqual(query.datePreset, 'this_week');
       assert.strictEqual(query.unfiledOnly, true);
       assert.strictEqual(query.includeDescendants, true);
+      assert.strictEqual(query.myTasksOnly, true);
+      assert.strictEqual(query.rootOnly, true);
+      assert.strictEqual(query.includeSubtaskSummary, true);
       assert.strictEqual(query.page, 2);
       assert.strictEqual(query.limit, 20);
     });

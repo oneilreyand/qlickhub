@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
+import type { Task } from '@qlick/contracts';
+import type { CreatedByMeTasksViewState } from '../../../../lib/hooks/useCreatedByMeTasks';
 import type { RoleAwareWorkQueueViewState } from '../../../../lib/hooks/useRoleAwareWorkQueue';
 import { MyTasksDashboard } from '../MyTasksDashboard';
 import uiReducer from '../../../../store/uiSlice';
@@ -30,13 +32,70 @@ function queueState(
   };
 }
 
+const createdTask: Task = {
+  id: '11111111-1111-4111-8111-111111111111',
+  workspaceId: workQueueFixtureIds.workspace,
+  folderId: null,
+  parentTaskId: null,
+  deliveryArea: null,
+  title: 'Checkout yang saya buat',
+  description: 'Feature checkout persisten',
+  status: 'in_progress',
+  priority: 'high',
+  assigneeId: null,
+  reporterId: '22222222-2222-4222-8222-222222222222',
+  reviewedBy: null,
+  reviewNotes: null,
+  startDate: '2026-09-01',
+  dueDate: '2026-09-30',
+  completedAt: null,
+  subtaskSummary: {
+    total: 2,
+    completed: 1,
+    areas: {
+      frontend: { total: 1, completed: 1 },
+      backend: { total: 0, completed: 0 },
+      mobile: { total: 0, completed: 0 },
+      fullstack: { total: 0, completed: 0 },
+      qa: { total: 1, completed: 0 },
+    },
+  },
+  createdAt: '2026-09-01T00:00:00.000Z',
+  updatedAt: '2026-09-01T00:00:00.000Z',
+};
+
+function createdTasksState(
+  overrides: Partial<CreatedByMeTasksViewState> = {},
+): CreatedByMeTasksViewState {
+  return {
+    tasks: [],
+    total: 0,
+    page: 1,
+    limit: 12,
+    isLoading: false,
+    error: null,
+    permissionDenied: false,
+    ...overrides,
+  };
+}
+
 function renderDashboard(overrides: Partial<React.ComponentProps<typeof MyTasksDashboard>> = {}) {
   const props: React.ComponentProps<typeof MyTasksDashboard> = {
     selectedTaskId: null,
     userRole: 'dev',
     queueState: queueState(),
+    createdTasksState: createdTasksState(),
+    createdTasksSearch: '',
+    createdTasksStatus: 'all',
+    createdTasksPriority: 'all',
     onRefreshQueue: vi.fn(),
+    onRefreshCreatedTasks: vi.fn(),
     onOpenQueueItem: vi.fn(),
+    onOpenCreatedTask: vi.fn(),
+    onCreatedTasksSearchChange: vi.fn(),
+    onCreatedTasksStatusChange: vi.fn(),
+    onCreatedTasksPriorityChange: vi.fn(),
+    onCreatedTasksPageChange: vi.fn(),
     onCreateTaskClick: vi.fn(),
     ...overrides,
   };
@@ -66,6 +125,101 @@ describe('MyTasksDashboard Organism', () => {
     expect(screen.getByText('Berikutnya: Lanjutkan Subtask')).toBeInTheDocument();
     expect(screen.queryByText('Total Items')).not.toBeInTheDocument();
     expect(screen.queryByText('Selesai')).not.toBeInTheDocument();
+  });
+
+  it('keeps attention as the default and exposes created root Tasks through accessible tabs', async () => {
+    const onOpenCreatedTask = vi.fn().mockResolvedValue(undefined);
+    renderDashboard({
+      createdTasksState: createdTasksState({ tasks: [createdTask], total: 1 }),
+      onOpenCreatedTask,
+    });
+
+    const attentionTab = screen.getByRole('tab', { name: 'Perlu Perhatian' });
+    expect(attentionTab).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(attentionTab, { key: 'ArrowRight' });
+
+    const createdTab = screen.getByRole('tab', { name: /Dibuat oleh Saya/ });
+    expect(createdTab).toHaveFocus();
+    expect(createdTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Task yang Anda buat' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: createdTask.title })).toBeInTheDocument();
+    expect(screen.getByText('Prioritas Tinggi')).toBeInTheDocument();
+    expect(screen.getByText('1 Sep 2026 – 30 Sep 2026')).toBeInTheDocument();
+    expect(screen.getByText('Subtask 1/2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: `Buka Task ${createdTask.title}` }));
+    await waitFor(() => expect(onOpenCreatedTask).toHaveBeenCalledWith(createdTask));
+  });
+
+  it('forwards created-Task search, filters, refresh, and pagination', () => {
+    const onSearchChange = vi.fn();
+    const onStatusChange = vi.fn();
+    const onPriorityChange = vi.fn();
+    const onPageChange = vi.fn();
+    const onRefresh = vi.fn();
+    renderDashboard({
+      createdTasksState: createdTasksState({ tasks: [createdTask], total: 13 }),
+      onCreatedTasksSearchChange: onSearchChange,
+      onCreatedTasksStatusChange: onStatusChange,
+      onCreatedTasksPriorityChange: onPriorityChange,
+      onCreatedTasksPageChange: onPageChange,
+      onRefreshCreatedTasks: onRefresh,
+    });
+    fireEvent.click(screen.getByRole('tab', { name: /Dibuat oleh Saya/ }));
+
+    fireEvent.change(screen.getByLabelText('Cari Task yang dibuat oleh saya'), {
+      target: { value: 'checkout' },
+    });
+    fireEvent.change(screen.getByLabelText('Filter Task buatan saya berdasarkan status'), {
+      target: { value: 'in_progress' },
+    });
+    fireEvent.change(screen.getByLabelText('Filter Task buatan saya berdasarkan prioritas'), {
+      target: { value: 'high' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Berikutnya' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Muat ulang Task yang dibuat oleh saya' }));
+
+    expect(onSearchChange).toHaveBeenCalledWith('checkout');
+    expect(onStatusChange).toHaveBeenCalledWith('in_progress');
+    expect(onPriorityChange).toHaveBeenCalledWith('high');
+    expect(onPageChange).toHaveBeenCalledWith(2);
+    expect(onRefresh).toHaveBeenCalledOnce();
+  });
+
+  it('shows loading, empty, filtered-empty, error, and permission states for created Tasks', () => {
+    const { rerender, props } = renderDashboard({
+      createdTasksState: createdTasksState({ isLoading: true }),
+    });
+    fireEvent.click(screen.getByRole('tab', { name: /Dibuat oleh Saya/ }));
+    expect(screen.getByLabelText('Memuat Task buatan Anda')).toBeInTheDocument();
+
+    rerender(<MyTasksDashboard {...props} createdTasksState={createdTasksState()} />);
+    expect(screen.getByText('Belum ada Task yang Anda buat')).toBeInTheDocument();
+
+    rerender(
+      <MyTasksDashboard
+        {...props}
+        createdTasksSearch="tidak ditemukan"
+        createdTasksState={createdTasksState()}
+      />,
+    );
+    expect(screen.getByText('Tidak ada Task yang cocok')).toBeInTheDocument();
+
+    rerender(
+      <MyTasksDashboard
+        {...props}
+        createdTasksState={createdTasksState({ error: 'Layanan Task tidak tersedia' })}
+      />,
+    );
+    expect(screen.getByText('Layanan Task tidak tersedia')).toBeInTheDocument();
+
+    rerender(
+      <MyTasksDashboard
+        {...props}
+        createdTasksState={createdTasksState({ permissionDenied: true })}
+      />,
+    );
+    expect(screen.getByText('Akses Task buatan Anda ditolak')).toBeInTheDocument();
   });
 
   it('opens an actionable task using the contract subject id', async () => {
@@ -154,8 +308,18 @@ describe('MyTasksDashboard Organism', () => {
           userRole="dev"
           workspaceId={workQueueFixtureIds.workspace}
           queueState={queueState()}
+          createdTasksState={createdTasksState()}
+          createdTasksSearch=""
+          createdTasksStatus="all"
+          createdTasksPriority="all"
           onRefreshQueue={vi.fn()}
+          onRefreshCreatedTasks={vi.fn()}
           onOpenQueueItem={vi.fn()}
+          onOpenCreatedTask={vi.fn()}
+          onCreatedTasksSearchChange={vi.fn()}
+          onCreatedTasksStatusChange={vi.fn()}
+          onCreatedTasksPriorityChange={vi.fn()}
+          onCreatedTasksPageChange={vi.fn()}
           onCreateTaskClick={vi.fn()}
         />
       </Provider>,

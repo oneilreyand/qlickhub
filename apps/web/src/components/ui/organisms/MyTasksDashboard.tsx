@@ -1,10 +1,17 @@
-import React from 'react';
-import { CheckSquare, Plus } from 'lucide-react';
-import type { WorkQueueItem, WorkspaceRole } from '@qlick/contracts';
+import React, { useState } from 'react';
+import { CheckSquare, ListChecks, Plus, UserRoundCheck } from 'lucide-react';
+import type { Task, WorkQueueItem, WorkspaceRole } from '@qlick/contracts';
+import type {
+  CreatedByMeTasksViewState,
+  CreatedTaskPriorityFilter,
+  CreatedTaskStatusFilter,
+} from '../../../lib/hooks/useCreatedByMeTasks';
 import type { RoleAwareWorkQueueViewState } from '../../../lib/hooks/useRoleAwareWorkQueue';
 import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
+import { Tabs } from '../molecules/Tabs';
 import { BugExperiencePanel } from './BugExperiencePanel';
+import { CreatedByMeTaskPanel } from './myTasks/CreatedByMeTaskPanel';
 import { RoleAwareWorkQueuePanel } from './myTasks/RoleAwareWorkQueuePanel';
 
 export interface MyTasksDashboardProps {
@@ -12,8 +19,18 @@ export interface MyTasksDashboardProps {
   userRole?: WorkspaceRole | string;
   workspaceId?: string;
   queueState: RoleAwareWorkQueueViewState;
+  createdTasksState: CreatedByMeTasksViewState;
+  createdTasksSearch: string;
+  createdTasksStatus: CreatedTaskStatusFilter;
+  createdTasksPriority: CreatedTaskPriorityFilter;
   onRefreshQueue: () => void;
+  onRefreshCreatedTasks: () => void;
   onOpenQueueItem: (item: WorkQueueItem) => void | Promise<void>;
+  onOpenCreatedTask: (task: Task) => void | Promise<void>;
+  onCreatedTasksSearchChange: (value: string) => void;
+  onCreatedTasksStatusChange: (value: CreatedTaskStatusFilter) => void;
+  onCreatedTasksPriorityChange: (value: CreatedTaskPriorityFilter) => void;
+  onCreatedTasksPageChange: (page: number) => void;
   onBugDataChanged?: () => void;
   onCreateTaskClick: () => void;
 }
@@ -23,11 +40,22 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
   userRole = 'dev',
   workspaceId,
   queueState,
+  createdTasksState,
+  createdTasksSearch,
+  createdTasksStatus,
+  createdTasksPriority,
   onRefreshQueue,
+  onRefreshCreatedTasks,
   onOpenQueueItem,
+  onOpenCreatedTask,
+  onCreatedTasksSearchChange,
+  onCreatedTasksStatusChange,
+  onCreatedTasksPriorityChange,
+  onCreatedTasksPageChange,
   onBugDataChanged,
   onCreateTaskClick,
 }) => {
+  const [activeView, setActiveView] = useState('attention');
   const normalizedRole = userRole.toLowerCase();
   const canCreateTask = ['owner', 'admin', 'po'].includes(normalizedRole);
   const showsBugWorkspace = ['dev', 'qa'].includes(normalizedRole);
@@ -71,31 +99,69 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
         )}
       </div>
 
-      <RoleAwareWorkQueuePanel
-        state={queueState}
-        selectedTaskId={selectedTaskId}
-        onRefresh={onRefreshQueue}
-        onOpenItem={handleOpenItem}
+      <Tabs
+        variant="pills"
+        ariaLabel="Tampilan Tugas Saya"
+        activeTabId={activeView}
+        onChange={setActiveView}
+        tabs={[
+          {
+            id: 'attention',
+            label: 'Perlu Perhatian',
+            icon: <ListChecks className="h-4 w-4" aria-hidden="true" />,
+          },
+          {
+            id: 'created',
+            label: 'Dibuat oleh Saya',
+            count: createdTasksState.total,
+            icon: <UserRoundCheck className="h-4 w-4" aria-hidden="true" />,
+          },
+        ]}
       />
 
-      {workspaceId && showsBugWorkspace && (
-        <section
-          id="my-task-bug-queue"
-          tabIndex={-1}
-          aria-label={
-            normalizedRole === 'dev' ? 'Pekerjaan Bug yang ditugaskan' : 'Pekerjaan retest Bug'
-          }
-          className="scroll-mt-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B1E743]/50"
-        >
-          <Card className="p-4 sm:p-5">
-            <BugExperiencePanel
-              workspaceId={workspaceId}
-              userRole={userRole}
-              mode="role_queue"
-              onDataChanged={onBugDataChanged}
-            />
-          </Card>
-        </section>
+      {activeView === 'attention' ? (
+        <>
+          <RoleAwareWorkQueuePanel
+            state={queueState}
+            selectedTaskId={selectedTaskId}
+            onRefresh={onRefreshQueue}
+            onOpenItem={handleOpenItem}
+          />
+
+          {workspaceId && showsBugWorkspace && (
+            <section
+              id="my-task-bug-queue"
+              tabIndex={-1}
+              aria-label={
+                normalizedRole === 'dev' ? 'Pekerjaan Bug yang ditugaskan' : 'Pekerjaan retest Bug'
+              }
+              className="scroll-mt-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B1E743]/50"
+            >
+              <Card className="p-4 sm:p-5">
+                <BugExperiencePanel
+                  workspaceId={workspaceId}
+                  userRole={userRole}
+                  mode="role_queue"
+                  onDataChanged={onBugDataChanged}
+                />
+              </Card>
+            </section>
+          )}
+        </>
+      ) : (
+        <CreatedByMeTaskPanel
+          state={createdTasksState}
+          search={createdTasksSearch}
+          status={createdTasksStatus}
+          priority={createdTasksPriority}
+          selectedTaskId={selectedTaskId}
+          onSearchChange={onCreatedTasksSearchChange}
+          onStatusChange={onCreatedTasksStatusChange}
+          onPriorityChange={onCreatedTasksPriorityChange}
+          onPageChange={onCreatedTasksPageChange}
+          onRefresh={onRefreshCreatedTasks}
+          onOpenTask={onOpenCreatedTask}
+        />
       )}
     </div>
   );
