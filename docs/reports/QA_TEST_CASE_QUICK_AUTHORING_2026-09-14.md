@@ -81,8 +81,9 @@ kemudian mengajukannya ke `in_review`. Ini mencegah request create melompati lif
 
 ## Risks or follow-up
 
-- Migration dan build ini belum diterapkan ke Production. Release harus menjalankan backup serta
-  migration 70 sebelum mengalihkan traffic ke API/web baru.
+- Migration 70 dan source commit `20541b7` sudah live melalui deployment Production
+  `dpl_AGQbmQ8uE4tM1Bvnn6RKMhX9cq6T`. Bukti backup, migrasi, smoke, dan rollback dicatat pada
+  [laporan rilis Production](PRODUCTION_RELEASE_QA_TEST_CASE_QUICK_AUTHORING_2026-09-14.md).
 - Test Case lama dengan `external_reference` kosong tetap dipertahankan apa adanya; alokasi otomatis
   berlaku untuk insert baru. Jika backfill histori dibutuhkan, lakukan sebagai keputusan data
   terpisah dengan audit dampak.
