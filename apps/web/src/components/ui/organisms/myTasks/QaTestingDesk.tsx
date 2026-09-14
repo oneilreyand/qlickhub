@@ -12,6 +12,7 @@ import {
   RotateCcw,
   Upload,
   X,
+  XCircle,
 } from 'lucide-react';
 import type {
   EvidencePreviewStatus,
@@ -148,10 +149,20 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [bugFormError, setBugFormError] = useState<string | null>(null);
   const [isSubmittingBug, setIsSubmittingBug] = useState(false);
 
+  // Changes Requested Modal state for Dev Subtask Review
+  const [isChangesRequestedModalOpen, setIsChangesRequestedModalOpen] = useState(false);
+  const [changesRequestedNotes, setChangesRequestedNotes] = useState('');
+  const [changesRequestedError, setChangesRequestedError] = useState<string | null>(null);
+
   const normalizedUserRole = userRole.toLowerCase();
   const isPlanner = ['owner', 'admin', 'po'].includes(normalizedUserRole);
   const isAssignedQaExecutor = normalizedUserRole === 'qa' && subtask.assigneeId === currentUserId;
   const canMutateQaExecution = isPlanner || isAssignedQaExecutor;
+  const canReviewDevSubtask =
+    subtask.deliveryArea !== 'qa' &&
+    subtask.status === 'in_review' &&
+    (normalizedUserRole === 'qa' || isPlanner) &&
+    subtask.assigneeId !== currentUserId;
   const canExecuteTests = ['owner', 'admin', 'qa'].includes(normalizedUserRole);
   const canOpenBugReport = ['owner', 'admin', 'qa'].includes(normalizedUserRole);
   const canAuthorTests = ['owner', 'admin', 'po', 'qa'].includes(normalizedUserRole);
@@ -477,7 +488,15 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           },
         }),
       ).unwrap();
-      dispatch(enqueueSnackbar(`QA Status updated to ${newStatus.replace('_', ' ')}`, 'success'));
+      const successMessage =
+        subtask.deliveryArea === 'qa' && newStatus === 'done'
+          ? 'Eksekusi Subtask QA selesai. Silakan periksa panel Jaminan Rilis di bawah untuk Sertifikasi QA jika pengujian fitur telah tuntas.'
+          : newStatus === 'changes_requested'
+            ? 'Permintaan revisi berhasil dikirim ke pengembang.'
+            : newStatus === 'done'
+              ? 'Subtask berhasil disetujui dan diselesaikan.'
+              : `Status Subtask diperbarui ke ${newStatus.replace('_', ' ')}`;
+      dispatch(enqueueSnackbar(successMessage, 'success'));
       onDataChanged();
     } catch (err) {
       dispatch(
@@ -486,6 +505,21 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     } finally {
       setIsUpdatingStatus(false);
     }
+  };
+
+  const openChangesRequestedModal = () => {
+    setChangesRequestedNotes('');
+    setChangesRequestedError(null);
+    setIsChangesRequestedModalOpen(true);
+  };
+
+  const handleSubmitChangesRequested = async () => {
+    if (!changesRequestedNotes.trim()) {
+      setChangesRequestedError('Catatan revisi wajib diisi untuk mengembalikan subtask.');
+      return;
+    }
+    await handleStatusChange('changes_requested', changesRequestedNotes.trim());
+    setIsChangesRequestedModalOpen(false);
   };
 
   const handleSubmitBugReport = async () => {
@@ -611,7 +645,42 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               </>
             )}
 
-            {canMutateQaExecution && subtask.status === 'in_review' && (
+            {/* Developer Subtask Review: Authorized QA / Planner can request changes or mark as done */}
+            {subtask.deliveryArea !== 'qa' && subtask.status === 'in_review' && (
+              <>
+                {canReviewDevSubtask ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={openChangesRequestedModal}
+                      disabled={isUpdatingStatus}
+                      leftIcon={<XCircle className="h-4 w-4 text-amber-500" />}
+                      className="border-amber-500/40 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                    >
+                      Minta Revisi
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleStatusChange('done')}
+                      isLoading={isUpdatingStatus}
+                      leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      Lolos Review &amp; Selesaikan
+                    </Button>
+                  </>
+                ) : subtask.assigneeId === currentUserId ? (
+                  <span className="text-xs text-stone-500 italic">
+                    Menunggu review dari reviewer QA atau Planner (anti-self-approval).
+                  </span>
+                ) : null}
+              </>
+            )}
+
+            {/* QA Subtask In Review */}
+            {subtask.deliveryArea === 'qa' && canMutateQaExecution && subtask.status === 'in_review' && (
               <>
                 <Button
                   variant="outline"
@@ -727,8 +796,9 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               </Alert>
             ) : !isLoadingRequirementOptions && requirementOptions.length === 0 ? (
               <Alert tone="info" title="Tautkan Requirement sebelum membuat Test Case">
-                Feature ini belum memiliki Requirement aktif yang tertaut. Product Owner atau Admin
-                dapat menautkannya dari bagian Requirement, lalu QA dapat membuat Test Case.
+                {isPlanner
+                  ? 'Feature ini belum memiliki Requirement aktif yang tertaut. Tautkan minimal satu Requirement aktif ke Feature ini dari panel Requirement agar QA dapat menyusun Test Case.'
+                  : 'Feature ini belum memiliki Requirement aktif yang tertaut. Hubungi Product Owner atau Admin untuk menautkan Requirement ke Feature ini agar Anda dapat menyusun Test Case.'}
               </Alert>
             ) : null}
             <EmptyState
@@ -755,8 +825,25 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={testCase.status === 'active' ? 'brand' : 'neutral'} size="sm">
-                        {testCase.status}
+                      <Badge
+                        variant={
+                          testCase.status === 'active'
+                            ? 'brand'
+                            : testCase.status === 'in_review'
+                              ? 'review'
+                              : testCase.status === 'draft'
+                                ? 'draft'
+                                : 'neutral'
+                        }
+                        size="sm"
+                      >
+                        {testCase.status === 'active'
+                          ? 'Aktif (Siap Diuji)'
+                          : testCase.status === 'in_review'
+                            ? 'Menunggu Review PO'
+                            : testCase.status === 'draft'
+                              ? 'Draf'
+                              : testCase.status}
                       </Badge>
                       <Badge variant="info" size="sm">
                         {testCase.testType}
@@ -1371,6 +1458,60 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               leftIcon={<AlertTriangle className="h-4 w-4" />}
             >
               Kirim Laporan Bug
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Changes Requested Modal for Dev Subtask Review */}
+      <Modal
+        isOpen={isChangesRequestedModalOpen}
+        onClose={() => {
+          if (!isUpdatingStatus) setIsChangesRequestedModalOpen(false);
+        }}
+        title="Minta Revisi Subtask"
+        description="Berikan catatan perbaikan atau rincian temuan pengujian yang harus diperbaiki oleh pengembang."
+        size="lg"
+      >
+        <div className="space-y-4">
+          {changesRequestedError && (
+            <Alert tone="error" title="Catatan revisi diperlukan">
+              {changesRequestedError}
+            </Alert>
+          )}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300 mb-1.5">
+              Catatan Revisi <span className="text-red-500">*</span>
+            </label>
+            <Textarea
+              value={changesRequestedNotes}
+              onChange={(e) => {
+                setChangesRequestedNotes(e.target.value);
+                if (changesRequestedError) setChangesRequestedError(null);
+              }}
+              placeholder="Jelaskan alasan permintaan revisi dan bagian yang perlu diperbaiki..."
+              rows={4}
+              disabled={isUpdatingStatus}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-800">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsChangesRequestedModalOpen(false)}
+              disabled={isUpdatingStatus}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSubmitChangesRequested}
+              isLoading={isUpdatingStatus}
+              leftIcon={<RotateCcw className="h-4 w-4" />}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Kirim Permintaan Revisi
             </Button>
           </div>
         </div>

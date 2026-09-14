@@ -358,34 +358,29 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
       </div>
 
       {/* Action Footer */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-5 dark:border-stone-800">
-        <Button variant="ghost" onClick={onClose} disabled={loading}>
-          Batal
-        </Button>
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-stone-200 pt-5 dark:border-stone-800">
+        <p className="text-xs text-stone-500 dark:text-stone-400">
+          <span className="font-semibold text-stone-700 dark:text-stone-300">Panduan:</span> Simpan Draf untuk pengerjaan internal QA. Ajukan untuk Review agar Product Owner dapat mengaktifkannya untuk eksekusi.
+        </p>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+          <Button variant="ghost" onClick={onClose} disabled={loading}>
+            Batal
+          </Button>
+
           {/* Save as Draft */}
           <Button
-            variant="secondary"
+            variant="outline"
             onClick={() => handleSubmit('draft')}
             disabled={loading}
             leftIcon={<FileCheck className="w-4 h-4" />}
+            title="Draf hanya dapat dilihat oleh Anda dan belum siap diuji"
           >
             Simpan Draf
           </Button>
 
-          {/* Request Review */}
-          <Button
-            variant="outline"
-            onClick={() => handleSubmit('in_review')}
-            disabled={loading}
-            leftIcon={<Send className="w-4 h-4" />}
-          >
-            Ajukan untuk Review
-          </Button>
-
           {/* Activation applies only to an existing QA review submission. New cases always start as drafts. */}
-          {isPoOrAdmin && isEditing && initialTestCase?.status === 'in_review' && (
+          {isPoOrAdmin && isEditing && initialTestCase?.status === 'in_review' ? (
             <Button
               variant="primary"
               onClick={() => handleSubmit('active')}
@@ -393,6 +388,16 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
               leftIcon={<CheckCircle2 className="w-4 h-4" />}
             >
               Aktifkan
+            </Button>
+          ) : (
+            /* Request Review */
+            <Button
+              variant="primary"
+              onClick={() => handleSubmit('in_review')}
+              disabled={loading}
+              leftIcon={<Send className="w-4 h-4" />}
+            >
+              Ajukan untuk Review
             </Button>
           )}
         </div>

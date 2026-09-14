@@ -615,4 +615,76 @@ describe('QaTestingDesk Organism', () => {
     );
     expect(taskServiceMocks.updateTask).not.toHaveBeenCalled();
   });
+
+  it('allows QA to review a developer subtask in review, approve it, or request changes with notes', async () => {
+    const user = userEvent.setup();
+    const devSubtaskInReview: Task = {
+      ...mockQaSubtask,
+      id: '20000000-0000-4000-8000-000000000001',
+      deliveryArea: 'frontend',
+      title: 'Develop Checkout UI',
+      status: 'in_review',
+      assigneeId: ids.dev,
+    };
+    taskServiceMocks.updateTask.mockResolvedValue({ ...devSubtaskInReview, status: 'done' });
+
+    renderDesk('qa', devSubtaskInReview, ids.qa);
+
+    // QA sees the review buttons
+    const approveBtn = screen.getByRole('button', { name: /Lolos Review & Selesaikan/i });
+    const requestChangesBtn = screen.getByRole('button', { name: /Minta Revisi/i });
+    expect(approveBtn).toBeInTheDocument();
+    expect(requestChangesBtn).toBeInTheDocument();
+
+    // Clicking approve calls updateTask with status done
+    await user.click(approveBtn);
+    expect(taskServiceMocks.updateTask).toHaveBeenCalledWith(
+      ids.workspace,
+      devSubtaskInReview.id,
+      expect.objectContaining({ status: 'done' }),
+    );
+
+    // Clicking request changes opens modal and requires notes
+    await user.click(requestChangesBtn);
+    const modal = screen.getByRole('dialog');
+    expect(within(modal).getByText('Minta Revisi Subtask')).toBeInTheDocument();
+
+    const submitModalBtn = within(modal).getByRole('button', { name: /Kirim Permintaan Revisi/i });
+    await user.click(submitModalBtn);
+    expect(within(modal).getByText('Catatan revisi wajib diisi untuk mengembalikan subtask.')).toBeInTheDocument();
+
+    await user.type(
+      within(modal).getByPlaceholderText(/Jelaskan alasan permintaan revisi/i),
+      'Tombol checkout masih crash ketika saldo kosong.',
+    );
+    await user.click(submitModalBtn);
+
+    expect(taskServiceMocks.updateTask).toHaveBeenCalledWith(
+      ids.workspace,
+      devSubtaskInReview.id,
+      expect.objectContaining({
+        status: 'changes_requested',
+        reviewNotes: 'Tombol checkout masih crash ketika saldo kosong.',
+      }),
+    );
+  });
+
+  it('enforces anti-self-approval when developer inspects their own in_review subtask in QaTestingDesk', async () => {
+    const devSubtaskInReview: Task = {
+      ...mockQaSubtask,
+      id: '20000000-0000-4000-8000-000000000001',
+      deliveryArea: 'frontend',
+      title: 'Develop Checkout UI',
+      status: 'in_review',
+      assigneeId: ids.dev,
+    };
+
+    renderDesk('dev', devSubtaskInReview, ids.dev);
+
+    expect(screen.queryByRole('button', { name: /Lolos Review & Selesaikan/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Minta Revisi/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Menunggu review dari reviewer QA atau Planner/i),
+    ).toBeInTheDocument();
+  });
 });
