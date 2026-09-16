@@ -192,6 +192,7 @@ describe('SubtaskRoleTimeline Molecule', () => {
     expect(
       screen.getByRole('img', { name: /Payment Gateway API Integration.*1 Agu.*10 Agu/i }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Hari Ini')).toBeInTheDocument();
   });
 
   it('guarantees at least 21 calendar day columns for short-range or unscheduled tasks to avoid empty void', () => {

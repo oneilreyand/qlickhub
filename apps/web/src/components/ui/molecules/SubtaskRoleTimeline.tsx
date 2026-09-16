@@ -606,8 +606,10 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                   style={{ left: `${todayMarkerPercent}%` }}
                   className="absolute top-0 bottom-0 z-10 w-0.5 bg-amber-500 shadow-sm pointer-events-none"
                 >
-                  <div className="absolute top-0.5 -translate-x-1/2 bg-amber-500 text-white text-[8px] font-extrabold px-1 rounded-full uppercase tracking-tighter shadow-xs">
-                    Hari Ini
+                  <div className="absolute top-[72px] -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white shadow-xs tracking-normal whitespace-nowrap border border-white dark:border-stone-900">
+                      Hari Ini
+                    </span>
                   </div>
                 </div>
               )}
