@@ -6,6 +6,8 @@
 
 ## Outcome
 
+Commit `fc679a9` telah dipush ke `origin/main` dan dideploy ke Vercel Production sebagai deployment `dpl_7qT2PJs737T2F6SKfDn3iVV3K6wi`. Deployment berstatus `READY`, menargetkan Production, dan memegang alias kanonikal `https://qlickhub.vercel.app`.
+
 Perubahan diterapkan pada molekul timeline `SubtaskRoleTimeline` dan organisme `TaskTimelineView`. Tampilan penanda "Hari Ini" kini memiliki kualitas visual kelas enterprise:
 - **Presisi Posisi & Geometri:** Badge diturunkan ke persimpangan header kalender dan canvas swimlane (`top-[72px] -translate-x-1/2 -translate-y-1/2 z-20`), tidak lagi memotong atau menabrak header baris Bulan di `top-0.5`.
 - **Tipografi Proporsional:** Font ditingkatkan dari teks mikro serba kapital yang terjepit (`text-[8px] uppercase tracking-tighter`) menjadi font yang jelas, seimbang, dan mudah dibaca (`text-[10px] font-bold tracking-normal whitespace-nowrap`).
@@ -43,6 +45,11 @@ Tidak ada skema migrasi database, perubahan kontrak API, atau mutasi data persis
   - `npm run validate`: seluruh pipeline validasi lulus.
 - **Production Build:**
   - `npm run build --workspace=@qlick/web`: kompilasi Vite sukses mentransformasi 1.710 modul tanpa error.
+- **Live Production Smoke Checks (`https://qlickhub.vercel.app`):**
+  - `GET /`: HTTP 200 OK
+  - `GET /login`: HTTP 200 OK
+  - `GET /v1/health`: HTTP 200 OK (`{"status":"ok","database":{"status":"connected"}}`)
+  - `GET /v1/workspaces` (tanpa sesi terautentikasi): HTTP 401 Unauthorized (`Authentication required`)
 - **Rollback Target:**
   - Deployment sehat sebelumnya: `dpl_24oWNxk7xBANuLui1CxkxNxV52gr`.
 
