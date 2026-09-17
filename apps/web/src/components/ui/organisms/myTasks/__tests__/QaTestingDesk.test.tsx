@@ -1021,4 +1021,52 @@ describe('QaTestingDesk Organism', () => {
     expect(screen.queryByRole('button', { name: /Minta Revisi/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Menunggu review dari reviewer QA atau Planner/i)).toBeInTheDocument();
   });
+
+  it('supports filtering test cases by execution status with empty state recovery', async () => {
+    const user = userEvent.setup();
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
+    renderDesk();
+
+    expect(await screen.findByText('Returning customer completes checkout')).toBeInTheDocument();
+
+    // Filter by 'Gagal' (which currently has 0 items)
+    const failedFilterBtn = screen.getByRole('button', { name: /Gagal/i });
+    await user.click(failedFilterBtn);
+
+    expect(
+      screen.getByText(/Tidak ada Test Case dengan status pengujian "failed"/i),
+    ).toBeInTheDocument();
+
+    // Click recovery button to reset to 'Semua'
+    const resetBtn = screen.getByRole('button', { name: /Tampilkan Semua Test Case/i });
+    await user.click(resetBtn);
+
+    expect(screen.getByText('Returning customer completes checkout')).toBeInTheDocument();
+  });
+
+  it('supports switching between Split View and List View', async () => {
+    const user = userEvent.setup();
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
+    renderDesk();
+
+    expect(await screen.findByText('Returning customer completes checkout')).toBeInTheDocument();
+
+    const splitBtn = screen.getByRole('button', { name: 'Tampilan Split Master-Detail' });
+    const listBtn = screen.getByRole('button', { name: 'Tampilan Daftar Penuh' });
+
+    expect(splitBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(listBtn).toHaveAttribute('aria-pressed', 'false');
+
+    // Switch to List View
+    await user.click(listBtn);
+    expect(listBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(splitBtn).toHaveAttribute('aria-pressed', 'false');
+
+    // Test Case details still rendered
+    expect(screen.getByText('Returning customer completes checkout')).toBeInTheDocument();
+
+    // Switch back to Split View
+    await user.click(splitBtn);
+    expect(splitBtn).toHaveAttribute('aria-pressed', 'true');
+  });
 });

@@ -4,12 +4,16 @@ import {
   Bug,
   CheckCircle2,
   CheckSquare,
+  ChevronDown,
+  Columns,
   FileCheck,
   History,
+  LayoutList,
   Link2,
   Play,
   Plus,
   RotateCcw,
+  ShieldCheck,
   Upload,
   X,
   XCircle,
@@ -232,6 +236,13 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [changesRequestedNotes, setChangesRequestedNotes] = useState('');
   const [changesRequestedError, setChangesRequestedError] = useState<string | null>(null);
 
+  // Phase 2: Navigation & layout state
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'unexecuted' | 'passed' | 'failed' | 'blocked'
+  >('all');
+  const [viewMode, setViewMode] = useState<'split' | 'list'>('split');
+  const [selectedTestCaseId, setSelectedTestCaseId] = useState<string | null>(null);
+
   const normalizedUserRole = userRole.toLowerCase();
   const isPlanner = ['owner', 'admin', 'po'].includes(normalizedUserRole);
   const isAssignedQaExecutor = normalizedUserRole === 'qa' && subtask.assigneeId === currentUserId;
@@ -314,6 +325,64 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const developerMembers = useMemo(
     () => members.filter((member) => member.role === 'dev'),
     [members],
+  );
+
+  const executionStats = useMemo(() => {
+    if (!executionWorkspace?.executions) return null;
+    const list = executionWorkspace.executions;
+    const total = list.length;
+    const passed = list.filter((e) => e.latestRun?.result?.status === 'passed').length;
+    const failed = list.filter((e) => e.latestRun?.result?.status === 'failed').length;
+    const blocked = list.filter((e) => e.latestRun?.result?.status === 'blocked').length;
+    const inProgress = list.filter((e) => e.latestRun?.status === 'in_progress').length;
+    const unexecuted = Math.max(0, total - passed - failed - blocked - inProgress);
+    return { total, passed, failed, blocked, inProgress, unexecuted };
+  }, [executionWorkspace]);
+
+  const filteredExecutions = useMemo(() => {
+    if (!executionWorkspace?.executions) return [];
+    if (statusFilter === 'all') return executionWorkspace.executions;
+    return executionWorkspace.executions.filter(({ latestRun }) => {
+      if (statusFilter === 'unexecuted') {
+        return !latestRun?.result;
+      }
+      return latestRun?.result?.status === statusFilter;
+    });
+  }, [executionWorkspace, statusFilter]);
+
+  const activeSelectedTestCaseId = useMemo(() => {
+    if (!filteredExecutions.length) return null;
+    if (
+      selectedTestCaseId &&
+      filteredExecutions.some((e) => e.testCase.id === selectedTestCaseId)
+    ) {
+      return selectedTestCaseId;
+    }
+    return filteredExecutions[0].testCase.id;
+  }, [filteredExecutions, selectedTestCaseId]);
+
+  const activeExecution = useMemo(() => {
+    if (!activeSelectedTestCaseId) return null;
+    return filteredExecutions.find((e) => e.testCase.id === activeSelectedTestCaseId) || null;
+  }, [filteredExecutions, activeSelectedTestCaseId]);
+
+  const filterOptions: Array<{
+    id: 'all' | 'unexecuted' | 'passed' | 'failed' | 'blocked';
+    label: string;
+    count: number;
+  }> = useMemo(
+    () => [
+      { id: 'all', label: 'Semua', count: executionStats?.total || 0 },
+      {
+        id: 'unexecuted',
+        label: 'Belum Diuji',
+        count: (executionStats?.unexecuted || 0) + (executionStats?.inProgress || 0),
+      },
+      { id: 'passed', label: 'Lulus', count: executionStats?.passed || 0 },
+      { id: 'failed', label: 'Gagal', count: executionStats?.failed || 0 },
+      { id: 'blocked', label: 'Terblokir', count: executionStats?.blocked || 0 },
+    ],
+    [executionStats],
   );
 
   const openBugModal = () => {
@@ -1025,18 +1094,471 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     }
   };
 
+  const renderTestCaseMasterItem = (
+    execution: TaskTestExecutionWorkspace['executions'][number],
+  ) => {
+    const { testCase, latestRun, testRuns } = execution;
+    const isSelected = activeSelectedTestCaseId === testCase.id;
+
+    return (
+      <button
+        type="button"
+        key={testCase.id}
+        onClick={() => setSelectedTestCaseId(testCase.id)}
+        aria-selected={isSelected}
+        aria-label={`Pilih Test Case ${testCase.title}`}
+        className={`w-full text-left p-3 rounded-xl border transition-all ${
+          isSelected
+            ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 dark:border-emerald-500/80 shadow-xs ring-1 ring-emerald-500/30'
+            : 'border-stone-200 bg-white hover:bg-stone-50/80 dark:border-stone-800 dark:bg-stone-900/50 dark:hover:bg-stone-800/60'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {latestRun?.result?.status === 'passed' ? (
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            ) : latestRun?.result?.status === 'failed' ? (
+              <XCircle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+            ) : latestRun?.result?.status === 'blocked' ? (
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
+            ) : latestRun?.status === 'in_progress' ? (
+              <Play className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400 shrink-0" />
+            ) : (
+              <div className="h-2 w-2 rounded-full bg-stone-300 dark:bg-stone-600 shrink-0 mx-1" />
+            )}
+            <span className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">
+              {testCase.externalReference ? `${testCase.externalReference} · ` : 'TC · '}
+              {testCase.title}
+            </span>
+          </div>
+          <Badge
+            variant={
+              testCase.status === 'active'
+                ? 'brand'
+                : testCase.status === 'in_review'
+                  ? 'review'
+                  : testCase.status === 'draft'
+                    ? 'draft'
+                    : 'neutral'
+            }
+            size="sm"
+            className="shrink-0"
+          >
+            {testCase.status === 'active'
+              ? 'Aktif'
+              : testCase.status === 'in_review'
+                ? 'Review PO'
+                : testCase.status === 'draft'
+                  ? 'Draf'
+                  : testCase.status}
+          </Badge>
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-500 dark:text-stone-400">
+          <span className="capitalize">{testCase.testType}</span>
+          <span>•</span>
+          <span className="capitalize">{testCase.priority}</span>
+          {testRuns.length > 0 && (
+            <>
+              <span>•</span>
+              <span>
+                {testRuns.length} run{testRuns.length > 1 ? 's' : ''}
+              </span>
+            </>
+          )}
+          {versionCoverageByTestCaseId[testCase.id] && (
+            <>
+              <span>•</span>
+              <span>
+                Rev {versionCoverageByTestCaseId[testCase.id]!.revision} (AC{' '}
+                {versionCoverageByTestCaseId[testCase.id]!.mappedCount})
+              </span>
+            </>
+          )}
+        </div>
+      </button>
+    );
+  };
+
+  const renderTestCaseDetail = ({
+    testCase,
+    latestRun,
+    testRuns,
+  }: TaskTestExecutionWorkspace['executions'][number]) => (
+    <section
+      key={testCase.id}
+      className="rounded-2xl border border-stone-200/90 bg-white p-4 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60 hover:border-stone-300 dark:hover:border-stone-700 transition-colors"
+      aria-labelledby={`test-case-${testCase.id}`}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant={
+                testCase.status === 'active'
+                  ? 'brand'
+                  : testCase.status === 'in_review'
+                    ? 'review'
+                    : testCase.status === 'draft'
+                      ? 'draft'
+                      : 'neutral'
+              }
+              size="sm"
+            >
+              {testCase.status === 'active'
+                ? 'Aktif (Siap Diuji)'
+                : testCase.status === 'in_review'
+                  ? 'Menunggu Review PO'
+                  : testCase.status === 'draft'
+                    ? 'Draf'
+                    : testCase.status}
+            </Badge>
+            <Badge variant="info" size="sm">
+              {testCase.testType}
+            </Badge>
+            <Badge variant="neutral" size="sm">
+              Prioritas: {testCase.priority}
+            </Badge>
+            {testCase.externalReference && (
+              <span className="text-xs font-mono font-bold text-primary">
+                {testCase.externalReference}
+              </span>
+            )}
+            <span className="text-[10px] font-semibold text-stone-400">
+              {testCase.requirementIds.length} Requirement
+              {testCase.requirementIds.length === 1 ? '' : 's'}
+            </span>
+            {versionCoverageByTestCaseId[testCase.id] && (
+              <Badge variant="neutral" size="sm">
+                Rev {versionCoverageByTestCaseId[testCase.id]!.revision} · AC{' '}
+                {versionCoverageByTestCaseId[testCase.id]!.mappedCount} mapped
+                {versionCoverageByTestCaseId[testCase.id]!.excludedCount > 0
+                  ? ` · ${versionCoverageByTestCaseId[testCase.id]!.excludedCount} excluded`
+                  : ''}
+              </Badge>
+            )}
+          </div>
+          <h4
+            id={`test-case-${testCase.id}`}
+            className="text-sm font-extrabold text-stone-900 dark:text-stone-100"
+          >
+            {testCase.title}
+          </h4>
+          {testCase.description && (
+            <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+              {testCase.description}
+            </p>
+          )}
+        </div>
+
+        {(canExecuteTests ||
+          (canSubmitTestCasesForReview && testCase.status === 'draft') ||
+          (canActivateTestCases && testCase.status === 'in_review')) && (
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {canSubmitTestCasesForReview && testCase.status === 'draft' && (
+              <>
+                {versionCoverageByTestCaseId[testCase.id]?.lifecycleStatus === 'draft' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void openAcceptanceCriteriaMapping(testCase)}
+                    aria-label={`Petakan Acceptance Criterion untuk ${testCase.title}`}
+                  >
+                    Petakan AC
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  isLoading={submittingTestCaseId === testCase.id}
+                  onClick={() => void handleSubmitTestCaseForReview(testCase.id)}
+                  aria-label={`Ajukan Test Case ${testCase.title} untuk review`}
+                  leftIcon={<CheckSquare className="h-3.5 w-3.5" />}
+                >
+                  Ajukan untuk Review
+                </Button>
+              </>
+            )}
+            {canActivateTestCases && testCase.status === 'in_review' && (
+              <Button
+                variant="primary"
+                size="sm"
+                isLoading={activatingTestCaseId === testCase.id}
+                onClick={() => void handleActivateTestCase(testCase.id)}
+                aria-label={`Aktifkan Test Case ${testCase.title}`}
+                leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
+              >
+                Aktifkan Test Case
+              </Button>
+            )}
+            {canExecuteTests && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={testCase.status !== 'active'}
+                onClick={() => openRunModal(testCase.id)}
+                aria-label={`Mulai Pengujian untuk ${testCase.title}`}
+              >
+                Mulai Pengujian
+              </Button>
+            )}
+            {canExecuteTests && latestRun?.status === 'in_progress' && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => openResultModal(testCase.id, latestRun.id)}
+                aria-label={`Catat hasil untuk ${testCase.title}`}
+              >
+                Catat Hasil
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {(testCase.preconditions ||
+        testCase.steps.length > 0 ||
+        testCase.expectedResult ||
+        testCase.testData) && (
+        <details
+          open
+          className="group mt-3 rounded-xl border border-stone-200/80 bg-stone-50/50 p-2.5 transition-all dark:border-stone-800/80 dark:bg-stone-950/30"
+        >
+          <summary className="flex cursor-pointer select-none items-center justify-between text-xs font-bold text-stone-700 hover:text-stone-900 dark:text-stone-300 dark:hover:text-stone-100">
+            <span className="flex items-center gap-1.5">
+              <ChevronDown className="h-3.5 w-3.5 text-stone-400 transition-transform group-open:rotate-180" />
+              Detail Langkah &amp; Spesifikasi Pengujian
+            </span>
+            <span className="text-[11px] font-normal text-stone-400">
+              {testCase.steps.length} langkah
+            </span>
+          </summary>
+          <div className="mt-2.5 grid gap-2.5 border-t border-stone-200/60 pt-2.5 dark:border-stone-800/80 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-lg bg-white p-2.5 dark:bg-stone-900/60 border border-stone-100 dark:border-stone-800/60">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+                Prasyarat
+              </p>
+              <p className="mt-0.5 text-xs text-stone-700 dark:text-stone-300">
+                {testCase.preconditions || 'Belum dicatat'}
+              </p>
+            </div>
+            <div className="rounded-lg bg-white p-2.5 dark:bg-stone-900/60 border border-stone-100 dark:border-stone-800/60">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+                Langkah
+              </p>
+              {testCase.steps.length > 0 ? (
+                <ol className="mt-0.5 list-decimal space-y-0.5 pl-3.5 text-xs text-stone-700 dark:text-stone-300">
+                  {testCase.steps.map((step, index) => (
+                    <li key={`${testCase.id}-step-${index}`}>{step}</li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="mt-0.5 text-xs text-stone-500">Belum ada langkah formal</p>
+              )}
+            </div>
+            <div className="rounded-lg bg-white p-2.5 dark:bg-stone-900/60 border border-stone-100 dark:border-stone-800/60">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+                Hasil yang Diharapkan
+              </p>
+              <p className="mt-0.5 text-xs text-stone-700 dark:text-stone-300">
+                {testCase.expectedResult || 'Belum dicatat'}
+              </p>
+            </div>
+            <div className="rounded-lg bg-white p-2.5 dark:bg-stone-900/60 border border-stone-100 dark:border-stone-800/60">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+                Data Pengujian
+              </p>
+              <p className="mt-0.5 text-xs font-mono text-stone-700 dark:text-stone-300">
+                {testCase.testData || 'Belum dicatat'}
+              </p>
+            </div>
+          </div>
+        </details>
+      )}
+
+      {/* Test execution history and evidence */}
+      <div className="mt-4 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <History className="h-4 w-4 text-stone-400" />
+            <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
+              Riwayat Pengujian ({testRuns.length})
+            </span>
+          </div>
+          {latestRun && (
+            <Badge
+              variant={latestRun.result ? resultBadgeVariant(latestRun.result.status) : 'info'}
+              size="sm"
+            >
+              {testRunStatusCopy[latestRun.result?.status || latestRun.status] ||
+                latestRun.status.replace('_', ' ')}
+            </Badge>
+          )}
+        </div>
+
+        {testRuns.length === 0 ? (
+          <p className="mt-2 text-xs text-stone-500">Belum ada pengujian yang tersimpan.</p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {testRuns.map((run) => {
+              const evidenceLinks = run.result?.evidenceLinks || [];
+              return (
+                <div
+                  key={run.id}
+                  className="rounded-lg border border-stone-100 p-3 text-xs dark:border-stone-800 space-y-2"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-stone-800 dark:text-stone-200">{run.build}</p>
+                      <p className="text-[11px] text-stone-500">
+                        {run.environment} · {new Date(run.startedAt).toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant={run.result ? resultBadgeVariant(run.result.status) : 'info'}
+                        size="sm"
+                      >
+                        {testRunStatusCopy[run.result?.status || run.status] ||
+                          run.status.replace('_', ' ')}
+                      </Badge>
+                      {run.result?.evidenceManifests?.length ? (
+                        <Badge variant="neutral" size="sm">
+                          Bukti disegel · {run.result.evidenceManifests.length}
+                        </Badge>
+                      ) : null}
+                      {run.retestBugId && (
+                        <Badge variant="review" size="sm">
+                          Retest Bug
+                        </Badge>
+                      )}
+                      {run.result && run.retestBugId && canExecuteTests && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          isLoading={finalizingRetestRunId === run.id}
+                          disabled={finalizingRetestRunId === run.id}
+                          onClick={() => void handleFinalizeRetest(run)}
+                        >
+                          Sinkronkan Outcome Bug
+                        </Button>
+                      )}
+                      {run.result && canExecuteTests && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddEvidenceResultTarget({
+                              testCaseId: testCase.id,
+                              testRunId: run.id,
+                            });
+                            setSingleEvidenceUrl('');
+                            setSingleEvidenceLabel('');
+                            setSingleEvidenceReason('');
+                            setAddResultEvidenceError(null);
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Tambah Bukti
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {run.result?.actualResult && (
+                    <p className="text-xs text-stone-600 dark:text-stone-400">
+                      <strong>Aktual:</strong> {run.result.actualResult}
+                    </p>
+                  )}
+
+                  {/* Result Evidence (Formal Files & External Links) */}
+                  {((run.result?.evidence && run.result.evidence.length > 0) ||
+                    evidenceLinks.length > 0) && (
+                    <div className="mt-2 pt-2 border-t border-stone-200 dark:border-stone-800">
+                      <span className="text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 block mb-1.5">
+                        Bukti Hasil ({(run.result?.evidence?.length || 0) + evidenceLinks.length})
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* Formal attached files */}
+                        {(run.result?.evidence || []).map((att) => (
+                          <div
+                            key={att.attachmentId}
+                            className="relative flex items-center justify-between p-2.5 rounded-xl bg-white border border-stone-200 text-xs shadow-xs dark:bg-stone-900/60 dark:border-stone-800"
+                          >
+                            <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30">
+                              File Resmi
+                            </span>
+                            <div className="min-w-0 pr-2">
+                              <p className="font-semibold text-stone-900 dark:text-stone-100 truncate">
+                                {att.fileName}
+                              </p>
+                              <p className="text-[10px] font-mono text-stone-500 dark:text-stone-400">
+                                {att.mimeType}
+                              </p>
+                            </div>
+                            <a
+                              href={taskService.getAttachmentDownloadUrl(
+                                workspaceId,
+                                att.taskId || subtask.id,
+                                att.attachmentId,
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-white dark:hover:bg-stone-800 transition-colors"
+                              aria-label={`Unduh ${att.fileName}`}
+                              title={`Unduh ${att.fileName}`}
+                            >
+                              <Link2 className="w-5 h-5" />
+                            </a>
+                          </div>
+                        ))}
+
+                        {/* External links */}
+                        {evidenceLinks.map((link) => (
+                          <EvidenceCard
+                            key={link.id}
+                            link={link}
+                            onPreview={(l) =>
+                              setPreviewEvidence({
+                                url: l.url,
+                                normalizedUrl: l.normalizedUrl,
+                                provider: l.provider,
+                                mediaKind: l.mediaKind,
+                                label: l.label,
+                                previewStatus: l.previewStatus as EvidencePreviewStatus,
+                              })
+                            }
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+
   return (
     <div className="space-y-6">
       {isAssignedQaExecutor && (
-        <Card className="space-y-3 border-emerald-200/80 bg-emerald-50/40 p-4 dark:border-emerald-950/70 dark:bg-emerald-950/15">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                Ringkasan Workflow QA
-              </h3>
-              <p className="mt-0.5 text-xs text-stone-600 dark:text-stone-400">
-                Scope dan langkah berikutnya dihitung dari data QA yang tersimpan.
-              </p>
+        <Card className="space-y-3.5 border-emerald-200/80 bg-linear-to-br from-emerald-50/50 via-white to-emerald-50/20 p-4 shadow-xs dark:border-emerald-950/70 dark:from-emerald-950/20 dark:via-stone-900 dark:to-stone-950">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 pb-2.5 dark:border-emerald-900/40">
+            <div className="flex items-center gap-2">
+              <div className="grid h-6 w-6 place-items-center rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                <ShieldCheck className="h-3.5 w-3.5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                  Ringkasan Workflow QA
+                </h3>
+                <p className="text-[11px] text-stone-600 dark:text-stone-400">
+                  Scope dan langkah berikutnya dihitung dari data QA yang tersimpan.
+                </p>
+              </div>
             </div>
             {workflowSummary && (
               <Badge variant={workflowSummary.blockers.length ? 'review' : 'passed'} size="sm">
@@ -1045,27 +1567,56 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             )}
           </div>
           {isLoadingWorkflowSummary ? (
-            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full rounded-xl" />
           ) : workflowSummaryError ? (
             <Alert tone="warning" title="Ringkasan workflow belum tersedia">
               {workflowSummaryError}
             </Alert>
           ) : workflowSummary ? (
-            <div className="space-y-2 text-xs">
-              <p className="font-semibold text-stone-800 dark:text-stone-200">
-                Menguji: {workflowSummary.featureTitle} ·{' '}
-                {workflowSummary.testCycle?.build || 'Siklus belum dibuat'}
-              </p>
-              <p className="font-extrabold text-emerald-800 dark:text-emerald-300">
-                Berikutnya: {workflowSummary.nextAction.label}
-              </p>
-              {workflowSummary.blockers.length > 0 && (
-                <ul className="space-y-1 text-stone-600 dark:text-stone-400">
-                  {workflowSummary.blockers.map((blocker) => (
-                    <li key={blocker}>• {workflowBlockerCopy[blocker]}</li>
-                  ))}
-                </ul>
-              )}
+            <div className="space-y-3 text-xs">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                    Cakupan &amp; Siklus Uji
+                  </p>
+                  <p className="mt-1 font-semibold text-stone-800 dark:text-stone-200 truncate">
+                    Menguji: {workflowSummary.featureTitle} ·{' '}
+                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                      {workflowSummary.testCycle?.build || 'Siklus belum dibuat'}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                    Langkah Kerja Selanjutnya
+                  </p>
+                  <p className="mt-1 font-extrabold text-emerald-800 dark:text-emerald-300">
+                    Berikutnya: {workflowSummary.nextAction.label}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60 sm:col-span-2 lg:col-span-1">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                    Status Prasyarat Kesiapan
+                  </p>
+                  {workflowSummary.blockers.length > 0 ? (
+                    <ul className="mt-1 space-y-1 text-stone-600 dark:text-stone-400">
+                      {workflowSummary.blockers.map((blocker) => (
+                        <li key={blocker} className="flex items-start gap-1">
+                          <span className="text-amber-500">•</span>
+                          <span>{workflowBlockerCopy[blocker]}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1 font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                      Semua kriteria terpenuhi. Siap lanjut.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           ) : null}
         </Card>
@@ -1389,363 +1940,189 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   </Alert>
                 )}
 
-                {executionWorkspace.executions.map(({ testCase, latestRun, testRuns }) => (
-                  <section
-                    key={testCase.id}
-                    className="rounded-2xl border border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-900/50"
-                    aria-labelledby={`test-case-${testCase.id}`}
+                {/* Quick Execution Progress Bar */}
+                {executionStats && executionStats.total > 0 && (
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-stone-200 bg-white p-3 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60">
+                    <div className="flex items-center gap-2">
+                      <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-xs font-extrabold text-stone-900 dark:text-stone-100">
+                        Progres Pengujian ({executionStats.passed}/{executionStats.total} Lulus)
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                        {executionStats.passed} Lulus
+                      </span>
+                      {executionStats.failed > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
+                          {executionStats.failed} Gagal
+                        </span>
+                      )}
+                      {executionStats.blocked > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                          {executionStats.blocked} Terblokir
+                        </span>
+                      )}
+                      {executionStats.unexecuted > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 border border-stone-200 dark:border-stone-700">
+                          {executionStats.unexecuted} Belum Diuji
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Interactive Execution Status Filter & View Mode Switcher Toolbar */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-stone-200/70 pb-3 dark:border-stone-800">
+                  {/* Status Filter Tabs */}
+                  <div
+                    className="flex flex-wrap items-center gap-1.5"
+                    role="group"
+                    aria-label="Filter status eksekusi Test Case"
                   >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge
-                            variant={
-                              testCase.status === 'active'
-                                ? 'brand'
-                                : testCase.status === 'in_review'
-                                  ? 'review'
-                                  : testCase.status === 'draft'
-                                    ? 'draft'
-                                    : 'neutral'
-                            }
-                            size="sm"
-                          >
-                            {testCase.status === 'active'
-                              ? 'Aktif (Siap Diuji)'
-                              : testCase.status === 'in_review'
-                                ? 'Menunggu Review PO'
-                                : testCase.status === 'draft'
-                                  ? 'Draf'
-                                  : testCase.status}
-                          </Badge>
-                          <Badge variant="info" size="sm">
-                            {testCase.testType}
-                          </Badge>
-                          <Badge variant="neutral" size="sm">
-                            Prioritas: {testCase.priority}
-                          </Badge>
-                          {testCase.externalReference && (
-                            <span className="text-xs font-mono font-bold text-primary">
-                              {testCase.externalReference}
-                            </span>
-                          )}
-                          <span className="text-[10px] font-semibold text-stone-400">
-                            {testCase.requirementIds.length} Requirement
-                            {testCase.requirementIds.length === 1 ? '' : 's'}
-                          </span>
-                          {versionCoverageByTestCaseId[testCase.id] && (
-                            <Badge variant="neutral" size="sm">
-                              Rev {versionCoverageByTestCaseId[testCase.id]!.revision} · AC{' '}
-                              {versionCoverageByTestCaseId[testCase.id]!.mappedCount} mapped
-                              {versionCoverageByTestCaseId[testCase.id]!.excludedCount > 0
-                                ? ` · ${versionCoverageByTestCaseId[testCase.id]!.excludedCount} excluded`
-                                : ''}
-                            </Badge>
-                          )}
-                        </div>
-                        <h4
-                          id={`test-case-${testCase.id}`}
-                          className="text-sm font-extrabold text-stone-900 dark:text-stone-100"
+                    {filterOptions.map((option) => {
+                      const isActive = statusFilter === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setStatusFilter(option.id)}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                            isActive
+                              ? option.id === 'passed'
+                                ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-stone-950 shadow-2xs'
+                                : option.id === 'failed'
+                                  ? 'bg-rose-600 text-white dark:bg-rose-500 dark:text-stone-950 shadow-2xs'
+                                  : option.id === 'blocked'
+                                    ? 'bg-amber-600 text-white dark:bg-amber-500 dark:text-stone-950 shadow-2xs'
+                                    : 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-2xs'
+                              : 'border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-300 dark:hover:bg-stone-800/80'
+                          }`}
+                          aria-pressed={isActive}
                         >
-                          {testCase.title}
-                        </h4>
-                        {testCase.description && (
-                          <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                            {testCase.description}
-                          </p>
-                        )}
-                      </div>
+                          {option.id === 'passed' ? (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-300 dark:text-emerald-950" />
+                          ) : option.id === 'failed' ? (
+                            <XCircle className="h-3 w-3 text-rose-300 dark:text-rose-950" />
+                          ) : option.id === 'blocked' ? (
+                            <AlertTriangle className="h-3 w-3 text-amber-300 dark:text-amber-950" />
+                          ) : null}
+                          <span>{option.label}</span>
+                          <span
+                            className={`rounded-md px-1.5 py-0.2 text-[10px] font-bold ${
+                              isActive
+                                ? 'bg-white/20 text-current'
+                                : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'
+                            }`}
+                          >
+                            {option.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                      {(canExecuteTests ||
-                        (canSubmitTestCasesForReview && testCase.status === 'draft') ||
-                        (canActivateTestCases && testCase.status === 'in_review')) && (
-                        <div className="flex shrink-0 flex-wrap gap-2">
-                          {canSubmitTestCasesForReview && testCase.status === 'draft' && (
-                            <>
-                              {versionCoverageByTestCaseId[testCase.id]?.lifecycleStatus ===
-                                'draft' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => void openAcceptanceCriteriaMapping(testCase)}
-                                  aria-label={`Petakan Acceptance Criterion untuk ${testCase.title}`}
-                                >
-                                  Petakan AC
-                                </Button>
-                              )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                isLoading={submittingTestCaseId === testCase.id}
-                                onClick={() => void handleSubmitTestCaseForReview(testCase.id)}
-                                aria-label={`Ajukan Test Case ${testCase.title} untuk review`}
-                                leftIcon={<CheckSquare className="h-3.5 w-3.5" />}
-                              >
-                                Ajukan untuk Review
-                              </Button>
-                            </>
-                          )}
-                          {canActivateTestCases && testCase.status === 'in_review' && (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              isLoading={activatingTestCaseId === testCase.id}
-                              onClick={() => void handleActivateTestCase(testCase.id)}
-                              aria-label={`Aktifkan Test Case ${testCase.title}`}
-                              leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                            >
-                              Aktifkan Test Case
-                            </Button>
-                          )}
-                          {canExecuteTests && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={testCase.status !== 'active'}
-                              onClick={() => openRunModal(testCase.id)}
-                              aria-label={`Mulai Pengujian untuk ${testCase.title}`}
-                            >
-                              Mulai Pengujian
-                            </Button>
-                          )}
-                          {canExecuteTests && latestRun?.status === 'in_progress' && (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={() => openResultModal(testCase.id, latestRun.id)}
-                              aria-label={`Catat hasil untuk ${testCase.title}`}
-                            >
-                              Catat Hasil
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                  {/* View Mode Switcher Toggle */}
+                  <div className="flex items-center rounded-lg border border-stone-200 bg-stone-100/80 p-0.5 dark:border-stone-800 dark:bg-stone-900 shrink-0 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('split')}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                        viewMode === 'split'
+                          ? 'bg-white text-stone-900 shadow-2xs dark:bg-stone-800 dark:text-stone-100 font-bold'
+                          : 'text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
+                      }`}
+                      title="Tampilan Split Master-Detail"
+                      aria-label="Tampilan Split Master-Detail"
+                      aria-pressed={viewMode === 'split'}
+                    >
+                      <Columns className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>Split View</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('list')}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                        viewMode === 'list'
+                          ? 'bg-white text-stone-900 shadow-2xs dark:bg-stone-800 dark:text-stone-100 font-bold'
+                          : 'text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
+                      }`}
+                      title="Tampilan Daftar Penuh"
+                      aria-label="Tampilan Daftar Penuh"
+                      aria-pressed={viewMode === 'list'}
+                    >
+                      <LayoutList className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>List View</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Test Cases Layout (Split or List) */}
+                {viewMode === 'split' ? (
+                  filteredExecutions.length === 0 ? (
+                    <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-6 text-center dark:border-stone-800 dark:bg-stone-900/40">
+                      <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                        Tidak ada Test Case dengan status pengujian &quot;{statusFilter}&quot;.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => setStatusFilter('all')}
+                      >
+                        Tampilkan Semua Test Case
+                      </Button>
                     </div>
-
-                    {(testCase.preconditions ||
-                      testCase.steps.length > 0 ||
-                      testCase.expectedResult ||
-                      testCase.testData) && (
-                      <div className="mt-4 grid gap-3 lg:grid-cols-4">
-                        <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                            Prasyarat
-                          </p>
-                          <p className="mt-1 text-xs text-stone-700 dark:text-stone-300">
-                            {testCase.preconditions || 'Belum dicatat'}
-                          </p>
-                        </div>
-                        <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                            Langkah
-                          </p>
-                          {testCase.steps.length > 0 ? (
-                            <ol className="mt-1 list-decimal space-y-1 pl-4 text-xs text-stone-700 dark:text-stone-300">
-                              {testCase.steps.map((step, index) => (
-                                <li key={`${testCase.id}-step-${index}`}>{step}</li>
-                              ))}
-                            </ol>
-                          ) : (
-                            <p className="mt-1 text-xs text-stone-500">Belum ada langkah formal</p>
-                          )}
-                        </div>
-                        <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                            Hasil yang Diharapkan
-                          </p>
-                          <p className="mt-1 text-xs text-stone-700 dark:text-stone-300">
-                            {testCase.expectedResult || 'Belum dicatat'}
-                          </p>
-                        </div>
-                        <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                            Data Pengujian
-                          </p>
-                          <p className="mt-1 text-xs font-mono text-stone-700 dark:text-stone-300">
-                            {testCase.testData || 'Belum dicatat'}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Test execution history and evidence */}
-                    <div className="mt-4 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <History className="h-4 w-4 text-stone-400" />
-                          <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                            Riwayat Pengujian ({testRuns.length})
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                      {/* Master List Column */}
+                      <div className="lg:col-span-4 flex flex-col gap-2">
+                        <div className="flex items-center justify-between px-1 text-xs font-bold text-stone-600 dark:text-stone-400">
+                          <span>Daftar Kasus ({filteredExecutions.length})</span>
+                          <span className="text-[10px] font-normal text-stone-400">
+                            Pilih untuk eksekusi
                           </span>
                         </div>
-                        {latestRun && (
-                          <Badge
-                            variant={
-                              latestRun.result
-                                ? resultBadgeVariant(latestRun.result.status)
-                                : 'info'
-                            }
-                            size="sm"
-                          >
-                            {testRunStatusCopy[latestRun.result?.status || latestRun.status] ||
-                              latestRun.status.replace('_', ' ')}
-                          </Badge>
-                        )}
+                        <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
+                          {filteredExecutions.map(renderTestCaseMasterItem)}
+                        </div>
                       </div>
 
-                      {testRuns.length === 0 ? (
-                        <p className="mt-2 text-xs text-stone-500">
-                          Belum ada pengujian yang tersimpan.
-                        </p>
-                      ) : (
-                        <div className="mt-3 space-y-3">
-                          {testRuns.map((run) => {
-                            const evidenceLinks = run.result?.evidenceLinks || [];
-                            return (
-                              <div
-                                key={run.id}
-                                className="rounded-lg border border-stone-100 p-3 text-xs dark:border-stone-800 space-y-2"
-                              >
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                  <div>
-                                    <p className="font-bold text-stone-800 dark:text-stone-200">
-                                      {run.build}
-                                    </p>
-                                    <p className="text-[11px] text-stone-500">
-                                      {run.environment} ·{' '}
-                                      {new Date(run.startedAt).toLocaleString('id-ID')}
-                                    </p>
-                                  </div>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <Badge
-                                      variant={
-                                        run.result ? resultBadgeVariant(run.result.status) : 'info'
-                                      }
-                                      size="sm"
-                                    >
-                                      {testRunStatusCopy[run.result?.status || run.status] ||
-                                        run.status.replace('_', ' ')}
-                                    </Badge>
-                                    {run.result?.evidenceManifests?.length ? (
-                                      <Badge variant="neutral" size="sm">
-                                        Bukti disegel · {run.result.evidenceManifests.length}
-                                      </Badge>
-                                    ) : null}
-                                    {run.retestBugId && (
-                                      <Badge variant="review" size="sm">
-                                        Retest Bug
-                                      </Badge>
-                                    )}
-                                    {run.result && run.retestBugId && canExecuteTests && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        isLoading={finalizingRetestRunId === run.id}
-                                        disabled={finalizingRetestRunId === run.id}
-                                        onClick={() => void handleFinalizeRetest(run)}
-                                      >
-                                        Sinkronkan Outcome Bug
-                                      </Button>
-                                    )}
-                                    {run.result && canExecuteTests && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setAddEvidenceResultTarget({
-                                            testCaseId: testCase.id,
-                                            testRunId: run.id,
-                                          });
-                                          setSingleEvidenceUrl('');
-                                          setSingleEvidenceLabel('');
-                                          setSingleEvidenceReason('');
-                                          setAddResultEvidenceError(null);
-                                        }}
-                                        className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-                                      >
-                                        <Plus className="w-3 h-3" />
-                                        Tambah Bukti
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {run.result?.actualResult && (
-                                  <p className="text-xs text-stone-600 dark:text-stone-400">
-                                    <strong>Aktual:</strong> {run.result.actualResult}
-                                  </p>
-                                )}
-
-                                {/* Result Evidence (Formal Files & External Links) */}
-                                {((run.result?.evidence && run.result.evidence.length > 0) ||
-                                  evidenceLinks.length > 0) && (
-                                  <div className="mt-2 pt-2 border-t border-stone-200 dark:border-stone-800">
-                                    <span className="text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 block mb-1.5">
-                                      Bukti Hasil (
-                                      {(run.result?.evidence?.length || 0) + evidenceLinks.length})
-                                    </span>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                      {/* Formal attached files */}
-                                      {(run.result?.evidence || []).map((att) => (
-                                        <div
-                                          key={att.attachmentId}
-                                          className="relative flex items-center justify-between p-2.5 rounded-xl bg-white border border-stone-200 text-xs shadow-xs dark:bg-stone-900/60 dark:border-stone-800"
-                                        >
-                                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30">
-                                            File Resmi
-                                          </span>
-                                          <div className="min-w-0 pr-2">
-                                            <p className="font-semibold text-stone-900 dark:text-stone-100 truncate">
-                                              {att.fileName}
-                                            </p>
-                                            <p className="text-[10px] font-mono text-stone-500 dark:text-stone-400">
-                                              {att.mimeType}
-                                            </p>
-                                          </div>
-                                          <a
-                                            href={taskService.getAttachmentDownloadUrl(
-                                              workspaceId,
-                                              att.taskId || subtask.id,
-                                              att.attachmentId,
-                                            )}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-white dark:hover:bg-stone-800 transition-colors"
-                                            aria-label={`Unduh ${att.fileName}`}
-                                            title={`Unduh ${att.fileName}`}
-                                          >
-                                            <Link2 className="w-5 h-5" />
-                                          </a>
-                                        </div>
-                                      ))}
-
-                                      {/* External links */}
-                                      {evidenceLinks.map((link) => (
-                                        <EvidenceCard
-                                          key={link.id}
-                                          link={link}
-                                          onPreview={(l) =>
-                                            setPreviewEvidence({
-                                              url: l.url,
-                                              normalizedUrl: l.normalizedUrl,
-                                              provider: l.provider,
-                                              mediaKind: l.mediaKind,
-                                              label: l.label,
-                                              previewStatus:
-                                                l.previewStatus as EvidencePreviewStatus,
-                                            })
-                                          }
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {/* Detail Pane Column */}
+                      <div className="lg:col-span-8 min-w-0">
+                        {activeExecution ? (
+                          renderTestCaseDetail(activeExecution)
+                        ) : (
+                          <EmptyState
+                            icon={<CheckSquare className="h-6 w-6" />}
+                            title="Pilih Test Case"
+                            description="Pilih salah satu Test Case dari daftar di sebelah kiri untuk melihat detail atau menjalankan pengujian."
+                          />
+                        )}
+                      </div>
                     </div>
-                  </section>
-                ))}
+                  )
+                ) : (
+                  <div className="space-y-4">
+                    {filteredExecutions.length === 0 ? (
+                      <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-6 text-center dark:border-stone-800 dark:bg-stone-900/40">
+                        <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                          Tidak ada Test Case dengan status pengujian &quot;{statusFilter}&quot;.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => setStatusFilter('all')}
+                        >
+                          Tampilkan Semua Test Case
+                        </Button>
+                      </div>
+                    ) : (
+                      filteredExecutions.map(renderTestCaseDetail)
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </Card>
