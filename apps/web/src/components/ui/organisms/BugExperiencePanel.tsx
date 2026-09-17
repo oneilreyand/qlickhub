@@ -510,8 +510,8 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                   bugEvidenceLinks.length > 0 ||
                   (bug.originatingTestResult?.evidence &&
                     bug.originatingTestResult.evidence.length > 0)) && (
-                  <div className="mt-2 space-y-2 border-t border-slate-700/50 pt-3">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
+                  <div className="mt-2 space-y-2 border-t border-stone-200 pt-3 dark:border-stone-800/80">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       Bukti Tertaut
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -519,14 +519,18 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                       {(bug.originatingTestResult?.evidence || []).map((att) => (
                         <div
                           key={att.attachmentId}
-                          className="relative flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-xs"
+                          className="relative flex items-center justify-between p-2.5 rounded-xl bg-white border border-stone-200 text-xs shadow-xs dark:bg-stone-900/60 dark:border-stone-800"
                         >
-                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-rose-500/20 text-rose-400 px-1.5 py-0.2 rounded border border-rose-500/30">
+                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-rose-50 text-rose-700 px-1.5 py-0.2 rounded border border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30">
                             Lampiran dari Hasil Pengujian
                           </span>
                           <div className="min-w-0 pr-2">
-                            <p className="font-semibold text-slate-200 truncate">{att.fileName}</p>
-                            <p className="text-[10px] font-mono text-slate-400">{att.mimeType}</p>
+                            <p className="font-semibold text-stone-900 dark:text-stone-100 truncate">
+                              {att.fileName}
+                            </p>
+                            <p className="text-[10px] font-mono text-stone-500 dark:text-stone-400">
+                              {att.mimeType}
+                            </p>
                           </div>
                           <a
                             href={taskService.getAttachmentDownloadUrl(
@@ -536,7 +540,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                             )}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-white dark:hover:bg-stone-800 transition-colors"
                             aria-label={`Unduh ${att.fileName}`}
                             title={`Unduh ${att.fileName}`}
                           >
@@ -548,7 +552,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                       {/* Inherited external links */}
                       {originEvidenceLinks.map((link) => (
                         <div key={link.id} className="relative">
-                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-rose-500/20 text-rose-400 px-1.5 py-0.2 rounded border border-rose-500/30">
+                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-rose-50 text-rose-700 px-1.5 py-0.2 rounded border border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30">
                             Bukti dari Hasil Pengujian Asal
                           </span>
                           <EvidenceCard
@@ -570,7 +574,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                       {/* Bug-specific evidence links */}
                       {bugEvidenceLinks.map((link) => (
                         <div key={link.id} className="relative">
-                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-sky-500/20 text-sky-400 px-1.5 py-0.2 rounded border border-sky-500/30">
+                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-sky-50 text-sky-700 px-1.5 py-0.2 rounded border border-sky-200 dark:bg-sky-500/20 dark:text-sky-400 dark:border-sky-500/30">
                             {link.evidenceStage === 'resolution'
                               ? 'Bukti Perbaikan'
                               : 'Bukti Temuan'}
@@ -794,7 +798,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                         )}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex min-h-[44px] items-center rounded-xl border border-stone-300 px-3 text-xs font-semibold text-stone-700 hover:border-primary dark:border-stone-700 dark:text-stone-200"
+                        className="flex min-h-[44px] items-center rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold text-stone-700 shadow-xs hover:border-stone-300 hover:bg-stone-50 hover:text-stone-900 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-primary"
                       >
                         <Link2 className="mr-2 h-4 w-4" />
                         {evidence.fileName}
@@ -914,7 +918,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                                     )}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex min-h-[44px] items-center rounded-xl border border-stone-300 px-3 text-xs font-semibold text-stone-700 hover:border-primary dark:border-stone-700 dark:text-stone-200"
+                                    className="flex min-h-[44px] items-center rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold text-stone-700 shadow-xs hover:border-stone-300 hover:bg-stone-50 hover:text-stone-900 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-primary"
                                   >
                                     <Link2 className="mr-2 h-4 w-4" />
                                     {evidence.fileName}

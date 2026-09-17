@@ -78,9 +78,9 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
     >
       <div className="flex flex-col gap-4">
         {/* Controls bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/60 dark:bg-slate-800/60 border border-slate-700/60 rounded-xl px-4 py-2 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-2 text-xs">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium bg-slate-800 border border-slate-700 text-slate-300">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 shadow-xs">
               {isImage ? (
                 <ImageIcon className="w-4 h-4" />
               ) : isEmbedVideo || isDirectVideo ? (
@@ -94,17 +94,17 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
 
           <div className="flex items-center gap-2">
             {isImage && (
-              <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700">
+              <div className="flex items-center gap-1 bg-white dark:bg-stone-800/80 p-0.5 rounded-lg border border-stone-200 dark:border-stone-700 shadow-xs">
                 <button
                   type="button"
                   onClick={handleZoomOut}
                   aria-label="Zoom out (-)"
                   title="Zoom Out (-)"
-                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
                 >
                   <ZoomOut className="w-4 h-4" />
                 </button>
-                <span className="text-xs font-mono text-slate-300 px-2 select-none">
+                <span className="text-xs font-mono text-stone-700 dark:text-stone-300 px-2 select-none">
                   {Math.round(zoom * 100)}%
                 </span>
                 <button
@@ -112,7 +112,7 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
                   onClick={handleZoomIn}
                   aria-label="Zoom in (+)"
                   title="Zoom In (+)"
-                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
                 >
                   <ZoomIn className="w-4 h-4" />
                 </button>
@@ -121,7 +121,7 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
                   onClick={handleResetZoom}
                   aria-label="Reset zoom (0)"
                   title="Reset Zoom (0)"
-                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </button>
@@ -132,7 +132,7 @@ export const EvidencePreviewModal: React.FC<EvidencePreviewModalProps> = ({
               href={evidence.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-[44px] items-center gap-1.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400 font-medium"
+              className="inline-flex min-h-[44px] items-center gap-1.5 px-3 py-2 rounded-lg text-stone-700 hover:text-stone-900 bg-white hover:bg-stone-50 border border-stone-200 shadow-xs dark:text-stone-300 dark:hover:text-white dark:bg-stone-800 dark:hover:bg-stone-700 dark:border-stone-700 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400 font-medium"
               aria-label="Buka tautan bukti di tab baru"
             >
               <ExternalLink className="w-4 h-4" />

@@ -1677,8 +1677,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                                 {/* Result Evidence (Formal Files & External Links) */}
                                 {((run.result?.evidence && run.result.evidence.length > 0) ||
                                   evidenceLinks.length > 0) && (
-                                  <div className="mt-2 pt-2 border-t border-slate-700/40">
-                                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1.5">
+                                  <div className="mt-2 pt-2 border-t border-stone-200 dark:border-stone-800">
+                                    <span className="text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 block mb-1.5">
                                       Bukti Hasil (
                                       {(run.result?.evidence?.length || 0) + evidenceLinks.length})
                                     </span>
@@ -1687,16 +1687,16 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                                       {(run.result?.evidence || []).map((att) => (
                                         <div
                                           key={att.attachmentId}
-                                          className="relative flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-xs"
+                                          className="relative flex items-center justify-between p-2.5 rounded-xl bg-white border border-stone-200 text-xs shadow-xs dark:bg-stone-900/60 dark:border-stone-800"
                                         >
-                                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30">
                                             File Resmi
                                           </span>
                                           <div className="min-w-0 pr-2">
-                                            <p className="font-semibold text-slate-200 truncate">
+                                            <p className="font-semibold text-stone-900 dark:text-stone-100 truncate">
                                               {att.fileName}
                                             </p>
-                                            <p className="text-[10px] font-mono text-slate-400">
+                                            <p className="text-[10px] font-mono text-stone-500 dark:text-stone-400">
                                               {att.mimeType}
                                             </p>
                                           </div>
@@ -1708,7 +1708,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                                             )}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                                            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-white dark:hover:bg-stone-800 transition-colors"
                                             aria-label={`Unduh ${att.fileName}`}
                                             title={`Unduh ${att.fileName}`}
                                           >
