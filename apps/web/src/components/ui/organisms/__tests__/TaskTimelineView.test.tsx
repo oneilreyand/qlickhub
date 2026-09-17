@@ -297,4 +297,86 @@ describe('TaskTimelineView', () => {
     fireEvent.click(expandAllBtn);
     expect(screen.getByText('Tutup Subtask')).toBeInTheDocument();
   });
+
+  it('correctly aligns task bar and today marker on Day scale without time-of-day shift', () => {
+    vi.useFakeTimers();
+    // Simulate opening the app late at night on Sept 17 (22:34:52)
+    vi.setSystemTime(new Date('2026-09-17T22:34:52'));
+
+    const alignmentTask: Task = {
+      id: 'task-bilong-v3',
+      workspaceId: 'ws-1',
+      folderId: 'f-1',
+      title: 'bilong v3',
+      status: 'in_progress',
+      priority: 'high',
+      position: 1,
+      reporterId: 'user-1',
+      startDate: '2026-09-14',
+      dueDate: '2026-09-18',
+      createdAt: '2026-09-10T00:00:00Z',
+      updatedAt: '2026-09-10T00:00:00Z',
+    };
+
+    render(
+      <TaskTimelineView
+        tasks={[alignmentTask]}
+        folders={mockFolders}
+        isLoading={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    // Switch to Day scale
+    const dayBtn = screen.getByRole('button', { name: /^Hari$/i });
+    fireEvent.click(dayBtn);
+
+    // Find the task bar button
+    const taskBar = screen.getByRole('button', { name: /Lihat bilong v3/i });
+    expect(taskBar).toBeInTheDocument();
+
+    // 29 columns in Day scale:
+    // start is Sep 10 (day 0), Sep 14 is day 4 (4 / 29 * 100% = 13.7931%)
+    // duration 5 days: Sep 14 to Sep 18 inclusive (5 / 29 * 100% = 17.2414%)
+    const styleAttr = taskBar.getAttribute('style') || '';
+    expect(styleAttr).toContain('left: 13.7931');
+    expect(styleAttr).toContain('width: 17.2413');
+
+    // Verify Today marker floating badge ("Hari Ini") is positioned inside Sept 17 column (day 7 to day 8: 24.1379% to 27.5862%)
+    const todayBadges = screen.getAllByText('Hari Ini');
+    const floatingPinBadge = todayBadges.find((el) =>
+      el.className.includes('rounded-full'),
+    );
+    expect(floatingPinBadge).toBeDefined();
+    const todayMarkerLine = floatingPinBadge!.closest('.absolute.top-0.bottom-0');
+    expect(todayMarkerLine).not.toBeNull();
+    const markerStyle = todayMarkerLine?.getAttribute('style') || '';
+    const leftMatch = markerStyle.match(/left:\s*([\d.]+)%/);
+    expect(leftMatch).not.toBeNull();
+    const markerLeft = parseFloat(leftMatch![1]);
+    // Sept 17 column spans from (7 / 29 * 100) = 24.1379% to (8 / 29 * 100) = 27.5862%
+    expect(markerLeft).toBeGreaterThanOrEqual(24.1379);
+    expect(markerLeft).toBeLessThanOrEqual(27.5862);
+  });
+
+  it('keeps active week column highlighted when current time is Saturday evening', () => {
+    vi.useFakeTimers();
+    // Saturday evening: 2026-09-19 22:30:00 (end of week Sep 13 – Sep 19)
+    vi.setSystemTime(new Date('2026-09-19T22:30:00'));
+
+    render(
+      <TaskTimelineView
+        tasks={mockTasks}
+        folders={mockFolders}
+        isLoading={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    // In week scale, the column for Sep 13 – 19 should have isToday: true (text-amber-600)
+    const weekLabel = screen.getByText('13 Sep');
+    const weekColHeader = weekLabel.closest('div');
+    expect(weekColHeader?.className).toContain('bg-amber-50/60');
+  });
 });
+

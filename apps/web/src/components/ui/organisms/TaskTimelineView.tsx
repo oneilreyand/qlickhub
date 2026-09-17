@@ -257,8 +257,9 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 
   // Calculate timeline date boundary range
   const { startDateRange, endDateRange, columns, columnWidthPx } = useMemo(() => {
-    // Anchor with offset
+    // Anchor with offset normalized to midnight (00:00:00.000)
     const anchor = new Date(today);
+    anchor.setHours(0, 0, 0, 0);
     if (scale === 'day') {
       anchor.setDate(anchor.getDate() + dateOffset);
     } else if (scale === 'week') {
@@ -320,11 +321,11 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
         const label = `${cur.getDate()} ${cur.toLocaleDateString('id-ID', { month: 'short' })}`;
         const subLabel = `– ${weekEnd.getDate()}`;
 
-        // Check if today falls in this week
+        // Check if today falls in this week (7-day inclusive range from Sunday 00:00 to next Sunday 00:00)
         const curTime = cur.getTime();
-        const endTime = weekEnd.getTime();
-        const todayTime = today.getTime();
-        const isTodayWeek = todayTime >= curTime && todayTime <= endTime;
+        const nextWeek = new Date(cur);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        const isTodayWeek = today.getTime() >= curTime && today.getTime() < nextWeek.getTime();
 
         cols.push({
           key: weekStartKey,
@@ -418,6 +419,35 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     return value;
   }, [endDateRange]);
 
+  // Convert a specific Date to a horizontal percentage position on the canvas.
+  // Supports uniform month-proportional mapping for 'month' scale, and linear millisecond duration for 'day' and 'week' scales.
+  const dateToPercent = (date: Date): number => {
+    if (scale === 'month') {
+      const numCols = columns.length;
+      if (numCols === 0) return 0;
+      const y = date.getFullYear();
+      const m = date.getMonth();
+      const colIndex = columns.findIndex(
+        (c) => c.date.getFullYear() === y && c.date.getMonth() === m,
+      );
+      if (colIndex === -1) {
+        if (date < columns[0].date) return 0;
+        return 100;
+      }
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const dayOffset =
+        date.getDate() -
+        1 +
+        (date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds()) / 86400;
+      const fraction = Math.max(0, Math.min(1, dayOffset / daysInMonth));
+      return ((colIndex + fraction) / numCols) * 100;
+    }
+
+    const totalDurationMs = Math.max(rangeEndExclusive.getTime() - startDateRange.getTime(), 1);
+    const offsetMs = date.getTime() - startDateRange.getTime();
+    return (offsetMs / totalDurationMs) * 100;
+  };
+
   // Clip a date-only interval to the visible window and keep each end date inclusive.
   const computeDateRangeBarStyles = (startDate?: string | null, endDate?: string | null) => {
     const itemStart = parseDate(startDate);
@@ -428,16 +458,21 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
 
     const itemEndExclusive = new Date(itemEnd);
     itemEndExclusive.setDate(itemEndExclusive.getDate() + 1);
-    const visibleStartMs = Math.max(itemStart.getTime(), startDateRange.getTime());
-    const visibleEndMs = Math.min(itemEndExclusive.getTime(), rangeEndExclusive.getTime());
-    const totalDurationMs = Math.max(rangeEndExclusive.getTime() - startDateRange.getTime(), 1);
 
-    if (visibleStartMs >= visibleEndMs) {
+    if (itemEndExclusive <= startDateRange || itemStart >= rangeEndExclusive) {
       return { style: { display: 'none' as const }, widthPx: 0, isCompact: true };
     }
 
-    const leftPercent = ((visibleStartMs - startDateRange.getTime()) / totalDurationMs) * 100;
-    const widthPercent = ((visibleEndMs - visibleStartMs) / totalDurationMs) * 100;
+    const clampedStart = itemStart < startDateRange ? startDateRange : itemStart;
+    const clampedEnd = itemEndExclusive > rangeEndExclusive ? rangeEndExclusive : itemEndExclusive;
+
+    if (clampedStart >= clampedEnd) {
+      return { style: { display: 'none' as const }, widthPx: 0, isCompact: true };
+    }
+
+    const leftPercent = dateToPercent(clampedStart);
+    const rightPercent = dateToPercent(clampedEnd);
+    const widthPercent = Math.max(rightPercent - leftPercent, 0);
     const approxWidthPx = (widthPercent / 100) * canvasWidthPx;
     const isCompact = approxWidthPx < 160;
 
@@ -483,15 +518,11 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
     };
   };
 
-  // Compute Today vertical marker line position
+  // Compute Today vertical marker line position (live indicator inside today's column)
   const todayMarkerPercent = useMemo(() => {
-    const totalDurationMs = Math.max(rangeEndExclusive.getTime() - startDateRange.getTime(), 1);
-    const todayStart = parseDate(todayKey);
-    if (!todayStart) return null;
-    const todayOffsetMs = todayStart.getTime() - startDateRange.getTime();
-    if (todayOffsetMs < 0 || todayOffsetMs > totalDurationMs) return null;
-    return (todayOffsetMs / totalDurationMs) * 100;
-  }, [startDateRange, rangeEndExclusive, todayKey]);
+    if (today < startDateRange || today > rangeEndExclusive) return null;
+    return dateToPercent(today);
+  }, [startDateRange, rangeEndExclusive, today, scale, columns]);
 
   // Bar colour helper for parent tasks
   const getTaskBarStyle = (task: Task) => {
