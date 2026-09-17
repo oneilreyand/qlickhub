@@ -1070,31 +1070,52 @@ describe('QaTestingDesk Organism', () => {
     expect(splitBtn).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('renders rich Hero Stage Tabs with dynamic metrics and sublabels', async () => {
+  it('renders rich Macro Stage Tabs and testing sub-tabs with dynamic metrics', async () => {
     serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
     renderDesk();
 
     expect(await screen.findByRole('tab', { name: 'Persiapan & Eksekusi' })).toBeInTheDocument();
 
-    // Verify Tab 1: Ikhtisar
-    const overviewTab = screen.getByRole('tab', { name: 'Ikhtisar' });
-    expect(overviewTab).toBeInTheDocument();
-    expect(overviewTab).toHaveTextContent('1. Ikhtisar');
+    // Verify 2 Macro Tabs
+    const contextTab = screen.getByRole('tab', { name: 'Konteks & Spesifikasi' });
+    expect(contextTab).toBeInTheDocument();
+    expect(contextTab).toHaveTextContent('1. Konteks & Spesifikasi');
 
-    // Verify Tab 2: Persiapan & Eksekusi
+    const testingAreaTab = screen.getByRole('tab', { name: 'Area Pengujian & Mutu' });
+    expect(testingAreaTab).toBeInTheDocument();
+    expect(testingAreaTab).toHaveTextContent('2. Area Pengujian & Mutu');
+    expect(testingAreaTab).toHaveTextContent('1 Kasus');
+
+    // Verify Sub-Tabs inside Area Pengujian & Mutu
     const preparationTab = screen.getByRole('tab', { name: 'Persiapan & Eksekusi' });
     expect(preparationTab).toBeInTheDocument();
-    expect(preparationTab).toHaveTextContent('2. Persiapan & Eksekusi');
+    expect(preparationTab).toHaveTextContent('1. Test Case & Eksekusi');
     expect(preparationTab).toHaveTextContent('1 Kasus');
 
-    // Verify Tab 3: Bug & Retest
     const bugsTab = screen.getByRole('tab', { name: 'Bug & Retest' });
     expect(bugsTab).toBeInTheDocument();
-    expect(bugsTab).toHaveTextContent('3. Bug & Retest');
+    expect(bugsTab).toHaveTextContent('2. Bug & Retest');
 
-    // Verify Tab 4: Persetujuan & Riwayat
     const signOffTab = screen.getByRole('tab', { name: 'Persetujuan & Riwayat' });
     expect(signOffTab).toBeInTheDocument();
-    expect(signOffTab).toHaveTextContent('4. Persetujuan & Riwayat');
+    expect(signOffTab).toHaveTextContent('3. Persetujuan & Riwayat');
+  });
+
+  it('switches between Macro Tabs (Konteks & Spesifikasi vs Area Pengujian & Mutu)', async () => {
+    const user = userEvent.setup();
+    renderDesk();
+
+    const contextTab = await screen.findByRole('tab', { name: 'Konteks & Spesifikasi' });
+    await user.click(contextTab);
+    expect(contextTab).toHaveAttribute('aria-selected', 'true');
+    expect(
+      screen.getByRole('tabpanel', { name: 'Konteks dan spesifikasi QA' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Hasil Kerja Developer & Verifikasi Lingkungan')).toBeInTheDocument();
+
+    const testingAreaTab = screen.getByRole('tab', { name: 'Area Pengujian & Mutu' });
+    await user.click(testingAreaTab);
+    expect(testingAreaTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Persiapan & Eksekusi' })).toBeInTheDocument();
   });
 });

@@ -53,12 +53,19 @@ export const Tabs: React.FC<TabsProps> = ({
   };
 
   if (variant === 'cards') {
+    const defaultGridCols =
+      tabs.length === 2
+        ? 'grid-cols-1 sm:grid-cols-2'
+        : tabs.length === 3
+          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+          : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4';
+
     return (
       <div
         role="tablist"
         aria-label={ariaLabel}
         aria-orientation="horizontal"
-        className={`grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 w-full ${className}`}
+        className={`grid gap-3 w-full ${defaultGridCols} ${className}`}
       >
         {tabs.map((tab, index) => {
           const isActive = tab.id === activeTabId;
@@ -147,6 +154,7 @@ export const Tabs: React.FC<TabsProps> = ({
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-label={tab.ariaLabel || tab.label}
               tabIndex={isActive ? 0 : -1}
               onClick={() => onChange(tab.id)}
               onKeyDown={(event) => handleKeyDown(event, index)}
@@ -194,6 +202,7 @@ export const Tabs: React.FC<TabsProps> = ({
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-label={tab.ariaLabel || tab.label}
               tabIndex={isActive ? 0 : -1}
               onClick={() => onChange(tab.id)}
               onKeyDown={(event) => handleKeyDown(event, index)}
