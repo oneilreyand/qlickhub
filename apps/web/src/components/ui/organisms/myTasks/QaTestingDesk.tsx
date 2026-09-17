@@ -6,10 +6,12 @@ import {
   CheckSquare,
   ChevronDown,
   Columns,
+  Compass,
   FileCheck,
   History,
   LayoutList,
   Link2,
+  Lock,
   Play,
   Plus,
   RotateCcw,
@@ -107,13 +109,6 @@ const workflowBlockerCopy: Record<string, string> = {
 };
 
 type QaDeskSection = 'overview' | 'preparation' | 'bugs' | 'sign_off';
-
-const qaDeskSections = [
-  { id: 'overview', label: 'Ikhtisar' },
-  { id: 'preparation', label: 'Persiapan & Eksekusi' },
-  { id: 'bugs', label: 'Bug & Retest' },
-  { id: 'sign_off', label: 'Persetujuan & Riwayat' },
-] as const;
 
 export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   subtask,
@@ -1773,16 +1768,107 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       </Card>
 
       <Tabs
-        tabs={qaDeskSections.map((section) => ({
-          ...section,
-          count:
-            section.id === 'bugs' && workflowSummary?.blockers.includes('unverified_bug')
-              ? 1
-              : undefined,
-        }))}
+        tabs={[
+          {
+            id: 'overview',
+            label: '1. Ikhtisar',
+            ariaLabel: 'Ikhtisar',
+            icon: <Compass className="h-4 w-4" />,
+            badge: workflowSummary ? (
+              workflowSummary.blockers.length === 0 ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
+                  <CheckCircle2 className="h-2.5 w-2.5" /> Siap
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">
+                  <AlertTriangle className="h-2.5 w-2.5" /> {workflowSummary.blockers.length}{' '}
+                  Blocker
+                </span>
+              )
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                Memeriksa
+              </span>
+            ),
+            sublabel: (
+              <div className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
+                <span className="font-semibold text-stone-800 dark:text-stone-200">
+                  {workflowSummary?.featureTitle || parentTask?.title || 'Feature'}
+                </span>{' '}
+                · {workflowSummary?.testCycle?.build || 'Siklus'}
+              </div>
+            ),
+          },
+          {
+            id: 'preparation',
+            label: '2. Persiapan & Eksekusi',
+            ariaLabel: 'Persiapan & Eksekusi',
+            icon: <CheckSquare className="h-4 w-4" />,
+            badge: (
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-[10px] font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                {executionStats
+                  ? `${executionStats.total} Kasus`
+                  : `${executionWorkspace?.executions?.length || 0} Kasus`}
+              </span>
+            ),
+            sublabel: (
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-stone-600 dark:text-stone-400">
+                <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                  {executionStats?.passed || 0} Lulus
+                </span>
+                <span>·</span>
+                <span className="text-rose-700 dark:text-rose-400 font-bold">
+                  {executionStats?.failed || 0} Gagal
+                </span>
+                <span>·</span>
+                <span className="text-stone-500">{executionStats?.unexecuted || 0} Belum</span>
+              </div>
+            ),
+          },
+          {
+            id: 'bugs',
+            label: '3. Bug & Retest',
+            ariaLabel: 'Bug & Retest',
+            icon: <Bug className="h-4 w-4" />,
+            badge: workflowSummary?.blockers.includes('unverified_bug') ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
+                <AlertTriangle className="h-2.5 w-2.5" /> Perlu Retest
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-[10px] font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                Nihil Bug
+              </span>
+            ),
+            sublabel: (
+              <div className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
+                Catat defect &amp; verifikasi retest
+              </div>
+            ),
+          },
+          {
+            id: 'sign_off',
+            label: '4. Persetujuan & Riwayat',
+            ariaLabel: 'Persetujuan & Riwayat',
+            icon: <ShieldCheck className="h-4 w-4" />,
+            badge: qaCompletionReady ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#B1E743]/30 px-2 py-0.5 text-[10px] font-bold text-stone-900 dark:text-[#B1E743]">
+                <CheckCircle2 className="h-2.5 w-2.5" /> Siap Sign-Off
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-[10px] font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                <Lock className="h-2.5 w-2.5" /> Terkunci
+              </span>
+            ),
+            sublabel: (
+              <div className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
+                Sertifikasi QA &amp; keputusan rilis PO
+              </div>
+            ),
+          },
+        ]}
         activeTabId={activeQaDeskSection}
         onChange={(sectionId) => setActiveQaDeskSection(sectionId as QaDeskSection)}
-        variant="pills"
+        variant="cards"
         ariaLabel="Tahap workflow QA"
       />
 

@@ -6,14 +6,17 @@ export interface TabItem {
   count?: number;
   badge?: React.ReactNode;
   icon?: React.ReactNode;
+  sublabel?: React.ReactNode;
+  ariaLabel?: string;
 }
 
 export interface TabsProps {
   tabs: TabItem[];
   activeTabId: string;
   onChange: (id: string) => void;
-  variant?: 'underline' | 'pills';
+  variant?: 'underline' | 'pills' | 'cards';
   ariaLabel?: string;
+  className?: string;
 }
 
 export const Tabs: React.FC<TabsProps> = ({
@@ -22,6 +25,7 @@ export const Tabs: React.FC<TabsProps> = ({
   onChange,
   variant = 'underline',
   ariaLabel = 'Navigasi tab',
+  className = '',
 }) => {
   const tabRefs = React.useRef(new Map<string, HTMLButtonElement>());
 
@@ -47,6 +51,84 @@ export const Tabs: React.FC<TabsProps> = ({
     tabRefs.current.get(nextTab.id)?.focus();
     onChange(nextTab.id);
   };
+
+  if (variant === 'cards') {
+    return (
+      <div
+        role="tablist"
+        aria-label={ariaLabel}
+        aria-orientation="horizontal"
+        className={`grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 w-full ${className}`}
+      >
+        {tabs.map((tab, index) => {
+          const isActive = tab.id === activeTabId;
+          return (
+            <button
+              ref={(node) => registerTab(tab.id, node)}
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-controls={`tabpanel-${tab.id}`}
+              aria-selected={isActive}
+              aria-label={tab.ariaLabel || tab.label}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => onChange(tab.id)}
+              onKeyDown={(event) => handleKeyDown(event, index)}
+              className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left transition-all min-h-[96px] ${
+                isActive
+                  ? 'border-2 border-[#B1E743] bg-white dark:bg-stone-900 shadow-md ring-2 ring-[#B1E743]/20 dark:ring-[#B1E743]/20'
+                  : 'border-stone-200/90 bg-stone-50/70 hover:bg-white hover:border-stone-300 dark:border-stone-800 dark:bg-stone-900/50 dark:hover:bg-stone-900'
+              }`}
+            >
+              {isActive && <span className="absolute top-0 left-0 right-0 h-1 bg-[#B1E743]" />}
+              <div className="flex items-center justify-between gap-2 w-full">
+                <div className="flex items-center gap-2 min-w-0">
+                  {tab.icon && (
+                    <span
+                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-[#B1E743]/20 text-stone-900 dark:text-[#B1E743]'
+                          : 'bg-stone-200/60 text-stone-600 dark:bg-stone-800 dark:text-stone-400 group-hover:bg-stone-200 dark:group-hover:bg-stone-700'
+                      }`}
+                    >
+                      {tab.icon}
+                    </span>
+                  )}
+                  <span
+                    className={`text-xs uppercase tracking-wider truncate ${
+                      isActive
+                        ? 'text-stone-900 dark:text-stone-100 font-extrabold'
+                        : 'text-stone-600 dark:text-stone-400 font-bold'
+                    }`}
+                  >
+                    {tab.label}
+                  </span>
+                </div>
+                {tab.badge}
+                {tab.count !== undefined && !tab.badge && (
+                  <span
+                    className={`grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5 text-[11px] font-bold ${
+                      isActive
+                        ? 'bg-[#B1E743] text-[#141413]'
+                        : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </div>
+              {tab.sublabel && (
+                <div className="mt-2.5 pt-2 border-t border-stone-200/60 dark:border-stone-800/60 text-xs w-full">
+                  {tab.sublabel}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   if (variant === 'pills') {
     return (

@@ -9,7 +9,7 @@ const tabItems = [
   { id: 'discussion', label: 'Diskusi' },
 ];
 
-const TabsHarness = ({ variant = 'underline' }: { variant?: 'underline' | 'pills' }) => {
+const TabsHarness = ({ variant = 'underline' }: { variant?: 'underline' | 'pills' | 'cards' }) => {
   const [activeTabId, setActiveTabId] = React.useState('overview');
   return (
     <Tabs
@@ -23,7 +23,7 @@ const TabsHarness = ({ variant = 'underline' }: { variant?: 'underline' | 'pills
 };
 
 describe('Tabs', () => {
-  it.each(['underline', 'pills'] as const)(
+  it.each(['underline', 'pills', 'cards'] as const)(
     'mengekspos semantik dan status aktif pada varian %s',
     (variant) => {
       render(<TabsHarness variant={variant} />);

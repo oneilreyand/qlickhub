@@ -1069,4 +1069,32 @@ describe('QaTestingDesk Organism', () => {
     await user.click(splitBtn);
     expect(splitBtn).toHaveAttribute('aria-pressed', 'true');
   });
+
+  it('renders rich Hero Stage Tabs with dynamic metrics and sublabels', async () => {
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
+    renderDesk();
+
+    expect(await screen.findByRole('tab', { name: 'Persiapan & Eksekusi' })).toBeInTheDocument();
+
+    // Verify Tab 1: Ikhtisar
+    const overviewTab = screen.getByRole('tab', { name: 'Ikhtisar' });
+    expect(overviewTab).toBeInTheDocument();
+    expect(overviewTab).toHaveTextContent('1. Ikhtisar');
+
+    // Verify Tab 2: Persiapan & Eksekusi
+    const preparationTab = screen.getByRole('tab', { name: 'Persiapan & Eksekusi' });
+    expect(preparationTab).toBeInTheDocument();
+    expect(preparationTab).toHaveTextContent('2. Persiapan & Eksekusi');
+    expect(preparationTab).toHaveTextContent('1 Kasus');
+
+    // Verify Tab 3: Bug & Retest
+    const bugsTab = screen.getByRole('tab', { name: 'Bug & Retest' });
+    expect(bugsTab).toBeInTheDocument();
+    expect(bugsTab).toHaveTextContent('3. Bug & Retest');
+
+    // Verify Tab 4: Persetujuan & Riwayat
+    const signOffTab = screen.getByRole('tab', { name: 'Persetujuan & Riwayat' });
+    expect(signOffTab).toBeInTheDocument();
+    expect(signOffTab).toHaveTextContent('4. Persetujuan & Riwayat');
+  });
 });
