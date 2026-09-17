@@ -152,7 +152,7 @@ describe('Header', () => {
     expect(myTasksButton).toHaveClass('bg-[#B1E743]');
   });
 
-  it('shows Pengaturan Workspace but hides UI System buttons for dev and qa roles', () => {
+  it('hides Pengaturan Workspace and UI System buttons for dev and qa roles', () => {
     const store = configureStore({
       reducer: {
         auth: authReducer,
@@ -208,12 +208,12 @@ describe('Header', () => {
       </Provider>,
     );
 
-    expect(screen.getByRole('button', { name: 'Pengaturan Workspace' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pengaturan Workspace' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
     rendered.unmount();
 
     renderHeaderForRole('qa');
-    expect(screen.getByRole('button', { name: 'Pengaturan Workspace' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pengaturan Workspace' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
   });
 

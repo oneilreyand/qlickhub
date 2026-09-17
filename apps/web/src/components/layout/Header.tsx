@@ -99,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
     currentUserRole ||
     ''
   ).toLowerCase();
-  const canAccessSettings = ['owner', 'admin', 'po', 'dev', 'qa'].includes(userRole);
+  const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
   const canAccessUISystem = userRole === 'owner';
 
   const handleOpenCreateModal = () => {
