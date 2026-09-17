@@ -358,7 +358,7 @@ async function qaBuckets(
   });
   // Keep the compact queue on the exact same persisted scope as the Bug endpoint.
   // The endpoint checks origin QA ownership, the latest Resolution Event, and final Attempts.
-  const bugs = await bugService.listBugs(workspaceId, actorId, { queue: 'retest' });
+  const bugs = await bugService.listBugs(workspaceId, actorId, { queue: 'retest' }, transaction);
   const signOffCycles = await QaTestCycleModel.findAll({
     where: {
       workspaceId,

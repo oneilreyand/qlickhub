@@ -1006,8 +1006,9 @@ export class BugService {
     workspaceId: string,
     actorId: string,
     query: ListBugsQuery = {},
+    transaction?: Transaction,
   ): Promise<BugWithContext[]> {
-    const membership = await requireActiveMember(workspaceId, actorId);
+    const membership = await requireActiveMember(workspaceId, actorId, transaction);
     const where: WhereOptions = { workspaceId };
 
     if (query.featureTaskId) where.featureTaskId = query.featureTaskId;
@@ -1037,6 +1038,7 @@ export class BugService {
       where,
       include: bugContextIncludes,
       order: [['createdAt', 'DESC']],
+      transaction,
     });
 
     if (query.queue !== 'retest' || bugs.length === 0) {
@@ -1055,6 +1057,7 @@ export class BugService {
             assigneeId: actorId,
           },
           attributes: ['id'],
+          transaction,
         })
       : [];
     const assignedQaSubtaskIds = new Set(assignedQaSubtasks.map((task) => task.id));
@@ -1065,6 +1068,7 @@ export class BugService {
         ['bugId', 'ASC'],
         ['sequence', 'DESC'],
       ],
+      transaction,
     });
     const latestResolutionByBug = new Map<string, BugResolutionEventModel>();
     for (const event of resolutionEvents) {
@@ -1076,6 +1080,7 @@ export class BugService {
         resolutionEventId: [...latestResolutionByBug.values()].map((event) => event.id),
       },
       attributes: ['resolutionEventId'],
+      transaction,
     });
     const finalizedResolutionIds = new Set(
       finalAttempts.map((attempt) => attempt.resolutionEventId),
