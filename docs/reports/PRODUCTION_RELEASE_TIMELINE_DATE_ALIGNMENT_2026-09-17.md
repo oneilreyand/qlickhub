@@ -6,6 +6,8 @@
 
 ## Outcome
 
+Commit `c650f06` telah dipush ke `origin/main` dan dideploy ke Vercel Production sebagai deployment `dpl_BWzbhtutNSLNXF6qB8iWggb88zVJ`. Deployment berstatus `READY`, menargetkan Production, dan memegang alias kanonikal `https://qlickhub.vercel.app`.
+
 Perubahan diterapkan pada komponen `TaskTimelineView` dan rangkaian tes `TaskTimelineView.test.tsx`:
 - **Normalisasi Waktu Kalender:** Patokan waktu `anchor` dan `start` pada skala Hari (`day`) dan Minggu (`week`) kini dinormalkan ke tengah malam (`00:00:00.000`). Hal ini menghilangkan pergeseran mundur ~22.5 jam yang sebelumnya terjadi jika aplikasi dibuka di malam hari.
 - **Presisi Bar Task:** Task yang dijadwalkan dari tanggal 14 September sampai 18 September kini ter-render tepat dari awal kolom 14 September (index 4) sampai akhir kolom 18 September (index 8). Kolom 13 September bebas dan tidak tertutupi bar task.
@@ -45,7 +47,7 @@ Tidak ada skema migrasi database, perubahan kontrak API, atau mutasi data persis
   - `GET /v1/health`: HTTP 200 OK (`{"status":"ok","database":{"status":"connected"}}`)
   - `GET /v1/workspaces` (tanpa sesi terautentikasi): HTTP 401 Unauthorized (`Authentication required`)
 - **Rollback Target:**
-  - Deployment sehat sebelumnya: `dpl_7qT2PJs737T2F6SKfDn3iVV3K6wi`.
+  - Deployment sehat sebelumnya: `dpl_7wwkze0z9-oneilreyands-projects.vercel.app`.
 
 ## TODO update
 
