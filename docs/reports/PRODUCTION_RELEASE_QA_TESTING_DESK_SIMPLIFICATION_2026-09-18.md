@@ -42,8 +42,17 @@ Tidak ada skema migrasi database, perubahan kontrak API, atau mutasi data persis
   - TypeScript Typecheck (`tsc --noEmit`): 0 error di `@qlick/web`.
 - **Production Build:**
   - `npm --prefix apps/web run build`: kompilasi Vite sukses mentransformasi 1.711 modul tanpa error.
+- **Production Deployment & Live Smoke Checks (`https://qlickhub.vercel.app`):**
+  - Commit: `ede9a62dbd84d76d5a52826b4617a3b92a9e4b9f`
+  - Vercel Deployment ID: `dpl_7DyNpjzWyqFZ9sXfXAiAxqtAwaBn`
+  - Deployment Status: `● Ready` (Target: Production)
+  - Canonical Aliases: `https://qlickhub.vercel.app`, `https://qlickhub-oneilreyands-projects.vercel.app`, `https://qlickhub-git-main-oneilreyands-projects.vercel.app`
+  - `GET /`: HTTP 200 OK (title: `Qlick Hub — Pusat Kerja QA & Engineering`)
+  - `GET /login`: HTTP 200 OK
+  - `GET /v1/health`: HTTP 200 OK (`{"status":"ok","service":"authentication-api","timestamp":"2026-09-17T17:28:12.517Z","database":{"status":"connected"}}`)
+  - `GET /v1/workspaces` (tanpa sesi): HTTP 401 Unauthorized (`{"error":{"code":"UNAUTHORIZED","message":"Authentication is required."}}`)
 
 ## TODO update
 
-- `QA-TESTING-DESK-UI-SIMPLIFICATION` → `Done`.
-- `QA-TESTING-DESK-FASE-2-MASTER-DETAIL` → `Done`.
+- `QA-TESTING-DESK-UI-SIMPLIFICATION` → `Done` (Production verified).
+- `QA-TESTING-DESK-FASE-2-MASTER-DETAIL` → `Done` (Production verified).
