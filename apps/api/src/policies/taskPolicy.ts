@@ -76,8 +76,16 @@ export function assertCanMutateTask(
   const isSubtask = Boolean(currentTask.parentTaskId);
   const currentStatus = currentTask.status || 'todo';
 
-  // Planners (Product Owner, Admin, Owner) have full management rights across tasks & subtasks
+  // Planners retain planning authority, but QA execution status belongs to the assigned QA member.
+  // Emergency override is intentionally not implicit here; it will be introduced as an explicit,
+  // audited workflow rather than as an Owner/Admin bypass.
   if (isPlanner(role)) {
+    const isQaDeliverySubtask = isSubtask && currentTask.deliveryArea === 'qa';
+    if (isQaDeliverySubtask && input.status !== undefined && input.status !== currentStatus) {
+      throw new Error(
+        'FORBIDDEN: QA Subtask status can only be changed by its assigned QA executor. Product Owner, Admin, and Owner may continue to manage planning fields.',
+      );
+    }
     if (isSubtask && input.status !== undefined && input.status !== currentStatus) {
       // Prevent self-approval even for planners if they are the assignee, unless owner
       if (

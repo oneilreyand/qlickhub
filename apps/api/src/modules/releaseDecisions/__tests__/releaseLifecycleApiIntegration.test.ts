@@ -5,16 +5,29 @@ import { createApp } from '../../../app.js';
 import {
   AcceptanceCriterionModel,
   BugActivityModel,
+  BugEvidenceLinkModel,
   BugModel,
+  BugResolutionEventModel,
+  BugRetestAttemptModel,
+  FeatureReadinessBaselineModel,
+  FeatureReadinessBaselineRequirementModel,
+  QaDocumentModel,
+  QaDocumentVersionModel,
+  QaTestCycleModel,
   QaSignOffModel,
   ReleaseDecisionModel,
   RequirementModel,
   TaskActivityModel,
+  TaskAttachmentModel,
   TaskModel,
   TaskRequirementModel,
   TestCaseActivityModel,
   TestCaseModel,
   TestCaseRequirementModel,
+  TestCaseVersionModel,
+  TestCaseVersionAcceptanceCriterionModel,
+  TestResultEvidenceManifestModel,
+  TestResultEvidenceModel,
   TestResultModel,
   TestRunModel,
   UserModel,
@@ -144,15 +157,44 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
     if (workspace) {
       await ReleaseDecisionModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await QaSignOffModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await BugRetestAttemptModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await BugActivityModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await BugEvidenceLinkModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await TestRunModel.update(
+        { retestBugId: null, retestResolutionEventId: null },
+        { where: { workspaceId: workspace.id } },
+      );
+      await BugResolutionEventModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await BugModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await TestCaseActivityModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await TestResultEvidenceManifestModel.destroy({
+        where: { workspaceId: workspace.id },
+        force: true,
+      });
+      await TestResultEvidenceModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await TestResultModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await TestRunModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await QaTestCycleModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await TestCaseVersionAcceptanceCriterionModel.destroy({
+        where: { workspaceId: workspace.id },
+        force: true,
+      });
+      await TestCaseVersionModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await TestCaseRequirementModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await TestCaseModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await TaskAttachmentModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await FeatureReadinessBaselineRequirementModel.destroy({
+        where: { workspaceId: workspace.id },
+        force: true,
+      });
+      await FeatureReadinessBaselineModel.destroy({
+        where: { workspaceId: workspace.id },
+        force: true,
+      });
       await TaskRequirementModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await AcceptanceCriterionModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await QaDocumentVersionModel.destroy({ where: { workspaceId: workspace.id }, force: true });
+      await QaDocumentModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await TaskActivityModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await TaskModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await RequirementModel.destroy({ where: { workspaceId: workspace.id }, force: true });
@@ -253,6 +295,50 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
       201,
     );
 
+    // The baseline is persisted setup data for this release scenario. The user-facing
+    // Test Cycle, executions, sign-off, and release decision below use authenticated APIs.
+    const brief = await QaDocumentModel.create({
+      workspaceId: workspace.id,
+      title: 'Saved-card checkout release baseline',
+      docType: 'product_brief',
+      status: 'approved',
+      createdBy: po.id,
+      ownerId: po.id,
+      currentVersion: 1,
+    });
+    const briefVersion = await QaDocumentVersionModel.create({
+      workspaceId: workspace.id,
+      documentId: brief.id,
+      version: 1,
+      title: brief.title,
+      contentMarkdown: 'Release validation baseline fixture.',
+      createdBy: po.id,
+    });
+    const baseline = await FeatureReadinessBaselineModel.create({
+      workspaceId: workspace.id,
+      featureTaskId: feature.id,
+      sequence: 1,
+      productBriefVersionId: briefVersion.id,
+      snapshot: { schemaVersion: 1, integrationFixture: 'release-lifecycle' } as any,
+      establishedBy: po.id,
+    });
+    await FeatureReadinessBaselineRequirementModel.create({
+      workspaceId: workspace.id,
+      baselineId: baseline.id,
+      requirementId: requirement.id,
+    });
+    const evidenceAttachment = await TaskAttachmentModel.create({
+      workspaceId: workspace.id,
+      taskId: feature.id,
+      fileName: 'saved-card-rc2-pass.png',
+      fileSize: 1024,
+      mimeType: 'image/png',
+      storageRef: `integration-fixture/${Date.now()}/saved-card-rc2-pass.png`,
+      storageProvider: 'local',
+      category: 'qa_evidence',
+      uploaderId: qa.id,
+    });
+
     for (const status of ['in_progress', 'in_review']) {
       const transition = await request(
         `/workspaces/${workspace.id}/tasks/${devTask.id}/status`,
@@ -278,7 +364,7 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
 
     const testCaseBody = await request(
       `/workspaces/${workspace.id}/test-cases`,
-      poCookie,
+      qaCookie,
       {
         method: 'POST',
         body: {
@@ -296,20 +382,77 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
     const testCase = testCaseBody.testCase as { id: string; status: string };
     assert.strictEqual(testCase.status, 'draft');
 
-    for (const status of ['in_review', 'active']) {
-      const transitionBody = await request(
-        `/workspaces/${workspace.id}/test-cases/${testCase.id}`,
-        poCookie,
-        { method: 'PATCH', body: { status } },
-        200,
-      );
-      assert.strictEqual(transitionBody.testCase.status, status);
-    }
+    const draftVersion = await TestCaseVersionModel.findOne({
+      where: { workspaceId: workspace.id, testCaseId: testCase.id, lifecycleStatus: 'draft' },
+    });
+    assert.ok(draftVersion);
+    await request(
+      `/workspaces/${workspace.id}/test-cases/${testCase.id}/versions/${draftVersion.id}/acceptance-criteria`,
+      qaCookie,
+      {
+        method: 'PUT',
+        body: {
+          mappings: [
+            {
+              acceptanceCriterionId: criterionBody.acceptanceCriterion.id,
+              mappingStatus: 'mapped',
+            },
+          ],
+        },
+      },
+      200,
+    );
+    const inReviewBody = await request(
+      `/workspaces/${workspace.id}/test-cases/${testCase.id}`,
+      poCookie,
+      { method: 'PATCH', body: { status: 'in_review' } },
+      200,
+    );
+    assert.strictEqual(inReviewBody.testCase.status, 'in_review');
+    const activatedBody = await request(
+      `/workspaces/${workspace.id}/test-cases/${testCase.id}`,
+      poCookie,
+      { method: 'PATCH', body: { status: 'active' } },
+      200,
+    );
+    assert.strictEqual(activatedBody.testCase.status, 'active');
+    const activeVersion = await TestCaseVersionModel.findOne({
+      where: { workspaceId: workspace.id, testCaseId: testCase.id, lifecycleStatus: 'active' },
+    });
+    assert.ok(activeVersion);
+
+    const failedCycleBody = await request(
+      `/workspaces/${workspace.id}/qa-test-cycles`,
+      qaCookie,
+      {
+        method: 'POST',
+        body: {
+          featureTaskId: feature.id,
+          qaSubtaskId: qaTask.id,
+          candidateFingerprint: 'commit:checkout-2026.08.23-rc1',
+          build: 'checkout-2026.08.23-rc1',
+          environment: 'staging',
+        },
+      },
+      201,
+    );
+    const failedCycle = failedCycleBody.testCycle as { id: string };
 
     const failedRunBody = await request(
       `/workspaces/${workspace.id}/test-cases/${testCase.id}/runs`,
       qaCookie,
-      { method: 'POST', body: { build: 'checkout-2026.08.23-rc1', environment: 'staging' } },
+      {
+        method: 'POST',
+        body: {
+          featureTaskId: feature.id,
+          qaSubtaskId: qaTask.id,
+          testCycleId: failedCycle.id,
+          testCaseVersionId: activeVersion.id,
+          candidateFingerprint: 'commit:checkout-2026.08.23-rc1',
+          build: 'checkout-2026.08.23-rc1',
+          environment: 'staging',
+        },
+      },
       201,
     );
     const failedRun = failedRunBody.testRun as { id: string };
@@ -322,6 +465,7 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
           status: 'failed',
           actualResult: 'The API persisted the payment but the confirmation was rendered twice.',
           notes: 'Reproduced on the release-candidate build; no file evidence was claimed.',
+          evidenceAttachmentIds: [evidenceAttachment.id],
         },
       },
       201,
@@ -349,18 +493,22 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
     const bug = bugBody.bug as { id: string; status: string };
     assert.strictEqual(bug.status, 'open');
 
-    for (const update of [
-      { status: 'in_progress' },
+    await request(`/workspaces/${workspace.id}/bugs/${bug.id}`, devCookie, {
+      method: 'PATCH',
+      body: { status: 'in_progress' },
+    });
+    await request(
+      `/workspaces/${workspace.id}/bugs/${bug.id}/resolution-events`,
+      devCookie,
       {
-        status: 'resolved',
-        resolutionNotes: 'Made confirmation delivery idempotent by payment ID.',
+        method: 'POST',
+        body: {
+          candidateFingerprint: 'commit:checkout-2026.08.23-rc2',
+          resolutionNotes: 'Made confirmation delivery idempotent by payment ID.',
+        },
       },
-    ]) {
-      await request(`/workspaces/${workspace.id}/bugs/${bug.id}`, devCookie, {
-        method: 'PATCH',
-        body: update,
-      });
-    }
+      201,
+    );
 
     const retestQueue = await request(`/workspaces/${workspace.id}/bugs?queue=retest`, qaCookie);
     assert.deepStrictEqual(
@@ -371,14 +519,31 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
       [[bug.id, 'resolved']],
     );
 
-    const passingRunBody = await request(
-      `/workspaces/${workspace.id}/test-cases/${testCase.id}/runs`,
+    const cycleBody = await request(
+      `/workspaces/${workspace.id}/qa-test-cycles`,
       qaCookie,
-      { method: 'POST', body: { build: 'checkout-2026.08.23-rc2', environment: 'staging' } },
+      {
+        method: 'POST',
+        body: {
+          featureTaskId: feature.id,
+          qaSubtaskId: qaTask.id,
+          candidateFingerprint: 'commit:checkout-2026.08.23-rc2',
+          build: 'checkout-2026.08.23-rc2',
+          environment: 'staging',
+        },
+      },
       201,
     );
-    const passingRun = passingRunBody.testRun as { id: string };
-    await request(
+    const cycle = cycleBody.testCycle as { id: string };
+
+    const passingRunBody = await request(
+      `/workspaces/${workspace.id}/bugs/${bug.id}/retest-runs`,
+      qaCookie,
+      { method: 'POST' },
+      201,
+    );
+    const passingRun = passingRunBody.retestRun.testRun as { id: string };
+    const passingResultBody = await request(
       `/workspaces/${workspace.id}/test-cases/${testCase.id}/runs/${passingRun.id}/results`,
       qaCookie,
       {
@@ -387,16 +552,23 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
           status: 'passed',
           actualResult: 'One persisted payment produced exactly one confirmation.',
           notes: 'Retest passed on rc2; no attachment evidence was supplied or fabricated.',
+          evidenceAttachmentIds: [evidenceAttachment.id],
         },
       },
       201,
     );
+    const passingResultId = passingResultBody.testRun.result.id as string;
 
-    const verifiedBug = await request(`/workspaces/${workspace.id}/bugs/${bug.id}`, qaCookie, {
-      method: 'PATCH',
-      body: { status: 'verified' },
-    });
-    assert.strictEqual(verifiedBug.bug.status, 'verified');
+    const verifiedBug = await request(
+      `/workspaces/${workspace.id}/bugs/${bug.id}/retest-attempts`,
+      qaCookie,
+      {
+        method: 'POST',
+        body: { testResultId: passingResultId },
+      },
+      201,
+    );
+    assert.strictEqual(verifiedBug.retestAttempt.outcome, 'verified');
 
     const qaCompleted = await request(
       `/workspaces/${workspace.id}/tasks/${qaTask.id}/status`,
@@ -419,7 +591,11 @@ describe('clean release lifecycle HTTP/PostgreSQL validation (AGY-7.2)', () => {
       qaCookie,
       {
         method: 'POST',
-        body: { decision: 'approved', notes: 'rc2 regression and Bug retest passed on staging.' },
+        body: {
+          testCycleId: cycle.id,
+          decision: 'approved',
+          notes: 'rc2 regression and Bug retest passed on staging.',
+        },
       },
       201,
     );

@@ -5,9 +5,11 @@ import { Card } from '../components/ui/atoms/Card';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
+import { MyTaskDetailWorkspaceDrawer } from '../components/ui/organisms/myTasks/MyTaskDetailWorkspaceDrawer';
 import { TaskDetailDrawer, TaskHubDashboardTemplate } from '../features/tasks';
 import { taskService } from '../lib/api/taskService';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
+import { selectCurrentUserRole } from '../store/authSlice';
 import { fetchFolderTree } from '../store/folderSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setActiveWorkspaceId } from '../store/workspaceSlice';
@@ -38,6 +40,7 @@ export const TaskDeepLinkPage: React.FC = () => {
     isLoading: isWorkspaceLoading,
   } = useAppSelector((state) => state.workspace);
   const folders = useAppSelector((state) => state.folder.folders);
+  const userRole = useAppSelector(selectCurrentUserRole);
 
   const [task, setTask] = useState<Task | null>(null);
   const [parentTask, setParentTask] = useState<Task | null>(null);
@@ -171,23 +174,41 @@ export const TaskDeepLinkPage: React.FC = () => {
     );
   }
 
+  const useQaWorkspace = userRole === 'qa' && task.deliveryArea === 'qa';
+
   return (
     <>
       <TaskHubDashboardTemplate />
-      <TaskDetailDrawer
-        task={task}
-        folders={folders}
-        parentTask={parentTask}
-        isParentTaskLoading={isParentTaskLoading}
-        releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
-        onClose={() => navigate(returnTo)}
-        onNavigateToTask={(nextTaskId) =>
-          navigate(`/projects/${projectId}/tasks/${nextTaskId}`, {
-            state: { returnTo },
-          })
-        }
-        onDataChanged={reload}
-      />
+      {useQaWorkspace ? (
+        <MyTaskDetailWorkspaceDrawer
+          task={task}
+          userRole={userRole}
+          isOpen
+          releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
+          onClose={() => navigate(returnTo)}
+          onOpenFeature={(nextTaskId) =>
+            navigate(`/projects/${projectId}/tasks/${nextTaskId}`, {
+              state: { returnTo },
+            })
+          }
+          onDataChanged={reload}
+        />
+      ) : (
+        <TaskDetailDrawer
+          task={task}
+          folders={folders}
+          parentTask={parentTask}
+          isParentTaskLoading={isParentTaskLoading}
+          releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
+          onClose={() => navigate(returnTo)}
+          onNavigateToTask={(nextTaskId) =>
+            navigate(`/projects/${projectId}/tasks/${nextTaskId}`, {
+              state: { returnTo },
+            })
+          }
+          onDataChanged={reload}
+        />
+      )}
     </>
   );
 };

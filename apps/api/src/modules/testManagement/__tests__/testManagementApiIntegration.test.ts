@@ -11,7 +11,15 @@ import {
   TestCaseActivityModel,
   TestCaseModel,
   TestCaseRequirementModel,
+  TestCaseVersionModel,
+  AcceptanceCriterionModel,
+  FeatureReadinessBaselineModel,
+  FeatureReadinessBaselineRequirementModel,
+  QaDocumentModel,
+  QaDocumentVersionModel,
+  QaTestCycleModel,
   TestResultEvidenceModel,
+  TestResultEvidenceManifestModel,
   TestResultModel,
   TestRunModel,
   UserModel,
@@ -38,6 +46,9 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
   let task: TaskModel;
   let qaSubtask: TaskModel;
   let evidence: TaskAttachmentModel;
+  let readinessBaseline: FeatureReadinessBaselineModel;
+  let productBrief: QaDocumentModel;
+  let productBriefVersion: QaDocumentVersionModel;
   let testCaseId: string;
   let firstRunId: string;
   let ownerCookie: string;
@@ -55,6 +66,40 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     );
     const token = signToken({ userId: user.id, email: user.email, role: user.role, sessionId });
     return `${accessTokenCookieName}=${token}`;
+  }
+
+  async function createScopedCycle(build: string, candidateFingerprint: string) {
+    const response = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/qa-test-cycles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify({
+        featureTaskId: task.id,
+        qaSubtaskId: qaSubtask.id,
+        candidateFingerprint,
+        build,
+        environment: 'staging',
+      }),
+    });
+    assert.strictEqual(response.status, 201);
+    return (await response.json()) as {
+      testCycle: { id: string; readinessBaselineId: string; candidateFingerprint: string };
+    };
+  }
+
+  async function scopedRunInput(testCycleId: string, build: string, candidateFingerprint: string) {
+    const version = await TestCaseVersionModel.findOne({
+      where: { workspaceId: workspaceA.id, testCaseId, lifecycleStatus: 'active' },
+    });
+    assert.ok(version);
+    return {
+      featureTaskId: task.id,
+      qaSubtaskId: qaSubtask.id,
+      testCycleId,
+      testCaseVersionId: version.id,
+      candidateFingerprint,
+      build,
+      environment: 'staging',
+    };
   }
 
   before(async () => {
@@ -179,6 +224,43 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
         linkedBy: po.id,
       },
     ]);
+    productBrief = await QaDocumentModel.create({
+      workspaceId: workspaceA.id,
+      title: 'Checkout test baseline brief',
+      docType: 'product_brief',
+      status: 'approved',
+      createdBy: po.id,
+      ownerId: po.id,
+      currentVersion: 1,
+    });
+    productBriefVersion = await QaDocumentVersionModel.create({
+      workspaceId: workspaceA.id,
+      documentId: productBrief.id,
+      version: 1,
+      title: productBrief.title,
+      contentMarkdown: 'Persisted integration baseline fixture.',
+      createdBy: po.id,
+    });
+    readinessBaseline = await FeatureReadinessBaselineModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: task.id,
+      sequence: 1,
+      productBriefVersionId: productBriefVersion.id,
+      snapshot: { schemaVersion: 1, integrationFixture: true } as any,
+      establishedBy: po.id,
+    });
+    await FeatureReadinessBaselineRequirementModel.bulkCreate([
+      {
+        workspaceId: workspaceA.id,
+        baselineId: readinessBaseline.id,
+        requirementId: requirementA.id,
+      },
+      {
+        workspaceId: workspaceA.id,
+        baselineId: readinessBaseline.id,
+        requirementId: requirementB.id,
+      },
+    ]);
     evidence = await TaskAttachmentModel.create({
       workspaceId: workspaceA.id,
       taskId: task.id,
@@ -204,13 +286,25 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     if (workspaceA) await TestCaseActivityModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (workspaceA)
       await TestResultEvidenceModel.destroy({ where: { workspaceId: workspaceA.id } });
+    if (workspaceA)
+      await TestResultEvidenceManifestModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (workspaceA) await TestResultModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (workspaceA) await TestRunModel.destroy({ where: { workspaceId: workspaceA.id } });
+    if (workspaceA) await QaTestCycleModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (workspaceA)
       await TestCaseRequirementModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (workspaceA) await TestCaseModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (evidence) await TaskAttachmentModel.destroy({ where: { id: evidence.id } });
     if (workspaceA) await TaskRequirementModel.destroy({ where: { workspaceId: workspaceA.id } });
+    if (workspaceA)
+      await FeatureReadinessBaselineRequirementModel.destroy({
+        where: { workspaceId: workspaceA.id },
+      });
+    if (readinessBaseline)
+      await FeatureReadinessBaselineModel.destroy({ where: { id: readinessBaseline.id } });
+    if (productBriefVersion)
+      await QaDocumentVersionModel.destroy({ where: { id: productBriefVersion.id } });
+    if (productBrief) await QaDocumentModel.destroy({ where: { id: productBrief.id } });
     if (qaSubtask) await TaskModel.destroy({ where: { id: qaSubtask.id } });
     if (task) await TaskModel.destroy({ where: { id: task.id } });
     if (workspaceA) await RequirementModel.destroy({ where: { workspaceId: workspaceA.id } });
@@ -222,10 +316,10 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     }
   });
 
-  test('PO creates one reusable Test Case covering multiple persisted Requirements', async () => {
+  test('QA creates one reusable draft Test Case covering multiple persisted Requirements and PO activates it', async () => {
     const response = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
       body: JSON.stringify({
         title: 'Returning customer completes checkout with a saved card',
         description: 'Reusable checkout regression case.',
@@ -269,13 +363,40 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     }
   });
 
+  test('summarizes the assigned QA workflow from persisted cycle capability', async () => {
+    const response = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/tasks/${qaSubtask.id}/qa-workflow-summary`,
+      { headers: { Cookie: qaCookie } },
+    );
+    assert.strictEqual(response.status, 200);
+    const body = (await response.json()) as {
+      summary: { qaSubtaskId: string; blockers: string[]; nextAction: { code: string } };
+    };
+    assert.strictEqual(body.summary.qaSubtaskId, qaSubtask.id);
+    assert.deepStrictEqual(body.summary.blockers, ['qa_test_cycle_missing']);
+    assert.strictEqual(body.summary.nextAction.code, 'create_test_cycle');
+
+    const denied = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/tasks/${qaSubtask.id}/qa-workflow-summary`,
+      { headers: { Cookie: devCookie } },
+    );
+    assert.strictEqual(denied.status, 403);
+  });
+
   test('preserves a pass in one build and a fail in a later build as separate immutable history', async () => {
+    const firstCandidate = 'commit:checkout-20260821-1';
+    const firstCycle = await createScopedCycle('checkout-web-2026.08.21.1', firstCandidate);
+    const firstInput = await scopedRunInput(
+      firstCycle.testCycle.id,
+      'checkout-web-2026.08.21.1',
+      firstCandidate,
+    );
     const firstRunResponse = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-        body: JSON.stringify({ build: 'checkout-web-2026.08.21.1', environment: 'staging' }),
+        body: JSON.stringify(firstInput),
       },
     );
     assert.strictEqual(firstRunResponse.status, 201);
@@ -295,12 +416,29 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     );
     assert.strictEqual(passResponse.status, 201);
 
+    const rejectedCandidateResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ ...firstInput, candidateFingerprint: 'commit:not-the-cycle' }),
+      },
+    );
+    assert.strictEqual(rejectedCandidateResponse.status, 409);
+
+    const secondCandidate = 'commit:checkout-20260821-2';
+    const secondCycle = await createScopedCycle('checkout-web-2026.08.21.2', secondCandidate);
+    const secondInput = await scopedRunInput(
+      secondCycle.testCycle.id,
+      'checkout-web-2026.08.21.2',
+      secondCandidate,
+    );
     const secondRunResponse = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-        body: JSON.stringify({ build: 'checkout-web-2026.08.21.2', environment: 'staging' }),
+        body: JSON.stringify(secondInput),
       },
     );
     assert.strictEqual(secondRunResponse.status, 201);
@@ -316,6 +454,7 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
           status: 'failed',
           actualResult: 'Payment API returned 500.',
           notes: 'Regression introduced in the later build.',
+          evidenceAttachmentIds: [evidence.id],
         }),
       },
     );
@@ -333,15 +472,45 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
         executorId: string;
         startedAt: string;
         completedAt: string;
-        result: { status: string; evidence: Array<{ attachmentId: string }> };
+        result: {
+          status: string;
+          evidence: Array<{ attachmentId: string }>;
+          evidenceManifests?: Array<{
+            kind: string;
+            sequence: number;
+            itemCount: number;
+            imageCount: number;
+            readyCount: number;
+          }>;
+        };
       }>;
     };
     assert.strictEqual(history.testRuns.length, 2);
     assert.strictEqual(history.testRuns[0].build, 'checkout-web-2026.08.21.1');
     assert.strictEqual(history.testRuns[0].result.status, 'passed');
     assert.strictEqual(history.testRuns[0].result.evidence[0].attachmentId, evidence.id);
+    assert.deepStrictEqual(
+      history.testRuns[0].result.evidenceManifests?.map((manifest) => ({
+        kind: manifest.kind,
+        sequence: manifest.sequence,
+        itemCount: manifest.itemCount,
+        imageCount: manifest.imageCount,
+        readyCount: manifest.readyCount,
+      })),
+      [{ kind: 'initial', sequence: 1, itemCount: 1, imageCount: 1, readyCount: 1 }],
+    );
     assert.strictEqual(history.testRuns[1].build, 'checkout-web-2026.08.21.2');
     assert.strictEqual(history.testRuns[1].result.status, 'failed');
+    assert.deepStrictEqual(
+      history.testRuns[1].result.evidenceManifests?.map((manifest) => ({
+        kind: manifest.kind,
+        sequence: manifest.sequence,
+        itemCount: manifest.itemCount,
+        imageCount: manifest.imageCount,
+        readyCount: manifest.readyCount,
+      })),
+      [{ kind: 'initial', sequence: 1, itemCount: 1, imageCount: 1, readyCount: 1 }],
+    );
     assert.ok(history.testRuns.every((run) => run.environment === 'staging'));
     assert.ok(history.testRuns.every((run) => run.executorId === qa.id));
     assert.ok(history.testRuns.every((run) => run.startedAt && run.completedAt));
@@ -371,6 +540,50 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       where: { workspaceId: workspaceA.id, testRunId: firstRunId },
     });
     assert.strictEqual(originalResult?.status, 'passed');
+  });
+
+  test('seals post-result evidence as a reasoned supplement without mutating the initial manifest', async () => {
+    const supplementResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs/${firstRunId}/evidence-links`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          label: 'Recorded pass verification',
+          reason: 'Recording was uploaded after the initial Result was sealed.',
+        }),
+      },
+    );
+    assert.strictEqual(supplementResponse.status, 201);
+
+    const result = await TestResultModel.findOne({
+      where: { workspaceId: workspaceA.id, testRunId: firstRunId },
+    });
+    assert.ok(result);
+    const manifests = await TestResultEvidenceManifestModel.findAll({
+      where: { workspaceId: workspaceA.id, testResultId: result!.id },
+      order: [['sequence', 'ASC']],
+    });
+    assert.deepStrictEqual(
+      manifests.map((manifest) => ({
+        kind: manifest.kind,
+        sequence: manifest.sequence,
+        reason: manifest.reason,
+        itemCount: manifest.itemCount,
+      })),
+      [
+        { kind: 'initial', sequence: 1, reason: null, itemCount: 1 },
+        {
+          kind: 'supplement',
+          sequence: 2,
+          reason: 'Recording was uploaded after the initial Result was sealed.',
+          itemCount: 1,
+        },
+      ],
+    );
+
+    await assert.rejects(() => manifests[0].update({ itemCount: 99 }), /immutable/i);
   });
 
   test('returns persisted Feature-scoped Test Cases and newest Run history to the assigned QA', async () => {
@@ -439,20 +652,31 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     assert.deepStrictEqual(
       body.activity.map((item) => item.action),
       [
-        'test_case_created',
-        'test_case_status_changed',
-        'test_case_status_changed',
-        'test_case_status_changed',
-        'test_case_status_changed',
+        'test_case_revision_created',
+        'test_case_revision_status_changed',
+        'test_case_revision_status_changed',
+        'test_case_revision_status_changed',
+        'test_case_revision_status_changed',
         'test_run_started',
         'test_result_recorded',
         'test_run_started',
         'test_result_recorded',
+        'test_evidence_link_added',
       ],
     );
   });
 
   test('enforces the explicit definition/execution role split', async () => {
+    const poCreateResponse = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+      body: JSON.stringify({
+        title: 'PO must not author a Test Case',
+        requirementIds: [requirementA.id],
+      }),
+    });
+    assert.strictEqual(poCreateResponse.status, 403);
+
     const qaCreateResponse = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
@@ -464,6 +688,85 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     });
     assert.strictEqual(qaCreateResponse.status, 201);
     const qaCreateBody = (await qaCreateResponse.json()) as { testCase: { id: string } };
+
+    const qaRevisionResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaCreateBody.testCase.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ title: 'QA definition revised before review' }),
+      },
+    );
+    assert.strictEqual(qaRevisionResponse.status, 200);
+    const revisions = await TestCaseVersionModel.findAll({
+      where: { workspaceId: workspaceA.id, testCaseId: qaCreateBody.testCase.id },
+      order: [['revision', 'ASC']],
+    });
+    assert.deepStrictEqual(
+      revisions.map((revision) => revision.revision),
+      [1, 2],
+    );
+    assert.strictEqual(
+      revisions[1].definitionSnapshot.title,
+      'QA definition revised before review',
+    );
+
+    const criterion = await AcceptanceCriterionModel.create({
+      workspaceId: workspaceA.id,
+      requirementId: requirementA.id,
+      sequence: 1,
+      text: 'Saved-card checkout displays one confirmation.',
+      createdBy: po.id,
+    });
+    const mapCriterionResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaCreateBody.testCase.id}/versions/${revisions[1].id}/acceptance-criteria`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({
+          mappings: [{ acceptanceCriterionId: criterion.id, mappingStatus: 'mapped' }],
+        }),
+      },
+    );
+    assert.strictEqual(mapCriterionResponse.status, 200);
+
+    const poReadMappings = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaCreateBody.testCase.id}/versions/${revisions[1].id}/acceptance-criteria`,
+      { headers: { Cookie: poCookie } },
+    );
+    assert.strictEqual(poReadMappings.status, 200);
+    const mappingBody = (await poReadMappings.json()) as {
+      acceptanceCriterionMappings: { mappings: Array<{ acceptanceCriterionId: string }> };
+    };
+    assert.strictEqual(
+      mappingBody.acceptanceCriterionMappings.mappings[0].acceptanceCriterionId,
+      criterion.id,
+    );
+
+    const poCoverage = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaCreateBody.testCase.id}/versions`,
+      { headers: { Cookie: poCookie } },
+    );
+    assert.strictEqual(poCoverage.status, 200);
+    const coverageBody = (await poCoverage.json()) as {
+      versions: Array<{ id: string; mappedCount: number; excludedCount: number }>;
+    };
+    const revisedCoverage = coverageBody.versions.find((version) => version.id === revisions[1].id);
+    assert.strictEqual(revisedCoverage?.id, revisions[1].id);
+    assert.strictEqual(revisedCoverage?.mappedCount, 1);
+    assert.strictEqual(revisedCoverage?.excludedCount, 0);
+
+    const poMapCriterion = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaCreateBody.testCase.id}/versions/${revisions[1].id}/acceptance-criteria`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({
+          mappings: [{ acceptanceCriterionId: criterion.id, mappingStatus: 'mapped' }],
+        }),
+      },
+    );
+    assert.strictEqual(poMapCriterion.status, 403);
 
     const qaReviewResponse = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaCreateBody.testCase.id}`,
@@ -485,6 +788,16 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     );
     assert.strictEqual(qaPublishResponse.status, 403);
 
+    const poDefinitionMutation = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaCreateBody.testCase.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        body: JSON.stringify({ title: 'PO must not rewrite QA definition' }),
+      },
+    );
+    assert.strictEqual(poDefinitionMutation.status, 403);
+
     const poRun = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
       {
@@ -494,6 +807,16 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       },
     );
     assert.strictEqual(poRun.status, 403);
+
+    const ownerRun = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: ownerCookie },
+        body: JSON.stringify({ build: 'forbidden-owner', environment: 'staging' }),
+      },
+    );
+    assert.strictEqual(ownerRun.status, 403);
 
     const devRun = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
@@ -514,7 +837,7 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
 
     const crossRequirement = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
       body: JSON.stringify({
         title: 'Cross-workspace attempt',
         requirementIds: [requirementA.id, otherWorkspaceRequirement.id],

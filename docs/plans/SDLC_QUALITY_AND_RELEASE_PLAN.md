@@ -157,10 +157,12 @@ observasi; preflight P1C kini diblokir oleh review kesiapan Dev/QA dan baseline 
 ### P1 — Kesiapan Requirement dan pencegahan cacat
 
 - **Status:** P1A dan P1B mode observasi sudah tersedia di Production. Atas keputusan pengguna
-  14 September 2026, target P1C dipindahkan ke Workspace development `kerjaa`. Audit Production
-  terbaru menemukan Owner, Developer, QA, root Feature `billing v3`, Subtask Development/QA,
-  Requirement/AC aktif, dan Product Brief approved. Pilot belum mulai karena review kesiapan
-  Developer/QA serta baseline Feature belum tersedia; hard gate tetap nonaktif.
+  14 September 2026, target P1C dipindahkan ke Workspace development `kerjaa`. Production memiliki
+  Owner, Developer, dua QA, root Feature `billing v3`, Subtask Development/QA, Requirement/AC aktif,
+  dan Product Brief approved. Subtask QA `test billing v3` kini ditugaskan kepada akun QA Production
+  baru yang telah lulus verifikasi login dan capability review. Review QA terbaru kini menyatakan
+  `ready` berdasarkan rekomendasi dan catatan yang disetujui pengguna. Pilot belum mulai karena
+  review kesiapan Developer serta baseline Feature belum tersedia; hard gate tetap nonaktif.
 - P1a: baseline Requirement/AC berversi dan histori perubahan dalam konteks Feature. Slice P1A
   mengirim snapshot immutable dan deteksi perubahan tanpa mengubah sumber kanonikal Requirement.
 - P1b: Temuan Requirement, klarifikasi, posisi triage Product–Development–QA, hasil konsensus atau
@@ -194,6 +196,12 @@ observasi; preflight P1C kini diblokir oleh review kesiapan Dev/QA dan baseline 
 - **Dependensi:** P1a/P1b dan K3/K9; bukti Run formal dilengkapi P3 sebelum gate rilis mengandalkannya.
 
 ### P3 — Scope bukti QA, retest formal, dan gate yang dapat dipercaya
+
+Desain operasional P3, termasuk separation of duties, break-glass, versioned Test Case,
+Acceptance-Criterion coverage, Test Cycle/candidate identity, transactional outbox, dan strategi
+rollout diperinci pada [QA Execution dan Release Assurance Plan](QA_EXECUTION_RELEASE_ASSURANCE_PLAN.md).
+Kebijakan target P3 disahkan melalui [ADR-014](../adr/ADR-014-QA-EVIDENCE-EXECUTION-AND-RELEASE-ASSURANCE.md);
+runtime tetap transitional sampai slice S1–S7 diselesaikan dan dipilotkan.
 
 - P3a: persist scope Feature/kandidat/versi definisi pada Run, dengan validasi seluruh relasi.
 - P3b: tautkan setiap retest Bug ke Run/Result baru; Dev tidak boleh memverifikasi perbaikannya sendiri.
@@ -389,8 +397,11 @@ Production dapat ditelusuri. Dashboard tidak dianggap selesai jika angkanya tak 
 
 - P0 selesai setelah keputusan K1–K3/K8, audit data, ADR, dan SSoT diselaraskan.
 - P1A dan P1B tersedia di Production dalam mode observasi; hard gate tetap nonaktif.
-- Pekerjaan berikutnya adalah meminta assignee Developer dan QA pada Feature `billing v3` mengirim
-  review melalui panel **Kesiapan Feature**, lalu Owner menetapkan baseline normal bila kelima
+- Subtask QA `test billing v3` sudah dipindahkan kepada akun QA Production baru dengan Activity dan
+  notifikasi in-app persisten; endpoint readiness mengonfirmasi akun tersebut dapat mengirim review QA.
+  Review QA `ready` telah tersimpan berdasarkan rekomendasi dan catatan yang disetujui pengguna.
+  Pekerjaan berikutnya adalah meminta assignee Developer pada Feature `billing v3` mengirim review
+  autentiknya melalui panel **Kesiapan Feature**, lalu Owner menetapkan baseline normal bila kelima
   pemeriksaan backend lulus. Setelah baseline tersedia, tetapkan jendela pilot empat minggu secara
   eksplisit tanpa backdate. Jangan membuat review, baseline, Test Result, atau bukti QA palsu untuk
   membuka blocker.

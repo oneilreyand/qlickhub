@@ -5,6 +5,9 @@ import {
   CreateBugSchema,
   ListBugsQuerySchema,
   UpdateBugSchema,
+  CreateBugResolutionEventSchema,
+  CreateBugRetestAttemptSchema,
+  CreateBugRetestRunSchema,
 } from '@qlick/contracts';
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { bugService } from './bugService.js';
@@ -49,6 +52,56 @@ export async function updateBug(req: AuthenticatedRequest, res: Response) {
     });
     const bug = await bugService.updateBug(req.user!.userId, input);
     return res.status(200).json({ bug });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+export async function createBugResolutionEvent(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = CreateBugResolutionEventSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+      bugId: req.params.bugId,
+    });
+    const resolutionEvent = await bugService.createResolutionEvent(req.user!.userId, input);
+    return res.status(201).json({ resolutionEvent });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+export async function createBugRetestAttempt(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = CreateBugRetestAttemptSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+      bugId: req.params.bugId,
+    });
+    const retestAttempt = await bugService.createRetestAttempt(req.user!.userId, input);
+    return res.status(201).json({ retestAttempt });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+export async function createBugRetestRun(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = CreateBugRetestRunSchema.parse({
+      workspaceId: req.params.workspaceId,
+      bugId: req.params.bugId,
+    });
+    const retestRun = await bugService.createRetestRun(req.user!.userId, input);
+    return res.status(retestRun.reused ? 200 : 201).json({ retestRun });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+export async function getBugRetestHistory(req: AuthenticatedRequest, res: Response) {
+  try {
+    const history = await bugService.getRetestHistory(
+      req.params.workspaceId,
+      z.string().uuid().parse(req.params.bugId),
+      req.user!.userId,
+    );
+    return res.status(200).json({ history });
   } catch (error) {
     return sendProblemDetails(res, error);
   }

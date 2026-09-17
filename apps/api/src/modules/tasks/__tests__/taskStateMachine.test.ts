@@ -2,7 +2,6 @@ import assert from 'node:assert';
 import { test, describe, before, after } from 'node:test';
 import { taskService } from '../taskService.js';
 import { TaskModel } from '../../../db/models/task.js';
-import { TaskActivityModel } from '../../../db/models/taskActivity.js';
 import { WorkFolderModel } from '../../../db/models/workFolder.js';
 import { WorkspaceModel } from '../../../db/models/workspace.js';
 import { WorkspaceMemberModel } from '../../../db/models/workspaceMember.js';
@@ -299,7 +298,7 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
     );
   });
 
-  test('Assigned QA execution persists direct completion and reasoned reopening without self-review', async () => {
+  test('Assigned QA execution requires persisted Feature evidence before completion', async () => {
     const qaParent = await taskService.createTask(
       poUser.id,
       CreateTaskSchema.parse({
@@ -334,59 +333,12 @@ describe('Task & Subtask State Machine Integration Tests (P0 Remediation)', () =
       /Invalid status transition for QA executor from "in_progress" to "in_review"/,
     );
 
-    const completed = await taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, {
-      status: 'done',
-    });
-    assert.strictEqual(completed.status, 'done');
-    assert.strictEqual(completed.reviewedBy, null);
-
     await assert.rejects(
       () =>
         taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, {
-          status: 'in_progress',
+          status: 'done',
         }),
-      /A reason is required when reopening completed QA execution/,
+      /QA Subtask completion is blocked by persisted Feature evidence: qa_test_cycle_missing/,
     );
-
-    const reopenReason = 'Regression verification required for the release candidate.';
-    const reopened = await taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, {
-      status: 'in_progress',
-      reviewNotes: reopenReason,
-    });
-    assert.strictEqual(reopened.status, 'in_progress');
-    assert.strictEqual(reopened.reviewNotes, reopenReason);
-
-    const reopenActivity = await TaskActivityModel.findOne({
-      where: { workspaceId: workspace.id, taskId: qaSubtask.id, action: 'subtask.updated' },
-      order: [['createdAt', 'DESC']],
-    });
-    assert.ok(reopenActivity);
-    assert.strictEqual(reopenActivity.actorId, qaUser.id);
-    assert.strictEqual(reopenActivity.metadataJson?.reviewNotes, reopenReason);
-
-    const legacyQaSubtask = await taskService.createTask(
-      poUser.id,
-      CreateTaskSchema.parse({
-        workspaceId: workspace.id,
-        parentTaskId: qaParent.id,
-        deliveryArea: 'qa',
-        title: 'Legacy QA self-review recovery',
-        assigneeId: qaUser.id,
-        status: 'in_review',
-      }),
-    );
-    await TaskModel.update(
-      { reviewedBy: qaUser.id, reporterId: qaUser.id },
-      { where: { id: legacyQaSubtask.id, workspaceId: workspace.id } },
-    );
-
-    const recoveredLegacy = await taskService.updateTask(
-      qaUser.id,
-      workspace.id,
-      legacyQaSubtask.id,
-      { status: 'done' },
-    );
-    assert.strictEqual(recoveredLegacy.status, 'done');
-    assert.strictEqual(recoveredLegacy.reviewedBy, null);
   });
 });

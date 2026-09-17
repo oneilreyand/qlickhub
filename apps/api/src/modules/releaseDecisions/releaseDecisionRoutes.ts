@@ -27,7 +27,7 @@ releaseDecisionRoutes.get(
 );
 releaseDecisionRoutes.post(
   '/workspaces/:workspaceId/features/:featureTaskId/qa-sign-offs',
-  requireWorkspaceMember(['owner', 'admin', 'qa']),
+  requireWorkspaceMember(['qa']),
   createQaSignOff,
 );
 releaseDecisionRoutes.post(

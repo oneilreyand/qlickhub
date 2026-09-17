@@ -21,6 +21,7 @@ export interface MyTaskDetailWorkspaceDrawerProps {
   onClose: () => void;
   onDataChanged: () => void;
   onOpenFeature?: (featureTaskId: string) => void;
+  focusTarget?: 'test_cases' | 'qa_sign_off' | null;
 }
 
 export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerProps> = ({
@@ -31,6 +32,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   onClose,
   onDataChanged,
   onOpenFeature,
+  focusTarget = null,
 }) => {
   const { activeWorkspaceId } = useAppSelector((state: RootState) => state.workspace);
   const currentUserId = useAppSelector(selectCurrentUserId);
@@ -73,6 +75,12 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
       }
     }
   }, [task, userRole, isPlanner]);
+
+  useEffect(() => {
+    if (!task || !focusTarget) return;
+    setActiveSubtaskForExecution(null);
+    setActiveViewMode('qa');
+  }, [focusTarget, task]);
 
   const contextTask =
     activeSubtaskForExecution && task && activeSubtaskForExecution.parentTaskId === task.id
@@ -257,6 +265,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
             userRole={userRole}
             onDataChanged={onDataChanged}
             onBackToOverview={() => setActiveViewMode(isPlanner ? 'po' : 'dev')}
+            focusTarget={focusTarget}
           />
         )}
       </div>

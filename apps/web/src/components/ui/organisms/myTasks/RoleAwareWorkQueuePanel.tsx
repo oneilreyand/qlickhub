@@ -105,6 +105,13 @@ const actionLabels: Record<string, string> = {
   execute_qa_task: 'Kerjakan Task QA',
   verify_bug_fix: 'Verifikasi Perbaikan Bug',
   record_qa_sign_off: 'Catat Persetujuan QA',
+  view_context: 'Lihat konteks',
+};
+
+const workStateCopy = {
+  actionable: { label: 'Siap ditindak', variant: 'passed' as const, action: 'Buka pekerjaan' },
+  blocked: { label: 'Ada prasyarat', variant: 'review' as const, action: 'Lihat prasyarat' },
+  read_only: { label: 'Informasi', variant: 'neutral' as const, action: 'Lihat konteks' },
 };
 
 function localizeTerm(value: string) {
@@ -378,6 +385,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         <div className="space-y-3">
           {visibleItems.map((item) => {
             const isSelected = item.subjectType !== 'bug' && item.subjectId === selectedTaskId;
+            const workState = workStateCopy[item.workState];
             return (
               <Card
                 key={item.id}
@@ -398,6 +406,9 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                       )}
                       <Badge variant="info" size="sm">
                         {localizeTerm(item.status)}
+                      </Badge>
+                      <Badge variant={workState.variant} size="sm">
+                        {workState.label}
                       </Badge>
                     </div>
                     <div>
@@ -428,9 +439,9 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                     disabled={openingItemId !== null && openingItemId !== item.id}
                     onClick={() => void openItem(item)}
                     rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
-                    aria-label={`Buka ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`}
+                    aria-label={`${workState.action}: ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`}
                   >
-                    Buka pekerjaan
+                    {workState.action}
                   </Button>
                 </div>
               </Card>

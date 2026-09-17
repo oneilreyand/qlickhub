@@ -42,6 +42,8 @@ import {
   WorkspaceSchema,
   CreateWorkspaceSchema,
   UpdateWorkspaceSchema,
+  QaAssuranceRolloutSettingsSchema,
+  UpdateQaAssuranceRolloutSettingsSchema,
   DeleteWorkspaceSchema,
   AddWorkspaceMemberSchema,
   AddWorkspaceMemberResultSchema,
@@ -66,6 +68,9 @@ import {
   BugWithContextSchema,
   CreateBugSchema,
   UpdateBugSchema,
+  CreateBugResolutionEventSchema,
+  CreateBugRetestRunSchema,
+  BugRetestHistorySchema,
   CreateQaSignOffSchema,
   CreateReleaseDecisionSchema,
   CancelQaSignOffInputSchema,
@@ -74,6 +79,7 @@ import {
   QaSignOffSchema,
   ReleaseDecisionSchema,
   ReadinessSnapshotV2Schema,
+  ReadinessSnapshotV3Schema,
   FeatureReleaseRecordsSchema,
   ListWorkspaceReleaseReadinessQuerySchema,
   WorkspaceReleaseReadinessSchema,
@@ -92,6 +98,43 @@ import {
 } from './index.js';
 
 describe('Contracts Validation Suite', () => {
+  describe('QA assurance Workspace rollout contracts', () => {
+    const workspaceId = '123e4567-e89b-12d3-a456-426614174000';
+    const actorId = '223e4567-e89b-12d3-a456-426614174001';
+    const timestamp = '2026-09-15T00:00:00.000Z';
+
+    test('accepts the persisted rollout setting and an explicit audited mode change', () => {
+      const setting = QaAssuranceRolloutSettingsSchema.parse({
+        workspaceId,
+        mode: 'observe',
+        updatedBy: actorId,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      const update = UpdateQaAssuranceRolloutSettingsSchema.parse({
+        mode: 'warn',
+        reason: 'Approved warning-mode pilot for this Workspace.',
+      });
+      assert.strictEqual(setting.mode, 'observe');
+      assert.strictEqual(update.mode, 'warn');
+    });
+
+    test('rejects unsupported modes and audit reasons shorter than ten characters', () => {
+      assert.throws(() =>
+        UpdateQaAssuranceRolloutSettingsSchema.parse({
+          mode: 'automatic',
+          reason: 'A sufficiently detailed reason.',
+        }),
+      );
+      assert.throws(() =>
+        UpdateQaAssuranceRolloutSettingsSchema.parse({
+          mode: 'enforce',
+          reason: 'short',
+        }),
+      );
+    });
+  });
+
   describe('Credential reset contracts', () => {
     const validWorkspaceId = '123e4567-e89b-12d3-a456-426614174000';
     const validTargetUserId = '223e4567-e89b-12d3-a456-426614174001';
@@ -1134,6 +1177,11 @@ describe('Contracts Validation Suite', () => {
       const run = CreateTestRunSchema.parse({
         workspaceId,
         testCaseId,
+        featureTaskId: requirementA,
+        qaSubtaskId: requirementB,
+        testCycleId: runId,
+        testCaseVersionId: testCaseId,
+        candidateFingerprint: 'commit:checkout-20260821-1',
         build: 'checkout-web-2026.08.21.1',
         environment: 'staging',
       });
@@ -1183,6 +1231,14 @@ describe('Contracts Validation Suite', () => {
               id: runId,
               workspaceId,
               testCaseId,
+              featureTaskId: null,
+              qaSubtaskId: null,
+              testCycleId: null,
+              testCaseVersionId: null,
+              readinessBaselineId: null,
+              candidateFingerprint: null,
+              retestBugId: null,
+              retestResolutionEventId: null,
               build: 'checkout-web-2026.08.22.1',
               environment: 'staging',
               status: 'in_progress',
@@ -1197,6 +1253,14 @@ describe('Contracts Validation Suite', () => {
                 id: runId,
                 workspaceId,
                 testCaseId,
+                featureTaskId: null,
+                qaSubtaskId: null,
+                testCycleId: null,
+                testCaseVersionId: null,
+                readinessBaselineId: null,
+                candidateFingerprint: null,
+                retestBugId: null,
+                retestResolutionEventId: null,
                 build: 'checkout-web-2026.08.22.1',
                 environment: 'staging',
                 status: 'in_progress',
@@ -1402,6 +1466,102 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(contextualBug.requirement.code, 'REQ-CHECKOUT');
       assert.strictEqual(contextualBug.originatingTestResult.testRun.environment, 'staging');
     });
+
+    test('validates contextual retest input and an unbounded cycle-oriented history', () => {
+      const resolutionOneId = '223e4567-e89b-42d3-a456-426614174010';
+      const resolutionTwoId = '223e4567-e89b-42d3-a456-426614174011';
+      const resolutionInput = CreateBugResolutionEventSchema.parse({
+        workspaceId,
+        bugId,
+        candidateFingerprint: 'commit:checkout-fixed-1',
+        resolutionNotes: 'Corrected the payment mapping.',
+        evidenceLinks: [
+          { url: 'https://example.com/fix-cycle-1', label: 'Developer evidence cycle 1' },
+        ],
+      });
+      const retestInput = CreateBugRetestRunSchema.parse({ workspaceId, bugId });
+      const history = BugRetestHistorySchema.parse({
+        resolutionEvents: [
+          {
+            id: resolutionOneId,
+            workspaceId,
+            bugId,
+            sequence: 1,
+            candidateFingerprint: 'commit:checkout-fixed-1',
+            resolutionNotes: 'Corrected the payment mapping.',
+            resolvedBy: assigneeId,
+            resolvedAt: '2026-08-22T09:00:00.000Z',
+          },
+          {
+            id: resolutionTwoId,
+            workspaceId,
+            bugId,
+            sequence: 2,
+            candidateFingerprint: 'commit:checkout-fixed-2',
+            resolutionNotes: 'Corrected the remaining timeout path.',
+            resolvedBy: assigneeId,
+            resolvedAt: '2026-08-22T11:00:00.000Z',
+          },
+        ],
+        retestAttempts: [],
+        cycles: [
+          {
+            sequence: 1,
+            resolutionEvent: {
+              id: resolutionOneId,
+              workspaceId,
+              bugId,
+              sequence: 1,
+              candidateFingerprint: 'commit:checkout-fixed-1',
+              resolutionNotes: 'Corrected the payment mapping.',
+              resolvedBy: assigneeId,
+              resolvedAt: '2026-08-22T09:00:00.000Z',
+            },
+            evidenceLinks: [
+              {
+                id: '223e4567-e89b-42d3-a456-426614174012',
+                workspaceId,
+                bugId,
+                url: 'https://example.com/fix-cycle-1',
+                provider: 'external',
+                mediaKind: 'other',
+                label: 'Developer evidence cycle 1',
+                addedBy: assigneeId,
+                addedAt: '2026-08-22T09:00:00.000Z',
+                normalizedUrl: 'https://example.com/fix-cycle-1',
+                previewStatus: 'unsupported',
+                evidenceStage: 'resolution',
+                resolutionEventId: resolutionOneId,
+              },
+            ],
+            retestAttempt: null,
+          },
+          {
+            sequence: 2,
+            resolutionEvent: {
+              id: resolutionTwoId,
+              workspaceId,
+              bugId,
+              sequence: 2,
+              candidateFingerprint: 'commit:checkout-fixed-2',
+              resolutionNotes: 'Corrected the remaining timeout path.',
+              resolvedBy: assigneeId,
+              resolvedAt: '2026-08-22T11:00:00.000Z',
+            },
+            evidenceLinks: [],
+            retestAttempt: null,
+          },
+        ],
+      });
+
+      assert.strictEqual(resolutionInput.evidenceLinks.length, 1);
+      assert.strictEqual(retestInput.bugId, bugId);
+      assert.deepStrictEqual(
+        history.cycles.map((cycle) => cycle.sequence),
+        [1, 2],
+      );
+      assert.strictEqual(history.cycles[0].evidenceLinks[0].resolutionEventId, resolutionOneId);
+    });
   });
 
   describe('QA Sign-off and Release Decision Contracts', () => {
@@ -1490,11 +1650,22 @@ describe('Contracts Validation Suite', () => {
         ],
       },
     };
+    const readinessSnapshotV3 = {
+      ...readinessSnapshotV2,
+      schemaVersion: 3 as const,
+      evidenceScope: {
+        qaSubtaskId: '423e4567-e89b-42d3-a456-426614174005',
+        testCycleId: '523e4567-e89b-42d3-a456-426614174005',
+        readinessBaselineId: '623e4567-e89b-42d3-a456-426614174005',
+        candidateFingerprint: 'commit:checkout-release-1',
+      },
+    };
 
     test('validates append-only QA certification with a server snapshot', () => {
       const input = CreateQaSignOffSchema.parse({
         workspaceId,
         featureTaskId,
+        testCycleId: readinessSnapshotV3.evidenceScope.testCycleId,
         decision: 'approved',
         notes: 'Regression suite passed on staging.',
       });
@@ -1503,6 +1674,9 @@ describe('Contracts Validation Suite', () => {
       const signOff = QaSignOffSchema.parse({
         id: qaSignOffId,
         ...input,
+        qaSubtaskId: readinessSnapshotV3.evidenceScope.qaSubtaskId,
+        readinessBaselineId: readinessSnapshotV3.evidenceScope.readinessBaselineId,
+        candidateFingerprint: readinessSnapshotV3.evidenceScope.candidateFingerprint,
         readinessSnapshot,
         signedBy: qaUserId,
         signedAt: capturedAt,
@@ -1515,6 +1689,9 @@ describe('Contracts Validation Suite', () => {
         workspaceId,
         featureTaskId,
         qaSignOffId,
+        testCycleId: readinessSnapshotV3.evidenceScope.testCycleId,
+        readinessBaselineId: readinessSnapshotV3.evidenceScope.readinessBaselineId,
+        candidateFingerprint: readinessSnapshotV3.evidenceScope.candidateFingerprint,
         decision: 'approved',
         notes: 'Approved for production rollout.',
         overrideReason: null,
@@ -1523,6 +1700,9 @@ describe('Contracts Validation Suite', () => {
       const releaseDecision = ReleaseDecisionSchema.parse({
         id: '223e4567-e89b-42d3-a456-426614174005',
         ...input,
+        testCycleId: readinessSnapshotV3.evidenceScope.testCycleId,
+        readinessBaselineId: readinessSnapshotV3.evidenceScope.readinessBaselineId,
+        candidateFingerprint: readinessSnapshotV3.evidenceScope.candidateFingerprint,
         readinessSnapshot: {
           ...readinessSnapshot,
           qaSignOff: {
@@ -1552,6 +1732,10 @@ describe('Contracts Validation Suite', () => {
       const cancelSignOff = CancelQaSignOffInputSchema.parse({
         workspaceId,
         featureTaskId,
+        qaSubtaskId: null,
+        testCycleId: null,
+        readinessBaselineId: null,
+        candidateFingerprint: null,
         qaSignOffId,
         reason: '  Regression suite had invalid test seed data.  ',
       });
@@ -1607,6 +1791,10 @@ describe('Contracts Validation Suite', () => {
         id: qaSignOffId,
         workspaceId,
         featureTaskId,
+        qaSubtaskId: null,
+        testCycleId: null,
+        readinessBaselineId: null,
+        candidateFingerprint: null,
         decision: 'approved',
         notes: null,
         readinessSnapshot,
@@ -1621,6 +1809,9 @@ describe('Contracts Validation Suite', () => {
         workspaceId,
         featureTaskId,
         qaSignOffId,
+        testCycleId: null,
+        readinessBaselineId: null,
+        candidateFingerprint: null,
         decision: 'approved',
         notes: null,
         overrideReason: null,
@@ -1632,7 +1823,7 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(cancelledDecision.cancellation?.reason, 'Corrective cancellation event.');
     });
 
-    test('validates deterministic readiness snapshot v2 while retaining snapshot v1 compatibility', () => {
+    test('validates deterministic readiness snapshot v3 while retaining v1/v2 history compatibility', () => {
       const parsedV2 = ReadinessSnapshotV2Schema.parse(readinessSnapshotV2);
       assert.strictEqual(parsedV2.evaluation.ready, true);
       assert.deepStrictEqual(
@@ -1645,20 +1836,26 @@ describe('Contracts Validation Suite', () => {
           'qa_sign_off',
         ],
       );
+      const parsedV3 = ReadinessSnapshotV3Schema.parse(readinessSnapshotV3);
+      assert.strictEqual(parsedV3.evidenceScope.candidateFingerprint, 'commit:checkout-release-1');
 
       const records = FeatureReleaseRecordsSchema.parse({
         workspaceId,
         featureTaskId,
-        currentReadinessSnapshot: readinessSnapshotV2,
+        currentReadinessSnapshot: readinessSnapshotV3,
         qaSignOffs: [],
         releaseDecisions: [],
       });
-      assert.strictEqual(records.currentReadinessSnapshot.schemaVersion, 2);
+      assert.strictEqual(records.currentReadinessSnapshot.schemaVersion, 3);
 
       const legacy = QaSignOffSchema.parse({
         id: qaSignOffId,
         workspaceId,
         featureTaskId,
+        qaSubtaskId: null,
+        testCycleId: null,
+        readinessBaselineId: null,
+        candidateFingerprint: null,
         decision: 'approved',
         notes: null,
         readinessSnapshot,
@@ -1675,7 +1872,7 @@ describe('Contracts Validation Suite', () => {
       });
       const batch = WorkspaceReleaseReadinessSchema.parse({
         workspaceId,
-        items: [{ featureTaskId, currentReadinessSnapshot: readinessSnapshotV2 }],
+        items: [{ featureTaskId, currentReadinessSnapshot: readinessSnapshotV3 }],
       });
 
       assert.deepStrictEqual(query.featureTaskIds, [featureTaskId]);

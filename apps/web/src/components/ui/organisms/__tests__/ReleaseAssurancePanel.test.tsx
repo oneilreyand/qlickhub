@@ -3,7 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import type { FeatureReleaseRecords, QaSignOff, ReadinessSnapshotV2 } from '@qlick/contracts';
+import type {
+  FeatureReleaseRecords,
+  QaSignOff,
+  QaTestCycle,
+  QaWorkflowSummary,
+  ReadinessSnapshotV3,
+} from '@qlick/contracts';
 import { ReleaseAssurancePanel } from '../ReleaseAssurancePanel';
 import authReducer from '../../../../store/authSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
@@ -17,8 +23,16 @@ const releaseServiceMocks = vi.hoisted(() => ({
   cancelReleaseDecision: vi.fn(),
 }));
 
+const testManagementServiceMocks = vi.hoisted(() => ({
+  listQaTestCycles: vi.fn(),
+}));
+
 vi.mock('../../../../lib/api/releaseDecisionService', () => ({
   releaseDecisionService: releaseServiceMocks,
+}));
+
+vi.mock('../../../../lib/api/testManagementService', () => ({
+  testManagementService: testManagementServiceMocks,
 }));
 
 const ids = {
@@ -28,19 +42,22 @@ const ids = {
   po: '10000000-0000-4000-8000-000000000004',
   signOff: '10000000-0000-4000-8000-000000000005',
   decision: '10000000-0000-4000-8000-000000000008',
+  cycle: '10000000-0000-4000-8000-000000000009',
+  qaSubtask: '10000000-0000-4000-8000-000000000010',
+  baseline: '10000000-0000-4000-8000-000000000011',
 };
 const now = '2026-08-22T10:00:00.000Z';
 
 const readinessSnapshot = (
   qaDecision: 'approved' | 'rejected' | null = 'approved',
   developmentComplete = true,
-): ReadinessSnapshotV2 => {
+): ReadinessSnapshotV3 => {
   const failedGateCodes = [
     ...(developmentComplete ? [] : ['development_completion' as const]),
     ...(qaDecision === 'approved' ? [] : ['qa_sign_off' as const]),
   ];
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     capturedAt: now,
     featureTask: {
       id: ids.feature,
@@ -114,6 +131,12 @@ const readinessSnapshot = (
         },
       ],
     },
+    evidenceScope: {
+      qaSubtaskId: ids.qaSubtask,
+      testCycleId: ids.cycle,
+      readinessBaselineId: ids.baseline,
+      candidateFingerprint: 'checkout-build-2026.09.15',
+    },
   };
 };
 
@@ -124,6 +147,10 @@ const qaSignOff = (
   id: ids.signOff,
   workspaceId: ids.workspace,
   featureTaskId: ids.feature,
+  qaSubtaskId: ids.qaSubtask,
+  testCycleId: ids.cycle,
+  readinessBaselineId: ids.baseline,
+  candidateFingerprint: 'checkout-build-2026.09.15',
   decision,
   notes: decision === 'approved' ? 'Regression passed.' : 'Release risk remains.',
   readinessSnapshot: readinessSnapshot(decision),
@@ -140,6 +167,9 @@ const releaseDecision = (
   workspaceId: ids.workspace,
   featureTaskId: ids.feature,
   qaSignOffId: ids.signOff,
+  testCycleId: ids.cycle,
+  readinessBaselineId: ids.baseline,
+  candidateFingerprint: 'checkout-build-2026.09.15',
   decision,
   notes: 'Disetujui for launch',
   overrideReason: null,
@@ -159,6 +189,39 @@ const records = (
   currentReadinessSnapshot,
   qaSignOffs: signOffs,
   releaseDecisions: decisions,
+});
+
+const activeTestCycle: QaTestCycle = {
+  id: ids.cycle,
+  workspaceId: ids.workspace,
+  featureTaskId: ids.feature,
+  qaSubtaskId: ids.qaSubtask,
+  readinessBaselineId: ids.baseline,
+  candidateFingerprint: 'checkout-build-2026.09.15',
+  build: '2026.09.15.1',
+  environment: 'staging',
+  status: 'in_progress',
+  ownerQaId: ids.qa,
+  createdAt: now,
+  updatedAt: now,
+};
+
+const qaWorkflowSummary = (
+  nextAction: QaWorkflowSummary['nextAction'] = {
+    code: 'record_qa_sign_off',
+    label: 'Catat Persetujuan QA',
+  },
+  blockers: QaWorkflowSummary['blockers'] = [],
+): QaWorkflowSummary => ({
+  workspaceId: ids.workspace,
+  featureTaskId: ids.feature,
+  qaSubtaskId: ids.qaSubtask,
+  featureTitle: 'Checkout Feature',
+  qaSubtaskTitle: 'QA verification',
+  qaSubtaskStatus: nextAction.code === 'record_qa_sign_off' ? 'done' : 'in_progress',
+  testCycle: activeTestCycle,
+  blockers,
+  nextAction,
 });
 
 const createStore = () =>
@@ -196,7 +259,13 @@ const createStore = () =>
 
 const renderPanel = (
   mode: 'qa' | 'release',
-  options?: { currentUserId?: string; userRole?: string },
+  options?: {
+    currentUserId?: string;
+    userRole?: string;
+    qaWorkflowSummary?: QaWorkflowSummary | null;
+    isQaWorkflowSummaryLoading?: boolean;
+    qaWorkflowSummaryError?: string | null;
+  },
 ) =>
   render(
     <Provider store={createStore()}>
@@ -206,6 +275,9 @@ const renderPanel = (
         currentUserId={options?.currentUserId || (mode === 'qa' ? ids.qa : ids.po)}
         userRole={options?.userRole || (mode === 'qa' ? 'qa' : 'po')}
         mode={mode}
+        qaWorkflowSummary={options?.qaWorkflowSummary}
+        isQaWorkflowSummaryLoading={options?.isQaWorkflowSummaryLoading}
+        qaWorkflowSummaryError={options?.qaWorkflowSummaryError}
       />
     </Provider>,
   );
@@ -214,6 +286,7 @@ describe('ReleaseAssurancePanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(records());
+    testManagementServiceMocks.listQaTestCycles.mockResolvedValue([activeTestCycle]);
   });
 
   it('renders persisted loading/empty states and an explicit QA decision action', async () => {
@@ -240,6 +313,10 @@ describe('ReleaseAssurancePanel', () => {
     renderPanel('qa');
     await user.click(await screen.findByRole('button', { name: 'Catat Persetujuan QA' }));
     const dialog = screen.getByRole('dialog');
+    await user.selectOptions(
+      within(dialog).getByLabelText('Siklus Pengujian yang Disertifikasi'),
+      ids.cycle,
+    );
     await user.type(
       within(dialog).getByLabelText('Catatan sertifikasi QA (opsional)'),
       'Regression passed on staging.',
@@ -250,10 +327,41 @@ describe('ReleaseAssurancePanel', () => {
 
     await waitFor(() =>
       expect(releaseServiceMocks.createQaSignOff).toHaveBeenCalledWith(ids.workspace, ids.feature, {
+        testCycleId: ids.cycle,
         decision: 'approved',
         notes: 'Regression passed on staging.',
       }),
     );
+  });
+
+  it('fails closed for a blocked QA workflow and restricts sign-off to its backend-selected cycle', async () => {
+    const user = userEvent.setup();
+    const blockedPanel = renderPanel('qa', {
+      qaWorkflowSummary: qaWorkflowSummary(
+        { code: 'execute_test_cases', label: 'Lengkapi Bukti Pengujian' },
+        ['evidence_manifest_missing'],
+      ),
+    });
+
+    const signOffButton = await screen.findByRole('button', { name: 'Catat Persetujuan QA' });
+    expect(signOffButton).toBeDisabled();
+    expect(await screen.findByText('Persetujuan QA masih memiliki prasyarat')).toBeInTheDocument();
+    expect(
+      screen.getByText('Lengkapi bukti gambar atau video pada hasil yang lulus.'),
+    ).toBeInTheDocument();
+
+    blockedPanel.unmount();
+    renderPanel('qa', { qaWorkflowSummary: qaWorkflowSummary() });
+    const readySignOffButton = await screen.findByRole('button', {
+      name: 'Catat Persetujuan QA',
+    });
+    await user.click(readySignOffButton);
+    const dialogs = screen.getAllByRole('dialog');
+    const dialog = dialogs[dialogs.length - 1];
+    const cycleSelect = within(dialog).getByLabelText('Siklus Pengujian yang Disertifikasi');
+    expect(cycleSelect).toHaveValue(ids.cycle);
+    expect(within(cycleSelect).getAllByRole('option')).toHaveLength(2);
+    expect(testManagementServiceMocks.listQaTestCycles).not.toHaveBeenCalled();
   });
 
   it('records an independent Product Owner Keputusan Rilis against the latest QA Sign-off', async () => {
@@ -343,7 +451,7 @@ describe('ReleaseAssurancePanel', () => {
     const user = userEvent.setup();
     renderPanel('qa', { currentUserId: ids.qa, userRole: 'qa' });
 
-    const cancelBtn = await screen.findByRole('button', { name: 'Batalkan Sign-off' });
+    const cancelBtn = await screen.findByRole('button', { name: 'Batalkan Persetujuan QA' });
     await user.click(cancelBtn);
 
     const dialog = screen.getByRole('dialog');
@@ -408,13 +516,13 @@ describe('ReleaseAssurancePanel', () => {
     const user = userEvent.setup();
     renderPanel('qa', { currentUserId: ids.qa, userRole: 'qa' });
 
-    const cancelBtn = await screen.findByRole('button', { name: 'Batalkan Sign-off' });
+    const cancelBtn = await screen.findByRole('button', { name: 'Batalkan Persetujuan QA' });
     await user.click(cancelBtn);
 
     const dialog = screen.getByRole('dialog');
     expect(
       within(dialog).getByText(
-        /Batalkan Keputusan Rilis terlebih dahulu sebelum membatalkan QA Sign-off ini/,
+        /Batalkan Keputusan Rilis terlebih dahulu sebelum membatalkan Persetujuan QA ini/,
       ),
     ).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Konfirmasi Pembatalan' })).toBeDisabled();

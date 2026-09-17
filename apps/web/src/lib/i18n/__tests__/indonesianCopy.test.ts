@@ -12,7 +12,7 @@ const gate = (code: ReadinessGate['code'], reason: string): ReadinessGate => ({
 describe('getIndonesianReleaseGateCopy', () => {
   it.each([
     ['requirement_coverage', 'Cakupan Requirement'],
-    ['latest_test_results', 'Hasil Test Run terbaru'],
+    ['latest_test_results', 'Hasil Pengujian terbaru'],
     ['critical_high_bugs', 'Bug kritis/tinggi'],
     ['development_completion', 'Penyelesaian pengembangan'],
     ['qa_sign_off', 'Persetujuan QA'],
@@ -74,7 +74,7 @@ describe('getIndonesianReleaseGateCopy', () => {
       '1/2 Subtask pengembangan telah selesai.',
     ],
     ['qa_sign_off', 'No QA Sign-off is recorded.', 'Belum ada persetujuan QA yang dicatat.'],
-    ['qa_sign_off', 'The latest QA Sign-off is rejected.', 'QA Sign-off terbaru ditolak.'],
+    ['qa_sign_off', 'The latest QA Sign-off is rejected.', 'Persetujuan QA terbaru ditolak.'],
   ] as const)('menerjemahkan alasan backend untuk %s', (code, reason, expected) => {
     expect(getIndonesianReleaseGateCopy(gate(code, reason)).reason).toBe(expected);
   });

@@ -5,12 +5,26 @@ import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
   BugActivityModel,
+  BugEvidenceLinkModel,
   BugModel,
+  AcceptanceCriterionModel,
+  BugResolutionEventModel,
+  BugRetestAttemptModel,
+  FeatureReadinessBaselineModel,
+  FeatureReadinessBaselineRequirementModel,
+  QaDocumentModel,
+  QaDocumentVersionModel,
+  QaTestCycleModel,
   RequirementModel,
   TaskModel,
+  TaskAttachmentModel,
   TaskRequirementModel,
   TestCaseModel,
   TestCaseRequirementModel,
+  TestCaseVersionModel,
+  TestCaseVersionAcceptanceCriterionModel,
+  TestResultEvidenceManifestModel,
+  TestResultEvidenceModel,
   TestResultModel,
   TestRunModel,
   UserModel,
@@ -19,6 +33,7 @@ import {
 } from '../../../db/models/index.js';
 import { accessTokenCookieName, signToken } from '../../auth/jwt.js';
 import { sessionManager } from '../../auth/sessionManager.js';
+import { taskService } from '../../tasks/taskService.js';
 
 describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', () => {
   let server: Server;
@@ -40,6 +55,7 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
   let passedResultA: TestResultModel;
   let failedResultB: TestResultModel;
   let bugId: string;
+  let firstResolutionEventId: string;
   let ownerCookie: string;
   let poCookie: string;
   let qaCookie: string;
@@ -243,12 +259,30 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     for (const workspace of [workspaceA, workspaceB]) {
       if (!workspace) continue;
       await BugActivityModel.destroy({ where: { workspaceId: workspace.id } });
+      await BugRetestAttemptModel.destroy({ where: { workspaceId: workspace.id } });
+      await BugEvidenceLinkModel.destroy({ where: { workspaceId: workspace.id } });
+      await TestRunModel.update(
+        { retestBugId: null, retestResolutionEventId: null },
+        { where: { workspaceId: workspace.id } },
+      );
+      await BugResolutionEventModel.destroy({ where: { workspaceId: workspace.id } });
       await BugModel.destroy({ where: { workspaceId: workspace.id } });
+      await TestResultEvidenceModel.destroy({ where: { workspaceId: workspace.id } });
+      await TestResultEvidenceManifestModel.destroy({ where: { workspaceId: workspace.id } });
       await TestResultModel.destroy({ where: { workspaceId: workspace.id } });
       await TestRunModel.destroy({ where: { workspaceId: workspace.id } });
+      await QaTestCycleModel.destroy({ where: { workspaceId: workspace.id } });
+      await TestCaseVersionModel.destroy({ where: { workspaceId: workspace.id } });
       await TestCaseRequirementModel.destroy({ where: { workspaceId: workspace.id } });
       await TestCaseModel.destroy({ where: { workspaceId: workspace.id } });
+      await TaskAttachmentModel.destroy({ where: { workspaceId: workspace.id } });
       await TaskRequirementModel.destroy({ where: { workspaceId: workspace.id } });
+      await FeatureReadinessBaselineRequirementModel.destroy({
+        where: { workspaceId: workspace.id },
+      });
+      await FeatureReadinessBaselineModel.destroy({ where: { workspaceId: workspace.id } });
+      await QaDocumentVersionModel.destroy({ where: { workspaceId: workspace.id } });
+      await QaDocumentModel.destroy({ where: { workspaceId: workspace.id } });
       await TaskModel.destroy({ where: { workspaceId: workspace.id } });
       await RequirementModel.destroy({ where: { workspaceId: workspace.id } });
       await WorkspaceModel.destroy({ where: { id: workspace.id } });
@@ -370,7 +404,7 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     assert.strictEqual(poRetestQueue.status, 403);
   });
 
-  test('assigned Developer resolves while QA independently verifies, reopens, and verifies again', async () => {
+  test('assigned Developer records a formal Resolution Event while manual outcomes are rejected', async () => {
     const start = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
@@ -383,14 +417,22 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
       headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
       body: JSON.stringify({ status: 'resolved' }),
     });
-    assert.strictEqual(missingResolution.status, 400);
+    assert.strictEqual(missingResolution.status, 403);
 
-    const resolve = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
-      body: JSON.stringify({ status: 'resolved', resolutionNotes: 'Corrected payment mapping.' }),
-    });
-    assert.strictEqual(resolve.status, 200);
+    const resolve = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}/resolution-events`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
+        body: JSON.stringify({
+          candidateFingerprint: 'commit:checkout-fixed-1',
+          resolutionNotes: 'Corrected payment mapping.',
+        }),
+      },
+    );
+    assert.strictEqual(resolve.status, 201);
+    firstResolutionEventId = ((await resolve.json()) as { resolutionEvent: { id: string } })
+      .resolutionEvent.id;
 
     const retestQueue = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs?queue=retest`, {
       headers: { Cookie: qaCookie },
@@ -399,9 +441,7 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     const retestQueueBody = (await retestQueue.json()) as {
       bugs: Array<{ id: string; status: string }>;
     };
-    assert.strictEqual(retestQueueBody.bugs.length, 1);
-    assert.strictEqual(retestQueueBody.bugs[0].id, bugId);
-    assert.strictEqual(retestQueueBody.bugs[0].status, 'resolved');
+    assert.deepStrictEqual(retestQueueBody.bugs, []);
 
     const developerQueueAfterResolution = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/bugs?queue=assigned_work`,
@@ -411,44 +451,12 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     const developerQueueBody = (await developerQueueAfterResolution.json()) as { bugs: unknown[] };
     assert.deepStrictEqual(developerQueueBody.bugs, []);
 
-    const verify = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
+    const manualVerify = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
       body: JSON.stringify({ status: 'verified' }),
     });
-    assert.strictEqual(verify.status, 200);
-
-    const reopen = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-      body: JSON.stringify({ status: 'reopened' }),
-    });
-    assert.strictEqual(reopen.status, 200);
-
-    for (const update of [
-      { status: 'in_progress' },
-      { status: 'resolved', resolutionNotes: 'Corrected the remaining retry path.' },
-    ]) {
-      const response = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
-        body: JSON.stringify(update),
-      });
-      assert.strictEqual(response.status, 200);
-    }
-
-    const finalVerify = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-      body: JSON.stringify({ status: 'verified' }),
-    });
-    assert.strictEqual(finalVerify.status, 200);
-    const finalBody = (await finalVerify.json()) as {
-      bug: { status: string; resolvedAt: string; verifiedAt: string };
-    };
-    assert.strictEqual(finalBody.bug.status, 'verified');
-    assert.ok(finalBody.bug.resolvedAt);
-    assert.ok(finalBody.bug.verifiedAt);
+    assert.strictEqual(manualVerify.status, 403);
 
     const activityResponse = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}/activity`,
@@ -458,18 +466,617 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     const activityBody = (await activityResponse.json()) as { activity: Array<{ action: string }> };
     assert.deepStrictEqual(
       activityBody.activity.map((activity) => activity.action),
+      ['bug_created', 'bug_assigned', 'bug_work_started', 'bug_resolved'],
+    );
+  });
+
+  test('QA formal retest derives verified from a persisted scoped Result and sealed image evidence', async () => {
+    const qaSubtask = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: featureA.id,
+      deliveryArea: 'qa',
+      title: 'Checkout formal retest',
+      priority: 'high',
+      status: 'in_progress',
+      reporterId: po.id,
+      assigneeId: qa.id,
+    });
+    const productBrief = await QaDocumentModel.create({
+      workspaceId: workspaceA.id,
+      title: 'Checkout retest baseline',
+      docType: 'product_brief',
+      status: 'approved',
+      createdBy: po.id,
+      ownerId: po.id,
+      currentVersion: 1,
+    });
+    const productBriefVersion = await QaDocumentVersionModel.create({
+      workspaceId: workspaceA.id,
+      documentId: productBrief.id,
+      version: 1,
+      title: productBrief.title,
+      contentMarkdown: 'Scoped retest baseline fixture.',
+      createdBy: po.id,
+    });
+    const baseline = await FeatureReadinessBaselineModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: featureA.id,
+      sequence: 1,
+      productBriefVersionId: productBriefVersion.id,
+      snapshot: { schemaVersion: 1, integrationFixture: true } as any,
+      establishedBy: po.id,
+    });
+    await FeatureReadinessBaselineRequirementModel.create({
+      workspaceId: workspaceA.id,
+      baselineId: baseline.id,
+      requirementId: requirementA.id,
+    });
+    const acceptanceCriterion = await AcceptanceCriterionModel.create({
+      workspaceId: workspaceA.id,
+      requirementId: requirementA.id,
+      sequence: 1,
+      text: 'One confirmation is visible after checkout succeeds.',
+      createdBy: po.id,
+    });
+    const testCase = await TestCaseModel.create({
+      workspaceId: workspaceA.id,
+      title: 'Checkout retest after fix',
+      testType: 'e2e',
+      status: 'active',
+      createdBy: qa.id,
+    });
+    await TestCaseRequirementModel.create({
+      workspaceId: workspaceA.id,
+      testCaseId: testCase.id,
+      requirementId: requirementA.id,
+      linkedBy: qa.id,
+    });
+    const testCaseVersion = await TestCaseVersionModel.create({
+      workspaceId: workspaceA.id,
+      testCaseId: testCase.id,
+      revision: 1,
+      lifecycleStatus: 'active',
+      definitionSnapshot: { requirementIds: [requirementA.id], title: testCase.title },
+      authoredBy: qa.id,
+      publishedBy: po.id,
+      publishedAt: new Date(),
+    });
+    await TestCaseVersionAcceptanceCriterionModel.create({
+      workspaceId: workspaceA.id,
+      testCaseVersionId: testCaseVersion.id,
+      acceptanceCriterionId: acceptanceCriterion.id,
+      mappingStatus: 'mapped',
+      exclusionReason: null,
+      mappedBy: qa.id,
+    });
+    const cycle = await QaTestCycleModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: featureA.id,
+      qaSubtaskId: qaSubtask.id,
+      readinessBaselineId: baseline.id,
+      candidateFingerprint: 'commit:checkout-fixed-1',
+      build: 'checkout-fixed-1',
+      environment: 'staging',
+      ownerQaId: qa.id,
+      status: 'in_progress',
+    });
+    const retestRun = await TestRunModel.create({
+      workspaceId: workspaceA.id,
+      testCaseId: testCase.id,
+      testCaseVersionId: testCaseVersion.id,
+      featureTaskId: featureA.id,
+      qaSubtaskId: qaSubtask.id,
+      testCycleId: cycle.id,
+      readinessBaselineId: baseline.id,
+      candidateFingerprint: cycle.candidateFingerprint,
+      retestBugId: bugId,
+      retestResolutionEventId: firstResolutionEventId,
+      build: cycle.build,
+      environment: cycle.environment,
+      status: 'completed',
+      executorId: qa.id,
+      completedAt: new Date(),
+    });
+    const retestResult = await TestResultModel.create({
+      workspaceId: workspaceA.id,
+      testRunId: retestRun.id,
+      status: 'passed',
+      executorId: qa.id,
+      actualResult: 'Checkout completed successfully after the repair.',
+    });
+    const screenshot = await TaskAttachmentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: featureA.id,
+      fileName: 'checkout-retest-passed.png',
+      fileSize: 1024,
+      mimeType: 'image/png',
+      storageRef: `integration-fixture/${Date.now()}/checkout-retest-passed.png`,
+      storageProvider: 'local',
+      category: 'qa_evidence',
+      uploaderId: qa.id,
+    });
+    await TestResultEvidenceModel.create({
+      workspaceId: workspaceA.id,
+      testResultId: retestResult.id,
+      attachmentId: screenshot.id,
+      linkedBy: qa.id,
+    });
+    await TestResultEvidenceManifestModel.create({
+      workspaceId: workspaceA.id,
+      testResultId: retestResult.id,
+      sequence: 1,
+      kind: 'initial',
+      itemCount: 1,
+      imageCount: 1,
+      videoCount: 0,
+      readyCount: 1,
+      evidenceSnapshot: [
+        {
+          evidenceType: 'attachment',
+          evidenceId: screenshot.id,
+          mediaKind: 'image',
+          previewStatus: 'ready',
+          provider: 'local',
+          fileName: screenshot.fileName,
+          url: null,
+          normalizedUrl: null,
+          taskId: featureA.id,
+        },
+      ],
+      sealedBy: qa.id,
+    });
+
+    const response = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}/retest-attempts`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ testResultId: retestResult.id }),
+      },
+    );
+    const responseText = await response.text();
+    assert.strictEqual(response.status, 201, responseText);
+    const body = JSON.parse(responseText) as {
+      retestAttempt: {
+        id: string;
+        outcome: string;
+        testResultId: string;
+        resolutionEventId: string;
+      };
+    };
+    assert.strictEqual(body.retestAttempt.outcome, 'verified');
+    assert.strictEqual(body.retestAttempt.testResultId, retestResult.id);
+
+    const persistedAttempt = await BugRetestAttemptModel.findByPk(body.retestAttempt.id);
+    const persistedBug = await BugModel.findByPk(bugId);
+    assert.strictEqual(persistedAttempt?.outcome, 'verified');
+    assert.strictEqual(persistedBug?.status, 'verified');
+    assert.ok(persistedBug?.verifiedAt);
+
+    const retestQueueAfterAttempt = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs?queue=retest`,
+      { headers: { Cookie: qaCookie } },
+    );
+    assert.strictEqual(retestQueueAfterAttempt.status, 200);
+    assert.deepStrictEqual(
+      ((await retestQueueAfterAttempt.json()) as { bugs: unknown[] }).bugs,
+      [],
+    );
+
+    const historyResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}/retest-history`,
+      { headers: { Cookie: ownerCookie } },
+    );
+    assert.strictEqual(historyResponse.status, 200);
+    const history = (await historyResponse.json()) as {
+      history: {
+        resolutionEvents: Array<{ candidateFingerprint: string }>;
+        retestAttempts: Array<{
+          outcome: string;
+          testResultId: string;
+          result: { evidence: Array<{ attachmentId: string }> };
+          evidenceManifests: Array<{ imageCount: number; readyCount: number }>;
+        }>;
+      };
+    };
+    assert.deepStrictEqual(
+      history.history.resolutionEvents.map((event) => event.candidateFingerprint),
+      ['commit:checkout-fixed-1'],
+    );
+    assert.deepStrictEqual(
+      history.history.retestAttempts.map((attempt) => ({
+        outcome: attempt.outcome,
+        testResultId: attempt.testResultId,
+      })),
+      [{ outcome: 'verified', testResultId: retestResult.id }],
+    );
+    assert.strictEqual(
+      history.history.retestAttempts[0].result.evidence[0].attachmentId,
+      screenshot.id,
+    );
+    assert.deepStrictEqual(
+      history.history.retestAttempts[0].evidenceManifests.map((manifest) => ({
+        imageCount: manifest.imageCount,
+        readyCount: manifest.readyCount,
+      })),
+      [{ imageCount: 1, readyCount: 1 }],
+    );
+
+    const legacyRuns = await TestRunModel.findAll({
+      where: { workspaceId: workspaceA.id, testCycleId: null },
+      attributes: ['testCaseId'],
+    });
+    await TestCaseModel.update(
+      { status: 'archived' },
+      { where: { workspaceId: workspaceA.id, id: legacyRuns.map((run) => run.testCaseId) } },
+    );
+
+    const completedQaSubtask = await taskService.updateTask(qa.id, workspaceA.id, qaSubtask.id, {
+      status: 'done',
+    });
+    assert.strictEqual(completedQaSubtask.status, 'done');
+
+    async function createScopedRetestResult(
+      candidateFingerprint: string,
+      status: 'passed' | 'blocked',
+      contextualBugId: string,
+      resolutionEventId: string,
+    ): Promise<TestResultModel> {
+      const scopedCycle = await QaTestCycleModel.create({
+        workspaceId: workspaceA.id,
+        featureTaskId: featureA.id,
+        qaSubtaskId: qaSubtask.id,
+        readinessBaselineId: baseline.id,
+        candidateFingerprint,
+        build: candidateFingerprint,
+        environment: 'staging',
+        ownerQaId: qa.id,
+        status: 'in_progress',
+      });
+      const run = await TestRunModel.create({
+        workspaceId: workspaceA.id,
+        testCaseId: testCase.id,
+        testCaseVersionId: testCaseVersion.id,
+        featureTaskId: featureA.id,
+        qaSubtaskId: qaSubtask.id,
+        testCycleId: scopedCycle.id,
+        readinessBaselineId: baseline.id,
+        candidateFingerprint,
+        retestBugId: contextualBugId,
+        retestResolutionEventId: resolutionEventId,
+        build: scopedCycle.build,
+        environment: scopedCycle.environment,
+        status: 'completed',
+        executorId: qa.id,
+        completedAt: new Date(),
+      });
+      const result = await TestResultModel.create({
+        workspaceId: workspaceA.id,
+        testRunId: run.id,
+        status,
+        executorId: qa.id,
+        actualResult:
+          status === 'blocked'
+            ? 'Checkout remains blocked.'
+            : 'Checkout succeeds after the second repair.',
+        notes: null,
+      });
+      await TestResultEvidenceModel.create({
+        workspaceId: workspaceA.id,
+        testResultId: result.id,
+        attachmentId: screenshot.id,
+        linkedBy: qa.id,
+      });
+      await TestResultEvidenceManifestModel.create({
+        workspaceId: workspaceA.id,
+        testResultId: result.id,
+        sequence: 1,
+        kind: 'initial',
+        itemCount: 1,
+        imageCount: 1,
+        videoCount: 0,
+        readyCount: 1,
+        evidenceSnapshot: [
+          {
+            evidenceType: 'attachment',
+            evidenceId: screenshot.id,
+            mediaKind: 'image',
+            previewStatus: 'ready',
+            provider: 'local',
+            fileName: screenshot.fileName,
+            url: null,
+            normalizedUrl: null,
+            taskId: featureA.id,
+          },
+        ],
+        sealedBy: qa.id,
+      });
+      return result;
+    }
+
+    const secondBugResponse = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify({
+        featureTaskId: featureA.id,
+        requirementId: requirementA.id,
+        testResultId: failedResultA.id,
+        assigneeId: assignedDev.id,
+        title: 'Checkout remains unavailable after remediation',
+        severity: 'high',
+        reproductionDetails: 'Retry checkout after the first repair candidate.',
+      }),
+    });
+    assert.strictEqual(secondBugResponse.status, 201);
+    const secondBugId = ((await secondBugResponse.json()) as { bug: { id: string } }).bug.id;
+    const beginSecondBug = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${secondBugId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
+        body: JSON.stringify({ status: 'in_progress' }),
+      },
+    );
+    assert.strictEqual(beginSecondBug.status, 200);
+    const secondResolution = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${secondBugId}/resolution-events`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
+        body: JSON.stringify({
+          candidateFingerprint: 'commit:checkout-blocked-2',
+          resolutionNotes: 'Added a secondary timeout guard.',
+          evidenceLinks: [
+            { url: 'https://example.com/repair-cycle-1', label: 'Developer evidence cycle 1' },
+          ],
+        }),
+      },
+    );
+    assert.strictEqual(secondResolution.status, 201);
+    const secondResolutionId = (
+      (await secondResolution.json()) as { resolutionEvent: { id: string } }
+    ).resolutionEvent.id;
+    const blockedResult = await createScopedRetestResult(
+      'commit:checkout-blocked-2',
+      'blocked',
+      secondBugId,
+      secondResolutionId,
+    );
+    const blockedAttempt = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${secondBugId}/retest-attempts`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ testResultId: blockedResult.id }),
+      },
+    );
+    assert.strictEqual(blockedAttempt.status, 201);
+    assert.strictEqual(
+      ((await blockedAttempt.json()) as { retestAttempt: { outcome: string } }).retestAttempt
+        .outcome,
+      'reopened',
+    );
+
+    const resumeSecondBug = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${secondBugId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
+        body: JSON.stringify({ status: 'in_progress' }),
+      },
+    );
+    assert.strictEqual(resumeSecondBug.status, 200);
+    const finalResolution = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${secondBugId}/resolution-events`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
+        body: JSON.stringify({
+          candidateFingerprint: 'commit:checkout-passed-3',
+          resolutionNotes: 'Prepared the final repair candidate.',
+          evidenceLinks: [
+            { url: 'https://example.com/repair-cycle-2', label: 'Developer evidence cycle 2' },
+          ],
+        }),
+      },
+    );
+    assert.strictEqual(finalResolution.status, 201);
+    const finalResolutionId = (
+      (await finalResolution.json()) as { resolutionEvent: { id: string } }
+    ).resolutionEvent.id;
+    const passedResult = await createScopedRetestResult(
+      'commit:checkout-passed-3',
+      'passed',
+      secondBugId,
+      finalResolutionId,
+    );
+    const passedAttempt = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${secondBugId}/retest-attempts`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ testResultId: passedResult.id }),
+      },
+    );
+    assert.strictEqual(passedAttempt.status, 201);
+    assert.strictEqual(
+      ((await passedAttempt.json()) as { retestAttempt: { outcome: string } }).retestAttempt
+        .outcome,
+      'verified',
+    );
+
+    const multiCycleHistoryResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${secondBugId}/retest-history`,
+      { headers: { Cookie: qaCookie } },
+    );
+    assert.strictEqual(multiCycleHistoryResponse.status, 200);
+    const multiCycleHistory = (await multiCycleHistoryResponse.json()) as {
+      history: {
+        cycles: Array<{
+          sequence: number;
+          evidenceLinks: Array<{ label: string | null }>;
+          retestAttempt: { outcome: string; testResultId: string } | null;
+        }>;
+      };
+    };
+    assert.deepStrictEqual(
+      multiCycleHistory.history.cycles.map((cycle) => ({
+        sequence: cycle.sequence,
+        developerEvidence: cycle.evidenceLinks.map((evidence) => evidence.label),
+        outcome: cycle.retestAttempt?.outcome,
+        testResultId: cycle.retestAttempt?.testResultId,
+      })),
       [
-        'bug_created',
-        'bug_assigned',
-        'bug_work_started',
-        'bug_resolved',
-        'bug_verified',
-        'bug_reopened',
-        'bug_work_started',
-        'bug_resolved',
-        'bug_verified',
+        {
+          sequence: 1,
+          developerEvidence: ['Developer evidence cycle 1'],
+          outcome: 'reopened',
+          testResultId: blockedResult.id,
+        },
+        {
+          sequence: 2,
+          developerEvidence: ['Developer evidence cycle 2'],
+          outcome: 'verified',
+          testResultId: passedResult.id,
+        },
       ],
     );
+
+    const contextualQaSubtask = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: featureA.id,
+      deliveryArea: 'qa',
+      title: 'Contextual retest without technical identifiers',
+      priority: 'high',
+      status: 'in_progress',
+      reporterId: po.id,
+      assigneeId: qa.id,
+    });
+    const originCycle = await QaTestCycleModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: featureA.id,
+      qaSubtaskId: contextualQaSubtask.id,
+      readinessBaselineId: baseline.id,
+      candidateFingerprint: 'commit:context-origin',
+      build: 'context-origin',
+      environment: 'staging',
+      ownerQaId: qa.id,
+      status: 'in_progress',
+    });
+    const contextualOriginRun = await TestRunModel.create({
+      workspaceId: workspaceA.id,
+      testCaseId: testCase.id,
+      testCaseVersionId: testCaseVersion.id,
+      featureTaskId: featureA.id,
+      qaSubtaskId: contextualQaSubtask.id,
+      testCycleId: originCycle.id,
+      readinessBaselineId: baseline.id,
+      candidateFingerprint: originCycle.candidateFingerprint,
+      build: originCycle.build,
+      environment: originCycle.environment,
+      status: 'completed',
+      executorId: qa.id,
+      completedAt: new Date(),
+    });
+    const contextualOriginResult = await TestResultModel.create({
+      workspaceId: workspaceA.id,
+      testRunId: contextualOriginRun.id,
+      status: 'failed',
+      executorId: qa.id,
+      actualResult: 'Contextual checkout failed before remediation.',
+    });
+    const contextualBugResponse = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify({
+        featureTaskId: featureA.id,
+        requirementId: requirementA.id,
+        testResultId: contextualOriginResult.id,
+        assigneeId: assignedDev.id,
+        title: 'Contextual retest navigation',
+        severity: 'high',
+        reproductionDetails: 'Submit checkout from the persisted QA scope.',
+      }),
+    });
+    assert.strictEqual(contextualBugResponse.status, 201);
+    const contextualBugId = ((await contextualBugResponse.json()) as { bug: { id: string } }).bug
+      .id;
+    const startContextualBug = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${contextualBugId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
+        body: JSON.stringify({ status: 'in_progress' }),
+      },
+    );
+    assert.strictEqual(startContextualBug.status, 200);
+    const contextualCandidate = 'commit:context-fixed-1';
+    const contextualCycle = await QaTestCycleModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: featureA.id,
+      qaSubtaskId: contextualQaSubtask.id,
+      readinessBaselineId: baseline.id,
+      candidateFingerprint: contextualCandidate,
+      build: 'context-fixed-1',
+      environment: 'staging',
+      ownerQaId: qa.id,
+      status: 'in_progress',
+    });
+    const contextualResolution = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${contextualBugId}/resolution-events`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: assignedDevCookie },
+        body: JSON.stringify({
+          candidateFingerprint: contextualCandidate,
+          resolutionNotes: 'Corrected contextual checkout mapping.',
+        }),
+      },
+    );
+    assert.strictEqual(contextualResolution.status, 201);
+    const contextualResolutionId = (
+      (await contextualResolution.json()) as { resolutionEvent: { id: string } }
+    ).resolutionEvent.id;
+
+    const startRetestResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${contextualBugId}/retest-runs`,
+      { method: 'POST', headers: { Cookie: qaCookie } },
+    );
+    const startRetestText = await startRetestResponse.text();
+    assert.strictEqual(startRetestResponse.status, 201, startRetestText);
+    const startedRetest = JSON.parse(startRetestText) as {
+      retestRun: {
+        reused: boolean;
+        qaSubtaskId: string;
+        resolutionEventId: string;
+        testRun: {
+          id: string;
+          testCycleId: string;
+          retestBugId: string;
+          retestResolutionEventId: string;
+        };
+      };
+    };
+    assert.strictEqual(startedRetest.retestRun.reused, false);
+    assert.strictEqual(startedRetest.retestRun.qaSubtaskId, contextualQaSubtask.id);
+    assert.strictEqual(startedRetest.retestRun.resolutionEventId, contextualResolutionId);
+    assert.strictEqual(startedRetest.retestRun.testRun.testCycleId, contextualCycle.id);
+    assert.strictEqual(startedRetest.retestRun.testRun.retestBugId, contextualBugId);
+    assert.strictEqual(
+      startedRetest.retestRun.testRun.retestResolutionEventId,
+      contextualResolutionId,
+    );
+
+    const repeatRetestResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${contextualBugId}/retest-runs`,
+      { method: 'POST', headers: { Cookie: qaCookie } },
+    );
+    assert.strictEqual(repeatRetestResponse.status, 200);
+    const repeatedRetest = (await repeatRetestResponse.json()) as {
+      retestRun: { reused: boolean; testRun: { id: string } };
+    };
+    assert.strictEqual(repeatedRetest.retestRun.reused, true);
+    assert.strictEqual(repeatedRetest.retestRun.testRun.id, startedRetest.retestRun.testRun.id);
   });
 
   test('rejects passed Results, non-members, and cross-Workspace links at HTTP boundaries', async () => {

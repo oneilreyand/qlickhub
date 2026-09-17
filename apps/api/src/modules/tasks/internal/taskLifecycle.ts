@@ -47,6 +47,7 @@ import {
   getTaskScheduleValidationIssue,
 } from '@qlick/contracts';
 import { formatTask } from './taskQuery.js';
+import { assertQaCompletionGate } from '../../releaseDecisions/qaEvidenceCompletionGate.js';
 
 // ---------------------------------------------------------------------------
 // Shared audit helper (also exported for taskDeletion)
@@ -676,6 +677,8 @@ export async function updateTaskImpl(
             `BAD_REQUEST: Cannot mark QA subtask as Done until all development subtasks are completed: ${incompleteList}`,
           );
         }
+
+        await assertQaCompletionGate(workspaceId, task.parentTaskId, task.id, actorId, transaction);
       }
 
       // Review notes validation on changes_requested

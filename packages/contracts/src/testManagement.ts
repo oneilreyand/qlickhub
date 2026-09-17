@@ -18,6 +18,15 @@ export type TestCaseSource = z.infer<typeof TestCaseSourceSchema>;
 export const TestRunStatusSchema = z.enum(['in_progress', 'completed', 'cancelled']);
 export type TestRunStatus = z.infer<typeof TestRunStatusSchema>;
 
+export const QaTestCycleStatusSchema = z.enum([
+  'planned',
+  'in_progress',
+  'completed',
+  'cancelled',
+  'superseded',
+]);
+export type QaTestCycleStatus = z.infer<typeof QaTestCycleStatusSchema>;
+
 export const TestResultStatusSchema = z.enum(['passed', 'failed', 'blocked', 'skipped']);
 export type TestResultStatus = z.infer<typeof TestResultStatusSchema>;
 
@@ -47,6 +56,18 @@ export const CreateEvidenceLinkInputSchema = z.object({
   label: z.string().trim().max(255).nullable().optional(),
 });
 export type CreateEvidenceLinkInput = z.infer<typeof CreateEvidenceLinkInputSchema>;
+
+/**
+ * Evidence added after a Result is sealed is never silently folded into the
+ * original evidence set.  A non-empty reason becomes part of the immutable
+ * supplement manifest created for that addition.
+ */
+export const AddTestResultEvidenceSupplementInputSchema = CreateEvidenceLinkInputSchema.extend({
+  reason: NonBlankTextSchema.max(2000),
+});
+export type AddTestResultEvidenceSupplementInput = z.infer<
+  typeof AddTestResultEvidenceSupplementInputSchema
+>;
 
 export const TestResultEvidenceLinkSchema = z.object({
   id: z.string().uuid(),
@@ -144,6 +165,39 @@ export const TestResultEvidenceSchema = z.object({
 });
 export type TestResultEvidence = z.infer<typeof TestResultEvidenceSchema>;
 
+export const TestResultEvidenceManifestKindSchema = z.enum(['initial', 'supplement']);
+export type TestResultEvidenceManifestKind = z.infer<typeof TestResultEvidenceManifestKindSchema>;
+
+export const TestResultEvidenceManifestItemSchema = z.object({
+  evidenceType: z.enum(['attachment', 'external_link']),
+  evidenceId: z.string().uuid(),
+  mediaKind: EvidenceMediaKindSchema,
+  previewStatus: EvidencePreviewStatusSchema,
+  provider: NonBlankTextSchema.max(64),
+  fileName: z.string().nullable(),
+  url: HttpsUrlSchema.nullable(),
+  normalizedUrl: HttpsUrlSchema.nullable(),
+  taskId: z.string().uuid().nullable(),
+});
+export type TestResultEvidenceManifestItem = z.infer<typeof TestResultEvidenceManifestItemSchema>;
+
+export const TestResultEvidenceManifestSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  testResultId: z.string().uuid(),
+  sequence: z.number().int().positive(),
+  kind: TestResultEvidenceManifestKindSchema,
+  reason: z.string().nullable(),
+  itemCount: z.number().int().nonnegative(),
+  imageCount: z.number().int().nonnegative(),
+  videoCount: z.number().int().nonnegative(),
+  readyCount: z.number().int().nonnegative(),
+  evidenceSnapshot: z.array(TestResultEvidenceManifestItemSchema),
+  sealedBy: z.string().uuid(),
+  sealedAt: z.string().datetime(),
+});
+export type TestResultEvidenceManifest = z.infer<typeof TestResultEvidenceManifestSchema>;
+
 export const TestResultSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
@@ -155,6 +209,7 @@ export const TestResultSchema = z.object({
   executedAt: z.string().datetime(),
   evidence: z.array(TestResultEvidenceSchema),
   evidenceLinks: z.array(TestResultEvidenceLinkSchema).default([]),
+  evidenceManifests: z.array(TestResultEvidenceManifestSchema).optional(),
   createdAt: z.string().datetime(),
 });
 export type TestResult = z.infer<typeof TestResultSchema>;
@@ -163,6 +218,14 @@ export const TestRunSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
   testCaseId: z.string().uuid(),
+  featureTaskId: z.string().uuid().nullable(),
+  qaSubtaskId: z.string().uuid().nullable(),
+  testCycleId: z.string().uuid().nullable(),
+  testCaseVersionId: z.string().uuid().nullable(),
+  readinessBaselineId: z.string().uuid().nullable(),
+  candidateFingerprint: z.string().min(1).max(255).nullable(),
+  retestBugId: z.string().uuid().nullable(),
+  retestResolutionEventId: z.string().uuid().nullable(),
   build: NonBlankTextSchema.max(100),
   environment: NonBlankTextSchema.max(100),
   status: TestRunStatusSchema,
@@ -173,6 +236,59 @@ export const TestRunSchema = z.object({
   createdAt: z.string().datetime(),
 });
 export type TestRun = z.infer<typeof TestRunSchema>;
+
+export const QaTestCycleSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  featureTaskId: z.string().uuid(),
+  qaSubtaskId: z.string().uuid(),
+  readinessBaselineId: z.string().uuid(),
+  candidateFingerprint: z.string().min(1).max(255),
+  build: NonBlankTextSchema.max(100),
+  environment: NonBlankTextSchema.max(100),
+  status: QaTestCycleStatusSchema,
+  ownerQaId: z.string().uuid(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type QaTestCycle = z.infer<typeof QaTestCycleSchema>;
+
+export const QaWorkflowBlockerCodeSchema = z.enum([
+  'qa_test_cycle_missing',
+  'scoped_run_in_progress',
+  'scoped_result_missing',
+  'scoped_result_not_passed',
+  'evidence_manifest_missing',
+  'acceptance_criteria_uncovered',
+  'unverified_bug',
+]);
+export type QaWorkflowBlockerCode = z.infer<typeof QaWorkflowBlockerCodeSchema>;
+
+export const QaWorkflowNextActionCodeSchema = z.enum([
+  'create_test_cycle',
+  'execute_test_cases',
+  'record_test_result',
+  'resolve_bug_retest',
+  'complete_qa_subtask',
+  'record_qa_sign_off',
+]);
+export type QaWorkflowNextActionCode = z.infer<typeof QaWorkflowNextActionCodeSchema>;
+
+export const QaWorkflowSummarySchema = z.object({
+  workspaceId: z.string().uuid(),
+  featureTaskId: z.string().uuid(),
+  qaSubtaskId: z.string().uuid(),
+  featureTitle: NonBlankTextSchema.max(255),
+  qaSubtaskTitle: NonBlankTextSchema.max(255),
+  qaSubtaskStatus: z.string().min(1).max(50),
+  testCycle: QaTestCycleSchema.nullable(),
+  blockers: z.array(QaWorkflowBlockerCodeSchema),
+  nextAction: z.object({
+    code: QaWorkflowNextActionCodeSchema,
+    label: NonBlankTextSchema.max(120),
+  }),
+});
+export type QaWorkflowSummary = z.infer<typeof QaWorkflowSummarySchema>;
 
 export const TaskTestCaseExecutionSchema = z.object({
   testCase: TestCaseSchema,
@@ -192,10 +308,31 @@ export type TaskTestExecutionWorkspace = z.infer<typeof TaskTestExecutionWorkspa
 export const CreateTestRunSchema = z.object({
   workspaceId: z.string().uuid(),
   testCaseId: z.string().uuid(),
+  featureTaskId: z.string().uuid(),
+  qaSubtaskId: z.string().uuid(),
+  testCycleId: z.string().uuid(),
+  testCaseVersionId: z.string().uuid(),
+  candidateFingerprint: NonBlankTextSchema.max(255),
   build: NonBlankTextSchema.max(100),
   environment: NonBlankTextSchema.max(100),
 });
 export type CreateTestRunInput = z.infer<typeof CreateTestRunSchema>;
+
+export const CreateQaTestCycleSchema = z.object({
+  workspaceId: z.string().uuid(),
+  featureTaskId: z.string().uuid(),
+  qaSubtaskId: z.string().uuid(),
+  candidateFingerprint: NonBlankTextSchema.max(255),
+  build: NonBlankTextSchema.max(100),
+  environment: NonBlankTextSchema.max(100),
+});
+export type CreateQaTestCycleInput = z.infer<typeof CreateQaTestCycleSchema>;
+
+export const ListQaTestCyclesQuerySchema = z.object({
+  featureTaskId: z.string().uuid(),
+  qaSubtaskId: z.string().uuid().optional(),
+});
+export type ListQaTestCyclesQuery = z.infer<typeof ListQaTestCyclesQuerySchema>;
 
 export const RecordTestResultSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -229,6 +366,10 @@ export const TestActivityActionSchema = z.enum([
   'test_run_started',
   'test_result_recorded',
   'test_evidence_link_added',
+  'test_case_revision_created',
+  'test_case_revision_status_changed',
+  'test_case_ac_mapped',
+  'test_case_ac_excluded',
 ]);
 export type TestActivityAction = z.infer<typeof TestActivityActionSchema>;
 
@@ -238,12 +379,75 @@ export const TestCaseActivitySchema = z.object({
   testCaseId: z.string().uuid(),
   testRunId: z.string().uuid().nullable(),
   testResultId: z.string().uuid().nullable(),
+  testCaseVersionId: z.string().uuid().nullable().optional(),
   actorId: z.string().uuid(),
   action: TestActivityActionSchema,
   metadata: z.record(z.unknown()).nullable(),
   createdAt: z.string().datetime(),
 });
 export type TestCaseActivity = z.infer<typeof TestCaseActivitySchema>;
+
+export const TestCaseVersionAcceptanceCriterionMappingStatusSchema = z.enum(['mapped', 'excluded']);
+export type TestCaseVersionAcceptanceCriterionMappingStatus = z.infer<
+  typeof TestCaseVersionAcceptanceCriterionMappingStatusSchema
+>;
+
+export const TestCaseVersionAcceptanceCriterionMappingSchema = z
+  .object({
+    acceptanceCriterionId: z.string().uuid(),
+    mappingStatus: TestCaseVersionAcceptanceCriterionMappingStatusSchema,
+    exclusionReason: z.string().trim().min(1).max(2000).nullable().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.mappingStatus === 'mapped' && value.exclusionReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Mapped criteria cannot have an exclusion reason.',
+      });
+    }
+    if (value.mappingStatus === 'excluded' && !value.exclusionReason) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Excluded criteria require a reason.' });
+    }
+  });
+export type TestCaseVersionAcceptanceCriterionMapping = z.infer<
+  typeof TestCaseVersionAcceptanceCriterionMappingSchema
+>;
+
+export const ReplaceTestCaseVersionAcceptanceCriteriaSchema = z.object({
+  workspaceId: z.string().uuid(),
+  testCaseId: z.string().uuid(),
+  testCaseVersionId: z.string().uuid(),
+  mappings: z.array(TestCaseVersionAcceptanceCriterionMappingSchema).min(1).max(100),
+});
+export type ReplaceTestCaseVersionAcceptanceCriteriaInput = z.infer<
+  typeof ReplaceTestCaseVersionAcceptanceCriteriaSchema
+>;
+
+export const TestCaseVersionAcceptanceCriteriaResponseSchema = z.object({
+  testCaseVersionId: z.string().uuid(),
+  mappings: z.array(
+    z.object({
+      acceptanceCriterionId: z.string().uuid(),
+      mappingStatus: TestCaseVersionAcceptanceCriterionMappingStatusSchema,
+      exclusionReason: z.string().nullable(),
+      mappedBy: z.string().uuid(),
+      mappedAt: z.string().datetime(),
+    }),
+  ),
+});
+export type TestCaseVersionAcceptanceCriteriaResponse = z.infer<
+  typeof TestCaseVersionAcceptanceCriteriaResponseSchema
+>;
+
+export const TestCaseVersionCoverageSummarySchema = z.object({
+  id: z.string().uuid(),
+  revision: z.number().int().positive(),
+  lifecycleStatus: TestCaseDefinitionStatusSchema,
+  mappedCount: z.number().int().nonnegative(),
+  excludedCount: z.number().int().nonnegative(),
+  createdAt: z.string().datetime(),
+});
+export type TestCaseVersionCoverageSummary = z.infer<typeof TestCaseVersionCoverageSummarySchema>;
 
 // Spreadsheet import types
 export const TestCaseImportModeSchema = z.enum(['create_only', 'update']);

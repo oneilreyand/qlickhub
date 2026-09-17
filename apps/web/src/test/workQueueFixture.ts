@@ -28,6 +28,7 @@ function item(
     reason: overrides.reason || 'This frontend subtask is assigned to you and is in progress.',
     nextAction: overrides.nextAction || { code: 'continue_subtask', label: 'Continue Subtask' },
     status: overrides.status || 'in_progress',
+    workState: overrides.workState || 'actionable',
     priority: overrides.priority === undefined ? 'high' : overrides.priority,
     dueDate: overrides.dueDate === undefined ? '2026-08-24' : overrides.dueDate,
     sourceUpdatedAt: overrides.sourceUpdatedAt || '2026-08-22T10:00:00.000Z',

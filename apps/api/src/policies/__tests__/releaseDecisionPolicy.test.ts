@@ -9,11 +9,9 @@ import {
 } from '../releaseDecisionPolicy.js';
 
 describe('Release Decision policy', () => {
-  test('allows only QA assurance roles to create QA Sign-off', () => {
-    for (const role of ['owner', 'admin', 'qa'] as const) {
-      assert.doesNotThrow(() => assertCanCreateQaSignOff(role));
-    }
-    for (const role of ['po', 'dev'] as const) {
+  test('allows only QA to create a QA Sign-off; assignment is enforced by the service', () => {
+    assert.doesNotThrow(() => assertCanCreateQaSignOff('qa'));
+    for (const role of ['owner', 'admin', 'po', 'dev'] as const) {
       assert.throws(() => assertCanCreateQaSignOff(role), /FORBIDDEN/);
     }
   });

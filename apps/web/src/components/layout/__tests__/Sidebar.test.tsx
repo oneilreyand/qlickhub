@@ -68,14 +68,14 @@ function renderSidebar(role: 'owner' | 'admin' | 'po' | 'dev' | 'qa', initialPat
 }
 
 describe('Sidebar Role-based Visibility', () => {
-  it('hides Pengaturan Workspace and Galeri Komponen for dev and qa roles', () => {
+  it('shows Pengaturan Workspace but hides Galeri Komponen for dev and qa roles', () => {
     const { unmount } = renderSidebar('dev');
-    expect(screen.queryByText('Pengaturan Workspace')).toBeNull();
+    expect(screen.getByText('Pengaturan Workspace')).toBeInTheDocument();
     expect(screen.queryByText('Galeri Komponen')).toBeNull();
     unmount();
 
     renderSidebar('qa');
-    expect(screen.queryByText('Pengaturan Workspace')).toBeNull();
+    expect(screen.getByText('Pengaturan Workspace')).toBeInTheDocument();
     expect(screen.queryByText('Galeri Komponen')).toBeNull();
   });
 

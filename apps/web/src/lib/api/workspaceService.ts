@@ -11,6 +11,8 @@ import {
   WorkspaceRole,
   WorkspaceWithRole,
   WorkspaceMember,
+  QaAssuranceRolloutSettings,
+  UpdateQaAssuranceRolloutSettingsInput,
 } from '@qlick/contracts';
 
 export type WorkspaceItem = Omit<WorkspaceWithRole, 'allowQaTaskCreation' | 'role'> & {
@@ -108,5 +110,26 @@ export const workspaceService = {
     await apiClient(`/workspaces/${workspaceId}/members/${memberUserId}`, {
       method: 'DELETE',
     });
+  },
+
+  async getQaAssuranceRollout(workspaceId: string): Promise<QaAssuranceRolloutSettings> {
+    const res = await apiClient<{ data: QaAssuranceRolloutSettings }>(
+      `/workspaces/${workspaceId}/qa-assurance-rollout`,
+    );
+    return res.data;
+  },
+
+  async updateQaAssuranceRollout(
+    workspaceId: string,
+    input: UpdateQaAssuranceRolloutSettingsInput,
+  ): Promise<QaAssuranceRolloutSettings> {
+    const res = await apiClient<{ data: QaAssuranceRolloutSettings }>(
+      `/workspaces/${workspaceId}/qa-assurance-rollout`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.data;
   },
 };

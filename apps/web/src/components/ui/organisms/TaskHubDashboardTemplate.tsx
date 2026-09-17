@@ -102,17 +102,18 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     [workspaces, activeWorkspaceId],
   );
 
+  // The shared list can still hold an earlier route's all-task result for one render.
+  // Task Hub only presents root Features from the active Workspace.
+  const hubTasks = useMemo(
+    () => tasks.filter((task) => task.workspaceId === activeWorkspaceId && !task.parentTaskId),
+    [activeWorkspaceId, tasks],
+  );
+
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId) || null,
     [tasks, selectedTaskId],
   );
-  const workspaceFeatureTaskIds = useMemo(
-    () =>
-      tasks
-        .filter((task) => task.workspaceId === activeWorkspaceId && !task.parentTaskId)
-        .map((task) => task.id),
-    [activeWorkspaceId, tasks],
-  );
+  const workspaceFeatureTaskIds = useMemo(() => hubTasks.map((task) => task.id), [hubTasks]);
   const { stateByFeatureTaskId: releaseReadinessStateByTaskId, reload: reloadReleaseReadiness } =
     useReleaseReadinessMap(activeWorkspaceId || undefined, workspaceFeatureTaskIds);
 
@@ -392,7 +393,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
 
   // Client-side search and status filter
   const visibleTasks = useMemo(() => {
-    return tasks.filter((task) => {
+    return hubTasks.filter((task) => {
       const matchesSearch =
         !debouncedSearchQuery ||
         task.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
@@ -406,13 +407,13 @@ export const TaskHubDashboardTemplate: React.FC = () => {
 
       return matchesSearch && matchesStatus;
     });
-  }, [tasks, debouncedSearchQuery, statusFilter]);
+  }, [hubTasks, debouncedSearchQuery, statusFilter]);
 
   // Metrics calculation
-  const totalTasksCount = tasks.length;
-  const doneCount = tasks.filter((t) => t.status === 'done').length;
-  const inReviewCount = tasks.filter((t) => t.status === 'in_review').length;
-  const urgentCount = tasks.filter(
+  const totalTasksCount = hubTasks.length;
+  const doneCount = hubTasks.filter((t) => t.status === 'done').length;
+  const inReviewCount = hubTasks.filter((t) => t.status === 'in_review').length;
+  const urgentCount = hubTasks.filter(
     (t) => t.priority === 'urgent' || t.status === 'canceled',
   ).length;
   const donePercentage = totalTasksCount > 0 ? Math.round((doneCount / totalTasksCount) * 100) : 0;
@@ -461,7 +462,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 <FolderTree
                   folders={folders}
                   selectedFolderId={selectedFolderId}
-                  totalTasks={tasks.length}
+                  totalTasks={hubTasks.length}
                   isLoading={isFolderLoading}
                   error={folderError}
                   userRole={activeWorkspace?.role}
@@ -544,7 +545,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         <FolderTree
           folders={folders}
           selectedFolderId={selectedFolderId}
-          totalTasks={tasks.length}
+          totalTasks={hubTasks.length}
           isLoading={isFolderLoading}
           error={folderError}
           userRole={activeWorkspace?.role}

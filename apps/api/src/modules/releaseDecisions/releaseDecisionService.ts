@@ -7,7 +7,7 @@ import type {
   CreateReleaseDecisionInput,
   FeatureReleaseRecords,
   QaSignOff,
-  ReadinessSnapshotV2,
+  ReadinessSnapshotV3,
   ReleaseDecision,
   WorkspaceReleaseReadiness,
 } from '@qlick/contracts';
@@ -25,7 +25,8 @@ import {
   TestCaseRequirementModel,
   TestResultModel,
   TestRunModel,
-  UserModel,
+  QaTestCycleModel,
+  WorkspaceMemberModel,
 } from '../../db/models/index.js';
 import {
   assertCanCancelQaSignOff,
@@ -35,15 +36,20 @@ import {
   assertIndependentReleaseDecision,
 } from '../../policies/releaseDecisionPolicy.js';
 import { evaluateReadinessGates } from './readinessGateEvaluator.js';
-import { fcmService } from '../../services/fcmService.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import { iso } from '../../utils/dateUtils.js';
+import { assertQaCompletionGate } from './qaEvidenceCompletionGate.js';
+import { reliableNotificationOutboxService } from '../notifications/reliableNotificationOutboxService.js';
 
 function formatQaSignOff(signOff: QaSignOffModel): QaSignOff {
   return {
     id: signOff.id,
     workspaceId: signOff.workspaceId,
     featureTaskId: signOff.featureTaskId,
+    qaSubtaskId: signOff.qaSubtaskId || null,
+    testCycleId: signOff.testCycleId || null,
+    readinessBaselineId: signOff.readinessBaselineId || null,
+    candidateFingerprint: signOff.candidateFingerprint || null,
     decision: signOff.decision,
     notes: signOff.notes || null,
     readinessSnapshot: signOff.readinessSnapshot,
@@ -67,6 +73,9 @@ function formatReleaseDecision(decision: ReleaseDecisionModel): ReleaseDecision 
     workspaceId: decision.workspaceId,
     featureTaskId: decision.featureTaskId,
     qaSignOffId: decision.qaSignOffId,
+    testCycleId: decision.testCycleId || null,
+    readinessBaselineId: decision.readinessBaselineId || null,
+    candidateFingerprint: decision.candidateFingerprint || null,
     decision: decision.decision,
     notes: decision.notes || null,
     overrideReason: decision.overrideReason || null,
@@ -86,7 +95,17 @@ function formatReleaseDecision(decision: ReleaseDecisionModel): ReleaseDecision 
 }
 
 type RunWithResult = TestRunModel & { result?: TestResultModel | null };
-type QaSignOffSnapshotReference = Pick<QaSignOffModel, 'id' | 'decision' | 'signedBy' | 'signedAt'>;
+type QaSignOffSnapshotReference = Pick<
+  QaSignOffModel,
+  | 'id'
+  | 'decision'
+  | 'signedBy'
+  | 'signedAt'
+  | 'qaSubtaskId'
+  | 'testCycleId'
+  | 'readinessBaselineId'
+  | 'candidateFingerprint'
+>;
 
 export class ReleaseDecisionService {
   async listWorkspaceReleaseReadiness(
@@ -199,6 +218,51 @@ export class ReleaseDecisionService {
     const signOff = await sequelize.transaction(async (transaction) => {
       const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanCreateQaSignOff(membership.role);
+      if (!input.testCycleId) {
+        throw new Error('BAD_REQUEST: QA Sign-off requires a scoped Test Cycle.');
+      }
+
+      const cycle = await QaTestCycleModel.findOne({
+        where: {
+          id: input.testCycleId,
+          workspaceId: input.workspaceId,
+          featureTaskId: input.featureTaskId,
+          ownerQaId: actorId,
+          status: { [Op.in]: ['planned', 'in_progress'] },
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!cycle) {
+        throw new Error(
+          'FORBIDDEN: QA Sign-off must use an active Test Cycle owned by the QA assignee.',
+        );
+      }
+      const qaSubtask = await TaskModel.findOne({
+        where: {
+          id: cycle.qaSubtaskId,
+          workspaceId: input.workspaceId,
+          parentTaskId: input.featureTaskId,
+          deliveryArea: 'qa',
+          assigneeId: actorId,
+          status: 'done',
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!qaSubtask) {
+        throw new Error(
+          'CONFLICT: QA Sign-off requires the assigned QA Subtask to be completed first.',
+        );
+      }
+      await assertQaCompletionGate(
+        input.workspaceId,
+        input.featureTaskId,
+        cycle.qaSubtaskId,
+        actorId,
+        transaction,
+        cycle.id,
+      );
 
       const id = randomUUID();
       const signedAt = new Date();
@@ -206,7 +270,16 @@ export class ReleaseDecisionService {
         input.workspaceId,
         input.featureTaskId,
         signedAt,
-        { id, decision: input.decision, signedBy: actorId, signedAt },
+        {
+          id,
+          decision: input.decision,
+          signedBy: actorId,
+          signedAt,
+          qaSubtaskId: cycle.qaSubtaskId,
+          testCycleId: cycle.id,
+          readinessBaselineId: cycle.readinessBaselineId,
+          candidateFingerprint: cycle.candidateFingerprint,
+        },
         transaction,
       );
 
@@ -215,6 +288,10 @@ export class ReleaseDecisionService {
           id,
           workspaceId: input.workspaceId,
           featureTaskId: input.featureTaskId,
+          qaSubtaskId: cycle.qaSubtaskId,
+          testCycleId: cycle.id,
+          readinessBaselineId: cycle.readinessBaselineId,
+          candidateFingerprint: cycle.candidateFingerprint,
           decision: input.decision,
           notes: input.notes || null,
           readinessSnapshot,
@@ -241,38 +318,67 @@ export class ReleaseDecisionService {
         { transaction },
       );
 
-      return created;
+      const [feature, qaSubtaskForRecipients, developerSubtasks, activeWorkspaceMembers] =
+        await Promise.all([
+          TaskModel.findByPk(input.featureTaskId, {
+            attributes: ['id', 'title', 'reporterId', 'assigneeId'],
+            transaction,
+          }),
+          TaskModel.findByPk(cycle.qaSubtaskId, {
+            attributes: ['assigneeId'],
+            transaction,
+          }),
+          TaskModel.findAll({
+            where: {
+              workspaceId: input.workspaceId,
+              parentTaskId: input.featureTaskId,
+              deliveryArea: { [Op.ne]: 'qa' },
+              assigneeId: { [Op.ne]: null },
+            },
+            attributes: ['assigneeId'],
+            transaction,
+          }),
+          WorkspaceMemberModel.findAll({
+            where: { workspaceId: input.workspaceId },
+            attributes: ['userId', 'role'],
+            transaction,
+          }),
+        ]);
+      const activeMemberIds = new Set(activeWorkspaceMembers.map((member) => member.userId));
+      const recipientIds = [
+        feature?.reporterId,
+        feature?.assigneeId,
+        qaSubtaskForRecipients?.assigneeId,
+        ...developerSubtasks.map((task) => task.assigneeId),
+        ...activeWorkspaceMembers
+          .filter((member) => ['owner', 'admin', 'po'].includes(member.role))
+          .map((member) => member.userId),
+      ].filter((recipientId): recipientId is string =>
+        Boolean(recipientId && recipientId !== actorId && activeMemberIds.has(recipientId)),
+      );
+      const outboxIds = await reliableNotificationOutboxService.enqueue(
+        `qa-sign-off:${created.id}`,
+        [...new Set(recipientIds)].map((userId) => ({
+          userId,
+          workspaceId: input.workspaceId,
+          taskId: input.featureTaskId,
+          actorId,
+          type: 'qa_signoff',
+          title: 'QA Sign-off Selesai',
+          message: `QA Sign-off untuk "${feature?.title || 'Feature'}" telah dicatat.`,
+          payload: {
+            qaSignOffId: created.id,
+            featureTaskId: input.featureTaskId,
+            testCycleId: cycle.id,
+          },
+        })),
+        transaction,
+      );
+      return { created, outboxIds };
     });
 
-    const result = formatQaSignOff(signOff);
-
-    Promise.all([
-      TaskModel.findByPk(input.featureTaskId, {
-        attributes: ['id', 'title', 'reporterId', 'assigneeId'],
-      }),
-      UserModel.findByPk(actorId, { attributes: ['id', 'name', 'email'] }),
-    ])
-      .then(([task, actor]) => {
-        if (task) {
-          const actorName = actor?.name || actor?.email || 'QA Reviewer';
-          const recipients = [task.reporterId, task.assigneeId].filter((id): id is string =>
-            Boolean(id && id !== actorId),
-          );
-          if (recipients.length > 0) {
-            fcmService
-              .sendQaSignOffNotification({
-                recipientUserIds: Array.from(new Set(recipients)),
-                qaName: actorName,
-                qaId: actorId,
-                taskTitle: task.title,
-                taskId: task.id,
-                workspaceId: input.workspaceId,
-              })
-              .catch((err) => console.warn('⚠️ Failed to dispatch QA sign-off notification:', err));
-          }
-        }
-      })
-      .catch(() => {});
+    void reliableNotificationOutboxService.dispatch(signOff.outboxIds);
+    const result = formatQaSignOff(signOff.created);
 
     return result;
   }
@@ -440,6 +546,30 @@ export class ReleaseDecisionService {
 
       assertIndependentReleaseDecision(actorId, signOff.signedBy);
 
+      if (
+        !signOff.qaSubtaskId ||
+        !signOff.testCycleId ||
+        !signOff.readinessBaselineId ||
+        !signOff.candidateFingerprint
+      ) {
+        throw new Error(
+          'CONFLICT: Release Decision requires a scoped QA Sign-off created after the evidence-gate cutover.',
+        );
+      }
+      const completionGate = await assertQaCompletionGate(
+        input.workspaceId,
+        input.featureTaskId,
+        signOff.qaSubtaskId,
+        signOff.signedBy,
+        transaction,
+        signOff.testCycleId,
+      );
+      if (completionGate.candidateFingerprint !== signOff.candidateFingerprint) {
+        throw new Error(
+          'CONFLICT: QA Sign-off candidate does not match the current scoped evidence.',
+        );
+      }
+
       const decidedAt = new Date();
       const readinessSnapshot = await this.captureReadinessSnapshot(
         input.workspaceId,
@@ -465,6 +595,9 @@ export class ReleaseDecisionService {
           workspaceId: input.workspaceId,
           featureTaskId: input.featureTaskId,
           qaSignOffId: signOff.id,
+          testCycleId: signOff.testCycleId,
+          readinessBaselineId: signOff.readinessBaselineId,
+          candidateFingerprint: signOff.candidateFingerprint,
           decision: input.decision,
           notes: input.notes || null,
           overrideReason: input.overrideReason || null,
@@ -494,44 +627,67 @@ export class ReleaseDecisionService {
         { transaction },
       );
 
-      return created;
+      const [feature, qaSubtask, developerSubtasks, activeWorkspaceMembers] = await Promise.all([
+        TaskModel.findByPk(input.featureTaskId, {
+          attributes: ['id', 'title', 'reporterId', 'assigneeId'],
+          transaction,
+        }),
+        signOff.qaSubtaskId
+          ? TaskModel.findByPk(signOff.qaSubtaskId, { attributes: ['assigneeId'], transaction })
+          : Promise.resolve(null),
+        TaskModel.findAll({
+          where: {
+            workspaceId: input.workspaceId,
+            parentTaskId: input.featureTaskId,
+            deliveryArea: { [Op.ne]: 'qa' },
+            assigneeId: { [Op.ne]: null },
+          },
+          attributes: ['assigneeId'],
+          transaction,
+        }),
+        WorkspaceMemberModel.findAll({
+          where: { workspaceId: input.workspaceId },
+          attributes: ['userId', 'role'],
+          transaction,
+        }),
+      ]);
+      const activeMemberIds = new Set(activeWorkspaceMembers.map((member) => member.userId));
+      const recipientIds = [
+        feature?.reporterId,
+        feature?.assigneeId,
+        qaSubtask?.assigneeId,
+        signOff.signedBy,
+        ...developerSubtasks.map((task) => task.assigneeId),
+        ...activeWorkspaceMembers
+          .filter((member) => ['owner', 'admin', 'po'].includes(member.role))
+          .map((member) => member.userId),
+      ].filter((recipientId): recipientId is string =>
+        Boolean(recipientId && recipientId !== actorId && activeMemberIds.has(recipientId)),
+      );
+      const outboxIds = await reliableNotificationOutboxService.enqueue(
+        `release-decision:${created.id}`,
+        [...new Set(recipientIds)].map((userId) => ({
+          userId,
+          workspaceId: input.workspaceId,
+          taskId: input.featureTaskId,
+          actorId,
+          type: 'release_decision',
+          title: `Keputusan Rilis: ${created.decision.toUpperCase()}`,
+          message: `Keputusan rilis ${created.decision} untuk "${feature?.title || 'Feature'}" telah dicatat.`,
+          payload: {
+            releaseDecisionId: created.id,
+            qaSignOffId: signOff.id,
+            featureTaskId: input.featureTaskId,
+            testCycleId: signOff.testCycleId!,
+          },
+        })),
+        transaction,
+      );
+      return { created, outboxIds };
     });
 
-    const result = formatReleaseDecision(releaseDecision);
-
-    Promise.all([
-      TaskModel.findByPk(input.featureTaskId, {
-        attributes: ['id', 'title', 'reporterId', 'assigneeId'],
-      }),
-      UserModel.findByPk(actorId, { attributes: ['id', 'name', 'email'] }),
-    ])
-      .then(([task, actor]) => {
-        if (task) {
-          const actorName = actor?.name || actor?.email || 'Product Owner';
-          const recipients = [task.reporterId, task.assigneeId].filter((id): id is string =>
-            Boolean(id && id !== actorId),
-          );
-          if (recipients.length > 0) {
-            fcmService
-              .sendReleaseDecisionNotification({
-                recipientUserIds: Array.from(new Set(recipients)),
-                poName: actorName,
-                poId: actorId,
-                taskTitle: task.title,
-                taskId: task.id,
-                workspaceId: input.workspaceId,
-                decision: input.decision,
-                reason: input.overrideReason || input.notes || undefined,
-              })
-              .catch((err) =>
-                console.warn('⚠️ Failed to dispatch release decision notification:', err),
-              );
-          }
-        }
-      })
-      .catch(() => {});
-
-    return result;
+    void reliableNotificationOutboxService.dispatch(releaseDecision.outboxIds);
+    return formatReleaseDecision(releaseDecision.created);
   }
 
   async cancelReleaseDecision(
@@ -632,7 +788,7 @@ export class ReleaseDecisionService {
     capturedAt: Date,
     latestSignOffByFeatureId: Map<string, QaSignOffModel>,
     transaction: Transaction,
-  ): Promise<Map<string, ReadinessSnapshotV2>> {
+  ): Promise<Map<string, ReadinessSnapshotV3>> {
     const featureTaskIds = featureTasks.map((task) => task.id);
     const subtasks = await TaskModel.findAll({
       where: { workspaceId, parentTaskId: { [Op.in]: featureTaskIds } },
@@ -780,8 +936,8 @@ export class ReleaseDecisionService {
               }
             : null,
         };
-        const snapshot: ReadinessSnapshotV2 = {
-          schemaVersion: 2,
+        const snapshot: ReadinessSnapshotV3 = {
+          schemaVersion: 3,
           capturedAt: iso(capturedAt),
           featureTask: {
             id: featureTask.id,
@@ -795,6 +951,12 @@ export class ReleaseDecisionService {
           },
           ...snapshotFacts,
           evaluation: evaluateReadinessGates(snapshotFacts),
+          evidenceScope: {
+            qaSubtaskId: qaSignOff?.qaSubtaskId || null,
+            testCycleId: qaSignOff?.testCycleId || null,
+            readinessBaselineId: qaSignOff?.readinessBaselineId || null,
+            candidateFingerprint: qaSignOff?.candidateFingerprint || null,
+          },
         };
         return [featureTaskId, snapshot] as const;
       }),
@@ -807,7 +969,7 @@ export class ReleaseDecisionService {
     capturedAt: Date,
     qaSignOff: QaSignOffSnapshotReference | null,
     transaction: Transaction,
-  ): Promise<ReadinessSnapshotV2> {
+  ): Promise<ReadinessSnapshotV3> {
     const featureTask = await this.getFeatureTask(workspaceId, featureTaskId, transaction);
     const subtasks = await TaskModel.findAll({
       where: { workspaceId, parentTaskId: featureTaskId },
@@ -917,7 +1079,7 @@ export class ReleaseDecisionService {
     };
 
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       capturedAt: iso(capturedAt),
       featureTask: {
         id: featureTask.id,
@@ -931,6 +1093,12 @@ export class ReleaseDecisionService {
       },
       ...snapshotFacts,
       evaluation: evaluateReadinessGates(snapshotFacts),
+      evidenceScope: {
+        qaSubtaskId: qaSignOff?.qaSubtaskId || null,
+        testCycleId: qaSignOff?.testCycleId || null,
+        readinessBaselineId: qaSignOff?.readinessBaselineId || null,
+        candidateFingerprint: qaSignOff?.candidateFingerprint || null,
+      },
     };
   }
 }

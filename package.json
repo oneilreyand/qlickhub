@@ -31,6 +31,8 @@
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "dev:api": "npm --prefix apps/api run dev",
     "build:api": "npm --prefix apps/api run build",
+    "notifications:dispatch": "npm --prefix apps/api run notifications:dispatch",
+    "notifications:admin": "npm --prefix apps/api run notifications:admin --",
     "typecheck:api": "npm --prefix apps/api run typecheck",
     "db:migrate": "npm --prefix apps/api run db:migrate",
     "db:migrate:prod": "NODE_ENV=production npm --prefix apps/api run db:migrate",

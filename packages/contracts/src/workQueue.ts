@@ -34,8 +34,16 @@ export const WorkQueueNextActionCodeSchema = z.enum([
   'resume_qa_task',
   'verify_bug_fix',
   'record_qa_sign_off',
+  'view_context',
 ]);
 export type WorkQueueNextActionCode = z.infer<typeof WorkQueueNextActionCodeSchema>;
+
+/**
+ * Presentation state derived by the backend from the same persisted capability
+ * checks that guard the eventual mutation. It is never an authorization grant.
+ */
+export const WorkQueueItemStateSchema = z.enum(['actionable', 'blocked', 'read_only']);
+export type WorkQueueItemState = z.infer<typeof WorkQueueItemStateSchema>;
 
 export const WorkQueueItemSchema = z.object({
   id: z.string().trim().min(1).max(500),
@@ -50,6 +58,7 @@ export const WorkQueueItemSchema = z.object({
     label: z.string().trim().min(1).max(100),
   }),
   status: z.string().trim().min(1).max(50),
+  workState: WorkQueueItemStateSchema.default('actionable'),
   priority: TaskPrioritySchema.nullable(),
   dueDate: z.string().date().nullable(),
   sourceUpdatedAt: z.string().datetime(),

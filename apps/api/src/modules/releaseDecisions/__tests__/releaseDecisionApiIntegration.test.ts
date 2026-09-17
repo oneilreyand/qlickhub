@@ -5,14 +5,25 @@ import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
   BugModel,
+  AcceptanceCriterionModel,
+  FeatureReadinessBaselineModel,
+  FeatureReadinessBaselineRequirementModel,
+  QaDocumentModel,
+  QaDocumentVersionModel,
+  QaTestCycleModel,
   QaSignOffModel,
   ReleaseDecisionModel,
   RequirementModel,
   TaskActivityModel,
+  TaskAttachmentModel,
   TaskModel,
   TaskRequirementModel,
   TestCaseModel,
   TestCaseRequirementModel,
+  TestCaseVersionAcceptanceCriterionModel,
+  TestCaseVersionModel,
+  TestResultEvidenceManifestModel,
+  TestResultEvidenceModel,
   TestResultModel,
   TestRunModel,
   UserModel,
@@ -34,6 +45,8 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
   let workspaceB: WorkspaceModel;
   let featureA: TaskModel;
   let featureB: TaskModel;
+  let qaSubtask: TaskModel;
+  let testCycle: QaTestCycleModel;
   let qaSignOffId: string;
   let releaseDecisionId: string;
   let ownerCookie: string;
@@ -121,28 +134,26 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
       reporterId: po.id,
       reviewNotes: null,
     });
-    await TaskModel.bulkCreate([
-      {
-        workspaceId: workspaceA.id,
-        parentTaskId: featureA.id,
-        deliveryArea: 'backend',
-        title: 'Checkout API',
-        priority: 'high',
-        status: 'done',
-        reporterId: po.id,
-        assigneeId: dev.id,
-      },
-      {
-        workspaceId: workspaceA.id,
-        parentTaskId: featureA.id,
-        deliveryArea: 'qa',
-        title: 'Checkout regression',
-        priority: 'high',
-        status: 'done',
-        reporterId: po.id,
-        assigneeId: qa.id,
-      },
-    ]);
+    await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: featureA.id,
+      deliveryArea: 'backend',
+      title: 'Checkout API',
+      priority: 'high',
+      status: 'done',
+      reporterId: po.id,
+      assigneeId: dev.id,
+    });
+    qaSubtask = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: featureA.id,
+      deliveryArea: 'qa',
+      title: 'Checkout regression',
+      priority: 'high',
+      status: 'done',
+      reporterId: po.id,
+      assigneeId: qa.id,
+    });
     featureB = await TaskModel.create({
       workspaceId: workspaceB.id,
       title: 'Other Workspace Feature',
@@ -163,6 +174,43 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
       requirementId: requirement.id,
       linkedBy: po.id,
     });
+    const criterion = await AcceptanceCriterionModel.create({
+      workspaceId: workspaceA.id,
+      requirementId: requirement.id,
+      sequence: 1,
+      text: 'A successful checkout shows exactly one confirmation.',
+      createdBy: po.id,
+    });
+    const brief = await QaDocumentModel.create({
+      workspaceId: workspaceA.id,
+      title: 'Checkout release baseline',
+      docType: 'product_brief',
+      status: 'approved',
+      createdBy: po.id,
+      ownerId: po.id,
+      currentVersion: 1,
+    });
+    const briefVersion = await QaDocumentVersionModel.create({
+      workspaceId: workspaceA.id,
+      documentId: brief.id,
+      version: 1,
+      title: brief.title,
+      contentMarkdown: 'Contract-valid release baseline.',
+      createdBy: po.id,
+    });
+    const baseline = await FeatureReadinessBaselineModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: featureA.id,
+      sequence: 1,
+      productBriefVersionId: briefVersion.id,
+      snapshot: { schemaVersion: 1, fixture: 'release-decision' } as any,
+      establishedBy: po.id,
+    });
+    await FeatureReadinessBaselineRequirementModel.create({
+      workspaceId: workspaceA.id,
+      baselineId: baseline.id,
+      requirementId: requirement.id,
+    });
     const testCase = await TestCaseModel.create({
       workspaceId: workspaceA.id,
       title: 'Returning customer checkout',
@@ -176,21 +224,96 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
       requirementId: requirement.id,
       linkedBy: qa.id,
     });
+    const testCaseVersion = await TestCaseVersionModel.create({
+      workspaceId: workspaceA.id,
+      testCaseId: testCase.id,
+      revision: 1,
+      lifecycleStatus: 'active',
+      definitionSnapshot: { requirementIds: [requirement.id], title: testCase.title },
+      authoredBy: qa.id,
+      publishedBy: po.id,
+      publishedAt: new Date(),
+    });
+    await TestCaseVersionAcceptanceCriterionModel.create({
+      workspaceId: workspaceA.id,
+      testCaseVersionId: testCaseVersion.id,
+      acceptanceCriterionId: criterion.id,
+      mappingStatus: 'mapped',
+      mappedBy: qa.id,
+    });
+    testCycle = await QaTestCycleModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: featureA.id,
+      qaSubtaskId: qaSubtask.id,
+      readinessBaselineId: baseline.id,
+      candidateFingerprint: 'commit:checkout-release-1',
+      build: 'checkout-2026.08.22.1',
+      environment: 'staging',
+      status: 'in_progress',
+      ownerQaId: qa.id,
+    });
     const run = await TestRunModel.create({
       workspaceId: workspaceA.id,
       testCaseId: testCase.id,
+      testCaseVersionId: testCaseVersion.id,
+      featureTaskId: featureA.id,
+      qaSubtaskId: qaSubtask.id,
+      testCycleId: testCycle.id,
+      readinessBaselineId: baseline.id,
+      candidateFingerprint: testCycle.candidateFingerprint,
       build: 'checkout-2026.08.22.1',
       environment: 'staging',
       status: 'completed',
       executorId: qa.id,
       completedAt: new Date(),
     });
-    await TestResultModel.create({
+    const result = await TestResultModel.create({
       workspaceId: workspaceA.id,
       testRunId: run.id,
       status: 'passed',
       executorId: qa.id,
       actualResult: 'Checkout confirmation displayed.',
+    });
+    const evidence = await TaskAttachmentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: featureA.id,
+      fileName: 'checkout-release-pass.png',
+      fileSize: 1024,
+      mimeType: 'image/png',
+      storageRef: `integration-fixture/${stamp}/checkout-release-pass.png`,
+      storageProvider: 'local',
+      category: 'qa_evidence',
+      uploaderId: qa.id,
+    });
+    await TestResultEvidenceModel.create({
+      workspaceId: workspaceA.id,
+      testResultId: result.id,
+      attachmentId: evidence.id,
+      linkedBy: qa.id,
+    });
+    await TestResultEvidenceManifestModel.create({
+      workspaceId: workspaceA.id,
+      testResultId: result.id,
+      sequence: 1,
+      kind: 'initial',
+      itemCount: 1,
+      imageCount: 1,
+      videoCount: 0,
+      readyCount: 1,
+      evidenceSnapshot: [
+        {
+          evidenceType: 'attachment',
+          evidenceId: evidence.id,
+          mediaKind: 'image',
+          previewStatus: 'ready',
+          provider: 'local',
+          fileName: evidence.fileName,
+          url: null,
+          normalizedUrl: null,
+          taskId: featureA.id,
+        },
+      ],
+      sealedBy: qa.id,
     });
 
     ownerCookie = await authCookie(owner);
@@ -208,11 +331,26 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
       await QaSignOffModel.destroy({ where: { workspaceId: workspace.id }, force: true });
       await TaskActivityModel.destroy({ where: { workspaceId: workspace.id } });
       await BugModel.destroy({ where: { workspaceId: workspace.id } });
+      await TestResultEvidenceManifestModel.destroy({ where: { workspaceId: workspace.id } });
+      await TestResultEvidenceModel.destroy({ where: { workspaceId: workspace.id } });
       await TestResultModel.destroy({ where: { workspaceId: workspace.id } });
       await TestRunModel.destroy({ where: { workspaceId: workspace.id } });
+      await QaTestCycleModel.destroy({ where: { workspaceId: workspace.id } });
+      await TestCaseVersionAcceptanceCriterionModel.destroy({
+        where: { workspaceId: workspace.id },
+      });
+      await TestCaseVersionModel.destroy({ where: { workspaceId: workspace.id } });
       await TestCaseRequirementModel.destroy({ where: { workspaceId: workspace.id } });
       await TestCaseModel.destroy({ where: { workspaceId: workspace.id } });
+      await TaskAttachmentModel.destroy({ where: { workspaceId: workspace.id } });
+      await FeatureReadinessBaselineRequirementModel.destroy({
+        where: { workspaceId: workspace.id },
+      });
+      await FeatureReadinessBaselineModel.destroy({ where: { workspaceId: workspace.id } });
       await TaskRequirementModel.destroy({ where: { workspaceId: workspace.id } });
+      await AcceptanceCriterionModel.destroy({ where: { workspaceId: workspace.id } });
+      await QaDocumentVersionModel.destroy({ where: { workspaceId: workspace.id } });
+      await QaDocumentModel.destroy({ where: { workspaceId: workspace.id } });
       await TaskModel.destroy({ where: { workspaceId: workspace.id } });
       await RequirementModel.destroy({ where: { workspaceId: workspace.id } });
       await WorkspaceModel.destroy({ where: { id: workspace.id } });
@@ -228,7 +366,11 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-        body: JSON.stringify({ decision: 'approved', notes: 'Regression passed on staging.' }),
+        body: JSON.stringify({
+          testCycleId: testCycle.id,
+          decision: 'approved',
+          notes: 'Regression passed on staging.',
+        }),
       },
     );
     assert.strictEqual(response.status, 201);
@@ -391,37 +533,30 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
     assert.strictEqual(outsiderBatchRead.status, 403);
   });
 
-  test('rejects self-approval and stale QA certification', async () => {
+  test('rejects non-QA sign-off attempts and self-approval', async () => {
     const ownerSignOff = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/features/${featureA.id}/qa-sign-offs`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: ownerCookie },
-        body: JSON.stringify({ decision: 'approved', notes: 'Owner fallback QA certification.' }),
+        body: JSON.stringify({
+          testCycleId: testCycle.id,
+          decision: 'approved',
+          notes: 'Owner fallback QA certification.',
+        }),
       },
     );
-    assert.strictEqual(ownerSignOff.status, 201);
-    const ownerSignOffBody = (await ownerSignOff.json()) as { qaSignOff: { id: string } };
+    assert.strictEqual(ownerSignOff.status, 403);
 
     const selfApproval = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/features/${featureA.id}/release-decisions`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Cookie: ownerCookie },
-        body: JSON.stringify({ qaSignOffId: ownerSignOffBody.qaSignOff.id, decision: 'approved' }),
-      },
-    );
-    assert.strictEqual(selfApproval.status, 403);
-
-    const staleApproval = await fetch(
-      `${baseUrl}/workspaces/${workspaceA.id}/features/${featureA.id}/release-decisions`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
         body: JSON.stringify({ qaSignOffId, decision: 'approved' }),
       },
     );
-    assert.strictEqual(staleApproval.status, 409);
+    assert.strictEqual(selfApproval.status, 403);
   });
 
   test('requires an explicit reason when Product Owner overrides rejected QA certification', async () => {
@@ -431,6 +566,7 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
         body: JSON.stringify({
+          testCycleId: testCycle.id,
           decision: 'rejected',
           notes: 'Blocked by unresolved release risk.',
         }),
@@ -475,7 +611,7 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
     );
   });
 
-  test('evaluates all persisted gates deterministically and preserves failed gates on PO override', async () => {
+  test('refuses QA Sign-off when the scoped evidence gate is incomplete', async () => {
     const gateFeature = await TaskModel.create({
       workspaceId: workspaceA.id,
       title: 'Readiness Gate Feature',
@@ -609,100 +745,9 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
         }),
       },
     );
-    assert.strictEqual(signOffResponse.status, 201);
-    const signOffBody = (await signOffResponse.json()) as {
-      qaSignOff: {
-        id: string;
-        readinessSnapshot: {
-          evaluation: { failedGateCodes: string[]; gates: Array<{ reason: string }> };
-        };
-      };
-    };
-    const expectedFailedGateCodes = [
-      'requirement_coverage',
-      'latest_test_results',
-      'critical_high_bugs',
-      'development_completion',
-      'qa_sign_off',
-    ];
-    assert.deepStrictEqual(
-      signOffBody.qaSignOff.readinessSnapshot.evaluation.failedGateCodes,
-      expectedFailedGateCodes,
-    );
-    assert.deepStrictEqual(
-      signOffBody.qaSignOff.readinessSnapshot.evaluation.gates.map((gate) => gate.reason),
-      [
-        '1/2 linked requirements are covered by active test cases.',
-        'Latest results: 0/1 passed, 1 failed, 0 blocked, 0 skipped, 0 unexecuted.',
-        '1 unverified Critical or High bug remains.',
-        '0/1 development subtasks are complete.',
-        'The latest QA Sign-off is rejected.',
-      ],
-    );
-
-    const currentResponse = await fetch(
-      `${baseUrl}/workspaces/${workspaceA.id}/features/${gateFeature.id}/release-records`,
-      { headers: { Cookie: poCookie } },
-    );
-    assert.strictEqual(currentResponse.status, 200);
-    const currentBody = (await currentResponse.json()) as {
-      records: { currentReadinessSnapshot: { evaluation: { failedGateCodes: string[] } } };
-    };
-    assert.deepStrictEqual(
-      currentBody.records.currentReadinessSnapshot.evaluation.failedGateCodes,
-      expectedFailedGateCodes,
-    );
-
-    const missingOverrideReason = await fetch(
-      `${baseUrl}/workspaces/${workspaceA.id}/features/${gateFeature.id}/release-decisions`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
-        body: JSON.stringify({ qaSignOffId: signOffBody.qaSignOff.id, decision: 'approved' }),
-      },
-    );
-    assert.strictEqual(missingOverrideReason.status, 400);
-
-    const overrideResponse = await fetch(
-      `${baseUrl}/workspaces/${workspaceA.id}/features/${gateFeature.id}/release-decisions`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
-        body: JSON.stringify({
-          qaSignOffId: signOffBody.qaSignOff.id,
-          decision: 'approved',
-          overrideReason: 'Controlled rollout approved with monitoring and rollback ownership.',
-        }),
-      },
-    );
-    assert.strictEqual(overrideResponse.status, 201);
-    const overrideBody = (await overrideResponse.json()) as {
-      releaseDecision: {
-        id: string;
-        readinessSnapshot: { evaluation: { ready: boolean; failedGateCodes: string[] } };
-      };
-    };
-    assert.strictEqual(overrideBody.releaseDecision.readinessSnapshot.evaluation.ready, false);
-    assert.deepStrictEqual(
-      overrideBody.releaseDecision.readinessSnapshot.evaluation.failedGateCodes,
-      expectedFailedGateCodes,
-    );
-    const persistedOverride = await ReleaseDecisionModel.findByPk(overrideBody.releaseDecision.id);
-    assert.deepStrictEqual(
-      persistedOverride?.readinessSnapshot.schemaVersion === 2
-        ? persistedOverride.readinessSnapshot.evaluation.failedGateCodes
-        : [],
-      expectedFailedGateCodes,
-    );
-    const overrideActivity = await TaskActivityModel.findOne({
-      where: { taskId: gateFeature.id, action: 'release.decision.created' },
-      order: [['createdAt', 'DESC']],
-    });
-    assert.strictEqual(overrideActivity?.metadataJson?.isOverride, true);
-    assert.deepStrictEqual(
-      overrideActivity?.metadataJson?.failedGateCodes,
-      expectedFailedGateCodes,
-    );
+    assert.strictEqual(signOffResponse.status, 400);
+    const rejectedBody = (await signOffResponse.json()) as { detail: string };
+    assert.match(rejectedBody.detail, /scoped Test Cycle/);
   });
 
   test('lists append-only history and PostgreSQL rejects mutation or cross-Workspace links', async () => {
@@ -714,7 +759,7 @@ describe('QA Sign-off and Release Decision HTTP/PostgreSQL integration (AGY-5.1)
     const listBody = (await list.json()) as {
       records: { qaSignOffs: unknown[]; releaseDecisions: unknown[] };
     };
-    assert.strictEqual(listBody.records.qaSignOffs.length, 3);
+    assert.strictEqual(listBody.records.qaSignOffs.length, 2);
     assert.strictEqual(listBody.records.releaseDecisions.length, 2);
 
     const persistedSignOff = await QaSignOffModel.findByPk(qaSignOffId);

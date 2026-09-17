@@ -7,18 +7,24 @@ import { TaskDocumentModel } from '../taskDocument.js';
 import { QaDocumentModel } from '../qaDocument.js';
 import { QaDocumentVersionModel } from '../qaDocumentVersion.js';
 import { TestCaseModel } from '../testCase.js';
+import { TestCaseVersionModel } from '../testCaseVersion.js';
+import { TestCaseVersionAcceptanceCriterionModel } from '../testCaseVersionAcceptanceCriterion.js';
+import { QaTestCycleModel } from '../qaTestCycle.js';
 import { TestCaseRequirementModel } from '../testCaseRequirement.js';
 import { TestRunModel } from '../testRun.js';
 import { TestResultModel } from '../testResult.js';
 import { TestResultEvidenceModel } from '../testResultEvidence.js';
 import { TestResultEvidenceLinkModel } from '../testResultEvidenceLink.js';
+import { TestResultEvidenceManifestModel } from '../testResultEvidenceManifest.js';
 import { TestCaseActivityModel } from '../testCaseActivity.js';
 import { TestCaseImportModel } from '../testCaseImport.js';
 import { TestCaseImportRowModel } from '../testCaseImportRow.js';
 import { BugModel } from '../bug.js';
 import { BugActivityModel } from '../bugActivity.js';
 import { BugEvidenceLinkModel } from '../bugEvidenceLink.js';
+import { BugResolutionEventModel } from '../bugResolutionEvent.js';
 import { RequirementModel } from '../requirement.js';
+import { AcceptanceCriterionModel } from '../acceptanceCriterion.js';
 
 export function setupQaAssociations() {
   // QA Document Associations
@@ -96,6 +102,58 @@ export function setupQaAssociations() {
     onDelete: 'RESTRICT',
   });
 
+  TestCaseModel.hasMany(TestCaseVersionModel, {
+    foreignKey: 'testCaseId',
+    as: 'versions',
+    onDelete: 'CASCADE',
+  });
+  TestCaseVersionModel.belongsTo(TestCaseModel, {
+    foreignKey: 'testCaseId',
+    as: 'testCase',
+    onDelete: 'CASCADE',
+  });
+  WorkspaceModel.hasMany(TestCaseVersionModel, {
+    foreignKey: 'workspaceId',
+    as: 'testCaseVersions',
+    onDelete: 'CASCADE',
+  });
+  TestCaseVersionModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+  UserModel.hasMany(TestCaseVersionModel, {
+    foreignKey: 'authoredBy',
+    as: 'authoredTestCaseVersions',
+    onDelete: 'RESTRICT',
+  });
+  TestCaseVersionModel.belongsTo(UserModel, {
+    foreignKey: 'authoredBy',
+    as: 'author',
+    onDelete: 'RESTRICT',
+  });
+
+  TestCaseVersionModel.hasMany(TestCaseVersionAcceptanceCriterionModel, {
+    foreignKey: 'testCaseVersionId',
+    as: 'acceptanceCriterionMappings',
+    onDelete: 'CASCADE',
+  });
+  TestCaseVersionAcceptanceCriterionModel.belongsTo(TestCaseVersionModel, {
+    foreignKey: 'testCaseVersionId',
+    as: 'testCaseVersion',
+    onDelete: 'CASCADE',
+  });
+  AcceptanceCriterionModel.hasMany(TestCaseVersionAcceptanceCriterionModel, {
+    foreignKey: 'acceptanceCriterionId',
+    as: 'testCaseVersionMappings',
+    onDelete: 'RESTRICT',
+  });
+  TestCaseVersionAcceptanceCriterionModel.belongsTo(AcceptanceCriterionModel, {
+    foreignKey: 'acceptanceCriterionId',
+    as: 'acceptanceCriterion',
+    onDelete: 'RESTRICT',
+  });
+
   TestCaseModel.hasMany(TestCaseRequirementModel, {
     foreignKey: 'testCaseId',
     as: 'requirementLinks',
@@ -111,6 +169,67 @@ export function setupQaAssociations() {
     foreignKey: 'testCaseId',
     as: 'runs',
     onDelete: 'CASCADE',
+  });
+
+  WorkspaceModel.hasMany(QaTestCycleModel, {
+    foreignKey: 'workspaceId',
+    as: 'qaTestCycles',
+    onDelete: 'CASCADE',
+  });
+  QaTestCycleModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+  TaskModel.hasMany(QaTestCycleModel, {
+    foreignKey: 'featureTaskId',
+    as: 'featureQaTestCycles',
+    onDelete: 'RESTRICT',
+  });
+  QaTestCycleModel.belongsTo(TaskModel, {
+    foreignKey: 'featureTaskId',
+    as: 'featureTask',
+    onDelete: 'RESTRICT',
+  });
+  TaskModel.hasMany(QaTestCycleModel, {
+    foreignKey: 'qaSubtaskId',
+    as: 'qaSubtaskTestCycles',
+    onDelete: 'RESTRICT',
+  });
+  QaTestCycleModel.belongsTo(TaskModel, {
+    foreignKey: 'qaSubtaskId',
+    as: 'qaSubtask',
+    onDelete: 'RESTRICT',
+  });
+  UserModel.hasMany(QaTestCycleModel, {
+    foreignKey: 'ownerQaId',
+    as: 'ownedQaTestCycles',
+    onDelete: 'RESTRICT',
+  });
+  QaTestCycleModel.belongsTo(UserModel, {
+    foreignKey: 'ownerQaId',
+    as: 'ownerQa',
+    onDelete: 'RESTRICT',
+  });
+  QaTestCycleModel.hasMany(TestRunModel, {
+    foreignKey: 'testCycleId',
+    as: 'testRuns',
+    onDelete: 'RESTRICT',
+  });
+  TestRunModel.belongsTo(QaTestCycleModel, {
+    foreignKey: 'testCycleId',
+    as: 'testCycle',
+    onDelete: 'RESTRICT',
+  });
+  TestCaseVersionModel.hasMany(TestRunModel, {
+    foreignKey: 'testCaseVersionId',
+    as: 'testRuns',
+    onDelete: 'RESTRICT',
+  });
+  TestRunModel.belongsTo(TestCaseVersionModel, {
+    foreignKey: 'testCaseVersionId',
+    as: 'testCaseVersion',
+    onDelete: 'RESTRICT',
   });
   TestRunModel.belongsTo(TestCaseModel, {
     foreignKey: 'testCaseId',
@@ -177,6 +296,39 @@ export function setupQaAssociations() {
     foreignKey: 'testResultId',
     as: 'externalEvidenceLinks',
     onDelete: 'CASCADE',
+  });
+
+  TestResultModel.hasMany(TestResultEvidenceManifestModel, {
+    foreignKey: 'testResultId',
+    as: 'evidenceManifests',
+    onDelete: 'CASCADE',
+  });
+  TestResultEvidenceManifestModel.belongsTo(TestResultModel, {
+    foreignKey: 'testResultId',
+    as: 'result',
+    onDelete: 'CASCADE',
+  });
+
+  WorkspaceModel.hasMany(TestResultEvidenceManifestModel, {
+    foreignKey: 'workspaceId',
+    as: 'testResultEvidenceManifests',
+    onDelete: 'CASCADE',
+  });
+  TestResultEvidenceManifestModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+
+  UserModel.hasMany(TestResultEvidenceManifestModel, {
+    foreignKey: 'sealedBy',
+    as: 'sealedTestResultEvidenceManifests',
+    onDelete: 'RESTRICT',
+  });
+  TestResultEvidenceManifestModel.belongsTo(UserModel, {
+    foreignKey: 'sealedBy',
+    as: 'sealer',
+    onDelete: 'RESTRICT',
   });
   TestResultEvidenceLinkModel.belongsTo(TestResultModel, {
     foreignKey: 'testResultId',
@@ -372,6 +524,38 @@ export function setupQaAssociations() {
   BugEvidenceLinkModel.belongsTo(UserModel, {
     foreignKey: 'addedBy',
     as: 'author',
+    onDelete: 'RESTRICT',
+  });
+
+  BugResolutionEventModel.hasMany(BugEvidenceLinkModel, {
+    foreignKey: 'resolutionEventId',
+    as: 'evidenceLinks',
+    onDelete: 'RESTRICT',
+  });
+  BugEvidenceLinkModel.belongsTo(BugResolutionEventModel, {
+    foreignKey: 'resolutionEventId',
+    as: 'resolutionEvent',
+    onDelete: 'RESTRICT',
+  });
+
+  BugModel.hasMany(TestRunModel, {
+    foreignKey: 'retestBugId',
+    as: 'retestRuns',
+    onDelete: 'RESTRICT',
+  });
+  TestRunModel.belongsTo(BugModel, {
+    foreignKey: 'retestBugId',
+    as: 'retestBug',
+    onDelete: 'RESTRICT',
+  });
+  BugResolutionEventModel.hasOne(TestRunModel, {
+    foreignKey: 'retestResolutionEventId',
+    as: 'retestRun',
+    onDelete: 'RESTRICT',
+  });
+  TestRunModel.belongsTo(BugResolutionEventModel, {
+    foreignKey: 'retestResolutionEventId',
+    as: 'retestResolutionEvent',
     onDelete: 'RESTRICT',
   });
 

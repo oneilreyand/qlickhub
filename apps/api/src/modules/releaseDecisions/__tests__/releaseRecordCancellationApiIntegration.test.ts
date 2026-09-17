@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 import type { Server } from 'node:http';
+import type { ReadinessSnapshot } from '@qlick/contracts';
 import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
@@ -48,6 +49,87 @@ describe('Release Record Cancellation & Task Soft-Deletion PostgreSQL integratio
     const token = signToken({ userId: user.id, email: user.email, role: user.role, sessionId });
     return `${accessTokenCookieName}=${token}`;
   }
+
+  // Migration 76 deliberately preserves historical release records without a Test Cycle scope.
+  // These fixtures model that read-only legacy history; creation of new records is exercised by
+  // the scoped QA assurance tests instead of bypassing the production service here.
+  const legacySnapshot = (
+    task: TaskModel,
+    qaSignOff: QaSignOffModel | null = null,
+  ): ReadinessSnapshot => {
+    const capturedAt = new Date().toISOString();
+    return {
+      schemaVersion: 1,
+      capturedAt,
+      featureTask: {
+        id: task.id,
+        title: task.title,
+        status: task.status,
+        updatedAt: task.updatedAt.toISOString(),
+      },
+      subtasks: { total: 0, completed: 0 },
+      requirements: { total: 0 },
+      testExecution: {
+        totalTestCases: 0,
+        passed: 0,
+        failed: 0,
+        blocked: 0,
+        skipped: 0,
+        unexecuted: 0,
+      },
+      bugs: {
+        total: 0,
+        open: 0,
+        inProgress: 0,
+        resolved: 0,
+        verified: 0,
+        reopened: 0,
+        criticalOrHighUnverified: 0,
+      },
+      qaSignOff: qaSignOff
+        ? {
+            id: qaSignOff.id,
+            decision: qaSignOff.decision,
+            signedBy: qaSignOff.signedBy,
+            signedAt: qaSignOff.signedAt.toISOString(),
+          }
+        : null,
+    };
+  };
+
+  const createLegacyQaSignOff = async (
+    task: TaskModel,
+    signer: UserModel,
+    decision: 'approved' | 'rejected' = 'approved',
+    notes = 'Historical sign-off retained for cancellation coverage.',
+  ) =>
+    QaSignOffModel.create({
+      workspaceId: workspace.id,
+      featureTaskId: task.id,
+      decision,
+      notes,
+      readinessSnapshot: legacySnapshot(task),
+      signedBy: signer.id,
+      signedAt: new Date(),
+    });
+
+  const createLegacyReleaseDecision = async (
+    task: TaskModel,
+    signOff: QaSignOffModel,
+    outcome: 'approved' | 'rejected' = 'approved',
+    notes = 'Historical release decision retained for cancellation coverage.',
+  ) =>
+    ReleaseDecisionModel.create({
+      workspaceId: workspace.id,
+      featureTaskId: task.id,
+      qaSignOffId: signOff.id,
+      decision: outcome,
+      notes,
+      overrideReason: null,
+      readinessSnapshot: legacySnapshot(task, signOff),
+      decidedBy: po.id,
+      decidedAt: new Date(),
+    });
 
   before(async () => {
     await sequelize.authenticate();
@@ -149,12 +231,12 @@ describe('Release Record Cancellation & Task Soft-Deletion PostgreSQL integratio
   });
 
   test('validates reason requirements when cancelling QA Sign-off and Release Decision', async () => {
-    const signOff = await releaseDecisionService.createQaSignOff(qa1.id, {
-      workspaceId: workspace.id,
-      featureTaskId: featureTask.id,
-      decision: 'approved',
-      notes: 'Sign-off for validation test',
-    });
+    const signOff = await createLegacyQaSignOff(
+      featureTask,
+      qa1,
+      'approved',
+      'Sign-off for validation test',
+    );
 
     // Blank / whitespace reason on QA sign-off cancellation
     const resBlankSignOff = await fetch(
@@ -180,12 +262,12 @@ describe('Release Record Cancellation & Task Soft-Deletion PostgreSQL integratio
   });
 
   test('enforces RBAC matrix D3 on QA Sign-off cancellation', async () => {
-    const signOff = await releaseDecisionService.createQaSignOff(qa1.id, {
-      workspaceId: workspace.id,
-      featureTaskId: featureTask.id,
-      decision: 'approved',
-      notes: 'Sign-off created by QA 1',
-    });
+    const signOff = await createLegacyQaSignOff(
+      featureTask,
+      qa1,
+      'approved',
+      'Sign-off created by QA 1',
+    );
 
     // Another QA cannot cancel QA1's sign-off (403)
     const resQa2 = await fetch(
@@ -223,12 +305,12 @@ describe('Release Record Cancellation & Task Soft-Deletion PostgreSQL integratio
     assert.strictEqual(resOutsider.status, 403);
 
     // Admin can also cancel QA sign-off (200)
-    const adminSignOff = await releaseDecisionService.createQaSignOff(qa2.id, {
-      workspaceId: workspace.id,
-      featureTaskId: featureTask.id,
-      decision: 'rejected',
-      notes: 'Sign-off created by QA 2',
-    });
+    const adminSignOff = await createLegacyQaSignOff(
+      featureTask,
+      qa2,
+      'rejected',
+      'Sign-off created by QA 2',
+    );
     const resAdminCancel = await fetch(
       `${baseUrl}/workspaces/${workspace.id}/features/${featureTask.id}/qa-sign-offs/${adminSignOff.id}/cancellation`,
       {
@@ -283,22 +365,20 @@ describe('Release Record Cancellation & Task Soft-Deletion PostgreSQL integratio
     });
 
     // 1. Create a fresh QA Sign-off by QA1
-    const signOff = await releaseDecisionService.createQaSignOff(qa1.id, {
-      workspaceId: workspace.id,
-      featureTaskId: seqTask.id,
-      decision: 'approved',
-      notes: 'Sign-off for decision sequence test',
-    });
+    const signOff = await createLegacyQaSignOff(
+      seqTask,
+      qa1,
+      'approved',
+      'Sign-off for decision sequence test',
+    );
 
     // 2. Create a Release Decision by PO referencing this sign-off
-    const decision = await releaseDecisionService.createReleaseDecision(po.id, {
-      workspaceId: workspace.id,
-      featureTaskId: seqTask.id,
-      qaSignOffId: signOff.id,
-      decision: 'approved',
-      notes: 'Approved for deployment.',
-      overrideReason: 'Test override reason for pending gate.',
-    });
+    const decision = await createLegacyReleaseDecision(
+      seqTask,
+      signOff,
+      'approved',
+      'Approved for deployment.',
+    );
 
     // 3. Attempting to cancel QA Sign-off while Release Decision is active must fail with 409 Conflict (D5)
     const resEarlySignOffCancel = await fetch(
@@ -394,12 +474,12 @@ describe('Release Record Cancellation & Task Soft-Deletion PostgreSQL integratio
   });
 
   test('verifies database immutability triggers block direct update on cancellation tables and source tables', async () => {
-    const signOff = await releaseDecisionService.createQaSignOff(qa1.id, {
-      workspaceId: workspace.id,
-      featureTaskId: featureTask.id,
-      decision: 'approved',
-      notes: 'Sign-off for immutability check',
-    });
+    const signOff = await createLegacyQaSignOff(
+      featureTask,
+      qa1,
+      'approved',
+      'Sign-off for immutability check',
+    );
 
     await releaseDecisionService.cancelQaSignOff(admin.id, {
       workspaceId: workspace.id,
@@ -435,21 +515,19 @@ describe('Release Record Cancellation & Task Soft-Deletion PostgreSQL integratio
     });
 
     // 2. Create QA Sign-off and Release Decision on this task
-    const signOff = await releaseDecisionService.createQaSignOff(qa1.id, {
-      workspaceId: workspace.id,
-      featureTaskId: archivalTask.id,
-      decision: 'approved',
-      notes: 'Sign-off on archival feature',
-    });
+    const signOff = await createLegacyQaSignOff(
+      archivalTask,
+      qa1,
+      'approved',
+      'Sign-off on archival feature',
+    );
 
-    const decision = await releaseDecisionService.createReleaseDecision(po.id, {
-      workspaceId: workspace.id,
-      featureTaskId: archivalTask.id,
-      qaSignOffId: signOff.id,
-      decision: 'approved',
-      notes: 'Release decision on archival feature',
-      overrideReason: 'Archival test override reason.',
-    });
+    const decision = await createLegacyReleaseDecision(
+      archivalTask,
+      signOff,
+      'approved',
+      'Release decision on archival feature',
+    );
 
     // 3. Attempting to soft-delete task while active records exist must fail with 409 Conflict
     await assert.rejects(async () => {

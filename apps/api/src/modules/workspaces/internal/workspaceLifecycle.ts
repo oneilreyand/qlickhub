@@ -14,6 +14,7 @@ import {
   QaDocumentVersionModel,
   QaSignOffCancellationModel,
   QaSignOffModel,
+  QaAssuranceRolloutSettingsModel,
   ReleaseDecisionCancellationModel,
   ReleaseDecisionModel,
   RequirementFindingClarificationModel,
@@ -37,6 +38,7 @@ import {
   TestCaseRequirementModel,
   TestResultEvidenceLinkModel,
   TestResultEvidenceModel,
+  TestResultEvidenceManifestModel,
   TestResultModel,
   TestRunModel,
   UserModel,
@@ -97,6 +99,15 @@ export async function createWorkspace(userId: string, input: CreateWorkspaceInpu
         workspaceId: workspace.id,
         userId,
         role: 'owner',
+      },
+      { transaction },
+    );
+
+    await QaAssuranceRolloutSettingsModel.create(
+      {
+        workspaceId: workspace.id,
+        mode: 'observe',
+        updatedBy: userId,
       },
       { transaction },
     );
@@ -284,6 +295,11 @@ export async function permanentlyDeleteWorkspace(
     await BugModel.destroy({ where: { workspaceId }, transaction, force: true });
     await TestResultEvidenceLinkModel.destroy({ where: { workspaceId }, transaction, force: true });
     await TestResultEvidenceModel.destroy({ where: { workspaceId }, transaction, force: true });
+    await TestResultEvidenceManifestModel.destroy({
+      where: { workspaceId },
+      transaction,
+      force: true,
+    });
     await TestCaseActivityModel.destroy({ where: { workspaceId }, transaction, force: true });
     await TestResultModel.destroy({ where: { workspaceId }, transaction, force: true });
     await TestRunModel.destroy({ where: { workspaceId }, transaction, force: true });

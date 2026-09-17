@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReadinessSnapshotV2 } from '@qlick/contracts';
+import type { ReadinessSnapshotV3 } from '@qlick/contracts';
 import { releaseDecisionService } from '../api/releaseDecisionService';
 
 const RELEASE_READINESS_BATCH_SIZE = 100;
 
 export interface ReleaseReadinessViewState {
-  snapshot: ReadinessSnapshotV2 | null;
+  snapshot: ReadinessSnapshotV3 | null;
   isLoading: boolean;
   error: string | null;
   permissionDenied: boolean;

@@ -92,9 +92,29 @@ export const ReadinessSnapshotV2Schema = ReadinessSnapshotBaseSchema.extend({
 });
 export type ReadinessSnapshotV2 = z.infer<typeof ReadinessSnapshotV2Schema>;
 
+/**
+ * Candidate provenance for readiness shown after the evidence-gate cutover.
+ * Null values retain compatibility for a current Feature that has no scoped QA
+ * certification yet; immutable historical V1/V2 records remain readable.
+ */
+export const ReadinessEvidenceScopeSchema = z.object({
+  qaSubtaskId: z.string().uuid().nullable(),
+  testCycleId: z.string().uuid().nullable(),
+  readinessBaselineId: z.string().uuid().nullable(),
+  candidateFingerprint: z.string().trim().min(1).max(255).nullable(),
+});
+export type ReadinessEvidenceScope = z.infer<typeof ReadinessEvidenceScopeSchema>;
+
+export const ReadinessSnapshotV3Schema = ReadinessSnapshotV2Schema.extend({
+  schemaVersion: z.literal(3),
+  evidenceScope: ReadinessEvidenceScopeSchema,
+});
+export type ReadinessSnapshotV3 = z.infer<typeof ReadinessSnapshotV3Schema>;
+
 export const ReadinessSnapshotSchema = z.discriminatedUnion('schemaVersion', [
   ReadinessSnapshotV1Schema,
   ReadinessSnapshotV2Schema,
+  ReadinessSnapshotV3Schema,
 ]);
 export type ReadinessSnapshot = z.infer<typeof ReadinessSnapshotSchema>;
 
@@ -111,6 +131,10 @@ export const QaSignOffSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
   featureTaskId: z.string().uuid(),
+  qaSubtaskId: z.string().uuid().nullable(),
+  testCycleId: z.string().uuid().nullable(),
+  readinessBaselineId: z.string().uuid().nullable(),
+  candidateFingerprint: z.string().trim().min(1).max(255).nullable(),
   decision: QaSignOffDecisionSchema,
   notes: z.string().nullable(),
   readinessSnapshot: ReadinessSnapshotSchema,
@@ -125,6 +149,9 @@ export const ReleaseDecisionSchema = z.object({
   workspaceId: z.string().uuid(),
   featureTaskId: z.string().uuid(),
   qaSignOffId: z.string().uuid(),
+  testCycleId: z.string().uuid().nullable(),
+  readinessBaselineId: z.string().uuid().nullable(),
+  candidateFingerprint: z.string().trim().min(1).max(255).nullable(),
   decision: ReleaseDecisionOutcomeSchema,
   notes: z.string().nullable(),
   overrideReason: z.string().nullable(),
@@ -138,6 +165,7 @@ export type ReleaseDecision = z.infer<typeof ReleaseDecisionSchema>;
 export const CreateQaSignOffSchema = z.object({
   workspaceId: z.string().uuid(),
   featureTaskId: z.string().uuid(),
+  testCycleId: z.string().uuid().optional(),
   decision: QaSignOffDecisionSchema,
   notes: OptionalNotesSchema,
 });
@@ -182,7 +210,7 @@ export type CancelReleaseDecisionInput = z.infer<typeof CancelReleaseDecisionInp
 export const FeatureReleaseRecordsSchema = z.object({
   workspaceId: z.string().uuid(),
   featureTaskId: z.string().uuid(),
-  currentReadinessSnapshot: ReadinessSnapshotV2Schema,
+  currentReadinessSnapshot: ReadinessSnapshotV3Schema,
   qaSignOffs: z.array(QaSignOffSchema),
   releaseDecisions: z.array(ReleaseDecisionSchema),
 });
@@ -198,7 +226,7 @@ export type ListWorkspaceReleaseReadinessQuery = z.infer<
 
 export const WorkspaceReleaseReadinessItemSchema = z.object({
   featureTaskId: z.string().uuid(),
-  currentReadinessSnapshot: ReadinessSnapshotV2Schema,
+  currentReadinessSnapshot: ReadinessSnapshotV3Schema,
 });
 export type WorkspaceReleaseReadinessItem = z.infer<typeof WorkspaceReleaseReadinessItemSchema>;
 

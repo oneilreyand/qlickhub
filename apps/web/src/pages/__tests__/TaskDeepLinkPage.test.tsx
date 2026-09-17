@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Task } from '@qlick/contracts';
 import { TaskDeepLinkPage } from '../TaskDeepLinkPage';
+import authReducer from '../../store/authSlice';
 import folderReducer from '../../store/folderSlice';
 import workspaceReducer from '../../store/workspaceSlice';
 import taskReducer from '../../store/taskSlice';
@@ -71,6 +72,14 @@ vi.mock('../../components/ui/organisms/TaskDetailDrawer', () => ({
   },
 }));
 
+vi.mock('../../components/ui/organisms/myTasks/MyTaskDetailWorkspaceDrawer', () => ({
+  MyTaskDetailWorkspaceDrawer: ({ task, userRole }: { task: Task; userRole: string }) => (
+    <div data-testid="qa-deep-link-workspace">
+      {task.title} · Peran: {userRole}
+    </div>
+  ),
+}));
+
 const workspaceId = '10000000-0000-4000-8000-000000000001';
 const taskId = '10000000-0000-4000-8000-000000000002';
 
@@ -85,14 +94,28 @@ const task: Task = {
   updatedAt: '2026-08-23T00:00:00.000Z',
 };
 
-function createStore(includeWorkspace = true) {
+function createStore(includeWorkspace = true, role = 'po') {
   return configureStore({
     reducer: {
+      auth: authReducer,
       folder: folderReducer,
       workspace: workspaceReducer,
       task: taskReducer,
     },
     preloadedState: {
+      auth: {
+        currentUser: {
+          id: '10000000-0000-4000-8000-000000000099',
+          email: `${role}@example.test`,
+          name: `E2E ${role}`,
+          role,
+          onboardingCompletedAt: '2026-08-23T00:00:00.000Z',
+        },
+        isAuthenticated: true,
+        showOnboardingModal: false,
+        status: 'succeeded' as const,
+        error: null,
+      },
       workspace: {
         workspaces: includeWorkspace
           ? [
@@ -118,8 +141,8 @@ function createStore(includeWorkspace = true) {
   });
 }
 
-function renderRoute(includeWorkspace = true) {
-  const store = createStore(includeWorkspace);
+function renderRoute(includeWorkspace = true, role = 'po') {
+  const store = createStore(includeWorkspace, role);
   render(
     <Provider store={store}>
       <MemoryRouter initialEntries={[`/projects/${workspaceId}/tasks/${taskId}`]}>
@@ -220,5 +243,21 @@ describe('TaskDeepLinkPage', () => {
       expect(getTaskMock).toHaveBeenCalledWith(workspaceId, parentTask.id);
     });
     expect(await screen.findByText('Parent Feature')).toBeInTheDocument();
+  });
+
+  it('opens a QA subtask deep link in the QA workspace for the authenticated QA actor', async () => {
+    const qaSubtask = {
+      ...task,
+      parentTaskId: '10000000-0000-4000-8000-000000000004',
+      deliveryArea: 'qa' as const,
+      title: 'Checkout QA subtask',
+    };
+    getTaskMock.mockResolvedValue(qaSubtask);
+    renderRoute(true, 'qa');
+
+    expect(await screen.findByTestId('qa-deep-link-workspace')).toHaveTextContent(
+      'Checkout QA subtask · Peran: qa',
+    );
+    expect(screen.queryByTestId('task-deep-link-drawer')).not.toBeInTheDocument();
   });
 });

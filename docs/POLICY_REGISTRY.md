@@ -1,7 +1,7 @@
 # Qlick Hub Policy Registry
 
-**Status:** Active policy index  
-**Owner:** Product and Engineering  
+**Status:** Active policy index
+**Owner:** Product and Engineering
 **Last reviewed:** 2026-09-13
 **Scope:** Stable identifiers for rules already approved in Qlick Hub SSoT documents.
 
@@ -21,16 +21,18 @@ then update this index.
 
 ## Authentication and Authorization
 
-| Policy ID | Rule summary                                                                                         | Canonical source                                                          |
-| --------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| AUTH-001  | Workspace access requires an authenticated user with active Workspace membership.                    | [Architecture §5](1_ARCHITECTURE.md#5-model-keamanan--otorisasi-rbac)     |
-| AUTH-002  | Authorization is enforced by backend policy/services; UI visibility is not authorization.            | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                             |
-| AUTH-003  | Developer or QA parent-Task creation requires active, expiring owner/admin delegation.               | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
-| AUTH-004  | Parent-Task delegation never grants permission to plan Subtasks.                                     | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)       |
-| AUTH-005  | Credential reset is exact-Workspace scoped and atomically revokes superseded sessions.               | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
-| AUTH-006  | Successful credential changes create secret-free append-only events with scoped reads.               | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi) |
-| AUTH-007  | Only the persisted Owner may permanently delete an archived Workspace after exact-name confirmation. | [Architecture §5](1_ARCHITECTURE.md#penghapusan-permanen-workspace)       |
-| AUTH-008  | Only the signed-in author account may edit or soft-delete its own Task Discussion message.           | [Architecture §5](1_ARCHITECTURE.md#kepemilikan-mutasi-pesan-discussion)  |
+| Policy ID | Rule summary                                                                                                              | Canonical source                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| AUTH-001  | Workspace access requires an authenticated user with active Workspace membership.                                         | [Architecture §5](1_ARCHITECTURE.md#5-model-keamanan--otorisasi-rbac)               |
+| AUTH-002  | Authorization is enforced by backend policy/services; UI visibility is not authorization.                                 | [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md)                                       |
+| AUTH-003  | Developer or QA parent-Task creation requires active, expiring owner/admin delegation.                                    | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)                 |
+| AUTH-004  | Parent-Task delegation never grants permission to plan Subtasks.                                                          | [Architecture §5](1_ARCHITECTURE.md#aturan-delegasi-pembuatan-task)                 |
+| AUTH-005  | Credential reset is exact-Workspace scoped and atomically revokes superseded sessions.                                    | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi)           |
+| AUTH-006  | Successful credential changes create secret-free append-only events with scoped reads.                                    | [Architecture §5](1_ARCHITECTURE.md#reset-kredensial-dan-pencabutan-sesi)           |
+| AUTH-007  | Only the persisted Owner may permanently delete an archived Workspace after exact-name confirmation.                      | [Architecture §5](1_ARCHITECTURE.md#penghapusan-permanen-workspace)                 |
+| AUTH-008  | Only the signed-in author account may edit or soft-delete its own Task Discussion message.                                | [Architecture §5](1_ARCHITECTURE.md#kepemilikan-mutasi-pesan-discussion)            |
+| AUTH-009  | Normal QA execution is restricted to the assigned QA member; PO cannot execute or mutate QA Subtask status.               | [Workflow §4](2_WORKFLOW_AND_ROLES.md#4-siklus-hidup-subtask-subtask-state-machine) |
+| AUTH-010  | Owner/Admin QA execution requires a scoped, expiring, append-only break-glass capability; it is not a role-wide fallback. | [Workflow §4](2_WORKFLOW_AND_ROLES.md#4-siklus-hidup-subtask-subtask-state-machine) |
 
 ## Application Security
 
@@ -51,15 +53,20 @@ then update this index.
 
 ## QA and Release
 
-| Policy ID   | Rule summary                                                                                                                    | Canonical source                                                                                  |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| QA-001      | QA authors draft Test Cases; PO/admin publication is required before active execution.                                          | [Workflow §5](2_WORKFLOW_AND_ROLES.md#5-manajemen-pengujian-native-qa-qa-test-management)         |
-| QA-002      | Test Results are immutable, append-only execution records.                                                                      | [Workflow §5](2_WORKFLOW_AND_ROLES.md#b-hasil-uji-yang-imutabel-immutable-test-results)           |
-| QA-003      | A Developer cannot close a Bug; independent QA retest determines closure or reopening.                                          | [Workflow §6](2_WORKFLOW_AND_ROLES.md#6-siklus-defek--retest-bug--retest-lifecycle)               |
-| QA-004      | QA work is assigned through a QA Subtask whose assignee executes `todo → in_progress → done`; QA Subtasks do not self-review.   | [Workflow §4](2_WORKFLOW_AND_ROLES.md#b-subtask-qa)                                               |
-| QA-005      | Finding cause is proposed by the reporter and agreed through cross-role triage; shared/unknown and preserved dissent are valid. | [Workflow §2](2_WORKFLOW_AND_ROLES.md#kesiapan-requirement-dan-triage-temuan)                     |
-| RELEASE-001 | Readiness is derived by the backend from coverage, pass rate, and unresolved severe Bugs.                                       | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
-| RELEASE-002 | QA submits quality sign-off; PO owns the formal release decision.                                                               | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
+| Policy ID   | Rule summary                                                                                                                                | Canonical source                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| QA-001      | QA authors draft Test Cases; PO/admin publication is required before active execution.                                                      | [Workflow §5](2_WORKFLOW_AND_ROLES.md#5-manajemen-pengujian-native-qa-qa-test-management)         |
+| QA-002      | Test Results are immutable, append-only execution records.                                                                                  | [Workflow §5](2_WORKFLOW_AND_ROLES.md#b-hasil-uji-yang-imutabel-immutable-test-results)           |
+| QA-003      | A Developer cannot close a Bug; independent QA retest determines closure or reopening.                                                      | [Workflow §6](2_WORKFLOW_AND_ROLES.md#6-siklus-defek--retest-bug--retest-lifecycle)               |
+| QA-004      | QA work is assigned through a QA Subtask whose assignee executes `todo → in_progress → done`; QA Subtasks do not self-review.               | [Workflow §4](2_WORKFLOW_AND_ROLES.md#b-subtask-qa)                                               |
+| QA-005      | Finding cause is proposed by the reporter and agreed through cross-role triage; shared/unknown and preserved dissent are valid.             | [Workflow §2](2_WORKFLOW_AND_ROLES.md#kesiapan-requirement-dan-triage-temuan)                     |
+| QA-006      | New Test Runs are Feature, QA Subtask, Test Case version, baseline, candidate, build, and environment scoped.                               | [Workflow §5](2_WORKFLOW_AND_ROLES.md#5-manajemen-pengujian-native-qa-qa-test-management)         |
+| QA-007      | Passed, failed, and blocked Results require sealed, directly viewable image/video evidence; supplements are append-only.                    | [Workflow §5](2_WORKFLOW_AND_ROLES.md#b-hasil-uji-yang-imutabel-immutable-test-results)           |
+| QA-008      | Bug verification or reopening is created from an independent formal Retest Attempt pointing to a new immutable Result and evidence.         | [Workflow §6](2_WORKFLOW_AND_ROLES.md#6-siklus-defek--retest-bug--retest-lifecycle)               |
+| QA-009      | Release coverage evaluates active Acceptance Criteria in the frozen Feature baseline; Requirement coverage remains a compatibility measure. | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
+| RELEASE-001 | Readiness is derived by the backend from coverage, pass rate, and unresolved severe Bugs.                                                   | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
+| RELEASE-002 | QA submits quality sign-off; PO owns the formal release decision.                                                                           | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
+| RELEASE-003 | QA completion, sign-off, and release use the same scoped candidate/evidence snapshot; business override cannot bypass evidence integrity.   | [Workflow §7](2_WORKFLOW_AND_ROLES.md#7-gerbang-kesiapan--keputusan-rilis-release-readiness-gate) |
 
 ## Data, Interface, UI, and AI
 

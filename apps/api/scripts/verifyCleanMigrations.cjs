@@ -58,7 +58,19 @@ async function main() {
          '20260824000057-create-workspace-member-specialties.cjs',
          '20260904000064-create-auth-security-events.cjs',
          '20260904000065-create-link-preview-rate-limit-buckets.cjs',
-         '20260907000066-enforce-task-schedule-date-pair.cjs'
+         '20260907000066-enforce-task-schedule-date-pair.cjs',
+         '20260915000071-create-test-case-version-and-ac-mapping-foundation.cjs',
+         '20260915000072-enable-version-lifecycle-and-revision-audit.cjs',
+         '20260915000073-create-qa-test-cycles-and-scope-test-runs.cjs',
+         '20260915000074-create-test-result-evidence-manifests.cjs',
+         '20260915000075-create-bug-resolution-events-and-retest-attempts.cjs',
+         '20260915000076-add-release-record-scope-provenance.cjs',
+         '20260915000077-create-notification-outbox.cjs',
+         '20260915000078-add-notification-idempotency-key.cjs',
+         '20260915000079-add-notification-outbox-processing-state.cjs',
+         '20260915000080-add-notification-outbox-dead-letter-state.cjs',
+         '20260915000081-create-qa-assurance-rollout-settings.cjs',
+         '20260916000082-link-contextual-bug-retest-evidence.cjs'
        )
        ORDER BY name;`,
     );
@@ -72,6 +84,18 @@ async function main() {
         '20260904000064-create-auth-security-events.cjs',
         '20260904000065-create-link-preview-rate-limit-buckets.cjs',
         '20260907000066-enforce-task-schedule-date-pair.cjs',
+        '20260915000071-create-test-case-version-and-ac-mapping-foundation.cjs',
+        '20260915000072-enable-version-lifecycle-and-revision-audit.cjs',
+        '20260915000073-create-qa-test-cycles-and-scope-test-runs.cjs',
+        '20260915000074-create-test-result-evidence-manifests.cjs',
+        '20260915000075-create-bug-resolution-events-and-retest-attempts.cjs',
+        '20260915000076-add-release-record-scope-provenance.cjs',
+        '20260915000077-create-notification-outbox.cjs',
+        '20260915000078-add-notification-idempotency-key.cjs',
+        '20260915000079-add-notification-outbox-processing-state.cjs',
+        '20260915000080-add-notification-outbox-dead-letter-state.cjs',
+        '20260915000081-create-qa-assurance-rollout-settings.cjs',
+        '20260916000082-link-contextual-bug-retest-evidence.cjs',
       ],
     );
 
@@ -80,12 +104,80 @@ async function main() {
          to_regclass('public.task_attachments') AS attachment_table,
          to_regclass('public.legacy_requirement_test_case_migrations') AS migration_map_table,
          to_regclass('public.workspace_member_specialties') AS member_specialty_table,
-         to_regclass('public.auth_security_events') AS auth_security_event_table;`,
+         to_regclass('public.auth_security_events') AS auth_security_event_table,
+         to_regclass('public.qa_test_cycles') AS qa_test_cycles_table,
+         to_regclass('public.test_result_evidence_manifests') AS evidence_manifests_table,
+         to_regclass('public.bug_retest_attempts') AS bug_retest_attempts_table,
+         to_regclass('public.notification_outbox') AS notification_outbox_table,
+         to_regclass('public.qa_assurance_rollout_settings') AS qa_assurance_rollout_settings_table,
+         to_regclass('public.qa_assurance_rollout_events') AS qa_assurance_rollout_events_table;`,
     );
     assert.strictEqual(tableRows[0].attachment_table, 'task_attachments');
     assert.strictEqual(tableRows[0].migration_map_table, 'legacy_requirement_test_case_migrations');
     assert.strictEqual(tableRows[0].member_specialty_table, 'workspace_member_specialties');
     assert.strictEqual(tableRows[0].auth_security_event_table, 'auth_security_events');
+    assert.strictEqual(tableRows[0].qa_test_cycles_table, 'qa_test_cycles');
+    assert.strictEqual(tableRows[0].evidence_manifests_table, 'test_result_evidence_manifests');
+    assert.strictEqual(tableRows[0].bug_retest_attempts_table, 'bug_retest_attempts');
+    assert.strictEqual(tableRows[0].notification_outbox_table, 'notification_outbox');
+    assert.strictEqual(
+      tableRows[0].qa_assurance_rollout_settings_table,
+      'qa_assurance_rollout_settings',
+    );
+    assert.strictEqual(
+      tableRows[0].qa_assurance_rollout_events_table,
+      'qa_assurance_rollout_events',
+    );
+
+    const [rolloutGuardRows] = await verificationDatabase.query(
+      `SELECT
+         (SELECT pg_get_constraintdef(oid)
+          FROM pg_constraint
+          WHERE conname = 'ck_qa_assurance_rollout_settings_mode') AS settings_mode_definition,
+         (SELECT pg_get_constraintdef(oid)
+          FROM pg_constraint
+          WHERE conname = 'ck_qa_assurance_rollout_events_reason') AS event_reason_definition,
+         EXISTS (
+           SELECT 1 FROM pg_indexes
+           WHERE schemaname = 'public'
+             AND indexname = 'idx_qa_assurance_rollout_events_workspace_changed'
+         ) AS has_workspace_event_index;`,
+    );
+    assert.match(rolloutGuardRows[0].settings_mode_definition, /observe.*warn.*enforce/);
+    assert.match(rolloutGuardRows[0].event_reason_definition, /length/);
+    assert.strictEqual(rolloutGuardRows[0].has_workspace_event_index, true);
+
+    const [outboxGuardRows] = await verificationDatabase.query(
+      `SELECT
+         EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public'
+             AND table_name = 'notifications'
+             AND column_name = 'idempotency_key'
+         ) AS has_notification_idempotency_key,
+         EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public'
+             AND table_name = 'notification_outbox'
+             AND column_name = 'dead_lettered_at'
+         ) AS has_dead_letter_timestamp,
+         EXISTS (
+           SELECT 1 FROM pg_indexes
+           WHERE schemaname = 'public'
+             AND indexname = 'uq_notifications_idempotency_key'
+         ) AS has_notification_idempotency_index,
+         (SELECT pg_get_constraintdef(oid)
+          FROM pg_constraint
+          WHERE conname = 'fk_notification_outbox_task_workspace') AS task_fk_definition,
+         (SELECT pg_get_constraintdef(oid)
+          FROM pg_constraint
+          WHERE conname = 'ck_notification_outbox_status') AS delivery_status_definition;`,
+    );
+    assert.strictEqual(outboxGuardRows[0].has_notification_idempotency_key, true);
+    assert.strictEqual(outboxGuardRows[0].has_dead_letter_timestamp, true);
+    assert.strictEqual(outboxGuardRows[0].has_notification_idempotency_index, true);
+    assert.match(outboxGuardRows[0].task_fk_definition, /ON DELETE SET NULL \(task_id\)/);
+    assert.match(outboxGuardRows[0].delivery_status_definition, /dead_letter/);
 
     const [specialtyGuardRows] = await verificationDatabase.query(
       `SELECT

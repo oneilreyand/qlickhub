@@ -1,6 +1,6 @@
 # 3. UI & Atomic Design System — Qlick Hub SSoT
 
-**Status:** Active Single Source of Truth (SSoT)  
+**Status:** Active Single Source of Truth (SSoT)
 **Scope:** Information Architecture, Navigation Routes, Stitch Design Tokens, Atomic Component Catalog (`apps/web/src/components/ui/`), and Accessibility Standards.
 
 ---
@@ -97,15 +97,15 @@ graph TD
 
 ## 3. Rute Navigasi Resmi (_Application Routes_)
 
-| Rute URL                             | Komponen Halaman            | Fungsi & Cakupan                                                                                                   |
-| :----------------------------------- | :-------------------------- | :----------------------------------------------------------------------------------------------------------------- |
-| `/work`                              | `WorkHubPage.tsx`           | Halaman utama: navigasi pohon folder, tabel task, filter, timeline, dan drawer detail fitur.                       |
-| `/projects/:projectId/tasks/:taskId` | `TaskDeepLinkPage.tsx`      | Tautan langsung menuju task/fitur spesifik dengan mempertahankan konteks parent.                                   |
-| `/my-tasks`                          | `MyTasksPage.tsx`           | Tab antrean kerja berbasis peran serta root Task persisten yang dibuat pengguna terautentikasi di Workspace aktif. |
-| `/reports`                           | `ReportPage.tsx`            | Analitik historis kesiapan rilis dan audit kualitas berdasarkan data persisten backend.                            |
-| `/user-flows`                        | `UserFlowPage.tsx`          | Panduan interaktif alur kerja kolaborasi lintas peran.                                                             |
-| `/workspaces/settings`               | `WorkspaceSettingsPage.tsx` | Pengaturan anggota, role, spesialisasi developer, dan kebijakan pembuatan task (khusus Planner).                   |
-| `/components`                        | `ComponentGalleryPage.tsx`  | Galeri showcase interaktif untuk memverifikasi seluruh komponen atom, molekul, dan organisme secara terisolasi.    |
+| Rute URL                             | Komponen Halaman            | Fungsi & Cakupan                                                                                                                                                                          |
+| :----------------------------------- | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/work`                              | `WorkHubPage.tsx`           | Halaman utama: navigasi pohon folder, tabel task, filter, timeline, dan drawer detail fitur.                                                                                              |
+| `/projects/:projectId/tasks/:taskId` | `TaskDeepLinkPage.tsx`      | Tautan langsung menuju task/fitur spesifik dengan mempertahankan konteks parent.                                                                                                          |
+| `/my-tasks`                          | `MyTasksPage.tsx`           | Tab antrean kerja berbasis peran serta root Task persisten yang dibuat pengguna terautentikasi di Workspace aktif.                                                                        |
+| `/reports`                           | `ReportPage.tsx`            | Analitik historis kesiapan rilis dan audit kualitas berdasarkan data persisten backend.                                                                                                   |
+| `/user-flows`                        | `UserFlowPage.tsx`          | Panduan interaktif alur kerja kolaborasi lintas peran.                                                                                                                                    |
+| `/workspaces/settings`               | `WorkspaceSettingsPage.tsx` | Pengaturan anggota, role, spesialisasi developer, kebijakan pembuatan task, serta status rollout QA assurance; seluruh member aktif dapat membaca rollout, Owner/Admin dapat mengubahnya. |
+| `/components`                        | `ComponentGalleryPage.tsx`  | Galeri showcase interaktif untuk memverifikasi seluruh komponen atom, molekul, dan organisme secara terisolasi.                                                                           |
 
 ---
 
@@ -196,26 +196,26 @@ graph LR
 
 ### 🟣 Organisms
 
-| Komponen                    | File Path                                            | Penggunaan                                                                                      |
-| :-------------------------- | :--------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
-| `FolderTree`                | `organisms/FolderTree.tsx`                           | Pohon folder interaktif untuk navigasi struktur workspace.                                      |
-| `TaskCollection`            | `organisms/TaskCollection.tsx`                       | Daftar / tabel tugas utama dengan filter dan sorting.                                           |
-| `TaskTimelineView`          | `organisms/TaskTimelineView.tsx`                     | Visualisasi Gantt chart durasi subtask.                                                         |
-| `TaskDetailDrawer`          | `organisms/TaskDetailDrawer.tsx`                     | Organisme utama penampil seluruh konteks parent Task, Requirements, Tests, Bugs, dan Dokumen.   |
-| `TaskDetailProductBriefTab` | `organisms/taskDetail/TaskDetailProductBriefTab.tsx` | Product Brief berversi untuk konteks, referensi eksternal, In Scope, dan Out of Scope Feature.  |
-| `RequirementManager`        | `organisms/RequirementManager.tsx`                   | Pengelola daftar Requirement dan Acceptance Criteria terkait fitur.                             |
-| `FeatureReadinessPanel`     | `organisms/FeatureReadinessPanel.tsx`                | Pemeriksaan dan baseline kesiapan root Feature dalam mode observasi.                            |
-| `RequirementFindingPanel`   | `organisms/RequirementFindingPanel.tsx`              | Temuan Requirement, klarifikasi, triage lintas peran, dan penyelesaian pada root Feature.       |
-| `QaTraceabilityMatrix`      | `organisms/QaTraceabilityMatrix.tsx`                 | Matriks ketertelusuran hubungan antara Requirement, Test Case, dan Bug.                         |
-| `ReleaseAssurancePanel`     | `organisms/ReleaseAssurancePanel.tsx`                | Panel evaluasi kesiapan rilis, QA Sign-off, dan PO Release Decision.                            |
-| `BugExperiencePanel`        | `organisms/BugExperiencePanel.tsx`                   | Panel pencatatan bug, delegasi perbaikan ke developer, dan verifikasi retest.                   |
-| `EvidencePreviewModal`      | `organisms/EvidencePreviewModal.tsx`                 | Modal preview media (Google Drive, video player YouTube/Loom, gambar fullscreen).               |
-| `MyTasksDashboard`          | `organisms/MyTasksDashboard.tsx`                     | Dashboard utama antrean kerja personal berbasis peran.                                          |
-| `CreatedByMeTaskPanel`      | `organisms/myTasks/CreatedByMeTaskPanel.tsx`         | Daftar root Task persisten yang dibuat pengguna saat ini, lengkap dengan filter dan pagination. |
-| `QaTestingDesk`             | `organisms/myTasks/QaTestingDesk.tsx`                | Meja kerja QA untuk eksekusi test run, intake test case, dan logging hasil uji.                 |
-| `DevWorkingDesk`            | `organisms/myTasks/DevWorkingDesk.tsx`               | Meja kerja Developer untuk mengelola subtask aktif dan perbaikan bug.                           |
-| `TestCaseImportWizardModal` | `organisms/myTasks/TestCaseImportWizardModal.tsx`    | Wizard 3-langkah untuk impor Test Case dari spreadsheet CSV/XLSX.                               |
-| `WorkspaceMembersTable`     | `organisms/WorkspaceMembersTable.tsx`                | Tabel manajemen anggota workspace, peran, dan spesialisasi dev.                                 |
+| Komponen                    | File Path                                            | Penggunaan                                                                                       |
+| :-------------------------- | :--------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
+| `FolderTree`                | `organisms/FolderTree.tsx`                           | Pohon folder interaktif untuk navigasi struktur workspace.                                       |
+| `TaskCollection`            | `organisms/TaskCollection.tsx`                       | Daftar / tabel tugas utama dengan filter dan sorting.                                            |
+| `TaskTimelineView`          | `organisms/TaskTimelineView.tsx`                     | Visualisasi Gantt chart durasi subtask.                                                          |
+| `TaskDetailDrawer`          | `organisms/TaskDetailDrawer.tsx`                     | Organisme utama penampil seluruh konteks parent Task, Requirements, Tests, Bugs, dan Dokumen.    |
+| `TaskDetailProductBriefTab` | `organisms/taskDetail/TaskDetailProductBriefTab.tsx` | Product Brief berversi untuk konteks, referensi eksternal, In Scope, dan Out of Scope Feature.   |
+| `RequirementManager`        | `organisms/RequirementManager.tsx`                   | Pengelola daftar Requirement dan Acceptance Criteria terkait fitur.                              |
+| `FeatureReadinessPanel`     | `organisms/FeatureReadinessPanel.tsx`                | Pemeriksaan dan baseline kesiapan root Feature dalam mode observasi.                             |
+| `RequirementFindingPanel`   | `organisms/RequirementFindingPanel.tsx`              | Temuan Requirement, klarifikasi, triage lintas peran, dan penyelesaian pada root Feature.        |
+| `QaTraceabilityMatrix`      | `organisms/QaTraceabilityMatrix.tsx`                 | Matriks ketertelusuran hubungan antara Requirement, Test Case, dan Bug.                          |
+| `ReleaseAssurancePanel`     | `organisms/ReleaseAssurancePanel.tsx`                | Panel evaluasi kesiapan rilis, QA Sign-off, dan PO Release Decision.                             |
+| `BugExperiencePanel`        | `organisms/BugExperiencePanel.tsx`                   | Panel Bug dengan aksi retest kontekstual tanpa UUID dan histori siklus perbaikan #1..n.          |
+| `EvidencePreviewModal`      | `organisms/EvidencePreviewModal.tsx`                 | Modal preview media (Google Drive, video player YouTube/Loom, gambar fullscreen).                |
+| `MyTasksDashboard`          | `organisms/MyTasksDashboard.tsx`                     | Dashboard utama antrean kerja personal berbasis peran.                                           |
+| `CreatedByMeTaskPanel`      | `organisms/myTasks/CreatedByMeTaskPanel.tsx`         | Daftar root Task persisten yang dibuat pengguna saat ini, lengkap dengan filter dan pagination.  |
+| `QaTestingDesk`             | `organisms/myTasks/QaTestingDesk.tsx`                | Meja kerja QA untuk Run/Result, contextual Bug retest, intake Test Case, dan evidence hasil uji. |
+| `DevWorkingDesk`            | `organisms/myTasks/DevWorkingDesk.tsx`               | Meja kerja Developer untuk mengelola subtask aktif dan perbaikan bug.                            |
+| `TestCaseImportWizardModal` | `organisms/myTasks/TestCaseImportWizardModal.tsx`    | Wizard 3-langkah untuk impor Test Case dari spreadsheet CSV/XLSX.                                |
+| `WorkspaceMembersTable`     | `organisms/WorkspaceMembersTable.tsx`                | Tabel manajemen anggota workspace, peran, dan spesialisasi dev.                                  |
 
 ---
 

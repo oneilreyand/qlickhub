@@ -10,19 +10,36 @@ import type {
   CreateBugInput,
   ListBugsQuery,
   UpdateBugInput,
+  CreateBugResolutionEventInput,
+  CreateBugRetestAttemptInput,
+  BugResolutionEvent,
+  BugRetestAttempt,
+  BugRetestHistory,
+  BugRetestRun,
+  BugRetestTimelineAttempt,
+  CreateBugRetestRunInput,
+  TestRun,
 } from '@qlick/contracts';
 import { sequelize } from '../../db/sequelize.js';
 import {
   BugActivityModel,
   BugEvidenceLinkModel,
   BugModel,
+  BugResolutionEventModel,
+  BugRetestAttemptModel,
+  FeatureReadinessBaselineRequirementModel,
+  QaTestCycleModel,
   RequirementModel,
   TaskAttachmentModel,
   TaskModel,
   TaskRequirementModel,
   TestCaseRequirementModel,
+  TestCaseActivityModel,
+  TestCaseModel,
+  TestCaseVersionModel,
   TestResultEvidenceLinkModel,
   TestResultEvidenceModel,
+  TestResultEvidenceManifestModel,
   TestResultModel,
   TestRunModel,
   UserModel,
@@ -36,9 +53,9 @@ import {
   assertCanUpdateBug,
 } from '../../policies/bugPolicy.js';
 import { normalizeEvidenceUrl } from '../testManagement/evidenceNormalizer.js';
-import { fcmService } from '../../services/fcmService.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import { iso } from '../../utils/dateUtils.js';
+import { reliableNotificationOutboxService } from '../notifications/reliableNotificationOutboxService.js';
 
 function formatBug(bug: BugModel): Bug {
   return {
@@ -58,6 +75,48 @@ function formatBug(bug: BugModel): Bug {
     verifiedAt: bug.verifiedAt ? iso(bug.verifiedAt) : null,
     createdAt: iso(bug.createdAt),
     updatedAt: iso(bug.updatedAt),
+  };
+}
+
+function formatBugEvidenceLink(link: BugEvidenceLinkModel): BugEvidenceLink {
+  return {
+    id: link.id,
+    workspaceId: link.workspaceId,
+    bugId: link.bugId,
+    url: link.url,
+    provider: link.provider,
+    mediaKind: link.mediaKind,
+    label: link.label || null,
+    addedBy: link.addedBy,
+    addedAt: iso(link.addedAt),
+    normalizedUrl: link.normalizedUrl,
+    previewStatus: link.previewStatus,
+    evidenceStage: link.evidenceStage,
+    resolutionEventId: link.resolutionEventId || null,
+  };
+}
+
+function formatContextualRetestRun(run: TestRunModel): TestRun {
+  return {
+    id: run.id,
+    workspaceId: run.workspaceId,
+    testCaseId: run.testCaseId,
+    featureTaskId: run.featureTaskId || null,
+    qaSubtaskId: run.qaSubtaskId || null,
+    testCycleId: run.testCycleId || null,
+    testCaseVersionId: run.testCaseVersionId || null,
+    readinessBaselineId: run.readinessBaselineId || null,
+    candidateFingerprint: run.candidateFingerprint || null,
+    retestBugId: run.retestBugId || null,
+    retestResolutionEventId: run.retestResolutionEventId || null,
+    build: run.build,
+    environment: run.environment,
+    status: run.status,
+    executorId: run.executorId,
+    startedAt: iso(run.startedAt),
+    completedAt: run.completedAt ? iso(run.completedAt) : null,
+    result: null,
+    createdAt: iso(run.createdAt),
   };
 }
 
@@ -91,7 +150,7 @@ const bugContextIncludes = [
       {
         model: TestRunModel,
         as: 'run',
-        attributes: ['id', 'testCaseId', 'build', 'environment'],
+        attributes: ['id', 'testCaseId', 'qaSubtaskId', 'build', 'environment'],
         required: false,
       },
       {
@@ -173,19 +232,7 @@ function formatBugWithContext(bug: ContextualBugModel): BugWithContext {
         environment: testRun?.environment || 'test',
       },
     },
-    bugEvidenceLinks: (bug.externalEvidenceLinks || []).map((link) => ({
-      id: link.id,
-      workspaceId: link.workspaceId,
-      bugId: link.bugId,
-      url: link.url,
-      provider: link.provider,
-      mediaKind: link.mediaKind,
-      label: link.label || null,
-      addedBy: link.addedBy,
-      addedAt: iso(link.addedAt),
-      normalizedUrl: link.normalizedUrl,
-      previewStatus: link.previewStatus,
-    })),
+    bugEvidenceLinks: (bug.externalEvidenceLinks || []).map(formatBugEvidenceLink),
   };
 }
 
@@ -212,6 +259,749 @@ function activityForTransition(nextStatus: BugStatus): BugActivityAction {
 }
 
 export class BugService {
+  async getRetestHistory(
+    workspaceId: string,
+    bugId: string,
+    actorId: string,
+  ): Promise<BugRetestHistory> {
+    const member = await requireActiveMember(workspaceId, actorId);
+    const bug = await BugModel.findOne({ where: { id: bugId, workspaceId } });
+    if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
+    assertCanReadBug(member.role, actorId, bug.assigneeId);
+    const [events, attempts, resolutionEvidence] = await Promise.all([
+      BugResolutionEventModel.findAll({
+        where: { workspaceId, bugId },
+        order: [['sequence', 'ASC']],
+      }),
+      BugRetestAttemptModel.findAll({
+        where: { workspaceId, bugId },
+        order: [['createdAt', 'ASC']],
+      }),
+      BugEvidenceLinkModel.findAll({
+        where: {
+          workspaceId,
+          bugId,
+          evidenceStage: 'resolution',
+          resolutionEventId: { [Op.ne]: null },
+          deduplicatedAt: null,
+        },
+        order: [['addedAt', 'ASC']],
+      }),
+    ]);
+    const retestAttempts = await Promise.all(
+      attempts.map(async (attempt): Promise<BugRetestTimelineAttempt> => {
+        const [result, evidence, evidenceLinks, manifests] = await Promise.all([
+          TestResultModel.findOne({ where: { id: attempt.testResultId, workspaceId } }),
+          TestResultEvidenceModel.findAll({
+            where: { testResultId: attempt.testResultId, workspaceId },
+            include: [{ model: TaskAttachmentModel, as: 'attachment', required: false }],
+          }),
+          TestResultEvidenceLinkModel.findAll({
+            where: { testResultId: attempt.testResultId, workspaceId, deduplicatedAt: null },
+          }),
+          TestResultEvidenceManifestModel.findAll({
+            where: { testResultId: attempt.testResultId, workspaceId },
+            order: [['sequence', 'ASC']],
+          }),
+        ]);
+        if (!result)
+          throw new Error('CONFLICT: Bug Retest Attempt references a missing Test Result.');
+        return {
+          id: attempt.id,
+          workspaceId: attempt.workspaceId,
+          bugId: attempt.bugId,
+          resolutionEventId: attempt.resolutionEventId,
+          testResultId: attempt.testResultId,
+          outcome: attempt.outcome,
+          attemptedBy: attempt.attemptedBy,
+          attemptedAt: iso(attempt.createdAt),
+          result: {
+            id: result.id,
+            workspaceId: result.workspaceId,
+            testRunId: result.testRunId,
+            status: result.status,
+            executorId: result.executorId,
+            actualResult: result.actualResult || null,
+            notes: result.notes || null,
+            executedAt: iso(result.executedAt),
+            createdAt: iso(result.createdAt),
+            evidence: evidence.map((link) => {
+              const attachment = (
+                link as TestResultEvidenceModel & { attachment?: TaskAttachmentModel }
+              ).attachment;
+              return {
+                attachmentId: link.attachmentId,
+                taskId: attachment?.taskId || bug.featureTaskId,
+                fileName: attachment?.fileName || 'Evidence',
+                mimeType: attachment?.mimeType || 'application/octet-stream',
+                linkedBy: link.linkedBy,
+                linkedAt: iso(link.linkedAt),
+              };
+            }),
+            evidenceLinks: evidenceLinks.map((link) => ({
+              id: link.id,
+              workspaceId: link.workspaceId,
+              testResultId: link.testResultId,
+              url: link.url,
+              provider: link.provider,
+              mediaKind: link.mediaKind,
+              label: link.label || null,
+              addedBy: link.addedBy,
+              addedAt: iso(link.addedAt),
+              normalizedUrl: link.normalizedUrl,
+              previewStatus: link.previewStatus,
+            })),
+          },
+          evidenceManifests: manifests.map((manifest) => ({
+            id: manifest.id,
+            workspaceId: manifest.workspaceId,
+            testResultId: manifest.testResultId,
+            sequence: manifest.sequence,
+            kind: manifest.kind,
+            reason: manifest.reason || null,
+            itemCount: manifest.itemCount,
+            imageCount: manifest.imageCount,
+            videoCount: manifest.videoCount,
+            readyCount: manifest.readyCount,
+            evidenceSnapshot: manifest.evidenceSnapshot as any,
+            sealedBy: manifest.sealedBy,
+            sealedAt: iso(manifest.sealedAt),
+          })),
+        };
+      }),
+    );
+    const resolutionEvents = events.map((event) => ({
+      id: event.id,
+      workspaceId: event.workspaceId,
+      bugId: event.bugId,
+      sequence: event.sequence,
+      candidateFingerprint: event.candidateFingerprint,
+      resolutionNotes: event.resolutionNotes,
+      resolvedBy: event.resolvedBy,
+      resolvedAt: iso(event.createdAt),
+    }));
+    const attemptByResolutionId = new Map(
+      retestAttempts.map((attempt) => [attempt.resolutionEventId, attempt]),
+    );
+    const evidenceByResolutionId = new Map<string, BugEvidenceLink[]>();
+    for (const evidence of resolutionEvidence) {
+      if (!evidence.resolutionEventId) continue;
+      const links = evidenceByResolutionId.get(evidence.resolutionEventId) || [];
+      links.push(formatBugEvidenceLink(evidence));
+      evidenceByResolutionId.set(evidence.resolutionEventId, links);
+    }
+
+    return {
+      resolutionEvents,
+      retestAttempts,
+      cycles: resolutionEvents.map((resolutionEvent) => ({
+        sequence: resolutionEvent.sequence,
+        resolutionEvent,
+        evidenceLinks: evidenceByResolutionId.get(resolutionEvent.id) || [],
+        retestAttempt: attemptByResolutionId.get(resolutionEvent.id) || null,
+      })),
+    };
+  }
+  async createResolutionEvent(
+    actorId: string,
+    input: CreateBugResolutionEventInput,
+  ): Promise<BugResolutionEvent> {
+    const normalizedEvidence = (input.evidenceLinks || []).map((evidence) => ({
+      input: evidence,
+      normalized: normalizeEvidenceUrl(evidence.url),
+    }));
+    if (
+      new Set(normalizedEvidence.map(({ normalized }) => normalized.normalizedUrl)).size !==
+      normalizedEvidence.length
+    ) {
+      throw new Error('BAD_REQUEST: Resolution evidence links must not contain duplicates.');
+    }
+    const result = await sequelize.transaction(async (transaction) => {
+      const member = await requireActiveMember(input.workspaceId, actorId, transaction);
+      const bug = await BugModel.findOne({
+        where: { id: input.bugId, workspaceId: input.workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
+      if (member.role !== 'dev' || bug.assigneeId !== actorId)
+        throw new Error(
+          'FORBIDDEN: Only the assigned Developer may record a Bug Resolution Event.',
+        );
+      if (!['in_progress', 'reopened'].includes(bug.status))
+        throw new Error('CONFLICT: Bug must be in progress before a resolution is recorded.');
+      const previousStatus = bug.status;
+      const count = await BugResolutionEventModel.count({
+        where: { workspaceId: input.workspaceId, bugId: bug.id },
+        transaction,
+      });
+      const event = await BugResolutionEventModel.create(
+        {
+          workspaceId: input.workspaceId,
+          bugId: bug.id,
+          sequence: count + 1,
+          candidateFingerprint: input.candidateFingerprint,
+          resolutionNotes: input.resolutionNotes,
+          resolvedBy: actorId,
+        },
+        { transaction },
+      );
+      for (const { input: evidenceInput, normalized } of normalizedEvidence) {
+        const existingLink = await BugEvidenceLinkModel.findOne({
+          where: {
+            workspaceId: input.workspaceId,
+            bugId: bug.id,
+            deduplicatedAt: null,
+            [Op.or]: [{ normalizedUrl: normalized.normalizedUrl }, { url: evidenceInput.url }],
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (existingLink) {
+          throw new Error('CONFLICT: This evidence link is already attached to this Bug.');
+        }
+        const evidenceLink = await BugEvidenceLinkModel.create(
+          {
+            workspaceId: input.workspaceId,
+            bugId: bug.id,
+            url: evidenceInput.url,
+            provider: normalized.provider,
+            mediaKind: normalized.mediaKind,
+            label: evidenceInput.label || null,
+            addedBy: actorId,
+            normalizedUrl: normalized.normalizedUrl,
+            previewStatus: normalized.previewStatus,
+            evidenceStage: 'resolution',
+            resolutionEventId: event.id,
+          },
+          { transaction },
+        );
+        await BugActivityModel.create(
+          {
+            workspaceId: input.workspaceId,
+            bugId: bug.id,
+            actorId,
+            action: 'bug_updated',
+            fromStatus: previousStatus,
+            toStatus: previousStatus,
+            metadata: {
+              evidenceLinkId: evidenceLink.id,
+              resolutionEventId: event.id,
+              kind: 'resolution',
+              url: evidenceInput.url,
+              provider: normalized.provider,
+            },
+          },
+          { transaction },
+        );
+      }
+      await bug.update(
+        {
+          status: 'resolved',
+          resolutionNotes: input.resolutionNotes,
+          resolvedAt: new Date(),
+          verifiedAt: null,
+        },
+        { transaction },
+      );
+      await BugActivityModel.create(
+        {
+          workspaceId: input.workspaceId,
+          bugId: bug.id,
+          actorId,
+          action: 'bug_resolved',
+          fromStatus: previousStatus,
+          toStatus: 'resolved',
+          metadata: {
+            resolutionEventId: event.id,
+            candidateFingerprint: input.candidateFingerprint,
+          },
+        },
+        { transaction },
+      );
+      const stakeholderMembers = await WorkspaceMemberModel.findAll({
+        where: { workspaceId: input.workspaceId },
+        attributes: ['userId', 'role'],
+        transaction,
+      });
+      const recipients = [
+        bug.createdBy,
+        ...stakeholderMembers
+          .filter((member) => member.role === 'qa')
+          .map((member) => member.userId),
+      ].filter((recipientId): recipientId is string =>
+        Boolean(recipientId && recipientId !== actorId),
+      );
+      await reliableNotificationOutboxService.enqueue(
+        `bug-resolution:${event.id}`,
+        [...new Set(recipients)].map((userId) => ({
+          userId,
+          workspaceId: input.workspaceId,
+          taskId: bug.featureTaskId,
+          actorId,
+          type: 'bug_status_change',
+          title: 'Bug Siap untuk Retest QA',
+          message: `Developer menyelesaikan bug "${bug.title}" dan menunggu retest QA.`,
+          payload: { bugId: bug.id, resolutionEventId: event.id, status: 'resolved' },
+        })),
+        transaction,
+      );
+      return {
+        id: event.id,
+        workspaceId: event.workspaceId,
+        bugId: event.bugId,
+        sequence: event.sequence,
+        candidateFingerprint: event.candidateFingerprint,
+        resolutionNotes: event.resolutionNotes,
+        resolvedBy: event.resolvedBy,
+        resolvedAt: iso(event.createdAt),
+      };
+    });
+    void reliableNotificationOutboxService.dispatchDue(50);
+    return result;
+  }
+
+  async createRetestRun(actorId: string, input: CreateBugRetestRunInput): Promise<BugRetestRun> {
+    let pendingResolutionEventId: string | null = null;
+    try {
+      return await sequelize.transaction(async (transaction) => {
+        const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
+        if (membership.role !== 'qa') {
+          throw new Error('FORBIDDEN: Only the assigned QA member may start a Bug retest.');
+        }
+        const bug = await BugModel.findOne({
+          where: { id: input.bugId, workspaceId: input.workspaceId },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
+        if (bug.status !== 'resolved') {
+          throw new Error('CONFLICT: Bug must have a pending Developer resolution before retest.');
+        }
+        const resolution = await BugResolutionEventModel.findOne({
+          where: { workspaceId: input.workspaceId, bugId: bug.id },
+          order: [['sequence', 'DESC']],
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!resolution) {
+          throw new Error('CONFLICT: Bug has no Resolution Event to retest.');
+        }
+        pendingResolutionEventId = resolution.id;
+
+        const existingRun = await TestRunModel.findOne({
+          where: {
+            workspaceId: input.workspaceId,
+            retestBugId: bug.id,
+            retestResolutionEventId: resolution.id,
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (existingRun) {
+          if (existingRun.executorId !== actorId) {
+            throw new Error('FORBIDDEN: This retest Run belongs to another QA executor.');
+          }
+          if (existingRun.status !== 'in_progress') {
+            throw new Error(
+              'CONFLICT: The contextual retest Result is already recorded. Finalize its Retest Attempt from the QA Desk.',
+            );
+          }
+          return {
+            bugId: bug.id,
+            resolutionEventId: resolution.id,
+            qaSubtaskId: existingRun.qaSubtaskId!,
+            reused: true,
+            testRun: formatContextualRetestRun(existingRun),
+          };
+        }
+
+        const originatingResult = await TestResultModel.findOne({
+          where: { id: bug.testResultId, workspaceId: input.workspaceId },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        const originatingRun = originatingResult
+          ? await TestRunModel.findOne({
+              where: { id: originatingResult.testRunId, workspaceId: input.workspaceId },
+              transaction,
+              lock: transaction.LOCK.UPDATE,
+            })
+          : null;
+        if (
+          !originatingRun?.featureTaskId ||
+          !originatingRun.qaSubtaskId ||
+          !originatingRun.testCaseVersionId
+        ) {
+          throw new Error(
+            'CONFLICT: Legacy Bug evidence has no deterministic scoped Run for contextual retest.',
+          );
+        }
+        if (originatingRun.featureTaskId !== bug.featureTaskId) {
+          throw new Error('CONFLICT: Originating Run does not belong to this Bug Feature.');
+        }
+
+        const [qaSubtask, testCase, testCaseVersion, cycle] = await Promise.all([
+          TaskModel.findOne({
+            where: {
+              id: originatingRun.qaSubtaskId,
+              workspaceId: input.workspaceId,
+              parentTaskId: bug.featureTaskId,
+              deliveryArea: 'qa',
+              assigneeId: actorId,
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+          }),
+          TestCaseModel.findOne({
+            where: {
+              id: originatingRun.testCaseId,
+              workspaceId: input.workspaceId,
+              status: 'active',
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+          }),
+          TestCaseVersionModel.findOne({
+            where: {
+              id: originatingRun.testCaseVersionId,
+              workspaceId: input.workspaceId,
+              testCaseId: originatingRun.testCaseId,
+              lifecycleStatus: 'active',
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+          }),
+          QaTestCycleModel.findOne({
+            where: {
+              workspaceId: input.workspaceId,
+              featureTaskId: bug.featureTaskId,
+              qaSubtaskId: originatingRun.qaSubtaskId,
+              candidateFingerprint: resolution.candidateFingerprint,
+              ownerQaId: actorId,
+              status: 'in_progress',
+            },
+            order: [['createdAt', 'DESC']],
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+          }),
+        ]);
+        if (!qaSubtask) {
+          throw new Error(
+            'FORBIDDEN: Only the current assignee of the originating QA Subtask may start this retest.',
+          );
+        }
+        if (!testCase || !testCaseVersion) {
+          throw new Error(
+            'CONFLICT: Contextual retest requires the originating Test Case and revision to remain active.',
+          );
+        }
+        if (!cycle) {
+          throw new Error(
+            `CONFLICT: Create an in-progress Test Cycle for candidate "${resolution.candidateFingerprint}" in the QA Desk before starting this retest.`,
+          );
+        }
+
+        const baselineRequirements = await FeatureReadinessBaselineRequirementModel.findAll({
+          where: {
+            workspaceId: input.workspaceId,
+            baselineId: cycle.readinessBaselineId,
+          },
+          attributes: ['requirementId'],
+          transaction,
+        });
+        const baselineRequirementIds = new Set(
+          baselineRequirements.map((requirement) => requirement.requirementId),
+        );
+        const versionRequirementIds = Array.isArray(
+          testCaseVersion.definitionSnapshot.requirementIds,
+        )
+          ? testCaseVersion.definitionSnapshot.requirementIds.filter(
+              (value): value is string => typeof value === 'string',
+            )
+          : [];
+        if (
+          versionRequirementIds.length === 0 ||
+          versionRequirementIds.some((requirementId) => !baselineRequirementIds.has(requirementId))
+        ) {
+          throw new Error(
+            'CONFLICT: The originating Test Case revision is outside the matching Test Cycle baseline.',
+          );
+        }
+
+        const run = await TestRunModel.create(
+          {
+            workspaceId: input.workspaceId,
+            testCaseId: originatingRun.testCaseId,
+            featureTaskId: bug.featureTaskId,
+            qaSubtaskId: qaSubtask.id,
+            testCycleId: cycle.id,
+            testCaseVersionId: testCaseVersion.id,
+            readinessBaselineId: cycle.readinessBaselineId,
+            candidateFingerprint: cycle.candidateFingerprint,
+            retestBugId: bug.id,
+            retestResolutionEventId: resolution.id,
+            build: cycle.build,
+            environment: cycle.environment,
+            status: 'in_progress',
+            executorId: actorId,
+          },
+          { transaction },
+        );
+        await TestCaseActivityModel.create(
+          {
+            workspaceId: input.workspaceId,
+            testCaseId: run.testCaseId,
+            testRunId: run.id,
+            actorId,
+            action: 'test_run_started',
+            metadata: {
+              featureTaskId: bug.featureTaskId,
+              qaSubtaskId: qaSubtask.id,
+              testCycleId: cycle.id,
+              testCaseVersionId: testCaseVersion.id,
+              readinessBaselineId: cycle.readinessBaselineId,
+              candidateFingerprint: cycle.candidateFingerprint,
+              build: cycle.build,
+              environment: cycle.environment,
+              bugId: bug.id,
+              resolutionEventId: resolution.id,
+              contextualRetest: true,
+            },
+          },
+          { transaction },
+        );
+        return {
+          bugId: bug.id,
+          resolutionEventId: resolution.id,
+          qaSubtaskId: qaSubtask.id,
+          reused: false,
+          testRun: formatContextualRetestRun(run),
+        };
+      });
+    } catch (error: any) {
+      if (error?.name === 'SequelizeUniqueConstraintError' && pendingResolutionEventId) {
+        const existingRun = await TestRunModel.findOne({
+          where: {
+            workspaceId: input.workspaceId,
+            retestResolutionEventId: pendingResolutionEventId,
+          },
+        });
+        if (
+          existingRun?.executorId === actorId &&
+          existingRun.qaSubtaskId &&
+          existingRun.status === 'in_progress'
+        ) {
+          return {
+            bugId: input.bugId,
+            resolutionEventId: pendingResolutionEventId,
+            qaSubtaskId: existingRun.qaSubtaskId,
+            reused: true,
+            testRun: formatContextualRetestRun(existingRun),
+          };
+        }
+        if (existingRun) {
+          throw new Error(
+            'CONFLICT: The contextual retest Result is already recorded for this resolution.',
+            { cause: error },
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  async createRetestAttempt(
+    actorId: string,
+    input: CreateBugRetestAttemptInput,
+  ): Promise<BugRetestAttempt> {
+    const result = await sequelize.transaction(async (transaction) => {
+      const member = await requireActiveMember(input.workspaceId, actorId, transaction);
+      if (member.role !== 'qa') {
+        throw new Error('FORBIDDEN: Only QA may create a Bug Retest Attempt.');
+      }
+      const bug = await BugModel.findOne({
+        where: { id: input.bugId, workspaceId: input.workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
+      const resolution = await BugResolutionEventModel.findOne({
+        where: { workspaceId: input.workspaceId, bugId: bug.id },
+        order: [['sequence', 'DESC']],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!resolution) throw new Error('CONFLICT: Bug has no Resolution Event to retest.');
+      const existingAttempt = await BugRetestAttemptModel.findOne({
+        where: {
+          workspaceId: input.workspaceId,
+          bugId: bug.id,
+          resolutionEventId: resolution.id,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (existingAttempt) {
+        if (existingAttempt.testResultId !== input.testResultId) {
+          throw new Error('CONFLICT: This Resolution Event already has a different Retest Result.');
+        }
+        return {
+          id: existingAttempt.id,
+          workspaceId: existingAttempt.workspaceId,
+          bugId: existingAttempt.bugId,
+          resolutionEventId: existingAttempt.resolutionEventId,
+          testResultId: existingAttempt.testResultId,
+          outcome: existingAttempt.outcome,
+          attemptedBy: existingAttempt.attemptedBy,
+          attemptedAt: iso(existingAttempt.createdAt),
+        };
+      }
+      if (bug.status !== 'resolved') {
+        throw new Error('CONFLICT: Bug must have a pending Developer resolution before retest.');
+      }
+      const result = await TestResultModel.findOne({
+        where: { id: input.testResultId, workspaceId: input.workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      const run = result
+        ? await TestRunModel.findOne({
+            where: { id: result.testRunId, workspaceId: input.workspaceId },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+          })
+        : null;
+      if (
+        !result ||
+        !run ||
+        !run.testCycleId ||
+        !run.qaSubtaskId ||
+        run.featureTaskId !== bug.featureTaskId ||
+        run.candidateFingerprint !== resolution.candidateFingerprint
+      ) {
+        throw new Error(
+          'CONFLICT: Retest Result must be a scoped Result for this Feature and resolution candidate.',
+        );
+      }
+      if (run.retestBugId !== bug.id || run.retestResolutionEventId !== resolution.id) {
+        throw new Error(
+          'CONFLICT: Retest Result must come from the contextual Run created for this Bug resolution.',
+        );
+      }
+      const qaSubtask = await TaskModel.findOne({
+        where: {
+          id: run.qaSubtaskId,
+          workspaceId: input.workspaceId,
+          parentTaskId: bug.featureTaskId,
+          deliveryArea: 'qa',
+          assigneeId: actorId,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!qaSubtask || result.executorId !== actorId) {
+        throw new Error(
+          'FORBIDDEN: Only the assigned QA executor of the Retest Result may finalize this attempt.',
+        );
+      }
+      const manifest = await TestResultEvidenceManifestModel.findOne({
+        where: {
+          workspaceId: input.workspaceId,
+          testResultId: result.id,
+          kind: 'initial',
+        },
+        transaction,
+      });
+      if (!manifest || manifest.readyCount < 1 || manifest.imageCount + manifest.videoCount < 1) {
+        throw new Error('CONFLICT: Retest Result requires a sealed previewable Evidence Manifest.');
+      }
+      if (result.status === 'skipped') {
+        throw new Error('BAD_REQUEST: A skipped Result cannot determine a Bug Retest Attempt.');
+      }
+      const outcome = result.status === 'passed' ? 'verified' : 'reopened';
+      const attempt = await BugRetestAttemptModel.create(
+        {
+          workspaceId: input.workspaceId,
+          bugId: bug.id,
+          resolutionEventId: resolution.id,
+          testResultId: result.id,
+          outcome,
+          attemptedBy: actorId,
+        },
+        { transaction },
+      );
+      await bug.update(
+        {
+          status: outcome,
+          verifiedAt: outcome === 'verified' ? new Date() : null,
+          resolvedAt: outcome === 'reopened' ? null : bug.resolvedAt,
+        },
+        { transaction },
+      );
+      await BugActivityModel.create(
+        {
+          workspaceId: input.workspaceId,
+          bugId: bug.id,
+          actorId,
+          action: outcome === 'verified' ? 'bug_verified' : 'bug_reopened',
+          fromStatus: 'resolved',
+          toStatus: outcome,
+          metadata: {
+            retestAttemptId: attempt.id,
+            testResultId: result.id,
+            resolutionEventId: resolution.id,
+          },
+        },
+        { transaction },
+      );
+      const stakeholderMembers = await WorkspaceMemberModel.findAll({
+        where: { workspaceId: input.workspaceId },
+        attributes: ['userId', 'role'],
+        transaction,
+      });
+      const recipients = [
+        bug.assigneeId,
+        bug.createdBy,
+        ...(outcome === 'reopened' && (bug.severity === 'critical' || bug.severity === 'high')
+          ? stakeholderMembers
+              .filter((member) => ['po', 'owner', 'admin'].includes(member.role))
+              .map((member) => member.userId)
+          : []),
+      ].filter((recipientId): recipientId is string =>
+        Boolean(recipientId && recipientId !== actorId),
+      );
+      await reliableNotificationOutboxService.enqueue(
+        `bug-retest:${attempt.id}`,
+        [...new Set(recipients)].map((userId) => ({
+          userId,
+          workspaceId: input.workspaceId,
+          taskId: bug.featureTaskId,
+          actorId,
+          type: 'bug_status_change',
+          title: outcome === 'verified' ? 'Bug Terverifikasi QA' : 'Bug Dibuka Kembali QA',
+          message:
+            outcome === 'verified'
+              ? `QA memverifikasi bug "${bug.title}" sebagai selesai.`
+              : `QA membuka kembali bug "${bug.title}" setelah retest gagal/terblokir.`,
+          payload: { bugId: bug.id, retestAttemptId: attempt.id, status: outcome },
+        })),
+        transaction,
+      );
+      return {
+        id: attempt.id,
+        workspaceId: attempt.workspaceId,
+        bugId: attempt.bugId,
+        resolutionEventId: attempt.resolutionEventId,
+        testResultId: attempt.testResultId,
+        outcome: attempt.outcome,
+        attemptedBy: attempt.attemptedBy,
+        attemptedAt: iso(attempt.createdAt),
+      };
+    });
+    void reliableNotificationOutboxService.dispatchDue(50);
+    return result;
+  }
   async listBugs(
     workspaceId: string,
     actorId: string,
@@ -233,8 +1023,8 @@ export class BugService {
       where.assigneeId = actorId;
       where.status = { [Op.in]: ['open', 'reopened', 'in_progress'] };
     } else if (query.queue === 'retest') {
-      if (membership.role !== 'qa' && membership.role !== 'owner' && membership.role !== 'admin') {
-        throw new Error('FORBIDDEN: Only QA, Admin, or Owner can access the retest queue.');
+      if (membership.role !== 'qa') {
+        throw new Error('FORBIDDEN: Only QA can access the actionable retest queue.');
       }
       where.status = 'resolved';
     }
@@ -249,7 +1039,59 @@ export class BugService {
       order: [['createdAt', 'DESC']],
     });
 
-    return bugs.map((bug) => formatBugWithContext(bug as ContextualBugModel));
+    if (query.queue !== 'retest' || bugs.length === 0) {
+      return bugs.map((bug) => formatBugWithContext(bug as ContextualBugModel));
+    }
+
+    const qaSubtaskIds = bugs
+      .map((bug) => (bug as ContextualBugModel).originatingTestResult?.run?.qaSubtaskId || null)
+      .filter((qaSubtaskId): qaSubtaskId is string => Boolean(qaSubtaskId));
+    const assignedQaSubtasks = qaSubtaskIds.length
+      ? await TaskModel.findAll({
+          where: {
+            workspaceId,
+            id: qaSubtaskIds,
+            deliveryArea: 'qa',
+            assigneeId: actorId,
+          },
+          attributes: ['id'],
+        })
+      : [];
+    const assignedQaSubtaskIds = new Set(assignedQaSubtasks.map((task) => task.id));
+
+    const resolutionEvents = await BugResolutionEventModel.findAll({
+      where: { workspaceId, bugId: bugs.map((bug) => bug.id) },
+      order: [
+        ['bugId', 'ASC'],
+        ['sequence', 'DESC'],
+      ],
+    });
+    const latestResolutionByBug = new Map<string, BugResolutionEventModel>();
+    for (const event of resolutionEvents) {
+      if (!latestResolutionByBug.has(event.bugId)) latestResolutionByBug.set(event.bugId, event);
+    }
+    const finalAttempts = await BugRetestAttemptModel.findAll({
+      where: {
+        workspaceId,
+        resolutionEventId: [...latestResolutionByBug.values()].map((event) => event.id),
+      },
+      attributes: ['resolutionEventId'],
+    });
+    const finalizedResolutionIds = new Set(
+      finalAttempts.map((attempt) => attempt.resolutionEventId),
+    );
+    return bugs
+      .filter((bug) => {
+        const latest = latestResolutionByBug.get(bug.id);
+        const qaSubtaskId = (bug as ContextualBugModel).originatingTestResult?.run?.qaSubtaskId;
+        return (
+          latest &&
+          qaSubtaskId &&
+          assignedQaSubtaskIds.has(qaSubtaskId) &&
+          !finalizedResolutionIds.has(latest.id)
+        );
+      })
+      .map((bug) => formatBugWithContext(bug as ContextualBugModel));
   }
 
   async getBug(workspaceId: string, bugId: string, actorId: string): Promise<BugWithContext> {
@@ -314,48 +1156,52 @@ export class BugService {
         { transaction },
       );
 
+      const stakeholderMembers = await WorkspaceMemberModel.findAll({
+        where: {
+          workspaceId: input.workspaceId,
+          role: {
+            [Op.in]:
+              input.severity === 'critical' || input.severity === 'high'
+                ? ['po', 'owner', 'admin']
+                : ['dev', 'qa'],
+          },
+        },
+        attributes: ['userId', 'role'],
+        transaction,
+      });
+      const recipients = [
+        input.assigneeId,
+        ...(input.severity === 'critical' || input.severity === 'high'
+          ? stakeholderMembers
+              .filter((member) => ['po', 'owner', 'admin'].includes(member.role))
+              .map((member) => member.userId)
+          : []),
+      ].filter((recipientId) => recipientId && recipientId !== actorId);
+      const notificationType = input.severity === 'critical' ? 'bug_critical' : 'bug_created';
+      await reliableNotificationOutboxService.enqueue(
+        `bug-created:${created.id}`,
+        [...new Set(recipients)].map((userId) => ({
+          userId,
+          workspaceId: input.workspaceId,
+          taskId: input.featureTaskId,
+          actorId,
+          type: notificationType,
+          title:
+            notificationType === 'bug_critical' ? '🚨 Bug Kritis Terdeteksi' : 'Laporan Bug Baru',
+          message:
+            notificationType === 'bug_critical'
+              ? `Bug "${input.title}" ditandai sebagai SEVERITY CRITICAL.`
+              : `Bug baru "${input.title}" perlu ditangani.`,
+          payload: { bugId: created.id, featureTaskId: input.featureTaskId || '' },
+        })),
+        transaction,
+      );
+
       return created;
     });
 
     const result = await this.getBug(input.workspaceId, bug.id, actorId);
-
-    // Send notifications to Developer and QA, plus PO if Critical/High (D5)
-    UserModel.findByPk(actorId, { attributes: ['id', 'name', 'email'] })
-      .then(async (actor) => {
-        const actorName = actor?.name || actor?.email || 'QA Member';
-        const recipients = [input.assigneeId].filter((id) => id && id !== actorId);
-
-        if (input.severity === 'critical' || input.severity === 'high') {
-          const poMembers = await WorkspaceMemberModel.findAll({
-            where: {
-              workspaceId: input.workspaceId,
-              role: { [Op.in]: ['po', 'owner', 'admin'] },
-            },
-            attributes: ['userId'],
-          });
-          for (const member of poMembers) {
-            if (member.userId !== actorId && !recipients.includes(member.userId)) {
-              recipients.push(member.userId);
-            }
-          }
-        }
-
-        if (recipients.length > 0) {
-          fcmService
-            .sendBugNotification({
-              recipientUserIds: recipients,
-              actorName,
-              actorId,
-              bugTitle: input.title,
-              bugId: bug.id,
-              taskId: input.featureTaskId || null,
-              workspaceId: input.workspaceId,
-              action: input.severity === 'critical' ? 'critical' : 'created',
-            })
-            .catch((err) => console.warn('⚠️ Failed to dispatch bug notification:', err));
-        }
-      })
-      .catch(() => {});
+    void reliableNotificationOutboxService.dispatchDue(50);
 
     return result;
   }
@@ -439,19 +1285,56 @@ export class BugService {
         );
       }
 
+      let statusActivity: BugActivityModel | null = null;
       if (input.status) {
-        await BugActivityModel.create(
+        const nextStatus = input.status;
+        statusActivity = await BugActivityModel.create(
           {
             workspaceId: input.workspaceId,
             bugId: bug.id,
             actorId,
-            action: activityForTransition(input.status),
+            action: activityForTransition(nextStatus),
             fromStatus: previousStatus,
-            toStatus: input.status,
-            metadata:
-              input.status === 'resolved' ? { resolutionNotes: input.resolutionNotes } : null,
+            toStatus: nextStatus,
+            metadata: nextStatus === 'resolved' ? { resolutionNotes: input.resolutionNotes } : null,
           },
           { transaction },
+        );
+
+        const stakeholderMembers = await WorkspaceMemberModel.findAll({
+          where: { workspaceId: input.workspaceId },
+          attributes: ['userId', 'role'],
+          transaction,
+        });
+        const recipients = [
+          bug.assigneeId,
+          bug.createdBy,
+          ...(nextStatus === 'resolved'
+            ? stakeholderMembers
+                .filter((member) => member.role === 'qa')
+                .map((member) => member.userId)
+            : []),
+          ...(nextStatus === 'reopened' && (bug.severity === 'critical' || bug.severity === 'high')
+            ? stakeholderMembers
+                .filter((member) => ['po', 'owner', 'admin'].includes(member.role))
+                .map((member) => member.userId)
+            : []),
+        ].filter((recipientId): recipientId is string =>
+          Boolean(recipientId && recipientId !== actorId),
+        );
+        await reliableNotificationOutboxService.enqueue(
+          `bug-status:${statusActivity.id}`,
+          [...new Set(recipients)].map((userId) => ({
+            userId,
+            workspaceId: input.workspaceId,
+            taskId: bug.featureTaskId,
+            actorId,
+            type: 'bug_status_change',
+            title: 'Status Bug Diperbarui',
+            message: `Bug "${bug.title}" berubah menjadi ${nextStatus.replace('_', ' ').toUpperCase()}.`,
+            payload: { bugId: bug.id, status: nextStatus, activityId: statusActivity!.id },
+          })),
+          transaction,
         );
       }
 
@@ -485,53 +1368,7 @@ export class BugService {
     });
 
     const updated = await this.getBug(input.workspaceId, input.bugId, actorId);
-
-    if (input.status) {
-      UserModel.findByPk(actorId, { attributes: ['id', 'name', 'email'] })
-        .then(async (actor) => {
-          const actorName = actor?.name || actor?.email || 'Workspace Member';
-          const recipients: string[] = [];
-          if (updated.assigneeId && updated.assigneeId !== actorId)
-            recipients.push(updated.assigneeId);
-          if (updated.createdBy && updated.createdBy !== actorId)
-            recipients.push(updated.createdBy);
-
-          if (
-            (updated.severity === 'critical' || updated.severity === 'high') &&
-            input.status === 'reopened'
-          ) {
-            const poMembers = await WorkspaceMemberModel.findAll({
-              where: {
-                workspaceId: input.workspaceId,
-                role: { [Op.in]: ['po', 'owner', 'admin'] },
-              },
-              attributes: ['userId'],
-            });
-            for (const member of poMembers) {
-              if (member.userId !== actorId && !recipients.includes(member.userId)) {
-                recipients.push(member.userId);
-              }
-            }
-          }
-
-          if (recipients.length > 0) {
-            fcmService
-              .sendBugNotification({
-                recipientUserIds: Array.from(new Set(recipients)),
-                actorName,
-                actorId,
-                bugTitle: updated.title,
-                bugId: updated.id,
-                taskId: updated.featureTaskId || null,
-                workspaceId: input.workspaceId,
-                action: 'status_change',
-                details: input.status?.replace('_', ' ').toUpperCase(),
-              })
-              .catch((err) => console.warn('⚠️ Failed to dispatch bug notification:', err));
-          }
-        })
-        .catch(() => {});
-    }
+    if (input.status) void reliableNotificationOutboxService.dispatchDue(50);
 
     return updated;
   }
@@ -548,6 +1385,11 @@ export class BugService {
     if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
 
     assertCanAddBugEvidence(membership.role, actorId, bug.assigneeId, kind);
+    if (kind === 'resolution') {
+      throw new Error(
+        'BAD_REQUEST: Resolution evidence must be submitted with a Developer Resolution Event.',
+      );
+    }
 
     const normalized = normalizeEvidenceUrl(input.url);
 
@@ -575,6 +1417,8 @@ export class BugService {
             addedBy: actorId,
             normalizedUrl: normalized.normalizedUrl,
             previewStatus: normalized.previewStatus,
+            evidenceStage: 'triage',
+            resolutionEventId: null,
           },
           { transaction },
         );
@@ -600,19 +1444,7 @@ export class BugService {
         return link;
       });
 
-      return {
-        id: created.id,
-        workspaceId: created.workspaceId,
-        bugId: created.bugId,
-        url: created.url,
-        provider: created.provider,
-        mediaKind: created.mediaKind,
-        label: created.label || null,
-        addedBy: created.addedBy,
-        addedAt: iso(created.addedAt),
-        normalizedUrl: created.normalizedUrl,
-        previewStatus: created.previewStatus,
-      };
+      return formatBugEvidenceLink(created);
     } catch (err: any) {
       if (err.name === 'SequelizeUniqueConstraintError') {
         throw new Error('CONFLICT: This evidence link is already attached to this Bug.', {

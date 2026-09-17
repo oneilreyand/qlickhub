@@ -1,11 +1,11 @@
 import type { WorkspaceRole } from '@qlick/contracts';
 
-const qaSignOffRoles: readonly WorkspaceRole[] = ['owner', 'admin', 'qa'];
+const qaSignOffRoles: readonly WorkspaceRole[] = ['qa'];
 const releaseDecisionRoles: readonly WorkspaceRole[] = ['owner', 'admin', 'po'];
 
 export function assertCanCreateQaSignOff(role: WorkspaceRole): void {
   if (!qaSignOffRoles.includes(role)) {
-    throw new Error('FORBIDDEN: Only Owner, Admin, or QA can record QA Sign-off.');
+    throw new Error('FORBIDDEN: Only the assigned QA executor can record a QA Sign-off.');
   }
 }
 

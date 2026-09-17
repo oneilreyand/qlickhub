@@ -34,6 +34,9 @@ export const MyTasksPage: React.FC = () => {
   const userRole = activeWorkspace?.role || activeWorkspace?.myRole || '';
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [queueFocusTarget, setQueueFocusTarget] = useState<'test_cases' | 'qa_sign_off' | null>(
+    null,
+  );
   const queueTriggerRef = useRef<HTMLElement | null>(null);
 
   const reloadTasks = useCallback(() => {
@@ -96,15 +99,24 @@ export const MyTasksPage: React.FC = () => {
 
   const handleOpenQueueItem = async (item: WorkQueueItem) => {
     if (item.subjectType === 'bug') return;
+    setQueueFocusTarget(
+      item.bucketCode === 'qa_sign_off'
+        ? 'qa_sign_off'
+        : item.bucketCode === 'qa_test_work'
+          ? 'test_cases'
+          : null,
+    );
     await handleOpenTaskById(item.subjectId);
   };
 
   const handleOpenCreatedTask = async (task: Task) => {
+    setQueueFocusTarget(null);
     await handleOpenTaskById(task.id);
   };
 
   const handleCloseDrawer = () => {
     dispatch(setSelectedTaskId(null));
+    setQueueFocusTarget(null);
     window.requestAnimationFrame(() => queueTriggerRef.current?.focus());
   };
 
@@ -135,6 +147,7 @@ export const MyTasksPage: React.FC = () => {
         onRefreshCreatedTasks={createdTasks.reload}
         onOpenQueueItem={handleOpenQueueItem}
         onOpenCreatedTask={handleOpenCreatedTask}
+        onOpenTaskById={handleOpenTaskById}
         onCreatedTasksSearchChange={createdTasks.setSearch}
         onCreatedTasksStatusChange={createdTasks.setStatus}
         onCreatedTasksPriorityChange={createdTasks.setPriority}
@@ -153,6 +166,7 @@ export const MyTasksPage: React.FC = () => {
             ? releaseReadinessStateByFeatureId[selectedTask.parentTaskId || selectedTask.id]
             : undefined
         }
+        focusTarget={queueFocusTarget}
         onClose={handleCloseDrawer}
         onOpenFeature={(featureTaskId) => {
           if (!activeWorkspaceId) return;

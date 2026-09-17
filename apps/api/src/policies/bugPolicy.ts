@@ -41,6 +41,16 @@ export function assertBugStatusTransition(
   currentStatus: BugStatus,
   nextStatus: BugStatus,
 ): void {
+  if (nextStatus === 'resolved') {
+    throw new Error(
+      'FORBIDDEN: Resolved Bug status is determined only by a formal Developer Resolution Event.',
+    );
+  }
+  if (nextStatus === 'verified' || nextStatus === 'reopened') {
+    throw new Error(
+      'FORBIDDEN: Verified or reopened Bug status is determined only by a formal QA Retest Attempt.',
+    );
+  }
   if (currentStatus === nextStatus) {
     throw new Error('CONFLICT: Bug is already in the requested status.');
   }

@@ -27,6 +27,10 @@ export function isWorkspaceAdminOrOwner(userRole: WorkspaceRole): boolean {
   return userRole === 'owner' || userRole === 'admin';
 }
 
+export function canUpdateQaAssuranceRollout(userRole: WorkspaceRole): boolean {
+  return isWorkspaceAdminOrOwner(userRole);
+}
+
 /**
  * Express middleware to enforce workspace membership and optional role checks.
  */

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchWorkspaces,
@@ -14,6 +14,7 @@ import {
 import {
   AssignableWorkspaceRole,
   DeveloperSpecialty,
+  QaAssuranceRolloutSettings,
   WorkspaceMemberAssignment,
 } from '@qlick/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
@@ -25,6 +26,7 @@ import {
   EmptyWorkspaceOnboarding,
   WorkspaceGeneralSettingsForm,
   WorkspaceTaskPolicyCard,
+  QaAssuranceRolloutCard,
   WorkspaceMembersTable,
   InviteMemberModal,
   AdminResetPasswordModal,
@@ -48,6 +50,12 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const [allowQaTaskCreation, setAllowQaTaskCreation] = useState(true);
   const [isSavingDetails, setIsSavingDetails] = useState(false);
   const [isUpdatingPolicy, setIsUpdatingPolicy] = useState(false);
+  const [qaAssuranceRollout, setQaAssuranceRollout] = useState<QaAssuranceRolloutSettings | null>(
+    null,
+  );
+  const [isQaAssuranceRolloutLoading, setIsQaAssuranceRolloutLoading] = useState(false);
+  const [qaAssuranceRolloutError, setQaAssuranceRolloutError] = useState<string | null>(null);
+  const [isSavingQaAssuranceRollout, setIsSavingQaAssuranceRollout] = useState(false);
 
   const [searchMember, setSearchMember] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -80,6 +88,22 @@ export const WorkspaceSettingsPage: React.FC = () => {
   } | null>(null);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
+  const loadQaAssuranceRollout = useCallback(async (workspaceId: string) => {
+    setIsQaAssuranceRolloutLoading(true);
+    setQaAssuranceRolloutError(null);
+    try {
+      const settings = await workspaceService.getQaAssuranceRollout(workspaceId);
+      setQaAssuranceRollout(settings);
+    } catch (err) {
+      setQaAssuranceRollout(null);
+      setQaAssuranceRolloutError(
+        err instanceof Error ? err.message : 'Konfigurasi rollout QA assurance gagal dimuat.',
+      );
+    } finally {
+      setIsQaAssuranceRolloutLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     dispatch(fetchWorkspaces());
   }, [dispatch]);
@@ -91,7 +115,12 @@ export const WorkspaceSettingsPage: React.FC = () => {
       setAllowQaTaskCreation(activeWorkspace.allowQaTaskCreation ?? true);
       dispatch(fetchMembers(activeWorkspace.id));
     }
-  }, [activeWorkspace?.id, dispatch]);
+  }, [activeWorkspace, dispatch]);
+
+  useEffect(() => {
+    if (!activeWorkspace) return;
+    void loadQaAssuranceRollout(activeWorkspace.id);
+  }, [activeWorkspace, loadQaAssuranceRollout]);
 
   const userRole = (
     activeWorkspace?.role ||
@@ -99,11 +128,33 @@ export const WorkspaceSettingsPage: React.FC = () => {
     currentUserRole ||
     ''
   ).toLowerCase();
-  const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
+  const canAccessSettings = ['owner', 'admin', 'po', 'dev', 'qa'].includes(userRole);
   const canManageMembers = userRole === 'owner' || userRole === 'admin';
   const isArchived = Boolean(activeWorkspace?.archivedAt);
   const canArchiveWorkspace = userRole === 'owner';
   const canDeleteWorkspace = canArchiveWorkspace && isArchived;
+
+  const handleSaveQaAssuranceRollout = async (input: {
+    mode: QaAssuranceRolloutSettings['mode'];
+    reason: string;
+  }) => {
+    if (!activeWorkspace || !canManageMembers || isArchived) return;
+    setIsSavingQaAssuranceRollout(true);
+    try {
+      const settings = await workspaceService.updateQaAssuranceRollout(activeWorkspace.id, input);
+      setQaAssuranceRollout(settings);
+      dispatch(enqueueSnackbar('Keputusan rollout QA assurance berhasil disimpan.', 'success'));
+    } catch (err) {
+      dispatch(
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Keputusan rollout QA assurance gagal disimpan.',
+          'error',
+        ),
+      );
+    } finally {
+      setIsSavingQaAssuranceRollout(false);
+    }
+  };
 
   const handleConfirmArchiveToggle = async () => {
     if (!activeWorkspace) return;
@@ -369,13 +420,13 @@ export const WorkspaceSettingsPage: React.FC = () => {
     return <EmptyWorkspaceOnboarding />;
   }
 
-  // Access restriction guard for users other than owner, admin, po
+  // Every persisted Workspace role may read rollout status; management remains Owner/Admin-only.
   if (!canAccessSettings) {
     return (
       <AccessRestricted
         workspaceName={activeWorkspace.name}
         title="Akses Pengaturan Workspace Dibatasi"
-        description={`Hanya Owner, Admin, dan Product Owner (PO) yang dapat mengakses pengaturan workspace "${activeWorkspace.name}".`}
+        description={`Peran Anda tidak dapat membaca pengaturan workspace "${activeWorkspace.name}".`}
         actionHref="/work"
         actionLabel="Kembali ke Work Hub"
       />
@@ -422,6 +473,16 @@ export const WorkspaceSettingsPage: React.FC = () => {
             canManage={canManageMembers && !isArchived}
             isUpdating={isUpdatingPolicy}
             onToggle={(checked) => void handleToggleQaPolicy(checked)}
+          />
+
+          <QaAssuranceRolloutCard
+            settings={qaAssuranceRollout}
+            isLoading={isQaAssuranceRolloutLoading}
+            error={qaAssuranceRolloutError}
+            canManage={canManageMembers && !isArchived}
+            isSaving={isSavingQaAssuranceRollout}
+            onRetry={() => void loadQaAssuranceRollout(activeWorkspace.id)}
+            onSave={(input) => void handleSaveQaAssuranceRollout(input)}
           />
           {canArchiveWorkspace && (
             <div className="flex flex-wrap gap-2">

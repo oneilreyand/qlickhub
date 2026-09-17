@@ -13,10 +13,8 @@ export function assertCanManageTestCaseDefinition(role: WorkspaceRole): void {
 }
 
 export function assertCanCreateTestCase(role: WorkspaceRole): void {
-  if (role === 'owner' || role === 'admin' || role === 'po' || role === 'qa') return;
-  throw new Error(
-    'FORBIDDEN: Only QA, Product Owner, Admin, or Owner members can create Test Cases.',
-  );
+  if (role === 'qa') return;
+  throw new Error('FORBIDDEN: Only QA Engineer members can create draft Test Cases.');
 }
 
 const lifecycleTransitions: Record<
@@ -33,8 +31,14 @@ export function assertCanUpdateTestCase(
   role: WorkspaceRole,
   currentStatus: 'draft' | 'in_review' | 'active' | 'archived',
   requestedStatus?: 'draft' | 'in_review' | 'active' | 'archived',
+  hasDefinitionChanges = false,
 ): void {
   if (role === 'owner' || role === 'admin' || role === 'po') {
+    if (hasDefinitionChanges) {
+      throw new Error(
+        'FORBIDDEN: Product Owner, Admin, and Owner can review lifecycle status but cannot alter a Test Case definition.',
+      );
+    }
     if (!requestedStatus || requestedStatus === currentStatus) return;
     if (lifecycleTransitions[currentStatus].includes(requestedStatus)) return;
     throw new Error(
@@ -64,13 +68,11 @@ export function assertCanImportTestCases(
 }
 
 export function assertCanExecuteTestRun(role: WorkspaceRole): void {
-  if (role === 'owner' || role === 'admin' || role === 'qa') return;
-  throw new Error('FORBIDDEN: Only QA Engineer, Admin, or Owner members can execute Test Runs.');
+  if (role === 'qa') return;
+  throw new Error('FORBIDDEN: Only QA Engineer members can execute Test Runs.');
 }
 
 export function assertCanAddTestResultEvidence(role: WorkspaceRole): void {
-  if (role === 'owner' || role === 'admin' || role === 'qa') return;
-  throw new Error(
-    'FORBIDDEN: Only QA Engineer, Admin, or Owner members can add Test Result evidence.',
-  );
+  if (role === 'qa') return;
+  throw new Error('FORBIDDEN: Only QA Engineer members can add Test Result evidence.');
 }

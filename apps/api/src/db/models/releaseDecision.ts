@@ -9,6 +9,9 @@ export interface ReleaseDecisionAttributes {
   workspaceId: string;
   featureTaskId: string;
   qaSignOffId: string;
+  testCycleId?: string | null;
+  readinessBaselineId?: string | null;
+  candidateFingerprint?: string | null;
   decision: ReleaseDecisionOutcome;
   notes?: string | null;
   overrideReason?: string | null;
@@ -20,7 +23,14 @@ export interface ReleaseDecisionAttributes {
 
 type ReleaseDecisionCreationAttributes = Optional<
   ReleaseDecisionAttributes,
-  'id' | 'notes' | 'overrideReason' | 'decidedAt' | 'cancellation'
+  | 'id'
+  | 'testCycleId'
+  | 'readinessBaselineId'
+  | 'candidateFingerprint'
+  | 'notes'
+  | 'overrideReason'
+  | 'decidedAt'
+  | 'cancellation'
 >;
 
 export class ReleaseDecisionModel
@@ -31,6 +41,9 @@ export class ReleaseDecisionModel
   declare workspaceId: string;
   declare featureTaskId: string;
   declare qaSignOffId: string;
+  declare testCycleId: string | null;
+  declare readinessBaselineId: string | null;
+  declare candidateFingerprint: string | null;
   declare decision: ReleaseDecisionOutcome;
   declare notes: string | null;
   declare overrideReason: string | null;
@@ -46,6 +59,13 @@ ReleaseDecisionModel.init(
     workspaceId: { type: DataTypes.UUID, allowNull: false, field: 'workspace_id' },
     featureTaskId: { type: DataTypes.UUID, allowNull: false, field: 'feature_task_id' },
     qaSignOffId: { type: DataTypes.UUID, allowNull: false, field: 'qa_sign_off_id' },
+    testCycleId: { type: DataTypes.UUID, allowNull: true, field: 'test_cycle_id' },
+    readinessBaselineId: { type: DataTypes.UUID, allowNull: true, field: 'readiness_baseline_id' },
+    candidateFingerprint: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'candidate_fingerprint',
+    },
     decision: { type: DataTypes.STRING(32), allowNull: false },
     notes: { type: DataTypes.TEXT, allowNull: true },
     overrideReason: { type: DataTypes.TEXT, allowNull: true, field: 'override_reason' },

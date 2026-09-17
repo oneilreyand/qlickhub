@@ -31,6 +31,7 @@ export interface TaskDetailOverviewTabProps {
   onDueDateChange: (date: string) => void;
   flatFolders: { id: string; name: string; depth: number }[];
   canEditTask: boolean;
+  canEditStatus: boolean;
   canPlan: boolean;
   canEditPlanning: boolean;
   isAssignedExecutor: boolean;
@@ -57,6 +58,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
   onDueDateChange,
   flatFolders,
   canEditTask,
+  canEditStatus,
   canPlan,
   canEditPlanning,
   isAssignedExecutor,
@@ -292,7 +294,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                   value={status}
                   id="task-status"
                   onChange={(e) => onStatusChange(e.target.value as TaskStatus)}
-                  disabled={!canEditTask}
+                  disabled={!canEditStatus}
                   aria-label="Status"
                 >
                   <option value="todo">Belum Dikerjakan</option>

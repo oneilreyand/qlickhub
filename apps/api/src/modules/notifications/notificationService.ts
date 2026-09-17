@@ -14,6 +14,7 @@ export interface CreateNotificationParams {
   workspaceId: string;
   taskId?: string | null;
   actorId?: string | null;
+  idempotencyKey?: string | null;
   type: NotificationType;
   title: string;
   message: string;
@@ -47,18 +48,56 @@ export class NotificationService {
    * Creates a single in-app notification and dispatches FCM push notification.
    */
   async createNotification(params: CreateNotificationParams): Promise<InAppNotification> {
-    const { userId, workspaceId, taskId, actorId, type, title, message, sendFcm = true } = params;
-
-    const record = await NotificationModel.create({
+    const {
       userId,
       workspaceId,
-      taskId: taskId || null,
-      actorId: actorId || null,
+      taskId,
+      actorId,
+      idempotencyKey,
       type,
       title,
       message,
-      isRead: false,
-    });
+      sendFcm = true,
+    } = params;
+
+    let record: NotificationModel;
+    let created = true;
+    if (idempotencyKey) {
+      [record, created] = await NotificationModel.findOrCreate({
+        where: { idempotencyKey },
+        defaults: {
+          userId,
+          workspaceId,
+          taskId: taskId || null,
+          actorId: actorId || null,
+          idempotencyKey,
+          type,
+          title,
+          message,
+          isRead: false,
+        },
+      });
+    } else {
+      record = await NotificationModel.create({
+        userId,
+        workspaceId,
+        taskId: taskId || null,
+        actorId: actorId || null,
+        idempotencyKey: null,
+        type,
+        title,
+        message,
+        isRead: false,
+      });
+    }
+
+    // A retried outbox row must not send a second push/realtime event.
+    if (!created) {
+      const existing = await NotificationModel.findByPk(record.id, {
+        include: [{ model: UserModel, as: 'actor', attributes: ['id', 'name', 'email'] }],
+      });
+      return formatNotification(existing || record);
+    }
 
     if (sendFcm) {
       fcmService
@@ -73,7 +112,10 @@ export class NotificationService {
           },
         })
         .catch((err) => {
-          console.warn('⚠️ Failed to dispatch FCM push notification:', err instanceof Error ? err.message : err);
+          console.warn(
+            '⚠️ Failed to dispatch FCM push notification:',
+            err instanceof Error ? err.message : err,
+          );
         });
     }
 
@@ -98,7 +140,7 @@ export class NotificationService {
    */
   async createBulkNotifications(
     paramsList: Array<CreateNotificationParams>,
-    sendFcm = true
+    sendFcm = true,
   ): Promise<InAppNotification[]> {
     if (paramsList.length === 0) return [];
 
@@ -112,12 +154,15 @@ export class NotificationService {
         title: p.title,
         message: p.message,
         isRead: false,
-      }))
+      })),
     );
 
     if (sendFcm) {
       // Group by distinct title/message/type/taskId/workspaceId for multicast efficiency
-      const groups = new Map<string, { userIds: string[]; title: string; body: string; data: Record<string, string> }>();
+      const groups = new Map<
+        string,
+        { userIds: string[]; title: string; body: string; data: Record<string, string> }
+      >();
 
       for (const p of paramsList) {
         const key = `${p.type}:${p.taskId || ''}:${p.title}:${p.message}`;
@@ -145,7 +190,10 @@ export class NotificationService {
             data: group.data,
           })
           .catch((err) => {
-            console.warn('⚠️ Failed to dispatch bulk FCM push notification:', err instanceof Error ? err.message : err);
+            console.warn(
+              '⚠️ Failed to dispatch bulk FCM push notification:',
+              err instanceof Error ? err.message : err,
+            );
           });
       }
     }
@@ -176,7 +224,7 @@ export class NotificationService {
    */
   async listUserNotifications(
     userId: string,
-    query: ListNotificationsQuery
+    query: ListNotificationsQuery,
   ): Promise<ListNotificationsResponse> {
     const where: any = { userId };
 
@@ -242,7 +290,10 @@ export class NotificationService {
   /**
    * Marks all unread notifications as read for a user (optionally scoped to a workspace).
    */
-  async markAllAsRead(userId: string, workspaceId?: string): Promise<{ success: boolean; updatedCount: number }> {
+  async markAllAsRead(
+    userId: string,
+    workspaceId?: string,
+  ): Promise<{ success: boolean; updatedCount: number }> {
     const where: any = { userId, isRead: false };
     if (workspaceId) {
       where.workspaceId = workspaceId;
@@ -250,7 +301,7 @@ export class NotificationService {
 
     const [updatedCount] = await NotificationModel.update(
       { isRead: true, readAt: new Date() },
-      { where }
+      { where },
     );
 
     return {
@@ -277,7 +328,10 @@ export class NotificationService {
   /**
    * Clears all notifications for a user (optionally scoped to a workspace).
    */
-  async clearAll(userId: string, workspaceId?: string): Promise<{ success: boolean; deletedCount: number }> {
+  async clearAll(
+    userId: string,
+    workspaceId?: string,
+  ): Promise<{ success: boolean; deletedCount: number }> {
     const where: any = { userId };
     if (workspaceId) {
       where.workspaceId = workspaceId;
@@ -292,7 +346,7 @@ export class NotificationService {
    * and dispatches deadline notifications to assignees and reporters with 20h anti-spam protection.
    */
   async checkAndDispatchApproachingDeadlineNotifications(
-    workspaceId?: string
+    workspaceId?: string,
   ): Promise<{ success: boolean; dispatchedCount: number; checkedTasksCount: number }> {
     const today = new Date();
     const horizon = new Date();

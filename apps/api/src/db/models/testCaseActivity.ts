@@ -8,6 +8,7 @@ export interface TestCaseActivityAttributes {
   testCaseId: string;
   testRunId?: string | null;
   testResultId?: string | null;
+  testCaseVersionId?: string | null;
   actorId: string;
   action: TestActivityAction;
   metadata?: Record<string, unknown> | null;
@@ -16,7 +17,7 @@ export interface TestCaseActivityAttributes {
 
 type TestCaseActivityCreationAttributes = Optional<
   TestCaseActivityAttributes,
-  'id' | 'testRunId' | 'testResultId' | 'metadata' | 'createdAt'
+  'id' | 'testRunId' | 'testResultId' | 'testCaseVersionId' | 'metadata' | 'createdAt'
 >;
 
 export class TestCaseActivityModel
@@ -28,6 +29,7 @@ export class TestCaseActivityModel
   declare testCaseId: string;
   declare testRunId: string | null;
   declare testResultId: string | null;
+  declare testCaseVersionId: string | null;
   declare actorId: string;
   declare action: TestActivityAction;
   declare metadata: Record<string, unknown> | null;
@@ -41,6 +43,7 @@ TestCaseActivityModel.init(
     testCaseId: { type: DataTypes.UUID, allowNull: false, field: 'test_case_id' },
     testRunId: { type: DataTypes.UUID, allowNull: true, field: 'test_run_id' },
     testResultId: { type: DataTypes.UUID, allowNull: true, field: 'test_result_id' },
+    testCaseVersionId: { type: DataTypes.UUID, allowNull: true, field: 'test_case_version_id' },
     actorId: { type: DataTypes.UUID, allowNull: false, field: 'actor_id' },
     action: { type: DataTypes.STRING(100), allowNull: false },
     metadata: { type: DataTypes.JSONB, allowNull: true, field: 'metadata_json' },

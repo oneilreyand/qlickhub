@@ -661,10 +661,20 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const isAssignedExecutor = Boolean(
     isSubtask && task.assigneeId && task.assigneeId === currentUserId,
   );
+  const isAssignedQaExecutor = Boolean(
+    isSubtask &&
+    task.deliveryArea === 'qa' &&
+    activeWorkspace?.role === 'qa' &&
+    task.assigneeId === currentUserId,
+  );
   const canEditTask = canPlan || isAssignedExecutor;
+  const canEditStatus =
+    isSubtask && task.deliveryArea === 'qa' ? isAssignedQaExecutor : canEditTask;
   const canCompleteThisTask = isSubtask
     ? Boolean(
-        canPlan || (activeWorkspace && activeWorkspace.role === 'qa' && task.deliveryArea !== 'qa'),
+        task.deliveryArea === 'qa'
+          ? isAssignedQaExecutor
+          : canPlan || (activeWorkspace && activeWorkspace.role === 'qa'),
       )
     : canPlan;
   const canEditPlanning = canPlan;
@@ -728,14 +738,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         ? {
             title: title.trim(),
             description: description.trim() || null,
-            status,
+            ...(canEditStatus ? { status } : {}),
             priority,
             startDate: startDate || null,
             dueDate: dueDate || null,
           }
         : {
             description: description.trim() || null,
-            status,
+            ...(canEditStatus ? { status } : {}),
           };
 
       await dispatch(
@@ -764,7 +774,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       dispatch(
         enqueueSnackbar(
           isSubtask
-            ? 'Hanya Product Owner atau peninjau QA yang berwenang yang dapat menyetujui Subtask.'
+            ? task.deliveryArea === 'qa'
+              ? 'Hanya QA yang ditugaskan yang dapat mengubah status Subtask QA.'
+              : 'Hanya Product Owner atau peninjau QA yang berwenang yang dapat menyetujui Subtask.'
             : 'Hanya Product Owner, Admin, atau Owner yang dapat menyelesaikan Parent Task.',
           'error',
         ),
@@ -1164,6 +1176,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               onDueDateChange={setDueDate}
               flatFolders={flatFolders}
               canEditTask={canEditTask}
+              canEditStatus={canEditStatus}
               canPlan={canPlan}
               canEditPlanning={canEditPlanning}
               isAssignedExecutor={isAssignedExecutor}

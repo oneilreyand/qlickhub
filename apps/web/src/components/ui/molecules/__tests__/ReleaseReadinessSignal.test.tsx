@@ -37,9 +37,9 @@ describe('ReleaseReadinessSignal', () => {
     expect(screen.getByText('Rilis terblokir · 2 gate perlu ditindaklanjuti')).toBeInTheDocument();
     expect(screen.getByText(/1\/2 Subtask pengembangan telah selesai/)).toBeInTheDocument();
     expect(
-      screen.getByText('Belum ada Test Run selesai untuk Test Case aktif yang tertaut.'),
+      screen.getByText('Belum ada pengujian selesai untuk Test Case aktif yang tertaut.'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Hasil Test Run terbaru/)).toBeInTheDocument();
+    expect(screen.getByText(/Hasil Pengujian terbaru/)).toBeInTheDocument();
     expect(screen.getByLabelText('Gate rilis yang perlu ditindaklanjuti')).toBeInTheDocument();
   });
 

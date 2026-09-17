@@ -20,7 +20,7 @@ export function getIndonesianTaskScheduleMessage(
 
 const releaseGateLabels: Record<ReadinessGate['code'], string> = {
   requirement_coverage: 'Cakupan Requirement',
-  latest_test_results: 'Hasil Test Run terbaru',
+  latest_test_results: 'Hasil Pengujian terbaru',
   critical_high_bugs: 'Bug kritis/tinggi',
   development_completion: 'Penyelesaian pengembangan',
   qa_sign_off: 'Persetujuan QA',
@@ -60,7 +60,7 @@ export function getIndonesianReleaseGateCopy(gate: ReadinessGate): {
     replaceReason(
       gate.reason,
       /^No completed Test Run is recorded for the active mapped Test Cases\.$/,
-      'Belum ada Test Run selesai untuk Test Case aktif yang tertaut.',
+      'Belum ada pengujian selesai untuk Test Case aktif yang tertaut.',
     ),
     replaceReason(
       gate.reason,
@@ -110,12 +110,12 @@ export function getIndonesianReleaseGateCopy(gate: ReadinessGate): {
     replaceReason(
       gate.reason,
       /^The latest QA Sign-off is approved\.$/,
-      'QA Sign-off terbaru disetujui.',
+      'Persetujuan QA terbaru disetujui.',
     ),
     replaceReason(
       gate.reason,
       /^The latest QA Sign-off is rejected\.$/,
-      'QA Sign-off terbaru ditolak.',
+      'Persetujuan QA terbaru ditolak.',
     ),
   ];
 

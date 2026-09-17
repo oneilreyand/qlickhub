@@ -14,6 +14,8 @@ interface TaskState {
   total: number;
   page: number;
   limit: number;
+  listScope: string | null;
+  listRequestId: string | null;
   selectedTaskId: string | null;
   queryFilter: Partial<Omit<TaskListQuery, 'workspaceId'>>;
   isLoading: boolean;
@@ -28,6 +30,8 @@ const initialState: TaskState = {
   total: 0,
   page: 1,
   limit: 50,
+  listScope: null,
+  listRequestId: null,
   selectedTaskId: null,
   queryFilter: {},
   isLoading: false,
@@ -49,6 +53,13 @@ export const fetchTasks = createAsyncThunk(
     return await taskService.listTasks(workspaceId, query);
   },
 );
+
+function taskListScope(args: {
+  workspaceId: string;
+  query?: Partial<Omit<TaskListQuery, 'workspaceId'>>;
+}): string {
+  return `${args.workspaceId}:${JSON.stringify(args.query || {})}`;
+}
 
 export const fetchTaskById = createAsyncThunk(
   'task/fetchTaskById',
@@ -150,11 +161,21 @@ const taskSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // fetchTasks
-      .addCase(fetchTasks.pending, (state) => {
+      .addCase(fetchTasks.pending, (state, action) => {
+        const nextScope = taskListScope(action.meta.arg);
+        if (state.listScope !== nextScope) {
+          state.tasks = [];
+          state.total = 0;
+          state.page = 1;
+        }
+        state.listScope = nextScope;
+        state.listRequestId = action.meta.requestId;
         state.isLoading = true;
         state.error = null;
       })
       .addCase(fetchTasks.fulfilled, (state, action) => {
+        if (state.listRequestId !== action.meta.requestId) return;
+        state.listRequestId = null;
         state.isLoading = false;
         state.tasks = action.payload.tasks;
         state.total = action.payload.total;
@@ -162,6 +183,8 @@ const taskSlice = createSlice({
         state.limit = action.payload.limit;
       })
       .addCase(fetchTasks.rejected, (state, action) => {
+        if (state.listRequestId !== action.meta.requestId) return;
+        state.listRequestId = null;
         state.isLoading = false;
         state.error = action.error.message || 'Failed to fetch tasks';
       })

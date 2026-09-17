@@ -1,6 +1,6 @@
 # 2. Workflow & Role Governance — Qlick Hub SSoT
 
-**Status:** Active Single Source of Truth (SSoT)  
+**Status:** Active Single Source of Truth (SSoT)
 **Scope:** End-to-End Delivery Flow, Role Responsibilities, Subtask Lifecycle, QA Native Testing, Bug Retesting, and Release Gates.
 
 ---
@@ -53,12 +53,12 @@ sequenceDiagram
 
 ## 2. Matriks Tanggung Jawab & Batasan Peran (_Role Matrix_)
 
-| Peran                  | Tanggung Jawab Utama                                                  | Aksi yang Diizinkan                                                                                                                                                         | Batasan Mutlak (_Hard Boundaries_)                                                                                                                              |
-| :--------------------- | :-------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Owner / Admin**      | Tata kelola workspace, konfigurasi anggota, dan persetujuan delivery. | Mengundang anggota, mengatur spesialisasi dev, delegasi parent task, rilis keputusan darurat, dan berpartisipasi dalam Discussion.                                          | Dilarang memotong alur bukti pengujian QA untuk memaksakan rilis tanpa audit atau mengubah/menghapus pesan Discussion milik akun lain.                          |
-| **Product Owner (PO)** | Pemilik cakupan fitur, prioritas requirement, dan keputusan rilis.    | Membuat Folder, Feature Task, Requirement, Subtask, mengaktifkan Test Case, menerbitkan _Release Decision_, dan berpartisipasi dalam Discussion.                            | Dilarang mengubah status eksekusi _Test Result_ QA atau mengubah/menghapus pesan Discussion milik akun lain.                                                    |
-| **Developer (`dev`)**  | Eksekusi teknis subtask sesuai spesialisasi.                          | Mengubah status subtask miliknya (`todo → in_progress → in_review`), memperbaiki Bug, mengunggah bukti teknis, dan berpartisipasi dalam Discussion.                         | Dilarang merencanakan subtask baru, menutup Bug sendiri tanpa verifikasi QA, mengedit field planning, atau mengubah/menghapus pesan Discussion milik akun lain. |
-| **QA (`qa`)**          | Menjamin kualitas, verifikasi requirement, dan mitigasi regresi.      | Membuat draf Test Case, mengimpor spreadsheet test case, menjalankan Test Run, mencatat Bug, mereview subtask, mengajukan QA Sign-off, dan berpartisipasi dalam Discussion. | Dilarang mempublikasikan Test Case secara sepihak, mengambil keputusan rilis akhir PO, atau mengubah/menghapus pesan Discussion milik akun lain.                |
+| Peran                  | Tanggung Jawab Utama                                                  | Aksi yang Diizinkan                                                                                                                                                                                                           | Batasan Mutlak (_Hard Boundaries_)                                                                                                                                                                  |
+| :--------------------- | :-------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owner / Admin**      | Tata kelola Workspace, konfigurasi anggota, dan persetujuan delivery. | Mengundang anggota, mengatur spesialisasi dev, merencanakan delivery, menerbitkan keputusan rilis yang memenuhi separation of duties, dan menyetujui break-glass QA yang ter-audit.                                           | Dilarang menjalankan QA secara normal, memotong evidence gate, menggunakan break-glass tanpa scope/alasan/kedaluwarsa, atau mengubah/menghapus Discussion akun lain.                                |
+| **Product Owner (PO)** | Pemilik cakupan fitur, prioritas Requirement, dan keputusan rilis.    | Membuat Folder, Feature Task, Requirement, Subtask, meminta revisi/mengaktifkan Test Case, menerbitkan _Release Decision_, dan berpartisipasi dalam Discussion.                                                               | Dilarang menjalankan Test Run, mencatat Result/evidence, membuat Retest Attempt, mengubah status QA Subtask, atau mengubah/menghapus Discussion akun lain.                                          |
+| **Developer (`dev`)**  | Eksekusi teknis subtask sesuai spesialisasi.                          | Mengubah status subtask miliknya (`todo → in_progress → in_review`), memperbaiki Bug, mengunggah bukti teknis, dan berpartisipasi dalam Discussion.                                                                           | Dilarang merencanakan subtask baru, menutup Bug sendiri tanpa verifikasi QA, mengedit field planning, atau mengubah/menghapus pesan Discussion milik akun lain.                                     |
+| **QA (`qa`)**          | Menjamin kualitas, verifikasi Requirement, dan mitigasi regresi.      | QA assignee membuat draf Test Case, menjalankan scoped Test Run, menyegel Result/evidence, mencatat Bug, melakukan Retest Attempt, mereview subtask Development, mengajukan QA Sign-off, dan berpartisipasi dalam Discussion. | Dilarang mempublikasikan Test Case sepihak, mengambil keputusan rilis akhir PO, mengambil alih scope QA assignee lain tanpa reassignment/break-glass, atau mengubah/menghapus Discussion akun lain. |
 
 ### Kepemilikan Konteks Perencanaan
 
@@ -185,10 +185,25 @@ mengikuti gerbang pada §7. Status `in_review` tidak digunakan pada eksekusi QA 
 membuat QA mereview pekerjaannya sendiri. Transisi dari `in_review` hanya dipertahankan untuk
 memulihkan record lama.
 
+### Otoritas Eksekusi QA dan Break-glass
+
+Kebijakan target ADR-014 menetapkan QA assignee sebagai satu-satunya pelaksana normal untuk QA
+Subtask, Test Run, Result/evidence, Bug triage, Retest Attempt, dan QA Sign-off pada scope-nya.
+PO tidak dapat mengubah status QA Subtask. Owner/Admin dapat membaca, mengelola penugasan, dan
+mengambil keputusan rilis sesuai separation of duties, tetapi tidak memiliki fallback eksekusi QA
+berbasis role.
+
+Keadaan darurat menggunakan break-glass yang secara eksplisit mengikat Workspace, Feature, QA
+Subtask/Test Cycle, executor, daftar aksi, alasan, penerbit, masa berlaku, dan satu kali pemakaian.
+Untuk risiko Critical, approver dan executor berbeda; executor tidak dapat menandatangani QA atau
+membuat keputusan rilis untuk kandidat yang sama. Approval, pemakaian, pembatalan, dan notifikasi
+bersifat append-only. Enforcement backend dan UI mengikuti slice S1; sebelum itu implementation
+legacy tetap transitional dan tidak boleh diklaim telah memenuhi kebijakan ini.
+
 ### Aturan Transisi Subtask
 
 1. **Developer Flow**: Developer menggerakkan subtask dari `todo → in_progress → in_review`.
-2. **QA Execution Flow**: Hanya QA assignee yang menjalankan Subtask QA melalui `todo → in_progress → done`. Membuka ulang `done → in_progress` wajib menyertakan alasan audit.
+2. **QA Execution Flow**: Hanya QA assignee yang menjalankan Subtask QA melalui `todo → in_progress → done`. Membuka ulang `done → in_progress` wajib menyertakan alasan audit. Owner/Admin memerlukan break-glass yang valid; PO selalu ditolak.
 3. **Review Independen**: Anggota QA atau reviewer berwenang mereview Subtask Development pada `in_review`. Jika belum lolos, status dialihkan ke `changes_requested`; Subtask QA tidak memakai self-review.
 4. **Proteksi Field Perencanaan**: Field estimasi poin, tanggal target rilis, dan tautan Requirement hanya dapat diubah oleh Planner (`owner`, `admin`, `po`).
 5. **Kelengkapan Timeline Task dan Subtask**: Jadwal boleh tidak ditentukan dengan mengosongkan `startDate` dan `dueDate`. Jika jadwal ditentukan, kedua tanggal wajib diisi dan `startDate` tidak boleh melewati `dueDate`. Aturan ini berlaku saat pembuatan maupun perubahan Task dan Subtask serta ditegakkan kembali oleh backend dan database.
@@ -229,11 +244,27 @@ stateDiagram-v2
   form edit. Referensi eksplisit tetap tersedia untuk integrasi dan spreadsheet lama.
 - Jenis skenario terdiri dari `positive` (alur utama), `negative` (kegagalan/penolakan), dan `edge`
   (kondisi batas). Jenis skenario tidak mengubah lifecycle maupun kewenangan penerbitan Test Case.
+- Test Case baru akan memiliki revisi immutable. QA assignee mengubah draf; publikasi membekukan
+  versi yang dipakai Run. Revisi berikutnya tidak mengubah langkah, expected result, data uji, atau
+  mapping Acceptance Criterion pada Run historis.
+- Mapping Requirement tetap dipertahankan untuk ringkasan kompatibilitas. Release coverage menilai
+  Acceptance Criterion `active` dalam baseline Feature: setiap AC harus memiliki Test Case version
+  aktif dan Result lulus pada Test Cycle/kandidat yang sama. Pengecualian scope wajib berversi dan
+  beralasan; tidak boleh mengubah denominator secara diam-diam.
 
 ### B. Hasil Uji yang Imutabel (_Immutable Test Results_)
 
 - Setiap eksekusi menghasilkan record `TestResult` yang append-only dengan status: `passed`, `failed`, `blocked`, atau `skipped`.
 - Hasil uji historis **tidak pernah ditimpa** (_never overwritten_), sehingga rekam jejak regresi terjaga utuh.
+- Result `passed`, `failed`, dan `blocked` wajib memiliki setidaknya satu image/video evidence
+  yang dapat dibuka melalui preview terautentikasi atau HTTPS provider yang diizinkan. `skipped`
+  wajib memiliki alasan dan tidak pernah dihitung sebagai `passed`.
+- Finalisasi Result menyegel Evidence Manifest yang memuat attachment/link, provenance, actor,
+  waktu, media kind, dan availability. Evidence tambahan hanya dapat dibuat sebagai supplement
+  append-only dengan alasan; tidak boleh mengubah proof asal secara diam-diam.
+- Setiap Run baru akan menyimpan root Feature, QA Subtask, Test Cycle/kandidat, versi Test Case,
+  baseline, build, dan environment. Record lama tanpa scope ini berstatus legacy/unverified dan
+  tidak dapat memenuhi evidence gate baru tanpa bukti deterministik.
 
 ### C. Alur Wizard Impor Spreadsheet (CSV / XLSX)
 
@@ -294,6 +325,13 @@ graph TD
     class CloseBug done;
 ```
 
+Setiap Bug menampilkan timeline tanpa menyalin ulang blob evidence: Result asal → evidence triage →
+Resolution Event Developer → Retest Attempt 1..n. Retest Attempt wajib menunjuk Result baru dalam
+scope/kandidat yang sama atau cycle pengganti yang sah, beserta Evidence Manifest. Result `passed`
+membuat outcome `verified`; `failed` atau `blocked` membuat `reopened`; `skipped` tidak dapat
+menutup Bug. Pembuatan attempt dan perubahan status terjadi dalam satu transaksi sehingga Developer
+tidak pernah dapat menutup Bug sendiri atau QA tidak dapat memverifikasi tanpa bukti retest.
+
 ---
 
 ## 7. Gerbang Kesiapan & Keputusan Rilis (_Release Readiness Gate_)
@@ -301,12 +339,14 @@ graph TD
 ```mermaid
 graph TD
     subgraph DataDerivation["1. Backend Readiness Derivation"]
-        ReqCoverage["Requirement Coverage (% teruji)"]
+        ReqCoverage["Acceptance-Criterion Coverage (% teruji)"]
         TestPassRate["Test Pass Rate (% sukses)"]
-        OpenBugs["Zero Unresolved Critical/High Bugs"]
+        OpenBugs["Zero Unresolved Critical/High Bugs + Retest Evidence"]
+        Evidence["Sealed, previewable Evidence Manifest"]
         ReqCoverage --> Calc["Backend Derived Readiness Snapshot"]
         TestPassRate --> Calc
         OpenBugs --> Calc
+        Evidence --> Calc
     end
 
     subgraph QASignoffBlock["2. QA Formal Sign-off"]
@@ -336,8 +376,10 @@ graph TD
 
 Kontrak aktif hanya memiliki outcome `approved` dan `rejected`. Persetujuan ketika readiness gate
 gagal tetap disimpan sebagai `approved` dengan `overrideReason`; snapshot gate yang gagal tidak
-dihapus. `Conditional` bukan enum API aktif. Perubahan lebih lanjut pada kebijakan override dan
-paket rilis menunggu keputusan K6.
+dihapus. `Conditional` bukan enum API aktif. Setelah S5, QA completion, Sign-off, dan Release
+Decision wajib merujuk snapshot Test Cycle/kandidat yang sama. Override bisnis dapat mempertahankan
+failed gate, tetapi tidak dapat melewati scope, evidence manifest, Retest Attempt, atau separation
+of duties. Implementasi kontrak/migrasi dan enforcement bertahap mengikuti ADR-014.
 
 ### Data Legacy dan Awal Pengukuran
 

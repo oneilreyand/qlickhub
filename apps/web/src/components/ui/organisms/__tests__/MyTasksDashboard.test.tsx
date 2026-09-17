@@ -92,6 +92,7 @@ function renderDashboard(overrides: Partial<React.ComponentProps<typeof MyTasksD
     onRefreshCreatedTasks: vi.fn(),
     onOpenQueueItem: vi.fn(),
     onOpenCreatedTask: vi.fn(),
+    onOpenTaskById: vi.fn(),
     onCreatedTasksSearchChange: vi.fn(),
     onCreatedTasksStatusChange: vi.fn(),
     onCreatedTasksPriorityChange: vi.fn(),
@@ -227,7 +228,7 @@ describe('MyTasksDashboard Organism', () => {
     renderDashboard({ onOpenQueueItem });
 
     const openButton = screen.getByRole('button', {
-      name: 'Buka Implement checkout summary. Tindakan berikutnya: Lanjutkan Subtask',
+      name: 'Buka pekerjaan: Implement checkout summary. Tindakan berikutnya: Lanjutkan Subtask',
     });
     openButton.focus();
     fireEvent.keyDown(openButton, { key: 'Enter' });
@@ -239,6 +240,19 @@ describe('MyTasksDashboard Organism', () => {
       ),
     );
     expect(openButton).toHaveFocus();
+  });
+
+  it('presents a backend blocker as context instead of a misleading executable action', () => {
+    const queue = createRoleAwareWorkQueueFixture();
+    queue.buckets[0].items[0].workState = 'blocked';
+    renderDashboard({ queueState: { ...queueState(), queue } });
+
+    expect(screen.getByText('Ada prasyarat')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Lihat prasyarat: Implement checkout summary. Tindakan berikutnya: Lanjutkan Subtask',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('retains useful queue search and priority filters', async () => {
@@ -316,6 +330,7 @@ describe('MyTasksDashboard Organism', () => {
           onRefreshCreatedTasks={vi.fn()}
           onOpenQueueItem={vi.fn()}
           onOpenCreatedTask={vi.fn()}
+          onOpenTaskById={vi.fn()}
           onCreatedTasksSearchChange={vi.fn()}
           onCreatedTasksStatusChange={vi.fn()}
           onCreatedTasksPriorityChange={vi.fn()}
@@ -328,7 +343,7 @@ describe('MyTasksDashboard Organism', () => {
     fireEvent.click(screen.getByRole('tab', { name: /Perbaikan Bug/ }));
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Buka Checkout total mismatch. Tindakan berikutnya: Mulai Perbaikan Bug',
+        name: 'Buka pekerjaan: Checkout total mismatch. Tindakan berikutnya: Mulai Perbaikan Bug',
       }),
     );
 

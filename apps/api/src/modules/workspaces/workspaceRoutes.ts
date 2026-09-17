@@ -20,6 +20,8 @@ import {
   grantTaskCreationPermission,
   revokeTaskCreationPermission,
   getWorkspaceActivities,
+  getQaAssuranceRollout,
+  updateQaAssuranceRollout,
 } from './workspaceController.js';
 
 export const workspaceRoutes = Router();
@@ -39,6 +41,16 @@ workspaceRoutes.delete('/:workspaceId', requireWorkspaceMember(['owner']), delet
 
 // Workspace Activity Feed / Audit Trail
 workspaceRoutes.get('/:workspaceId/activities', requireWorkspaceMember(), getWorkspaceActivities);
+workspaceRoutes.get(
+  '/:workspaceId/qa-assurance-rollout',
+  requireWorkspaceMember(),
+  getQaAssuranceRollout,
+);
+workspaceRoutes.patch(
+  '/:workspaceId/qa-assurance-rollout',
+  requireWorkspaceMember(['owner', 'admin']),
+  updateQaAssuranceRollout,
+);
 
 // Member management
 workspaceRoutes.get('/:workspaceId/members', requireWorkspaceMember(), getWorkspaceMembers);

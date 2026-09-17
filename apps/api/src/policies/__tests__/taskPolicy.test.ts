@@ -53,6 +53,25 @@ describe('Task policy', () => {
     );
   });
 
+  test('keeps QA Subtask planning with planners but reserves status transitions for the assigned QA', () => {
+    const qaSubtask = {
+      parentTaskId: 'parent-1',
+      assigneeId: anotherUserId,
+      deliveryArea: 'qa' as const,
+      status: 'in_progress' as const,
+    };
+
+    for (const role of ['owner', 'admin', 'po'] as const) {
+      assert.doesNotThrow(() =>
+        assertCanMutateTask(role, qaUserId, qaSubtask, { title: 'Updated QA plan' }),
+      );
+      assert.throws(
+        () => assertCanMutateTask(role, qaUserId, qaSubtask, { status: 'done' }),
+        /QA Subtask status can only be changed by its assigned QA executor/,
+      );
+    }
+  });
+
   test('restricts QA and Dev roles from creating tasks unless special permission granted', () => {
     assert.throws(
       () => assertCanCreateTask('qa', qaUserId, null, null, false),

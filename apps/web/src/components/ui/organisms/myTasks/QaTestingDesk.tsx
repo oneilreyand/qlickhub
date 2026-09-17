@@ -21,7 +21,13 @@ import type {
   TaskComment,
   TaskStatus,
   TaskTestExecutionWorkspace,
+  AcceptanceCriterion,
+  TestCaseVersionAcceptanceCriterionMapping,
+  TestCaseVersionCoverageSummary,
+  QaTestCycle,
+  QaWorkflowSummary,
   TestResultStatus,
+  TestRun,
   WorkspaceRole,
 } from '@qlick/contracts';
 
@@ -29,6 +35,7 @@ import { Alert } from '../../atoms/Alert';
 import { Badge } from '../../atoms/Badge';
 import { Button } from '../../atoms/Button';
 import { Card } from '../../atoms/Card';
+import { Checkbox } from '../../atoms/Checkbox';
 import { FormattedText } from '../../atoms/FormattedText';
 import { Input } from '../../atoms/Input';
 import { Select } from '../../atoms/Select';
@@ -40,7 +47,9 @@ import { Modal } from '../../molecules/Modal';
 import { SubtaskCommentBox } from '../../molecules/SubtaskCommentBox';
 import { TaskScheduleHealthBadge } from '../../molecules/TaskScheduleHealthBadge';
 import { TaskStatusBadge } from '../../molecules/TaskStatusBadge';
+import { Tabs } from '../../molecules/Tabs';
 import { EvidencePreviewItem, EvidencePreviewModal } from '../EvidencePreviewModal';
+import { BugExperiencePanel } from '../BugExperiencePanel';
 import { ReleaseAssurancePanel } from '../ReleaseAssurancePanel';
 import { TestCaseFormModal } from './TestCaseFormModal';
 import { TestCaseImportWizardModal } from './TestCaseImportWizardModal';
@@ -62,6 +71,7 @@ export interface QaTestingDeskProps {
   userRole?: string;
   onDataChanged: () => void;
   onBackToOverview?: () => void;
+  focusTarget?: 'test_cases' | 'qa_sign_off' | null;
 }
 
 const resultBadgeVariant = (status?: TestResultStatus) => {
@@ -71,6 +81,36 @@ const resultBadgeVariant = (status?: TestResultStatus) => {
   return 'neutral' as const;
 };
 
+const testRunStatusCopy: Record<string, string> = {
+  planned: 'Direncanakan',
+  in_progress: 'Sedang berjalan',
+  completed: 'Selesai',
+  cancelled: 'Dibatalkan',
+  passed: 'Lulus',
+  failed: 'Gagal',
+  blocked: 'Terblokir',
+  skipped: 'Dilewati',
+};
+
+const workflowBlockerCopy: Record<string, string> = {
+  qa_test_cycle_missing: 'Buat Siklus Pengujian untuk kandidat yang akan diuji.',
+  scoped_run_in_progress: 'Ada pengujian aktif yang masih memerlukan hasil.',
+  scoped_result_missing: 'Setiap Test Case aktif memerlukan hasil pada siklus ini.',
+  scoped_result_not_passed: 'Hasil Test Case terbaru belum seluruhnya lulus.',
+  evidence_manifest_missing: 'Hasil lulus memerlukan bukti gambar atau video yang siap dibuka.',
+  acceptance_criteria_uncovered: 'Acceptance Criterion aktif belum seluruhnya tercakup.',
+  unverified_bug: 'Masih ada Bug yang belum diverifikasi melalui retest formal.',
+};
+
+type QaDeskSection = 'overview' | 'preparation' | 'bugs' | 'sign_off';
+
+const qaDeskSections = [
+  { id: 'overview', label: 'Ikhtisar' },
+  { id: 'preparation', label: 'Persiapan & Eksekusi' },
+  { id: 'bugs', label: 'Bug & Retest' },
+  { id: 'sign_off', label: 'Persetujuan & Riwayat' },
+] as const;
+
 export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   subtask,
   parentTask,
@@ -78,11 +118,18 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   currentUserId,
   userRole = 'qa',
   onDataChanged,
+  focusTarget = null,
 }) => {
   const dispatch = useAppDispatch();
   const { members } = useAppSelector((state: RootState) => state.workspace);
+  const testCasesRef = useRef<HTMLElement>(null);
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [workflowSummary, setWorkflowSummary] = useState<QaWorkflowSummary | null>(null);
+  const [isLoadingWorkflowSummary, setIsLoadingWorkflowSummary] = useState(false);
+  const [workflowSummaryError, setWorkflowSummaryError] = useState<string | null>(null);
+  const workflowSummaryRequestIdRef = useRef(0);
+  const [activeQaDeskSection, setActiveQaDeskSection] = useState<QaDeskSection>('preparation');
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [executionWorkspace, setExecutionWorkspace] = useState<TaskTestExecutionWorkspace | null>(
     null,
@@ -90,6 +137,35 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [isLoadingExecutions, setIsLoadingExecutions] = useState(true);
   const [executionError, setExecutionError] = useState<string | null>(null);
   const [executionPermissionDenied, setExecutionPermissionDenied] = useState(false);
+  const [versionCoverageByTestCaseId, setVersionCoverageByTestCaseId] = useState<
+    Record<string, TestCaseVersionCoverageSummary | null>
+  >({});
+  const [testCycles, setTestCycles] = useState<QaTestCycle[]>([]);
+  const [selectedTestCycleId, setSelectedTestCycleId] = useState('');
+  const [isLoadingTestCycles, setIsLoadingTestCycles] = useState(true);
+  const [testCycleError, setTestCycleError] = useState<string | null>(null);
+  const [isTestCycleModalOpen, setIsTestCycleModalOpen] = useState(false);
+  const [testCycleBuild, setTestCycleBuild] = useState('');
+  const [testCycleEnvironment, setTestCycleEnvironment] = useState('staging');
+  const [testCycleFingerprint, setTestCycleFingerprint] = useState('');
+  const [isCreatingTestCycle, setIsCreatingTestCycle] = useState(false);
+  const [acMappingTarget, setAcMappingTarget] = useState<{
+    testCaseId: string;
+    title: string;
+    versionId: string;
+    revision: number;
+  } | null>(null);
+  const [acMappingItems, setAcMappingItems] = useState<
+    Array<{
+      criterion: AcceptanceCriterion;
+      included: boolean;
+      mappingStatus: 'mapped' | 'excluded';
+      exclusionReason: string;
+    }>
+  >([]);
+  const [isLoadingAcMapping, setIsLoadingAcMapping] = useState(false);
+  const [isSavingAcMapping, setIsSavingAcMapping] = useState(false);
+  const [acMappingError, setAcMappingError] = useState<string | null>(null);
   const executionRequestIdRef = useRef(0);
   const [requirementOptions, setRequirementOptions] = useState<
     { id: string; code: string; title: string }[]
@@ -119,6 +195,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [selectedAttachmentIds, setSelectedAttachmentIds] = useState<string[]>([]);
   const [resultFormError, setResultFormError] = useState<string | null>(null);
   const [isRecordingResult, setIsRecordingResult] = useState(false);
+  const [finalizingRetestRunId, setFinalizingRetestRunId] = useState<string | null>(null);
 
   // Add evidence to completed result state
   const [addEvidenceResultTarget, setAddEvidenceResultTarget] = useState<{
@@ -127,6 +204,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   } | null>(null);
   const [singleEvidenceUrl, setSingleEvidenceUrl] = useState('');
   const [singleEvidenceLabel, setSingleEvidenceLabel] = useState('');
+  const [singleEvidenceReason, setSingleEvidenceReason] = useState('');
   const [isAddingResultEvidence, setIsAddingResultEvidence] = useState(false);
   const [addResultEvidenceError, setAddResultEvidenceError] = useState<string | null>(null);
 
@@ -157,18 +235,65 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const normalizedUserRole = userRole.toLowerCase();
   const isPlanner = ['owner', 'admin', 'po'].includes(normalizedUserRole);
   const isAssignedQaExecutor = normalizedUserRole === 'qa' && subtask.assigneeId === currentUserId;
-  const canMutateQaExecution = isPlanner || isAssignedQaExecutor;
+  const canMutateQaExecution = isAssignedQaExecutor;
   const canReviewDevSubtask =
     subtask.deliveryArea !== 'qa' &&
     subtask.status === 'in_review' &&
     (normalizedUserRole === 'qa' || isPlanner) &&
     subtask.assigneeId !== currentUserId;
-  const canExecuteTests = ['owner', 'admin', 'qa'].includes(normalizedUserRole);
-  const canOpenBugReport = ['owner', 'admin', 'qa'].includes(normalizedUserRole);
-  const canAuthorTests = ['owner', 'admin', 'po', 'qa'].includes(normalizedUserRole);
+  const canExecuteTests = isAssignedQaExecutor;
+  const canOpenBugReport = isAssignedQaExecutor;
+  const canAuthorTests = normalizedUserRole === 'qa';
   const canActivateTestCases = ['owner', 'admin', 'po'].includes(normalizedUserRole);
   const canSubmitTestCasesForReview = normalizedUserRole === 'qa';
   const requirementScopeTaskId = parentTask?.id || subtask.parentTaskId || subtask.id;
+  const featureTaskId = parentTask?.id || subtask.parentTaskId || subtask.id;
+
+  const loadWorkflowSummary = useCallback(async () => {
+    const requestId = ++workflowSummaryRequestIdRef.current;
+    if (!isAssignedQaExecutor) {
+      setWorkflowSummary(null);
+      setWorkflowSummaryError(null);
+      setIsLoadingWorkflowSummary(false);
+      return;
+    }
+    setIsLoadingWorkflowSummary(true);
+    setWorkflowSummaryError(null);
+    try {
+      const summary = await testManagementService.getQaWorkflowSummary(workspaceId, subtask.id);
+      if (requestId !== workflowSummaryRequestIdRef.current) return;
+      setWorkflowSummary(summary);
+    } catch (error) {
+      if (requestId !== workflowSummaryRequestIdRef.current) return;
+      setWorkflowSummary(null);
+      setWorkflowSummaryError(
+        error instanceof Error ? error.message : 'Ringkasan workflow QA tidak dapat dimuat.',
+      );
+    } finally {
+      if (requestId === workflowSummaryRequestIdRef.current) setIsLoadingWorkflowSummary(false);
+    }
+  }, [isAssignedQaExecutor, subtask.id, workspaceId]);
+
+  useEffect(() => {
+    void loadWorkflowSummary();
+    return () => {
+      workflowSummaryRequestIdRef.current += 1;
+    };
+  }, [loadWorkflowSummary]);
+
+  useEffect(() => {
+    if (focusTarget === 'test_cases') {
+      setActiveQaDeskSection('preparation');
+    }
+    if (focusTarget === 'qa_sign_off') {
+      setActiveQaDeskSection('sign_off');
+    }
+  }, [focusTarget]);
+
+  const selectedTestCycle = useMemo(
+    () => testCycles.find((cycle) => cycle.id === selectedTestCycleId) || null,
+    [selectedTestCycleId, testCycles],
+  );
 
   const bugTraceOptions = useMemo(() => {
     if (!executionWorkspace) return [];
@@ -288,11 +413,248 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     };
   }, [loadExecutions]);
 
+  useEffect(() => {
+    if (focusTarget !== 'test_cases' || isLoadingExecutions) return;
+    testCasesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    testCasesRef.current?.focus({ preventScroll: true });
+  }, [focusTarget, isLoadingExecutions]);
+
+  const loadTestCycles = useCallback(async () => {
+    setIsLoadingTestCycles(true);
+    setTestCycleError(null);
+    try {
+      const cycles = await testManagementService.listQaTestCycles(
+        workspaceId,
+        featureTaskId,
+        subtask.id,
+      );
+      setTestCycles(cycles);
+      setSelectedTestCycleId((current) => {
+        if (cycles.some((cycle) => cycle.id === current)) return current;
+        return (
+          cycles.find(
+            (cycle) => cycle.status === 'in_progress' && cycle.ownerQaId === currentUserId,
+          )?.id || ''
+        );
+      });
+    } catch (error) {
+      setTestCycles([]);
+      setTestCycleError(
+        error instanceof Error
+          ? error.message
+          : 'Siklus Pengujian untuk Feature ini tidak dapat dimuat.',
+      );
+    } finally {
+      setIsLoadingTestCycles(false);
+    }
+  }, [currentUserId, featureTaskId, subtask.id, workspaceId]);
+
+  useEffect(() => {
+    void loadTestCycles();
+  }, [loadTestCycles]);
+
+  useEffect(() => {
+    if (!executionWorkspace?.executions.length) {
+      setVersionCoverageByTestCaseId({});
+      return;
+    }
+    let isCurrent = true;
+    void Promise.all(
+      executionWorkspace.executions.map(async ({ testCase }) => {
+        try {
+          const [latest] = await testManagementService.listTestCaseVersionCoverage(
+            workspaceId,
+            testCase.id,
+          );
+          return [testCase.id, latest || null] as const;
+        } catch {
+          return [testCase.id, null] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (isCurrent) setVersionCoverageByTestCaseId(Object.fromEntries(entries));
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, [executionWorkspace, workspaceId]);
+
   const openRunModal = (testCaseId: string) => {
+    if (!selectedTestCycle) {
+      setRunFormError(
+        'Pilih atau buat Siklus Pengujian aktif untuk kandidat ini sebelum memulai pengujian.',
+      );
+      return;
+    }
     setRunTestCaseId(testCaseId);
-    setRunBuild('');
-    setRunEnvironment('staging');
+    setRunBuild(selectedTestCycle.build);
+    setRunEnvironment(selectedTestCycle.environment);
     setRunFormError(null);
+  };
+
+  const openTestCycleModal = () => {
+    setTestCycleBuild('');
+    setTestCycleEnvironment('staging');
+    setTestCycleFingerprint('');
+    setTestCycleError(null);
+    setIsTestCycleModalOpen(true);
+  };
+
+  const handleCreateTestCycle = async () => {
+    if (!testCycleBuild.trim() || !testCycleEnvironment.trim() || !testCycleFingerprint.trim()) {
+      setTestCycleError('Build, lingkungan, dan identitas kandidat wajib diisi.');
+      return;
+    }
+    try {
+      setIsCreatingTestCycle(true);
+      setTestCycleError(null);
+      const cycle = await testManagementService.createQaTestCycle(workspaceId, {
+        featureTaskId,
+        qaSubtaskId: subtask.id,
+        candidateFingerprint: testCycleFingerprint.trim(),
+        build: testCycleBuild.trim(),
+        environment: testCycleEnvironment.trim(),
+      });
+      setTestCycles((cycles) => [cycle, ...cycles]);
+      setSelectedTestCycleId(cycle.id);
+      setIsTestCycleModalOpen(false);
+      dispatch(
+        enqueueSnackbar(
+          'Siklus Pengujian kandidat tersimpan dan siap menerima pengujian.',
+          'success',
+        ),
+      );
+      await loadWorkflowSummary();
+    } catch (error) {
+      setTestCycleError(
+        error instanceof Error ? error.message : 'Siklus Pengujian tidak dapat dibuat.',
+      );
+    } finally {
+      setIsCreatingTestCycle(false);
+    }
+  };
+
+  const openAcceptanceCriteriaMapping = async (
+    testCase: TaskTestExecutionWorkspace['executions'][number]['testCase'],
+  ) => {
+    const latestVersion = versionCoverageByTestCaseId[testCase.id];
+    if (!latestVersion || latestVersion.lifecycleStatus !== 'draft') return;
+
+    setAcMappingTarget({
+      testCaseId: testCase.id,
+      title: testCase.title,
+      versionId: latestVersion.id,
+      revision: latestVersion.revision,
+    });
+    setAcMappingItems([]);
+    setAcMappingError(null);
+    setIsLoadingAcMapping(true);
+
+    try {
+      const [mappingResponse, requirementDetails] = await Promise.all([
+        testManagementService.listTestCaseVersionAcceptanceCriteria(
+          workspaceId,
+          testCase.id,
+          latestVersion.id,
+        ),
+        Promise.all(
+          testCase.requirementIds.map((requirementId) =>
+            requirementService.getRequirement(workspaceId, requirementId),
+          ),
+        ),
+      ]);
+      const existingMappings = new Map(
+        mappingResponse.mappings.map((mapping) => [mapping.acceptanceCriterionId, mapping]),
+      );
+      const activeCriteria = Array.from(
+        new Map(
+          requirementDetails
+            .flatMap((detail) => detail.acceptanceCriteria)
+            .filter((criterion) => criterion.status === 'active')
+            .map((criterion) => [criterion.id, criterion]),
+        ).values(),
+      ).sort((left, right) => left.code.localeCompare(right.code));
+      setAcMappingItems(
+        activeCriteria.map((criterion) => {
+          const existing = existingMappings.get(criterion.id);
+          return {
+            criterion,
+            included: Boolean(existing),
+            mappingStatus: existing?.mappingStatus || 'mapped',
+            exclusionReason: existing?.exclusionReason || '',
+          };
+        }),
+      );
+    } catch (error) {
+      setAcMappingError(
+        error instanceof Error ? error.message : 'Acceptance Criteria tidak dapat dimuat.',
+      );
+    } finally {
+      setIsLoadingAcMapping(false);
+    }
+  };
+
+  const updateAcceptanceCriteriaMappingItem = (
+    criterionId: string,
+    update: Partial<(typeof acMappingItems)[number]>,
+  ) => {
+    setAcMappingItems((items) =>
+      items.map((item) => (item.criterion.id === criterionId ? { ...item, ...update } : item)),
+    );
+  };
+
+  const handleSaveAcceptanceCriteriaMapping = async () => {
+    if (!acMappingTarget) return;
+    const mappings: TestCaseVersionAcceptanceCriterionMapping[] = acMappingItems
+      .filter((item) => item.included)
+      .map((item) => ({
+        acceptanceCriterionId: item.criterion.id,
+        mappingStatus: item.mappingStatus,
+        exclusionReason:
+          item.mappingStatus === 'excluded' ? item.exclusionReason.trim() || null : undefined,
+      }));
+    const excludedWithoutReason = mappings.some(
+      (mapping) => mapping.mappingStatus === 'excluded' && !mapping.exclusionReason,
+    );
+    if (mappings.length === 0) {
+      setAcMappingError(
+        'Pilih minimal satu Acceptance Criterion untuk dipetakan atau dikecualikan.',
+      );
+      return;
+    }
+    if (excludedWithoutReason) {
+      setAcMappingError('Setiap Acceptance Criterion yang dikecualikan wajib memiliki alasan.');
+      return;
+    }
+
+    try {
+      setIsSavingAcMapping(true);
+      setAcMappingError(null);
+      await testManagementService.replaceTestCaseVersionAcceptanceCriteria(
+        workspaceId,
+        acMappingTarget.testCaseId,
+        acMappingTarget.versionId,
+        mappings,
+      );
+      const coverage = await testManagementService.listTestCaseVersionCoverage(
+        workspaceId,
+        acMappingTarget.testCaseId,
+      );
+      setVersionCoverageByTestCaseId((current) => ({
+        ...current,
+        [acMappingTarget.testCaseId]: coverage[0] || null,
+      }));
+      dispatch(
+        enqueueSnackbar('Pemetaan Acceptance Criterion pada revision draf tersimpan', 'success'),
+      );
+      setAcMappingTarget(null);
+    } catch (error) {
+      setAcMappingError(
+        error instanceof Error ? error.message : 'Pemetaan Acceptance Criterion gagal disimpan.',
+      );
+    } finally {
+      setIsSavingAcMapping(false);
+    }
   };
 
   const handleSubmitTestCaseForReview = async (testCaseId: string) => {
@@ -318,8 +680,9 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
   const handleStartRun = async () => {
     if (!runTestCaseId) return;
-    if (!runBuild.trim() || !runEnvironment.trim()) {
-      setRunFormError('Build dan environment wajib diisi.');
+    const version = versionCoverageByTestCaseId[runTestCaseId];
+    if (!selectedTestCycle || !version || version.lifecycleStatus !== 'active') {
+      setRunFormError('Pengujian memerlukan Siklus Pengujian dan revisi Test Case aktif.');
       return;
     }
 
@@ -327,14 +690,20 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       setIsStartingRun(true);
       setRunFormError(null);
       await testManagementService.createTestRun(workspaceId, runTestCaseId, {
+        featureTaskId,
+        qaSubtaskId: subtask.id,
+        testCycleId: selectedTestCycle.id,
+        testCaseVersionId: version.id,
+        candidateFingerprint: selectedTestCycle.candidateFingerprint,
         build: runBuild.trim(),
         environment: runEnvironment.trim(),
       });
       setRunTestCaseId(null);
-      dispatch(enqueueSnackbar('Test Run started and persisted', 'success'));
+      dispatch(enqueueSnackbar('Pengujian dimulai dan tersimpan.', 'success'));
       await loadExecutions();
+      await loadWorkflowSummary();
     } catch (error) {
-      setRunFormError(error instanceof Error ? error.message : 'Test Run gagal dimulai.');
+      setRunFormError(error instanceof Error ? error.message : 'Pengujian gagal dimulai.');
     } finally {
       setIsStartingRun(false);
     }
@@ -407,10 +776,25 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       .filter((l) => l.url.trim().length > 0)
       .map((l) => ({ url: l.url.trim(), label: l.label.trim() || undefined }));
 
+    if (
+      ['passed', 'failed', 'blocked'].includes(resultStatus) &&
+      selectedAttachmentIds.length === 0 &&
+      validLinks.length === 0
+    ) {
+      setResultFormError(
+        'Result ini memerlukan minimal satu bukti gambar atau video yang dapat dibuka.',
+      );
+      return;
+    }
+    if (resultStatus === 'skipped' && !resultNotes.trim()) {
+      setResultFormError('Hasil Dilewati memerlukan alasan pada kolom Catatan.');
+      return;
+    }
+
     try {
       setIsRecordingResult(true);
       setResultFormError(null);
-      await testManagementService.recordTestResult(
+      const completedRun = await testManagementService.recordTestResult(
         workspaceId,
         resultTarget.testCaseId,
         resultTarget.testRunId,
@@ -423,8 +807,37 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         },
       );
       setResultTarget(null);
-      dispatch(enqueueSnackbar('Immutable Test Result recorded with evidence links', 'success'));
+      if (completedRun.retestBugId && completedRun.result) {
+        try {
+          const attempt = await bugService.createRetestAttempt(
+            workspaceId,
+            completedRun.retestBugId,
+            { testResultId: completedRun.result.id },
+          );
+          dispatch(
+            enqueueSnackbar(
+              attempt.outcome === 'verified'
+                ? 'Hasil retest tersimpan dan Bug terverifikasi.'
+                : 'Hasil retest tersimpan dan Bug dibuka kembali ke Developer.',
+              'success',
+            ),
+          );
+          onDataChanged();
+        } catch (retestError) {
+          dispatch(
+            enqueueSnackbar(
+              retestError instanceof Error
+                ? `Hasil tersimpan, tetapi outcome Bug belum difinalkan: ${retestError.message}`
+                : 'Hasil tersimpan, tetapi outcome Bug belum difinalkan.',
+              'error',
+            ),
+          );
+        }
+      } else {
+        dispatch(enqueueSnackbar('Hasil pengujian tersimpan dan disegel.', 'success'));
+      }
       await loadExecutions();
+      await loadWorkflowSummary();
     } catch (error) {
       setResultFormError(error instanceof Error ? error.message : 'Hasil pengujian gagal dicatat.');
     } finally {
@@ -432,8 +845,39 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     }
   };
 
+  const handleFinalizeRetest = async (run: TestRun) => {
+    if (!run.retestBugId || !run.result) return;
+    setFinalizingRetestRunId(run.id);
+    try {
+      const attempt = await bugService.createRetestAttempt(workspaceId, run.retestBugId, {
+        testResultId: run.result.id,
+      });
+      dispatch(
+        enqueueSnackbar(
+          attempt.outcome === 'verified'
+            ? 'Bug terverifikasi dari hasil retest ini.'
+            : 'Bug dibuka kembali ke Developer dari hasil retest ini.',
+          'success',
+        ),
+      );
+      await loadExecutions();
+      await loadWorkflowSummary();
+      onDataChanged();
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Outcome Bug belum dapat difinalkan.',
+          'error',
+        ),
+      );
+    } finally {
+      setFinalizingRetestRunId(null);
+    }
+  };
+
   const handleAddSingleResultEvidence = async () => {
-    if (!addEvidenceResultTarget || !singleEvidenceUrl.trim()) return;
+    if (!addEvidenceResultTarget || !singleEvidenceUrl.trim() || !singleEvidenceReason.trim())
+      return;
 
     setIsAddingResultEvidence(true);
     setAddResultEvidenceError(null);
@@ -445,13 +889,16 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         {
           url: singleEvidenceUrl.trim(),
           label: singleEvidenceLabel.trim() || undefined,
+          reason: singleEvidenceReason.trim(),
         },
       );
       dispatch(enqueueSnackbar('Tautan bukti berhasil dilampirkan ke hasil pengujian', 'success'));
       setAddEvidenceResultTarget(null);
       setSingleEvidenceUrl('');
       setSingleEvidenceLabel('');
+      setSingleEvidenceReason('');
       await loadExecutions();
+      await loadWorkflowSummary();
     } catch (err: unknown) {
       setAddResultEvidenceError(err instanceof Error ? err.message : 'Bukti gagal ditambahkan.');
     } finally {
@@ -467,7 +914,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         parentCommentId: parentCommentId || undefined,
       });
       setComments((prev) => [...prev, newComment]);
-      dispatch(enqueueSnackbar('Comment added to subtask', 'success'));
+      dispatch(enqueueSnackbar('Komentar ditambahkan ke Subtask.', 'success'));
     } catch (err) {
       dispatch(
         enqueueSnackbar(err instanceof Error ? err.message : 'Komentar gagal dikirim', 'error'),
@@ -475,7 +922,22 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     }
   };
 
+  const qaCompletionReady =
+    workflowSummary?.nextAction.code === 'complete_qa_subtask' &&
+    workflowSummary.blockers.length === 0;
+  const qaCompletionUnavailableMessage = isLoadingWorkflowSummary
+    ? 'Memeriksa capability penyelesaian QA dari data tersimpan.'
+    : workflowSummaryError
+      ? 'Capability penyelesaian QA belum dapat dipastikan. Coba muat ulang workflow QA.'
+      : workflowSummary
+        ? `Selesaikan langkah berikutnya terlebih dahulu: ${workflowSummary.nextAction.label}.`
+        : 'Capability penyelesaian QA belum tersedia.';
+
   const handleStatusChange = async (newStatus: TaskStatus, reviewNotes?: string) => {
+    if (newStatus === 'done' && subtask.deliveryArea === 'qa' && !qaCompletionReady) {
+      dispatch(enqueueSnackbar(qaCompletionUnavailableMessage, 'error'));
+      return;
+    }
     try {
       setIsUpdatingStatus(true);
       await dispatch(
@@ -497,6 +959,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               ? 'Subtask berhasil disetujui dan diselesaikan.'
               : `Status Subtask diperbarui ke ${newStatus.replace('_', ' ')}`;
       dispatch(enqueueSnackbar(successMessage, 'success'));
+      if (subtask.deliveryArea === 'qa') await loadWorkflowSummary();
       onDataChanged();
     } catch (err) {
       dispatch(
@@ -553,6 +1016,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       setIsBugModalOpen(false);
       setBugTitle('');
       setBugReproSteps('');
+      await loadWorkflowSummary();
       onDataChanged();
     } catch (err) {
       setBugFormError(err instanceof Error ? err.message : 'Bug gagal dibuat.');
@@ -563,6 +1027,49 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
   return (
     <div className="space-y-6">
+      {isAssignedQaExecutor && (
+        <Card className="space-y-3 border-emerald-200/80 bg-emerald-50/40 p-4 dark:border-emerald-950/70 dark:bg-emerald-950/15">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                Ringkasan Workflow QA
+              </h3>
+              <p className="mt-0.5 text-xs text-stone-600 dark:text-stone-400">
+                Scope dan langkah berikutnya dihitung dari data QA yang tersimpan.
+              </p>
+            </div>
+            {workflowSummary && (
+              <Badge variant={workflowSummary.blockers.length ? 'review' : 'passed'} size="sm">
+                {workflowSummary.blockers.length ? 'Ada prasyarat' : 'Siap lanjut'}
+              </Badge>
+            )}
+          </div>
+          {isLoadingWorkflowSummary ? (
+            <Skeleton className="h-14 w-full" />
+          ) : workflowSummaryError ? (
+            <Alert tone="warning" title="Ringkasan workflow belum tersedia">
+              {workflowSummaryError}
+            </Alert>
+          ) : workflowSummary ? (
+            <div className="space-y-2 text-xs">
+              <p className="font-semibold text-stone-800 dark:text-stone-200">
+                Menguji: {workflowSummary.featureTitle} ·{' '}
+                {workflowSummary.testCycle?.build || 'Siklus belum dibuat'}
+              </p>
+              <p className="font-extrabold text-emerald-800 dark:text-emerald-300">
+                Berikutnya: {workflowSummary.nextAction.label}
+              </p>
+              {workflowSummary.blockers.length > 0 && (
+                <ul className="space-y-1 text-stone-600 dark:text-stone-400">
+                  {workflowSummary.blockers.map((blocker) => (
+                    <li key={blocker}>• {workflowBlockerCopy[blocker]}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+        </Card>
+      )}
       {/* QA Workstation Header Card */}
       <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-linear-to-br from-emerald-50/40 via-white to-emerald-50/20 dark:from-emerald-950/30 dark:via-stone-900 dark:to-stone-950">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -614,28 +1121,14 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
             {subtask.status === 'in_progress' && (
               <>
-                {canOpenBugReport && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={openBugModal}
-                    disabled={bugTraceOptions.length === 0}
-                    title={
-                      bugTraceOptions.length === 0
-                        ? 'Catat hasil pengujian yang gagal atau terblokir terlebih dahulu'
-                        : 'Buat Bug tertaut'
-                    }
-                    leftIcon={<AlertTriangle className="h-4 w-4" />}
-                  >
-                    Catat Bug
-                  </Button>
-                )}
                 {canMutateQaExecution && (
                   <Button
                     variant="primary"
                     size="sm"
                     onClick={() => handleStatusChange('done')}
                     isLoading={isUpdatingStatus}
+                    disabled={!qaCompletionReady}
+                    title={qaCompletionReady ? undefined : qaCompletionUnavailableMessage}
                     leftIcon={<CheckCircle2 className="h-4 w-4" />}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
@@ -680,34 +1173,38 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             )}
 
             {/* QA Subtask In Review */}
-            {subtask.deliveryArea === 'qa' && canMutateQaExecution && subtask.status === 'in_review' && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    handleStatusChange(
-                      'in_progress',
-                      'Dikembalikan ke Sedang Dikerjakan untuk pengujian QA tambahan.',
-                    )
-                  }
-                  isLoading={isUpdatingStatus}
-                  leftIcon={<RotateCcw className="h-4 w-4" />}
-                >
-                  Lanjutkan Pengujian
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => handleStatusChange('done')}
-                  isLoading={isUpdatingStatus}
-                  leftIcon={<CheckCircle2 className="h-4 w-4" />}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  Selesaikan Eksekusi QA
-                </Button>
-              </>
-            )}
+            {subtask.deliveryArea === 'qa' &&
+              canMutateQaExecution &&
+              subtask.status === 'in_review' && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      handleStatusChange(
+                        'in_progress',
+                        'Dikembalikan ke Sedang Dikerjakan untuk pengujian QA tambahan.',
+                      )
+                    }
+                    isLoading={isUpdatingStatus}
+                    leftIcon={<RotateCcw className="h-4 w-4" />}
+                  >
+                    Lanjutkan Pengujian
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleStatusChange('done')}
+                    isLoading={isUpdatingStatus}
+                    disabled={!qaCompletionReady}
+                    title={qaCompletionReady ? undefined : qaCompletionUnavailableMessage}
+                    leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    Selesaikan Eksekusi QA
+                  </Button>
+                </>
+              )}
 
             {canMutateQaExecution && subtask.status === 'done' && (
               <Button
@@ -724,448 +1221,671 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         </div>
       </Card>
 
-      {/* Release Assurance Governance Panel */}
-      <ReleaseAssurancePanel
-        workspaceId={workspaceId}
-        featureTaskId={parentTask?.id || subtask.id}
-        userRole={userRole}
-        mode="qa"
+      <Tabs
+        tabs={qaDeskSections.map((section) => ({
+          ...section,
+          count:
+            section.id === 'bugs' && workflowSummary?.blockers.includes('unverified_bug')
+              ? 1
+              : undefined,
+        }))}
+        activeTabId={activeQaDeskSection}
+        onChange={(sectionId) => setActiveQaDeskSection(sectionId as QaDeskSection)}
+        variant="pills"
+        ariaLabel="Tahap workflow QA"
       />
 
       {/* Test Case Executions Workspace Card */}
-      <Card className="p-5 border-stone-200/80 dark:border-stone-800 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-3 dark:border-stone-800">
-          <div>
-            <div className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                Pengelolaan &amp; Eksekusi Test Case
-              </h3>
+      {activeQaDeskSection === 'preparation' && (
+        <section
+          role="tabpanel"
+          id="qa-workflow-panel-preparation"
+          aria-label="Persiapan dan eksekusi QA"
+        >
+          <Card
+            ref={testCasesRef}
+            id="qa-test-cases"
+            tabIndex={focusTarget === 'test_cases' ? -1 : undefined}
+            className="p-5 border-stone-200/80 dark:border-stone-800 space-y-4"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-3 dark:border-stone-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                    Pengelolaan &amp; Eksekusi Test Case
+                  </h3>
+                </div>
+                <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
+                  Pembuatan manual dan impor spreadsheet yang tertaut ke Requirement Feature.
+                </p>
+              </div>
+
+              {canAuthorTests && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsImportWizardOpen(true)}
+                    leftIcon={<Upload className="h-3.5 w-3.5" />}
+                  >
+                    Impor Spreadsheet
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setIsTestCaseFormOpen(true)}
+                    disabled={isLoadingRequirementOptions || requirementOptions.length === 0}
+                    title={
+                      isLoadingRequirementOptions
+                        ? 'Memuat Requirement tertaut'
+                        : 'Tautkan minimal satu Requirement aktif ke Feature sebelum membuat Test Case.'
+                    }
+                    leftIcon={<Plus className="h-3.5 w-3.5" />}
+                  >
+                    Test Case Baru
+                  </Button>
+                </div>
+              )}
             </div>
-            <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
-              Pembuatan manual dan impor spreadsheet yang tertaut ke Requirement Feature.
-            </p>
-          </div>
 
-          {canAuthorTests && (
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsImportWizardOpen(true)}
-                leftIcon={<Upload className="h-3.5 w-3.5" />}
-              >
-                Impor Spreadsheet
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setIsTestCaseFormOpen(true)}
-                disabled={isLoadingRequirementOptions || requirementOptions.length === 0}
-                title={
-                  isLoadingRequirementOptions
-                    ? 'Memuat Requirement tertaut'
-                    : 'Tautkan minimal satu Requirement aktif ke Feature sebelum membuat Test Case.'
-                }
-                leftIcon={<Plus className="h-3.5 w-3.5" />}
-              >
-                Test Case Baru
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {isLoadingExecutions ? (
-          <div className="space-y-3">
-            <Skeleton className="h-24 w-full rounded-2xl" />
-            <Skeleton className="h-24 w-full rounded-2xl" />
-          </div>
-        ) : executionPermissionDenied ? (
-          <Alert tone="warning" title="Akses pengelolaan pengujian dibatasi">
-            Peran Workspace Anda tidak dapat melihat Test Case yang tersimpan dalam konteks ini.
-          </Alert>
-        ) : executionError ? (
-          <Alert tone="error" title="Eksekusi pengujian tidak dapat dimuat">
-            {executionError}
-          </Alert>
-        ) : !executionWorkspace || executionWorkspace.executions.length === 0 ? (
-          <div className="space-y-3">
-            {requirementOptionsError ? (
-              <Alert tone="error" title="Requirement tertaut tidak dapat dimuat">
-                {requirementOptionsError}
-              </Alert>
-            ) : !isLoadingRequirementOptions && requirementOptions.length === 0 ? (
-              <Alert tone="info" title="Tautkan Requirement sebelum membuat Test Case">
-                {isPlanner
-                  ? 'Feature ini belum memiliki Requirement aktif yang tertaut. Tautkan minimal satu Requirement aktif ke Feature ini dari panel Requirement agar QA dapat menyusun Test Case.'
-                  : 'Feature ini belum memiliki Requirement aktif yang tertaut. Hubungi Product Owner atau Admin untuk menautkan Requirement ke Feature ini agar Anda dapat menyusun Test Case.'}
-              </Alert>
-            ) : null}
-            <EmptyState
-              icon={<CheckSquare className="h-6 w-6" />}
-              title="Belum ada Test Case yang tertaut ke Feature ini"
-              description="Buat Test Case baru atau impor baris CSV/XLSX yang tertaut ke Requirement."
-            />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {!canExecuteTests && (
-              <Alert tone="info" title="Pengujian hanya dapat dilihat">
-                Peran Anda dapat melihat Test Case dan riwayat Run. Hanya Owner, Admin, atau QA yang
-                dapat memulai Run dan mencatat hasilnya.
-              </Alert>
-            )}
-
-            {executionWorkspace.executions.map(({ testCase, latestRun, testRuns }) => (
-              <section
-                key={testCase.id}
-                className="rounded-2xl border border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-900/50"
-                aria-labelledby={`test-case-${testCase.id}`}
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant={
-                          testCase.status === 'active'
-                            ? 'brand'
-                            : testCase.status === 'in_review'
-                              ? 'review'
-                              : testCase.status === 'draft'
-                                ? 'draft'
-                                : 'neutral'
-                        }
-                        size="sm"
-                      >
-                        {testCase.status === 'active'
-                          ? 'Aktif (Siap Diuji)'
-                          : testCase.status === 'in_review'
-                            ? 'Menunggu Review PO'
-                            : testCase.status === 'draft'
-                              ? 'Draf'
-                              : testCase.status}
-                      </Badge>
-                      <Badge variant="info" size="sm">
-                        {testCase.testType}
-                      </Badge>
-                      <Badge variant="neutral" size="sm">
-                        Prioritas: {testCase.priority}
-                      </Badge>
-                      {testCase.externalReference && (
-                        <span className="text-xs font-mono font-bold text-primary">
-                          {testCase.externalReference}
-                        </span>
-                      )}
-                      <span className="text-[10px] font-semibold text-stone-400">
-                        {testCase.requirementIds.length} Requirement
-                        {testCase.requirementIds.length === 1 ? '' : 's'}
-                      </span>
-                    </div>
-                    <h4
-                      id={`test-case-${testCase.id}`}
-                      className="text-sm font-extrabold text-stone-900 dark:text-stone-100"
-                    >
-                      {testCase.title}
-                    </h4>
-                    {testCase.description && (
-                      <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                        {testCase.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {(canExecuteTests ||
-                    (canSubmitTestCasesForReview && testCase.status === 'draft') ||
-                    (canActivateTestCases && testCase.status === 'in_review')) && (
-                    <div className="flex shrink-0 flex-wrap gap-2">
-                      {canSubmitTestCasesForReview && testCase.status === 'draft' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          isLoading={submittingTestCaseId === testCase.id}
-                          onClick={() => void handleSubmitTestCaseForReview(testCase.id)}
-                          aria-label={`Ajukan Test Case ${testCase.title} untuk review`}
-                          leftIcon={<CheckSquare className="h-3.5 w-3.5" />}
-                        >
-                          Ajukan untuk Review
-                        </Button>
-                      )}
-                      {canActivateTestCases && testCase.status === 'in_review' && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          isLoading={activatingTestCaseId === testCase.id}
-                          onClick={() => void handleActivateTestCase(testCase.id)}
-                          aria-label={`Aktifkan Test Case ${testCase.title}`}
-                          leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                        >
-                          Aktifkan Test Case
-                        </Button>
-                      )}
-                      {canExecuteTests && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={testCase.status !== 'active'}
-                          onClick={() => openRunModal(testCase.id)}
-                          aria-label={`Mulai Test Run untuk ${testCase.title}`}
-                        >
-                          Mulai Test Run
-                        </Button>
-                      )}
-                      {canExecuteTests && latestRun?.status === 'in_progress' && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => openResultModal(testCase.id, latestRun.id)}
-                          aria-label={`Catat hasil untuk ${testCase.title}`}
-                        >
-                          Catat Hasil
-                        </Button>
-                      )}
-                    </div>
+            <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3 dark:border-stone-800 dark:bg-stone-950/40">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500">
+                    Siklus Pengujian / Kandidat
+                  </p>
+                  {isLoadingTestCycles ? (
+                    <Skeleton className="mt-1 h-4 w-56" />
+                  ) : selectedTestCycle ? (
+                    <p className="mt-1 text-xs font-semibold text-stone-800 dark:text-stone-200">
+                      Siklus aktif · {selectedTestCycle.build} · {selectedTestCycle.environment}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+                      Belum ada Siklus Pengujian aktif. Pengujian baru tidak dapat memakai konteks
+                      kandidat yang ambigu.
+                    </p>
                   )}
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  {testCycles.length > 0 && (
+                    <Select
+                      value={selectedTestCycleId}
+                      onChange={(event) => setSelectedTestCycleId(event.target.value)}
+                      aria-label="Pilih Siklus Pengujian"
+                      className="min-w-52"
+                    >
+                      <option value="">Pilih Siklus Pengujian</option>
+                      {testCycles.map((cycle) => (
+                        <option key={cycle.id} value={cycle.id}>
+                          {cycle.build} · {cycle.environment}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                  {canExecuteTests && (
+                    <Button variant="outline" size="sm" onClick={openTestCycleModal}>
+                      Buat Siklus Pengujian
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {testCycleError && !isTestCycleModalOpen && (
+                <Alert tone="warning" title="Konteks Siklus Pengujian belum tersedia">
+                  {testCycleError}
+                </Alert>
+              )}
+            </div>
 
-                {(testCase.preconditions ||
-                  testCase.steps.length > 0 ||
-                  testCase.expectedResult ||
-                  testCase.testData) && (
-                  <div className="mt-4 grid gap-3 lg:grid-cols-4">
-                    <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                        Prasyarat
-                      </p>
-                      <p className="mt-1 text-xs text-stone-700 dark:text-stone-300">
-                        {testCase.preconditions || 'Belum dicatat'}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                        Langkah
-                      </p>
-                      {testCase.steps.length > 0 ? (
-                        <ol className="mt-1 list-decimal space-y-1 pl-4 text-xs text-stone-700 dark:text-stone-300">
-                          {testCase.steps.map((step, index) => (
-                            <li key={`${testCase.id}-step-${index}`}>{step}</li>
-                          ))}
-                        </ol>
-                      ) : (
-                        <p className="mt-1 text-xs text-stone-500">Belum ada langkah formal</p>
-                      )}
-                    </div>
-                    <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                        Hasil yang Diharapkan
-                      </p>
-                      <p className="mt-1 text-xs text-stone-700 dark:text-stone-300">
-                        {testCase.expectedResult || 'Belum dicatat'}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
-                        Data Pengujian
-                      </p>
-                      <p className="mt-1 text-xs font-mono text-stone-700 dark:text-stone-300">
-                        {testCase.testData || 'Belum dicatat'}
-                      </p>
-                    </div>
-                  </div>
+            {isLoadingExecutions ? (
+              <div className="space-y-3">
+                <Skeleton className="h-24 w-full rounded-2xl" />
+                <Skeleton className="h-24 w-full rounded-2xl" />
+              </div>
+            ) : executionPermissionDenied ? (
+              <Alert tone="warning" title="Akses pengelolaan pengujian dibatasi">
+                Peran Workspace Anda tidak dapat melihat Test Case yang tersimpan dalam konteks ini.
+              </Alert>
+            ) : executionError ? (
+              <Alert tone="error" title="Eksekusi pengujian tidak dapat dimuat">
+                <div className="space-y-2">
+                  <p>{executionError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void loadExecutions()}
+                    aria-label="Muat ulang eksekusi pengujian"
+                  >
+                    Muat ulang eksekusi
+                  </Button>
+                </div>
+              </Alert>
+            ) : !executionWorkspace || executionWorkspace.executions.length === 0 ? (
+              <div className="space-y-3">
+                {requirementOptionsError ? (
+                  <Alert tone="error" title="Requirement tertaut tidak dapat dimuat">
+                    {requirementOptionsError}
+                  </Alert>
+                ) : !isLoadingRequirementOptions && requirementOptions.length === 0 ? (
+                  <Alert tone="info" title="Tautkan Requirement sebelum membuat Test Case">
+                    {isPlanner
+                      ? 'Feature ini belum memiliki Requirement aktif yang tertaut. Tautkan minimal satu Requirement aktif ke Feature ini dari panel Requirement agar QA dapat menyusun Test Case.'
+                      : 'Feature ini belum memiliki Requirement aktif yang tertaut. Hubungi Product Owner atau Admin untuk menautkan Requirement ke Feature ini agar Anda dapat menyusun Test Case.'}
+                  </Alert>
+                ) : null}
+                <EmptyState
+                  icon={<CheckSquare className="h-6 w-6" />}
+                  title="Belum ada Test Case yang tertaut ke Feature ini"
+                  description="Buat Test Case baru atau impor baris CSV/XLSX yang tertaut ke Requirement."
+                />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {!canExecuteTests && (
+                  <Alert tone="info" title="Pengujian hanya dapat dilihat">
+                    Peran Anda dapat melihat Test Case dan riwayat pengujian. Hanya QA yang dapat
+                    memulai pengujian, mencatat hasil, dan menambahkan bukti.
+                  </Alert>
                 )}
 
-                {/* Run History & Evidence */}
-                <div className="mt-4 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <History className="h-4 w-4 text-stone-400" />
-                      <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                        Riwayat Run ({testRuns.length})
-                      </span>
-                    </div>
-                    {latestRun && (
-                      <Badge
-                        variant={
-                          latestRun.result ? resultBadgeVariant(latestRun.result.status) : 'info'
-                        }
-                        size="sm"
-                      >
-                        {latestRun.result?.status || latestRun.status.replace('_', ' ')}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {testRuns.length === 0 ? (
-                    <p className="mt-2 text-xs text-stone-500">Belum ada Run yang tersimpan.</p>
-                  ) : (
-                    <div className="mt-3 space-y-3">
-                      {testRuns.map((run) => {
-                        const evidenceLinks = run.result?.evidenceLinks || [];
-                        return (
-                          <div
-                            key={run.id}
-                            className="rounded-lg border border-stone-100 p-3 text-xs dark:border-stone-800 space-y-2"
+                {executionWorkspace.executions.map(({ testCase, latestRun, testRuns }) => (
+                  <section
+                    key={testCase.id}
+                    className="rounded-2xl border border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-900/50"
+                    aria-labelledby={`test-case-${testCase.id}`}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant={
+                              testCase.status === 'active'
+                                ? 'brand'
+                                : testCase.status === 'in_review'
+                                  ? 'review'
+                                  : testCase.status === 'draft'
+                                    ? 'draft'
+                                    : 'neutral'
+                            }
+                            size="sm"
                           >
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                              <div>
-                                <p className="font-bold text-stone-800 dark:text-stone-200">
-                                  {run.build}
-                                </p>
-                                <p className="text-[11px] text-stone-500">
-                                  {run.environment} ·{' '}
-                                  {new Date(run.startedAt).toLocaleString('id-ID')}
-                                </p>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Badge
-                                  variant={
-                                    run.result ? resultBadgeVariant(run.result.status) : 'info'
-                                  }
+                            {testCase.status === 'active'
+                              ? 'Aktif (Siap Diuji)'
+                              : testCase.status === 'in_review'
+                                ? 'Menunggu Review PO'
+                                : testCase.status === 'draft'
+                                  ? 'Draf'
+                                  : testCase.status}
+                          </Badge>
+                          <Badge variant="info" size="sm">
+                            {testCase.testType}
+                          </Badge>
+                          <Badge variant="neutral" size="sm">
+                            Prioritas: {testCase.priority}
+                          </Badge>
+                          {testCase.externalReference && (
+                            <span className="text-xs font-mono font-bold text-primary">
+                              {testCase.externalReference}
+                            </span>
+                          )}
+                          <span className="text-[10px] font-semibold text-stone-400">
+                            {testCase.requirementIds.length} Requirement
+                            {testCase.requirementIds.length === 1 ? '' : 's'}
+                          </span>
+                          {versionCoverageByTestCaseId[testCase.id] && (
+                            <Badge variant="neutral" size="sm">
+                              Rev {versionCoverageByTestCaseId[testCase.id]!.revision} · AC{' '}
+                              {versionCoverageByTestCaseId[testCase.id]!.mappedCount} mapped
+                              {versionCoverageByTestCaseId[testCase.id]!.excludedCount > 0
+                                ? ` · ${versionCoverageByTestCaseId[testCase.id]!.excludedCount} excluded`
+                                : ''}
+                            </Badge>
+                          )}
+                        </div>
+                        <h4
+                          id={`test-case-${testCase.id}`}
+                          className="text-sm font-extrabold text-stone-900 dark:text-stone-100"
+                        >
+                          {testCase.title}
+                        </h4>
+                        {testCase.description && (
+                          <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+                            {testCase.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {(canExecuteTests ||
+                        (canSubmitTestCasesForReview && testCase.status === 'draft') ||
+                        (canActivateTestCases && testCase.status === 'in_review')) && (
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          {canSubmitTestCasesForReview && testCase.status === 'draft' && (
+                            <>
+                              {versionCoverageByTestCaseId[testCase.id]?.lifecycleStatus ===
+                                'draft' && (
+                                <Button
+                                  variant="outline"
                                   size="sm"
+                                  onClick={() => void openAcceptanceCriteriaMapping(testCase)}
+                                  aria-label={`Petakan Acceptance Criterion untuk ${testCase.title}`}
                                 >
-                                  {run.result?.status || run.status.replace('_', ' ')}
-                                </Badge>
-                                {run.result && canExecuteTests && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setAddEvidenceResultTarget({
-                                        testCaseId: testCase.id,
-                                        testRunId: run.id,
-                                      });
-                                      setSingleEvidenceUrl('');
-                                      setSingleEvidenceLabel('');
-                                      setAddResultEvidenceError(null);
-                                    }}
-                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                    Tambah Bukti
-                                  </button>
+                                  Petakan AC
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                isLoading={submittingTestCaseId === testCase.id}
+                                onClick={() => void handleSubmitTestCaseForReview(testCase.id)}
+                                aria-label={`Ajukan Test Case ${testCase.title} untuk review`}
+                                leftIcon={<CheckSquare className="h-3.5 w-3.5" />}
+                              >
+                                Ajukan untuk Review
+                              </Button>
+                            </>
+                          )}
+                          {canActivateTestCases && testCase.status === 'in_review' && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              isLoading={activatingTestCaseId === testCase.id}
+                              onClick={() => void handleActivateTestCase(testCase.id)}
+                              aria-label={`Aktifkan Test Case ${testCase.title}`}
+                              leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                            >
+                              Aktifkan Test Case
+                            </Button>
+                          )}
+                          {canExecuteTests && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={testCase.status !== 'active'}
+                              onClick={() => openRunModal(testCase.id)}
+                              aria-label={`Mulai Pengujian untuk ${testCase.title}`}
+                            >
+                              Mulai Pengujian
+                            </Button>
+                          )}
+                          {canExecuteTests && latestRun?.status === 'in_progress' && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => openResultModal(testCase.id, latestRun.id)}
+                              aria-label={`Catat hasil untuk ${testCase.title}`}
+                            >
+                              Catat Hasil
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {(testCase.preconditions ||
+                      testCase.steps.length > 0 ||
+                      testCase.expectedResult ||
+                      testCase.testData) && (
+                      <div className="mt-4 grid gap-3 lg:grid-cols-4">
+                        <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+                            Prasyarat
+                          </p>
+                          <p className="mt-1 text-xs text-stone-700 dark:text-stone-300">
+                            {testCase.preconditions || 'Belum dicatat'}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+                            Langkah
+                          </p>
+                          {testCase.steps.length > 0 ? (
+                            <ol className="mt-1 list-decimal space-y-1 pl-4 text-xs text-stone-700 dark:text-stone-300">
+                              {testCase.steps.map((step, index) => (
+                                <li key={`${testCase.id}-step-${index}`}>{step}</li>
+                              ))}
+                            </ol>
+                          ) : (
+                            <p className="mt-1 text-xs text-stone-500">Belum ada langkah formal</p>
+                          )}
+                        </div>
+                        <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+                            Hasil yang Diharapkan
+                          </p>
+                          <p className="mt-1 text-xs text-stone-700 dark:text-stone-300">
+                            {testCase.expectedResult || 'Belum dicatat'}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+                            Data Pengujian
+                          </p>
+                          <p className="mt-1 text-xs font-mono text-stone-700 dark:text-stone-300">
+                            {testCase.testData || 'Belum dicatat'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Test execution history and evidence */}
+                    <div className="mt-4 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-950/60">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <History className="h-4 w-4 text-stone-400" />
+                          <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                            Riwayat Pengujian ({testRuns.length})
+                          </span>
+                        </div>
+                        {latestRun && (
+                          <Badge
+                            variant={
+                              latestRun.result
+                                ? resultBadgeVariant(latestRun.result.status)
+                                : 'info'
+                            }
+                            size="sm"
+                          >
+                            {testRunStatusCopy[latestRun.result?.status || latestRun.status] ||
+                              latestRun.status.replace('_', ' ')}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {testRuns.length === 0 ? (
+                        <p className="mt-2 text-xs text-stone-500">
+                          Belum ada pengujian yang tersimpan.
+                        </p>
+                      ) : (
+                        <div className="mt-3 space-y-3">
+                          {testRuns.map((run) => {
+                            const evidenceLinks = run.result?.evidenceLinks || [];
+                            return (
+                              <div
+                                key={run.id}
+                                className="rounded-lg border border-stone-100 p-3 text-xs dark:border-stone-800 space-y-2"
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                  <div>
+                                    <p className="font-bold text-stone-800 dark:text-stone-200">
+                                      {run.build}
+                                    </p>
+                                    <p className="text-[11px] text-stone-500">
+                                      {run.environment} ·{' '}
+                                      {new Date(run.startedAt).toLocaleString('id-ID')}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge
+                                      variant={
+                                        run.result ? resultBadgeVariant(run.result.status) : 'info'
+                                      }
+                                      size="sm"
+                                    >
+                                      {testRunStatusCopy[run.result?.status || run.status] ||
+                                        run.status.replace('_', ' ')}
+                                    </Badge>
+                                    {run.result?.evidenceManifests?.length ? (
+                                      <Badge variant="neutral" size="sm">
+                                        Bukti disegel · {run.result.evidenceManifests.length}
+                                      </Badge>
+                                    ) : null}
+                                    {run.retestBugId && (
+                                      <Badge variant="review" size="sm">
+                                        Retest Bug
+                                      </Badge>
+                                    )}
+                                    {run.result && run.retestBugId && canExecuteTests && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        isLoading={finalizingRetestRunId === run.id}
+                                        disabled={finalizingRetestRunId === run.id}
+                                        onClick={() => void handleFinalizeRetest(run)}
+                                      >
+                                        Sinkronkan Outcome Bug
+                                      </Button>
+                                    )}
+                                    {run.result && canExecuteTests && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setAddEvidenceResultTarget({
+                                            testCaseId: testCase.id,
+                                            testRunId: run.id,
+                                          });
+                                          setSingleEvidenceUrl('');
+                                          setSingleEvidenceLabel('');
+                                          setSingleEvidenceReason('');
+                                          setAddResultEvidenceError(null);
+                                        }}
+                                        className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                        Tambah Bukti
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {run.result?.actualResult && (
+                                  <p className="text-xs text-stone-600 dark:text-stone-400">
+                                    <strong>Aktual:</strong> {run.result.actualResult}
+                                  </p>
+                                )}
+
+                                {/* Result Evidence (Formal Files & External Links) */}
+                                {((run.result?.evidence && run.result.evidence.length > 0) ||
+                                  evidenceLinks.length > 0) && (
+                                  <div className="mt-2 pt-2 border-t border-slate-700/40">
+                                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1.5">
+                                      Bukti Hasil (
+                                      {(run.result?.evidence?.length || 0) + evidenceLinks.length})
+                                    </span>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      {/* Formal attached files */}
+                                      {(run.result?.evidence || []).map((att) => (
+                                        <div
+                                          key={att.attachmentId}
+                                          className="relative flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-xs"
+                                        >
+                                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                                            File Resmi
+                                          </span>
+                                          <div className="min-w-0 pr-2">
+                                            <p className="font-semibold text-slate-200 truncate">
+                                              {att.fileName}
+                                            </p>
+                                            <p className="text-[10px] font-mono text-slate-400">
+                                              {att.mimeType}
+                                            </p>
+                                          </div>
+                                          <a
+                                            href={taskService.getAttachmentDownloadUrl(
+                                              workspaceId,
+                                              att.taskId || subtask.id,
+                                              att.attachmentId,
+                                            )}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                                            aria-label={`Unduh ${att.fileName}`}
+                                            title={`Unduh ${att.fileName}`}
+                                          >
+                                            <Link2 className="w-5 h-5" />
+                                          </a>
+                                        </div>
+                                      ))}
+
+                                      {/* External links */}
+                                      {evidenceLinks.map((link) => (
+                                        <EvidenceCard
+                                          key={link.id}
+                                          link={link}
+                                          onPreview={(l) =>
+                                            setPreviewEvidence({
+                                              url: l.url,
+                                              normalizedUrl: l.normalizedUrl,
+                                              provider: l.provider,
+                                              mediaKind: l.mediaKind,
+                                              label: l.label,
+                                              previewStatus:
+                                                l.previewStatus as EvidencePreviewStatus,
+                                            })
+                                          }
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
                                 )}
                               </div>
-                            </div>
-
-                            {run.result?.actualResult && (
-                              <p className="text-xs text-stone-600 dark:text-stone-400">
-                                <strong>Aktual:</strong> {run.result.actualResult}
-                              </p>
-                            )}
-
-                            {/* Result Evidence (Formal Files & External Links) */}
-                            {((run.result?.evidence && run.result.evidence.length > 0) ||
-                              evidenceLinks.length > 0) && (
-                              <div className="mt-2 pt-2 border-t border-slate-700/40">
-                                <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1.5">
-                                  Bukti Hasil (
-                                  {(run.result?.evidence?.length || 0) + evidenceLinks.length})
-                                </span>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {/* Formal attached files */}
-                                  {(run.result?.evidence || []).map((att) => (
-                                    <div
-                                      key={att.attachmentId}
-                                      className="relative flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-xs"
-                                    >
-                                      <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                                        File Resmi
-                                      </span>
-                                      <div className="min-w-0 pr-2">
-                                        <p className="font-semibold text-slate-200 truncate">
-                                          {att.fileName}
-                                        </p>
-                                        <p className="text-[10px] font-mono text-slate-400">
-                                          {att.mimeType}
-                                        </p>
-                                      </div>
-                                      <a
-                                        href={taskService.getAttachmentDownloadUrl(
-                                          workspaceId,
-                                          att.taskId || subtask.id,
-                                          att.attachmentId,
-                                        )}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-                                        aria-label={`Unduh ${att.fileName}`}
-                                        title={`Unduh ${att.fileName}`}
-                                      >
-                                        <Link2 className="w-5 h-5" />
-                                      </a>
-                                    </div>
-                                  ))}
-
-                                  {/* External links */}
-                                  {evidenceLinks.map((link) => (
-                                    <EvidenceCard
-                                      key={link.id}
-                                      link={link}
-                                      onPreview={(l) =>
-                                        setPreviewEvidence({
-                                          url: l.url,
-                                          normalizedUrl: l.normalizedUrl,
-                                          provider: l.provider,
-                                          mediaKind: l.mediaKind,
-                                          label: l.label,
-                                          previewStatus: l.previewStatus as EvidencePreviewStatus,
-                                        })
-                                      }
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </section>
+                ))}
+              </div>
+            )}
+          </Card>
+        </section>
+      )}
+
+      {activeQaDeskSection === 'overview' && (
+        <section role="tabpanel" id="qa-workflow-panel-overview" aria-label="Ikhtisar QA">
+          <Card className="space-y-3 border-stone-200/80 p-5 dark:border-stone-800">
+            <div className="flex items-center gap-2">
+              <FileCheck className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+              <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                Hasil Kerja Developer &amp; Verifikasi Lingkungan
+              </h3>
+            </div>
+
+            <div className="rounded-xl border border-stone-200 bg-stone-50 p-3.5 text-xs leading-relaxed text-stone-800 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-200 sm:text-sm">
+              {subtask.description || parentTask?.description ? (
+                <FormattedText content={subtask.description || parentTask?.description || ''} />
+              ) : (
+                <p className="italic text-stone-500">
+                  Developer belum mengirim catatan build atau hasil kerja.
+                </p>
+              )}
+            </div>
+          </Card>
+        </section>
+      )}
+
+      {activeQaDeskSection === 'bugs' && (
+        <section
+          role="tabpanel"
+          id="qa-workflow-panel-bugs"
+          aria-label="Bug dan retest"
+          className="space-y-4"
+        >
+          <Card className="space-y-4 border-stone-200/80 p-5 dark:border-stone-800">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Bug className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                    Bug &amp; Retest
+                  </h3>
                 </div>
-              </section>
-            ))}
-          </div>
-        )}
-      </Card>
+                <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+                  Catat Bug dari hasil gagal atau terblokir. Retest dimulai dari konteks Bug pada
+                  antrean kerja agar Result lama dan bukti siklus sebelumnya tetap terbaca.
+                </p>
+              </div>
+              {canOpenBugReport && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={openBugModal}
+                  disabled={bugTraceOptions.length === 0}
+                  title={
+                    bugTraceOptions.length === 0
+                      ? 'Catat hasil pengujian yang gagal atau terblokir terlebih dahulu'
+                      : 'Buat Bug tertaut'
+                  }
+                  leftIcon={<AlertTriangle className="h-4 w-4" />}
+                >
+                  Catat Bug
+                </Button>
+              )}
+            </div>
+            {workflowSummary?.blockers.includes('unverified_bug') ? (
+              <Alert tone="warning" title="Retest masih diperlukan">
+                Pilih Bug di bawah untuk melihat setiap perbaikan dan memulai retest pada Siklus
+                Pengujian yang tepat.
+              </Alert>
+            ) : (
+              <Alert tone="info" title="Tidak ada retest yang menunggu">
+                Bug yang sudah memiliki hasil retest tetap dapat dibaca pada riwayat Bug tanpa
+                menambah tindakan baru di tahap ini.
+              </Alert>
+            )}
+          </Card>
+          <BugExperiencePanel
+            workspaceId={workspaceId}
+            userRole={userRole}
+            mode="feature"
+            featureTaskId={parentTask?.id || subtask.id}
+            onDataChanged={() => {
+              void loadWorkflowSummary();
+              onDataChanged();
+            }}
+            onRetestRunStarted={(qaSubtaskId) => {
+              if (qaSubtaskId !== subtask.id) return;
+              setActiveQaDeskSection('preparation');
+              void loadExecutions();
+              void loadWorkflowSummary();
+            }}
+          />
+        </section>
+      )}
 
-      {/* Dev Deliverable Inspection Box */}
-      <Card className="p-5 border-stone-200/80 dark:border-stone-800 space-y-3">
-        <div className="flex items-center gap-2">
-          <FileCheck className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-          <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-            Hasil Kerja Developer &amp; Verifikasi Lingkungan
-          </h3>
-        </div>
-
-        <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 text-xs sm:text-sm text-stone-800 dark:text-stone-200 leading-relaxed">
-          {subtask.description || parentTask?.description ? (
-            <FormattedText content={subtask.description || parentTask?.description || ''} />
-          ) : (
-            <p className="text-stone-500 italic">
-              Developer belum mengirim catatan build atau hasil kerja.
-            </p>
-          )}
-        </div>
-      </Card>
-
-      {/* Subtask Discussion & Defect Chat */}
-      <Card className="p-5 border-stone-200/80 dark:border-stone-800 space-y-3">
-        <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-          Diskusi Kolaborasi &amp; Masukan QA
-        </h3>
-        <SubtaskCommentBox
-          comments={comments}
-          currentUserId={currentUserId}
-          members={members}
-          onPostComment={handlePostComment}
-        />
-      </Card>
+      {activeQaDeskSection === 'sign_off' && (
+        <section
+          role="tabpanel"
+          id="qa-workflow-panel-sign-off"
+          aria-label="Persetujuan QA dan riwayat"
+          className="space-y-6"
+        >
+          <ReleaseAssurancePanel
+            workspaceId={workspaceId}
+            featureTaskId={parentTask?.id || subtask.id}
+            userRole={userRole}
+            mode="qa"
+            focusWhenReady={focusTarget === 'qa_sign_off'}
+            qaWorkflowSummary={workflowSummary}
+            isQaWorkflowSummaryLoading={isLoadingWorkflowSummary}
+            qaWorkflowSummaryError={workflowSummaryError}
+            onDataChanged={() => {
+              void loadWorkflowSummary();
+              onDataChanged();
+            }}
+          />
+          <Card className="space-y-3 border-stone-200/80 p-5 dark:border-stone-800">
+            <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+              Diskusi Kolaborasi &amp; Masukan QA
+            </h3>
+            <SubtaskCommentBox
+              comments={comments}
+              currentUserId={currentUserId}
+              members={members}
+              onPostComment={handlePostComment}
+            />
+          </Card>
+        </section>
+      )}
 
       {/* Start Test Run Modal */}
       <Modal
         isOpen={Boolean(runTestCaseId)}
         onClose={() => setRunTestCaseId(null)}
-        title="Mulai Test Run Tersimpan"
+        title="Mulai Pengujian Tersimpan"
         description="Build dan lingkungan digunakan untuk mengenali setiap percobaan eksekusi."
-        primaryActionLabel="Mulai Test Run"
+        primaryActionLabel="Mulai Pengujian"
         onPrimaryAction={() => void handleStartRun()}
         secondaryActionLabel="Batal"
         isPrimaryLoading={isStartingRun}
@@ -1197,7 +1917,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         isOpen={Boolean(resultTarget)}
         onClose={() => setResultTarget(null)}
         title="Catat Hasil Pengujian"
-        description="Setelah dikirim, hasil ini tidak dapat ditimpa. Mulai Run baru untuk retest."
+        description="Setelah dikirim, hasil dan manifest bukti tidak dapat ditimpa. Lulus, gagal, atau terblokir wajib memiliki gambar/video yang dapat dibuka; mulai pengujian baru untuk retest."
         primaryActionLabel="Catat Hasil"
         onPrimaryAction={() => void handleRecordResult()}
         secondaryActionLabel="Batal"
@@ -1220,7 +1940,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             label="Hasil aktual"
             value={actualResult}
             onChange={(event) => setActualResult(event.target.value)}
-            placeholder="Apa yang terjadi selama Run ini?"
+            placeholder="Apa yang terjadi selama pengujian ini?"
             rows={3}
             maxLength={20000}
           />
@@ -1327,7 +2047,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         isOpen={Boolean(addEvidenceResultTarget)}
         onClose={() => setAddEvidenceResultTarget(null)}
         title="Lampirkan Tautan Bukti ke Hasil Pengujian"
-        description="Tambahkan tautan video, gambar, atau dokumen untuk mendukung verifikasi bukti pengujian."
+        description="Tautan ini menjadi supplement bukti baru yang disegel. Bukti awal tidak akan diubah."
         size="md"
       >
         <div className="space-y-4">
@@ -1352,6 +2072,16 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             placeholder="Contoh: Video panduan reproduksi"
           />
 
+          <Textarea
+            label="Alasan supplement"
+            value={singleEvidenceReason}
+            onChange={(e) => setSingleEvidenceReason(e.target.value)}
+            placeholder="Mengapa bukti ini ditambahkan setelah Result disegel?"
+            rows={3}
+            maxLength={2000}
+            required
+          />
+
           <div className="flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
             <Button variant="ghost" size="sm" onClick={() => setAddEvidenceResultTarget(null)}>
               Batal
@@ -1361,7 +2091,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               size="sm"
               isLoading={isAddingResultEvidence}
               onClick={handleAddSingleResultEvidence}
-              disabled={!singleEvidenceUrl.trim()}
+              disabled={!singleEvidenceUrl.trim() || !singleEvidenceReason.trim()}
               leftIcon={<Link2 className="h-3.5 w-3.5" />}
             >
               Lampirkan Bukti
@@ -1464,6 +2194,158 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       </Modal>
 
       {/* Changes Requested Modal for Dev Subtask Review */}
+      <Modal
+        isOpen={isTestCycleModalOpen}
+        onClose={() => !isCreatingTestCycle && setIsTestCycleModalOpen(false)}
+        title="Buat Siklus Pengujian"
+        description="Siklus mengikat Feature, Subtask QA, baseline kesiapan, kandidat, build, dan lingkungan untuk seluruh pengujian di dalamnya."
+        primaryActionLabel="Simpan Siklus Pengujian"
+        secondaryActionLabel="Batal"
+        onPrimaryAction={() => void handleCreateTestCycle()}
+        isPrimaryLoading={isCreatingTestCycle}
+      >
+        <div className="space-y-4">
+          {testCycleError && (
+            <Alert tone="error" title="Siklus Pengujian belum dapat dibuat">
+              {testCycleError}
+            </Alert>
+          )}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+              Identitas Kandidat <span className="text-red-500">*</span>
+            </label>
+            <Input
+              value={testCycleFingerprint}
+              onChange={(event) => setTestCycleFingerprint(event.target.value)}
+              placeholder="Contoh: commit:a1b2c3d atau deployment:stg-482"
+              disabled={isCreatingTestCycle}
+            />
+            <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+              Gunakan identitas teknis yang sama untuk membedakan kandidat ini dari perbaikan
+              berikutnya.
+            </p>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+              Build <span className="text-red-500">*</span>
+            </label>
+            <Input
+              value={testCycleBuild}
+              onChange={(event) => setTestCycleBuild(event.target.value)}
+              placeholder="checkout-web-2026.09.15.1"
+              disabled={isCreatingTestCycle}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+              Environment <span className="text-red-500">*</span>
+            </label>
+            <Input
+              value={testCycleEnvironment}
+              onChange={(event) => setTestCycleEnvironment(event.target.value)}
+              placeholder="staging"
+              disabled={isCreatingTestCycle}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(acMappingTarget)}
+        onClose={() => !isSavingAcMapping && setAcMappingTarget(null)}
+        title="Pemetaan Acceptance Criterion"
+        description={
+          acMappingTarget
+            ? `${acMappingTarget.title} · Revision ${acMappingTarget.revision}. Pemetaan hanya dapat diubah selama masih draf.`
+            : undefined
+        }
+        size="2xl"
+        secondaryActionLabel="Batal"
+        primaryActionLabel="Simpan Pemetaan"
+        onPrimaryAction={() => void handleSaveAcceptanceCriteriaMapping()}
+        isPrimaryLoading={isSavingAcMapping}
+        isPrimaryDisabled={isLoadingAcMapping || acMappingItems.length === 0}
+      >
+        <div className="space-y-3">
+          <p className="text-xs text-stone-600 dark:text-stone-400">
+            Pilih AC yang dicakup Test Case ini. AC yang sengaja tidak berlaku dapat dikecualikan,
+            tetapi alasannya wajib dicatat untuk audit dan release gate berikutnya.
+          </p>
+          {acMappingError && (
+            <Alert tone="error" title="Pemetaan belum dapat disimpan">
+              {acMappingError}
+            </Alert>
+          )}
+          {isLoadingAcMapping ? (
+            <div className="space-y-2" aria-label="Memuat Acceptance Criterion">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          ) : acMappingItems.length === 0 ? (
+            <EmptyState
+              icon={<CheckSquare className="h-6 w-6" />}
+              title="Belum ada Acceptance Criterion aktif"
+              description="Tambahkan Acceptance Criterion aktif pada Requirement terkait sebelum memetakan coverage Test Case."
+            />
+          ) : (
+            <div className="space-y-2">
+              {acMappingItems.map((item) => (
+                <div
+                  key={item.criterion.id}
+                  className="rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-900/60"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <Checkbox
+                      checked={item.included}
+                      disabled={isSavingAcMapping}
+                      onChange={(event) =>
+                        updateAcceptanceCriteriaMappingItem(item.criterion.id, {
+                          included: event.target.checked,
+                        })
+                      }
+                      label={`${item.criterion.code} · ${item.criterion.text}`}
+                      aria-label={`Pilih ${item.criterion.code}`}
+                      className="items-start"
+                    />
+                    {item.included && (
+                      <Select
+                        value={item.mappingStatus}
+                        onChange={(event) =>
+                          updateAcceptanceCriteriaMappingItem(item.criterion.id, {
+                            mappingStatus: event.target.value as 'mapped' | 'excluded',
+                          })
+                        }
+                        disabled={isSavingAcMapping}
+                        aria-label={`Status ${item.criterion.code}`}
+                        className="min-w-36"
+                      >
+                        <option value="mapped">Dipetakan</option>
+                        <option value="excluded">Dikecualikan</option>
+                      </Select>
+                    )}
+                  </div>
+                  {item.included && item.mappingStatus === 'excluded' && (
+                    <Textarea
+                      value={item.exclusionReason}
+                      onChange={(event) =>
+                        updateAcceptanceCriteriaMappingItem(item.criterion.id, {
+                          exclusionReason: event.target.value,
+                        })
+                      }
+                      disabled={isSavingAcMapping}
+                      aria-label={`Alasan pengecualian ${item.criterion.code}`}
+                      placeholder="Alasan pengecualian wajib dicatat..."
+                      rows={2}
+                      className="mt-2"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+
       <Modal
         isOpen={isChangesRequestedModalOpen}
         onClose={() => {

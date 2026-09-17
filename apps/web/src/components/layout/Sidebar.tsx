@@ -79,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
     currentUserRole ||
     ''
   ).toLowerCase();
-  const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
+  const canAccessSettings = ['owner', 'admin', 'po', 'dev', 'qa'].includes(userRole);
   const canAccessUISystem = userRole === 'owner';
 
   // Mobile drawers always render expanded navigation.

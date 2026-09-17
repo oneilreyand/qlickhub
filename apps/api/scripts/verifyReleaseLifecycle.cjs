@@ -63,7 +63,19 @@ async function main() {
          '20260821000051-create-canonical-test-management.cjs',
          '20260821000052-migrate-legacy-requirement-test-cases.cjs',
          '20260822000053-create-first-class-bugs.cjs',
-         '20260822000054-create-release-decision-records.cjs'
+         '20260822000054-create-release-decision-records.cjs',
+         '20260915000071-create-test-case-version-and-ac-mapping-foundation.cjs',
+         '20260915000072-enable-version-lifecycle-and-revision-audit.cjs',
+         '20260915000073-create-qa-test-cycles-and-scope-test-runs.cjs',
+         '20260915000074-create-test-result-evidence-manifests.cjs',
+         '20260915000075-create-bug-resolution-events-and-retest-attempts.cjs',
+         '20260915000076-add-release-record-scope-provenance.cjs',
+         '20260915000077-create-notification-outbox.cjs',
+         '20260915000078-add-notification-idempotency-key.cjs',
+         '20260915000079-add-notification-outbox-processing-state.cjs',
+         '20260915000080-add-notification-outbox-dead-letter-state.cjs',
+         '20260915000081-create-qa-assurance-rollout-settings.cjs',
+         '20260916000082-link-contextual-bug-retest-evidence.cjs'
        )
        ORDER BY name;`,
     );
@@ -75,6 +87,18 @@ async function main() {
         '20260821000052-migrate-legacy-requirement-test-cases.cjs',
         '20260822000053-create-first-class-bugs.cjs',
         '20260822000054-create-release-decision-records.cjs',
+        '20260915000071-create-test-case-version-and-ac-mapping-foundation.cjs',
+        '20260915000072-enable-version-lifecycle-and-revision-audit.cjs',
+        '20260915000073-create-qa-test-cycles-and-scope-test-runs.cjs',
+        '20260915000074-create-test-result-evidence-manifests.cjs',
+        '20260915000075-create-bug-resolution-events-and-retest-attempts.cjs',
+        '20260915000076-add-release-record-scope-provenance.cjs',
+        '20260915000077-create-notification-outbox.cjs',
+        '20260915000078-add-notification-idempotency-key.cjs',
+        '20260915000079-add-notification-outbox-processing-state.cjs',
+        '20260915000080-add-notification-outbox-dead-letter-state.cjs',
+        '20260915000081-create-qa-assurance-rollout-settings.cjs',
+        '20260916000082-link-contextual-bug-retest-evidence.cjs',
       ],
     );
 
@@ -90,6 +114,11 @@ async function main() {
            'test_results',
            'bugs',
            'bug_activities',
+           'bug_retest_attempts',
+           'notification_outbox',
+           'qa_test_cycles',
+           'qa_assurance_rollout_events',
+           'qa_assurance_rollout_settings',
            'qa_sign_offs',
            'release_decisions'
          )
@@ -100,8 +129,13 @@ async function main() {
       [
         'acceptance_criteria',
         'bug_activities',
+        'bug_retest_attempts',
         'bugs',
+        'notification_outbox',
+        'qa_assurance_rollout_events',
+        'qa_assurance_rollout_settings',
         'qa_sign_offs',
+        'qa_test_cycles',
         'release_decisions',
         'test_case_requirements',
         'test_cases',
@@ -115,7 +149,14 @@ async function main() {
 
     run(
       process.execPath,
-      ['--test', 'dist/modules/releaseValidation/__tests__/releaseLifecycleApiIntegration.test.js'],
+      [
+        '--test',
+        'dist/modules/releaseDecisions/__tests__/releaseDecisionApiIntegration.test.js',
+        'dist/modules/releaseDecisions/__tests__/releaseLifecycleApiIntegration.test.js',
+        'dist/modules/releaseDecisions/__tests__/releaseRecordCancellationApiIntegration.test.js',
+        'dist/modules/notifications/__tests__/notificationOutboxIntegration.test.js',
+        'dist/modules/workspaces/__tests__/qaAssuranceRolloutApiIntegration.test.js',
+      ],
       environment,
       'Release lifecycle validation failed',
     );

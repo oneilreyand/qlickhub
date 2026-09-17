@@ -14,6 +14,8 @@ import type {
   FeatureReleaseRecords,
   QaSignOff,
   QaSignOffDecision,
+  QaTestCycle,
+  QaWorkflowSummary,
   ReadinessSnapshot,
   ReleaseDecision,
   ReleaseDecisionOutcome,
@@ -29,6 +31,7 @@ import { Textarea } from '../atoms/Textarea';
 import { EmptyState } from '../molecules/EmptyState';
 import { Modal } from '../molecules/Modal';
 import { releaseDecisionService } from '../../../lib/api/releaseDecisionService';
+import { testManagementService } from '../../../lib/api/testManagementService';
 import { getIndonesianReleaseGateCopy } from '../../../lib/i18n/indonesianCopy';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type { RootState } from '../../../store/store';
@@ -41,7 +44,21 @@ export interface ReleaseAssurancePanelProps {
   userRole: WorkspaceRole | string;
   mode: 'qa' | 'release';
   onDataChanged?: () => void;
+  focusWhenReady?: boolean;
+  qaWorkflowSummary?: QaWorkflowSummary | null;
+  isQaWorkflowSummaryLoading?: boolean;
+  qaWorkflowSummaryError?: string | null;
 }
+
+const qaWorkflowBlockerCopy: Record<string, string> = {
+  qa_test_cycle_missing: 'Buat Siklus Pengujian untuk kandidat yang akan diuji.',
+  scoped_run_in_progress: 'Catat hasil untuk pengujian yang masih aktif.',
+  scoped_result_missing: 'Jalankan dan catat hasil untuk seluruh Test Case aktif.',
+  scoped_result_not_passed: 'Selesaikan hasil pengujian yang belum lulus.',
+  evidence_manifest_missing: 'Lengkapi bukti gambar atau video pada hasil yang lulus.',
+  acceptance_criteria_uncovered: 'Petakan seluruh Acceptance Criterion aktif.',
+  unverified_bug: 'Selesaikan retest formal untuk Bug yang masih terbuka.',
+};
 
 const decisionBadge = (decision: 'approved' | 'rejected', isCancelled = false) => {
   if (isCancelled) {
@@ -53,11 +70,11 @@ const decisionBadge = (decision: 'approved' | 'rejected', isCancelled = false) =
   }
   return decision === 'approved' ? (
     <Badge variant="passed" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
-      Approved
+      Disetujui
     </Badge>
   ) : (
     <Badge variant="blocked" icon={<XCircle className="h-3.5 w-3.5" />}>
-      Rejected
+      Ditolak
     </Badge>
   );
 };
@@ -71,10 +88,10 @@ const SnapshotFacts: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) 
   <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
     <div className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950/40">
       <dt className="text-stone-500 dark:text-stone-400">
-        {snapshot.schemaVersion === 2 ? 'Development selesai' : 'Subtask selesai'}
+        {snapshot.schemaVersion !== 1 ? 'Development selesai' : 'Subtask selesai'}
       </dt>
       <dd className="mt-1 font-extrabold text-stone-900 dark:text-stone-100">
-        {snapshot.schemaVersion === 2
+        {snapshot.schemaVersion !== 1
           ? `${snapshot.development.completed}/${snapshot.development.total}`
           : `${snapshot.subtasks.completed}/${snapshot.subtasks.total}`}
       </dd>
@@ -82,7 +99,7 @@ const SnapshotFacts: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) 
     <div className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950/40">
       <dt className="text-stone-500 dark:text-stone-400">Requirement</dt>
       <dd className="mt-1 font-extrabold text-stone-900 dark:text-stone-100">
-        {snapshot.schemaVersion === 2
+        {snapshot.schemaVersion !== 1
           ? `${snapshot.requirements.coveredByActiveTestCases}/${snapshot.requirements.total} tercakup`
           : snapshot.requirements.total}
       </dd>
@@ -103,7 +120,7 @@ const SnapshotFacts: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) 
 );
 
 const SnapshotGates: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) => {
-  if (snapshot.schemaVersion !== 2) return null;
+  if (snapshot.schemaVersion === 1) return null;
 
   return (
     <div className="space-y-2" aria-label="Quality gate kesiapan saat ini">
@@ -159,10 +176,15 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
   userRole,
   mode,
   onDataChanged,
+  focusWhenReady = false,
+  qaWorkflowSummary,
+  isQaWorkflowSummaryLoading = false,
+  qaWorkflowSummaryError = null,
 }) => {
   const dispatch = useAppDispatch();
   const members = useAppSelector((state: RootState) => state.workspace.members);
   const requestIdRef = useRef(0);
+  const panelRef = useRef<HTMLElement>(null);
   const [records, setRecords] = useState<FeatureReleaseRecords | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -173,6 +195,9 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
   const [overrideReason, setOverrideReason] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [testCycles, setTestCycles] = useState<QaTestCycle[]>([]);
+  const [selectedTestCycleId, setSelectedTestCycleId] = useState('');
+  const [isLoadingTestCycles, setIsLoadingTestCycles] = useState(false);
 
   // Cancellation modal state
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -187,7 +212,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
   const [showHistory, setShowHistory] = useState(false);
 
   const normalizedRole = userRole.toLowerCase();
-  const canSignOff = ['owner', 'admin', 'qa'].includes(normalizedRole);
+  const canSignOff = normalizedRole === 'qa';
   const canDecideRelease = ['owner', 'admin', 'po'].includes(normalizedRole);
 
   const allQaSignOffs = records?.qaSignOffs || [];
@@ -248,10 +273,58 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     };
   }, [loadRecords]);
 
+  useEffect(() => {
+    if (!focusWhenReady || isLoading) return;
+    panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    panelRef.current?.focus({ preventScroll: true });
+  }, [focusWhenReady, isLoading]);
+
+  useEffect(() => {
+    if (!isModalOpen || mode !== 'qa') return;
+    if (qaWorkflowSummary?.testCycle) {
+      setTestCycles([qaWorkflowSummary.testCycle]);
+      setSelectedTestCycleId(qaWorkflowSummary.testCycle.id);
+      setIsLoadingTestCycles(false);
+      return;
+    }
+    let active = true;
+    setIsLoadingTestCycles(true);
+    testManagementService
+      .listQaTestCycles(workspaceId, featureTaskId)
+      .then((cycles) => {
+        if (!active) return;
+        setTestCycles(cycles.filter((cycle) => ['planned', 'in_progress'].includes(cycle.status)));
+      })
+      .catch((cycleError) => {
+        if (!active) return;
+        setTestCycles([]);
+        setFormError(
+          cycleError instanceof Error ? cycleError.message : 'Siklus Pengujian tidak dapat dimuat.',
+        );
+      })
+      .finally(() => {
+        if (active) setIsLoadingTestCycles(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [featureTaskId, isModalOpen, mode, qaWorkflowSummary?.testCycle, workspaceId]);
+
+  const qaWorkflowAllowsSignOff =
+    qaWorkflowSummary?.nextAction.code === 'record_qa_sign_off' &&
+    qaWorkflowSummary.blockers.length === 0 &&
+    Boolean(qaWorkflowSummary.testCycle);
+  const qaWorkflowBlocksSignOff =
+    mode === 'qa' &&
+    qaWorkflowSummary !== undefined &&
+    (isQaWorkflowSummaryLoading || Boolean(qaWorkflowSummaryError) || !qaWorkflowAllowsSignOff);
+
   const openDecisionModal = () => {
+    if (qaWorkflowBlocksSignOff) return;
     setDecision('approved');
     setNotes('');
     setOverrideReason('');
+    setSelectedTestCycleId('');
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -273,6 +346,10 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       setFormError('Persetujuan QA aktif diperlukan sebelum mencatat Keputusan Rilis.');
       return;
     }
+    if (mode === 'qa' && !selectedTestCycleId) {
+      setFormError('Pilih Siklus Pengujian yang bukti pengujiannya akan disertifikasi.');
+      return;
+    }
     if (requiresOverrideReason && !overrideReason.trim()) {
       setFormError('Alasan override wajib diisi saat menyetujui quality gate yang gagal.');
       return;
@@ -283,6 +360,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       setFormError(null);
       if (mode === 'qa') {
         await releaseDecisionService.createQaSignOff(workspaceId, featureTaskId, {
+          testCycleId: selectedTestCycleId,
           decision,
           notes: notes.trim() || null,
         });
@@ -352,7 +430,9 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     latestRecord?.readinessSnapshot || latestActiveQaSignOff?.readinessSnapshot || null;
   const canMutate = mode === 'qa' ? canSignOff : canDecideRelease;
   const buttonDisabled =
-    !canMutate || (mode === 'release' && (!latestActiveQaSignOff || isSelfApproval));
+    !canMutate ||
+    qaWorkflowBlocksSignOff ||
+    (mode === 'release' && (!latestActiveQaSignOff || isSelfApproval));
 
   // Check if active record can be cancelled by current user
   const canCancelCurrentQa =
@@ -367,11 +447,14 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
 
   const historyText = useMemo(() => {
     if (!records) return '';
-    return `${records.qaSignOffs.length} QA Sign-off${records.qaSignOffs.length === 1 ? '' : 's'} · ${records.releaseDecisions.length} Release Decision${records.releaseDecisions.length === 1 ? '' : 's'}`;
+    return `${records.qaSignOffs.length} Persetujuan QA · ${records.releaseDecisions.length} Keputusan Rilis`;
   }, [records]);
 
   return (
     <Card
+      ref={panelRef}
+      id="qa-sign-off"
+      tabIndex={focusWhenReady ? -1 : undefined}
       className="space-y-4 border-stone-200/80 p-4 dark:border-stone-800"
       aria-label={`${title} records`}
     >
@@ -400,9 +483,15 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             title={
               isSelfApproval
                 ? 'Pemberi persetujuan QA tidak dapat membuat Keputusan Rilis untuk sertifikasi yang sama'
-                : mode === 'release' && !latestActiveQaSignOff
-                  ? 'Catat persetujuan QA sebelum membuat Keputusan Rilis'
-                  : undefined
+                : mode === 'qa' && isQaWorkflowSummaryLoading
+                  ? 'Memeriksa capability Persetujuan QA dari data tersimpan'
+                  : mode === 'qa' && qaWorkflowSummaryError
+                    ? 'Capability Persetujuan QA belum dapat dipastikan. Coba muat ulang workflow QA.'
+                    : mode === 'qa' && qaWorkflowSummary
+                      ? `Selesaikan langkah berikutnya terlebih dahulu: ${qaWorkflowSummary.nextAction.label}.`
+                      : mode === 'release' && !latestActiveQaSignOff
+                        ? 'Catat persetujuan QA sebelum membuat Keputusan Rilis'
+                        : undefined
             }
             leftIcon={
               mode === 'qa' ? (
@@ -475,7 +564,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                       openCancelModal({
                         id: latestRecord.id,
                         type: 'qa',
-                        title: `QA Sign-off (${latestRecord.decision})`,
+                        title: `Persetujuan QA (${latestRecord.decision})`,
                       })
                     }
                     leftIcon={<Ban className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
@@ -485,7 +574,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                         : 'Batalkan persetujuan QA ini'
                     }
                   >
-                    Batalkan Sign-off
+                    Batalkan Persetujuan QA
                   </Button>
                 )}
                 {mode === 'release' && canCancelCurrentRelease && (
@@ -496,7 +585,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                       openCancelModal({
                         id: latestRecord.id,
                         type: 'release',
-                        title: `Release Decision (${latestRecord.decision})`,
+                        title: `Keputusan Rilis (${latestRecord.decision})`,
                       })
                     }
                     leftIcon={<Ban className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
@@ -535,6 +624,14 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             </Alert>
           )}
           {snapshot && <SnapshotFacts snapshot={snapshot} />}
+          {snapshot?.schemaVersion === 3 && (
+            <p className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-950/40 dark:text-stone-400">
+              Cakupan bukti:{' '}
+              {snapshot.evidenceScope.candidateFingerprint
+                ? `Siklus Pengujian ${snapshot.evidenceScope.testCycleId?.slice(0, 8)} · kandidat tersimpan`
+                : 'Belum ada Siklus Pengujian untuk kesiapan saat ini.'}
+            </p>
+          )}
         </div>
       )}
 
@@ -542,9 +639,41 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
         <SnapshotGates snapshot={currentReadinessSnapshot} />
       )}
 
+      {mode === 'qa' && !isLoading && !permissionDenied && !error && (
+        <div className="space-y-2" aria-label="Kesiapan Persetujuan QA">
+          {isQaWorkflowSummaryLoading ? (
+            <Skeleton className="h-16 w-full" />
+          ) : qaWorkflowSummaryError ? (
+            <Alert tone="warning" title="Capability Persetujuan QA belum dapat dipastikan">
+              {qaWorkflowSummaryError}
+            </Alert>
+          ) : qaWorkflowSummary ? (
+            qaWorkflowAllowsSignOff ? (
+              <Alert tone="info" title="Persetujuan QA siap dicatat">
+                Siklus Pengujian {qaWorkflowSummary.testCycle!.build} telah memenuhi cakupan bukti
+                yang tersimpan. Hanya siklus ini yang dapat disertifikasi.
+              </Alert>
+            ) : (
+              <Alert tone="warning" title="Persetujuan QA masih memiliki prasyarat">
+                <p>Langkah berikutnya: {qaWorkflowSummary.nextAction.label}.</p>
+                {qaWorkflowSummary.blockers.length > 0 && (
+                  <ul className="mt-2 list-disc space-y-1 pl-4">
+                    {qaWorkflowSummary.blockers.map((blocker) => (
+                      <li key={blocker}>
+                        {qaWorkflowBlockerCopy[blocker] || 'Lengkapi evidence QA yang diperlukan.'}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Alert>
+            )
+          ) : null}
+        </div>
+      )}
+
       {isSelfApproval && (
         <Alert tone="warning" title="Persetujuan independen diperlukan">
-          Pengguna yang mencatat QA Sign-off terbaru tidak dapat membuat Keputusan Rilisnya.
+          Pengguna yang mencatat Persetujuan QA terbaru tidak dapat membuat Keputusan Rilisnya.
         </Alert>
       )}
 
@@ -575,7 +704,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                 {mode === 'qa' && (
                   <div className="space-y-2">
                     <h5 className="text-xs font-bold text-stone-700 dark:text-stone-300">
-                      Semua QA Sign-off
+                      Semua Persetujuan QA
                     </h5>
                     {allQaSignOffs.map((so) => (
                       <div
@@ -598,7 +727,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                                 openCancelModal({
                                   id: so.id,
                                   type: 'qa',
-                                  title: `QA Sign-off (${so.decision})`,
+                                  title: `Persetujuan QA (${so.decision})`,
                                 })
                               }
                             >
@@ -646,7 +775,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                                 openCancelModal({
                                   id: rd.id,
                                   type: 'release',
-                                  title: `Release Decision (${rd.decision})`,
+                                  title: `Keputusan Rilis (${rd.decision})`,
                                 })
                               }
                             >
@@ -692,6 +821,27 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           </Alert>
           {mode === 'release' && currentReadinessSnapshot && (
             <SnapshotGates snapshot={currentReadinessSnapshot} />
+          )}
+          {mode === 'qa' && (
+            <Select
+              label="Siklus Pengujian yang Disertifikasi"
+              value={selectedTestCycleId}
+              onChange={(event) => {
+                setSelectedTestCycleId(event.target.value);
+                setFormError(null);
+              }}
+              disabled={isSubmitting || isLoadingTestCycles}
+              required
+            >
+              <option value="">
+                {isLoadingTestCycles ? 'Memuat Siklus Pengujian…' : 'Pilih Siklus Pengujian'}
+              </option>
+              {testCycles.map((cycle) => (
+                <option key={cycle.id} value={cycle.id}>
+                  {cycle.build} · {cycle.environment}
+                </option>
+              ))}
+            </Select>
           )}
           <Select
             label={mode === 'qa' ? 'Keputusan sertifikasi QA' : 'Keputusan rilis'}
@@ -744,6 +894,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               size="sm"
               onClick={() => void submitDecision()}
               isLoading={isSubmitting}
+              disabled={mode === 'qa' && (!selectedTestCycleId || isLoadingTestCycles)}
               leftIcon={
                 decision === 'approved' ? (
                   <CheckCircle2 className="h-4 w-4" />
@@ -776,7 +927,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           {recordToCancel?.type === 'qa' && hasActiveReleaseDecision && (
             <Alert tone="error" title="Urutan wajib (D5)">
               Keputusan Rilis aktif merujuk Feature / Story ini. Batalkan Keputusan Rilis terlebih
-              dahulu sebelum membatalkan QA Sign-off ini.
+              dahulu sebelum membatalkan Persetujuan QA ini.
             </Alert>
           )}
 

@@ -193,10 +193,15 @@ describe('LIVE E2E DEMONSTRATION SCENARIO (1 PO, 1 DEV, 1 QA)', () => {
 
   test('E2E Step 8: Uji Coba Ketergantungan QA terhadap FE (Subtask QA terkunci sampai FE selesai)', async () => {
     console.log(`\n🕵️ [Step 8] Uji Coba Ketergantungan Subtask QA (P2 Gate):`);
-    // PO mencoba menyelesaikan subtask QA saat subtask FE masih in_review -> HARUS DITOLAK
+    const startedQA = await taskService.updateTask(qaUser.id, workspace.id, subtaskQA.id, {
+      status: 'in_progress',
+    });
+    assert.strictEqual(startedQA.status, 'in_progress');
+
+    // QA assignee mencoba menyelesaikan subtask QA saat subtask FE masih in_review -> HARUS DITOLAK
     await assert.rejects(
       async () => {
-        await taskService.updateTask(poUser.id, workspace.id, subtaskQA.id, { status: 'done' });
+        await taskService.updateTask(qaUser.id, workspace.id, subtaskQA.id, { status: 'done' });
       },
       (err: any) => {
         console.log(`   🛡️ DITOLAK OLEH SISTEM: "${err.message}"`);
@@ -217,33 +222,18 @@ describe('LIVE E2E DEMONSTRATION SCENARIO (1 PO, 1 DEV, 1 QA)', () => {
     assert.strictEqual(appFE.status, 'done');
     assert.strictEqual(appFE.reviewedBy, qaUser.id);
 
-    // Sekarang QA menjalankan lifecycle eksekusi yang valid sebelum menyelesaikan subtask.
-    const startedQA = await taskService.updateTask(qaUser.id, workspace.id, subtaskQA.id, {
-      status: 'in_progress',
-    });
-    assert.strictEqual(startedQA.status, 'in_progress');
-
-    const appQA = await taskService.updateTask(qaUser.id, workspace.id, subtaskQA.id, {
-      status: 'done',
-    });
-    console.log(`   ✅ Subtask QA berhasil diverifikasi: ${appQA.status.toUpperCase()}`);
-    assert.strictEqual(appQA.status, 'done');
+    // Setelah dependency selesai, gate evidence persisted tetap harus mencegah completion prematur.
+    await assert.rejects(
+      () => taskService.updateTask(qaUser.id, workspace.id, subtaskQA.id, { status: 'done' }),
+      /qa_test_cycle_missing/,
+    );
   });
 
-  test('E2E Step 9: Penutupan Parent Task oleh PO di Task Hub', async () => {
-    console.log(`\n🏁 [Step 9] PO (Rian) Menyelesaikan Parent Task di Task Hub:`);
-    const completedParent = await taskService.completeTask(poUser.id, workspace.id, parentTask.id, {
-      status: 'done',
-    });
-    console.log(
-      `   ✅ Parent Task "${completedParent.title}" -> STATUS: ${completedParent.status.toUpperCase()}`,
+  test('E2E Step 9: PO tidak dapat menutup Parent Task sebelum bukti QA lengkap', async () => {
+    console.log(`\n🏁 [Step 9] PO (Rian) mencoba menyelesaikan Parent Task di Task Hub:`);
+    await assert.rejects(
+      () => taskService.completeTask(poUser.id, workspace.id, parentTask.id, { status: 'done' }),
+      /subtasks are incomplete/,
     );
-    console.log(`   ⏱️ Completed At: ${completedParent.completedAt}`);
-    assert.strictEqual(completedParent.status, 'done');
-    assert.ok(completedParent.completedAt);
-
-    console.log('\n========================================================================');
-    console.log('🎉 E2E LIVE SCENARIO BERHASIL 100% — SELURUH QUALITY GATES & RBAC VALID!');
-    console.log('========================================================================\n');
   });
 });

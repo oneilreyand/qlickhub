@@ -8,6 +8,10 @@ import {
   listBugActivity,
   listBugs,
   updateBug,
+  createBugResolutionEvent,
+  createBugRetestAttempt,
+  createBugRetestRun,
+  getBugRetestHistory,
 } from './bugController.js';
 
 export const bugRoutes = Router({ mergeParams: true });
@@ -25,6 +29,26 @@ bugRoutes.patch(
   '/workspaces/:workspaceId/bugs/:bugId',
   requireWorkspaceMember(['owner', 'admin', 'qa', 'dev']),
   updateBug,
+);
+bugRoutes.post(
+  '/workspaces/:workspaceId/bugs/:bugId/resolution-events',
+  requireWorkspaceMember(['dev']),
+  createBugResolutionEvent,
+);
+bugRoutes.post(
+  '/workspaces/:workspaceId/bugs/:bugId/retest-attempts',
+  requireWorkspaceMember(['qa']),
+  createBugRetestAttempt,
+);
+bugRoutes.post(
+  '/workspaces/:workspaceId/bugs/:bugId/retest-runs',
+  requireWorkspaceMember(['qa']),
+  createBugRetestRun,
+);
+bugRoutes.get(
+  '/workspaces/:workspaceId/bugs/:bugId/retest-history',
+  requireWorkspaceMember(),
+  getBugRetestHistory,
 );
 bugRoutes.post(
   '/workspaces/:workspaceId/bugs/:bugId/evidence-links',

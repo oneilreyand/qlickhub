@@ -162,13 +162,10 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
     // QA can be in_progress early to prepare test suites
     assert.strictEqual(qaSubtask.status, 'in_progress');
 
-    // PO submits QA subtask to in_review
-    await taskService.updateTask(poUser.id, workspace.id, qaSubtask.id, { status: 'in_review' });
-
-    // PO attempts to approve QA subtask as done while FE and BE are still in_progress -> MUST FAIL
+    // The assigned QA attempts completion while FE and BE are still in_progress -> MUST FAIL.
     await assert.rejects(
       async () => {
-        await taskService.updateTask(poUser.id, workspace.id, qaSubtask.id, { status: 'done' });
+        await taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, { status: 'done' });
       },
       (err: any) => {
         assert.ok(
@@ -180,15 +177,17 @@ describe('Subtask Dependencies & Assignment Guardrails (P2 Remediation)', () => 
       },
     );
 
-    // FE and BE complete their work and PO approves them
-    await taskService.updateTask(poUser.id, workspace.id, feSubtask.id, { status: 'done' });
-    await taskService.updateTask(poUser.id, workspace.id, beSubtask.id, { status: 'done' });
+    // FE and BE submit their work; QA completes the independent reviews.
+    await taskService.updateTask(feDev.id, workspace.id, feSubtask.id, { status: 'in_review' });
+    await taskService.updateTask(qaUser.id, workspace.id, feSubtask.id, { status: 'done' });
+    await taskService.updateTask(beDev.id, workspace.id, beSubtask.id, { status: 'in_review' });
+    await taskService.updateTask(qaUser.id, workspace.id, beSubtask.id, { status: 'done' });
 
-    // Now PO can approve QA subtask as done
-    const approvedQa = await taskService.updateTask(poUser.id, workspace.id, qaSubtask.id, {
-      status: 'done',
-    });
-    assert.strictEqual(approvedQa.status, 'done');
+    // Dependency is cleared, but persisted QA evidence remains a separate completion gate.
+    await assert.rejects(
+      () => taskService.updateTask(qaUser.id, workspace.id, qaSubtask.id, { status: 'done' }),
+      /qa_test_cycle_missing/,
+    );
   });
 
   test('Assignment Guardrail: Rejects role mismatch without explicit override flag', async () => {

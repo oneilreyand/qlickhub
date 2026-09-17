@@ -6,6 +6,12 @@ import type {
   CreateBugInput,
   ListBugsQuery,
   UpdateBugInput,
+  CreateBugResolutionEventInput,
+  CreateBugRetestAttemptInput,
+  BugResolutionEvent,
+  BugRetestAttempt,
+  BugRetestHistory,
+  BugRetestRun,
 } from '@qlick/contracts';
 import { apiClient } from './apiClient';
 
@@ -53,6 +59,41 @@ export const bugService = {
       { method: 'PATCH', body: JSON.stringify(input) },
     );
     return response.bug;
+  },
+  async createResolutionEvent(
+    workspaceId: string,
+    bugId: string,
+    input: Omit<CreateBugResolutionEventInput, 'workspaceId' | 'bugId'>,
+  ): Promise<BugResolutionEvent> {
+    const r = await apiClient<{ resolutionEvent: BugResolutionEvent }>(
+      `/workspaces/${workspaceId}/bugs/${bugId}/resolution-events`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return r.resolutionEvent;
+  },
+  async createRetestAttempt(
+    workspaceId: string,
+    bugId: string,
+    input: Omit<CreateBugRetestAttemptInput, 'workspaceId' | 'bugId'>,
+  ): Promise<BugRetestAttempt> {
+    const r = await apiClient<{ retestAttempt: BugRetestAttempt }>(
+      `/workspaces/${workspaceId}/bugs/${bugId}/retest-attempts`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return r.retestAttempt;
+  },
+  async createRetestRun(workspaceId: string, bugId: string): Promise<BugRetestRun> {
+    const response = await apiClient<{ retestRun: BugRetestRun }>(
+      `/workspaces/${workspaceId}/bugs/${bugId}/retest-runs`,
+      { method: 'POST' },
+    );
+    return response.retestRun;
+  },
+  async getRetestHistory(workspaceId: string, bugId: string): Promise<BugRetestHistory> {
+    const response = await apiClient<{ history: BugRetestHistory }>(
+      `/workspaces/${workspaceId}/bugs/${bugId}/retest-history`,
+    );
+    return response.history;
   },
 
   async addBugEvidenceLink(

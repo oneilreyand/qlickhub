@@ -13,13 +13,22 @@ export interface BugEvidenceLinkAttributes {
   addedAt?: Date;
   normalizedUrl: string;
   previewStatus: 'ready' | 'unsupported' | 'restricted' | 'failed';
+  evidenceStage: 'triage' | 'resolution' | 'legacy_unassigned';
+  resolutionEventId?: string | null;
   deduplicatedAt?: Date | null;
   canonicalEvidenceLinkId?: string | null;
 }
 
 type BugEvidenceLinkCreationAttributes = Optional<
   BugEvidenceLinkAttributes,
-  'id' | 'label' | 'addedAt' | 'previewStatus' | 'deduplicatedAt' | 'canonicalEvidenceLinkId'
+  | 'id'
+  | 'label'
+  | 'addedAt'
+  | 'previewStatus'
+  | 'evidenceStage'
+  | 'resolutionEventId'
+  | 'deduplicatedAt'
+  | 'canonicalEvidenceLinkId'
 >;
 
 export class BugEvidenceLinkModel
@@ -37,6 +46,8 @@ export class BugEvidenceLinkModel
   declare readonly addedAt: Date;
   declare normalizedUrl: string;
   declare previewStatus: 'ready' | 'unsupported' | 'restricted' | 'failed';
+  declare evidenceStage: 'triage' | 'resolution' | 'legacy_unassigned';
+  declare resolutionEventId: string | null;
   declare deduplicatedAt: Date | null;
   declare canonicalEvidenceLinkId: string | null;
 }
@@ -68,6 +79,17 @@ BugEvidenceLinkModel.init(
       allowNull: false,
       defaultValue: 'ready',
       field: 'preview_status',
+    },
+    evidenceStage: {
+      type: DataTypes.STRING(24),
+      allowNull: false,
+      defaultValue: 'triage',
+      field: 'evidence_stage',
+    },
+    resolutionEventId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'resolution_event_id',
     },
     deduplicatedAt: { type: DataTypes.DATE, allowNull: true, field: 'deduplicated_at' },
     canonicalEvidenceLinkId: {

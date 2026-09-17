@@ -6,6 +6,7 @@ import {
   UpdateWorkspaceInput,
   WorkspaceActivityQuery,
   WorkspaceActivityListResponse,
+  UpdateQaAssuranceRolloutSettingsInput,
 } from '@qlick/contracts';
 import {
   createWorkspace,
@@ -27,6 +28,7 @@ import {
   revokeTaskCreationPermission,
 } from './internal/workspacePermissions.js';
 import { listWorkspaceActivities } from './internal/workspaceActivity.js';
+import { getQaAssuranceRollout, updateQaAssuranceRollout } from './internal/qaAssuranceRollout.js';
 
 export class WorkspaceService {
   async createWorkspace(userId: string, input: CreateWorkspaceInput) {
@@ -96,6 +98,18 @@ export class WorkspaceService {
     actorId: string,
   ): Promise<WorkspaceActivityListResponse> {
     return listWorkspaceActivities(workspaceId, query, actorId);
+  }
+
+  async getQaAssuranceRollout(workspaceId: string, actorId: string) {
+    return getQaAssuranceRollout(workspaceId, actorId);
+  }
+
+  async updateQaAssuranceRollout(
+    workspaceId: string,
+    actorId: string,
+    input: UpdateQaAssuranceRolloutSettingsInput,
+  ) {
+    return updateQaAssuranceRollout(workspaceId, actorId, input);
   }
 }
 

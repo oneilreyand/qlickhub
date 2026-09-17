@@ -1,17 +1,27 @@
-import { Op } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import {
-  CreateEvidenceLinkInput,
+  AddTestResultEvidenceSupplementInput,
+  CreateQaTestCycleInput,
   CreateTestCaseInput,
   CreateTestResultInput,
   CreateTestRunInput,
   ListTestCasesQuery,
+  ListQaTestCyclesQuery,
   MAX_EVIDENCE_ATTACHMENTS,
   MAX_EVIDENCE_LINKS,
   TestCase,
   TestCaseActivity,
   TestResult,
+  TestResultEvidenceManifest,
+  TestResultEvidenceManifestItem,
+  TestResultEvidenceManifestKind,
   TestResultEvidenceLink,
   TestRun,
+  QaTestCycle,
+  QaWorkflowSummary,
+  ReplaceTestCaseVersionAcceptanceCriteriaInput,
+  TestCaseVersionAcceptanceCriteriaResponse,
+  TestCaseVersionCoverageSummary,
   TaskTestExecutionWorkspace,
   UpdateTestCaseInput,
 } from '@qlick/contracts';
@@ -19,14 +29,21 @@ import {
 import { sequelize } from '../../db/sequelize.js';
 import {
   RequirementModel,
+  AcceptanceCriterionModel,
+  FeatureReadinessBaselineModel,
+  FeatureReadinessBaselineRequirementModel,
+  QaTestCycleModel,
   TaskModel,
   TaskRequirementModel,
   TaskAttachmentModel,
   TestCaseActivityModel,
   TestCaseModel,
+  TestCaseVersionModel,
+  TestCaseVersionAcceptanceCriterionModel,
   TestCaseRequirementModel,
   TestResultEvidenceModel,
   TestResultEvidenceLinkModel,
+  TestResultEvidenceManifestModel,
   TestResultModel,
   TestRunModel,
   UserModel,
@@ -42,6 +59,7 @@ import {
 import { normalizeEvidenceUrl } from './evidenceNormalizer.js';
 import { fcmService } from '../../services/fcmService.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { evaluateQaCompletionGate } from '../releaseDecisions/qaEvidenceCompletionGate.js';
 import { iso } from '../../utils/dateUtils.js';
 
 type TestCaseWithLinks = TestCaseModel & { requirementLinks?: TestCaseRequirementModel[] };
@@ -49,8 +67,45 @@ type EvidenceLinkWithAttachment = TestResultEvidenceModel & { attachment?: TaskA
 type TestResultWithEvidence = TestResultModel & {
   evidenceLinks?: EvidenceLinkWithAttachment[];
   externalEvidenceLinks?: TestResultEvidenceLinkModel[];
+  evidenceManifests?: TestResultEvidenceManifestModel[];
 };
 type TestRunWithResult = TestRunModel & { result?: TestResultWithEvidence | null };
+
+function snapshotTestCase(
+  testCase: TestCaseModel,
+  requirementIds: string[],
+): Record<string, unknown> {
+  return {
+    externalReference: testCase.externalReference || null,
+    title: testCase.title,
+    description: testCase.description || null,
+    testType: testCase.testType,
+    priority: testCase.priority,
+    preconditions: testCase.preconditions || null,
+    steps: testCase.steps || [],
+    expectedResult: testCase.expectedResult || null,
+    testData: testCase.testData || null,
+    scenarioKind: testCase.scenarioKind,
+    source: testCase.source,
+    requirementIds,
+  };
+}
+
+function hasDefinitionChanges(input: UpdateTestCaseInput): boolean {
+  return [
+    input.externalReference,
+    input.title,
+    input.description,
+    input.testType,
+    input.priority,
+    input.preconditions,
+    input.steps,
+    input.expectedResult,
+    input.testData,
+    input.scenarioKind,
+    input.requirementIds,
+  ].some((value) => value !== undefined);
+}
 
 function formatTestCase(testCase: TestCaseWithLinks): TestCase {
   return {
@@ -91,6 +146,109 @@ function formatEvidenceLink(link: TestResultEvidenceLinkModel): TestResultEviden
   };
 }
 
+function attachmentEvidenceMediaKind(
+  attachment: TaskAttachmentModel,
+): 'image' | 'video' | 'document' {
+  const mimeType = attachment.mimeType.toLowerCase();
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  return 'document';
+}
+
+function attachmentEvidencePreviewStatus(attachment: TaskAttachmentModel): 'ready' | 'unsupported' {
+  const mediaKind = attachmentEvidenceMediaKind(attachment);
+  return mediaKind === 'image' || mediaKind === 'video' ? 'ready' : 'unsupported';
+}
+
+function formatEvidenceManifest(
+  manifest: TestResultEvidenceManifestModel,
+): TestResultEvidenceManifest {
+  return {
+    id: manifest.id,
+    workspaceId: manifest.workspaceId,
+    testResultId: manifest.testResultId,
+    sequence: manifest.sequence,
+    kind: manifest.kind,
+    reason: manifest.reason || null,
+    itemCount: manifest.itemCount,
+    imageCount: manifest.imageCount,
+    videoCount: manifest.videoCount,
+    readyCount: manifest.readyCount,
+    evidenceSnapshot: manifest.evidenceSnapshot as TestResultEvidenceManifestItem[],
+    sealedBy: manifest.sealedBy,
+    sealedAt: iso(manifest.sealedAt),
+  };
+}
+
+function buildEvidenceManifestSnapshot(
+  attachments: TaskAttachmentModel[],
+  externalLinks: TestResultEvidenceLinkModel[],
+): TestResultEvidenceManifestItem[] {
+  const attachmentItems: TestResultEvidenceManifestItem[] = attachments.map((attachment) => ({
+    evidenceType: 'attachment',
+    evidenceId: attachment.id,
+    mediaKind: attachmentEvidenceMediaKind(attachment),
+    previewStatus: attachmentEvidencePreviewStatus(attachment),
+    provider:
+      attachment.storageProvider === 'google_drive'
+        ? 'authenticated_google_drive_attachment'
+        : 'authenticated_attachment',
+    fileName: attachment.fileName,
+    url: null,
+    normalizedUrl: null,
+    taskId: attachment.taskId,
+  }));
+  const externalItems: TestResultEvidenceManifestItem[] = externalLinks.map((link) => ({
+    evidenceType: 'external_link',
+    evidenceId: link.id,
+    mediaKind: link.mediaKind,
+    previewStatus: link.previewStatus,
+    provider: link.provider,
+    fileName: null,
+    url: link.url,
+    normalizedUrl: link.normalizedUrl,
+    taskId: null,
+  }));
+  return [...attachmentItems, ...externalItems];
+}
+
+async function sealEvidenceManifest({
+  workspaceId,
+  testResultId,
+  sequence,
+  kind,
+  reason,
+  evidenceSnapshot,
+  actorId,
+  transaction,
+}: {
+  workspaceId: string;
+  testResultId: string;
+  sequence: number;
+  kind: TestResultEvidenceManifestKind;
+  reason?: string | null;
+  evidenceSnapshot: TestResultEvidenceManifestItem[];
+  actorId: string;
+  transaction: Transaction;
+}): Promise<TestResultEvidenceManifestModel> {
+  return TestResultEvidenceManifestModel.create(
+    {
+      workspaceId,
+      testResultId,
+      sequence,
+      kind,
+      reason: kind === 'supplement' ? reason?.trim() || null : null,
+      itemCount: evidenceSnapshot.length,
+      imageCount: evidenceSnapshot.filter((item) => item.mediaKind === 'image').length,
+      videoCount: evidenceSnapshot.filter((item) => item.mediaKind === 'video').length,
+      readyCount: evidenceSnapshot.filter((item) => item.previewStatus === 'ready').length,
+      evidenceSnapshot,
+      sealedBy: actorId,
+    },
+    { transaction },
+  );
+}
+
 function formatResult(result: TestResultWithEvidence): TestResult {
   return {
     id: result.id,
@@ -111,6 +269,10 @@ function formatResult(result: TestResultWithEvidence): TestResult {
     })),
 
     evidenceLinks: (result.externalEvidenceLinks || []).map(formatEvidenceLink),
+    evidenceManifests: (result.evidenceManifests || [])
+      .slice()
+      .sort((left, right) => left.sequence - right.sequence)
+      .map(formatEvidenceManifest),
     createdAt: iso(result.createdAt),
   };
 }
@@ -120,6 +282,14 @@ function formatRun(run: TestRunWithResult): TestRun {
     id: run.id,
     workspaceId: run.workspaceId,
     testCaseId: run.testCaseId,
+    featureTaskId: run.featureTaskId || null,
+    qaSubtaskId: run.qaSubtaskId || null,
+    testCycleId: run.testCycleId || null,
+    testCaseVersionId: run.testCaseVersionId || null,
+    readinessBaselineId: run.readinessBaselineId || null,
+    candidateFingerprint: run.candidateFingerprint || null,
+    retestBugId: run.retestBugId || null,
+    retestResolutionEventId: run.retestResolutionEventId || null,
     build: run.build,
     environment: run.environment,
     status: run.status,
@@ -131,6 +301,23 @@ function formatRun(run: TestRunWithResult): TestRun {
   };
 }
 
+function formatQaTestCycle(cycle: QaTestCycleModel): QaTestCycle {
+  return {
+    id: cycle.id,
+    workspaceId: cycle.workspaceId,
+    featureTaskId: cycle.featureTaskId,
+    qaSubtaskId: cycle.qaSubtaskId,
+    readinessBaselineId: cycle.readinessBaselineId,
+    candidateFingerprint: cycle.candidateFingerprint,
+    build: cycle.build,
+    environment: cycle.environment,
+    status: cycle.status,
+    ownerQaId: cycle.ownerQaId,
+    createdAt: iso(cycle.createdAt),
+    updatedAt: iso(cycle.updatedAt),
+  };
+}
+
 function formatActivity(activity: TestCaseActivityModel): TestCaseActivity {
   return {
     id: activity.id,
@@ -138,6 +325,7 @@ function formatActivity(activity: TestCaseActivityModel): TestCaseActivity {
     testCaseId: activity.testCaseId,
     testRunId: activity.testRunId || null,
     testResultId: activity.testResultId || null,
+    testCaseVersionId: activity.testCaseVersionId || null,
     actorId: activity.actorId,
     action: activity.action,
     metadata: activity.metadata || null,
@@ -162,11 +350,330 @@ const testRunIncludes = [
         where: { deduplicatedAt: null },
         required: false,
       },
+      {
+        model: TestResultEvidenceManifestModel,
+        as: 'evidenceManifests',
+        required: false,
+      },
     ],
   },
 ];
 
 export class TestManagementService {
+  async listQaTestCycles(
+    workspaceId: string,
+    actorId: string,
+    query: ListQaTestCyclesQuery,
+  ): Promise<QaTestCycle[]> {
+    const membership = await requireActiveMember(workspaceId, actorId);
+    assertCanReadTestManagement(membership.role);
+    const where: Record<string, string> = { workspaceId, featureTaskId: query.featureTaskId };
+    if (query.qaSubtaskId) where.qaSubtaskId = query.qaSubtaskId;
+    const cycles = await QaTestCycleModel.findAll({
+      where,
+      order: [
+        ['createdAt', 'DESC'],
+        ['id', 'DESC'],
+      ],
+    });
+    return cycles.map(formatQaTestCycle);
+  }
+
+  async getQaWorkflowSummary(
+    workspaceId: string,
+    qaSubtaskId: string,
+    actorId: string,
+  ): Promise<QaWorkflowSummary> {
+    return sequelize.transaction(async (transaction) => {
+      const membership = await requireActiveMember(workspaceId, actorId, transaction);
+      assertCanExecuteTestRun(membership.role);
+      const qaSubtask = await TaskModel.findOne({
+        where: {
+          id: qaSubtaskId,
+          workspaceId,
+          deliveryArea: 'qa',
+          assigneeId: actorId,
+          parentTaskId: { [Op.ne]: null },
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!qaSubtask) {
+        throw new Error('FORBIDDEN: Only the assigned QA member can read this workflow summary.');
+      }
+      const feature = await TaskModel.findOne({
+        where: { id: qaSubtask.parentTaskId!, workspaceId, parentTaskId: null },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!feature) throw new Error('NOT_FOUND: Parent Feature not found in this workspace.');
+      const cycle = await QaTestCycleModel.findOne({
+        where: {
+          workspaceId,
+          featureTaskId: feature.id,
+          qaSubtaskId: qaSubtask.id,
+          ownerQaId: actorId,
+          status: { [Op.in]: ['planned', 'in_progress'] },
+        },
+        order: [
+          ['createdAt', 'DESC'],
+          ['id', 'DESC'],
+        ],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!cycle) {
+        return {
+          workspaceId,
+          featureTaskId: feature.id,
+          qaSubtaskId: qaSubtask.id,
+          featureTitle: feature.title,
+          qaSubtaskTitle: qaSubtask.title,
+          qaSubtaskStatus: qaSubtask.status,
+          testCycle: null,
+          blockers: ['qa_test_cycle_missing'],
+          nextAction: { code: 'create_test_cycle', label: 'Buat Siklus Pengujian' },
+        };
+      }
+      const gate = await evaluateQaCompletionGate(
+        workspaceId,
+        feature.id,
+        qaSubtask.id,
+        actorId,
+        transaction,
+        cycle.id,
+      );
+      const blockers = gate.failedGateCodes;
+      const nextAction = blockers.includes('scoped_run_in_progress')
+        ? { code: 'record_test_result' as const, label: 'Catat Hasil Pengujian' }
+        : blockers.includes('scoped_result_missing')
+          ? { code: 'execute_test_cases' as const, label: 'Jalankan Test Case' }
+          : blockers.includes('unverified_bug')
+            ? { code: 'resolve_bug_retest' as const, label: 'Selesaikan Retest Bug' }
+            : blockers.length > 0
+              ? { code: 'execute_test_cases' as const, label: 'Lengkapi Bukti Pengujian' }
+              : qaSubtask.status !== 'done'
+                ? { code: 'complete_qa_subtask' as const, label: 'Selesaikan Eksekusi QA' }
+                : { code: 'record_qa_sign_off' as const, label: 'Catat Persetujuan QA' };
+      return {
+        workspaceId,
+        featureTaskId: feature.id,
+        qaSubtaskId: qaSubtask.id,
+        featureTitle: feature.title,
+        qaSubtaskTitle: qaSubtask.title,
+        qaSubtaskStatus: qaSubtask.status,
+        testCycle: formatQaTestCycle(cycle),
+        blockers,
+        nextAction,
+      };
+    });
+  }
+
+  async createQaTestCycle(actorId: string, input: CreateQaTestCycleInput): Promise<QaTestCycle> {
+    return sequelize.transaction(async (transaction) => {
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
+      assertCanExecuteTestRun(membership.role);
+      const [featureTask, qaSubtask, baseline] = await Promise.all([
+        TaskModel.findOne({
+          where: { id: input.featureTaskId, workspaceId: input.workspaceId, parentTaskId: null },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        }),
+        TaskModel.findOne({
+          where: {
+            id: input.qaSubtaskId,
+            workspaceId: input.workspaceId,
+            parentTaskId: input.featureTaskId,
+            deliveryArea: 'qa',
+            assigneeId: actorId,
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        }),
+        FeatureReadinessBaselineModel.findOne({
+          where: { workspaceId: input.workspaceId, featureTaskId: input.featureTaskId },
+          order: [['sequence', 'DESC']],
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        }),
+      ]);
+      if (!featureTask) throw new Error('NOT_FOUND: Root Feature not found in this workspace.');
+      if (!qaSubtask) {
+        throw new Error(
+          'FORBIDDEN: Only the assigned QA member may create this Feature Test Cycle.',
+        );
+      }
+      if (!baseline) {
+        throw new Error(
+          'CONFLICT: A persisted Feature Readiness Baseline is required before creating a scoped Test Cycle.',
+        );
+      }
+      const created = await QaTestCycleModel.create(
+        {
+          workspaceId: input.workspaceId,
+          featureTaskId: input.featureTaskId,
+          qaSubtaskId: input.qaSubtaskId,
+          readinessBaselineId: baseline.id,
+          candidateFingerprint: input.candidateFingerprint,
+          build: input.build,
+          environment: input.environment,
+          status: 'in_progress',
+          ownerQaId: actorId,
+        },
+        { transaction },
+      );
+      return formatQaTestCycle(created);
+    });
+  }
+
+  async listTestCaseVersionCoverage(
+    workspaceId: string,
+    testCaseId: string,
+    actorId: string,
+  ): Promise<TestCaseVersionCoverageSummary[]> {
+    const membership = await requireActiveMember(workspaceId, actorId);
+    assertCanReadTestManagement(membership.role);
+    const versions = await TestCaseVersionModel.findAll({
+      where: { workspaceId, testCaseId },
+      order: [['revision', 'DESC']],
+    });
+    if (versions.length === 0) throw new Error('NOT_FOUND: Test Case revision history not found.');
+    const counts = await TestCaseVersionAcceptanceCriterionModel.findAll({
+      where: { workspaceId, testCaseVersionId: versions.map((version) => version.id) },
+    });
+    return versions.map((version) => ({
+      id: version.id,
+      revision: version.revision,
+      lifecycleStatus: version.lifecycleStatus,
+      mappedCount: counts.filter(
+        (mapping) => mapping.testCaseVersionId === version.id && mapping.mappingStatus === 'mapped',
+      ).length,
+      excludedCount: counts.filter(
+        (mapping) =>
+          mapping.testCaseVersionId === version.id && mapping.mappingStatus === 'excluded',
+      ).length,
+      createdAt: iso(version.createdAt),
+    }));
+  }
+
+  async replaceTestCaseVersionAcceptanceCriteria(
+    actorId: string,
+    input: ReplaceTestCaseVersionAcceptanceCriteriaInput,
+  ): Promise<TestCaseVersionAcceptanceCriteriaResponse> {
+    const uniqueCriterionIds = [
+      ...new Set(input.mappings.map((mapping) => mapping.acceptanceCriterionId)),
+    ];
+    if (uniqueCriterionIds.length !== input.mappings.length) {
+      throw new Error('BAD_REQUEST: Acceptance Criterion mappings must not contain duplicates.');
+    }
+
+    return sequelize.transaction(async (transaction) => {
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
+      assertCanCreateTestCase(membership.role);
+      const version = await TestCaseVersionModel.findOne({
+        where: {
+          id: input.testCaseVersionId,
+          testCaseId: input.testCaseId,
+          workspaceId: input.workspaceId,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!version) throw new Error('NOT_FOUND: Test Case revision not found in this workspace.');
+      if (version.lifecycleStatus !== 'draft') {
+        throw new Error(
+          'CONFLICT: Acceptance Criteria can only be mapped on a draft Test Case revision.',
+        );
+      }
+
+      const requirementIds = Array.isArray(version.definitionSnapshot.requirementIds)
+        ? version.definitionSnapshot.requirementIds.filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [];
+      const criteria = await AcceptanceCriterionModel.findAll({
+        where: { workspaceId: input.workspaceId, id: uniqueCriterionIds },
+        transaction,
+      });
+      if (
+        criteria.length !== uniqueCriterionIds.length ||
+        criteria.some((criterion) => !requirementIds.includes(criterion.requirementId))
+      ) {
+        throw new Error(
+          'BAD_REQUEST: Every Acceptance Criterion must belong to a Requirement in this Test Case revision.',
+        );
+      }
+
+      await TestCaseVersionAcceptanceCriterionModel.destroy({
+        where: { workspaceId: input.workspaceId, testCaseVersionId: version.id },
+        transaction,
+      });
+      await TestCaseVersionAcceptanceCriterionModel.bulkCreate(
+        input.mappings.map((mapping) => ({
+          workspaceId: input.workspaceId,
+          testCaseVersionId: version.id,
+          acceptanceCriterionId: mapping.acceptanceCriterionId,
+          mappingStatus: mapping.mappingStatus,
+          exclusionReason: mapping.exclusionReason || null,
+          mappedBy: actorId,
+        })),
+        { transaction },
+      );
+      await TestCaseActivityModel.bulkCreate(
+        input.mappings.map((mapping) => ({
+          workspaceId: input.workspaceId,
+          testCaseId: input.testCaseId,
+          testCaseVersionId: version.id,
+          actorId,
+          action:
+            mapping.mappingStatus === 'mapped' ? 'test_case_ac_mapped' : 'test_case_ac_excluded',
+          metadata: {
+            acceptanceCriterionId: mapping.acceptanceCriterionId,
+            exclusionReason: mapping.exclusionReason || null,
+          },
+        })),
+        { transaction },
+      );
+      return this.listTestCaseVersionAcceptanceCriteria(
+        input.workspaceId,
+        input.testCaseId,
+        version.id,
+        actorId,
+        transaction,
+      );
+    });
+  }
+
+  async listTestCaseVersionAcceptanceCriteria(
+    workspaceId: string,
+    testCaseId: string,
+    testCaseVersionId: string,
+    actorId: string,
+    transaction?: Transaction,
+  ): Promise<TestCaseVersionAcceptanceCriteriaResponse> {
+    const membership = await requireActiveMember(workspaceId, actorId, transaction);
+    assertCanReadTestManagement(membership.role);
+    const version = await TestCaseVersionModel.findOne({
+      where: { id: testCaseVersionId, testCaseId, workspaceId },
+      transaction,
+    });
+    if (!version) throw new Error('NOT_FOUND: Test Case revision not found in this workspace.');
+    const mappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
+      where: { workspaceId, testCaseVersionId },
+      order: [['mappedAt', 'ASC']],
+      transaction,
+    });
+    return {
+      testCaseVersionId,
+      mappings: mappings.map((mapping) => ({
+        acceptanceCriterionId: mapping.acceptanceCriterionId,
+        mappingStatus: mapping.mappingStatus,
+        exclusionReason: mapping.exclusionReason || null,
+        mappedBy: mapping.mappedBy,
+        mappedAt: iso(mapping.mappedAt),
+      })),
+    };
+  }
   async getTaskTestExecutions(
     workspaceId: string,
     taskId: string,
@@ -385,12 +892,26 @@ export class TestManagementService {
         { transaction },
       );
 
+      const version = await TestCaseVersionModel.create(
+        {
+          workspaceId: input.workspaceId,
+          testCaseId: created.id,
+          revision: 1,
+          lifecycleStatus: 'draft',
+          definitionSnapshot: snapshotTestCase(created, requirementIds),
+          authoredBy: actorId,
+          origin: 'native_revision',
+        },
+        { transaction },
+      );
+
       await TestCaseActivityModel.create(
         {
           workspaceId: input.workspaceId,
           testCaseId: created.id,
+          testCaseVersionId: version.id,
           actorId,
-          action: 'test_case_created',
+          action: 'test_case_revision_created',
           metadata: {
             requirementIds,
             status: created.status,
@@ -420,7 +941,26 @@ export class TestManagementService {
       }
 
       const previousStatus = testCase.status;
-      assertCanUpdateTestCase(membership.role, previousStatus, input.status);
+      const definitionChanges = hasDefinitionChanges(input);
+      assertCanUpdateTestCase(membership.role, previousStatus, input.status, definitionChanges);
+
+      if (definitionChanges && input.status !== undefined && input.status !== previousStatus) {
+        throw new Error(
+          'BAD_REQUEST: Create or update a draft revision before submitting a separate lifecycle transition.',
+        );
+      }
+
+      const latestVersion = await TestCaseVersionModel.findOne({
+        where: { workspaceId: input.workspaceId, testCaseId: input.testCaseId },
+        order: [['revision', 'DESC']],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!latestVersion) {
+        throw new Error(
+          'CONFLICT: Test Case revision history is missing. Run the version backfill first.',
+        );
+      }
 
       if (input.externalReference && input.externalReference !== testCase.externalReference) {
         const existingRef = await TestCaseModel.findOne({
@@ -452,7 +992,12 @@ export class TestManagementService {
       if (input.externalReference !== undefined)
         updates.externalReference = input.externalReference || null;
 
-      await testCase.update(updates, { transaction });
+      const currentRequirementLinks = await TestCaseRequirementModel.findAll({
+        where: { workspaceId: input.workspaceId, testCaseId: input.testCaseId },
+        attributes: ['requirementId'],
+        transaction,
+      });
+      let requirementIds = currentRequirementLinks.map((link) => link.requirementId);
 
       if (input.requirementIds) {
         const uniqueReqIds = [...new Set(input.requirementIds)];
@@ -478,21 +1023,75 @@ export class TestManagementService {
           })),
           { transaction },
         );
+        requirementIds = uniqueReqIds;
+      }
+
+      await testCase.update(updates, { transaction });
+
+      let activityAction: 'test_case_revision_created' | 'test_case_revision_status_changed';
+      let activityVersionId: string;
+
+      if (definitionChanges) {
+        const revision = await TestCaseVersionModel.create(
+          {
+            workspaceId: input.workspaceId,
+            testCaseId: input.testCaseId,
+            revision: latestVersion.revision + 1,
+            lifecycleStatus: 'draft',
+            definitionSnapshot: snapshotTestCase(testCase, requirementIds),
+            authoredBy: actorId,
+            supersedesVersionId: latestVersion.id,
+            origin: 'native_revision',
+          },
+          { transaction },
+        );
+
+        const priorMappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
+          where: { workspaceId: input.workspaceId, testCaseVersionId: latestVersion.id },
+          transaction,
+        });
+        if (priorMappings.length > 0) {
+          await TestCaseVersionAcceptanceCriterionModel.bulkCreate(
+            priorMappings.map((mapping) => ({
+              workspaceId: mapping.workspaceId,
+              testCaseVersionId: revision.id,
+              acceptanceCriterionId: mapping.acceptanceCriterionId,
+              mappingStatus: mapping.mappingStatus,
+              exclusionReason: mapping.exclusionReason,
+              mappedBy: actorId,
+            })),
+            { transaction },
+          );
+        }
+        activityAction = 'test_case_revision_created';
+        activityVersionId = revision.id;
+      } else {
+        const requestedStatus = input.status || previousStatus;
+        if (requestedStatus === previousStatus) {
+          throw new Error('BAD_REQUEST: No Test Case definition or lifecycle change was provided.');
+        }
+        await latestVersion.update(
+          requestedStatus === 'active'
+            ? { lifecycleStatus: 'active', publishedBy: actorId, publishedAt: new Date() }
+            : { lifecycleStatus: requestedStatus },
+          { transaction },
+        );
+        activityAction = 'test_case_revision_status_changed';
+        activityVersionId = latestVersion.id;
       }
 
       await TestCaseActivityModel.create(
         {
           workspaceId: input.workspaceId,
           testCaseId: input.testCaseId,
+          testCaseVersionId: activityVersionId,
           actorId,
-          action:
-            input.status && input.status !== previousStatus
-              ? 'test_case_status_changed'
-              : 'test_case_updated',
+          action: activityAction,
           metadata: {
             previousStatus,
             newStatus: input.status || previousStatus,
             updatedFields: Object.keys(updates),
+            revisionId: activityVersionId,
           },
         },
         { transaction },
@@ -507,18 +1106,101 @@ export class TestManagementService {
       const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanExecuteTestRun(membership.role);
 
-      const testCase = await TestCaseModel.findOne({
-        where: { id: input.testCaseId, workspaceId: input.workspaceId, status: 'active' },
-        transaction,
-      });
+      const [testCase, cycle, qaSubtask, testCaseVersion] = await Promise.all([
+        TestCaseModel.findOne({
+          where: { id: input.testCaseId, workspaceId: input.workspaceId, status: 'active' },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        }),
+        QaTestCycleModel.findOne({
+          where: { id: input.testCycleId, workspaceId: input.workspaceId },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        }),
+        TaskModel.findOne({
+          where: {
+            id: input.qaSubtaskId,
+            workspaceId: input.workspaceId,
+            parentTaskId: input.featureTaskId,
+            deliveryArea: 'qa',
+            assigneeId: actorId,
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        }),
+        TestCaseVersionModel.findOne({
+          where: {
+            id: input.testCaseVersionId,
+            workspaceId: input.workspaceId,
+            testCaseId: input.testCaseId,
+            lifecycleStatus: 'active',
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        }),
+      ]);
       if (!testCase) {
         throw new Error('NOT_FOUND: Active Test Case not found in this workspace.');
+      }
+      if (!qaSubtask) {
+        throw new Error(
+          'FORBIDDEN: Only the assigned QA member may execute this Feature QA Subtask.',
+        );
+      }
+      if (!testCaseVersion) {
+        throw new Error(
+          'CONFLICT: An active Test Case revision is required for a new scoped Test Run.',
+        );
+      }
+      if (!cycle || cycle.status !== 'in_progress' || cycle.ownerQaId !== actorId) {
+        throw new Error(
+          'CONFLICT: An in-progress Test Cycle owned by the assigned QA is required.',
+        );
+      }
+      if (
+        cycle.featureTaskId !== input.featureTaskId ||
+        cycle.qaSubtaskId !== input.qaSubtaskId ||
+        cycle.candidateFingerprint !== input.candidateFingerprint ||
+        cycle.build !== input.build ||
+        cycle.environment !== input.environment
+      ) {
+        throw new Error(
+          'CONFLICT: Test Run scope must exactly match the selected Test Cycle candidate, build, and environment.',
+        );
+      }
+
+      const baselineRequirements = await FeatureReadinessBaselineRequirementModel.findAll({
+        where: { workspaceId: input.workspaceId, baselineId: cycle.readinessBaselineId },
+        attributes: ['requirementId'],
+        transaction,
+      });
+      const baselineRequirementIds = new Set(
+        baselineRequirements.map((requirement) => requirement.requirementId),
+      );
+      const versionRequirementIds = Array.isArray(testCaseVersion.definitionSnapshot.requirementIds)
+        ? testCaseVersion.definitionSnapshot.requirementIds.filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [];
+      if (
+        versionRequirementIds.length === 0 ||
+        versionRequirementIds.some((requirementId) => !baselineRequirementIds.has(requirementId))
+      ) {
+        throw new Error(
+          'CONFLICT: Test Case revision Requirements must all belong to the Test Cycle readiness baseline.',
+        );
       }
 
       const created = await TestRunModel.create(
         {
           workspaceId: input.workspaceId,
           testCaseId: input.testCaseId,
+          featureTaskId: input.featureTaskId,
+          qaSubtaskId: input.qaSubtaskId,
+          testCycleId: input.testCycleId,
+          testCaseVersionId: input.testCaseVersionId,
+          readinessBaselineId: cycle.readinessBaselineId,
+          candidateFingerprint: input.candidateFingerprint,
           build: input.build,
           environment: input.environment,
           status: 'in_progress',
@@ -534,7 +1216,16 @@ export class TestManagementService {
           testRunId: created.id,
           actorId,
           action: 'test_run_started',
-          metadata: { build: input.build, environment: input.environment },
+          metadata: {
+            featureTaskId: input.featureTaskId,
+            qaSubtaskId: input.qaSubtaskId,
+            testCycleId: input.testCycleId,
+            testCaseVersionId: input.testCaseVersionId,
+            readinessBaselineId: cycle.readinessBaselineId,
+            candidateFingerprint: input.candidateFingerprint,
+            build: input.build,
+            environment: input.environment,
+          },
         },
         { transaction },
       );
@@ -590,8 +1281,21 @@ export class TestManagementService {
         throw new Error('CONFLICT: This Test Run already has an immutable Result.');
       }
 
+      const isScopedRun = Boolean(run.testCycleId);
+      if (isScopedRun && run.executorId !== actorId) {
+        throw new Error(
+          'FORBIDDEN: Only the assigned QA executor may finalize this scoped Test Run.',
+        );
+      }
+      if (isScopedRun && input.status === 'skipped' && !input.notes?.trim()) {
+        throw new Error(
+          'BAD_REQUEST: A scoped skipped Test Result requires a non-empty reason in notes.',
+        );
+      }
+
+      let attachments: TaskAttachmentModel[] = [];
       if (evidenceAttachmentIds.length > 0) {
-        const attachments = await TaskAttachmentModel.findAll({
+        attachments = await TaskAttachmentModel.findAll({
           where: {
             workspaceId: input.workspaceId,
             id: evidenceAttachmentIds,
@@ -643,10 +1347,11 @@ export class TestManagementService {
           );
         }
 
+        const scopedFeatureTaskIds = run.featureTaskId ? [run.featureTaskId] : featureTaskIds;
         const allScopedTasks = await TaskModel.findAll({
           where: {
             workspaceId: input.workspaceId,
-            [Op.or]: [{ id: featureTaskIds }, { parentTaskId: featureTaskIds }],
+            [Op.or]: [{ id: scopedFeatureTaskIds }, { parentTaskId: scopedFeatureTaskIds }],
           },
           attributes: ['id'],
           transaction,
@@ -659,6 +1364,34 @@ export class TestManagementService {
               `BAD_REQUEST: Attachment "${att.fileName}" does not belong to the Feature Task or Subtasks associated with this Test Case.`,
             );
           }
+        }
+      }
+
+      const normalizedEvidenceLinks = evidenceLinksInput.map((link) => ({
+        link,
+        normalized: normalizeEvidenceUrl(link.url),
+      }));
+      const seenNormalized = new Set<string>();
+      for (const { normalized } of normalizedEvidenceLinks) {
+        if (seenNormalized.has(normalized.normalizedUrl)) {
+          throw new Error('CONFLICT: Duplicate evidence link detected in test result payload.');
+        }
+        seenNormalized.add(normalized.normalizedUrl);
+      }
+
+      if (isScopedRun && ['passed', 'failed', 'blocked'].includes(input.status)) {
+        const hasPreviewableAttachment = attachments.some(
+          (attachment) => attachmentEvidencePreviewStatus(attachment) === 'ready',
+        );
+        const hasPreviewableLink = normalizedEvidenceLinks.some(
+          ({ normalized }) =>
+            (normalized.mediaKind === 'image' || normalized.mediaKind === 'video') &&
+            normalized.previewStatus === 'ready',
+        );
+        if (!hasPreviewableAttachment && !hasPreviewableLink) {
+          throw new Error(
+            'BAD_REQUEST: Scoped passed, failed, and blocked Results require at least one previewable image or video evidence item.',
+          );
         }
       }
 
@@ -688,17 +1421,11 @@ export class TestManagementService {
         );
       }
 
-      if (evidenceLinksInput.length > 0) {
-        const seenNormalized = new Set<string>();
-        for (const link of evidenceLinksInput) {
-          const normalized = normalizeEvidenceUrl(link.url);
-          if (seenNormalized.has(normalized.normalizedUrl)) {
-            throw new Error('CONFLICT: Duplicate evidence link detected in test result payload.');
-          }
-          seenNormalized.add(normalized.normalizedUrl);
-
+      const createdExternalEvidenceLinks: TestResultEvidenceLinkModel[] = [];
+      if (normalizedEvidenceLinks.length > 0) {
+        for (const { link, normalized } of normalizedEvidenceLinks) {
           try {
-            await TestResultEvidenceLinkModel.create(
+            const createdExternalEvidenceLink = await TestResultEvidenceLinkModel.create(
               {
                 workspaceId: input.workspaceId,
                 testResultId: result.id,
@@ -712,6 +1439,7 @@ export class TestManagementService {
               },
               { transaction },
             );
+            createdExternalEvidenceLinks.push(createdExternalEvidenceLink);
           } catch (err: any) {
             if (err.name === 'SequelizeUniqueConstraintError') {
               throw new Error(
@@ -722,6 +1450,22 @@ export class TestManagementService {
             throw err;
           }
         }
+      }
+
+      let initialManifest: TestResultEvidenceManifestModel | null = null;
+      if (isScopedRun) {
+        initialManifest = await sealEvidenceManifest({
+          workspaceId: input.workspaceId,
+          testResultId: result.id,
+          sequence: 1,
+          kind: 'initial',
+          evidenceSnapshot: buildEvidenceManifestSnapshot(
+            attachments,
+            createdExternalEvidenceLinks,
+          ),
+          actorId,
+          transaction,
+        });
       }
 
       await run.update({ status: 'completed', completedAt: executedAt }, { transaction });
@@ -740,6 +1484,8 @@ export class TestManagementService {
             status: input.status,
             evidenceAttachmentIds,
             evidenceLinksCount: evidenceLinksInput.length,
+            evidenceManifestId: initialManifest?.id || null,
+            evidenceManifestSequence: initialManifest?.sequence || null,
           },
         },
         { transaction },
@@ -812,39 +1558,56 @@ export class TestManagementService {
     workspaceId: string,
     testCaseId: string,
     testRunId: string,
-    input: CreateEvidenceLinkInput,
+    input: AddTestResultEvidenceSupplementInput,
   ): Promise<TestResultEvidenceLink> {
-    const membership = await requireActiveMember(workspaceId, actorId);
-    assertCanAddTestResultEvidence(membership.role);
-
-    const run = (await TestRunModel.findOne({
-      where: { id: testRunId, workspaceId, testCaseId },
-      include: [{ model: TestResultModel, as: 'result' }],
-    })) as TestRunWithResult | null;
-
-    if (!run || !run.result) {
-      throw new Error('NOT_FOUND: Finalized Test Result not found for this Run.');
-    }
-
     const normalized = normalizeEvidenceUrl(input.url);
-
-    const existingLink = await TestResultEvidenceLinkModel.findOne({
-      where: {
-        testResultId: run.result!.id,
-        deduplicatedAt: null,
-        [Op.or]: [{ normalizedUrl: normalized.normalizedUrl }, { url: input.url }],
-      },
-    });
-    if (existingLink) {
-      throw new Error('CONFLICT: This evidence link is already attached to this Test Result.');
-    }
 
     try {
       const created = await sequelize.transaction(async (transaction) => {
+        const membership = await requireActiveMember(workspaceId, actorId, transaction);
+        assertCanAddTestResultEvidence(membership.role);
+
+        // Locking the Run serializes supplements and lets the sequence remain
+        // strictly append-only even if two QA actions arrive at once.
+        const run = await TestRunModel.findOne({
+          where: { id: testRunId, workspaceId, testCaseId },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!run) {
+          throw new Error('NOT_FOUND: Finalized Test Result not found for this Run.');
+        }
+        if (run.testCycleId && run.executorId !== actorId) {
+          throw new Error(
+            'FORBIDDEN: Only the assigned QA executor may supplement this scoped Test Result.',
+          );
+        }
+        const result = await TestResultModel.findOne({
+          where: { workspaceId, testRunId: run.id },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!result) {
+          throw new Error('NOT_FOUND: Finalized Test Result not found for this Run.');
+        }
+
+        const existingLink = await TestResultEvidenceLinkModel.findOne({
+          where: {
+            testResultId: result.id,
+            deduplicatedAt: null,
+            [Op.or]: [{ normalizedUrl: normalized.normalizedUrl }, { url: input.url }],
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (existingLink) {
+          throw new Error('CONFLICT: This evidence link is already attached to this Test Result.');
+        }
+
         const link = await TestResultEvidenceLinkModel.create(
           {
             workspaceId,
-            testResultId: run.result!.id,
+            testResultId: result.id,
             url: input.url,
             provider: normalized.provider,
             mediaKind: normalized.mediaKind,
@@ -856,18 +1619,46 @@ export class TestManagementService {
           { transaction },
         );
 
+        let supplementManifest: TestResultEvidenceManifestModel | null = null;
+        if (run.testCycleId) {
+          const latestManifest = await TestResultEvidenceManifestModel.findOne({
+            where: { workspaceId, testResultId: result.id },
+            order: [['sequence', 'DESC']],
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+          });
+          if (!latestManifest) {
+            throw new Error(
+              'CONFLICT: Scoped Test Result has no sealed initial Evidence Manifest. Create a new Test Run instead.',
+            );
+          }
+          supplementManifest = await sealEvidenceManifest({
+            workspaceId,
+            testResultId: result.id,
+            sequence: latestManifest.sequence + 1,
+            kind: 'supplement',
+            reason: input.reason,
+            evidenceSnapshot: buildEvidenceManifestSnapshot([], [link]),
+            actorId,
+            transaction,
+          });
+        }
+
         await TestCaseActivityModel.create(
           {
             workspaceId,
             testCaseId,
             testRunId,
-            testResultId: run.result!.id,
+            testResultId: result.id,
             actorId,
             action: 'test_evidence_link_added',
             metadata: {
               evidenceLinkId: link.id,
               url: input.url,
               provider: normalized.provider,
+              evidenceManifestId: supplementManifest?.id || null,
+              evidenceManifestSequence: supplementManifest?.sequence || null,
+              supplementReason: input.reason,
             },
           },
           { transaction },

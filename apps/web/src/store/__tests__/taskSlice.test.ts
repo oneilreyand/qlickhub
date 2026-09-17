@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Task } from '@qlick/contracts';
-import taskReducer, { fetchTaskById, setSelectedTaskId } from '../taskSlice';
+import taskReducer, { fetchTaskById, fetchTasks, setSelectedTaskId } from '../taskSlice';
 
 const workspaceId = '10000000-0000-4000-8000-000000000001';
 const firstTaskId = '10000000-0000-4000-8000-000000000002';
@@ -16,6 +16,63 @@ const persistedTask: Task = {
   createdAt: '2026-09-09T00:00:00.000Z',
   updatedAt: '2026-09-09T00:00:00.000Z',
 };
+
+const listResponse = (tasks: Task[]) => ({ tasks, total: tasks.length, page: 1, limit: 50 });
+
+describe('taskSlice list scope', () => {
+  it('clears a prior all-task result while the root Feature list loads', () => {
+    const allArgs = { workspaceId, query: { limit: 100 } };
+    const rootArgs = { workspaceId, query: { rootOnly: true, includeSubtaskSummary: true } };
+    const allTasks = [
+      persistedTask,
+      ...Array.from({ length: 3 }, (_, index) => ({
+        ...persistedTask,
+        id: `10000000-0000-4000-8000-00000000001${index}`,
+        parentTaskId: persistedTask.id,
+      })),
+    ];
+
+    let state = taskReducer(undefined, fetchTasks.pending('all-request', allArgs));
+    state = taskReducer(
+      state,
+      fetchTasks.fulfilled(listResponse(allTasks), 'all-request', allArgs),
+    );
+    expect(state.tasks).toHaveLength(4);
+
+    state = taskReducer(state, fetchTasks.pending('root-request', rootArgs));
+    expect(state.tasks).toEqual([]);
+    expect(state.total).toBe(0);
+    expect(state.isLoading).toBe(true);
+
+    state = taskReducer(
+      state,
+      fetchTasks.fulfilled(listResponse([persistedTask]), 'root-request', rootArgs),
+    );
+    expect(state.tasks).toEqual([persistedTask]);
+  });
+
+  it('ignores an older Workspace response after a newer request starts', () => {
+    const oldArgs = { workspaceId, query: { rootOnly: true } };
+    const newWorkspaceId = '10000000-0000-4000-8000-000000000020';
+    const newArgs = { workspaceId: newWorkspaceId, query: { rootOnly: true } };
+    const newTask = { ...persistedTask, workspaceId: newWorkspaceId };
+
+    let state = taskReducer(undefined, fetchTasks.pending('old-request', oldArgs));
+    state = taskReducer(state, fetchTasks.pending('new-request', newArgs));
+    state = taskReducer(
+      state,
+      fetchTasks.fulfilled(listResponse([persistedTask]), 'old-request', oldArgs),
+    );
+    expect(state.tasks).toEqual([]);
+    expect(state.isLoading).toBe(true);
+
+    state = taskReducer(
+      state,
+      fetchTasks.fulfilled(listResponse([newTask]), 'new-request', newArgs),
+    );
+    expect(state.tasks).toEqual([newTask]);
+  });
+});
 
 describe('taskSlice detail request state', () => {
   it('tracks the selected detail request independently from list loading', () => {

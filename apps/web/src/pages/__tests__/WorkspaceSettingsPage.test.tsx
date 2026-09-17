@@ -26,6 +26,8 @@ vi.mock('../../lib/api/workspaceService', () => ({
     addMember: vi.fn(),
     updateMemberRole: vi.fn(),
     removeMember: vi.fn(),
+    getQaAssuranceRollout: vi.fn(),
+    updateQaAssuranceRollout: vi.fn(),
   },
 }));
 
@@ -76,6 +78,14 @@ const mockMembers: WorkspaceMemberItem[] = [
   },
 ];
 
+const mockQaAssuranceRollout = {
+  workspaceId: 'ws-1',
+  mode: 'observe' as const,
+  updatedBy: 'user-owner',
+  createdAt: '2026-09-15T00:00:00.000Z',
+  updatedAt: '2026-09-15T00:00:00.000Z',
+};
+
 function createMockStore(activeWs = mockActiveWorkspace, members = mockMembers) {
   return configureStore({
     reducer: {
@@ -115,6 +125,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     vi.clearAllMocks();
     vi.mocked(workspaceService.getWorkspaces).mockResolvedValue([mockActiveWorkspace]);
     vi.mocked(workspaceService.getMembers).mockResolvedValue(mockMembers);
+    vi.mocked(workspaceService.getQaAssuranceRollout).mockImplementation(
+      () => new Promise(() => {}),
+    );
   });
 
   it('opens confirmation modal when Arsipkan Workspace button is clicked and cancels on cancel', () => {
@@ -309,6 +322,59 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
       targetUserId: 'user-dev',
       newPassword: 'Replacement-password-123!',
     });
+  });
+
+  it('loads the QA assurance rollout and records an Owner decision through the backend API', async () => {
+    vi.mocked(workspaceService.getQaAssuranceRollout).mockResolvedValue(mockQaAssuranceRollout);
+    vi.mocked(workspaceService.updateQaAssuranceRollout).mockResolvedValue({
+      ...mockQaAssuranceRollout,
+      mode: 'warn',
+      updatedAt: '2026-09-15T01:00:00.000Z',
+    });
+    const store = createMockStore();
+    render(
+      <Provider store={store}>
+        <WorkspaceSettingsPage />
+      </Provider>,
+    );
+
+    expect(await screen.findByText(/Mode aktif: Observe/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Mode rollout QA assurance'), {
+      target: { value: 'warn' },
+    });
+    fireEvent.change(screen.getByLabelText('Alasan perubahan'), {
+      target: { value: 'Pilot peringatan disetujui untuk evidence QA.' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Simpan Keputusan Rollout' }));
+    });
+
+    expect(workspaceService.updateQaAssuranceRollout).toHaveBeenCalledWith('ws-1', {
+      mode: 'warn',
+      reason: 'Pilot peringatan disetujui untuk evidence QA.',
+    });
+  });
+
+  it('shows QA assurance mode read-only to a Developer', async () => {
+    const developerWorkspace: WorkspaceItem = { ...mockActiveWorkspace, role: 'dev' };
+    vi.mocked(workspaceService.getWorkspaces).mockResolvedValue([developerWorkspace]);
+    vi.mocked(workspaceService.getQaAssuranceRollout).mockResolvedValue({
+      ...mockQaAssuranceRollout,
+      workspaceId: developerWorkspace.id,
+    });
+    const store = createMockStore(developerWorkspace);
+    render(
+      <Provider store={store}>
+        <WorkspaceSettingsPage />
+      </Provider>,
+    );
+
+    expect(await screen.findByText(/Mode aktif: Observe/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Mode rollout QA assurance')).toBeDisabled();
+    expect(screen.queryByLabelText('Alasan perubahan')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Hanya Owner atau Admin Workspace yang dapat mengubah keputusan rollout/i),
+    ).toBeInTheDocument();
   });
 });
 

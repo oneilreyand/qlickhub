@@ -4,6 +4,7 @@ export { UserProfileModal } from '../../components/ui/organisms/UserProfileModal
 export { WorkspaceGeneralSettingsForm } from '../../components/ui/organisms/WorkspaceGeneralSettingsForm';
 export { WorkspaceMembersTable } from '../../components/ui/organisms/WorkspaceMembersTable';
 export { WorkspaceTaskPolicyCard } from '../../components/ui/organisms/WorkspaceTaskPolicyCard';
+export { QaAssuranceRolloutCard } from '../../components/ui/organisms/QaAssuranceRolloutCard';
 export { EmptyWorkspaceOnboarding } from '../../components/ui/organisms/EmptyWorkspaceOnboarding';
 
 export { OnboardingStepIndicator } from '../../components/ui/organisms/onboarding/OnboardingStepIndicator';

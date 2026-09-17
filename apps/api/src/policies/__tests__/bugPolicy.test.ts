@@ -35,13 +35,25 @@ describe('Bug policy', () => {
     assert.throws(() => assertCanUpdateBug('dev', 'dev-1', 'dev-2', assignedInput), /assigned/);
   });
 
-  test('enforces Developer work and independent QA verification transitions', () => {
+  test('reserves resolved and verification outcomes for formal lifecycle records', () => {
     assert.doesNotThrow(() => assertBugStatusTransition('dev', 'open', 'in_progress'));
-    assert.doesNotThrow(() => assertBugStatusTransition('dev', 'in_progress', 'resolved'));
+    assert.throws(
+      () => assertBugStatusTransition('dev', 'in_progress', 'resolved'),
+      /formal Developer Resolution Event/,
+    );
     assert.throws(() => assertBugStatusTransition('dev', 'resolved', 'verified'), /FORBIDDEN/);
-    assert.doesNotThrow(() => assertBugStatusTransition('qa', 'resolved', 'verified'));
-    assert.doesNotThrow(() => assertBugStatusTransition('qa', 'verified', 'reopened'));
+    assert.throws(
+      () => assertBugStatusTransition('qa', 'resolved', 'verified'),
+      /formal QA Retest Attempt/,
+    );
+    assert.throws(
+      () => assertBugStatusTransition('qa', 'verified', 'reopened'),
+      /formal QA Retest Attempt/,
+    );
     assert.throws(() => assertBugStatusTransition('qa', 'open', 'resolved'), /FORBIDDEN/);
-    assert.throws(() => assertBugStatusTransition('po', 'resolved', 'verified'), /read-only/);
+    assert.throws(
+      () => assertBugStatusTransition('po', 'resolved', 'verified'),
+      /formal QA Retest Attempt/,
+    );
   });
 });

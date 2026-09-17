@@ -1,6 +1,7 @@
 import type {
   CommitTestCaseImportInput,
-  CreateEvidenceLinkInput,
+  AddTestResultEvidenceSupplementInput,
+  CreateQaTestCycleInput,
   CreateTestCaseInput,
   CreateTestResultInput,
   CreateTestRunInput,
@@ -12,6 +13,11 @@ import type {
   TestCaseImportResult,
   TestResultEvidenceLink,
   TestRun,
+  TestCaseVersionCoverageSummary,
+  TestCaseVersionAcceptanceCriteriaResponse,
+  TestCaseVersionAcceptanceCriterionMapping,
+  QaTestCycle,
+  QaWorkflowSummary,
   UpdateTestCaseInput,
 } from '@qlick/contracts';
 import { apiClient } from './apiClient';
@@ -25,6 +31,13 @@ export const testManagementService = {
       `/workspaces/${workspaceId}/tasks/${taskId}/test-executions`,
     );
     return response.executionWorkspace;
+  },
+
+  async getQaWorkflowSummary(workspaceId: string, qaSubtaskId: string): Promise<QaWorkflowSummary> {
+    const response = await apiClient<{ summary: QaWorkflowSummary }>(
+      `/workspaces/${workspaceId}/tasks/${qaSubtaskId}/qa-workflow-summary`,
+    );
+    return response.summary;
   },
 
   async listTestCases(workspaceId: string, query?: ListTestCasesQuery): Promise<TestCase[]> {
@@ -45,6 +58,63 @@ export const testManagementService = {
       `/workspaces/${workspaceId}/test-cases/${testCaseId}`,
     );
     return response.testCase;
+  },
+
+  async listTestCaseVersionCoverage(
+    workspaceId: string,
+    testCaseId: string,
+  ): Promise<TestCaseVersionCoverageSummary[]> {
+    const response = await apiClient<{ versions: TestCaseVersionCoverageSummary[] }>(
+      `/workspaces/${workspaceId}/test-cases/${testCaseId}/versions`,
+    );
+    return response.versions;
+  },
+
+  async listTestCaseVersionAcceptanceCriteria(
+    workspaceId: string,
+    testCaseId: string,
+    testCaseVersionId: string,
+  ): Promise<TestCaseVersionAcceptanceCriteriaResponse> {
+    return apiClient<TestCaseVersionAcceptanceCriteriaResponse>(
+      `/workspaces/${workspaceId}/test-cases/${testCaseId}/versions/${testCaseVersionId}/acceptance-criteria`,
+    );
+  },
+
+  async replaceTestCaseVersionAcceptanceCriteria(
+    workspaceId: string,
+    testCaseId: string,
+    testCaseVersionId: string,
+    mappings: TestCaseVersionAcceptanceCriterionMapping[],
+  ): Promise<TestCaseVersionAcceptanceCriteriaResponse> {
+    return apiClient<TestCaseVersionAcceptanceCriteriaResponse>(
+      `/workspaces/${workspaceId}/test-cases/${testCaseId}/versions/${testCaseVersionId}/acceptance-criteria`,
+      { method: 'PUT', body: JSON.stringify({ mappings }) },
+    );
+  },
+
+  async listQaTestCycles(
+    workspaceId: string,
+    featureTaskId: string,
+    qaSubtaskId?: string,
+  ): Promise<QaTestCycle[]> {
+    const params: Record<string, string> = { featureTaskId };
+    if (qaSubtaskId) params.qaSubtaskId = qaSubtaskId;
+    const response = await apiClient<{ testCycles: QaTestCycle[] }>(
+      `/workspaces/${workspaceId}/qa-test-cycles`,
+      { params },
+    );
+    return response.testCycles;
+  },
+
+  async createQaTestCycle(
+    workspaceId: string,
+    input: Omit<CreateQaTestCycleInput, 'workspaceId'>,
+  ): Promise<QaTestCycle> {
+    const response = await apiClient<{ testCycle: QaTestCycle }>(
+      `/workspaces/${workspaceId}/qa-test-cycles`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return response.testCycle;
   },
 
   async createTestCase(
@@ -73,7 +143,7 @@ export const testManagementService = {
   async createTestRun(
     workspaceId: string,
     testCaseId: string,
-    input: Pick<CreateTestRunInput, 'build' | 'environment'>,
+    input: Omit<CreateTestRunInput, 'workspaceId' | 'testCaseId'>,
   ): Promise<TestRun> {
     const response = await apiClient<{ testRun: TestRun }>(
       `/workspaces/${workspaceId}/test-cases/${testCaseId}/runs`,
@@ -102,7 +172,7 @@ export const testManagementService = {
     workspaceId: string,
     testCaseId: string,
     testRunId: string,
-    input: CreateEvidenceLinkInput,
+    input: AddTestResultEvidenceSupplementInput,
   ): Promise<TestResultEvidenceLink> {
     const response = await apiClient<{ evidenceLink: TestResultEvidenceLink }>(
       `/workspaces/${workspaceId}/test-cases/${testCaseId}/runs/${testRunId}/evidence-links`,

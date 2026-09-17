@@ -1,6 +1,6 @@
 # 1. Architecture & Technical Foundation — Qlick Hub SSoT
 
-**Status:** Active Single Source of Truth (SSoT)  
+**Status:** Active Single Source of Truth (SSoT)
 **Scope:** Domain Model, Hierarchy, Authorization (RBAC), Data Schema, and Security Architecture.
 
 ---
@@ -198,6 +198,22 @@ erDiagram
   kondisi batas yang valid tetapi berada pada nilai minimum, maksimum, kosong, transisi, atau batas
   aturan bisnis.
 
+### QA Evidence, Scope, dan Assurance Transition
+
+Kebijakan target yang disetujui pada [ADR-014](adr/ADR-014-QA-EVIDENCE-EXECUTION-AND-RELEASE-ASSURANCE.md)
+mengikat setiap Test Run baru pada root Feature, QA Subtask assignee, Test Cycle/kandidat, versi Test
+Case, baseline, build, dan environment. Setiap Result `passed`, `failed`, atau `blocked` memerlukan
+Evidence Manifest yang disegel, dengan image/video yang dapat dipreview melalui jalur terautentikasi.
+Requirement coverage tetap tersedia untuk kompatibilitas, tetapi release gate akan memakai
+Acceptance Criterion aktif yang dibekukan dalam baseline Feature.
+
+Bug dari Result gagal/blocked akan memperoleh Resolution Event dan Retest Attempt formal yang
+menunjuk Result baru serta Evidence Manifest-nya; Evidence asal, resolusi, dan seluruh retest tetap
+terlihat kronologis. Record lama tanpa scope ini tetap legacy/unverified sampai relasinya dapat
+dibuktikan deterministik. Implementasi additive dan enforcement bertahap tercatat pada
+[QA Execution dan Release Assurance Plan](plans/QA_EXECUTION_RELEASE_ASSURANCE_PLAN.md); kebijakan
+runtime saat ini masih transitional sampai S1–S7 selesai.
+
 ---
 
 ## 5. Model Keamanan & Otorisasi (RBAC)
@@ -209,10 +225,10 @@ graph TD
 
     MemberCheck -- "Yes" --> RoleRouter{"Identify Member Role"}
 
-    RoleRouter -->|"owner / admin"| FullControl["Full Workspace Control\n- Manage Members & Dev Specialties\n- Plan Folders, Tasks, Subtasks\n- Grant Parent-Task Delegations\n- Approve / Reject Releases"]
+    RoleRouter -->|"owner / admin"| FullControl["Workspace Governance\n- Manage Members & Dev Specialties\n- Plan Folders, Tasks, Subtasks\n- Approve / Reject Releases\n- Audited QA break-glass only"]
     RoleRouter -->|"po (Product Owner)"| POControl["Feature & Quality Planning\n- Manage Requirements & Folders\n- Plan Tasks & Subtasks\n- Activate Test Cases\n- Formal Release Decisions"]
     RoleRouter -->|"dev (Developer)"| DevControl["Delivery Execution\n- Execute Assigned Subtask (todo → in_review)\n- Resolve Bugs\n- Upload Tech Evidence\n- (Parent Task creation ONLY if delegated)"]
-    RoleRouter -->|"qa (Quality Assurance)"| QAControl["Quality & Test Assurance\n- Author Draft Test Cases\n- Execute Test Runs & Immutable Results\n- Log Bugs & Retest Verification\n- Submit QA Sign-offs"]
+    RoleRouter -->|"qa (Quality Assurance)"| QAControl["Assignment-bound Quality Assurance\n- Author Draft Test Cases\n- Execute scoped Runs & sealed Results\n- Log Bugs & formal Retest Attempts\n- Submit QA Sign-offs"]
 
     classDef deny fill:#FEE2E2,stroke:#EF4444,stroke-width:2px,color:#991B1B;
     classDef owner fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F;

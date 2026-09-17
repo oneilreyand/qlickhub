@@ -3,6 +3,26 @@ import { z } from 'zod';
 export const WorkspaceRoleSchema = z.enum(['owner', 'admin', 'po', 'dev', 'qa']);
 export type WorkspaceRole = z.infer<typeof WorkspaceRoleSchema>;
 
+export const QaAssuranceRolloutModeSchema = z.enum(['observe', 'warn', 'enforce']);
+export type QaAssuranceRolloutMode = z.infer<typeof QaAssuranceRolloutModeSchema>;
+
+export const QaAssuranceRolloutSettingsSchema = z.object({
+  workspaceId: z.string().uuid(),
+  mode: QaAssuranceRolloutModeSchema,
+  updatedBy: z.string().uuid().nullable(),
+  updatedAt: z.string().datetime(),
+  createdAt: z.string().datetime(),
+});
+export type QaAssuranceRolloutSettings = z.infer<typeof QaAssuranceRolloutSettingsSchema>;
+
+export const UpdateQaAssuranceRolloutSettingsSchema = z.object({
+  mode: QaAssuranceRolloutModeSchema,
+  reason: z.string().trim().min(10, 'A rollout reason must be at least 10 characters').max(1000),
+});
+export type UpdateQaAssuranceRolloutSettingsInput = z.infer<
+  typeof UpdateQaAssuranceRolloutSettingsSchema
+>;
+
 export const AssignableWorkspaceRoleSchema = z.enum(['admin', 'po', 'dev', 'qa']);
 export type AssignableWorkspaceRole = z.infer<typeof AssignableWorkspaceRoleSchema>;
 

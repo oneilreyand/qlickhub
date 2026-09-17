@@ -12,6 +12,7 @@ import { RoleAwareWorkQueueSchema } from '@qlick/contracts';
 import { sequelize } from '../../db/sequelize.js';
 import {
   BugModel,
+  QaTestCycleModel,
   QaSignOffCancellationModel,
   QaSignOffModel,
   ReleaseDecisionCancellationModel,
@@ -21,6 +22,8 @@ import {
   TaskRequirementModel,
 } from '../../db/models/index.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { bugService } from '../bugs/bugService.js';
+import { evaluateQaCompletionGate } from '../releaseDecisions/qaEvidenceCompletionGate.js';
 import { iso } from '../../utils/dateUtils.js';
 
 const BUCKET_LIMIT = 100;
@@ -178,6 +181,7 @@ async function plannerBuckets(
           ? nextAction('add_requirement', 'Add Requirement')
           : nextAction('complete_requirement', 'Complete Requirement'),
         status: feature.status,
+        workState: 'actionable',
         priority: feature.priority,
         dueDate: feature.dueDate,
         sourceUpdatedAt: iso(feature.updatedAt),
@@ -196,6 +200,7 @@ async function plannerBuckets(
         reason: `Latest QA Sign-off is ${latestSignOff.decision} and has no Release Decision.`,
         nextAction: nextAction('record_release_decision', 'Record Release Decision'),
         status: feature.status,
+        workState: 'actionable',
         priority: feature.priority,
         dueDate: feature.dueDate,
         sourceUpdatedAt: iso(latestSignOff.signedAt),
@@ -223,6 +228,7 @@ async function plannerBuckets(
           ? nextAction('schedule_feature', 'Schedule Feature')
           : nextAction('review_timeline', 'Review Timeline'),
         status: feature.status,
+        workState: 'actionable',
         priority: feature.priority,
         dueDate: feature.dueDate,
         sourceUpdatedAt: iso(feature.updatedAt),
@@ -275,6 +281,7 @@ async function developerBuckets(
           ? nextAction('start_subtask', 'Start Subtask')
           : nextAction('continue_subtask', 'Continue Subtask'),
       status: task.status,
+      workState: 'actionable',
       priority: task.priority,
       dueDate: task.dueDate,
       sourceUpdatedAt: iso(task.updatedAt),
@@ -295,6 +302,7 @@ async function developerBuckets(
       ),
       nextAction: nextAction('address_review_feedback', 'Address Review Feedback'),
       status: task.status,
+      workState: 'actionable',
       priority: task.priority,
       dueDate: task.dueDate,
       sourceUpdatedAt: iso(task.updatedAt),
@@ -312,6 +320,7 @@ async function developerBuckets(
         ? nextAction('continue_bug_fix', 'Continue Bug Fix')
         : nextAction('start_bug_fix', 'Start Bug Fix'),
     status: bug.status,
+    workState: 'actionable',
     priority: bug.severity === 'critical' ? 'urgent' : bug.severity,
     dueDate: null,
     sourceUpdatedAt: iso(bug.updatedAt),
@@ -334,7 +343,10 @@ async function qaBuckets(
       workspaceId,
       parentTaskId: { [Op.ne]: null },
       [Op.or]: [
-        { status: 'in_review' },
+        {
+          status: 'in_review',
+          [Op.or]: [{ deliveryArea: { [Op.ne]: 'qa' } }, { assigneeId: actorId }],
+        },
         {
           assigneeId: actorId,
           deliveryArea: 'qa',
@@ -344,31 +356,60 @@ async function qaBuckets(
     },
     transaction,
   });
-  const bugs = await BugModel.findAll({
-    where: { workspaceId, status: 'resolved' },
+  // Keep the compact queue on the exact same persisted scope as the Bug endpoint.
+  // The endpoint checks origin QA ownership, the latest Resolution Event, and final Attempts.
+  const bugs = await bugService.listBugs(workspaceId, actorId, { queue: 'retest' });
+  const signOffCycles = await QaTestCycleModel.findAll({
+    where: {
+      workspaceId,
+      ownerQaId: actorId,
+      status: { [Op.in]: ['planned', 'in_progress'] },
+    },
+    order: [
+      ['createdAt', 'DESC'],
+      ['id', 'DESC'],
+    ],
     transaction,
   });
-  const features = await TaskModel.findAll({
-    where: { workspaceId, parentTaskId: null, status: 'in_review' },
-    transaction,
-  });
-  const featureIds = features.map((feature) => feature.id);
-  const signOffs =
-    featureIds.length > 0
-      ? await QaSignOffModel.findAll({
-          where: { workspaceId, featureTaskId: { [Op.in]: featureIds } },
-          include: [{ model: QaSignOffCancellationModel, as: 'cancellation', required: false }],
-          order: [
-            ['signedAt', 'DESC'],
-            ['id', 'DESC'],
-          ],
-          transaction,
-        })
-      : [];
-  const latestSignOffByFeatureId = new Map<string, QaSignOffModel>();
+  const featureIds = [...new Set(signOffCycles.map((cycle) => cycle.featureTaskId))];
+  const features = featureIds.length
+    ? await TaskModel.findAll({
+        where: { workspaceId, id: { [Op.in]: featureIds }, parentTaskId: null },
+        transaction,
+      })
+    : [];
+  const featureById = new Map(features.map((feature) => [feature.id, feature]));
+  const qaSubtasks = signOffCycles.length
+    ? await TaskModel.findAll({
+        where: {
+          workspaceId,
+          id: { [Op.in]: signOffCycles.map((cycle) => cycle.qaSubtaskId) },
+          deliveryArea: 'qa',
+          assigneeId: actorId,
+        },
+        transaction,
+      })
+    : [];
+  const qaSubtaskById = new Map(qaSubtasks.map((subtask) => [subtask.id, subtask]));
+  const signOffs = featureIds.length
+    ? await QaSignOffModel.findAll({
+        where: { workspaceId, featureTaskId: { [Op.in]: featureIds } },
+        include: [{ model: QaSignOffCancellationModel, as: 'cancellation', required: false }],
+        order: [
+          ['signedAt', 'DESC'],
+          ['id', 'DESC'],
+        ],
+        transaction,
+      })
+    : [];
+  const latestSignOffByCycleId = new Map<string, QaSignOffModel>();
   for (const signOff of signOffs) {
-    if (!signOff.cancellation && !latestSignOffByFeatureId.has(signOff.featureTaskId)) {
-      latestSignOffByFeatureId.set(signOff.featureTaskId, signOff);
+    if (
+      signOff.testCycleId &&
+      !signOff.cancellation &&
+      !latestSignOffByCycleId.has(signOff.testCycleId)
+    ) {
+      latestSignOffByCycleId.set(signOff.testCycleId, signOff);
     }
   }
 
@@ -391,6 +432,7 @@ async function qaBuckets(
         : `QA subtask is assigned to you and is ${task.status.replaceAll('_', ' ')}.`,
       nextAction: action,
       status: task.status,
+      workState: 'actionable',
       priority: task.priority,
       dueDate: task.dueDate,
       sourceUpdatedAt: iso(task.updatedAt),
@@ -408,29 +450,94 @@ async function qaBuckets(
     status: bug.status,
     priority: bug.severity === 'critical' ? 'urgent' : bug.severity,
     dueDate: null,
-    sourceUpdatedAt: iso(bug.updatedAt),
+    sourceUpdatedAt: bug.updatedAt,
+    workState: 'actionable',
   }));
-  const signOffItems = features
-    .filter((feature) => latestSignOffByFeatureId.get(feature.id)?.decision !== 'approved')
-    .map<WorkQueueItem>((feature) => {
-      const latestSignOff = latestSignOffByFeatureId.get(feature.id);
-      return {
+  const signOffItems: WorkQueueItem[] = [];
+  const queuedFeatureIds = new Set<string>();
+  for (const cycle of signOffCycles) {
+    const feature = featureById.get(cycle.featureTaskId);
+    const qaSubtask = qaSubtaskById.get(cycle.qaSubtaskId);
+    if (
+      !feature ||
+      !qaSubtask ||
+      qaSubtask.parentTaskId !== feature.id ||
+      queuedFeatureIds.has(feature.id)
+    ) {
+      continue;
+    }
+    queuedFeatureIds.add(feature.id);
+    const latestSignOff = latestSignOffByCycleId.get(cycle.id);
+    if (latestSignOff?.decision === 'approved') {
+      signOffItems.push({
         id: itemId('qa_sign_off', 'feature', feature.id),
         bucketCode: 'qa_sign_off',
         subjectType: 'feature',
         subjectId: feature.id,
         featureTaskId: feature.id,
         title: feature.title,
-        reason: latestSignOff
-          ? 'Latest QA Sign-off is rejected; record a new certification after verification.'
-          : 'Feature is in review and has no QA Sign-off.',
-        nextAction: nextAction('record_qa_sign_off', 'Record QA Sign-off'),
+        reason: 'Persetujuan QA untuk siklus Anda sudah tercatat. Evidence tetap dapat ditinjau.',
+        nextAction: nextAction('view_context', 'View QA Sign-off context'),
         status: feature.status,
+        workState: 'read_only',
         priority: feature.priority,
         dueDate: feature.dueDate,
-        sourceUpdatedAt: latestSignOff ? iso(latestSignOff.signedAt) : iso(feature.updatedAt),
-      };
+        sourceUpdatedAt: iso(latestSignOff.signedAt),
+      });
+      continue;
+    }
+
+    if (qaSubtask.status !== 'done') {
+      signOffItems.push({
+        id: itemId('qa_sign_off', 'feature', feature.id),
+        bucketCode: 'qa_sign_off',
+        subjectType: 'feature',
+        subjectId: feature.id,
+        featureTaskId: feature.id,
+        title: feature.title,
+        reason: 'QA Subtask Anda harus diselesaikan sebelum Persetujuan QA dapat dicatat.',
+        nextAction: nextAction('view_context', 'View QA Sign-off context'),
+        status: feature.status,
+        workState: 'blocked',
+        priority: feature.priority,
+        dueDate: feature.dueDate,
+        sourceUpdatedAt: iso(qaSubtask.updatedAt),
+      });
+      continue;
+    }
+
+    const gate = await evaluateQaCompletionGate(
+      workspaceId,
+      feature.id,
+      qaSubtask.id,
+      actorId,
+      transaction,
+      cycle.id,
+    );
+    const isActionable = gate.ready;
+    signOffItems.push({
+      id: itemId('qa_sign_off', 'feature', feature.id),
+      bucketCode: 'qa_sign_off',
+      subjectType: 'feature',
+      subjectId: feature.id,
+      featureTaskId: feature.id,
+      title: feature.title,
+      reason: isActionable
+        ? latestSignOff
+          ? 'Persetujuan QA sebelumnya ditolak; evidence pada siklus Anda kini siap untuk disertifikasi ulang.'
+          : 'Evidence pada siklus QA Anda siap untuk dicatat sebagai Persetujuan QA.'
+        : `Persetujuan QA belum siap: ${gate.failedGateCodes.join(', ')}.`,
+      nextAction: nextAction(
+        isActionable ? 'record_qa_sign_off' : 'view_context',
+        isActionable ? 'Record QA Sign-off' : 'View QA Sign-off context',
+      ),
+      status: feature.status,
+      workState: isActionable ? 'actionable' : 'blocked',
+      priority: feature.priority,
+      dueDate: feature.dueDate,
+      sourceUpdatedAt: latestSignOff ? iso(latestSignOff.signedAt) : iso(cycle.updatedAt),
     });
+  }
 
   return [
     bucket('qa_test_work', 'Test and review work', testItems),

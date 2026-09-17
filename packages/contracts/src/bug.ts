@@ -2,10 +2,14 @@ import { z } from 'zod';
 import {
   EvidenceMediaKindSchema,
   EvidencePreviewStatusSchema,
+  CreateEvidenceLinkInputSchema,
   HttpsUrlSchema,
+  TestResultEvidenceManifestSchema,
   TestResultEvidenceLinkSchema,
   TestResultEvidenceSchema,
+  TestResultSchema,
   TestResultStatusSchema,
+  TestRunSchema,
 } from './testManagement.js';
 
 const NonBlankTextSchema = z.string().trim().min(1);
@@ -15,6 +19,80 @@ export type BugSeverity = z.infer<typeof BugSeveritySchema>;
 
 export const BugStatusSchema = z.enum(['open', 'in_progress', 'resolved', 'verified', 'reopened']);
 export type BugStatus = z.infer<typeof BugStatusSchema>;
+
+export const BugResolutionEventSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  bugId: z.string().uuid(),
+  sequence: z.number().int().positive(),
+  candidateFingerprint: NonBlankTextSchema.max(255),
+  resolutionNotes: NonBlankTextSchema.max(20000),
+  resolvedBy: z.string().uuid(),
+  resolvedAt: z.string().datetime(),
+});
+export type BugResolutionEvent = z.infer<typeof BugResolutionEventSchema>;
+export const BugRetestAttemptOutcomeSchema = z.enum(['verified', 'reopened']);
+export const BugRetestAttemptSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  bugId: z.string().uuid(),
+  resolutionEventId: z.string().uuid(),
+  testResultId: z.string().uuid(),
+  outcome: BugRetestAttemptOutcomeSchema,
+  attemptedBy: z.string().uuid(),
+  attemptedAt: z.string().datetime(),
+});
+export type BugRetestAttempt = z.infer<typeof BugRetestAttemptSchema>;
+export const CreateBugResolutionEventSchema = z.object({
+  workspaceId: z.string().uuid(),
+  bugId: z.string().uuid(),
+  candidateFingerprint: NonBlankTextSchema.max(255),
+  resolutionNotes: NonBlankTextSchema.max(20000),
+  evidenceLinks: z.array(CreateEvidenceLinkInputSchema).max(20).default([]),
+});
+export type CreateBugResolutionEventInput = z.infer<typeof CreateBugResolutionEventSchema>;
+export const CreateBugRetestAttemptSchema = z.object({
+  workspaceId: z.string().uuid(),
+  bugId: z.string().uuid(),
+  testResultId: z.string().uuid(),
+});
+export type CreateBugRetestAttemptInput = z.infer<typeof CreateBugRetestAttemptSchema>;
+export const BugRetestTimelineAttemptSchema = BugRetestAttemptSchema.extend({
+  result: TestResultSchema,
+  evidenceManifests: z.array(TestResultEvidenceManifestSchema),
+});
+export type BugRetestTimelineAttempt = z.infer<typeof BugRetestTimelineAttemptSchema>;
+export const BugRetestHistorySchema = z.object({
+  resolutionEvents: z.array(BugResolutionEventSchema),
+  retestAttempts: z.array(BugRetestTimelineAttemptSchema),
+  cycles: z.array(
+    z.object({
+      sequence: z.number().int().positive(),
+      resolutionEvent: BugResolutionEventSchema,
+      evidenceLinks: z.array(z.lazy(() => BugEvidenceLinkSchema)),
+      retestAttempt: BugRetestTimelineAttemptSchema.nullable(),
+    }),
+  ),
+});
+export type BugRetestHistory = z.infer<typeof BugRetestHistorySchema>;
+
+export const CreateBugRetestRunSchema = z.object({
+  workspaceId: z.string().uuid(),
+  bugId: z.string().uuid(),
+});
+export type CreateBugRetestRunInput = z.infer<typeof CreateBugRetestRunSchema>;
+
+export const BugRetestRunSchema = z.object({
+  bugId: z.string().uuid(),
+  resolutionEventId: z.string().uuid(),
+  qaSubtaskId: z.string().uuid(),
+  reused: z.boolean(),
+  testRun: TestRunSchema,
+});
+export type BugRetestRun = z.infer<typeof BugRetestRunSchema>;
+
+export const BugEvidenceStageSchema = z.enum(['triage', 'resolution', 'legacy_unassigned']);
+export type BugEvidenceStage = z.infer<typeof BugEvidenceStageSchema>;
 
 export const BugEvidenceLinkSchema = z.object({
   id: z.string().uuid(),
@@ -28,6 +106,8 @@ export const BugEvidenceLinkSchema = z.object({
   addedAt: z.string().datetime(),
   normalizedUrl: HttpsUrlSchema,
   previewStatus: EvidencePreviewStatusSchema,
+  evidenceStage: BugEvidenceStageSchema,
+  resolutionEventId: z.string().uuid().nullable(),
 });
 export type BugEvidenceLink = z.infer<typeof BugEvidenceLinkSchema>;
 

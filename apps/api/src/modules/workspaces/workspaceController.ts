@@ -9,6 +9,7 @@ import {
   GrantTaskCreationPermissionSchema,
   WorkspaceActivityQuerySchema,
   DeleteWorkspaceSchema,
+  UpdateQaAssuranceRolloutSettingsSchema,
 } from '@qlick/contracts';
 import { sendProblemDetails } from '../../http/problemDetails.js';
 
@@ -232,6 +233,37 @@ export const getWorkspaceActivities = async (req: AuthenticatedRequest, res: Res
       req.user!.userId,
     );
     return res.status(200).json({ data: activities });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+};
+
+export const getQaAssuranceRollout = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const settings = await workspaceService.getQaAssuranceRollout(
+      req.params.workspaceId,
+      req.user!.userId,
+    );
+    return res.status(200).json({ data: settings });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+};
+
+export const updateQaAssuranceRollout = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const parseResult = UpdateQaAssuranceRolloutSettingsSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return sendProblemDetails(res, parseResult.error, {
+        zodDetail: 'Invalid QA assurance rollout configuration.',
+      });
+    }
+    const settings = await workspaceService.updateQaAssuranceRollout(
+      req.params.workspaceId,
+      req.user!.userId,
+      parseResult.data,
+    );
+    return res.status(200).json({ data: settings });
   } catch (error) {
     return sendProblemDetails(res, error);
   }

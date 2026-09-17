@@ -11,6 +11,7 @@ export interface NotificationAttributes {
   workspaceId: string;
   taskId?: string | null;
   actorId?: string | null;
+  idempotencyKey?: string | null;
   type: NotificationType;
   title: string;
   message: string;
@@ -20,8 +21,10 @@ export interface NotificationAttributes {
   updatedAt?: Date;
 }
 
-export interface NotificationCreationAttributes
-  extends Optional<NotificationAttributes, 'id' | 'taskId' | 'actorId' | 'isRead' | 'readAt' | 'createdAt' | 'updatedAt'> {}
+export interface NotificationCreationAttributes extends Optional<
+  NotificationAttributes,
+  'id' | 'taskId' | 'actorId' | 'idempotencyKey' | 'isRead' | 'readAt' | 'createdAt' | 'updatedAt'
+> {}
 
 export class NotificationModel
   extends Model<NotificationAttributes, NotificationCreationAttributes>
@@ -32,6 +35,7 @@ export class NotificationModel
   declare workspaceId: string;
   declare taskId: string | null;
   declare actorId: string | null;
+  declare idempotencyKey: string | null;
   declare type: NotificationType;
   declare title: string;
   declare message: string;
@@ -73,6 +77,11 @@ NotificationModel.init(
       allowNull: true,
       field: 'actor_id',
     },
+    idempotencyKey: {
+      type: DataTypes.STRING(512),
+      allowNull: true,
+      field: 'idempotency_key',
+    },
     type: {
       type: DataTypes.STRING(32),
       allowNull: false,
@@ -103,9 +112,12 @@ NotificationModel.init(
     timestamps: true,
     underscored: true,
     indexes: [
-      { name: 'idx_notifications_user_is_read_created', fields: ['user_id', 'is_read', 'created_at'] },
+      {
+        name: 'idx_notifications_user_is_read_created',
+        fields: ['user_id', 'is_read', 'created_at'],
+      },
       { name: 'idx_notifications_workspace_id', fields: ['workspace_id'] },
       { name: 'idx_notifications_task_id', fields: ['task_id'] },
     ],
-  }
+  },
 );

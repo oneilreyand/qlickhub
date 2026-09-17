@@ -27,6 +27,7 @@ export interface MyTasksDashboardProps {
   onRefreshCreatedTasks: () => void;
   onOpenQueueItem: (item: WorkQueueItem) => void | Promise<void>;
   onOpenCreatedTask: (task: Task) => void | Promise<void>;
+  onOpenTaskById: (taskId: string) => void | Promise<void>;
   onCreatedTasksSearchChange: (value: string) => void;
   onCreatedTasksStatusChange: (value: CreatedTaskStatusFilter) => void;
   onCreatedTasksPriorityChange: (value: CreatedTaskPriorityFilter) => void;
@@ -48,6 +49,7 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
   onRefreshCreatedTasks,
   onOpenQueueItem,
   onOpenCreatedTask,
+  onOpenTaskById,
   onCreatedTasksSearchChange,
   onCreatedTasksStatusChange,
   onCreatedTasksPriorityChange,
@@ -56,12 +58,14 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
   onCreateTaskClick,
 }) => {
   const [activeView, setActiveView] = useState('attention');
+  const [focusedBugId, setFocusedBugId] = useState<string | null>(null);
   const normalizedRole = userRole.toLowerCase();
   const canCreateTask = ['owner', 'admin', 'po'].includes(normalizedRole);
   const showsBugWorkspace = ['dev', 'qa'].includes(normalizedRole);
 
   const handleOpenItem = async (item: WorkQueueItem) => {
     if (item.subjectType === 'bug') {
+      setFocusedBugId(item.subjectId);
       const bugWorkspace = document.getElementById('my-task-bug-queue');
       bugWorkspace?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       bugWorkspace?.focus({ preventScroll: true });
@@ -143,6 +147,8 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
                   userRole={userRole}
                   mode="role_queue"
                   onDataChanged={onBugDataChanged}
+                  onRetestRunStarted={onOpenTaskById}
+                  focusedBugId={focusedBugId}
                 />
               </Card>
             </section>

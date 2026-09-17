@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { describe, test } from 'node:test';
 import {
+  assertCanAddTestResultEvidence,
   assertCanCreateTestCase,
   assertCanExecuteTestRun,
   assertCanImportTestCases,
@@ -30,23 +31,20 @@ describe('Test Management Policy Unit Tests', () => {
     );
   });
 
-  test('allows QA and administrators to execute runs but keeps Product and Dev read-only', () => {
-    assert.doesNotThrow(() => assertCanExecuteTestRun('owner'));
-    assert.doesNotThrow(() => assertCanExecuteTestRun('admin'));
+  test('allows only QA to execute runs and keeps governance roles read-only', () => {
     assert.doesNotThrow(() => assertCanExecuteTestRun('qa'));
-    assert.throws(() => assertCanExecuteTestRun('po'), /Only QA Engineer, Admin, or Owner/);
-    assert.throws(() => assertCanExecuteTestRun('dev'), /Only QA Engineer, Admin, or Owner/);
+    for (const role of ['owner', 'admin', 'po', 'dev'] as const) {
+      assert.throws(() => assertCanExecuteTestRun(role), /Only QA Engineer members/);
+      assert.throws(() => assertCanAddTestResultEvidence(role), /Only QA Engineer members/);
+    }
+    assert.doesNotThrow(() => assertCanAddTestResultEvidence('qa'));
   });
 
-  test('allows QA to create draft candidates while Dev remains restricted', () => {
-    assert.doesNotThrow(() => assertCanCreateTestCase('po'));
-    assert.doesNotThrow(() => assertCanCreateTestCase('admin'));
-    assert.doesNotThrow(() => assertCanCreateTestCase('owner'));
+  test('allows only QA to create draft candidates', () => {
     assert.doesNotThrow(() => assertCanCreateTestCase('qa'));
-    assert.throws(
-      () => assertCanCreateTestCase('dev'),
-      /Only QA, Product Owner, Admin, or Owner members/,
-    );
+    for (const role of ['owner', 'admin', 'po', 'dev'] as const) {
+      assert.throws(() => assertCanCreateTestCase(role), /Only QA Engineer members/);
+    }
   });
 
   test('allows QA to edit drafts and submit review, but not change published cases', () => {

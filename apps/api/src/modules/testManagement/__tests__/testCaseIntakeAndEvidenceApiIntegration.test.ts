@@ -4,6 +4,11 @@ import type { Server } from 'node:http';
 import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
+  FeatureReadinessBaselineModel,
+  FeatureReadinessBaselineRequirementModel,
+  QaDocumentModel,
+  QaDocumentVersionModel,
+  QaTestCycleModel,
   RequirementModel,
   TaskAttachmentModel,
   TaskModel,
@@ -11,6 +16,8 @@ import {
   TestCaseImportModel,
   TestCaseModel,
   TestCaseRequirementModel,
+  TestCaseVersionModel,
+  TestRunModel,
   UserModel,
   WorkspaceMemberModel,
   WorkspaceModel,
@@ -222,10 +229,10 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(res.status, 403);
     });
 
-    test('PO creates draft Test Case with external reference and requirement link (201 Created)', async () => {
+    test('QA creates draft Test Case with external reference and requirement link (201 Created)', async () => {
       const res = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
         body: JSON.stringify({
           title: 'Verify standard card payment flow',
           externalReference: 'TC-NATIVE-001',
@@ -261,7 +268,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       ) =>
         fetch(`${baseUrl}/workspaces/${workspaceId}/test-cases`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
           body: JSON.stringify({
             title,
             testType: 'manual',
@@ -319,12 +326,21 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
     });
 
     test('QA can edit a draft and submit it for planner review', async () => {
+      const editRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaDraftCaseId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({ title: 'QA draft ready for review' }),
+        },
+      );
+      assert.strictEqual(editRes.status, 200);
       const res = await fetch(
         `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${qaDraftCaseId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-          body: JSON.stringify({ title: 'QA draft ready for review', status: 'in_review' }),
+          body: JSON.stringify({ status: 'in_review' }),
         },
       );
       assert.strictEqual(res.status, 200);
@@ -361,7 +377,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(res.status, 403);
     });
 
-    test('PO can update Test Case title and requirement mappings (200 OK)', async () => {
+    test('PO cannot alter an active Test Case definition (403 Forbidden)', async () => {
       const res = await fetch(
         `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${createdCaseId}`,
         {
@@ -374,16 +390,13 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
         },
       );
 
-      assert.strictEqual(res.status, 200);
-      const data = (await res.json()) as any;
-      assert.strictEqual(data.testCase.title, 'Authorized PO update on active case');
-      assert.strictEqual(data.testCase.requirementIds.length, 2);
+      assert.strictEqual(res.status, 403);
     });
 
     test('Duplicate externalReference within same workspace returns 409 CONFLICT', async () => {
       const res = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
         body: JSON.stringify({
           title: 'Duplicate external ref test',
           externalReference: 'TC-NATIVE-001',
@@ -725,6 +738,9 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
   // SLICE 3: Test Result Evidence Links & Bug Inherited Evidence (D5, D6)
   describe('Slice 3: Test Result Evidence Links, Attachment Linking & Bug Inheritance', () => {
     let executableCaseId: string;
+    let executableCaseVersionId: string;
+    let qaSubtaskId: string;
+    let readinessBaselineId: string;
     let testRunId: string;
     let failedResultId: string;
     let bugId: string;
@@ -751,23 +767,100 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
         requirementId: requirementA1.id,
         linkedBy: po.id,
       });
+
+      const activeVersion = await TestCaseVersionModel.create({
+        workspaceId: workspaceA.id,
+        testCaseId: tc.id,
+        revision: 1,
+        lifecycleStatus: 'active',
+        definitionSnapshot: { requirementIds: [requirementA1.id] },
+        authoredBy: qa.id,
+        publishedBy: po.id,
+        publishedAt: new Date(),
+      });
+      executableCaseVersionId = activeVersion.id;
+
+      const qaSubtask = await TaskModel.create({
+        workspaceId: workspaceA.id,
+        parentTaskId: featureTaskA.id,
+        title: 'Execute checkout evidence regression',
+        deliveryArea: 'qa',
+        status: 'in_progress',
+        priority: 'high',
+        reporterId: po.id,
+        assigneeId: qa.id,
+      });
+      qaSubtaskId = qaSubtask.id;
+
+      const brief = await QaDocumentModel.create({
+        workspaceId: workspaceA.id,
+        title: 'Checkout evidence test baseline',
+        docType: 'product_brief',
+        status: 'approved',
+        ownerId: po.id,
+        currentVersion: 1,
+        createdBy: po.id,
+      });
+      const briefVersion = await QaDocumentVersionModel.create({
+        workspaceId: workspaceA.id,
+        documentId: brief.id,
+        version: 1,
+        title: brief.title,
+        contentMarkdown: 'Integration-test baseline for scoped evidence.',
+        createdBy: po.id,
+      });
+      const baseline = await FeatureReadinessBaselineModel.create({
+        workspaceId: workspaceA.id,
+        featureTaskId: featureTaskA.id,
+        sequence: 1,
+        productBriefVersionId: briefVersion.id,
+        snapshot: { schemaVersion: 1, integrationFixture: 'test-case-evidence' } as any,
+        establishedBy: po.id,
+      });
+      readinessBaselineId = baseline.id;
+      await FeatureReadinessBaselineRequirementModel.create({
+        workspaceId: workspaceA.id,
+        baselineId: baseline.id,
+        requirementId: requirementA1.id,
+      });
     });
 
-    test('Insecure HTTP and non-HTTPS URLs are rejected with 400 Bad Request', async () => {
-      const startRes = await fetch(
+    async function startScopedRun(build: string): Promise<string> {
+      const candidateFingerprint = `commit:${build}`;
+      const cycle = await QaTestCycleModel.create({
+        workspaceId: workspaceA.id,
+        featureTaskId: featureTaskA.id,
+        qaSubtaskId,
+        readinessBaselineId,
+        candidateFingerprint,
+        build,
+        environment: 'staging',
+        status: 'in_progress',
+        ownerQaId: qa.id,
+      });
+      const response = await fetch(
         `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
           body: JSON.stringify({
-            build: 'v1.0.0-rc1',
+            featureTaskId: featureTaskA.id,
+            qaSubtaskId,
+            testCycleId: cycle.id,
+            testCaseVersionId: executableCaseVersionId,
+            candidateFingerprint,
+            build,
             environment: 'staging',
           }),
         },
       );
-      assert.strictEqual(startRes.status, 201);
-      const startData = (await startRes.json()) as any;
-      const insecureRunId = startData.testRun.id;
+      const responseText = await response.text();
+      assert.strictEqual(response.status, 201, responseText);
+      return (JSON.parse(responseText) as { testRun: { id: string } }).testRun.id;
+    }
+
+    test('Insecure HTTP and non-HTTPS URLs are rejected with 400 Bad Request', async () => {
+      const insecureRunId = await startScopedRun('v1.0.0-rc1');
 
       const insecureResultRes = await fetch(
         `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs/${insecureRunId}/results`,
@@ -791,20 +884,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
     });
 
     test('Result payload with duplicate normalized URLs returns 409 Conflict', async () => {
-      const startRes = await fetch(
-        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-          body: JSON.stringify({
-            build: 'v1.0.0-dup-test',
-            environment: 'staging',
-          }),
-        },
-      );
-      assert.strictEqual(startRes.status, 201);
-      const startData = (await startRes.json()) as any;
-      const dupRunId = startData.testRun.id;
+      const dupRunId = await startScopedRun('v1.0.0-dup-test');
 
       const dupResultRes = await fetch(
         `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs/${dupRunId}/results`,
@@ -832,20 +912,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
     });
 
     test('QA records Test Result linking formal task attachments and HTTPS evidence links', async () => {
-      const startRes = await fetch(
-        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-          body: JSON.stringify({
-            build: 'v1.0.0-rc2',
-            environment: 'staging',
-          }),
-        },
-      );
-      assert.strictEqual(startRes.status, 201);
-      const startData = (await startRes.json()) as any;
-      testRunId = startData.testRun.id;
+      testRunId = await startScopedRun('v1.0.0-rc2');
 
       const resultRes = await fetch(
         `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs/${testRunId}/results`,
@@ -892,6 +959,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
           body: JSON.stringify({
             url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
             label: 'Duplicate link attempt',
+            reason: 'Attempted duplicate link to validate immutable evidence handling.',
           }),
         },
       );
@@ -955,53 +1023,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       );
       assert.strictEqual(dupBugEvidenceRes.status, 409);
 
-      // Dev starts work on Bug (open -> in_progress)
-      const startWorkRes = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Cookie: devCookie },
-        body: JSON.stringify({
-          status: 'in_progress',
-        }),
-      });
-      assert.strictEqual(startWorkRes.status, 200);
-
-      // Dev adds resolution evidence link to Bug
-      const devEvidenceRes = await fetch(
-        `${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}/evidence-links?kind=resolution`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Cookie: devCookie },
-          body: JSON.stringify({
-            url: 'https://example.com/fix-verification.mp4',
-            label: 'Local fix verification video',
-          }),
-        },
-      );
-      assert.strictEqual(devEvidenceRes.status, 201);
-
-      // Developer resolves bug with resolution notes (in_progress -> resolved)
-      const resolveRes = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Cookie: devCookie },
-        body: JSON.stringify({
-          status: 'resolved',
-          resolutionNotes: 'Fixed null pointer exception in Stripe token handler.',
-        }),
-      });
-      assert.strictEqual(resolveRes.status, 200);
-
-      // QA verifies bug
-      const verifyRes = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs/${bugId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-        body: JSON.stringify({
-          status: 'verified',
-        }),
-      });
-      assert.strictEqual(verifyRes.status, 200);
-      const verifiedData = (await verifyRes.json()) as any;
-      assert.strictEqual(verifiedData.bug.status, 'verified');
-      assert.strictEqual(verifiedData.bug.bugEvidenceLinks.length, 2);
+      assert.strictEqual(bugData.bug.status, 'open');
     });
 
     test('import rejects mapping to inactive requirements (draft/deprecated) with row errors', async () => {
@@ -1114,21 +1136,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
     });
 
     test('recordTestResult rejects payload exceeding 20 evidence attachments or 20 links with 400', async () => {
-      // Start a test run
-      const runRes = await fetch(
-        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-          body: JSON.stringify({
-            build: 'limit-test-build',
-            environment: 'staging',
-          }),
-        },
-      );
-      assert.strictEqual(runRes.status, 201);
-      const runData = (await runRes.json()) as any;
-      const testRunId = runData.testRun.id;
+      const testRunId = await startScopedRun('limit-test-build');
 
       // Generate 21 links (exceeds max 20)
       const excessiveLinks = Array.from({ length: 21 }, (_, i) => ({
@@ -1173,21 +1181,7 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
         uploaderId: qa.id,
       });
 
-      // Start run on executableCaseId (which is linked to requirementA1 and featureTaskA)
-      const runRes = await fetch(
-        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${executableCaseId}/runs`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-          body: JSON.stringify({
-            build: 'scoping-test-build',
-            environment: 'staging',
-          }),
-        },
-      );
-      assert.strictEqual(runRes.status, 201);
-      const runData = (await runRes.json()) as any;
-      const testRunId = runData.testRun.id;
+      const testRunId = await startScopedRun('scoping-test-build');
 
       // Attempt to attach unrelatedAttachment
       const recordRes = await fetch(
@@ -1220,19 +1214,16 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
         createdBy: po.id,
       });
 
-      const runRes = await fetch(
-        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${unscopedCase.id}/runs`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
-          body: JSON.stringify({ build: 'unscoped-evidence-build', environment: 'staging' }),
-        },
-      );
-      assert.strictEqual(runRes.status, 201);
-      const runData = (await runRes.json()) as any;
+      const legacyRun = await TestRunModel.create({
+        workspaceId: workspaceA.id,
+        testCaseId: unscopedCase.id,
+        build: 'unscoped-evidence-build',
+        environment: 'staging',
+        executorId: qa.id,
+      });
 
       const recordRes = await fetch(
-        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${unscopedCase.id}/runs/${runData.testRun.id}/results`,
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${unscopedCase.id}/runs/${legacyRun.id}/results`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Cookie: qaCookie },

@@ -2,12 +2,15 @@ import type { Response } from 'express';
 import { z } from 'zod';
 import {
   CommitTestCaseImportSchema,
-  CreateEvidenceLinkInputSchema,
+  AddTestResultEvidenceSupplementInputSchema,
+  CreateQaTestCycleSchema,
   CreateTestCaseSchema,
   CreateTestResultSchema,
   CreateTestRunSchema,
   ListTestCasesQuerySchema,
+  ListQaTestCyclesQuerySchema,
   UpdateTestCaseSchema,
+  ReplaceTestCaseVersionAcceptanceCriteriaSchema,
 } from '@qlick/contracts';
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { testManagementService } from './testManagementService.js';
@@ -23,6 +26,20 @@ export async function getTaskTestExecutions(req: AuthenticatedRequest, res: Resp
       req.user!.userId,
     );
     return res.status(200).json({ executionWorkspace });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function getQaWorkflowSummary(req: AuthenticatedRequest, res: Response) {
+  try {
+    const taskId = z.string().uuid().parse(req.params.taskId);
+    const summary = await testManagementService.getQaWorkflowSummary(
+      req.params.workspaceId,
+      taskId,
+      req.user!.userId,
+    );
+    return res.status(200).json({ summary });
   } catch (error) {
     return sendProblemDetails(res, error);
   }
@@ -55,6 +72,46 @@ export async function getTestCase(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export async function listTestCaseVersionCoverage(req: AuthenticatedRequest, res: Response) {
+  try {
+    const versions = await testManagementService.listTestCaseVersionCoverage(
+      req.params.workspaceId,
+      req.params.testCaseId,
+      req.user!.userId,
+    );
+    return res.status(200).json({ versions });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function listQaTestCycles(req: AuthenticatedRequest, res: Response) {
+  try {
+    const query = ListQaTestCyclesQuerySchema.parse(req.query);
+    const testCycles = await testManagementService.listQaTestCycles(
+      req.params.workspaceId,
+      req.user!.userId,
+      query,
+    );
+    return res.status(200).json({ testCycles });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function createQaTestCycle(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = CreateQaTestCycleSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+    });
+    const testCycle = await testManagementService.createQaTestCycle(req.user!.userId, input);
+    return res.status(201).json({ testCycle });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
 export async function createTestCase(req: AuthenticatedRequest, res: Response) {
   try {
     const input = CreateTestCaseSchema.parse({ ...req.body, workspaceId: req.params.workspaceId });
@@ -74,6 +131,43 @@ export async function updateTestCase(req: AuthenticatedRequest, res: Response) {
     });
     const testCase = await testManagementService.updateTestCase(req.user!.userId, input);
     return res.status(200).json({ testCase });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function replaceTestCaseVersionAcceptanceCriteria(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    const input = ReplaceTestCaseVersionAcceptanceCriteriaSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+      testCaseId: req.params.testCaseId,
+      testCaseVersionId: req.params.testCaseVersionId,
+    });
+    const acceptanceCriterionMappings =
+      await testManagementService.replaceTestCaseVersionAcceptanceCriteria(req.user!.userId, input);
+    return res.status(200).json({ acceptanceCriterionMappings });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function listTestCaseVersionAcceptanceCriteria(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    const acceptanceCriterionMappings =
+      await testManagementService.listTestCaseVersionAcceptanceCriteria(
+        req.params.workspaceId,
+        req.params.testCaseId,
+        req.params.testCaseVersionId,
+        req.user!.userId,
+      );
+    return res.status(200).json({ acceptanceCriterionMappings });
   } catch (error) {
     return sendProblemDetails(res, error);
   }
@@ -110,7 +204,7 @@ export async function recordTestResult(req: AuthenticatedRequest, res: Response)
 
 export async function addTestResultEvidenceLink(req: AuthenticatedRequest, res: Response) {
   try {
-    const input = CreateEvidenceLinkInputSchema.parse(req.body);
+    const input = AddTestResultEvidenceSupplementInputSchema.parse(req.body);
     const evidenceLink = await testManagementService.addTestResultEvidenceLink(
       req.user!.userId,
       req.params.workspaceId,

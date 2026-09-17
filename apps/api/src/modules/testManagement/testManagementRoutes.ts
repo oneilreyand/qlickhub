@@ -8,7 +8,9 @@ import {
   createTestRun,
   downloadTestCaseTemplate,
   getTaskTestExecutions,
+  getQaWorkflowSummary,
   getTestCase,
+  listTestCaseVersionCoverage,
   getTestCaseImportErrorsCsv,
   listTestCaseActivity,
   listTestCaseImportAudits,
@@ -17,6 +19,10 @@ import {
   previewTestCaseImport,
   recordTestResult,
   updateTestCase,
+  replaceTestCaseVersionAcceptanceCriteria,
+  listTestCaseVersionAcceptanceCriteria,
+  listQaTestCycles,
+  createQaTestCycle,
 } from './testManagementController.js';
 
 export const testManagementRoutes = Router({ mergeParams: true });
@@ -27,6 +33,22 @@ testManagementRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/test-executions',
   requireWorkspaceMember(),
   getTaskTestExecutions,
+);
+testManagementRoutes.get(
+  '/workspaces/:workspaceId/tasks/:taskId/qa-workflow-summary',
+  requireWorkspaceMember(['qa']),
+  getQaWorkflowSummary,
+);
+
+testManagementRoutes.get(
+  '/workspaces/:workspaceId/qa-test-cycles',
+  requireWorkspaceMember(),
+  listQaTestCycles,
+);
+testManagementRoutes.post(
+  '/workspaces/:workspaceId/qa-test-cycles',
+  requireWorkspaceMember(['qa']),
+  createQaTestCycle,
 );
 
 // Import & Template routes (placed before parameter routes)
@@ -64,7 +86,7 @@ testManagementRoutes.get(
 );
 testManagementRoutes.post(
   '/workspaces/:workspaceId/test-cases',
-  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  requireWorkspaceMember(['qa']),
   createTestCase,
 );
 testManagementRoutes.get(
@@ -72,10 +94,25 @@ testManagementRoutes.get(
   requireWorkspaceMember(),
   getTestCase,
 );
+testManagementRoutes.get(
+  '/workspaces/:workspaceId/test-cases/:testCaseId/versions',
+  requireWorkspaceMember(),
+  listTestCaseVersionCoverage,
+);
 testManagementRoutes.patch(
   '/workspaces/:workspaceId/test-cases/:testCaseId',
   requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
   updateTestCase,
+);
+testManagementRoutes.get(
+  '/workspaces/:workspaceId/test-cases/:testCaseId/versions/:testCaseVersionId/acceptance-criteria',
+  requireWorkspaceMember(),
+  listTestCaseVersionAcceptanceCriteria,
+);
+testManagementRoutes.put(
+  '/workspaces/:workspaceId/test-cases/:testCaseId/versions/:testCaseVersionId/acceptance-criteria',
+  requireWorkspaceMember(['qa']),
+  replaceTestCaseVersionAcceptanceCriteria,
 );
 
 // Execution routes
@@ -86,17 +123,17 @@ testManagementRoutes.get(
 );
 testManagementRoutes.post(
   '/workspaces/:workspaceId/test-cases/:testCaseId/runs',
-  requireWorkspaceMember(['owner', 'admin', 'qa']),
+  requireWorkspaceMember(['qa']),
   createTestRun,
 );
 testManagementRoutes.post(
   '/workspaces/:workspaceId/test-cases/:testCaseId/runs/:testRunId/results',
-  requireWorkspaceMember(['owner', 'admin', 'qa']),
+  requireWorkspaceMember(['qa']),
   recordTestResult,
 );
 testManagementRoutes.post(
   '/workspaces/:workspaceId/test-cases/:testCaseId/runs/:testRunId/evidence-links',
-  requireWorkspaceMember(['owner', 'admin', 'qa']),
+  requireWorkspaceMember(['qa']),
   addTestResultEvidenceLink,
 );
 testManagementRoutes.get(

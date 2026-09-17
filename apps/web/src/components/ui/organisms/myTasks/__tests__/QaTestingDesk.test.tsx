@@ -12,6 +12,12 @@ import type { Task, TaskTestExecutionWorkspace, TestRun } from '@qlick/contracts
 
 const serviceMocks = vi.hoisted(() => ({
   getTaskTestExecutions: vi.fn(),
+  getQaWorkflowSummary: vi.fn(),
+  listTestCaseVersionCoverage: vi.fn(),
+  listQaTestCycles: vi.fn(),
+  createQaTestCycle: vi.fn(),
+  listTestCaseVersionAcceptanceCriteria: vi.fn(),
+  replaceTestCaseVersionAcceptanceCriteria: vi.fn(),
   createTestCase: vi.fn(),
   updateTestCase: vi.fn(),
   createTestRun: vi.fn(),
@@ -27,17 +33,25 @@ const serviceMocks = vi.hoisted(() => ({
 const bugServiceMocks = vi.hoisted(() => ({
   createBug: vi.fn(),
   addBugEvidenceLink: vi.fn(),
+  createRetestAttempt: vi.fn(),
+  listBugs: vi.fn(),
+  updateBug: vi.fn(),
+  createResolutionEvent: vi.fn(),
+  createRetestRun: vi.fn(),
+  getRetestHistory: vi.fn(),
 }));
 
 const taskServiceMocks = vi.hoisted(() => ({
   listTaskComments: vi.fn().mockResolvedValue({ comments: [] }),
   createTaskComment: vi.fn(),
   updateTask: vi.fn(),
+  getAttachmentDownloadUrl: vi.fn(),
 }));
 
 const requirementServiceMocks = vi.hoisted(() => ({
   listRequirements: vi.fn(),
   listTaskRequirementLinks: vi.fn(),
+  getRequirement: vi.fn(),
 }));
 
 const releaseServiceMocks = vi.hoisted(() => ({
@@ -78,6 +92,7 @@ const ids = {
   result: '10000000-0000-4000-8000-000000000009',
   dev: '10000000-0000-4000-8000-000000000010',
   bug: '10000000-0000-4000-8000-000000000011',
+  resolution: '10000000-0000-4000-8000-000000000014',
 };
 
 const now = '2026-08-22T08:00:00.000Z';
@@ -164,6 +179,14 @@ const inProgressRun: TestRun = {
   id: ids.run,
   workspaceId: ids.workspace,
   testCaseId: ids.testCase,
+  featureTaskId: null,
+  qaSubtaskId: null,
+  testCycleId: null,
+  testCaseVersionId: null,
+  readinessBaselineId: null,
+  candidateFingerprint: null,
+  retestBugId: null,
+  retestResolutionEventId: null,
   build: 'checkout-web-2026.08.22.1',
   environment: 'staging',
   status: 'in_progress',
@@ -229,6 +252,41 @@ describe('QaTestingDesk Organism', () => {
       featureTaskId: ids.feature,
       executions: [],
     });
+    serviceMocks.getQaWorkflowSummary.mockResolvedValue({
+      workspaceId: ids.workspace,
+      featureTaskId: ids.feature,
+      qaSubtaskId: ids.subtask,
+      featureTitle: 'Checkout Feature',
+      qaSubtaskTitle: 'QA checkout',
+      qaSubtaskStatus: 'in_progress',
+      testCycle: null,
+      blockers: ['qa_test_cycle_missing'],
+      nextAction: { code: 'create_test_cycle', label: 'Buat Siklus Pengujian' },
+    });
+    serviceMocks.listTestCaseVersionCoverage.mockResolvedValue([]);
+    serviceMocks.listQaTestCycles.mockResolvedValue([]);
+    serviceMocks.createQaTestCycle.mockResolvedValue({
+      id: '10000000-0000-4000-8000-000000000098',
+      workspaceId: ids.workspace,
+      featureTaskId: ids.feature,
+      qaSubtaskId: ids.subtask,
+      readinessBaselineId: '10000000-0000-4000-8000-000000000097',
+      candidateFingerprint: 'commit:checkout-1',
+      build: 'checkout-web-2026.08.22.1',
+      environment: 'staging',
+      status: 'in_progress',
+      ownerQaId: ids.qa,
+      createdAt: now,
+      updatedAt: now,
+    });
+    serviceMocks.listTestCaseVersionAcceptanceCriteria.mockResolvedValue({
+      testCaseVersionId: '10000000-0000-4000-8000-000000000099',
+      mappings: [],
+    });
+    serviceMocks.replaceTestCaseVersionAcceptanceCriteria.mockResolvedValue({
+      testCaseVersionId: '10000000-0000-4000-8000-000000000099',
+      mappings: [],
+    });
     serviceMocks.createTestRun.mockResolvedValue(inProgressRun);
     serviceMocks.createTestCase.mockResolvedValue({
       ...executionWorkspace().executions[0].testCase,
@@ -258,6 +316,8 @@ describe('QaTestingDesk Organism', () => {
       },
     });
     bugServiceMocks.createBug.mockResolvedValue({ id: ids.bug });
+    bugServiceMocks.createRetestAttempt.mockResolvedValue({ outcome: 'reopened' });
+    bugServiceMocks.listBugs.mockResolvedValue([]);
     taskServiceMocks.updateTask.mockResolvedValue({ ...mockQaSubtask, status: 'done' });
     releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue({
       workspaceId: ids.workspace,
@@ -276,10 +336,62 @@ describe('QaTestingDesk Organism', () => {
         createdAt: now,
       },
     ]);
+    requirementServiceMocks.getRequirement.mockResolvedValue({
+      requirement: activeRequirement,
+      linkedTasks: [],
+      acceptanceCriteria: [],
+    });
+  });
+
+  it('shows the backend-derived workflow scope, blocker, and next action', async () => {
+    renderDesk();
+
+    expect(await screen.findByText('Ringkasan Workflow QA')).toBeInTheDocument();
+    expect(screen.getByText('Berikutnya: Buat Siklus Pengujian')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Buat Siklus Pengujian untuk kandidat yang akan diuji/),
+    ).toBeInTheDocument();
+    expect(serviceMocks.getQaWorkflowSummary).toHaveBeenCalledWith(ids.workspace, ids.subtask);
+  });
+
+  it('shows linked Bug history in the QA desk instead of sending QA to another queue', async () => {
+    const user = userEvent.setup();
+    renderDesk();
+
+    await user.click(await screen.findByRole('tab', { name: 'Bug & Retest' }));
+
+    expect(await screen.findByText('Bug Tertaut')).toBeInTheDocument();
+    expect(bugServiceMocks.listBugs).toHaveBeenCalledWith(ids.workspace, {
+      featureTaskId: ids.feature,
+    });
   });
 
   it('completes assigned QA eksekusi directly without a self-review step', async () => {
     const user = userEvent.setup();
+    serviceMocks.getQaWorkflowSummary.mockResolvedValue({
+      workspaceId: ids.workspace,
+      featureTaskId: ids.feature,
+      qaSubtaskId: ids.subtask,
+      featureTitle: 'Checkout Feature',
+      qaSubtaskTitle: 'QA checkout',
+      qaSubtaskStatus: 'in_progress',
+      testCycle: {
+        id: '10000000-0000-4000-8000-000000000097',
+        workspaceId: ids.workspace,
+        featureTaskId: ids.feature,
+        qaSubtaskId: ids.subtask,
+        readinessBaselineId: '10000000-0000-4000-8000-000000000098',
+        candidateFingerprint: 'commit:checkout-1',
+        build: 'checkout-web-2026.08.22.1',
+        environment: 'staging',
+        status: 'in_progress',
+        ownerQaId: ids.qa,
+        createdAt: now,
+        updatedAt: now,
+      },
+      blockers: [],
+      nextAction: { code: 'complete_qa_subtask', label: 'Selesaikan Eksekusi QA' },
+    });
     renderDesk();
 
     expect(screen.queryByRole('button', { name: 'Submit for Review' })).not.toBeInTheDocument();
@@ -288,7 +400,9 @@ describe('QaTestingDesk Organism', () => {
         /Menyelesaikan Subtask QA hanya mencatat eksekusi pengujian yang ditugaskan/i,
       ),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Selesaikan Eksekusi QA' }));
+    const completeButton = screen.getByRole('button', { name: 'Selesaikan Eksekusi QA' });
+    await waitFor(() => expect(completeButton).toBeEnabled());
+    await user.click(completeButton);
 
     await waitFor(() =>
       expect(taskServiceMocks.updateTask).toHaveBeenCalledWith(ids.workspace, ids.subtask, {
@@ -296,6 +410,22 @@ describe('QaTestingDesk Organism', () => {
         reviewNotes: undefined,
       }),
     );
+  });
+
+  it('fails closed before QA completion and sign-off when the persisted workflow has blockers', async () => {
+    const user = userEvent.setup();
+    renderDesk();
+
+    const completeButton = screen.getByRole('button', { name: 'Selesaikan Eksekusi QA' });
+    await waitFor(() => expect(completeButton).toBeDisabled());
+    expect(completeButton).toHaveAttribute(
+      'title',
+      'Selesaikan langkah berikutnya terlebih dahulu: Buat Siklus Pengujian.',
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Persetujuan & Riwayat' }));
+    expect(await screen.findByText('Persetujuan QA masih memiliki prasyarat')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Catat Persetujuan QA' })).toBeDisabled();
   });
 
   it('reopens completed QA eksekusi with an auditable reason', async () => {
@@ -318,11 +448,12 @@ describe('QaTestingDesk Organism', () => {
   });
 
   it('offers an explicit recovery path for legacy QA subtasks in review', async () => {
+    const user = userEvent.setup();
     const legacySubtask = { ...mockQaSubtask, status: 'in_review' as const };
     renderDesk('qa', legacySubtask);
 
+    await user.click(await screen.findByRole('tab', { name: 'Persetujuan & Riwayat' }));
     await screen.findByText('Belum ada Persetujuan QA');
-    await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini');
     expect(screen.getByRole('button', { name: 'Lanjutkan Pengujian' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Selesaikan Eksekusi QA' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Approve Quality/i })).not.toBeInTheDocument();
@@ -335,18 +466,127 @@ describe('QaTestingDesk Organism', () => {
     expect(
       screen.queryByRole('button', { name: 'Selesaikan Eksekusi QA' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Catat Bug' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Catat Bug' })).not.toBeInTheDocument();
   });
 
-  it('renders Canonical Test Management workspace with Native Authoring and Import buttons for Planners', async () => {
+  it('progressively discloses one QA workflow stage at a time with keyboard navigation', async () => {
+    const user = userEvent.setup();
+    renderDesk();
+
+    expect(screen.getByRole('tab', { name: 'Persiapan & Eksekusi' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tabpanel', { name: 'Persiapan dan eksekusi QA' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Bug & Retest' }));
+    expect(screen.getByRole('tab', { name: 'Bug & Retest' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tabpanel', { name: 'Bug dan retest' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('tabpanel', { name: 'Persiapan dan eksekusi QA' }),
+    ).not.toBeInTheDocument();
+
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: 'Persetujuan & Riwayat' })).toHaveFocus();
+    expect(
+      screen.getByRole('tabpanel', { name: 'Persetujuan QA dan riwayat' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps PO in a review-only Test Case and execution view', async () => {
     renderDesk('po');
 
     expect(
       await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
     ).toBeInTheDocument();
     expect(screen.getByText('Area Pengujian & Mutu QA')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Test Case Baru/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Impor Spreadsheet/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Test Case Baru/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Impor Spreadsheet/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Mulai Pengujian/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Selesaikan Eksekusi QA/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows latest AC coverage for a Test Case revision without granting a mutation action', async () => {
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
+    serviceMocks.listTestCaseVersionCoverage.mockResolvedValue([
+      {
+        id: '10000000-0000-4000-8000-000000000099',
+        revision: 2,
+        lifecycleStatus: 'draft',
+        mappedCount: 1,
+        excludedCount: 1,
+        createdAt: now,
+      },
+    ]);
+    renderDesk('po');
+
+    expect(await screen.findByText('Rev 2 · AC 1 mapped · 1 excluded')).toBeInTheDocument();
+  });
+
+  it('lets QA map a draft revision to an active Acceptance Criterion', async () => {
+    const user = userEvent.setup();
+    const draftWorkspace = executionWorkspace();
+    draftWorkspace.executions[0].testCase.status = 'draft';
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(draftWorkspace);
+    serviceMocks.listTestCaseVersionCoverage.mockResolvedValue([
+      {
+        id: '10000000-0000-4000-8000-000000000099',
+        revision: 2,
+        lifecycleStatus: 'draft',
+        mappedCount: 0,
+        excludedCount: 0,
+        createdAt: now,
+      },
+    ]);
+    requirementServiceMocks.getRequirement.mockResolvedValue({
+      requirement: activeRequirement,
+      linkedTasks: [],
+      acceptanceCriteria: [
+        {
+          id: '10000000-0000-4000-8000-000000000014',
+          workspaceId: ids.workspace,
+          requirementId: ids.requirement,
+          sequence: 1,
+          code: 'AC-1',
+          text: 'Payment confirmation is displayed.',
+          status: 'active',
+          createdBy: ids.reporter,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    renderDesk('qa');
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Petakan Acceptance Criterion untuk Returning customer completes checkout',
+      }),
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('checkbox', { name: 'Pilih AC-1' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan Pemetaan' }));
+
+    await waitFor(() =>
+      expect(serviceMocks.replaceTestCaseVersionAcceptanceCriteria).toHaveBeenCalledWith(
+        ids.workspace,
+        ids.testCase,
+        '10000000-0000-4000-8000-000000000099',
+        [
+          {
+            acceptanceCriterionId: '10000000-0000-4000-8000-000000000014',
+            mappingStatus: 'mapped',
+            exclusionReason: undefined,
+          },
+        ],
+      ),
+    );
   });
 
   it('lets QA author the first Test Case from active Requirement linked to the Feature', async () => {
@@ -427,23 +667,51 @@ describe('QaTestingDesk Organism', () => {
   it('starts a persisted Test Run with build and environment', async () => {
     const user = userEvent.setup();
     serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
+    serviceMocks.listTestCaseVersionCoverage.mockResolvedValue([
+      {
+        id: '10000000-0000-4000-8000-000000000099',
+        revision: 1,
+        lifecycleStatus: 'active',
+        mappedCount: 1,
+        excludedCount: 0,
+        createdAt: now,
+      },
+    ]);
+    serviceMocks.listQaTestCycles.mockResolvedValue([
+      {
+        id: '10000000-0000-4000-8000-000000000098',
+        workspaceId: ids.workspace,
+        featureTaskId: ids.feature,
+        qaSubtaskId: ids.subtask,
+        readinessBaselineId: '10000000-0000-4000-8000-000000000097',
+        candidateFingerprint: 'commit:checkout-1',
+        build: 'checkout-web-2026.08.22.1',
+        environment: 'staging',
+        status: 'in_progress',
+        ownerQaId: ids.qa,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
     renderDesk();
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Mulai Test Run untuk Returning customer completes checkout',
+        name: 'Mulai Pengujian untuk Returning customer completes checkout',
       }),
     );
     const dialog = screen.getByRole('dialog');
-    await user.type(within(dialog).getByLabelText('Build'), 'checkout-web-2026.08.22.1');
-    await user.clear(within(dialog).getByLabelText('Lingkungan'));
-    await user.type(within(dialog).getByLabelText('Lingkungan'), 'qa-staging');
-    await user.click(within(dialog).getByRole('button', { name: 'Mulai Test Run' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Mulai Pengujian' }));
 
     await waitFor(() =>
       expect(serviceMocks.createTestRun).toHaveBeenCalledWith(ids.workspace, ids.testCase, {
+        featureTaskId: ids.feature,
+        qaSubtaskId: ids.subtask,
+        testCycleId: '10000000-0000-4000-8000-000000000098',
+        testCaseVersionId: '10000000-0000-4000-8000-000000000099',
+        candidateFingerprint: 'commit:checkout-1',
         build: 'checkout-web-2026.08.22.1',
-        environment: 'qa-staging',
+        environment: 'staging',
       }),
     );
   });
@@ -467,7 +735,7 @@ describe('QaTestingDesk Organism', () => {
         status: 'active',
       }),
     );
-    expect(screen.queryByRole('button', { name: /Mulai Test Run untuk/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Mulai Pengujian untuk/ })).not.toBeInTheDocument();
   });
 
   it('lets QA submit a draft Test Case for Product Owner review without granting activation access', async () => {
@@ -505,6 +773,11 @@ describe('QaTestingDesk Organism', () => {
     const dialog = screen.getByRole('dialog');
     await user.selectOptions(within(dialog).getByLabelText('Status hasil'), 'failed');
     await user.type(within(dialog).getByLabelText('Hasil aktual'), 'Payment API returned 500.');
+    await user.click(within(dialog).getByRole('button', { name: 'Tambah Tautan' }));
+    await user.type(
+      within(dialog).getByPlaceholderText('https://www.youtube.com/watch?v=... or image URL'),
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    );
     await user.click(within(dialog).getByRole('button', { name: 'Catat Hasil' }));
 
     await waitFor(() =>
@@ -517,7 +790,7 @@ describe('QaTestingDesk Organism', () => {
           actualResult: 'Payment API returned 500.',
           notes: null,
           evidenceAttachmentIds: [],
-          evidenceLinks: [],
+          evidenceLinks: [{ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', label: undefined }],
         },
       ),
     );
@@ -525,8 +798,62 @@ describe('QaTestingDesk Organism', () => {
 
     renderDesk('po');
     expect(await screen.findByText('Pengujian hanya dapat dilihat')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Mulai Test Run untuk/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Mulai Pengujian untuk/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Catat hasil untuk/ })).not.toBeInTheDocument();
+  });
+
+  it('automatically finalizes the Bug outcome after recording a contextual retest Result', async () => {
+    const user = userEvent.setup();
+    const contextualRun: TestRun = {
+      ...inProgressRun,
+      retestBugId: ids.bug,
+      retestResolutionEventId: ids.resolution,
+    };
+    const completedContextualRun: TestRun = {
+      ...contextualRun,
+      status: 'completed',
+      completedAt: now,
+      result: {
+        id: ids.result,
+        workspaceId: ids.workspace,
+        testRunId: ids.run,
+        status: 'failed',
+        executorId: ids.qa,
+        actualResult: 'Payment API still returned 500.',
+        notes: null,
+        executedAt: now,
+        evidence: [],
+        evidenceLinks: [],
+        createdAt: now,
+      },
+    };
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace([contextualRun]));
+    serviceMocks.recordTestResult.mockResolvedValue(completedContextualRun);
+    renderDesk();
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Catat hasil untuk Returning customer completes checkout',
+      }),
+    );
+    const dialog = screen.getByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Status hasil'), 'failed');
+    await user.type(
+      within(dialog).getByLabelText('Hasil aktual'),
+      'Payment API still returned 500.',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Tambah Tautan' }));
+    await user.type(
+      within(dialog).getByPlaceholderText('https://www.youtube.com/watch?v=... or image URL'),
+      'https://example.com/retest-cycle-1',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Catat Hasil' }));
+
+    await waitFor(() =>
+      expect(bugServiceMocks.createRetestAttempt).toHaveBeenCalledWith(ids.workspace, ids.bug, {
+        testResultId: ids.result,
+      }),
+    );
   });
 
   it('opens Defect Report modal when clicking Catat Bug button', async () => {
@@ -555,6 +882,7 @@ describe('QaTestingDesk Organism', () => {
     );
     renderDesk();
     await screen.findByText('Returning customer completes checkout');
+    await user.click(screen.getByRole('tab', { name: 'Bug & Retest' }));
     await user.click(screen.getByRole('button', { name: 'Catat Bug' }));
 
     expect(screen.getByText('Buat Bug Tertaut')).toBeInTheDocument();
@@ -587,6 +915,7 @@ describe('QaTestingDesk Organism', () => {
     renderDesk();
 
     await screen.findByText('Returning customer completes checkout');
+    await user.click(screen.getByRole('tab', { name: 'Bug & Retest' }));
     await user.click(screen.getByRole('button', { name: 'Catat Bug' }));
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByLabelText('Hasil gagal atau terblokir asal')).toHaveValue(
@@ -654,7 +983,9 @@ describe('QaTestingDesk Organism', () => {
 
     const submitModalBtn = within(modal).getByRole('button', { name: /Kirim Permintaan Revisi/i });
     await user.click(submitModalBtn);
-    expect(within(modal).getByText('Catatan revisi wajib diisi untuk mengembalikan subtask.')).toBeInTheDocument();
+    expect(
+      within(modal).getByText('Catatan revisi wajib diisi untuk mengembalikan subtask.'),
+    ).toBeInTheDocument();
 
     await user.type(
       within(modal).getByPlaceholderText(/Jelaskan alasan permintaan revisi/i),
@@ -684,10 +1015,10 @@ describe('QaTestingDesk Organism', () => {
 
     renderDesk('dev', devSubtaskInReview, ids.dev);
 
-    expect(screen.queryByRole('button', { name: /Lolos Review & Selesaikan/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Minta Revisi/i })).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Menunggu review dari reviewer QA atau Planner/i),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: /Lolos Review & Selesaikan/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Minta Revisi/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/Menunggu review dari reviewer QA atau Planner/i)).toBeInTheDocument();
   });
 });

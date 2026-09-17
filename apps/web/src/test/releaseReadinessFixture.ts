@@ -1,4 +1,4 @@
-import type { ReadinessSnapshotV2 } from '@qlick/contracts';
+import type { ReadinessSnapshotV3 } from '@qlick/contracts';
 import type { ReleaseReadinessViewState } from '../lib/hooks/useReleaseReadinessMap';
 
 export const releaseReadinessFixtureIds = {
@@ -7,10 +7,10 @@ export const releaseReadinessFixtureIds = {
   signOff: '10000000-0000-4000-8000-000000000003',
 };
 
-export function createReleaseReadinessSnapshotFixture(ready = false): ReadinessSnapshotV2 {
+export function createReleaseReadinessSnapshotFixture(ready = false): ReadinessSnapshotV3 {
   const developmentStatus = ready ? 'passed' : 'failed';
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     capturedAt: '2026-08-22T10:00:00.000Z',
     featureTask: {
       id: releaseReadinessFixtureIds.feature,
@@ -81,6 +81,12 @@ export function createReleaseReadinessSnapshotFixture(ready = false): ReadinessS
           reason: 'The latest QA Sign-off is approved.',
         },
       ],
+    },
+    evidenceScope: {
+      qaSubtaskId: null,
+      testCycleId: null,
+      readinessBaselineId: null,
+      candidateFingerprint: null,
     },
   };
 }

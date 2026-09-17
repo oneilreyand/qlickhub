@@ -8,6 +8,10 @@ export interface QaSignOffAttributes {
   id: string;
   workspaceId: string;
   featureTaskId: string;
+  qaSubtaskId?: string | null;
+  testCycleId?: string | null;
+  readinessBaselineId?: string | null;
+  candidateFingerprint?: string | null;
   decision: QaSignOffDecision;
   notes?: string | null;
   readinessSnapshot: ReadinessSnapshot;
@@ -18,7 +22,14 @@ export interface QaSignOffAttributes {
 
 type QaSignOffCreationAttributes = Optional<
   QaSignOffAttributes,
-  'id' | 'notes' | 'signedAt' | 'cancellation'
+  | 'id'
+  | 'qaSubtaskId'
+  | 'testCycleId'
+  | 'readinessBaselineId'
+  | 'candidateFingerprint'
+  | 'notes'
+  | 'signedAt'
+  | 'cancellation'
 >;
 
 export class QaSignOffModel
@@ -28,6 +39,10 @@ export class QaSignOffModel
   declare id: string;
   declare workspaceId: string;
   declare featureTaskId: string;
+  declare qaSubtaskId: string | null;
+  declare testCycleId: string | null;
+  declare readinessBaselineId: string | null;
+  declare candidateFingerprint: string | null;
   declare decision: QaSignOffDecision;
   declare notes: string | null;
   declare readinessSnapshot: ReadinessSnapshot;
@@ -41,6 +56,14 @@ QaSignOffModel.init(
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
     workspaceId: { type: DataTypes.UUID, allowNull: false, field: 'workspace_id' },
     featureTaskId: { type: DataTypes.UUID, allowNull: false, field: 'feature_task_id' },
+    qaSubtaskId: { type: DataTypes.UUID, allowNull: true, field: 'qa_subtask_id' },
+    testCycleId: { type: DataTypes.UUID, allowNull: true, field: 'test_cycle_id' },
+    readinessBaselineId: { type: DataTypes.UUID, allowNull: true, field: 'readiness_baseline_id' },
+    candidateFingerprint: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'candidate_fingerprint',
+    },
     decision: { type: DataTypes.STRING(32), allowNull: false },
     notes: { type: DataTypes.TEXT, allowNull: true },
     readinessSnapshot: {

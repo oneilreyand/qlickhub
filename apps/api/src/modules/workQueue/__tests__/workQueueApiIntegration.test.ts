@@ -11,13 +11,19 @@ import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
   BugModel,
+  BugResolutionEventModel,
+  FeatureReadinessBaselineModel,
   QaSignOffModel,
+  QaDocumentModel,
+  QaDocumentVersionModel,
+  QaTestCycleModel,
   ReleaseDecisionModel,
   RequirementModel,
   TaskModel,
   TaskRequirementModel,
   TestCaseModel,
   TestCaseRequirementModel,
+  TestCaseVersionModel,
   TestResultModel,
   TestRunModel,
   UserModel,
@@ -48,6 +54,7 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
   let reviewSubtask: TaskModel;
   let devBug: BugModel;
   let resolvedBug: BugModel;
+  let actionableRetestBug: BugModel;
   let poCookie: string;
   let devCookie: string;
   let qaCookie: string;
@@ -324,6 +331,74 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       requirementId: requirement.id,
       linkedBy: po.id,
     });
+    const testCaseVersion = await TestCaseVersionModel.create({
+      workspaceId: workspaceA.id,
+      testCaseId: testCase.id,
+      revision: 1,
+      lifecycleStatus: 'active',
+      definitionSnapshot: { fixture: 'work-queue-scoped-retest' },
+      authoredBy: qa.id,
+      publishedBy: po.id,
+      publishedAt: new Date(),
+    });
+    const brief = await QaDocumentModel.create({
+      workspaceId: workspaceA.id,
+      title: 'Queue scoped retest baseline',
+      docType: 'product_brief',
+      status: 'approved',
+      createdBy: po.id,
+      ownerId: po.id,
+      currentVersion: 1,
+    });
+    const briefVersion = await QaDocumentVersionModel.create({
+      workspaceId: workspaceA.id,
+      documentId: brief.id,
+      version: 1,
+      title: brief.title,
+      contentMarkdown: 'Persisted baseline for the queue integration fixture.',
+      createdBy: po.id,
+    });
+    const baseline = await FeatureReadinessBaselineModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: deliveryFeature.id,
+      sequence: 1,
+      productBriefVersionId: briefVersion.id,
+      snapshot: { schemaVersion: 1, fixture: 'work-queue-scoped-retest' } as any,
+      establishedBy: po.id,
+    });
+    const retestCycle = await QaTestCycleModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: deliveryFeature.id,
+      qaSubtaskId: qaSubtask.id,
+      readinessBaselineId: baseline.id,
+      candidateFingerprint: 'commit:queue-retest-1',
+      build: 'recovery-2026.08.22.2',
+      environment: 'staging',
+      status: 'in_progress',
+      ownerQaId: qa.id,
+    });
+    const contextualRun = await TestRunModel.create({
+      workspaceId: workspaceA.id,
+      testCaseId: testCase.id,
+      featureTaskId: deliveryFeature.id,
+      qaSubtaskId: qaSubtask.id,
+      testCycleId: retestCycle.id,
+      testCaseVersionId: testCaseVersion.id,
+      readinessBaselineId: baseline.id,
+      candidateFingerprint: retestCycle.candidateFingerprint,
+      build: retestCycle.build,
+      environment: retestCycle.environment,
+      status: 'completed',
+      executorId: qa.id,
+      completedAt: new Date(),
+    });
+    const contextualFailedResult = await TestResultModel.create({
+      workspaceId: workspaceA.id,
+      testRunId: contextualRun.id,
+      status: 'failed',
+      executorId: qa.id,
+      actualResult: 'The resolved defect still needs its formal retest.',
+    });
     const run = await TestRunModel.create({
       workspaceId: workspaceA.id,
       testCaseId: testCase.id,
@@ -366,6 +441,28 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       resolvedAt: new Date(),
       createdBy: qa.id,
     });
+    actionableRetestBug = await BugModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: deliveryFeature.id,
+      requirementId: requirement.id,
+      testResultId: contextualFailedResult.id,
+      assigneeId: dev.id,
+      title: 'Scoped recovery audit event retest',
+      severity: 'high',
+      status: 'resolved',
+      reproductionDetails: 'Complete recovery and verify the persisted audit event.',
+      resolutionNotes: 'The audit event now records the request IP address.',
+      resolvedAt: new Date(),
+      createdBy: qa.id,
+    });
+    await BugResolutionEventModel.create({
+      workspaceId: workspaceA.id,
+      bugId: actionableRetestBug.id,
+      sequence: 1,
+      candidateFingerprint: retestCycle.candidateFingerprint,
+      resolutionNotes: actionableRetestBug.resolutionNotes!,
+      resolvedBy: dev.id,
+    });
 
     await QaSignOffModel.create({
       workspaceId: workspaceA.id,
@@ -406,9 +503,15 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       if (!workspace) continue;
       await ReleaseDecisionModel.destroy({ where: { workspaceId: workspace.id } });
       await QaSignOffModel.destroy({ where: { workspaceId: workspace.id } });
+      await BugResolutionEventModel.destroy({ where: { workspaceId: workspace.id } });
       await BugModel.destroy({ where: { workspaceId: workspace.id } });
       await TestResultModel.destroy({ where: { workspaceId: workspace.id } });
       await TestRunModel.destroy({ where: { workspaceId: workspace.id } });
+      await QaTestCycleModel.destroy({ where: { workspaceId: workspace.id } });
+      await FeatureReadinessBaselineModel.destroy({ where: { workspaceId: workspace.id } });
+      await QaDocumentVersionModel.destroy({ where: { workspaceId: workspace.id } });
+      await QaDocumentModel.destroy({ where: { workspaceId: workspace.id } });
+      await TestCaseVersionModel.destroy({ where: { workspaceId: workspace.id } });
       await TestCaseRequirementModel.destroy({ where: { workspaceId: workspace.id } });
       await TestCaseModel.destroy({ where: { workspaceId: workspace.id } });
       await TaskRequirementModel.destroy({ where: { workspaceId: workspace.id } });
@@ -498,7 +601,7 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     );
   });
 
-  test('returns QA test/review, resolved-Bug retest, and Sign-off buckets', async () => {
+  test('returns only capability-scoped QA work and marks blocked sign-off context', async () => {
     const response = await fetchQueue(workspaceA.id, qaCookie);
     assert.strictEqual(response.status, 200);
     const queue = RoleAwareWorkQueueSchema.parse(
@@ -512,18 +615,26 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     assert.ok(qaTaskIds.includes(reviewSubtask.id));
     assert.deepStrictEqual(
       buckets.get('qa_retest_work')?.items.map((item) => item.subjectId),
-      [resolvedBug.id],
+      [actionableRetestBug.id],
+    );
+    assert.ok(
+      !buckets.get('qa_retest_work')?.items.some((item) => item.subjectId === resolvedBug.id),
     );
     assert.ok(
       buckets
         .get('qa_sign_off')
         ?.items.some(
           (item) =>
-            item.subjectId === signOffFeature.id && item.nextAction.code === 'record_qa_sign_off',
+            item.subjectId === deliveryFeature.id &&
+            item.workState === 'blocked' &&
+            item.reason.includes('QA Subtask Anda harus diselesaikan'),
         ),
     );
     assert.ok(
-      !buckets.get('qa_sign_off')?.items.some((item) => item.subjectId === releaseFeature.id),
+      !buckets.get('qa_sign_off')?.items.some((item) => item.subjectId === signOffFeature.id),
+    );
+    assert.ok(
+      queue.buckets.flatMap((entry) => entry.items).every((item) => Boolean(item.workState)),
     );
   });
 

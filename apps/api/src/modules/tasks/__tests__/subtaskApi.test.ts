@@ -504,45 +504,18 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
       },
     );
 
-    // Move subtasks to done by PO
+    // Planner completes the development subtask; QA execution cannot be completed by PO.
     await taskService.updateTask(poUser.id, workspace.id, subFE.id, { status: 'done' });
-    await taskService.updateTask(poUser.id, workspace.id, subQA.id, { status: 'done' });
-
-    // Now parent task can be completed successfully
-    const completedParent = await taskService.completeTask(
-      poUser.id,
-      workspace.id,
-      guardParent.id,
-      { status: 'done' },
-    );
-    assert.strictEqual(completedParent.status, 'done');
-    assert.ok(completedParent.completedAt);
-
-    // Reopening subtask by PO automatically reopens the completed parent task
-    await taskService.updateTask(poUser.id, workspace.id, subFE.id, { status: 'in_progress' });
-    const reopenedParent = await TaskModel.findByPk(guardParent.id);
-    assert.strictEqual(reopenedParent?.status, 'in_progress');
-    assert.strictEqual(reopenedParent?.completedAt, null);
-
-    // Complete subtask again and complete parent task again
-    await taskService.updateTask(poUser.id, workspace.id, subFE.id, { status: 'done' });
-    await taskService.updateTask(poUser.id, workspace.id, guardParent.id, { status: 'done' });
-
-    // Adding a new incomplete subtask under the completed parent task automatically reopens it
-    await taskService.createTask(
-      poUser.id,
-      CreateTaskSchema.parse({
-        workspaceId: workspace.id,
-        parentTaskId: guardParent.id,
-        deliveryArea: 'backend',
-        title: 'Newly added BE subtask',
-        assigneeId: devUser.id,
-        status: 'todo',
-      }),
+    await assert.rejects(
+      () => taskService.updateTask(poUser.id, workspace.id, subQA.id, { status: 'done' }),
+      /QA Subtask status can only be changed by its assigned QA executor/,
     );
 
-    const reopenedAgain = await TaskModel.findByPk(guardParent.id);
-    assert.strictEqual(reopenedAgain?.status, 'in_progress');
-    assert.strictEqual(reopenedAgain?.completedAt, null);
+    // The assigned QA cannot complete without the candidate-scoped evidence gate.
+    await taskService.updateTask(qaUser.id, workspace.id, subQA.id, { status: 'in_progress' });
+    await assert.rejects(
+      () => taskService.updateTask(qaUser.id, workspace.id, subQA.id, { status: 'done' }),
+      /QA Subtask completion is blocked by persisted Feature evidence: qa_test_cycle_missing/,
+    );
   });
 });

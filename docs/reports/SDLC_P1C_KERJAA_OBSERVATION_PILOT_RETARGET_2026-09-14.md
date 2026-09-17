@@ -11,12 +11,21 @@ pada database Production kemudian mengonfirmasi data nyata telah ditambahkan: sa
 Developer, satu QA, root Feature `billing v3`, tiga Subtask, dua Requirement aktif beserta Acceptance
 Criteria aktif, dan Product Brief utama versi 1 yang approved.
 
-Kohor dan artefak planning dasar kini tersedia, tetapi pilot tetap berstatus blocked karena belum
-ada review kesiapan Developer/QA maupun baseline Feature. Assignee Developer dan QA harus mengirim
-review mereka sendiri melalui panel **Kesiapan Feature**, kemudian Owner menetapkan baseline normal
-bila kelima pemeriksaan backend lulus. Tanggal mulai dan akhir empat minggu ditetapkan eksplisit
-setelah baseline tersedia, tanpa backdate. Laporan kickoff Workspace `essensial` tetap dipertahankan
-sebagai histori keputusan sebelumnya, bukan status aktif.
+Kohor dan artefak planning dasar kini tersedia. Atas persetujuan eksplisit pengguna, Subtask QA
+`test billing v3` dipindahkan dari assignee QA lama ke akun QA Production baru
+`mandorreyand01@gmail.com`. Mutasi atomik mempertahankan role/delivery area, mencatat Activity
+perubahan assignee, dan membuat notifikasi in-app. Smoke test terotentikasi kemudian membuktikan
+login `200`, role `qa`, readiness `200`, `canSubmitReview: true`, dan `reviewRole: qa`; sesi uji
+diakhiri melalui logout tanpa mengirim review. Pengguna kemudian menyetujui rekomendasi `ready` dan
+catatan “QA menyatakan Feature siap untuk memulai pilot observasi empat minggu.” API Production
+menyimpan review tersebut sebagai identitas QA yang terautentikasi dan state readiness membacanya
+kembali sebagai review QA terbaru.
+
+Pilot tetap berstatus blocked karena belum ada review kesiapan Developer maupun baseline Feature.
+Assignee Developer harus mengirim reviewnya sendiri melalui panel **Kesiapan Feature**, kemudian
+Owner menetapkan baseline normal bila kelima pemeriksaan backend lulus. Tanggal mulai dan akhir empat
+minggu ditetapkan eksplisit setelah baseline tersedia, tanpa backdate. Laporan kickoff Workspace
+`essensial` tetap dipertahankan sebagai histori keputusan sebelumnya, bukan status aktif.
 
 ## Source of truth and impact
 
@@ -28,10 +37,12 @@ sebagai histori keputusan sebelumnya, bukan status aktif.
 - **Policy IDs:** `DOMAIN-002`, `DOMAIN-003`, `DOMAIN-004`, `AUTH-001`, `AUTH-002`, `FLOW-002`,
   `FLOW-005`, `QA-005`, `DATA-001`, `DATA-002`, `DATA-004`, `DATA-005`, `CONTRACT-001`, `TEST-001`,
   `DOC-002`, `DOC-003`, `DOC-004`.
-- **Data/interface impact:** tidak ada. Audit hanya membaca agregat database Production dan tidak
-  membuat atau mengubah anggota, Task, Requirement, dokumen, review, baseline, maupun temuan.
-- **Authorization impact:** tidak ada. Batas peran P1A/P1B dan kewajiban assignee Development/QA
-  tetap mengikuti policy backend yang ada.
+- **Data/interface impact:** assignee satu Subtask QA Production berubah ke anggota QA baru; satu
+  Activity perubahan assignee dan satu notifikasi in-app ditambahkan. Satu review QA append-only
+  dengan rekomendasi/catatan yang disetujui pengguna juga ditambahkan. Tidak ada perubahan Feature,
+  Requirement, dokumen, baseline, temuan, Test Result, kontrak, atau schema.
+- **Authorization impact:** akun QA baru kini menjadi assignee Subtask QA dan backend readiness
+  mengizinkannya mengirim review QA. Batas peran P1A/P1B lainnya tidak berubah.
 - **Migration risk:** tidak ada migrasi baru atau eksekusi migrasi; additive migration 67–69 yang
   sudah `up` tetap menjadi fondasi mode observasi.
 
@@ -48,20 +59,31 @@ sebagai histori keputusan sebelumnya, bukan status aktif.
 
 - Audit PostgreSQL baca-saja menggunakan alias database Production eksplisit — menemukan tepat satu
   Workspace aktif bernama dan berslug `kerjaa`; transaksi diakhiri tanpa commit data bisnis.
-- Audit kohor Production — anggota aktif: Owner 1, Admin 0, Product Owner 0, Developer 1, QA 1;
+- Audit kohor Production — anggota aktif setelah provisioning: Owner 1, Admin 0, Product Owner 0,
+  Developer 1, QA 2;
   root Feature 1 (`billing v3`); Subtask 3, termasuk satu Development yang ditugaskan kepada
   Developer dan satu QA yang ditugaskan kepada QA.
 - Audit artefak Feature `billing v3` — dua Requirement aktif, masing-masing memiliki satu Acceptance
   Criterion aktif; satu Product Brief utama versi 1 berstatus approved; review kesiapan 0; baseline
   0; Temuan Requirement 0.
+- Transaksi reassignment Production terarah — lulus; tepat satu Subtask QA `todo` berpindah dari
+  assignee lama ke akun QA baru, dengan Activity `subtask.assigneeId_updated` dan notifikasi
+  `assignment` persisten. Tidak ada review yang tersedia saat guard reassignment diperiksa.
+- Smoke test API Production terotentikasi — login `200`, readiness `200`, role akun `qa`,
+  `canSubmitReview: true`, `reviewRole: qa`, `qaReviewExists: false`, `readyToBaseline: false`, dan
+  logout `204`; 0 review/baseline dibuat.
+- Pengiriman review QA melalui API Production — `201`; role review `qa`, rekomendasi `ready`, dan
+  catatan yang disetujui pengguna kembali terbaca sebagai review QA terbaru. State sesudahnya:
+  review Developer belum ada dan `readyToBaseline: false`; sesi ditutup kembali.
 - `npm run docs:check` — lulus 5/5 test governance, 0 gagal dan 0 dilewati; validasi tautan dan
   policy registry lulus.
 - `git diff --check` — lulus tanpa whitespace error.
 
 ## Risks or follow-up
 
-- **Blocker:** assignee Developer dan QA perlu mengirim review kesiapan mereka sendiri pada Feature
-  `billing v3`; identitas dan pendapat review tidak boleh diwakili atau direkayasa oleh agen.
+- **Blocker:** assignee Developer perlu mengirim review kesiapan autentiknya pada Feature
+  `billing v3`; identitas dan pendapat review Developer tidak boleh diwakili atau direkayasa oleh
+  agen.
 - Setelah kedua review tersedia, Owner perlu menetapkan baseline normal melalui UI bila kelima
   pemeriksaan backend lulus.
 - Jangan membuat identitas, histori, Test Result, atau bukti QA palsu untuk membuka blocker.
