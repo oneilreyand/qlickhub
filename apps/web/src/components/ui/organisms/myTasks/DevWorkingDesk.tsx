@@ -874,9 +874,9 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       {/* TAB 2: TEAM DISCUSSION */}
       {activeTab === 'discussion' && (
         <div className="animate-fadeIn">
-          {/* BLOCK D: WhatsApp / Slack Style Bubble Chat with Subtask Theme Colors */}
+          {/* BLOCK D: Unified Team Stream Collaboration */}
           <TaskCommentBox
-            variant="bubble"
+            variant="stream"
             comments={comments}
             currentUserId={currentUserId}
             members={members}
@@ -884,7 +884,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             onUpdateComment={handleUpdateComment}
             onDeleteComment={handleDeleteComment}
             title="Diskusi Kolaborasi Subtask"
-            placeholder="Tulis pesan untuk tim (FE, BE, QA, PO)... (Shift+Enter untuk baris baru)"
+            placeholder="Tulis pesan untuk tim (FE, BE, QA, PO)... (Ctrl / ⌘ + Enter untuk kirim)"
             maxHeight="max-h-[560px]"
           />
         </div>

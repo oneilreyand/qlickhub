@@ -369,4 +369,140 @@ describe('TaskCommentBox Molecule Component', () => {
     expect(handleDeleteComment).toHaveBeenCalledWith('comm-1');
     expect(screen.queryByRole('dialog', { name: /Hapus komentar\?/i })).not.toBeInTheDocument();
   });
+
+  it('renders stream variant with team stream layout, role badges, and sticky bottom dock', () => {
+    const streamMembers = [
+      {
+        userId: 'user-1',
+        role: 'po',
+        user: { name: 'Sarah PO', email: 'sarah@qlick.test' },
+      },
+      {
+        userId: 'user-2',
+        role: 'dev',
+        specialty: 'frontend' as const,
+        user: { name: 'Bob Developer', email: 'bob@qlick.test' },
+      },
+      {
+        userId: 'user-3',
+        role: 'qa',
+        user: { name: 'Charlie QA', email: 'charlie@qlick.test' },
+      },
+    ];
+
+    render(
+      <TaskCommentBox
+        variant="stream"
+        comments={mockComments}
+        currentUserId="user-2"
+        members={streamMembers}
+        onPostComment={vi.fn()}
+      />,
+    );
+
+    // Title & count
+    expect(screen.getByText(/Diskusi Kolaborasi Tim/i)).toBeInTheDocument();
+
+    // Role Badges: user-2 is current user -> 'Anda'
+    expect(screen.getByText(/Anda/i)).toBeInTheDocument();
+    // user-3 reply -> 'QA'
+    expect(screen.getByText('QA')).toBeInTheDocument();
+
+    // Tools in sticky bottom dock
+    expect(screen.getByRole('button', { name: /@channel/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /\+ Image Link/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /\+ Video Link/i })).toBeInTheDocument();
+    expect(screen.getByText(/Ctrl/i)).toBeInTheDocument();
+    expect(screen.getByText(/untuk kirim/i)).toBeInTheDocument();
+  });
+
+  it('handles keyboard shortcuts in stream variant: Enter allows newline, Ctrl+Enter or Cmd+Enter submits', async () => {
+    const handlePostComment = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TaskCommentBox
+        variant="stream"
+        comments={mockComments}
+        currentUserId="user-2"
+        members={mockMembers}
+        onPostComment={handlePostComment}
+      />,
+    );
+
+    const textarea = screen.getByPlaceholderText(/Write a message to your team/i);
+    fireEvent.change(textarea, { target: { value: 'Line 1 of comment' } });
+
+    // Plain Enter should NOT trigger submit
+    fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: false, metaKey: false });
+    expect(handlePostComment).not.toHaveBeenCalled();
+
+    // Ctrl + Enter should trigger submit
+    await act(async () => {
+      fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true });
+    });
+    expect(handlePostComment).toHaveBeenCalledWith('Line 1 of comment', null, []);
+  });
+
+  it('renders top-positioned pagination button in stream variant and calls onLoadMore', () => {
+    const handleLoadMore = vi.fn();
+    render(
+      <TaskCommentBox
+        variant="stream"
+        comments={mockComments}
+        currentUserId="user-2"
+        members={mockMembers}
+        hasMore={true}
+        onLoadMore={handleLoadMore}
+        onPostComment={vi.fn()}
+      />,
+    );
+
+    const loadMoreBtn = screen.getByRole('button', { name: /Muat komentar sebelumnya/i });
+    expect(loadMoreBtn).toBeInTheDocument();
+
+    fireEvent.click(loadMoreBtn);
+    expect(handleLoadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports inline reply and delete modal in stream variant', async () => {
+    const handlePostComment = vi.fn().mockResolvedValue(undefined);
+    const handleDeleteComment = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TaskCommentBox
+        variant="stream"
+        comments={mockComments}
+        currentUserId="user-2"
+        members={mockMembers}
+        onPostComment={handlePostComment}
+        onDeleteComment={handleDeleteComment}
+      />,
+    );
+
+    // Click "Balas" button on parent comment
+    const replyButtons = screen.getAllByRole('button', { name: /Balas/i });
+    fireEvent.click(replyButtons[0]);
+
+    expect(screen.getByText(/Membalas @Bob Developer/i)).toBeInTheDocument();
+    const replyInput = screen.getByPlaceholderText(/Tulis balasan langsung untuk @Bob Developer/i);
+    fireEvent.change(replyInput, { target: { value: 'Balasan tim FE' } });
+
+    const sendReplyBtn = screen.getByRole('button', { name: /Kirim Balasan/i });
+    await act(async () => {
+      fireEvent.click(sendReplyBtn);
+    });
+    expect(handlePostComment).toHaveBeenCalledWith('Balasan tim FE', 'comm-1');
+
+    // Delete comment
+    const deleteBtn = screen.getByRole('button', { name: /Hapus pesan/i });
+    fireEvent.click(deleteBtn);
+
+    const dialog = screen.getByRole('dialog', { name: /Hapus pesan\?/i });
+    expect(dialog).toBeInTheDocument();
+
+    const confirmDeleteBtn = within(dialog).getByRole('button', { name: /Hapus Pesan/i });
+    await act(async () => {
+      fireEvent.click(confirmDeleteBtn);
+    });
+    expect(handleDeleteComment).toHaveBeenCalledWith('comm-1');
+  });
 });

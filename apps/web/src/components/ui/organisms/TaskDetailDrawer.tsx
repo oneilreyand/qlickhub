@@ -1305,6 +1305,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               comments={comments}
               currentUserId={currentUserId || undefined}
               members={members}
+              variant="stream"
               title="Diskusi Task"
               showMentionChips={true}
               emptyIllustrationUrl={EMPTY_DISCUSSION_ILLUSTRATION_URL}

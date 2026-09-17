@@ -1,11 +1,16 @@
 import React from 'react';
-import type { TaskComment } from '@qlick/contracts';
+import type { DeveloperSpecialty, TaskComment } from '@qlick/contracts';
 import { TaskCommentBox } from './TaskCommentBox';
 
 export interface SubtaskCommentBoxProps {
   comments: TaskComment[];
   currentUserId?: string;
-  members?: Array<{ userId: string; role: string; user?: { name?: string; email?: string } }>;
+  members?: Array<{
+    userId: string;
+    role: string;
+    specialty?: DeveloperSpecialty;
+    user?: { name?: string; email?: string };
+  }>;
   onPostComment: (
     body: string,
     parentCommentId?: string | null,
@@ -13,7 +18,7 @@ export interface SubtaskCommentBoxProps {
   ) => Promise<void> | void;
   onUpdateComment?: (commentId: string, body: string) => Promise<void> | void;
   onDeleteComment?: (commentId: string) => Promise<void> | void;
-  variant?: 'thread' | 'bubble';
+  variant?: 'thread' | 'bubble' | 'stream';
   title?: string;
   placeholder?: string;
   isLoading?: boolean;
@@ -29,9 +34,9 @@ export const SubtaskCommentBox: React.FC<SubtaskCommentBoxProps> = ({
   onPostComment,
   onUpdateComment,
   onDeleteComment,
-  variant = 'bubble',
+  variant = 'stream',
   title = 'Diskusi Kolaborasi Subtask',
-  placeholder = 'Tulis pesan untuk tim (FE, BE, QA, PO)... (Shift+Enter untuk baris baru)',
+  placeholder = 'Tulis pesan untuk tim (FE, BE, QA, PO)... (Ctrl / ⌘ + Enter untuk kirim)',
   isLoading = false,
   error = null,
   onRetry,

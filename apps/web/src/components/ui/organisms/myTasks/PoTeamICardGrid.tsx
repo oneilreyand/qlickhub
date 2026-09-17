@@ -591,15 +591,14 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             </div>
 
             {/* Subtask Discussion stream */}
-            <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-800">
-              <label className="text-xs font-bold text-stone-500 uppercase tracking-wider">
-                Diskusi &amp; Catatan Subtask
-              </label>
+            <div className="pt-2 border-t border-stone-200 dark:border-stone-800">
               <SubtaskCommentBox
                 comments={subtaskComments}
                 currentUserId={currentUserId}
                 members={members}
                 onPostComment={handlePostSubtaskComment}
+                title="Diskusi & Catatan Subtask"
+                maxHeight="max-h-[360px]"
               />
             </div>
           </div>

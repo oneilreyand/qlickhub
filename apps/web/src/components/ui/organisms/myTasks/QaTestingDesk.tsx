@@ -1865,17 +1865,14 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               onDataChanged();
             }}
           />
-          <Card className="space-y-3 border-stone-200/80 p-5 dark:border-stone-800">
-            <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-              Diskusi Kolaborasi &amp; Masukan QA
-            </h3>
-            <SubtaskCommentBox
-              comments={comments}
-              currentUserId={currentUserId}
-              members={members}
-              onPostComment={handlePostComment}
-            />
-          </Card>
+          <SubtaskCommentBox
+            comments={comments}
+            currentUserId={currentUserId}
+            members={members}
+            onPostComment={handlePostComment}
+            title="Diskusi Kolaborasi & Masukan QA"
+            maxHeight="max-h-[500px]"
+          />
         </section>
       )}
 

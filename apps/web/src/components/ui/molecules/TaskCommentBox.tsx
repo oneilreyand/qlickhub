@@ -11,7 +11,7 @@ import {
   CornerDownRight,
   X,
 } from 'lucide-react';
-import type { TaskComment } from '@qlick/contracts';
+import type { TaskComment, DeveloperSpecialty } from '@qlick/contracts';
 import { Button } from '../atoms/Button';
 import { IconButton } from '../atoms/IconButton';
 import { Avatar } from '../atoms/Avatar';
@@ -29,7 +29,12 @@ export const EMPTY_DISCUSSION_ILLUSTRATION_URL =
 export interface TaskCommentBoxProps {
   comments?: TaskComment[];
   currentUserId?: string;
-  members?: Array<{ userId: string; role: string; user?: { name?: string; email?: string } }>;
+  members?: Array<{
+    userId: string;
+    role: string;
+    specialties?: DeveloperSpecialty[];
+    user?: { name?: string; email?: string };
+  }>;
   onPostComment: (
     body: string,
     parentCommentId?: string | null,
@@ -47,7 +52,7 @@ export interface TaskCommentBoxProps {
   hasMore?: boolean;
   onLoadMore?: () => void;
   isLoadingMore?: boolean;
-  variant?: 'thread' | 'bubble';
+  variant?: 'thread' | 'bubble' | 'stream';
   maxHeight?: string;
 }
 
@@ -72,8 +77,14 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
   maxHeight = 'max-h-[340px]',
 }) => {
   const isBubble = variant === 'bubble';
+  const isStream = variant === 'stream';
   const defaultTitle =
-    title || (isBubble ? 'Diskusi Kolaborasi Subtask' : 'Diskusi Pengerjaan Task');
+    title ||
+    (isStream
+      ? 'Diskusi Kolaborasi Tim'
+      : isBubble
+        ? 'Diskusi Kolaborasi Subtask'
+        : 'Diskusi Pengerjaan Task');
 
   const [commentText, setCommentText] = useState('');
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
@@ -137,10 +148,10 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
   }, [comments]);
 
   useEffect(() => {
-    if (isBubble) {
+    if (isBubble || isStream) {
       scrollToBottom('smooth');
     }
-  }, [comments.length, rootComments.length, isBubble]);
+  }, [comments.length, rootComments.length, isBubble, isStream]);
 
   const getAuthorName = (authorId: string, fallbackName?: string) => {
     if (fallbackName) return fallbackName;
@@ -151,6 +162,69 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
   const getAuthorRole = (authorId: string) => {
     const member = members.find((m) => m.userId === authorId);
     return member?.role?.toUpperCase() || 'MEMBER';
+  };
+
+  const getRoleBadge = (authorId: string, isMe: boolean) => {
+    const member = members.find((m) => m.userId === authorId);
+    const role = member?.role?.toLowerCase() || 'member';
+    const specialty = member?.specialties?.[0];
+
+    if (isMe) {
+      let roleTag = 'MEMBER';
+      if (role === 'po' || role === 'owner' || role === 'admin') roleTag = role.toUpperCase();
+      else if (role === 'dev') roleTag = specialty ? specialty.toUpperCase() : 'DEV';
+      else if (role === 'qa') roleTag = 'QA';
+      else roleTag = role.toUpperCase();
+
+      return {
+        label: `Anda (${roleTag})`,
+        classes: 'bg-[#B1E743] text-[#141413] border border-[#9ed336] shadow-2xs font-black',
+      };
+    }
+
+    if (role === 'owner' || role === 'admin' || role === 'po') {
+      return {
+        label: role.toUpperCase(),
+        classes:
+          'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 font-extrabold',
+      };
+    }
+
+    if (role === 'qa') {
+      return {
+        label: 'QA',
+        classes:
+          'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 font-extrabold',
+      };
+    }
+
+    if (role === 'dev') {
+      if (specialty === 'backend') {
+        return {
+          label: 'BE DEV',
+          classes:
+            'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 font-extrabold',
+        };
+      }
+      if (specialty === 'frontend') {
+        return {
+          label: 'FE DEV',
+          classes:
+            'bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-200 dark:border-sky-800/80 font-extrabold',
+        };
+      }
+      return {
+        label: specialty ? `${specialty.toUpperCase()} DEV` : 'DEV',
+        classes:
+          'bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-200 dark:border-sky-800/80 font-extrabold',
+      };
+    }
+
+    return {
+      label: role.toUpperCase(),
+      classes:
+        'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-bold',
+    };
   };
 
   const canManage = (comment: TaskComment) => {
@@ -167,7 +241,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
       await onPostComment(commentText.trim(), null, mentionedUserIds);
       setCommentText('');
       setMentionedUserIds([]);
-      if (isBubble) {
+      if (isBubble || isStream) {
         setTimeout(() => scrollToBottom('smooth'), 100);
       }
     } finally {
@@ -177,6 +251,9 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (isBubble && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendRoot();
+    } else if (isStream && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSendRoot();
     }
@@ -191,7 +268,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
       await onPostComment(replyText.trim(), parentId);
       setReplyText('');
       setReplyParentId(null);
-      if (isBubble) {
+      if (isBubble || isStream) {
         setTimeout(() => scrollToBottom('smooth'), 100);
       }
     } finally {
@@ -214,7 +291,19 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
   const handleDelete = (commentId: string) => {
     if (!onDeleteComment) return;
-    setCommentToDelete({ id: commentId, isBubble });
+    setCommentToDelete({ id: commentId, isBubble: isBubble || isStream });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!commentToDelete || !onDeleteComment) return;
+    const targetId = commentToDelete.id;
+    setDeletingId(targetId);
+    try {
+      await onDeleteComment(targetId);
+      setCommentToDelete(null);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const openMediaLinkDialog = (kind: 'image' | 'video', target: 'comment' | 'reply') => {
@@ -287,16 +376,49 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
     );
   };
 
-  const handleConfirmDelete = async () => {
-    if (!commentToDelete || !onDeleteComment) return;
-    const targetId = commentToDelete.id;
-    setDeletingId(targetId);
-    try {
-      await onDeleteComment(targetId);
-      setCommentToDelete(null);
-    } finally {
-      setDeletingId(null);
-    }
+  const renderDeleteConfirmationModal = () => {
+    if (!commentToDelete) return null;
+    return (
+      <Modal
+        isOpen={Boolean(commentToDelete)}
+        onClose={() => {
+          if (!deletingId) setCommentToDelete(null);
+        }}
+        title={commentToDelete?.isBubble ? 'Hapus pesan?' : 'Hapus komentar?'}
+        description={
+          commentToDelete?.isBubble
+            ? 'Tindakan ini akan menghapus pesan dari diskusi.'
+            : 'Tindakan ini akan menghapus komentar beserta balasan langsungnya dari diskusi Task.'
+        }
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-stone-600 dark:text-stone-300">
+            Yakin ingin menghapus {commentToDelete?.isBubble ? 'pesan' : 'komentar'} ini ? This
+            action cannot be undone.
+          </p>
+          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCommentToDelete(null)}
+              disabled={Boolean(deletingId)}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void handleConfirmDelete()}
+              isLoading={Boolean(deletingId)}
+              leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+            >
+              Hapus {commentToDelete?.isBubble ? 'Pesan' : 'Komentar'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
   };
 
   const totalCommentsCount = useMemo(() => {
@@ -311,9 +433,536 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
 
   const defaultPlaceholder =
     placeholder ||
-    (isBubble
-      ? 'Tulis pesan untuk tim (FE, BE, QA, PO)... (Shift+Enter untuk baris baru)'
-      : 'Write a message to your team (FE, BE, QA, PO)... (Paste link gambar, video, Figma, Drive, atau PR)');
+    (isStream
+      ? 'Write a message to your team... (Ctrl / ⌘ + Enter untuk kirim)'
+      : isBubble
+        ? 'Tulis pesan untuk tim (FE, BE, QA, PO)... (Shift+Enter untuk baris baru)'
+        : 'Write a message to your team (FE, BE, QA, PO)... (Paste link gambar, video, Figma, Drive, atau PR)');
+
+  // ==========================================
+  // VARIANT: STREAM (Unified Team Stream - Linear / Slack / GitHub Style)
+  // ==========================================
+  if (isStream) {
+    return (
+      <div className="flex flex-col rounded-2xl border border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] overflow-hidden shadow-xs">
+        {/* Header Bar */}
+        <div className="px-4 py-3 border-b border-stone-200/80 dark:border-stone-800 bg-stone-50/80 dark:bg-stone-900/60 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-stone-900 dark:text-stone-100">
+              {defaultTitle}
+            </h3>
+            {totalCommentsCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#B1E743] text-[#141413] shadow-xs">
+                {totalCommentsCount}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-stone-500 dark:text-stone-400">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Thread Live</span>
+          </div>
+        </div>
+
+        {/* Messages Stream Area */}
+        <div
+          ref={chatScrollContainerRef}
+          className={`flex-1 p-3 sm:p-4 overflow-y-auto ${maxHeight} space-y-3.5 bg-stone-50/50 dark:bg-[#141413]`}
+        >
+          {/* Pagination: Load Older Comments at Top */}
+          {hasMore && (
+            <div className="flex justify-center pb-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onLoadMore}
+                isLoading={isLoadingMore}
+                className="text-xs h-7 px-3 bg-white dark:bg-stone-900"
+              >
+                Muat komentar sebelumnya
+              </Button>
+            </div>
+          )}
+
+          {isLoading && comments.length === 0 ? (
+            <div className="space-y-3 py-4">
+              <div className="flex items-start gap-2.5">
+                <Skeleton variant="circular" className="h-7 w-7" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton variant="text" className="h-4 w-1/4" />
+                  <Skeleton variant="text" className="h-12 w-full" />
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Skeleton variant="circular" className="h-7 w-7" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton variant="text" className="h-4 w-1/3" />
+                  <Skeleton variant="text" className="h-10 w-3/4" />
+                </div>
+              </div>
+            </div>
+          ) : error ? (
+            <Alert tone="error" title="Diskusi tidak tersedia">
+              <div className="flex items-center justify-between gap-3">
+                <span>{error}</span>
+                {onRetry && (
+                  <Button variant="outline" size="sm" onClick={onRetry}>
+                    Coba Lagi
+                  </Button>
+                )}
+              </div>
+            </Alert>
+          ) : rootComments.length === 0 ? (
+            <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
+              <div className="flex justify-center">
+                {emptyIllustrationUrl ? (
+                  <img
+                    src={emptyIllustrationUrl}
+                    alt="Belum ada pesan diskusi"
+                    className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
+                    loading="lazy"
+                  />
+                ) : null}
+                <div
+                  className={`${emptyIllustrationUrl ? 'hidden dark:flex' : 'flex'} items-center justify-center py-2`}
+                >
+                  <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
+                    <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
+                    <MessageSquare className="h-7 w-7 text-[#B1E743]" />
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium max-w-sm mx-auto leading-relaxed">
+                Belum ada pesan dalam diskusi ini. Mulai percakapan pertama!
+              </p>
+            </div>
+          ) : (
+            rootComments.map((comment) => {
+              const isMe = comment.authorId === currentUserId;
+              const authorName = getAuthorName(comment.authorId, comment.authorName);
+              const roleBadge = getRoleBadge(comment.authorId, isMe);
+              const isEditing = editingCommentId === comment.id;
+              const isReplying = replyParentId === comment.id;
+
+              return (
+                <div key={comment.id} className="space-y-2">
+                  {/* Single Stream Left-Aligned Card */}
+                  <div
+                    className={`p-3 sm:p-3.5 rounded-xl border transition-all text-xs shadow-2xs space-y-2 ${
+                      isMe
+                        ? 'border-l-4 border-l-[#B1E743] bg-[#B1E743]/10 dark:bg-[#B1E743]/5 border-stone-200/80 dark:border-stone-800'
+                        : 'border-l-4 border-l-stone-300 dark:border-l-stone-700 bg-white dark:bg-[#1C1A19] border-stone-200/80 dark:border-stone-800'
+                    }`}
+                  >
+                    {/* Header: Avatar, Name, Role Badge, Time, Actions */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Avatar
+                          name={authorName}
+                          size="sm"
+                          className="h-6 w-6 sm:h-7 sm:w-7 text-[10px] shrink-0 shadow-xs"
+                        />
+                        <span className="font-bold text-xs sm:text-sm text-stone-900 dark:text-stone-100 truncate">
+                          {authorName}
+                        </span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded tracking-wider uppercase ${roleBadge.classes}`}>
+                          {roleBadge.label}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-[10px] text-stone-400 dark:text-stone-500">
+                        <span>
+                          {new Date(comment.createdAt || Date.now()).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                        {comment.editedAt && !comment.deletedAt && (
+                          <span
+                            className="text-[9px] text-stone-400 italic bg-stone-100 dark:bg-stone-800 px-1 py-0.2 rounded"
+                            title={`Diedit pada ${new Date(comment.editedAt).toLocaleTimeString()}`}
+                          >
+                            ✏️ diedit
+                          </span>
+                        )}
+                        {canManage(comment) && onUpdateComment && !isEditing && (
+                          <IconButton
+                            label="Edit pesan"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingCommentId(comment.id);
+                              setEditingCommentText(comment.body);
+                            }}
+                            className="h-6 w-6 text-stone-400 hover:text-stone-900 dark:hover:text-[#B1E743]"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </IconButton>
+                        )}
+                        {canManage(comment) && onDeleteComment && (
+                          <IconButton
+                            label="Hapus pesan"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(comment.id)}
+                            disabled={deletingId === comment.id}
+                            className="h-6 w-6 text-stone-400 hover:text-rose-500"
+                          >
+                            {deletingId === comment.id ? (
+                              <LoadingSpinner size="sm" />
+                            ) : (
+                              <Trash2 className="h-3 w-3" />
+                            )}
+                          </IconButton>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Message Body or In-place Editor */}
+                    {isEditing ? (
+                      <div className="space-y-2 mt-1">
+                        <Textarea
+                          value={editingCommentText}
+                          onChange={(e) => setEditingCommentText(e.target.value)}
+                          rows={2}
+                          className="text-xs bg-white text-stone-900 dark:bg-stone-950 dark:text-stone-100"
+                        />
+                        <div className="flex gap-1.5 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingCommentId(null)}
+                            className="h-7 text-xs px-2.5"
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => handleSaveEdit(comment.id)}
+                            isLoading={isSavingEdit}
+                            disabled={!editingCommentText.trim()}
+                            className="h-7 text-xs px-3"
+                          >
+                            Simpan
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`leading-relaxed text-xs sm:text-sm text-stone-800 dark:text-stone-200 ${comment.deletedAt ? 'italic opacity-60' : ''}`}>
+                        <DiscussionMediaRenderer content={comment.body} />
+                      </div>
+                    )}
+
+                    {/* Mentions badge */}
+                    {comment.mentions && comment.mentions.length > 0 && !comment.deletedAt && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-amber-700 dark:text-amber-400 font-medium pt-0.5">
+                        <span>Mentions:</span>
+                        {comment.mentions.map((m) => (
+                          <span
+                            key={m.userId}
+                            className="bg-amber-100 dark:bg-amber-950/70 px-1.5 py-0.2 rounded font-bold"
+                          >
+                            @{m.userName}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Reply Action Trigger */}
+                    {!comment.deletedAt && (
+                      <div className="pt-0.5 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyParentId(isReplying ? null : comment.id);
+                            setReplyText('');
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-500 hover:text-stone-900 dark:hover:text-[#B1E743] transition-colors py-1 px-1 -ml-1"
+                        >
+                          <Reply className="h-3 w-3" />
+                          <span>{isReplying ? 'Batal Balas' : 'Balas'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Nested Replies */}
+                  {comment.repliesList && comment.repliesList.length > 0 && (
+                    <div className="pl-3 sm:pl-6 border-l-2 border-[#B1E743]/50 dark:border-[#B1E743]/40 space-y-2 mt-2 ml-2 sm:ml-3">
+                      {comment.repliesList.map((reply) => {
+                        const isReplyMe = reply.authorId === currentUserId;
+                        const replyAuthorName = getAuthorName(reply.authorId, reply.authorName);
+                        const replyRoleBadge = getRoleBadge(reply.authorId, isReplyMe);
+                        const isReplyEditing = editingCommentId === reply.id;
+
+                        return (
+                          <div
+                            key={reply.id}
+                            className={`p-2.5 sm:p-3 rounded-xl border transition-all text-xs space-y-1.5 ${
+                              isReplyMe
+                                ? 'border-l-3 border-l-[#B1E743] bg-[#B1E743]/10 dark:bg-[#B1E743]/5 border-stone-200/70 dark:border-stone-800'
+                                : 'border-l-3 border-l-stone-300 dark:border-l-stone-700 bg-white dark:bg-[#1C1A19] border-stone-200/70 dark:border-stone-800'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <CornerDownRight className="h-3 w-3 text-stone-400 shrink-0" />
+                                <Avatar
+                                  name={replyAuthorName}
+                                  size="sm"
+                                  className="h-5 w-5 text-[9px] shrink-0"
+                                />
+                                <span className="font-bold text-xs text-stone-900 dark:text-stone-100 truncate">
+                                  {replyAuthorName}
+                                </span>
+                                <span className={`text-[8px] px-1 py-0.2 rounded uppercase tracking-wider ${replyRoleBadge.classes}`}>
+                                  {replyRoleBadge.label}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 text-[9px] text-stone-400 dark:text-stone-500">
+                                <span>
+                                  {new Date(reply.createdAt || Date.now()).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
+                                {reply.editedAt && !reply.deletedAt && (
+                                  <span className="italic text-stone-400 text-[8px] bg-stone-100 dark:bg-stone-800 px-1 rounded">
+                                    ✏️ diedit
+                                  </span>
+                                )}
+                                {canManage(reply) && onUpdateComment && !isReplyEditing && (
+                                  <IconButton
+                                    label="Edit balasan"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setEditingCommentId(reply.id);
+                                      setEditingCommentText(reply.body);
+                                    }}
+                                    className="h-5 w-5 text-stone-400 hover:text-stone-900 dark:hover:text-[#B1E743]"
+                                  >
+                                    <Edit2 className="h-2.5 w-2.5" />
+                                  </IconButton>
+                                )}
+                                {canManage(reply) && onDeleteComment && (
+                                  <IconButton
+                                    label="Hapus balasan"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDelete(reply.id)}
+                                    disabled={deletingId === reply.id}
+                                    className="h-5 w-5 text-stone-400 hover:text-rose-500"
+                                  >
+                                    {deletingId === reply.id ? (
+                                      <LoadingSpinner size="sm" />
+                                    ) : (
+                                      <Trash2 className="h-2.5 w-2.5" />
+                                    )}
+                                  </IconButton>
+                                )}
+                              </div>
+                            </div>
+
+                            {isReplyEditing ? (
+                              <div className="space-y-1.5 mt-1">
+                                <Textarea
+                                  value={editingCommentText}
+                                  onChange={(e) => setEditingCommentText(e.target.value)}
+                                  rows={2}
+                                  className="text-xs bg-white text-stone-900 dark:bg-stone-950 dark:text-stone-100"
+                                />
+                                <div className="flex gap-1 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setEditingCommentId(null)}
+                                    className="h-6 text-[10px] px-2"
+                                  >
+                                    Batal
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="primary"
+                                    onClick={() => handleSaveEdit(reply.id)}
+                                    isLoading={isSavingEdit}
+                                    disabled={!editingCommentText.trim()}
+                                    className="h-6 text-[10px] px-2.5"
+                                  >
+                                    Simpan
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className={`leading-relaxed text-xs text-stone-800 dark:text-stone-200 ${reply.deletedAt ? 'italic opacity-60' : ''}`}>
+                                <DiscussionMediaRenderer content={reply.body} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Inline Reply Input Box */}
+                  {isReplying && (
+                    <div className="pl-3 sm:pl-6 border-l-2 border-[#B1E743]/50 dark:border-[#B1E743]/40 pt-1 mt-2 ml-2 sm:ml-3 animate-fadeIn">
+                      <div className="p-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/90 dark:bg-stone-900/60 space-y-2">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-stone-800 dark:text-stone-200">
+                          <span className="flex items-center gap-1">
+                            <CornerDownRight className="h-3 w-3" /> Membalas @{authorName}...
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setReplyParentId(null)}
+                            className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 p-1"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+
+                        <Textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder={`Tulis balasan langsung untuk @${authorName}...`}
+                          rows={2}
+                          className="text-xs bg-white dark:bg-stone-900"
+                        />
+
+                        <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openMediaLinkDialog('image', 'reply')}
+                              className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-semibold hover:text-[#22201F] dark:hover:text-[#B1E743] flex items-center gap-1"
+                              title="Insert image link"
+                            >
+                              <ImageIcon className="h-2.5 w-2.5 text-emerald-500" />
+                              <span>+ Gambar</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openMediaLinkDialog('video', 'reply')}
+                              className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-semibold hover:text-[#22201F] dark:hover:text-[#B1E743] flex items-center gap-1"
+                              title="Insert video link"
+                            >
+                              <VideoIcon className="h-2.5 w-2.5 text-red-500" />
+                              <span>+ Video</span>
+                            </button>
+                          </div>
+
+                          <div className="flex justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setReplyParentId(null)}
+                              className="h-7 text-xs px-2.5"
+                            >
+                              Batal
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => handleSendReply(comment.id)}
+                              isLoading={isSubmittingReply}
+                              disabled={!replyText.trim()}
+                              className="h-7 text-xs px-3"
+                              rightIcon={<Send className="h-3 w-3" />}
+                            >
+                              Kirim Balasan
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Sticky Bottom Input Dock */}
+        <div className="p-3 sm:p-3.5 border-t border-stone-200/80 dark:border-stone-800 bg-white/95 dark:bg-[#1C1A19]/95 backdrop-blur-xs space-y-2">
+          {/* Quick Tools Bar */}
+          <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!commentText.includes('@channel')) {
+                    setCommentText((prev) => (prev ? `@channel ${prev}` : '@channel '));
+                  }
+                }}
+                className={`text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 transition-all ${
+                  commentText.includes('@channel')
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/60'
+                }`}
+                title="Broadcast ke semua anggota tim"
+              >
+                <Volume2 className="h-3 w-3" />
+                <span>@channel</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openMediaLinkDialog('image', 'comment')}
+                className="text-[10px] sm:text-xs px-2.5 py-1 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1 min-h-[28px]"
+              >
+                <ImageIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                <span>+ Image Link</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openMediaLinkDialog('video', 'comment')}
+                className="text-[10px] sm:text-xs px-2.5 py-1 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1 min-h-[28px]"
+              >
+                <VideoIcon className="h-3 w-3 text-red-500" />
+                <span>+ Video Link</span>
+              </button>
+            </div>
+
+            <span className="text-[10px] text-stone-400 dark:text-stone-500 hidden sm:inline">
+              <kbd className="px-1 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-[9px] font-mono">Ctrl</kbd> / <kbd className="px-1 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-[9px] font-mono">⌘</kbd> + <kbd className="px-1 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-[9px] font-mono">Enter</kbd> untuk kirim
+            </span>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSendRoot} className="flex items-end gap-2">
+            <div className="flex-1 min-w-0">
+              <Textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={defaultPlaceholder}
+                rows={2}
+                className="text-xs sm:text-sm resize-none bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 focus:border-[#B1E743] dark:focus:border-[#B1E743]"
+              />
+            </div>
+
+            <Button
+              size="sm"
+              variant="primary"
+              type="submit"
+              isLoading={isSubmitting}
+              disabled={!commentText.trim()}
+              className="h-9 px-3.5 sm:px-4 shrink-0 rounded-xl font-bold min-h-[44px] sm:min-h-[36px]"
+              rightIcon={<Send className="h-3.5 w-3.5" />}
+            >
+              Kirim
+            </Button>
+          </form>
+        </div>
+        {renderMediaLinkModal()}
+        {renderDeleteConfirmationModal()}
+      </div>
+    );
+  }
 
   // ==========================================
   // VARIANT: BUBBLE (WhatsApp / Slack Upward Layout)
@@ -793,6 +1442,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
           </form>
         </div>
         {renderMediaLinkModal()}
+        {renderDeleteConfirmationModal()}
       </div>
     );
   }
@@ -1395,47 +2045,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
       )}
 
       {renderMediaLinkModal()}
-
-      {/* Modal: Delete Comment Confirmation */}
-      <Modal
-        isOpen={Boolean(commentToDelete)}
-        onClose={() => {
-          if (!deletingId) setCommentToDelete(null);
-        }}
-        title={commentToDelete?.isBubble ? 'Hapus pesan?' : 'Hapus komentar?'}
-        description={
-          commentToDelete?.isBubble
-            ? 'Tindakan ini akan menghapus pesan dari diskusi.'
-            : 'Tindakan ini akan menghapus komentar beserta balasan langsungnya dari diskusi Task.'
-        }
-        size="sm"
-      >
-        <div className="space-y-4">
-          <p className="text-xs text-stone-600 dark:text-stone-300">
-            Yakin ingin menghapus {commentToDelete?.isBubble ? 'pesan' : 'komentar'} ini ? This
-            action cannot be undone.
-          </p>
-          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCommentToDelete(null)}
-              disabled={Boolean(deletingId)}
-            >
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => void handleConfirmDelete()}
-              isLoading={Boolean(deletingId)}
-              leftIcon={<Trash2 className="h-3.5 w-3.5" />}
-            >
-              Hapus {commentToDelete?.isBubble ? 'Pesan' : 'Komentar'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {renderDeleteConfirmationModal()}
     </div>
   );
 };
