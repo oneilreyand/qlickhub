@@ -35,4 +35,4 @@ Sidebar dan Header kini hanya memperlihatkan Pengaturan Workspace kepada Owner, 
 
 ## TODO update
 
-- `WORKSPACE-SETTINGS-NAV-VISIBILITY` → `Done` setelah deployment Production.
+- `WORKSPACE-SETTINGS-NAV-VISIBILITY` → `Done`; commit `ee796f3` telah aktif di Production dan `/health` mengonfirmasi database `connected`.
