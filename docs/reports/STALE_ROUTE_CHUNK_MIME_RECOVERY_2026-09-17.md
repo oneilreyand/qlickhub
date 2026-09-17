@@ -34,4 +34,4 @@ Pemulihan route chunk kini mengenali pesan browser bahwa respons `text/html` buk
 
 ## TODO update
 
-- `STALE-ROUTE-CHUNK-MIME-RECOVERY` → `Done` setelah deployment Production dan smoke check.
+- `STALE-ROUTE-CHUNK-MIME-RECOVERY` → `Done`; commit `0e8caba` telah dideploy ke Production dan `/health` mengonfirmasi database `connected`.
