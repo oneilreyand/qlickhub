@@ -37,6 +37,13 @@ describe('routeChunkRecovery', () => {
       ),
     ).toBe(true);
     expect(isRouteChunkLoadError(new TypeError('Importing a module script failed.'))).toBe(true);
+    expect(
+      isRouteChunkLoadError(
+        new TypeError(
+          "Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of 'text/html'.",
+        ),
+      ),
+    ).toBe(true);
     expect(isRouteChunkLoadError(new Error('Ordinary page render failure'))).toBe(false);
   });
 

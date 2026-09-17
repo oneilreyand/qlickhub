@@ -8,6 +8,7 @@ const routeChunkErrorPatterns = [
   /unable to preload css for/i,
   /loading chunk .+ failed/i,
   /chunkloaderror/i,
+  /(?:mime type.*text\/html|text\/html.*(?:mime type|javascript))/i,
 ];
 
 export interface RouteChunkRecoveryEnvironment {
