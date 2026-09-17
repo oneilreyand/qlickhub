@@ -6,11 +6,11 @@ Rilis rangkaian perbaikan QA assurance end-to-end: peran dan otorisasi eksekusi 
 
 ## Outcome
 
-Commit `93ea79b` (merge yang memuat `acc7a2d`) telah dipush ke `origin/main` dan artefak aplikasinya dideploy ke Vercel Production sebagai `dpl_ARuLErwicEeycnEgBAbUf83dhYc9`. Deployment berstatus `Ready` dan memegang alias kanonikal `https://qlickhub.vercel.app`.
+Commit `93ea79b` (merge yang memuat `acc7a2d`) telah dipush ke `origin/main`. Artefak aplikasi kemudian dideploy ulang ke Vercel Production setelah koneksi database Production diperbarui; deployment berstatus `Ready` dan memegang alias kanonikal `https://qlickhub.vercel.app`.
 
 Perubahan menjaga bukti Bug setiap siklus tetap append-only: Result awal, Resolution Event Developer, Retest Attempt QA, dan evidence sebelumnya tidak ditimpa ketika siklus berikutnya dibuat. Meja QA membagi informasi ke tahap yang mudah dipahami, menyatakan blocker serta hak akses secara eksplisit, dan membawa pengguna ke konteks tugas QA yang benar setelah refresh/deep link.
 
-Tidak ada mutasi data bisnis saat deployment. Vercel hanya menerapkan artefak aplikasi; migrasi tidak dieksekusi otomatis maupun manual terhadap Production dalam rilis ini. Karena `MIGRATION_DATABASE_URL` Production tidak tersedia pada runner rilis, status migration Production belum dapat diaudit dan migrasi 71–82 belum dapat diaktifkan. Workflow QA baru karenanya belum boleh dinyatakan siap Production sepenuhnya.
+Tidak ada mutasi data bisnis yang disengaja saat deployment. Setelah backup logical penuh Production dibuat secara lokal dan disetujui pemilik, audit migrasi read-only dilakukan melalui koneksi migrasi terpisah. Seluruh migrasi 17–70 telah terkonfirmasi `up`, lalu migrasi additive 71–82 diterapkan dan audit akhir mengonfirmasi seluruh migrasi 17–82 `up`. Vercel hanya menerapkan artefak aplikasi; migrasi tidak dieksekusi otomatis oleh Vercel.
 
 ## Source of truth and impact
 
@@ -18,7 +18,7 @@ Tidak ada mutasi data bisnis saat deployment. Vercel hanya menerapkan artefak ap
 - **Policy IDs:** `AUTH-001`, `AUTH-002`, `AUTH-009`, `QA-004`, `QA-006`, `QA-007`, `QA-008`, `QA-009`, `DATA-001`, `DATA-002`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-003`, `DOC-004`.
 - **Data/interface impact:** Kontrak QA dan persistence assurance sudah menjadi bagian release; antarmuka menampilkan capability, blocker, riwayat siklus, dan bukti dari backend. Tidak ada data contoh atau state browser sebagai sumber keputusan.
 - **Authorization impact:** Mutasi eksekusi dibatasi oleh policy backend pada QA assignee; role lain melihat keadaan read-only atau menerima penolakan terautorisasi.
-- **Migration risk:** Migrasi 71–82 sudah tervalidasi dari database bersih oleh browser E2E, tetapi status Production belum dapat diaudit. Koneksi `MIGRATION_DATABASE_URL` serta backup/recovery plan diperlukan sebelum migrasi Production dijalankan.
+- **Migration risk:** Migrasi 71–82 sudah tervalidasi dari database bersih oleh browser E2E dan kini telah diterapkan ke Production setelah backup/recovery plan disetujui. Semua perubahan additive; rollback harus mempertimbangkan kompatibilitas aplikasi lama dengan schema assurance yang sudah aktif.
 
 ## Changed files
 
@@ -36,14 +36,15 @@ Tidak ada mutasi data bisnis saat deployment. Vercel hanya menerapkan artefak ap
 - `npm --prefix apps/web run test:e2e` — 16/16 lulus dengan satu worker, database PostgreSQL test baru, dan semua migrasi 17–82 diterapkan lalu dibersihkan runner.
 - Vercel build Production — TypeScript contracts/API dan build Vite (1.711 modul) lulus.
 - Smoke Production `https://qlickhub.vercel.app` — `GET /` 200, `GET /login` 200, `GET /health` 200, dan `GET /v1/workspaces` tanpa sesi 401.
-- Audit migration Production — **blocked**: `MIGRATION_DATABASE_URL` tidak tersedia di runner rilis; tidak ada koneksi runtime yang dipakai sebagai pengganti.
+- Backup logical penuh Production — dibuat pada runner lokal dalam format PostgreSQL custom dan diverifikasi dapat dibaca oleh `pg_restore`; artefak berisi data sensitif dan tidak dicatat di Git.
+- Audit/migrasi Production — koneksi migrasi terpisah digunakan, status awal 17–70 `up`, migrasi 71–82 berhasil diterapkan, dan audit akhir mengonfirmasi seluruh 17–82 `up`.
+- Verifikasi pascadeploy — `/health` mengembalikan database `connected`; `/` dan `/login` mengembalikan 200, sedangkan `/v1/workspaces` tanpa sesi tetap 401.
 
 ## Risks or follow-up
 
-- Blocker rilis penuh: sediakan runner dengan `MIGRATION_DATABASE_URL` Production dan backup/recovery plan. Audit dahulu seluruh migration secara read-only, lalu jalankan `npm run db:migrate:prod` hanya setelah hasil audit disetujui. Jangan gunakan `DATABASE_URL` runtime untuk migrasi.
 - Peringatan deprecation `pg` pada proses E2E dan 20 warning lint lama tidak menghalangi artefak aplikasi; keduanya dapat ditangani sebagai maintenance terpisah.
 - Bila rollback diperlukan, nilai dahulu kompatibilitas aplikasi lama dengan schema QA assurance yang sudah tersedia; jangan redeploy commit lama secara buta.
 
 ## TODO update
 
-- `QA-E2E-S7-BROWSER-UAT` → `Blocked` sampai migration Production 71–82 diaudit dan diterapkan dengan aman.
+- `QA-E2E-S7-BROWSER-UAT` → `Done`; browser E2E disposable, migrasi Production, deployment, dan smoke check telah diverifikasi.
