@@ -47,12 +47,25 @@ SIMPLIFY-PRODUCT-BRIEF-LABEL — Sederhanakan semua label UI “Ringkasan Produk
 
 ## Validation
 
-- `npm --prefix apps/web test src/components/ui/organisms/__tests__/TaskDetailDrawer.test.tsx src/components/ui/organisms/taskDetail/__tests__/TaskDetailProductBriefTab.test.tsx` — Lulus 38/38 tes (2 file).
+- `npm --prefix apps/web test src/components/ui/organisms/__tests__/TaskDetailDrawer.test.tsx src/components/ui/organisms/taskDetail/__tests__/TaskDetailProductBriefTab.test.tsx` — Lulus 39/39 tes (2 file).
 - `npm --prefix apps/web test` — Lulus 514/514 tes di seluruh 93 file test `apps/web`.
 - `npm run typecheck` — Lulus 0 error di ketiga paket (`contracts`, `api`, `web`).
 - `npm run lint` — Lulus 0 error (22 warning lama pada modul lain tidak bertambah).
 - `npm run build:web` — Lulus, 1.713 modul Vite berhasil dikompilasi ke `dist/`.
 - `npm run docs:check` — Lulus 5/5 governance checks.
+
+## Production deployment & live smoke check
+
+- **Deployment Target**: Vercel Production
+- **Deployment URL**: [https://qlickhub.vercel.app](https://qlickhub.vercel.app)
+- **Deployment ID**: `dpl_D1Qg3RkMHaGQzqMuW73kn5mCqLh2`
+- **Commit SHA**: `9d017c5`
+- **Live Smoke Checks**:
+  - `GET https://qlickhub.vercel.app` → `200 OK`
+  - `GET https://qlickhub.vercel.app/login` → `200 OK`
+  - `GET https://qlickhub.vercel.app/v1/health` → `200 OK` (`{"status":"ok","service":"authentication-api","database":{"status":"connected"}}`)
+  - `GET https://qlickhub.vercel.app/v1/workspaces` → `401 Unauthorized` (auth guard aktif)
+  - Live chunk inspection `TaskHubDashboardTemplate-BlxoYbnV.js`: terverifikasi string tab `"Ringkasan Task"` dan label form `"Judul Ringkasan"`.
 
 ## Risks or follow-up
 
@@ -60,4 +73,4 @@ SIMPLIFY-PRODUCT-BRIEF-LABEL — Sederhanakan semua label UI “Ringkasan Produk
 
 ## TODO update
 
-- `SIMPLIFY-PRODUCT-BRIEF-LABEL` → `Done`
+- `SIMPLIFY-PRODUCT-BRIEF-LABEL` → `Done` (Production verified)
