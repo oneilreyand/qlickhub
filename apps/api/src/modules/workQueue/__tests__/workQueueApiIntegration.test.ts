@@ -32,6 +32,7 @@ import {
 } from '../../../db/models/index.js';
 import { accessTokenCookieName, signToken } from '../../auth/jwt.js';
 import { sessionManager } from '../../auth/sessionManager.js';
+import { workQueueService } from '../workQueueService.js';
 
 describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () => {
   let server: Server;
@@ -636,6 +637,20 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     assert.ok(
       queue.buckets.flatMap((entry) => entry.items).every((item) => Boolean(item.workState)),
     );
+
+    const queryTransactions: unknown[] = [];
+    const hookName = 'qa-work-queue-single-transaction-regression';
+    sequelize.addHook('beforeQuery', hookName, (options) => {
+      if (options.type === 'SELECT') queryTransactions.push(options.transaction);
+    });
+    try {
+      await workQueueService.getRoleAwareQueue(workspaceA.id, qa.id);
+    } finally {
+      sequelize.removeHook('beforeQuery', hookName);
+    }
+    assert.ok(queryTransactions.length > 0);
+    assert.ok(queryTransactions.every(Boolean));
+    assert.strictEqual(new Set(queryTransactions).size, 1);
   });
 
   test('enforces membership before returning queue data and keeps Workspaces isolated', async () => {
