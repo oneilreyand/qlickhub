@@ -87,7 +87,7 @@ describe('TaskDetailProductBriefTab', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Ringkasan Produk' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ringkasan' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Card checkout')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Cryptocurrency')).toBeInTheDocument();
     expect(screen.getByLabelText('Konteks produk dan referensi eksternal')).toHaveValue(
@@ -119,7 +119,7 @@ describe('TaskDetailProductBriefTab', () => {
     });
   });
 
-  test('renders Ringkasan Produk read-only for QA', () => {
+  test('renders Ringkasan read-only for QA', () => {
     render(
       <TaskDetailProductBriefTab
         task={task}
@@ -131,9 +131,68 @@ describe('TaskDetailProductBriefTab', () => {
       />,
     );
 
-    expect(screen.getByText('Ringkasan Produk hanya dapat dilihat')).toBeInTheDocument();
+    expect(screen.getByText('Ringkasan hanya dapat dilihat')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Card checkout')).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Simpan Versi Baru' })).not.toBeInTheDocument();
+  });
+
+  test('renders error state with retry action when loadError is present', () => {
+    const onReload = vi.fn();
+    render(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="po"
+        productBrief={null}
+        loadError="Gagal memuat dokumen dari server."
+        onReload={onReload}
+      />,
+    );
+
+    expect(screen.getByText('Ringkasan tidak tersedia')).toBeInTheDocument();
+    expect(screen.getByText('Gagal memuat dokumen dari server.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
+    expect(onReload).toHaveBeenCalledTimes(1);
+  });
+
+  test('renders empty state info for non-planners when brief is not yet available', () => {
+    render(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="dev"
+        productBrief={null}
+        loadError={null}
+        onReload={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Ringkasan belum tersedia')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Product Owner, Admin, atau Owner perlu menentukan konteks dan cakupan Feature.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test('shows fallback title and validation error when title is empty', () => {
+    render(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="po"
+        productBrief={null}
+        loadError={null}
+        onReload={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByDisplayValue(`Ringkasan ${task.title}`)).toBeInTheDocument();
+    const titleInput = screen.getByLabelText('Judul Ringkasan');
+    fireEvent.change(titleInput, { target: { value: '   ' } });
+
+    expect(screen.getByText('Judul Ringkasan wajib diisi.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simpan Versi Baru' })).toBeDisabled();
   });
 
   test('announces unsaved changes and clears the dirty state after saving', async () => {

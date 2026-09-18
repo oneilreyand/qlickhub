@@ -437,6 +437,7 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(
       await screen.findByRole('heading', { name: 'Test Parent Task Title' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Ringkasan Task')).toBeInTheDocument();
     expect(screen.getByText('Ringkasan')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Subtask (0)' })).toBeInTheDocument();
     expect(screen.getByText(/^Aktivitas \(/)).toBeInTheDocument();
@@ -445,6 +446,7 @@ describe('TaskDetailDrawer UI Component', () => {
     const drawerToolbar = screen.getByRole('toolbar', {
       name: 'Test Parent Task Title navigation and controls',
     });
+    expect(drawerToolbar).toContainElement(screen.getByRole('tab', { name: 'Ringkasan Task' }));
     expect(drawerToolbar).toContainElement(screen.getByRole('tab', { name: 'Ringkasan' }));
     expect(drawerToolbar).toContainElement(
       screen.getByRole('button', { name: 'Kembali ke tampilan normal' }),
@@ -575,6 +577,18 @@ describe('TaskDetailDrawer UI Component', () => {
             environment: 'staging',
           },
         },
+        originatingTestCase: {
+          availability: 'unavailable',
+          versionId: null,
+          revision: null,
+          title: null,
+          preconditions: null,
+          steps: [],
+          expectedResult: null,
+          testData: null,
+          requirementIds: [],
+          acceptanceCriteria: [],
+        },
       },
     ]);
 
@@ -654,13 +668,13 @@ describe('TaskDetailDrawer UI Component', () => {
     ).toBeChecked();
   });
 
-  test('shows Feature scope and external references in a separate Ringkasan Produk tab', async () => {
+  test('shows Feature scope and external references in a separate Ringkasan tab', async () => {
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
 
     await screen.findByRole('heading', { name: mockTask.title });
-    fireEvent.click(screen.getByRole('tab', { name: 'Ringkasan Produk' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Ringkasan' }));
 
-    expect(await screen.findByRole('heading', { name: 'Ringkasan Produk' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Ringkasan' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Simpand payment methods')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Native mobile checkout')).toBeInTheDocument();
     expect(screen.getByLabelText('Konteks produk dan referensi eksternal')).toHaveValue(
@@ -669,34 +683,37 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(screen.queryByTestId('requirement-manager')).not.toBeInTheDocument();
   });
 
-  test('protects an unsaved Ringkasan Produk draft before changing tabs', async () => {
+  test('protects an unsaved Ringkasan draft before changing tabs', async () => {
     const onClose = vi.fn();
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={onClose} />, 'po');
 
     await screen.findByRole('heading', { name: mockTask.title });
-    fireEvent.click(screen.getByRole('tab', { name: 'Ringkasan Produk' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Ringkasan' }));
     const titleInput = await screen.findByDisplayValue('Checkout Ringkasan Produk');
 
     expect(screen.queryByRole('button', { name: 'Simpan Perubahan' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tutup Detail' })).toBeInTheDocument();
 
-    fireEvent.change(titleInput, { target: { value: 'Ringkasan Produk yang diperbarui' } });
+    fireEvent.change(titleInput, { target: { value: 'Ringkasan yang diperbarui' } });
     fireEvent.click(screen.getByRole('button', { name: 'Tutup panel' }));
 
     expect(screen.getByRole('dialog', { name: 'Perubahan belum disimpan' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Simpan Ringkasan sebagai versi baru agar perubahan tidak hilang.'),
+    ).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Tetap Mengedit' }));
 
     fireEvent.click(screen.getByRole('tab', { name: 'Requirement' }));
 
     expect(screen.getByRole('dialog', { name: 'Perubahan belum disimpan' })).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Ringkasan Produk yang diperbarui')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Ringkasan yang diperbarui')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Tetap Mengedit' }));
     expect(
       screen.queryByRole('dialog', { name: 'Perubahan belum disimpan' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByDisplayValue('Ringkasan Produk yang diperbarui')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Ringkasan yang diperbarui')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Requirement' }));
     fireEvent.click(screen.getByRole('button', { name: 'Buang Perubahan' }));
@@ -960,7 +977,7 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(screen.getByRole('dialog', { name: 'Hapus Task?' })).toBeInTheDocument();
   });
 
-  test('keeps Ringkasan Produk data out of the Requirement-only tab', async () => {
+  test('keeps Ringkasan data out of the Requirement-only tab', async () => {
     renderWithRedux(<TaskDetailDrawer task={mockTask} folders={[]} onClose={vi.fn()} />, 'po');
 
     await screen.findByRole('heading', { name: mockTask.title });

@@ -408,7 +408,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     } catch (error) {
       if (isCurrentInitialRequest(requestId)) {
         setProductBrief(null);
-        setProductBriefError(errorMessage(error, 'Ringkasan Produk tidak dapat dimuat.'));
+        setProductBriefError(errorMessage(error, 'Ringkasan tidak dapat dimuat.'));
       }
     }
   };
@@ -1022,9 +1022,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   };
 
   const detailTabs: TabItem[] = [
-    { id: 'overview', label: 'Ringkasan', icon: <FileText className="h-3.5 w-3.5" /> },
+    { id: 'overview', label: 'Ringkasan Task', icon: <FileText className="h-3.5 w-3.5" /> },
     ...(!task.parentTaskId
-      ? [{ id: 'brief', label: 'Ringkasan Produk', icon: <BookOpen className="h-3.5 w-3.5" /> }]
+      ? [{ id: 'brief', label: 'Ringkasan', icon: <BookOpen className="h-3.5 w-3.5" /> }]
       : []),
     { id: 'prd', label: 'Requirement', icon: <FileCode2 className="h-3.5 w-3.5" /> },
     { id: 'trace', label: 'Jejak Delivery', icon: <Route className="h-3.5 w-3.5" /> },
@@ -1359,7 +1359,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       >
         <p>
           {activeTab === 'brief'
-            ? 'Simpan Ringkasan Produk sebagai versi baru agar perubahan tidak hilang.'
+            ? 'Simpan Ringkasan sebagai versi baru agar perubahan tidak hilang.'
             : 'Simpan perubahan Task terlebih dahulu agar perubahan tidak hilang.'}
         </p>
       </Modal>

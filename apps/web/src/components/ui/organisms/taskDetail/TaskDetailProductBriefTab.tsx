@@ -48,9 +48,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
 }) => {
   const canPlan = isPlanner(userRole);
   const [currentBrief, setCurrentBrief] = useState(productBrief);
-  const [title, setTitle] = useState(
-    productBrief?.document.title || `Ringkasan Produk ${task.title}`,
-  );
+  const [title, setTitle] = useState(productBrief?.document.title || `Ringkasan ${task.title}`);
   const [contentMarkdown, setContentMarkdown] = useState(
     productBrief?.currentVersion.contentMarkdown || '',
   );
@@ -68,7 +66,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
 
   useEffect(() => {
     setCurrentBrief(productBrief);
-    setTitle(productBrief?.document.title || `Ringkasan Produk ${task.title}`);
+    setTitle(productBrief?.document.title || `Ringkasan ${task.title}`);
     setContentMarkdown(productBrief?.currentVersion.contentMarkdown || '');
     setInScope(productBrief?.currentVersion.inScope || []);
     setOutScope(productBrief?.currentVersion.outScope || []);
@@ -82,7 +80,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
       .map((item, position) => ({ ...item, text: item.text.trim(), position }));
   const normalizedCurrentScope = (items: ProductBriefScopeItem[]) =>
     items.map(({ id, text, position }) => ({ id, text: text.trim(), position }));
-  const initialTitle = currentBrief?.document.title || `Ringkasan Produk ${task.title}`;
+  const initialTitle = currentBrief?.document.title || `Ringkasan ${task.title}`;
   const hasUnsavedChanges =
     canPlan &&
     (title.trim() !== initialTitle ||
@@ -136,9 +134,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
       setStatus(saved.document.status);
       onSaved?.(saved);
     } catch (error) {
-      setSaveError(
-        error instanceof Error ? error.message : 'Ringkasan Produk tidak dapat disimpan.',
-      );
+      setSaveError(error instanceof Error ? error.message : 'Ringkasan tidak dapat disimpan.');
     } finally {
       setIsSaving(false);
     }
@@ -226,7 +222,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
   if (loadError) {
     return (
       <Card className="border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900/90 sm:p-5">
-        <Alert tone="error" title="Ringkasan Produk tidak tersedia">
+        <Alert tone="error" title="Ringkasan tidak tersedia">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span>{loadError}</span>
             <Button size="sm" variant="outline" onClick={onReload}>
@@ -241,7 +237,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
   if (!currentBrief && !canPlan) {
     return (
       <Card className="border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900/90 sm:p-5">
-        <Alert tone="info" title="Ringkasan Produk belum tersedia">
+        <Alert tone="info" title="Ringkasan belum tersedia">
           Product Owner, Admin, atau Owner perlu menentukan konteks dan cakupan Feature.
         </Alert>
       </Card>
@@ -254,9 +250,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
         <div className="flex items-start gap-2.5">
           <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-[#B1E743]" />
           <div>
-            <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-              Ringkasan Produk
-            </h2>
+            <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">Ringkasan</h2>
             <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
               Konteks Feature, referensi eksternal, komitmen, dan pengecualian yang jelas.
             </p>
@@ -268,7 +262,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
       </div>
 
       {!canPlan && (
-        <Alert tone="info" title="Ringkasan Produk hanya dapat dilihat">
+        <Alert tone="info" title="Ringkasan hanya dapat dilihat">
           <span className="inline-flex items-center gap-1.5">
             <Lock className="h-3.5 w-3.5" /> Hanya Product Owner, Admin, atau Owner yang dapat
             membuat versi baru.
@@ -284,11 +278,11 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
         <Input
-          label="Judul Ringkasan Produk"
+          label="Judul Ringkasan"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           disabled={!canPlan || isSaving}
-          error={!title.trim() ? 'Judul Ringkasan Produk wajib diisi.' : undefined}
+          error={!title.trim() ? 'Judul Ringkasan wajib diisi.' : undefined}
         />
         <Select
           label="Status Ringkasan"

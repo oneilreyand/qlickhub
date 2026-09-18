@@ -505,7 +505,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                   )}
                 </div>
 
-                {bug.originatingTestCase.availability === 'available' ? (
+                {bug.originatingTestCase?.availability === 'available' ? (
                   <details className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs dark:border-stone-800 dark:bg-stone-900/50">
                     <summary className="cursor-pointer font-bold text-stone-800 dark:text-stone-100">
                       Cara reproduksi dari Test Case
