@@ -6,7 +6,7 @@ export { TaskCollection } from '../../components/ui/organisms/TaskCollection';
 export { TaskDeliveryTracePanel } from '../../components/ui/organisms/TaskDeliveryTracePanel';
 export { TaskDetailDrawer } from '../../components/ui/organisms/TaskDetailDrawer';
 export { TaskTimelineView } from '../../components/ui/organisms/TaskTimelineView';
-export { TaskHubDashboardTemplate } from '../../components/ui/organisms/TaskHubDashboardTemplate';
+export { TaskHubDashboardTemplate } from '../../components/ui/templates/TaskHubDashboardTemplate';
 
 export * from '../../components/ui/organisms/taskDetail/index';
 

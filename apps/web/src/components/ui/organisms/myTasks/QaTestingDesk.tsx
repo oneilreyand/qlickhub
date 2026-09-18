@@ -6,11 +6,9 @@ import {
   CheckSquare,
   ChevronDown,
   ChevronRight,
-  Columns,
   Compass,
   FileCheck,
   History,
-  LayoutList,
   Link2,
   Lock,
   Play,
@@ -55,6 +53,8 @@ import { SubtaskCommentBox } from '../../molecules/SubtaskCommentBox';
 import { TaskScheduleHealthBadge } from '../../molecules/TaskScheduleHealthBadge';
 import { TaskStatusBadge } from '../../molecules/TaskStatusBadge';
 import { Tabs } from '../../molecules/Tabs';
+import { QaWorkflowSummaryWidget } from '../../molecules/QaWorkflowSummaryWidget';
+import { QaExecutionFilterToolbar } from '../../molecules/QaExecutionFilterToolbar';
 import { EvidencePreviewItem, EvidencePreviewModal } from '../EvidencePreviewModal';
 import { BugExperiencePanel } from '../BugExperiencePanel';
 import { ReleaseAssurancePanel } from '../ReleaseAssurancePanel';
@@ -1545,81 +1545,12 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   return (
     <div className="space-y-6">
       {isAssignedQaExecutor && (
-        <Card className="space-y-3.5 border-emerald-200/80 bg-linear-to-br from-emerald-50/50 via-white to-emerald-50/20 p-4 shadow-xs dark:border-emerald-950/70 dark:from-emerald-950/20 dark:via-stone-900 dark:to-stone-950">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 pb-2.5 dark:border-emerald-900/40">
-            <div className="flex items-center gap-2">
-              <div className="grid h-6 w-6 place-items-center rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                <ShieldCheck className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                  Ringkasan Workflow QA
-                </h3>
-                <p className="text-[11px] text-stone-600 dark:text-stone-400">
-                  Scope dan langkah berikutnya dihitung dari data QA yang tersimpan.
-                </p>
-              </div>
-            </div>
-            {workflowSummary && (
-              <Badge variant={workflowSummary.blockers.length ? 'review' : 'passed'} size="sm">
-                {workflowSummary.blockers.length ? 'Ada prasyarat' : 'Siap lanjut'}
-              </Badge>
-            )}
-          </div>
-          {isLoadingWorkflowSummary ? (
-            <Skeleton className="h-14 w-full rounded-xl" />
-          ) : workflowSummaryError ? (
-            <Alert tone="warning" title="Ringkasan workflow belum tersedia">
-              {workflowSummaryError}
-            </Alert>
-          ) : workflowSummary ? (
-            <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-                    Cakupan &amp; Siklus Uji
-                  </p>
-                  <p className="mt-1 font-semibold text-stone-800 dark:text-stone-200 truncate">
-                    Menguji: {workflowSummary.featureTitle} ·{' '}
-                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                      {workflowSummary.testCycle?.build || 'Siklus belum dibuat'}
-                    </span>
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-                    Langkah Kerja Selanjutnya
-                  </p>
-                  <p className="mt-1 font-extrabold text-emerald-800 dark:text-emerald-300">
-                    Berikutnya: {workflowSummary.nextAction.label}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60 sm:col-span-2 lg:col-span-1">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-                    Status Prasyarat Kesiapan
-                  </p>
-                  {workflowSummary.blockers.length > 0 ? (
-                    <ul className="mt-1 space-y-1 text-stone-600 dark:text-stone-400">
-                      {workflowSummary.blockers.map((blocker) => (
-                        <li key={blocker} className="flex items-start gap-1">
-                          <span className="text-amber-500">•</span>
-                          <span>{workflowBlockerCopy[blocker]}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                      Semua kriteria terpenuhi. Siap lanjut.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </Card>
+        <QaWorkflowSummaryWidget
+          workflowSummary={workflowSummary}
+          isLoading={isLoadingWorkflowSummary}
+          error={workflowSummaryError}
+          workflowBlockerCopy={workflowBlockerCopy}
+        />
       )}
       {/* QA Workstation Header Card */}
       <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-linear-to-br from-emerald-50/40 via-white to-emerald-50/20 dark:from-emerald-950/30 dark:via-stone-900 dark:to-stone-950">
@@ -2163,122 +2094,14 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                       </Alert>
                     )}
 
-                    {/* Quick Execution Progress Bar */}
-                    {executionStats && executionStats.total > 0 && (
-                      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-stone-200 bg-white p-3 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60">
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                          <span className="text-xs font-extrabold text-stone-900 dark:text-stone-100">
-                            Progres Pengujian ({executionStats.passed}/{executionStats.total} Lulus)
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-                            {executionStats.passed} Lulus
-                          </span>
-                          {executionStats.failed > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
-                              {executionStats.failed} Gagal
-                            </span>
-                          )}
-                          {executionStats.blocked > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
-                              {executionStats.blocked} Terblokir
-                            </span>
-                          )}
-                          {executionStats.unexecuted > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 border border-stone-200 dark:border-stone-700">
-                              {executionStats.unexecuted} Belum Diuji
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Interactive Execution Status Filter & View Mode Switcher Toolbar */}
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-stone-200/70 pb-3 dark:border-stone-800">
-                      {/* Status Filter Tabs */}
-                      <div
-                        className="flex flex-wrap items-center gap-1.5"
-                        role="group"
-                        aria-label="Filter status eksekusi Test Case"
-                      >
-                        {filterOptions.map((option) => {
-                          const isActive = statusFilter === option.id;
-                          return (
-                            <button
-                              key={option.id}
-                              type="button"
-                              onClick={() => setStatusFilter(option.id)}
-                              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
-                                isActive
-                                  ? option.id === 'passed'
-                                    ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-stone-950 shadow-2xs'
-                                    : option.id === 'failed'
-                                      ? 'bg-rose-600 text-white dark:bg-rose-500 dark:text-stone-950 shadow-2xs'
-                                      : option.id === 'blocked'
-                                        ? 'bg-amber-600 text-white dark:bg-amber-500 dark:text-stone-950 shadow-2xs'
-                                        : 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-2xs'
-                                  : 'border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-300 dark:hover:bg-stone-800/80'
-                              }`}
-                              aria-pressed={isActive}
-                            >
-                              {option.id === 'passed' ? (
-                                <CheckCircle2 className="h-3 w-3 text-emerald-300 dark:text-emerald-950" />
-                              ) : option.id === 'failed' ? (
-                                <XCircle className="h-3 w-3 text-rose-300 dark:text-rose-950" />
-                              ) : option.id === 'blocked' ? (
-                                <AlertTriangle className="h-3 w-3 text-amber-300 dark:text-amber-950" />
-                              ) : null}
-                              <span>{option.label}</span>
-                              <span
-                                className={`rounded-md px-1.5 py-0.2 text-[10px] font-bold ${
-                                  isActive
-                                    ? 'bg-white/20 text-current'
-                                    : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'
-                                }`}
-                              >
-                                {option.count}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* View Mode Switcher Toggle */}
-                      <div className="flex items-center rounded-lg border border-stone-200 bg-stone-100/80 p-0.5 dark:border-stone-800 dark:bg-stone-900 shrink-0 self-start sm:self-auto">
-                        <button
-                          type="button"
-                          onClick={() => setViewMode('split')}
-                          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                            viewMode === 'split'
-                              ? 'bg-white text-stone-900 shadow-2xs dark:bg-stone-800 dark:text-stone-100 font-bold'
-                              : 'text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
-                          }`}
-                          title="Tampilan Split Master-Detail"
-                          aria-label="Tampilan Split Master-Detail"
-                          aria-pressed={viewMode === 'split'}
-                        >
-                          <Columns className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                          <span>Split View</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setViewMode('list')}
-                          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                            viewMode === 'list'
-                              ? 'bg-white text-stone-900 shadow-2xs dark:bg-stone-800 dark:text-stone-100 font-bold'
-                              : 'text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
-                          }`}
-                          title="Tampilan Daftar Penuh"
-                          aria-label="Tampilan Daftar Penuh"
-                          aria-pressed={viewMode === 'list'}
-                        >
-                          <LayoutList className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                          <span>List View</span>
-                        </button>
-                      </div>
-                    </div>
+                    <QaExecutionFilterToolbar
+                      stats={executionStats}
+                      filterOptions={filterOptions}
+                      statusFilter={statusFilter}
+                      onStatusFilterChange={setStatusFilter}
+                      viewMode={viewMode}
+                      onViewModeChange={setViewMode}
+                    />
 
                     {/* Test Cases Layout (Split or List) */}
                     {viewMode === 'split' ? (

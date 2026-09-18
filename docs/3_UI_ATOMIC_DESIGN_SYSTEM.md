@@ -176,23 +176,25 @@ graph LR
 
 ### 🟡 Molecules
 
-| Komponen                  | File Path                               | Penggunaan                                                    |
-| :------------------------ | :-------------------------------------- | :------------------------------------------------------------ |
-| `TaskStatusBadge`         | `molecules/TaskStatusBadge.tsx`         | Status task: `todo`, `in_progress`, `in_review`, `completed`. |
-| `BugStatusBadge`          | `molecules/BugStatusBadge.tsx`          | Status bug: `critical`, `high`, `medium`, `low`.              |
-| `DeliveryTraceSignal`     | `molecules/DeliveryTraceSignal.tsx`     | Indikator visual keterhubungan requirement dan delivery.      |
-| `ReleaseReadinessSignal`  | `molecules/ReleaseReadinessSignal.tsx`  | Meteran kesiapan rilis dari snapshot backend.                 |
-| `TaskScheduleHealthBadge` | `molecules/TaskScheduleHealthBadge.tsx` | Status kesehatan jadwal task (on-track / overdue).            |
-| `DateRangePicker`         | `molecules/DateRangePicker.tsx`         | Pemilih rentang tanggal target jadwal rilis.                  |
-| `EvidenceCard`            | `molecules/EvidenceCard.tsx`            | Kartu ringkasan bukti pengujian (thumbnail & tautan).         |
-| `EmptyState`              | `molecules/EmptyState.tsx`              | State kosong dengan ilustrasi lintas tema atau fallback ikon. |
-| `SearchInput`             | `molecules/SearchInput.tsx`             | Input pencarian dengan ikon dan tombol reset instan.          |
-| `SubtaskRoleTimeline`     | `molecules/SubtaskRoleTimeline.tsx`     | Timeline visual perjalanan subtask dari Dev ke QA.            |
-| `TaskHierarchyBreadcrumb` | `molecules/TaskHierarchyBreadcrumb.tsx` | Remah roti hierarki navigasi `Workspace > Folder > Task`.     |
-| `Drawer`                  | `molecules/Drawer.tsx`                  | Panel geser samping untuk detail tugas.                       |
-| `Modal`                   | `molecules/Modal.tsx`                   | Kotak dialog modal dengan backdrop.                           |
-| `Snackbar`                | `molecules/Snackbar.tsx`                | Toast notifikasi aksi sukses / gagal.                         |
-| `Tabs`                    | `molecules/Tabs.tsx`                    | Navigasi tab untuk pengelompokan konten.                      |
+| Komponen                   | File Path                                | Penggunaan                                                                                                             |
+| :------------------------- | :--------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
+| `TaskStatusBadge`          | `molecules/TaskStatusBadge.tsx`          | Status task: `todo`, `in_progress`, `in_review`, `completed`.                                                          |
+| `BugStatusBadge`           | `molecules/BugStatusBadge.tsx`           | Status bug: `critical`, `high`, `medium`, `low`.                                                                       |
+| `DeliveryTraceSignal`      | `molecules/DeliveryTraceSignal.tsx`      | Indikator visual keterhubungan requirement dan delivery.                                                               |
+| `ReleaseReadinessSignal`   | `molecules/ReleaseReadinessSignal.tsx`   | Meteran kesiapan rilis dari snapshot backend.                                                                          |
+| `TaskScheduleHealthBadge`  | `molecules/TaskScheduleHealthBadge.tsx`  | Status kesehatan jadwal task (on-track / overdue).                                                                     |
+| `DateRangePicker`          | `molecules/DateRangePicker.tsx`          | Pemilih rentang tanggal target jadwal rilis.                                                                           |
+| `EvidenceCard`             | `molecules/EvidenceCard.tsx`             | Kartu ringkasan bukti pengujian (thumbnail & tautan).                                                                  |
+| `EmptyState`               | `molecules/EmptyState.tsx`               | State kosong dengan ilustrasi lintas tema atau fallback ikon.                                                          |
+| `SearchInput`              | `molecules/SearchInput.tsx`              | Input pencarian dengan ikon dan tombol reset instan.                                                                   |
+| `SubtaskRoleTimeline`      | `molecules/SubtaskRoleTimeline.tsx`      | Timeline visual perjalanan subtask dari Dev ke QA.                                                                     |
+| `TaskHierarchyBreadcrumb`  | `molecules/TaskHierarchyBreadcrumb.tsx`  | Remah roti hierarki navigasi `Workspace > Folder > Task`.                                                              |
+| `Drawer`                   | `molecules/Drawer.tsx`                   | Panel geser samping untuk detail tugas.                                                                                |
+| `Modal`                    | `molecules/Modal.tsx`                    | Kotak dialog modal dengan backdrop.                                                                                    |
+| `Snackbar`                 | `molecules/Snackbar.tsx`                 | Toast notifikasi aksi sukses / gagal.                                                                                  |
+| `Tabs`                     | `molecules/Tabs.tsx`                     | Navigasi tab untuk pengelompokan konten.                                                                               |
+| `QaWorkflowSummaryWidget`  | `molecules/QaWorkflowSummaryWidget.tsx`  | Widget 3-tile Traffic Light Quality Gate (Cakupan & Siklus Uji, Langkah Kerja Selanjutnya, Status Prasyarat Kesiapan). |
+| `QaExecutionFilterToolbar` | `molecules/QaExecutionFilterToolbar.tsx` | Toolbar filter eksekusi Test Case (Quick Progress Bar, Status Tabs Lulus/Gagal/Terblokir, Toggle Split/List View).     |
 
 ### 🟣 Organisms
 
@@ -216,6 +218,13 @@ graph LR
 | `DevWorkingDesk`            | `organisms/myTasks/DevWorkingDesk.tsx`               | Meja kerja Developer untuk mengelola subtask aktif dan perbaikan bug.                            |
 | `TestCaseImportWizardModal` | `organisms/myTasks/TestCaseImportWizardModal.tsx`    | Wizard 3-langkah untuk impor Test Case dari spreadsheet CSV/XLSX.                                |
 | `WorkspaceMembersTable`     | `organisms/WorkspaceMembersTable.tsx`                | Tabel manajemen anggota workspace, peran, dan spesialisasi dev.                                  |
+
+### 🔵 Templates
+
+| Komponen                   | File Path                                | Penggunaan                                                                                     |
+| :------------------------- | :--------------------------------------- | :--------------------------------------------------------------------------------------------- |
+| `TaskHubDashboardTemplate` | `templates/TaskHubDashboardTemplate.tsx` | Kerangka tata letak 3-panel Work Hub (Header, Metrics, Date Presets, Folder Tree & Tasks).     |
+| `AppLayoutTemplate`        | `templates/AppLayoutTemplate.tsx`        | Shell aplikasi global (Sidebar Navy, Header Workspace, Breadcrumb, Floating Alerts & Drawers). |
 
 ---
 

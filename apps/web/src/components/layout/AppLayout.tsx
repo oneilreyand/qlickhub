@@ -18,7 +18,7 @@ import { RoleOnboardingModal } from '../ui/organisms/RoleOnboardingModal';
 import { isOnboardingDismissed } from '../../lib/storage/browserStorage';
 import { ErrorBoundary } from '../ui/organisms/ErrorBoundary';
 
-interface AppLayoutProps {
+export interface AppLayoutProps {
   children: React.ReactNode;
 }
 
