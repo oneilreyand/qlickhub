@@ -340,6 +340,28 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(screen.queryByRole('status', { name: 'Memuat detail task' })).not.toBeInTheDocument();
   });
 
+  test('does not block the task detail while release readiness refreshes in the background', async () => {
+    renderWithRedux(
+      <TaskDetailDrawer
+        task={mockTask}
+        folders={[]}
+        releaseReadinessState={{
+          snapshot: null,
+          isLoading: true,
+          error: null,
+          permissionDenied: false,
+        }}
+        onClose={vi.fn()}
+      />,
+      'po',
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Test Parent Task Title' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Memuat detail task' })).not.toBeInTheDocument();
+  });
+
   test('shows loading and retryable error drawers while a selected task is absent from the list', () => {
     const onRetryDetail = vi.fn();
     const { rerender } = renderWithRedux(

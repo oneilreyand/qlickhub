@@ -635,10 +635,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   }
 
   const taskKey = `${effectiveWorkspaceId || task.workspaceId}:${task.id}`;
-  const isInitialDetailLoading =
-    loadedTaskKey !== taskKey ||
-    Boolean(isParentTaskLoading) ||
-    Boolean(releaseReadinessState?.isLoading);
+  const isInitialDetailLoading = loadedTaskKey !== taskKey || Boolean(isParentTaskLoading);
 
   if (isInitialDetailLoading) {
     return (
