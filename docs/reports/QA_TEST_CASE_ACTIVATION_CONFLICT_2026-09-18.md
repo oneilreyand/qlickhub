@@ -32,6 +32,19 @@ The root cause for the `409 Conflict` error during "Aktifkan & Jalankan" has bee
 - `npm run validate` (`npm run docs:check && npm run lint && npm run typecheck`) — passed 0 errors.
 - `npm run build:web` — passed (1,713 modules transformed, 0 errors).
 
+## Production Deployment and Live Verification
+
+- **Target:** Vercel Production (`https://qlickhub.vercel.app`)
+- **Deployment ID:** `dpl_FXynM2Nejezmo3cU7nRpZsAauhQh`
+- **Deployment URL:** `https://qlickhub-lqky2goao-oneilreyands-projects.vercel.app`
+- **Status:** `● Ready` (Duration: ~2m)
+- **Git Commit:** `502ba6d`
+- **Live Smoke Checks:**
+  - `GET https://qlickhub.vercel.app/v1/health` → `HTTP/2 200` (`{"status":"ok","service":"authentication-api","database":{"status":"connected"}}`)
+  - `GET https://qlickhub.vercel.app/v1/workspaces` → `HTTP/2 401` (`{"error":{"code":"UNAUTHORIZED","message":"Authentication is required."}}`)
+  - `GET https://qlickhub.vercel.app` → `HTTP/2 200` (HTML root)
+  - `GET https://qlickhub.vercel.app/login` → `HTTP/2 200` (Login route)
+
 ## Risks or follow-up
 
 - None.
