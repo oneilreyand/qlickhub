@@ -6,6 +6,8 @@
 
 ## Outcome
 
+Commit `0380a5a` telah dipush ke `origin/main` dan berhasil dideploy ke Vercel Production dengan deployment ID `dpl_GKgBtwm5bCvhpEsrqweiUrVZzSqj`. Deployment berstatus `READY`, menargetkan Production, dan memegang alias kanonikal `https://qlickhub.vercel.app`.
+
 Perubahan utama arsitektural antarmuka:
 
 1. **Dedicated Templates Layer (`apps/web/src/components/ui/templates/`):**
@@ -65,3 +67,12 @@ Nol dampak skema database, nol breaking changes pada API kontrak, dan otorisasi 
   - TypeScript Typecheck (`tsc --noEmit` di contracts, api, web): 0 error.
 - **Kompilasi Web:**
   - `npm --prefix apps/web run build`: sukses mentransformasikan 1.713 modul tanpa error dalam 3.13 detik.
+- **Rilis Vercel Production & Live Smoke Checks (`https://qlickhub.vercel.app`):**
+  - Commit: `0380a5a`
+  - Vercel Deployment ID: `dpl_GKgBtwm5bCvhpEsrqweiUrVZzSqj`
+  - Status: `● Ready` (Target: Production)
+  - Aliases: `https://qlickhub.vercel.app`, `https://qlickhub-oneilreyands-projects.vercel.app`, `https://qlickhub-git-main-oneilreyands-projects.vercel.app`
+  - `GET /`: HTTP 200 OK
+  - `GET /login`: HTTP 200 OK
+  - `GET /v1/health`: HTTP 200 OK (`database: connected`)
+  - `GET /v1/workspaces`: HTTP 401 Unauthorized (terproteksi sesi aktif)
