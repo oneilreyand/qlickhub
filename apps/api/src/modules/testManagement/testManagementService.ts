@@ -47,6 +47,7 @@ import {
   TestResultModel,
   TestRunModel,
   UserModel,
+  WorkspaceMemberModel,
 } from '../../db/models/index.js';
 import { assertCanAccessTask } from '../../policies/taskPolicy.js';
 import {
@@ -61,6 +62,7 @@ import { fcmService } from '../../services/fcmService.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import { evaluateQaCompletionGate } from '../releaseDecisions/qaEvidenceCompletionGate.js';
 import { iso } from '../../utils/dateUtils.js';
+import { reliableNotificationOutboxService } from '../notifications/reliableNotificationOutboxService.js';
 
 type TestCaseWithLinks = TestCaseModel & { requirementLinks?: TestCaseRequirementModel[] };
 type EvidenceLinkWithAttachment = TestResultEvidenceModel & { attachment?: TaskAttachmentModel };
@@ -105,6 +107,47 @@ function hasDefinitionChanges(input: UpdateTestCaseInput): boolean {
     input.scenarioKind,
     input.requirementIds,
   ].some((value) => value !== undefined);
+}
+
+async function findQaDirectActivationScope(params: {
+  workspaceId: string;
+  actorId: string;
+  requirementIds: string[];
+  transaction: Transaction;
+}): Promise<TaskModel | null> {
+  if (params.requirementIds.length === 0) return null;
+
+  const requirementLinks = await TaskRequirementModel.findAll({
+    where: { workspaceId: params.workspaceId, requirementId: params.requirementIds },
+    attributes: ['taskId', 'requirementId'],
+    transaction: params.transaction,
+  });
+  const linkedRequirementIds = new Set(requirementLinks.map((link) => link.requirementId));
+  if (linkedRequirementIds.size !== params.requirementIds.length) return null;
+
+  const linkedTasks = await TaskModel.findAll({
+    where: {
+      workspaceId: params.workspaceId,
+      id: [...new Set(requirementLinks.map((link) => link.taskId))],
+    },
+    attributes: ['id', 'parentTaskId'],
+    transaction: params.transaction,
+  });
+  const rootFeatureIds = new Set(linkedTasks.map((task) => task.parentTaskId || task.id));
+  if (rootFeatureIds.size !== 1) return null;
+
+  const [featureTaskId] = rootFeatureIds;
+  return TaskModel.findOne({
+    where: {
+      workspaceId: params.workspaceId,
+      parentTaskId: featureTaskId,
+      deliveryArea: 'qa',
+      assigneeId: params.actorId,
+      status: { [Op.notIn]: ['done', 'canceled'] },
+    },
+    transaction: params.transaction,
+    lock: params.transaction.LOCK.UPDATE,
+  });
 }
 
 function formatTestCase(testCase: TestCaseWithLinks): TestCase {
@@ -929,7 +972,7 @@ export class TestManagementService {
   }
 
   async updateTestCase(actorId: string, input: UpdateTestCaseInput): Promise<TestCase> {
-    await sequelize.transaction(async (transaction) => {
+    const directActivation = await sequelize.transaction(async (transaction) => {
       const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       const testCase = await TestCaseModel.findOne({
         where: { id: input.testCaseId, workspaceId: input.workspaceId },
@@ -942,7 +985,6 @@ export class TestManagementService {
 
       const previousStatus = testCase.status;
       const definitionChanges = hasDefinitionChanges(input);
-      assertCanUpdateTestCase(membership.role, previousStatus, input.status, definitionChanges);
 
       if (definitionChanges && input.status !== undefined && input.status !== previousStatus) {
         throw new Error(
@@ -1026,6 +1068,23 @@ export class TestManagementService {
         requirementIds = uniqueReqIds;
       }
 
+      const qaActivationSubtask =
+        membership.role === 'qa' && previousStatus === 'draft' && input.status === 'active'
+          ? await findQaDirectActivationScope({
+              workspaceId: input.workspaceId,
+              actorId,
+              requirementIds,
+              transaction,
+            })
+          : null;
+      assertCanUpdateTestCase(
+        membership.role,
+        previousStatus,
+        input.status,
+        definitionChanges,
+        Boolean(qaActivationSubtask),
+      );
+
       await testCase.update(updates, { transaction });
 
       let activityAction: 'test_case_revision_created' | 'test_case_revision_status_changed';
@@ -1073,7 +1132,9 @@ export class TestManagementService {
         await latestVersion.update(
           requestedStatus === 'active'
             ? { lifecycleStatus: 'active', publishedBy: actorId, publishedAt: new Date() }
-            : { lifecycleStatus: requestedStatus },
+            : requestedStatus === 'draft'
+              ? { lifecycleStatus: 'draft', publishedBy: null, publishedAt: null }
+              : { lifecycleStatus: requestedStatus },
           { transaction },
         );
         activityAction = 'test_case_revision_status_changed';
@@ -1096,7 +1157,43 @@ export class TestManagementService {
         },
         { transaction },
       );
+
+      if (!qaActivationSubtask) return { outboxIds: [] as string[] };
+      if (!qaActivationSubtask.parentTaskId) {
+        throw new Error('CONFLICT: Assigned QA Subtask must belong to a root Feature.');
+      }
+      const featureTaskId = qaActivationSubtask.parentTaskId;
+
+      const poMembers = await WorkspaceMemberModel.findAll({
+        where: { workspaceId: input.workspaceId, role: 'po' },
+        attributes: ['userId'],
+        transaction,
+      });
+      const outboxIds = await reliableNotificationOutboxService.enqueue(
+        `test-case-activated:${testCase.id}:${activityVersionId}`,
+        poMembers
+          .map((member) => member.userId)
+          .filter((userId) => userId !== actorId)
+          .map((userId) => ({
+            userId,
+            workspaceId: input.workspaceId,
+            taskId: featureTaskId,
+            actorId,
+            type: 'status_change' as const,
+            title: 'Test Case siap dijalankan',
+            message: `QA mengaktifkan Test Case "${testCase.title}" untuk pengujian Feature ini.`,
+            payload: {
+              testCaseId: testCase.id,
+              featureTaskId,
+              action: 'test_case_activated',
+            },
+          })),
+        transaction,
+      );
+      return { outboxIds };
     });
+
+    void reliableNotificationOutboxService.dispatch(directActivation.outboxIds);
 
     return this.getTestCase(input.workspaceId, input.testCaseId, actorId);
   }

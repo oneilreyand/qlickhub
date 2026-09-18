@@ -72,6 +72,18 @@ const bugFixture = (status: BugStatus = 'open'): BugWithContext => ({
       environment: 'staging',
     },
   },
+  originatingTestCase: {
+    availability: 'available',
+    versionId: '10000000-0000-4000-8000-000000000014',
+    revision: 2,
+    title: 'Verify returning customer payment',
+    preconditions: 'A returning customer has a saved card.',
+    steps: ['Open checkout', 'Select saved card', 'Submit payment'],
+    expectedResult: 'Payment is accepted.',
+    testData: 'Saved Visa test card',
+    requirementIds: [ids.requirement],
+    acceptanceCriteria: [],
+  },
 });
 
 const renderPanel = (props: Partial<React.ComponentProps<typeof BugExperiencePanel>> = {}) => {

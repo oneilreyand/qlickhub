@@ -505,6 +505,68 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                   )}
                 </div>
 
+                {bug.originatingTestCase.availability === 'available' ? (
+                  <details className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs dark:border-stone-800 dark:bg-stone-900/50">
+                    <summary className="cursor-pointer font-bold text-stone-800 dark:text-stone-100">
+                      Cara reproduksi dari Test Case
+                      {bug.originatingTestCase.revision
+                        ? ` · revisi ${bug.originatingTestCase.revision}`
+                        : ''}
+                    </summary>
+                    <div className="mt-3 space-y-3 text-stone-600 dark:text-stone-300">
+                      <p>
+                        <strong className="text-stone-800 dark:text-stone-100">Test Case:</strong>{' '}
+                        {bug.originatingTestCase.title || 'Judul tidak tersedia'}
+                      </p>
+                      {bug.originatingTestCase.preconditions && (
+                        <p>
+                          <strong className="text-stone-800 dark:text-stone-100">Prasyarat:</strong>{' '}
+                          {bug.originatingTestCase.preconditions}
+                        </p>
+                      )}
+                      {bug.originatingTestCase.steps.length > 0 && (
+                        <ol className="list-decimal space-y-1 pl-5">
+                          {bug.originatingTestCase.steps.map((step, index) => (
+                            <li key={`${bug.id}-step-${index}`}>{step}</li>
+                          ))}
+                        </ol>
+                      )}
+                      {bug.originatingTestCase.expectedResult && (
+                        <p>
+                          <strong className="text-stone-800 dark:text-stone-100">
+                            Hasil yang diharapkan:
+                          </strong>{' '}
+                          {bug.originatingTestCase.expectedResult}
+                        </p>
+                      )}
+                      {bug.originatingTestCase.testData && (
+                        <p>
+                          <strong className="text-stone-800 dark:text-stone-100">Data uji:</strong>{' '}
+                          {bug.originatingTestCase.testData}
+                        </p>
+                      )}
+                      {bug.originatingTestCase.acceptanceCriteria.length > 0 && (
+                        <div>
+                          <strong className="text-stone-800 dark:text-stone-100">
+                            Acceptance Criteria:
+                          </strong>
+                          <ul className="mt-1 list-disc space-y-1 pl-5">
+                            {bug.originatingTestCase.acceptanceCriteria.map((criterion) => (
+                              <li key={criterion.id}>{criterion.text}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                ) : (
+                  <Alert tone="info" title="Konteks Test Case tidak tersedia">
+                    Bug ini berasal dari data lama tanpa revisi Test Case yang dapat dibuktikan.
+                    Gunakan detail reproduksi dan bukti yang tersimpan; sistem tidak menebak langkah
+                    terbaru.
+                  </Alert>
+                )}
+
                 {/* Evidence Links & Attachments Section */}
                 {(originEvidenceLinks.length > 0 ||
                   bugEvidenceLinks.length > 0 ||

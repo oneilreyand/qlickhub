@@ -168,6 +168,30 @@ export const BugWithContextSchema = BugSchema.extend({
       environment: NonBlankTextSchema.max(100),
     }),
   }),
+  originatingTestCase: z.object({
+    availability: z.enum(['available', 'unavailable']),
+    versionId: z.string().uuid().nullable(),
+    revision: z.number().int().positive().nullable(),
+    title: z.string().nullable(),
+    preconditions: z.string().nullable(),
+    steps: z.array(z.string()).default([]),
+    expectedResult: z.string().nullable(),
+    testData: z.string().nullable(),
+    requirementIds: z.array(z.string().uuid()).default([]),
+    acceptanceCriteria: z
+      .array(
+        z.object({
+          id: z.string().uuid(),
+          requirementId: z.string().uuid(),
+          sequence: z.number().int().positive(),
+          text: NonBlankTextSchema,
+          status: z.enum(['active', 'deprecated']),
+          mappingStatus: z.enum(['mapped', 'excluded']),
+          exclusionReason: z.string().nullable(),
+        }),
+      )
+      .default([]),
+  }),
   bugEvidenceLinks: z.array(BugEvidenceLinkSchema).default([]),
 });
 export type BugWithContext = z.infer<typeof BugWithContextSchema>;

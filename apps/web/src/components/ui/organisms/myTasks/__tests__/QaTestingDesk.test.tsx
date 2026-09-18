@@ -43,9 +43,14 @@ const bugServiceMocks = vi.hoisted(() => ({
 
 const taskServiceMocks = vi.hoisted(() => ({
   listTaskComments: vi.fn().mockResolvedValue({ comments: [] }),
+  listTaskAttachments: vi.fn(),
   createTaskComment: vi.fn(),
   updateTask: vi.fn(),
   getAttachmentDownloadUrl: vi.fn(),
+}));
+
+const attachmentServiceMocks = vi.hoisted(() => ({
+  uploadAttachment: vi.fn(),
 }));
 
 const requirementServiceMocks = vi.hoisted(() => ({
@@ -70,6 +75,10 @@ vi.mock('../../../../../lib/api/bugService', () => ({
 
 vi.mock('../../../../../lib/api/taskService', () => ({
   taskService: taskServiceMocks,
+}));
+
+vi.mock('../../../../../lib/api/attachmentService', () => ({
+  attachmentService: attachmentServiceMocks,
 }));
 
 vi.mock('../../../../../lib/api/requirementService', () => ({
@@ -318,7 +327,22 @@ describe('QaTestingDesk Organism', () => {
     bugServiceMocks.createBug.mockResolvedValue({ id: ids.bug });
     bugServiceMocks.createRetestAttempt.mockResolvedValue({ outcome: 'reopened' });
     bugServiceMocks.listBugs.mockResolvedValue([]);
+    taskServiceMocks.listTaskAttachments.mockResolvedValue([]);
     taskServiceMocks.updateTask.mockResolvedValue({ ...mockQaSubtask, status: 'done' });
+    attachmentServiceMocks.uploadAttachment.mockResolvedValue({
+      id: '10000000-0000-4000-8000-000000000015',
+      workspaceId: ids.workspace,
+      taskId: ids.subtask,
+      fileName: 'hasil-uji.png',
+      fileSize: 1024,
+      mimeType: 'image/png',
+      storageProvider: 'local',
+      category: 'qa_evidence',
+      caption: 'Bukti hasil pengujian QA',
+      uploaderId: ids.qa,
+      createdAt: now,
+      updatedAt: now,
+    });
     releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue({
       workspaceId: ids.workspace,
       featureTaskId: ids.feature,
@@ -505,7 +529,7 @@ describe('QaTestingDesk Organism', () => {
     expect(screen.getByText('Area Pengujian & Mutu QA')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Test Case Baru/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Impor Spreadsheet/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Mulai Pengujian/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Jalankan Test Case/i })).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Selesaikan Eksekusi QA/i }),
     ).not.toBeInTheDocument();
@@ -664,6 +688,45 @@ describe('QaTestingDesk Organism', () => {
     expect(serviceMocks.getTaskTestExecutions).toHaveBeenCalledTimes(2);
   });
 
+  it('opens the Test Cycle form when running a Test Case without an active cycle', async () => {
+    const user = userEvent.setup();
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
+    serviceMocks.listQaTestCycles.mockResolvedValue([]);
+
+    renderDesk();
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Jalankan Test Case Returning customer completes checkout',
+      }),
+    );
+
+    const cycleDialog = screen.getByRole('dialog', { name: 'Buat Siklus Pengujian' });
+    await user.type(
+      within(cycleDialog).getByPlaceholderText('Contoh: commit:a1b2c3d atau deployment:stg-482'),
+      'commit:checkout-1',
+    );
+    await user.type(
+      within(cycleDialog).getByPlaceholderText('checkout-web-2026.09.15.1'),
+      'checkout-web-2026.08.22.1',
+    );
+    await user.click(within(cycleDialog).getByRole('button', { name: 'Simpan Siklus Pengujian' }));
+
+    await waitFor(() =>
+      expect(serviceMocks.createQaTestCycle).toHaveBeenCalledWith(ids.workspace, {
+        featureTaskId: ids.feature,
+        qaSubtaskId: ids.subtask,
+        candidateFingerprint: 'commit:checkout-1',
+        build: 'checkout-web-2026.08.22.1',
+        environment: 'staging',
+      }),
+    );
+    const runDialog = await screen.findByRole('dialog', { name: 'Jalankan Test Case' });
+    expect(
+      within(runDialog).getByText('Returning customer completes checkout'),
+    ).toBeInTheDocument();
+  });
+
   it('starts a persisted Test Run with build and environment', async () => {
     const user = userEvent.setup();
     serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
@@ -697,11 +760,15 @@ describe('QaTestingDesk Organism', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Mulai Pengujian untuk Returning customer completes checkout',
+        name: 'Jalankan Test Case Returning customer completes checkout',
       }),
     );
     const dialog = screen.getByRole('dialog');
-    await user.click(within(dialog).getByRole('button', { name: 'Mulai Pengujian' }));
+    expect(within(dialog).getByText('Returning customer completes checkout')).toBeInTheDocument();
+    expect(within(dialog).getByText('checkout-web-2026.08.22.1')).toBeInTheDocument();
+    expect(within(dialog).getByText('staging')).toBeInTheDocument();
+    expect(within(dialog).queryByRole('textbox', { name: 'Build' })).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Mulai Test Run' }));
 
     await waitFor(() =>
       expect(serviceMocks.createTestRun).toHaveBeenCalledWith(ids.workspace, ids.testCase, {
@@ -735,10 +802,10 @@ describe('QaTestingDesk Organism', () => {
         status: 'active',
       }),
     );
-    expect(screen.queryByRole('button', { name: /Mulai Pengujian untuk/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Jalankan Test Case/ })).not.toBeInTheDocument();
   });
 
-  it('lets QA submit a draft Test Case for Product Owner review without granting activation access', async () => {
+  it('lets QA activate a draft directly while keeping PO consultation optional', async () => {
     const user = userEvent.setup();
     const draftWorkspace = executionWorkspace();
     draftWorkspace.executions[0].testCase.status = 'draft';
@@ -757,7 +824,16 @@ describe('QaTestingDesk Organism', () => {
         status: 'in_review',
       }),
     );
-    expect(screen.queryByRole('button', { name: /Aktifkan Test Case/ })).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Aktifkan Test Case Returning customer completes checkout',
+      }),
+    );
+    await waitFor(() =>
+      expect(serviceMocks.updateTestCase).toHaveBeenLastCalledWith(ids.workspace, ids.testCase, {
+        status: 'active',
+      }),
+    );
   });
 
   it('records a Result for the active persisted Run with evidence links', async () => {
@@ -765,8 +841,19 @@ describe('QaTestingDesk Organism', () => {
     serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace([inProgressRun]));
     const qaRender = renderDesk();
 
-    await user.click(
+    expect(
       await screen.findByRole('button', {
+        name: 'Catat hasil untuk Returning customer completes checkout',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: 'Jalankan Test Case Returning customer completes checkout',
+      }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', {
         name: 'Catat hasil untuk Returning customer completes checkout',
       }),
     );
@@ -775,7 +862,7 @@ describe('QaTestingDesk Organism', () => {
     await user.type(within(dialog).getByLabelText('Hasil aktual'), 'Payment API returned 500.');
     await user.click(within(dialog).getByRole('button', { name: 'Tambah Tautan' }));
     await user.type(
-      within(dialog).getByPlaceholderText('https://www.youtube.com/watch?v=... or image URL'),
+      within(dialog).getByPlaceholderText('URL YouTube, Loom, Drive, atau gambar'),
       'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     );
     await user.click(within(dialog).getByRole('button', { name: 'Catat Hasil' }));
@@ -794,12 +881,63 @@ describe('QaTestingDesk Organism', () => {
         },
       ),
     );
+    expect(await screen.findByText('Buat Bug dari hasil ini')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('dialog')).getByLabelText('Hasil gagal atau terblokir asal'),
+    ).toHaveValue(`${ids.result}:${ids.requirement}`);
     qaRender.unmount();
 
     renderDesk('po');
     expect(await screen.findByText('Pengujian hanya dapat dilihat')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Mulai Pengujian untuk/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Jalankan Test Case/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Catat hasil untuk/ })).not.toBeInTheDocument();
+  });
+
+  it('uploads and selects image evidence directly from the Result form', async () => {
+    const user = userEvent.setup();
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace([inProgressRun]));
+    renderDesk();
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Catat hasil untuk Returning customer completes checkout',
+      }),
+    );
+    const dialog = screen.getByRole('dialog');
+    const file = new File(['qa-evidence'], 'hasil-uji.png', { type: 'image/png' });
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: vi.fn().mockResolvedValue(new ArrayBuffer(11)),
+    });
+    await user.upload(
+      within(dialog).getByLabelText('Pilih gambar atau video bukti pengujian'),
+      file,
+    );
+
+    await waitFor(() =>
+      expect(attachmentServiceMocks.uploadAttachment).toHaveBeenCalledWith(
+        ids.workspace,
+        ids.subtask,
+        expect.any(ArrayBuffer),
+        'hasil-uji.png',
+        'image/png',
+        { category: 'qa_evidence', caption: 'Bukti hasil pengujian QA' },
+      ),
+    );
+    expect(within(dialog).getByText('hasil-uji.png')).toBeInTheDocument();
+    expect(within(dialog).getByRole('checkbox')).toBeChecked();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Catat Hasil' }));
+    await waitFor(() =>
+      expect(serviceMocks.recordTestResult).toHaveBeenCalledWith(
+        ids.workspace,
+        ids.testCase,
+        ids.run,
+        expect.objectContaining({
+          status: 'passed',
+          evidenceAttachmentIds: ['10000000-0000-4000-8000-000000000015'],
+        }),
+      ),
+    );
   });
 
   it('automatically finalizes the Bug outcome after recording a contextual retest Result', async () => {
@@ -844,7 +982,7 @@ describe('QaTestingDesk Organism', () => {
     );
     await user.click(within(dialog).getByRole('button', { name: 'Tambah Tautan' }));
     await user.type(
-      within(dialog).getByPlaceholderText('https://www.youtube.com/watch?v=... or image URL'),
+      within(dialog).getByPlaceholderText('URL YouTube, Loom, Drive, atau gambar'),
       'https://example.com/retest-cycle-1',
     );
     await user.click(within(dialog).getByRole('button', { name: 'Catat Hasil' }));
