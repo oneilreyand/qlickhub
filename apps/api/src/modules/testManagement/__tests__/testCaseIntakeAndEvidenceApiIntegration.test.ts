@@ -1340,5 +1340,275 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       const persisted = await TestCaseImportModel.findByPk(previewData.preview.importSessionId);
       assert.strictEqual(persisted?.status, 'failed');
     });
+
+    describe('AGY-QA-TEST-CASE-ACTIVATION-CONFLICT: Draft Test Case direct activation by QA assignee and coverage update', () => {
+      let featureTask: TaskModel;
+      let req: RequirementModel;
+      let qaSubtask: TaskModel;
+      let baseline: FeatureReadinessBaselineModel;
+      let cycle: QaTestCycleModel;
+      let unversionedDraftCase: TestCaseModel;
+
+      before(async () => {
+        featureTask = await TaskModel.create({
+          workspaceId: workspaceA.id,
+          title: 'QRIS Activation Feature',
+          status: 'in_progress',
+          priority: 'high',
+          reporterId: po.id,
+        });
+
+        req = await RequirementModel.create({
+          workspaceId: workspaceA.id,
+          code: `REQ-ACT-${Date.now()}`,
+          title: 'QRIS Direct Activation Req',
+          status: 'active',
+          createdBy: po.id,
+        });
+
+        await TaskRequirementModel.create({
+          workspaceId: workspaceA.id,
+          taskId: featureTask.id,
+          requirementId: req.id,
+          linkedBy: po.id,
+        });
+
+        const brief = await QaDocumentModel.create({
+          workspaceId: workspaceA.id,
+          title: 'QRIS Activation Brief',
+          docType: 'product_brief',
+          status: 'approved',
+          currentVersion: 1,
+          createdBy: po.id,
+        });
+
+        const briefVersion = await QaDocumentVersionModel.create({
+          workspaceId: workspaceA.id,
+          documentId: brief.id,
+          version: 1,
+          title: brief.title,
+          contentMarkdown: 'QRIS product brief content.',
+          createdBy: po.id,
+        });
+
+        baseline = await FeatureReadinessBaselineModel.create({
+          workspaceId: workspaceA.id,
+          featureTaskId: featureTask.id,
+          sequence: 1,
+          productBriefVersionId: briefVersion.id,
+          snapshot: { schemaVersion: 1, integrationFixture: 'activation-conflict' } as any,
+          establishedBy: po.id,
+        });
+
+        await FeatureReadinessBaselineRequirementModel.create({
+          workspaceId: workspaceA.id,
+          baselineId: baseline.id,
+          requirementId: req.id,
+        });
+
+        qaSubtask = await TaskModel.create({
+          workspaceId: workspaceA.id,
+          parentTaskId: featureTask.id,
+          title: 'QA Testing Subtask for Activation',
+          deliveryArea: 'qa',
+          status: 'in_progress',
+          priority: 'high',
+          reporterId: po.id,
+          assigneeId: qa.id,
+        });
+
+        cycle = await QaTestCycleModel.create({
+          workspaceId: workspaceA.id,
+          featureTaskId: featureTask.id,
+          qaSubtaskId: qaSubtask.id,
+          readinessBaselineId: baseline.id,
+          candidateFingerprint: 'git:activation-audit-1',
+          build: 'qris-activation-build-1',
+          environment: 'staging',
+          status: 'in_progress',
+          ownerQaId: qa.id,
+        });
+        assert.ok(cycle.id);
+
+        // Draft Test Case without version history (reproducing imported / unversioned records)
+        unversionedDraftCase = await TestCaseModel.create({
+          workspaceId: workspaceA.id,
+          externalReference: `TC-UNVERSIONED-${Date.now()}`,
+          title: 'Draft case with missing version history',
+          testType: 'manual',
+          priority: 'high',
+          status: 'draft',
+          steps: ['Step 1', 'Step 2'],
+          expectedResult: 'Success',
+          scenarioKind: 'positive',
+          source: 'spreadsheet_import',
+          createdBy: po.id,
+        });
+
+        await TestCaseRequirementModel.create({
+          workspaceId: workspaceA.id,
+          testCaseId: unversionedDraftCase.id,
+          requirementId: req.id,
+          linkedBy: po.id,
+        });
+      });
+
+      test('before activation, release readiness shows 0 covered requirements and failed requirement_coverage gate', async () => {
+        const res = await fetch(
+          `${baseUrl}/workspaces/${workspaceA.id}/release-readiness?featureTaskIds=${featureTask.id}`,
+          { headers: { Cookie: qaCookie } },
+        );
+        assert.strictEqual(res.status, 200);
+        const data = (await res.json()) as any;
+        const item = data.readiness.items.find((i: any) => i.featureTaskId === featureTask.id);
+        assert.ok(item);
+        assert.strictEqual(item.currentReadinessSnapshot.requirements.coveredByActiveTestCases, 0);
+        const reqGate = item.currentReadinessSnapshot.evaluation.gates.find(
+          (g: any) => g.code === 'requirement_coverage',
+        );
+        assert.strictEqual(reqGate.status, 'failed');
+      });
+
+      test('role outside scope (dev) is forbidden from activating the draft test case (403)', async () => {
+        const res = await fetch(
+          `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${unversionedDraftCase.id}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Cookie: devCookie },
+            body: JSON.stringify({ status: 'active' }),
+          },
+        );
+        assert.strictEqual(res.status, 403);
+      });
+
+      test('QA assignee activates unversioned draft Test Case: succeeds, heals revision under DATA-005, re-reads active status', async () => {
+        const versionBefore = await TestCaseVersionModel.findOne({
+          where: { workspaceId: workspaceA.id, testCaseId: unversionedDraftCase.id },
+        });
+        assert.strictEqual(versionBefore, null);
+
+        const res = await fetch(
+          `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${unversionedDraftCase.id}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+            body: JSON.stringify({ status: 'active' }),
+          },
+        );
+        assert.strictEqual(res.status, 200);
+        const body = (await res.json()) as any;
+        assert.strictEqual(body.testCase.status, 'active');
+
+        // Re-read directly from GET endpoint
+        const getRes = await fetch(
+          `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${unversionedDraftCase.id}`,
+          { headers: { Cookie: qaCookie } },
+        );
+        assert.strictEqual(getRes.status, 200);
+        const getBody = (await getRes.json()) as any;
+        assert.strictEqual(getBody.testCase.status, 'active');
+
+        // Verify TestCaseVersionModel was backfilled with revision 1 and marked active
+        const versionAfter = await TestCaseVersionModel.findOne({
+          where: { workspaceId: workspaceA.id, testCaseId: unversionedDraftCase.id },
+        });
+        assert.ok(versionAfter);
+        assert.strictEqual(versionAfter.revision, 1);
+        assert.strictEqual(versionAfter.lifecycleStatus, 'active');
+        assert.strictEqual(versionAfter.origin, 'legacy_backfill');
+      });
+
+      test('after activation, release readiness shows requirement covered by active test case and passed gate', async () => {
+        const res = await fetch(
+          `${baseUrl}/workspaces/${workspaceA.id}/release-readiness?featureTaskIds=${featureTask.id}`,
+          { headers: { Cookie: qaCookie } },
+        );
+        assert.strictEqual(res.status, 200);
+        const data = (await res.json()) as any;
+        const item = data.readiness.items.find((i: any) => i.featureTaskId === featureTask.id);
+        assert.ok(item);
+        assert.strictEqual(item.currentReadinessSnapshot.requirements.coveredByActiveTestCases, 1);
+        const reqGate = item.currentReadinessSnapshot.evaluation.gates.find(
+          (g: any) => g.code === 'requirement_coverage',
+        );
+        assert.strictEqual(reqGate.status, 'passed');
+      });
+
+      test('newly imported test case commits with canonical revision 1 version persisted', async () => {
+        const extRef = `TC-IMPORT-${Date.now()}`;
+        const csvContent = [
+          'External Reference,Title,Requirement Code',
+          `${extRef},Imported test case with revision 1,${req.code}`,
+        ].join('\n');
+
+        const previewRes = await fetch(
+          `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/preview`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+            body: JSON.stringify({ fileName: 'new_case.csv', fileContent: csvContent }),
+          },
+        );
+        assert.strictEqual(previewRes.status, 200);
+        const previewData = (await previewRes.json()) as any;
+
+        const commitRes = await fetch(
+          `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/commit`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+            body: JSON.stringify({
+              importSessionId: previewData.preview.importSessionId,
+              contentHash: previewData.preview.contentHash,
+              mode: 'create_only',
+            }),
+          },
+        );
+        assert.strictEqual(commitRes.status, 201);
+        const commitData = (await commitRes.json()) as any;
+        assert.strictEqual(commitData.result.createdRows, 1);
+
+        const createdCase = await TestCaseModel.findOne({
+          where: { workspaceId: workspaceA.id, externalReference: extRef },
+        });
+        assert.ok(createdCase);
+
+        const version = await TestCaseVersionModel.findOne({
+          where: { workspaceId: workspaceA.id, testCaseId: createdCase.id },
+        });
+        assert.ok(version);
+        assert.strictEqual(version.revision, 1);
+        assert.strictEqual(version.lifecycleStatus, 'draft');
+        assert.strictEqual(version.origin, 'native_revision');
+      });
+
+      test('real data conflict (e.g. duplicate external reference) returns 409 Conflict with Problem Details', async () => {
+        const anotherCase = await TestCaseModel.create({
+          workspaceId: workspaceA.id,
+          externalReference: `TC-EXISTING-${Date.now()}`,
+          title: 'Another existing case',
+          testType: 'manual',
+          priority: 'medium',
+          status: 'draft',
+          steps: ['Do this'],
+          scenarioKind: 'positive',
+          source: 'native',
+          createdBy: po.id,
+        });
+
+        const conflictRes = await fetch(
+          `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${unversionedDraftCase.id}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+            body: JSON.stringify({ externalReference: anotherCase.externalReference }),
+          },
+        );
+        assert.strictEqual(conflictRes.status, 409);
+        const conflictBody = (await conflictRes.json()) as any;
+        assert.strictEqual(conflictBody.title || conflictBody.code, 'Conflict');
+        assert.ok((conflictBody.detail || conflictBody.error || '').includes('already exists'));
+      });
+    });
   });
 });

@@ -829,6 +829,37 @@ describe('QaTestingDesk Organism', () => {
     );
   });
 
+  it('handles activation failure cleanly without claiming premature success', async () => {
+    const user = userEvent.setup();
+    const draftWorkspace = executionWorkspace();
+    draftWorkspace.executions[0].testCase.status = 'draft';
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(draftWorkspace);
+    serviceMocks.updateTestCase.mockRejectedValueOnce(
+      new Error(
+        'Tindakan tidak dapat diselesaikan karena data terkait telah berubah atau masih digunakan.',
+      ),
+    );
+
+    renderDesk('qa');
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Aktifkan Test Case Returning customer completes checkout',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(serviceMocks.updateTestCase).toHaveBeenCalledWith(ids.workspace, ids.testCase, {
+        status: 'active',
+      }),
+    );
+    expect(
+      screen.getByRole('button', {
+        name: 'Aktifkan Test Case Returning customer completes checkout',
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('records a Result for the active persisted Run with evidence links', async () => {
     const user = userEvent.setup();
     serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace([inProgressRun]));

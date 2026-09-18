@@ -18,9 +18,11 @@ import {
   TestCaseImportRowModel,
   TestCaseModel,
   TestCaseRequirementModel,
+  TestCaseVersionModel,
   UserModel,
 } from '../../db/models/index.js';
 import { assertCanImportTestCases } from '../../policies/testManagementPolicy.js';
+import { snapshotTestCase } from './testManagementService.js';
 import {
   computeContentHash,
   extractSpreadsheetHeaders,
@@ -609,6 +611,54 @@ export class TestCaseImportService {
                 );
               }
 
+              const latestVersion = await TestCaseVersionModel.findOne({
+                where: { workspaceId, testCaseId: existingCase.id },
+                order: [['revision', 'DESC']],
+                transaction,
+                lock: transaction.LOCK.UPDATE,
+              });
+
+              const allLinks = await TestCaseRequirementModel.findAll({
+                where: { workspaceId, testCaseId: existingCase.id },
+                attributes: ['requirementId'],
+                transaction,
+              });
+              const allReqIds = [
+                ...new Set([...allLinks.map((l) => l.requirementId), resolvedReqId]),
+              ];
+
+              let versionId: string;
+              if (!latestVersion) {
+                const backfilled = await TestCaseVersionModel.create(
+                  {
+                    workspaceId,
+                    testCaseId: existingCase.id,
+                    revision: 1,
+                    lifecycleStatus: existingCase.status,
+                    definitionSnapshot: snapshotTestCase(existingCase, allReqIds),
+                    authoredBy: actorId,
+                    origin: 'legacy_backfill',
+                  },
+                  { transaction },
+                );
+                versionId = backfilled.id;
+              } else {
+                const revision = await TestCaseVersionModel.create(
+                  {
+                    workspaceId,
+                    testCaseId: existingCase.id,
+                    revision: latestVersion.revision + 1,
+                    lifecycleStatus: 'draft',
+                    definitionSnapshot: snapshotTestCase(existingCase, allReqIds),
+                    authoredBy: actorId,
+                    supersedesVersionId: latestVersion.id,
+                    origin: 'native_revision',
+                  },
+                  { transaction },
+                );
+                versionId = revision.id;
+              }
+
               updatedRows++;
               await stagedRow.update(
                 {
@@ -623,6 +673,7 @@ export class TestCaseImportService {
                 {
                   workspaceId,
                   testCaseId: existingCase.id,
+                  testCaseVersionId: versionId,
                   actorId,
                   action: 'test_case_updated',
                   metadata: { importId: stagedImport.id, source: 'spreadsheet_import' },
@@ -666,16 +717,31 @@ export class TestCaseImportService {
               { transaction },
             );
 
+            const initialVersion = await TestCaseVersionModel.create(
+              {
+                workspaceId,
+                testCaseId: createdCase.id,
+                revision: 1,
+                lifecycleStatus: 'draft',
+                definitionSnapshot: snapshotTestCase(createdCase, [resolvedReqId]),
+                authoredBy: actorId,
+                origin: 'native_revision',
+              },
+              { transaction },
+            );
+
             await TestCaseActivityModel.create(
               {
                 workspaceId,
                 testCaseId: createdCase.id,
+                testCaseVersionId: initialVersion.id,
                 actorId,
                 action: 'test_case_created',
                 metadata: {
                   importId: stagedImport.id,
                   source: 'spreadsheet_import',
                   externalReference: createdCase.externalReference,
+                  revision: 1,
                 },
               },
               { transaction },

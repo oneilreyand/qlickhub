@@ -73,7 +73,7 @@ type TestResultWithEvidence = TestResultModel & {
 };
 type TestRunWithResult = TestRunModel & { result?: TestResultWithEvidence | null };
 
-function snapshotTestCase(
+export function snapshotTestCase(
   testCase: TestCaseModel,
   requirementIds: string[],
 ): Record<string, unknown> {
@@ -992,18 +992,6 @@ export class TestManagementService {
         );
       }
 
-      const latestVersion = await TestCaseVersionModel.findOne({
-        where: { workspaceId: input.workspaceId, testCaseId: input.testCaseId },
-        order: [['revision', 'DESC']],
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (!latestVersion) {
-        throw new Error(
-          'CONFLICT: Test Case revision history is missing. Run the version backfill first.',
-        );
-      }
-
       if (input.externalReference && input.externalReference !== testCase.externalReference) {
         const existingRef = await TestCaseModel.findOne({
           where: {
@@ -1040,6 +1028,30 @@ export class TestManagementService {
         transaction,
       });
       let requirementIds = currentRequirementLinks.map((link) => link.requirementId);
+
+      let latestVersion = await TestCaseVersionModel.findOne({
+        where: { workspaceId: input.workspaceId, testCaseId: input.testCaseId },
+        order: [['revision', 'DESC']],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!latestVersion) {
+        // DATA-005: Deterministically heal unversioned Test Cases (e.g. from intake or legacy persistence)
+        latestVersion = await TestCaseVersionModel.create(
+          {
+            workspaceId: input.workspaceId,
+            testCaseId: testCase.id,
+            revision: 1,
+            lifecycleStatus: testCase.status,
+            definitionSnapshot: snapshotTestCase(testCase, requirementIds),
+            authoredBy: testCase.createdBy || actorId,
+            publishedBy: testCase.status === 'active' ? testCase.createdBy || actorId : null,
+            publishedAt: testCase.status === 'active' ? testCase.createdAt || new Date() : null,
+            origin: 'legacy_backfill',
+          },
+          { transaction },
+        );
+      }
 
       if (input.requirementIds) {
         const uniqueReqIds = [...new Set(input.requirementIds)];

@@ -910,10 +910,15 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const handleActivateTestCase = async (testCaseId: string) => {
     setActivatingTestCaseId(testCaseId);
     try {
-      await testManagementService.updateTestCase(workspaceId, testCaseId, { status: 'active' });
-      dispatch(enqueueSnackbar('Test Case activated and ready for QA execution', 'success'));
+      const updatedCase = await testManagementService.updateTestCase(workspaceId, testCaseId, {
+        status: 'active',
+      });
+      if (updatedCase.status !== 'active') {
+        throw new Error('Test Case belum berstatus aktif setelah disimpan.');
+      }
       await loadExecutions();
       onDataChanged();
+      dispatch(enqueueSnackbar('Test Case activated and ready for QA execution', 'success'));
     } catch (error) {
       dispatch(
         enqueueSnackbar(
