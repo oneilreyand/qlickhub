@@ -47,27 +47,32 @@ describe('Test Management Policy Unit Tests', () => {
     }
   });
 
-  test('allows QA to edit drafts and submit review, but not change published cases', () => {
+  test('allows QA to activate only a draft whose scope the service has proven', () => {
     assert.doesNotThrow(() => assertCanUpdateTestCase('po', 'active', 'active'));
     assert.doesNotThrow(() => assertCanUpdateTestCase('admin', 'active', 'archived'));
     assert.doesNotThrow(() => assertCanUpdateTestCase('owner', 'in_review', 'active'));
     assert.doesNotThrow(() => assertCanUpdateTestCase('po', 'in_review', 'draft'));
     assert.doesNotThrow(() => assertCanUpdateTestCase('qa', 'draft', 'draft'));
     assert.doesNotThrow(() => assertCanUpdateTestCase('qa', 'draft', 'in_review'));
-    assert.throws(() => assertCanUpdateTestCase('qa', 'draft', 'active'), /QA can edit only draft/);
+    assert.doesNotThrow(() => assertCanUpdateTestCase('qa', 'draft', 'active', false, true));
+    assert.throws(
+      () => assertCanUpdateTestCase('qa', 'draft', 'active'),
+      /proven scope of their assigned QA Subtask/,
+    );
     assert.throws(
       () => assertCanUpdateTestCase('qa', 'active', 'active'),
-      /QA can edit only draft/,
+      /QA can edit draft Test Cases/,
     );
-    assert.throws(
-      () => assertCanUpdateTestCase('po', 'draft', 'active'),
-      /Invalid Test Case lifecycle transition/,
-    );
+    assert.doesNotThrow(() => assertCanUpdateTestCase('po', 'draft', 'active'));
+    assert.doesNotThrow(() => assertCanUpdateTestCase('po', 'active', 'draft'));
     assert.throws(
       () => assertCanUpdateTestCase('owner', 'archived', 'active'),
       /Invalid Test Case lifecycle transition/,
     );
-    assert.throws(() => assertCanUpdateTestCase('dev', 'draft', 'draft'), /QA can edit only draft/);
+    assert.throws(
+      () => assertCanUpdateTestCase('dev', 'draft', 'draft'),
+      /QA can edit draft Test Cases/,
+    );
   });
 
   test('allows QA create-only imports but keeps update import planner-only', () => {

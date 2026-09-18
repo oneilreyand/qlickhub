@@ -18,6 +18,7 @@ import {
   TestCaseRequirementModel,
   TestCaseVersionModel,
   TestRunModel,
+  NotificationOutboxModel,
   UserModel,
   WorkspaceMemberModel,
   WorkspaceModel,
@@ -170,6 +171,17 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
         linkedBy: po.id,
       },
     ]);
+
+    await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: featureTaskA.id,
+      deliveryArea: 'qa',
+      title: 'Execute Checkout QA',
+      status: 'todo',
+      priority: 'high',
+      reporterId: po.id,
+      assigneeId: qa.id,
+    });
 
     taskAttachmentA = await TaskAttachmentModel.create({
       workspaceId: workspaceA.id,
@@ -346,6 +358,43 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(res.status, 200);
       const data = (await res.json()) as any;
       assert.strictEqual(data.testCase.status, 'in_review');
+    });
+
+    test('QA directly activates a draft in its assigned QA Subtask scope and notifies PO', async () => {
+      const createRes = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({
+          title: 'QA direct activation case',
+          testType: 'manual',
+          priority: 'high',
+          steps: ['Open checkout', 'Confirm payment'],
+          requirementIds: [requirementA1.id],
+        }),
+      });
+      assert.strictEqual(createRes.status, 201);
+      const created = (await createRes.json()) as any;
+
+      const activateRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${created.testCase.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({ status: 'active' }),
+        },
+      );
+      const activateBody = await activateRes.text();
+      assert.strictEqual(activateRes.status, 200, activateBody);
+      const activated = JSON.parse(activateBody) as any;
+      assert.strictEqual(activated.testCase.status, 'active');
+
+      const outbox = (
+        await NotificationOutboxModel.findAll({
+          where: { workspaceId: workspaceA.id, recipientUserId: po.id },
+        })
+      ).find((row) => row.eventKey.startsWith(`test-case-activated:${created.testCase.id}:`));
+      assert.strictEqual(outbox?.recipientUserId, po.id);
+      assert.strictEqual(outbox?.taskId, featureTaskA.id);
     });
 
     test('PO publishes a QA review submission as active', async () => {
@@ -773,7 +822,14 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
         testCaseId: tc.id,
         revision: 1,
         lifecycleStatus: 'active',
-        definitionSnapshot: { requirementIds: [requirementA1.id] },
+        definitionSnapshot: {
+          title: 'Verify saved-card checkout failure',
+          preconditions: 'Returning customer has a saved card.',
+          steps: ['Open checkout', 'Choose saved card', 'Submit payment'],
+          expectedResult: 'Payment confirmation is displayed.',
+          testData: 'Saved Visa test card',
+          requirementIds: [requirementA1.id],
+        },
         authoredBy: qa.id,
         publishedBy: po.id,
         publishedAt: new Date(),
@@ -982,11 +1038,24 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
         }),
       });
 
-      assert.strictEqual(bugRes.status, 201);
-      const bugData = (await bugRes.json()) as any;
+      const bugBody = await bugRes.text();
+      assert.strictEqual(bugRes.status, 201, bugBody);
+      const bugData = JSON.parse(bugBody) as any;
       bugId = bugData.bug.id;
 
       assert.ok(bugData.bug.originatingTestResult);
+      assert.deepStrictEqual(bugData.bug.originatingTestCase, {
+        availability: 'available',
+        versionId: executableCaseVersionId,
+        revision: 1,
+        title: 'Verify saved-card checkout failure',
+        preconditions: 'Returning customer has a saved card.',
+        steps: ['Open checkout', 'Choose saved card', 'Submit payment'],
+        expectedResult: 'Payment confirmation is displayed.',
+        testData: 'Saved Visa test card',
+        requirementIds: [requirementA1.id],
+        acceptanceCriteria: [],
+      });
       assert.strictEqual(bugData.bug.originatingTestResult.evidence.length, 1);
       assert.strictEqual(
         bugData.bug.originatingTestResult.evidence[0].attachmentId,

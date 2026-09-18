@@ -214,6 +214,15 @@ dibuktikan deterministik. Implementasi additive dan enforcement bertahap tercata
 [QA Execution dan Release Assurance Plan](plans/QA_EXECUTION_RELEASE_ASSURANCE_PLAN.md); kebijakan
 runtime saat ini masih transitional sampai S1–S7 selesai.
 
+### Aktivasi Test Case oleh QA Assignee
+
+[ADR-015](adr/ADR-015-QA-DIRECT-TEST-CASE-ACTIVATION.md) menghapus persetujuan PO wajib sebelum
+pengujian normal. Backend mengizinkan QA assignee mengubah `draft → active` hanya bila setiap
+Requirement pada Test Case terbukti berada pada root Feature dari QA Subtask yang ditugaskan kepada
+aktor. PO mendapat notifikasi persisten dan dapat mengembalikan Test Case aktif ke `draft` untuk
+revisi atau mengarsipkannya. Run historis selalu menunjuk revisi yang telah disegel; ia tidak
+berubah ketika Test Case kembali menjadi draf.
+
 ---
 
 ## 5. Model Keamanan & Otorisasi (RBAC)
@@ -226,9 +235,9 @@ graph TD
     MemberCheck -- "Yes" --> RoleRouter{"Identify Member Role"}
 
     RoleRouter -->|"owner / admin"| FullControl["Workspace Governance\n- Manage Members & Dev Specialties\n- Plan Folders, Tasks, Subtasks\n- Approve / Reject Releases\n- Audited QA break-glass only"]
-    RoleRouter -->|"po (Product Owner)"| POControl["Feature & Quality Planning\n- Manage Requirements & Folders\n- Plan Tasks & Subtasks\n- Activate Test Cases\n- Formal Release Decisions"]
+    RoleRouter -->|"po (Product Owner)"| POControl["Feature & Quality Planning\n- Manage Requirements & Folders\n- Plan Tasks & Subtasks\n- Request Test Case Revision / Archive\n- Formal Release Decisions"]
     RoleRouter -->|"dev (Developer)"| DevControl["Delivery Execution\n- Execute Assigned Subtask (todo → in_review)\n- Resolve Bugs\n- Upload Tech Evidence\n- (Parent Task creation ONLY if delegated)"]
-    RoleRouter -->|"qa (Quality Assurance)"| QAControl["Assignment-bound Quality Assurance\n- Author Draft Test Cases\n- Execute scoped Runs & sealed Results\n- Log Bugs & formal Retest Attempts\n- Submit QA Sign-offs"]
+    RoleRouter -->|"qa (Quality Assurance)"| QAControl["Assignment-bound Quality Assurance\n- Author & activate scoped Test Cases\n- Execute scoped Runs & sealed Results\n- Log Bugs & formal Retest Attempts\n- Submit QA Sign-offs"]
 
     classDef deny fill:#FEE2E2,stroke:#EF4444,stroke-width:2px,color:#991B1B;
     classDef owner fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F;

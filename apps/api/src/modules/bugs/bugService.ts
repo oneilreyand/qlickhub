@@ -27,6 +27,7 @@ import {
   BugModel,
   BugResolutionEventModel,
   BugRetestAttemptModel,
+  AcceptanceCriterionModel,
   FeatureReadinessBaselineRequirementModel,
   QaTestCycleModel,
   RequirementModel,
@@ -37,6 +38,7 @@ import {
   TestCaseActivityModel,
   TestCaseModel,
   TestCaseVersionModel,
+  TestCaseVersionAcceptanceCriterionModel,
   TestResultEvidenceLinkModel,
   TestResultEvidenceModel,
   TestResultEvidenceManifestModel,
@@ -125,7 +127,7 @@ type ContextualBugModel = BugModel & {
   requirement?: RequirementModel;
   assignee?: UserModel;
   originatingTestResult?: TestResultModel & {
-    run?: TestRunModel;
+    run?: TestRunModel & { testCaseVersion?: TestCaseVersionModel };
     evidenceLinks?: (TestResultEvidenceModel & { attachment?: TaskAttachmentModel })[];
     externalEvidenceLinks?: TestResultEvidenceLinkModel[];
   };
@@ -152,6 +154,14 @@ const bugContextIncludes = [
         as: 'run',
         attributes: ['id', 'testCaseId', 'qaSubtaskId', 'build', 'environment'],
         required: false,
+        include: [
+          {
+            model: TestCaseVersionModel,
+            as: 'testCaseVersion',
+            attributes: ['id', 'revision', 'definitionSnapshot'],
+            required: false,
+          },
+        ],
       },
       {
         model: TestResultEvidenceModel,
@@ -181,6 +191,16 @@ function formatBugWithContext(bug: ContextualBugModel): BugWithContext {
   const assignee = bug.assignee;
   const result = bug.originatingTestResult;
   const testRun = result?.run;
+  const testCaseVersion = testRun?.testCaseVersion;
+  const snapshot = testCaseVersion?.definitionSnapshot || {};
+  const snapshotText = (key: string): string | null =>
+    typeof snapshot[key] === 'string' ? snapshot[key] : null;
+  const snapshotSteps = Array.isArray(snapshot.steps)
+    ? snapshot.steps.filter((step): step is string => typeof step === 'string')
+    : [];
+  const snapshotRequirementIds = Array.isArray(snapshot.requirementIds)
+    ? snapshot.requirementIds.filter((id): id is string => typeof id === 'string')
+    : [];
 
   return {
     ...formatBug(bug),
@@ -232,8 +252,72 @@ function formatBugWithContext(bug: ContextualBugModel): BugWithContext {
         environment: testRun?.environment || 'test',
       },
     },
+    originatingTestCase: {
+      availability: testCaseVersion ? 'available' : 'unavailable',
+      versionId: testCaseVersion?.id || null,
+      revision: testCaseVersion?.revision || null,
+      title: testCaseVersion ? snapshotText('title') : null,
+      preconditions: testCaseVersion ? snapshotText('preconditions') : null,
+      steps: testCaseVersion ? snapshotSteps : [],
+      expectedResult: testCaseVersion ? snapshotText('expectedResult') : null,
+      testData: testCaseVersion ? snapshotText('testData') : null,
+      requirementIds: testCaseVersion ? snapshotRequirementIds : [],
+      acceptanceCriteria: [],
+    },
     bugEvidenceLinks: (bug.externalEvidenceLinks || []).map(formatBugEvidenceLink),
   };
+}
+
+async function formatBugsWithContext(
+  bugs: ContextualBugModel[],
+  transaction?: Transaction,
+): Promise<BugWithContext[]> {
+  const formatted = bugs.map(formatBugWithContext);
+  const versionIds = formatted
+    .map((bug) => bug.originatingTestCase.versionId)
+    .filter((versionId): versionId is string => Boolean(versionId));
+  if (versionIds.length === 0) return formatted;
+
+  const mappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
+    where: { testCaseVersionId: [...new Set(versionIds)] },
+    include: [
+      {
+        model: AcceptanceCriterionModel,
+        as: 'acceptanceCriterion',
+        attributes: ['id', 'requirementId', 'sequence', 'text', 'status'],
+        required: true,
+      },
+    ],
+    transaction,
+  });
+  const criteriaByVersion = new Map<
+    string,
+    BugWithContext['originatingTestCase']['acceptanceCriteria']
+  >();
+  for (const mapping of mappings as Array<
+    TestCaseVersionAcceptanceCriterionModel & { acceptanceCriterion?: AcceptanceCriterionModel }
+  >) {
+    const criterion = mapping.acceptanceCriterion;
+    if (!criterion) continue;
+    const criteria = criteriaByVersion.get(mapping.testCaseVersionId) || [];
+    criteria.push({
+      id: criterion.id,
+      requirementId: criterion.requirementId,
+      sequence: criterion.sequence,
+      text: criterion.text,
+      status: criterion.status,
+      mappingStatus: mapping.mappingStatus,
+      exclusionReason: mapping.exclusionReason || null,
+    });
+    criteriaByVersion.set(mapping.testCaseVersionId, criteria);
+  }
+  return formatted.map((bug) => ({
+    ...bug,
+    originatingTestCase: {
+      ...bug.originatingTestCase,
+      acceptanceCriteria: criteriaByVersion.get(bug.originatingTestCase.versionId || '') || [],
+    },
+  }));
 }
 
 function formatActivity(activity: BugActivityModel): BugActivity {
@@ -1042,7 +1126,7 @@ export class BugService {
     });
 
     if (query.queue !== 'retest' || bugs.length === 0) {
-      return bugs.map((bug) => formatBugWithContext(bug as ContextualBugModel));
+      return formatBugsWithContext(bugs as ContextualBugModel[], transaction);
     }
 
     const qaSubtaskIds = bugs
@@ -1085,18 +1169,21 @@ export class BugService {
     const finalizedResolutionIds = new Set(
       finalAttempts.map((attempt) => attempt.resolutionEventId),
     );
-    return bugs
-      .filter((bug) => {
-        const latest = latestResolutionByBug.get(bug.id);
-        const qaSubtaskId = (bug as ContextualBugModel).originatingTestResult?.run?.qaSubtaskId;
-        return (
-          latest &&
-          qaSubtaskId &&
-          assignedQaSubtaskIds.has(qaSubtaskId) &&
-          !finalizedResolutionIds.has(latest.id)
-        );
-      })
-      .map((bug) => formatBugWithContext(bug as ContextualBugModel));
+    return formatBugsWithContext(
+      bugs
+        .filter((bug) => {
+          const latest = latestResolutionByBug.get(bug.id);
+          const qaSubtaskId = (bug as ContextualBugModel).originatingTestResult?.run?.qaSubtaskId;
+          return (
+            latest &&
+            qaSubtaskId &&
+            assignedQaSubtaskIds.has(qaSubtaskId) &&
+            !finalizedResolutionIds.has(latest.id)
+          );
+        })
+        .map((bug) => bug as ContextualBugModel),
+      transaction,
+    );
   }
 
   async getBug(workspaceId: string, bugId: string, actorId: string): Promise<BugWithContext> {
@@ -1108,7 +1195,8 @@ export class BugService {
     if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
 
     assertCanReadBug(membership.role, actorId, bug.assigneeId);
-    return formatBugWithContext(bug as ContextualBugModel);
+    const [formatted] = await formatBugsWithContext([bug as ContextualBugModel]);
+    return formatted;
   }
 
   async createBug(actorId: string, input: CreateBugInput): Promise<BugWithContext> {

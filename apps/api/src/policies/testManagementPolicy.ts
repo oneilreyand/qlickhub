@@ -21,9 +21,9 @@ const lifecycleTransitions: Record<
   'draft' | 'in_review' | 'active' | 'archived',
   readonly ('draft' | 'in_review' | 'active' | 'archived')[]
 > = {
-  draft: ['in_review'],
+  draft: ['in_review', 'active'],
   in_review: ['draft', 'active'],
-  active: ['archived'],
+  active: ['draft', 'archived'],
   archived: [],
 };
 
@@ -32,6 +32,7 @@ export function assertCanUpdateTestCase(
   currentStatus: 'draft' | 'in_review' | 'active' | 'archived',
   requestedStatus?: 'draft' | 'in_review' | 'active' | 'archived',
   hasDefinitionChanges = false,
+  hasQaActivationScope = false,
 ): void {
   if (role === 'owner' || role === 'admin' || role === 'po') {
     if (hasDefinitionChanges) {
@@ -48,11 +49,13 @@ export function assertCanUpdateTestCase(
   if (
     role === 'qa' &&
     currentStatus === 'draft' &&
-    (!requestedStatus || ['draft', 'in_review'].includes(requestedStatus))
+    (!requestedStatus ||
+      ['draft', 'in_review'].includes(requestedStatus) ||
+      (requestedStatus === 'active' && hasQaActivationScope))
   )
     return;
   throw new Error(
-    'FORBIDDEN: QA can edit only draft Test Cases and may submit them for review; only Product Owner, Admin, or Owner can publish or archive.',
+    'FORBIDDEN: QA can edit draft Test Cases and may activate them only within the proven scope of their assigned QA Subtask; only Product Owner, Admin, or Owner can request revision or archive.',
   );
 }
 
