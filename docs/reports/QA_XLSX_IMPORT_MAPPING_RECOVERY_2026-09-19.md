@@ -11,7 +11,9 @@ sehingga wizard langsung menuju preview. Header yang tidak didukung mengarahkan 
 pemetaan dan menghasilkan error yang menyebut kolom, baris, dan penyebabnya.
 
 Tidak ada perubahan pada commit atomic, staging server-side, validasi Requirement aktif, atau
-otorisasi impor. Perubahan belum dideploy ke Production pada saat laporan ini dibuat.
+otorisasi impor. Perubahan dideploy ke Production pada 2026-09-23 melalui deployment
+`dpl_ADS8qZCDNVa92d2mf8r43Jf1XGHB`, yang berstatus Ready dan dialias ke
+`https://qlickhub.vercel.app`. E2E UAT XLSX terautentikasi tetap belum diklaim.
 
 ## Source of truth and impact
 
@@ -40,10 +42,12 @@ otorisasi impor. Perubahan belum dideploy ke Production pada saat laporan ini di
 - `npm --prefix apps/web run test -- src/components/ui/organisms/myTasks/__tests__/TestCaseImportWizardModal.test.tsx` — passed, 2/2.
 - `npm --prefix apps/web run build` — passed, exit 0; 1.715 modul ditransformasi.
 - `npm --prefix packages/contracts run test` — 72/73 passed; satu kegagalan yang sudah ada dan tidak terkait pada validasi `BugSchema` karena fixture tidak menyertakan `originatingTestCase`.
+- Vercel Production `dpl_ADS8qZCDNVa92d2mf8r43Jf1XGHB` — Ready; alias `https://qlickhub.vercel.app` aktif.
+- Smoke check Production non-destruktif — `/`, `/v1`, dan `/v1/health` masing-masing `200`; `/v1/workspaces` tanpa sesi `401`.
 
 ## Risks or follow-up
 
-- Deploy lalu lakukan UAT Production non-destruktif dengan memilih preview XLSX audit; jangan commit Test Case hanya demi pembuktian.
+- Lakukan E2E UAT Production non-destruktif dengan memilih preview XLSX audit; jangan commit Test Case hanya demi pembuktian.
 - Header yang sengaja diabaikan tetap dapat dipilih pada wizard. Header asing yang belum diberi keputusan memunculkan state mapping dan error preview awal.
 
 ## TODO update
