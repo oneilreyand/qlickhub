@@ -50,7 +50,7 @@ const envSchema = z.object({
     .default('false')
     .transform((value) => value === 'true'),
   ATTACHMENT_STORAGE_PROVIDER: z.enum(['local', 'google_drive']).optional(),
-  GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().min(1).optional(),
+  GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().trim().min(1).optional(),
   GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
   FIREBASE_PROJECT_ID: z.string().min(1).default('ndeks-fcm'),
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
