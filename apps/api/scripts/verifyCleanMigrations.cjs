@@ -70,7 +70,9 @@ async function main() {
          '20260915000079-add-notification-outbox-processing-state.cjs',
          '20260915000080-add-notification-outbox-dead-letter-state.cjs',
          '20260915000081-create-qa-assurance-rollout-settings.cjs',
-         '20260916000082-link-contextual-bug-retest-evidence.cjs'
+         '20260916000082-link-contextual-bug-retest-evidence.cjs',
+         '20260918000083-allow-scoped-qa-test-case-activation.cjs',
+         '20260918000084-create-qris-sandbox-transactions.cjs'
        )
        ORDER BY name;`,
     );
@@ -96,6 +98,8 @@ async function main() {
         '20260915000080-add-notification-outbox-dead-letter-state.cjs',
         '20260915000081-create-qa-assurance-rollout-settings.cjs',
         '20260916000082-link-contextual-bug-retest-evidence.cjs',
+        '20260918000083-allow-scoped-qa-test-case-activation.cjs',
+        '20260918000084-create-qris-sandbox-transactions.cjs',
       ],
     );
 
@@ -110,7 +114,8 @@ async function main() {
          to_regclass('public.bug_retest_attempts') AS bug_retest_attempts_table,
          to_regclass('public.notification_outbox') AS notification_outbox_table,
          to_regclass('public.qa_assurance_rollout_settings') AS qa_assurance_rollout_settings_table,
-         to_regclass('public.qa_assurance_rollout_events') AS qa_assurance_rollout_events_table;`,
+         to_regclass('public.qa_assurance_rollout_events') AS qa_assurance_rollout_events_table,
+         to_regclass('public.qris_sandbox_transactions') AS qris_sandbox_transactions_table;`,
     );
     assert.strictEqual(tableRows[0].attachment_table, 'task_attachments');
     assert.strictEqual(tableRows[0].migration_map_table, 'legacy_requirement_test_case_migrations');
@@ -127,6 +132,32 @@ async function main() {
     assert.strictEqual(
       tableRows[0].qa_assurance_rollout_events_table,
       'qa_assurance_rollout_events',
+    );
+    assert.strictEqual(tableRows[0].qris_sandbox_transactions_table, 'qris_sandbox_transactions');
+
+    const [qrisSandboxGuardRows] = await verificationDatabase.query(
+      `SELECT
+         EXISTS (
+           SELECT 1 FROM pg_indexes
+           WHERE schemaname = 'public'
+             AND indexname = 'idx_qris_sandbox_transactions_workspace_run'
+         ) AS has_workspace_run_index,
+         (SELECT pg_get_constraintdef(oid)
+          FROM pg_constraint
+          WHERE conname = 'ck_qris_sandbox_transactions_amount_nonfinancial') AS amount_constraint,
+         (SELECT pg_get_constraintdef(oid)
+          FROM pg_constraint
+          WHERE conname = 'ck_qris_sandbox_transactions_currency') AS currency_constraint,
+         (SELECT pg_get_constraintdef(oid)
+          FROM pg_constraint
+          WHERE conname = 'uk_qris_sandbox_transactions_workspace_idempotency') AS idempotency_constraint;`,
+    );
+    assert.strictEqual(qrisSandboxGuardRows[0].has_workspace_run_index, true);
+    assert.match(qrisSandboxGuardRows[0].amount_constraint, /amount_minor = 0/);
+    assert.match(qrisSandboxGuardRows[0].currency_constraint, /currency.*'IDR'/);
+    assert.match(
+      qrisSandboxGuardRows[0].idempotency_constraint,
+      /UNIQUE \(workspace_id, idempotency_key\)/,
     );
 
     const [rolloutGuardRows] = await verificationDatabase.query(

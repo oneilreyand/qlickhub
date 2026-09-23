@@ -10,6 +10,7 @@ import { TestCaseModel } from '../testCase.js';
 import { TestCaseVersionModel } from '../testCaseVersion.js';
 import { TestCaseVersionAcceptanceCriterionModel } from '../testCaseVersionAcceptanceCriterion.js';
 import { QaTestCycleModel } from '../qaTestCycle.js';
+import { QrisSandboxTransactionModel } from '../qrisSandboxTransaction.js';
 import { TestCaseRequirementModel } from '../testCaseRequirement.js';
 import { TestRunModel } from '../testRun.js';
 import { TestResultModel } from '../testResult.js';
@@ -256,6 +257,47 @@ export function setupQaAssociations() {
   TestRunModel.belongsTo(UserModel, {
     foreignKey: 'executorId',
     as: 'executor',
+    onDelete: 'RESTRICT',
+  });
+
+  WorkspaceModel.hasMany(QrisSandboxTransactionModel, {
+    foreignKey: 'workspaceId',
+    as: 'qrisSandboxTransactions',
+    onDelete: 'CASCADE',
+  });
+  QrisSandboxTransactionModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+  TestRunModel.hasMany(QrisSandboxTransactionModel, {
+    foreignKey: 'testRunId',
+    as: 'qrisSandboxTransactions',
+    onDelete: 'RESTRICT',
+  });
+  QrisSandboxTransactionModel.belongsTo(TestRunModel, {
+    foreignKey: 'testRunId',
+    as: 'testRun',
+    onDelete: 'RESTRICT',
+  });
+  TestCaseModel.hasMany(QrisSandboxTransactionModel, {
+    foreignKey: 'testCaseId',
+    as: 'qrisSandboxTransactions',
+    onDelete: 'RESTRICT',
+  });
+  QrisSandboxTransactionModel.belongsTo(TestCaseModel, {
+    foreignKey: 'testCaseId',
+    as: 'testCase',
+    onDelete: 'RESTRICT',
+  });
+  UserModel.hasMany(QrisSandboxTransactionModel, {
+    foreignKey: 'createdBy',
+    as: 'createdQrisSandboxTransactions',
+    onDelete: 'RESTRICT',
+  });
+  QrisSandboxTransactionModel.belongsTo(UserModel, {
+    foreignKey: 'createdBy',
+    as: 'creator',
     onDelete: 'RESTRICT',
   });
 

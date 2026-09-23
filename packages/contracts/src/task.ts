@@ -12,6 +12,32 @@ export const TaskStatusSchema = z.enum([
 
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
+/**
+ * Schedule health is evaluated by the authenticated backend read model.  Clients
+ * present this value and must not derive lateness from their own clock.
+ */
+export const TaskScheduleHealthStatusSchema = z.enum([
+  'on_track',
+  'at_risk',
+  'delayed',
+  'completed',
+  'unscheduled',
+]);
+
+export type TaskScheduleHealthStatus = z.infer<typeof TaskScheduleHealthStatusSchema>;
+
+export const TaskScheduleHealthSchema = z.object({
+  status: TaskScheduleHealthStatusSchema,
+  label: z.string(),
+  daysRemaining: z.number().int().nullable(),
+  daysOverdue: z.number().int().min(0),
+  isOverdue: z.boolean(),
+  isCompleted: z.boolean(),
+  reason: z.string().optional(),
+});
+
+export type TaskScheduleHealth = z.infer<typeof TaskScheduleHealthSchema>;
+
 export const TaskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 
 export type TaskPriority = z.infer<typeof TaskPrioritySchema>;
@@ -102,6 +128,7 @@ export const TaskSchemaBase = z.object({
   position: z.number().int().min(0).optional(),
   startDate: DateStringSchema.nullable().optional(),
   dueDate: DateStringSchema.nullable().optional(),
+  scheduleHealth: TaskScheduleHealthSchema.optional(),
   completedAt: z.string().nullable().optional(),
   subtaskSummary: SubtaskSummarySchema.optional(),
   createdAt: z.string(),

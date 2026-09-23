@@ -11,6 +11,7 @@ export * from './requirement.js';
 export * from './qaDocument.js';
 export * from './traceability.js';
 export * from './testManagement.js';
+export * from './qrisSandbox.js';
 export * from './bug.js';
 export * from './releaseDecision.js';
 export * from './featureReadiness.js';

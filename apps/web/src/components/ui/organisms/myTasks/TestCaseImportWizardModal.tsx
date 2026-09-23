@@ -127,7 +127,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
             setPreviewData(preview);
             setSelectedSheet(preview.selectedSheet || 'Sheet1');
             setColumnMapping(preview.columnMapping || {});
-            setStep(preview.headers && preview.headers.length > 0 ? 'mapping' : 'preview');
+            setStep(preview.unmappedHeaders?.length ? 'mapping' : 'preview');
           } catch (err: unknown) {
             setErrorMessage(err instanceof Error ? err.message : 'File XLSX gagal dibaca.');
           } finally {
@@ -142,7 +142,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         setPreviewData(preview);
         setSelectedSheet('Sheet1');
         setColumnMapping(preview.columnMapping || {});
-        setStep(preview.headers && preview.headers.length > 0 ? 'mapping' : 'preview');
+        setStep(preview.unmappedHeaders?.length ? 'mapping' : 'preview');
         setLoading(false);
       }
     } catch (err: unknown) {
@@ -353,6 +353,13 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                 <strong className="text-primary">{activeFile?.name}</strong> ke field Test Case.
               </p>
             </div>
+
+            {(previewData.unmappedHeaders || []).length > 0 && (
+              <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-100">
+                Kolom belum dikenali: {previewData.unmappedHeaders.join(', ')}. Pilih field tujuan
+                atau abaikan kolom tersebut sebelum melanjutkan.
+              </div>
+            )}
 
             {/* Sheet selection bar (if multi-sheet XLSX) */}
             {previewData.availableSheets && previewData.availableSheets.length > 1 && (
@@ -586,14 +593,10 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
             <div className="flex items-center justify-between pt-2">
               <Button
                 variant="ghost"
-                onClick={() =>
-                  setStep(
-                    previewData.headers && previewData.headers.length > 0 ? 'mapping' : 'upload',
-                  )
-                }
+                onClick={() => setStep(previewData.unmappedHeaders?.length ? 'mapping' : 'upload')}
                 leftIcon={<ArrowLeft className="w-4 h-4" />}
               >
-                {previewData.headers && previewData.headers.length > 0
+                {previewData.unmappedHeaders?.length
                   ? 'Kembali ke Pemetaan Kolom'
                   : 'Kembali ke Unggah'}
               </Button>

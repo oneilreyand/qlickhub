@@ -18,6 +18,7 @@ import {
   QaDocumentModel,
   QaDocumentVersionModel,
   QaTestCycleModel,
+  QrisSandboxTransactionModel,
   TestResultEvidenceModel,
   TestResultEvidenceManifestModel,
   TestResultModel,
@@ -289,6 +290,8 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     if (workspaceA)
       await TestResultEvidenceManifestModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (workspaceA) await TestResultModel.destroy({ where: { workspaceId: workspaceA.id } });
+    if (workspaceA)
+      await QrisSandboxTransactionModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (workspaceA) await TestRunModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (workspaceA) await QaTestCycleModel.destroy({ where: { workspaceId: workspaceA.id } });
     if (workspaceA)
@@ -381,6 +384,158 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       { headers: { Cookie: devCookie } },
     );
     assert.strictEqual(denied.status, 403);
+  });
+
+  test('persists an idempotent nonfinancial QRIS sandbox transaction only for its active QA Test Run', async () => {
+    const candidateFingerprint = `sandbox:qris:api-integration-${Date.now()}`;
+    const cycle = await createScopedCycle('qris-sandbox-api-integration', candidateFingerprint);
+    const runInput = await scopedRunInput(
+      cycle.testCycle.id,
+      'qris-sandbox-api-integration',
+      candidateFingerprint,
+    );
+    const runResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify(runInput),
+      },
+    );
+    assert.strictEqual(runResponse.status, 201);
+    const testRunId = ((await runResponse.json()) as { testRun: { id: string } }).testRun.id;
+    const endpoint = `${baseUrl}/workspaces/${workspaceA.id}/qa-sandbox/qris/transactions`;
+    const request = {
+      testRunId,
+      idempotencyKey: `qris-sandbox-api-${testRunId}`,
+      amountMinor: 0,
+      currency: 'IDR',
+    };
+
+    const invalidAmount = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify({ ...request, amountMinor: 1 }),
+    });
+    assert.strictEqual(invalidAmount.status, 400);
+
+    const developerCreate = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: devCookie },
+      body: JSON.stringify(request),
+    });
+    assert.strictEqual(developerCreate.status, 403);
+
+    const crossWorkspace = await fetch(
+      `${baseUrl}/workspaces/${workspaceB.id}/qa-sandbox/qris/transactions`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify(request),
+      },
+    );
+    assert.strictEqual(crossWorkspace.status, 403);
+
+    const created = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify(request),
+    });
+    assert.strictEqual(created.status, 201);
+    const createdBody = (await created.json()) as {
+      transaction: {
+        id: string;
+        status: string;
+        amountMinor: number;
+        currency: string;
+        isNonFinancial: boolean;
+      };
+    };
+    assert.strictEqual(createdBody.transaction.status, 'pending');
+    assert.strictEqual(createdBody.transaction.amountMinor, 0);
+    assert.strictEqual(createdBody.transaction.currency, 'IDR');
+    assert.strictEqual(createdBody.transaction.isNonFinancial, true);
+
+    const replay = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify(request),
+    });
+    assert.strictEqual(replay.status, 201);
+    const replayBody = (await replay.json()) as { transaction: { id: string; status: string } };
+    assert.strictEqual(replayBody.transaction.id, createdBody.transaction.id);
+    assert.strictEqual(replayBody.transaction.status, 'pending');
+    assert.strictEqual(
+      await QrisSandboxTransactionModel.count({ where: { workspaceId: workspaceA.id, testRunId } }),
+      1,
+    );
+
+    const conflictingRunResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify(runInput),
+      },
+    );
+    assert.strictEqual(conflictingRunResponse.status, 201);
+    const conflictingTestRunId = (
+      (await conflictingRunResponse.json()) as { testRun: { id: string } }
+    ).testRun.id;
+    const conflictingIdempotencyRequest = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify({ ...request, testRunId: conflictingTestRunId }),
+    });
+    assert.strictEqual(conflictingIdempotencyRequest.status, 409);
+
+    const transactionEndpoint = `${endpoint}/${createdBody.transaction.id}`;
+    const developerSimulation = await fetch(`${transactionEndpoint}/simulate-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: devCookie },
+      body: JSON.stringify({ status: 'expired' }),
+    });
+    assert.strictEqual(developerSimulation.status, 403);
+
+    const simulated = await fetch(`${transactionEndpoint}/simulate-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify({ status: 'expired' }),
+    });
+    assert.strictEqual(simulated.status, 200);
+    const simulatedBody = (await simulated.json()) as {
+      transaction: { status: string; simulatedAt: string | null };
+    };
+    assert.strictEqual(simulatedBody.transaction.status, 'expired');
+    assert.ok(simulatedBody.transaction.simulatedAt);
+
+    const conflictingFinalState = await fetch(`${transactionEndpoint}/simulate-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify({ status: 'paid' }),
+    });
+    assert.strictEqual(conflictingFinalState.status, 409);
+
+    const readableByDeveloper = await fetch(transactionEndpoint, {
+      headers: { Cookie: devCookie },
+    });
+    assert.strictEqual(readableByDeveloper.status, 200);
+    const persistedBody = (await readableByDeveloper.json()) as {
+      transaction: { id: string; status: string; testRunId: string; isNonFinancial: boolean };
+    };
+    assert.strictEqual(persistedBody.transaction.id, createdBody.transaction.id);
+    assert.strictEqual(persistedBody.transaction.testRunId, testRunId);
+    assert.strictEqual(persistedBody.transaction.status, 'expired');
+    assert.strictEqual(persistedBody.transaction.isNonFinancial, true);
+
+    await QrisSandboxTransactionModel.destroy({ where: { workspaceId: workspaceA.id, testRunId } });
+    await TestCaseActivityModel.destroy({ where: { workspaceId: workspaceA.id, testRunId } });
+    await TestCaseActivityModel.destroy({
+      where: { workspaceId: workspaceA.id, testRunId: conflictingTestRunId },
+    });
+    await TestRunModel.destroy({ where: { id: testRunId } });
+    await TestRunModel.destroy({ where: { id: conflictingTestRunId } });
+    await QaTestCycleModel.destroy({ where: { id: cycle.testCycle.id } });
   });
 
   test('preserves a pass in one build and a fail in a later build as separate immutable history', async () => {

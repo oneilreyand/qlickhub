@@ -22,6 +22,7 @@ export * from './testCase.js';
 export * from './testCaseVersion.js';
 export * from './testCaseVersionAcceptanceCriterion.js';
 export * from './qaTestCycle.js';
+export * from './qrisSandboxTransaction.js';
 export * from './testCaseRequirement.js';
 export * from './testRun.js';
 export * from './testResult.js';

@@ -1141,16 +1141,56 @@ export class TestManagementService {
         if (requestedStatus === previousStatus) {
           throw new Error('BAD_REQUEST: No Test Case definition or lifecycle change was provided.');
         }
-        await latestVersion.update(
-          requestedStatus === 'active'
-            ? { lifecycleStatus: 'active', publishedBy: actorId, publishedAt: new Date() }
-            : requestedStatus === 'draft'
-              ? { lifecycleStatus: 'draft', publishedBy: null, publishedAt: null }
-              : { lifecycleStatus: requestedStatus },
-          { transaction },
-        );
+
+        const requiresImmutableLifecycleRevision =
+          (previousStatus === 'draft' && requestedStatus === 'active') ||
+          (previousStatus === 'active' && requestedStatus === 'draft');
+        if (requiresImmutableLifecycleRevision) {
+          const revision = await TestCaseVersionModel.create(
+            {
+              workspaceId: input.workspaceId,
+              testCaseId: input.testCaseId,
+              revision: latestVersion.revision + 1,
+              lifecycleStatus: requestedStatus,
+              definitionSnapshot: snapshotTestCase(testCase, requirementIds),
+              authoredBy: actorId,
+              publishedBy: requestedStatus === 'active' ? actorId : null,
+              publishedAt: requestedStatus === 'active' ? new Date() : null,
+              supersedesVersionId: latestVersion.id,
+              origin: 'native_revision',
+            },
+            { transaction },
+          );
+          const priorMappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
+            where: { workspaceId: input.workspaceId, testCaseVersionId: latestVersion.id },
+            transaction,
+          });
+          if (priorMappings.length > 0) {
+            await TestCaseVersionAcceptanceCriterionModel.bulkCreate(
+              priorMappings.map((mapping) => ({
+                workspaceId: mapping.workspaceId,
+                testCaseVersionId: revision.id,
+                acceptanceCriterionId: mapping.acceptanceCriterionId,
+                mappingStatus: mapping.mappingStatus,
+                exclusionReason: mapping.exclusionReason,
+                mappedBy: actorId,
+              })),
+              { transaction },
+            );
+          }
+          activityVersionId = revision.id;
+        } else {
+          await latestVersion.update(
+            requestedStatus === 'active'
+              ? { lifecycleStatus: 'active', publishedBy: actorId, publishedAt: new Date() }
+              : requestedStatus === 'draft'
+                ? { lifecycleStatus: 'draft', publishedBy: null, publishedAt: null }
+                : { lifecycleStatus: requestedStatus },
+            { transaction },
+          );
+          activityVersionId = latestVersion.id;
+        }
         activityAction = 'test_case_revision_status_changed';
-        activityVersionId = latestVersion.id;
       }
 
       await TestCaseActivityModel.create(

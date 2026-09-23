@@ -498,9 +498,12 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
       if (Number.isNaN(completedDate.getTime())) return null;
       actualEndDate = normalizeDateStr(completedDate);
       completionLabel = `selesai ${formatShortDate(completedDate)}`;
-    } else if (task.dueDate < todayKey) {
-      actualEndDate = todayKey;
-      completionLabel = `masih terbuka hingga ${formatShortDate(today)}`;
+    } else if (task.scheduleHealth?.isOverdue) {
+      const overdueEnd = parseDate(task.dueDate);
+      if (!overdueEnd) return null;
+      overdueEnd.setDate(overdueEnd.getDate() + task.scheduleHealth.daysOverdue);
+      actualEndDate = normalizeDateStr(overdueEnd);
+      completionLabel = 'masih terbuka; status dihitung backend';
     }
 
     if (!actualEndDate || actualEndDate <= task.dueDate) return null;
@@ -987,11 +990,7 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
                         const barData = computeDateRangeBarStyles(task.startDate, task.dueDate);
                         const delayExtension = getDelayExtension(task);
                         const isSelected = selectedTaskId === task.id;
-                        const isOverdue =
-                          task.dueDate &&
-                          task.dueDate < todayKey &&
-                          task.status !== 'done' &&
-                          task.status !== 'canceled';
+                        const isOverdue = task.scheduleHealth?.isOverdue === true;
                         const isTaskExpanded = expandedTaskIds.has(task.id);
                         const subtasks = taskSubtasksMap.get(task.id) || [];
                         const isLoadingSubtasks = loadingSubtasksMap.get(task.id) || false;

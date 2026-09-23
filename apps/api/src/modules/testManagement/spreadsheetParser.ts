@@ -7,6 +7,21 @@ export interface ParsedSpreadsheetRow {
   data: Record<string, string>;
 }
 
+const xmlTagPrefix = '(?:[A-Za-z_][\\w.-]*:)?';
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function decodeXmlText(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
 /**
  * Standard RFC 4180 CSV parser supporting quoted values, embedded newlines, and escaped quotes.
  */
@@ -87,7 +102,7 @@ export function parseCsvContent(
       const header = headers[colIndex];
       const value = row[colIndex] || '';
       if (value.length > 0) hasAnyValue = true;
-      data[header] = value;
+      if (header) data[header] = value;
     }
     if (hasAnyValue) {
       parsedRows.push({
@@ -164,7 +179,7 @@ export function getSpreadsheetSheets(buffer: Buffer, mimeType = ''): string[] {
     if (!workbookXml) return ['Sheet1'];
 
     const sheetNames: string[] = [];
-    const sheetRegex = /<sheet\s+[^>]*name="([^"]+)"[^>]*>/g;
+    const sheetRegex = new RegExp(`<${xmlTagPrefix}sheet\\s+[^>]*name="([^"]+)"[^>]*>`, 'g');
     let match: RegExpExecArray | null;
     while ((match = sheetRegex.exec(workbookXml)) !== null) {
       sheetNames.push(match[1]);
@@ -178,19 +193,15 @@ export function getSpreadsheetSheets(buffer: Buffer, mimeType = ''): string[] {
 
 export function parseSharedStringsXml(sharedStringsXml: string): string[] {
   const sharedStrings: string[] = [];
-  const siRegex = /<si>(.*?)<\/si>/gs;
+  const siRegex = new RegExp(`<${xmlTagPrefix}si>(.*?)<\/${xmlTagPrefix}si>`, 'gs');
   let siMatch: RegExpExecArray | null;
   while ((siMatch = siRegex.exec(sharedStringsXml)) !== null) {
-    const textMatches = siMatch[1].match(/<t(?:\s+[^>]*)?>(.*?)<\/t>/gs) || [];
-    const text = textMatches
-      .map((t) => t.replace(/<[^>]+>/g, ''))
-      .join('')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&apos;/g, "'");
-    sharedStrings.push(text);
+    const textMatches =
+      siMatch[1].match(
+        new RegExp(`<${xmlTagPrefix}t(?:\\s+[^>]*)?>(.*?)<\/${xmlTagPrefix}t>`, 'gs'),
+      ) || [];
+    const text = textMatches.map((t) => t.replace(/<[^>]+>/g, '')).join('');
+    sharedStrings.push(decodeXmlText(text));
   }
   return sharedStrings;
 }
@@ -215,13 +226,16 @@ export function parseXlsxContent(
 
     if (selectedSheetName && workbookXml) {
       const sheetRegex = new RegExp(
-        `<sheet\\s+[^>]*name="${selectedSheetName}"[^>]*r:id="([^"]+)"`,
+        `<${xmlTagPrefix}sheet\\s+[^>]*name="${escapeRegExp(selectedSheetName)}"[^>]*r:id="([^"]+)"`,
         'i',
       );
       const sheetMatch = sheetRegex.exec(workbookXml);
       if (sheetMatch && relsXml) {
         const rId = sheetMatch[1];
-        const relRegex = new RegExp(`<Relationship\\s+[^>]*Id="${rId}"[^>]*Target="([^"]+)"`, 'i');
+        const relRegex = new RegExp(
+          `<${xmlTagPrefix}Relationship\\s+[^>]*Id="${escapeRegExp(rId)}"[^>]*Target="([^"]+)"`,
+          'i',
+        );
         const relMatch = relRegex.exec(relsXml);
         if (relMatch) {
           const target = relMatch[1];
@@ -249,7 +263,10 @@ export function parseXlsxContent(
 
     // Extract sheet rows
 
-    const rowRegex = /<row\s+r="(\d+)"[^>]*>(.*?)<\/row>/gs;
+    const rowRegex = new RegExp(
+      `<${xmlTagPrefix}row\\s+r="(\\d+)"[^>]*>(.*?)<\/${xmlTagPrefix}row>`,
+      'gs',
+    );
     const rawRows: { rowNum: number; cells: Record<string, string> }[] = [];
     let rowMatch: RegExpExecArray | null;
 
@@ -258,8 +275,10 @@ export function parseXlsxContent(
       const rowContent = rowMatch[2];
       const cells: Record<string, string> = {};
 
-      const cellRegex =
-        /<c\s+r="([A-Z]+)\d+"(?:[^>]*?t="([a-z]+)")?[^>]*>(?:<v>(.*?)<\/v>|<is><t>(.*?)<\/t><\/is>)?<\/c>/gs;
+      const cellRegex = new RegExp(
+        `<${xmlTagPrefix}c\\s+r="([A-Z]+)\\d+"(?:[^>]*?t="([a-zA-Z]+)")?[^>]*>(?:<${xmlTagPrefix}v>(.*?)<\/${xmlTagPrefix}v>|<${xmlTagPrefix}is><${xmlTagPrefix}t>(.*?)<\/${xmlTagPrefix}t><\/${xmlTagPrefix}is>)?<\/${xmlTagPrefix}c>`,
+        'gs',
+      );
       let cellMatch: RegExpExecArray | null;
 
       while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
@@ -272,7 +291,7 @@ export function parseXlsxContent(
           const stringIndex = parseInt(rawValue, 10);
           value = sharedStrings[stringIndex] || '';
         }
-        cells[colLetter] = value.trim();
+        cells[colLetter] = decodeXmlText(value).trim();
       }
 
       rawRows.push({ rowNum, cells });
@@ -301,7 +320,7 @@ export function parseXlsxContent(
       for (const [col, headerName] of Object.entries(colToHeader)) {
         const val = cells[col] || '';
         if (val.length > 0) hasAnyValue = true;
-        data[headerName] = val;
+        if (headerName) data[headerName] = val;
       }
       if (hasAnyValue) {
         parsedRows.push({
@@ -353,11 +372,18 @@ export function extractSpreadsheetHeaders(
           );
           const xml = sheetXml.toString('utf8');
 
-          const row1Match = xml.match(/<row[^>]*r="1"[^>]*>([\s\S]*?)<\/row>/i);
+          const row1Match = xml.match(
+            new RegExp(
+              `<${xmlTagPrefix}row[^>]*r="1"[^>]*>([\\s\\S]*?)<\/${xmlTagPrefix}row>`,
+              'i',
+            ),
+          );
           if (row1Match) {
             const cellsContent = row1Match[1];
-            const cellRegex =
-              /<c[^>]*r="([A-Z]+)1"[^>]*(?:t="([^"]*)")?[^>]*>(?:<v>([^<]*)<\/v>|<is><t>([^<]*)<\/t><\/is>)?<\/c>/gi;
+            const cellRegex = new RegExp(
+              `<${xmlTagPrefix}c[^>]*r="([A-Z]+)1"[^>]*(?:t="([^"]*)")?[^>]*>(?:<${xmlTagPrefix}v>([^<]*)<\/${xmlTagPrefix}v>|<${xmlTagPrefix}is><${xmlTagPrefix}t>([^<]*)<\/${xmlTagPrefix}t><\/${xmlTagPrefix}is>)?<\/${xmlTagPrefix}c>`,
+              'gi',
+            );
             let cellMatch: RegExpExecArray | null;
             const headers: string[] = [];
             while ((cellMatch = cellRegex.exec(cellsContent)) !== null) {
@@ -368,7 +394,7 @@ export function extractSpreadsheetHeaders(
                 const idx = parseInt(val, 10);
                 text = sharedStrings[idx] || '';
               }
-              if (text.trim()) headers.push(text.trim());
+              if (text.trim()) headers.push(decodeXmlText(text).trim());
             }
             if (headers.length > 0) return headers;
           }
@@ -414,12 +440,48 @@ function parseCsvRow(line: string): string[] {
   return row.filter((h) => h.length > 0);
 }
 
+const canonicalImportFields = new Set([
+  'external_reference',
+  'title',
+  'requirement_code',
+  'steps',
+  'expected_result',
+  'test_data',
+  'priority',
+  'scenario_kind',
+  'test_type',
+  'preconditions',
+]);
+
 function resolveHeader(raw: string, columnMapping?: Record<string, string>): string {
   const trimmed = raw.trim();
-  if (columnMapping && columnMapping[trimmed]) {
-    return columnMapping[trimmed];
+  if (columnMapping && Object.hasOwn(columnMapping, trimmed)) {
+    return columnMapping[trimmed] || '';
   }
   return normalizeHeader(trimmed);
+}
+
+/** Resolves uploaded headers to supported fields; an empty target requires user action. */
+export function resolveSpreadsheetColumnMapping(
+  headers: string[],
+  columnMapping?: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    headers.map((header) => {
+      const resolved = resolveHeader(header, columnMapping);
+      return [header, canonicalImportFields.has(resolved) ? resolved : ''];
+    }),
+  );
+}
+
+export function findUnmappedSpreadsheetHeaders(
+  headers: string[],
+  columnMapping?: Record<string, string>,
+): string[] {
+  return headers.filter((header) => {
+    if (columnMapping && Object.hasOwn(columnMapping, header.trim())) return false;
+    return !canonicalImportFields.has(resolveHeader(header));
+  });
 }
 
 export function normalizeHeader(raw: string): string {

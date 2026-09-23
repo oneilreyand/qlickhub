@@ -30,6 +30,8 @@ import type {
   TestCaseVersionAcceptanceCriterionMapping,
   TestCaseVersionCoverageSummary,
   QaTestCycle,
+  QrisSandboxTransaction,
+  QrisSandboxTransactionStatus,
   QaWorkflowSummary,
   TestResultStatus,
   TestRun,
@@ -65,6 +67,7 @@ import { attachmentService } from '../../../../lib/api/attachmentService';
 import { requirementService } from '../../../../lib/api/requirementService';
 import { taskService } from '../../../../lib/api/taskService';
 import { testManagementService } from '../../../../lib/api/testManagementService';
+import { qrisSandboxService } from '../../../../lib/api/qrisSandboxService';
 import { calculateSubtaskScheduleHealth } from '../../../../lib/utils/scheduleHealth';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { RootState } from '../../../../store/store';
@@ -194,6 +197,10 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [runEnvironment, setRunEnvironment] = useState('staging');
   const [runFormError, setRunFormError] = useState<string | null>(null);
   const [isStartingRun, setIsStartingRun] = useState(false);
+  const [qrisSandboxTransactionsByRunId, setQrisSandboxTransactionsByRunId] = useState<
+    Record<string, QrisSandboxTransaction>
+  >({});
+  const [qrisSandboxActionRunId, setQrisSandboxActionRunId] = useState<string | null>(null);
 
   // Test Result recording state
   const [resultTarget, setResultTarget] = useState<{
@@ -836,6 +843,60 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       setRunFormError(error instanceof Error ? error.message : 'Pengujian gagal dimulai.');
     } finally {
       setIsStartingRun(false);
+    }
+  };
+
+  const handleCreateQrisSandboxTransaction = async (run: TestRun) => {
+    try {
+      setQrisSandboxActionRunId(run.id);
+      const transaction = await qrisSandboxService.createTransaction(workspaceId, {
+        testRunId: run.id,
+        idempotencyKey: `qris-sandbox-${run.id}`,
+        amountMinor: 0,
+        currency: 'IDR',
+      });
+      setQrisSandboxTransactionsByRunId((current) => ({ ...current, [run.id]: transaction }));
+      dispatch(
+        enqueueSnackbar('Transaksi QRIS sandbox Rp0 telah dibuat dan tersimpan.', 'success'),
+      );
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Transaksi QRIS sandbox tidak dapat dibuat.',
+          'error',
+        ),
+      );
+    } finally {
+      setQrisSandboxActionRunId(null);
+    }
+  };
+
+  const handleSimulateQrisSandboxStatus = async (
+    runId: string,
+    status: Exclude<QrisSandboxTransactionStatus, 'pending'>,
+  ) => {
+    const sandboxTransaction = qrisSandboxTransactionsByRunId[runId];
+    if (!sandboxTransaction) return;
+    try {
+      setQrisSandboxActionRunId(runId);
+      const transaction = await qrisSandboxService.simulateStatus(
+        workspaceId,
+        sandboxTransaction.id,
+        status,
+      );
+      setQrisSandboxTransactionsByRunId((current) => ({ ...current, [runId]: transaction }));
+      dispatch(
+        enqueueSnackbar('Status QRIS sandbox telah disimulasikan dan tersimpan.', 'success'),
+      );
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Status QRIS sandbox tidak dapat disimulasikan.',
+          'error',
+        ),
+      );
+    } finally {
+      setQrisSandboxActionRunId(null);
     }
   };
 
@@ -1528,6 +1589,10 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           <div className="mt-3 space-y-3">
             {testRuns.map((run) => {
               const evidenceLinks = run.result?.evidenceLinks || [];
+              const isQrisSandboxRun =
+                run.candidateFingerprint?.startsWith('sandbox:qris:') &&
+                run.status === 'in_progress';
+              const sandboxTransaction = qrisSandboxTransactionsByRunId[run.id];
               return (
                 <div
                   key={run.id}
@@ -1590,6 +1655,86 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                       )}
                     </div>
                   </div>
+                  {isQrisSandboxRun && canExecuteTests && (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-2.5 dark:border-emerald-900/70 dark:bg-emerald-950/30">
+                      <p className="font-bold text-emerald-950 dark:text-emerald-100">
+                        Target QRIS sandbox non-finansial
+                      </p>
+                      <p className="mt-1 text-[11px] text-emerald-900/80 dark:text-emerald-200/80">
+                        Hanya membuat transaksi uji Rp0. Tidak menghubungi penyedia pembayaran dan
+                        tidak memindahkan dana.
+                      </p>
+                      {!sandboxTransaction ? (
+                        <Button
+                          className="mt-2"
+                          variant="outline"
+                          size="sm"
+                          isLoading={qrisSandboxActionRunId === run.id}
+                          disabled={qrisSandboxActionRunId === run.id}
+                          onClick={() => void handleCreateQrisSandboxTransaction(run)}
+                        >
+                          Buat transaksi sandbox Rp0
+                        </Button>
+                      ) : (
+                        <div className="mt-2 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge
+                              variant={
+                                sandboxTransaction.status === 'paid'
+                                  ? 'passed'
+                                  : sandboxTransaction.status === 'pending'
+                                    ? 'info'
+                                    : 'blocked'
+                              }
+                              size="sm"
+                            >
+                              Sandbox: {sandboxTransaction.status}
+                            </Badge>
+                            <span className="font-mono text-[10px] text-emerald-950/70 dark:text-emerald-200/70">
+                              {sandboxTransaction.sandboxReference}
+                            </span>
+                          </div>
+                          {sandboxTransaction.status === 'pending' && (
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                isLoading={qrisSandboxActionRunId === run.id}
+                                disabled={qrisSandboxActionRunId === run.id}
+                                onClick={() => void handleSimulateQrisSandboxStatus(run.id, 'paid')}
+                              >
+                                Simulasikan lunas
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={qrisSandboxActionRunId === run.id}
+                                onClick={() =>
+                                  void handleSimulateQrisSandboxStatus(run.id, 'failed')
+                                }
+                              >
+                                Simulasikan gagal
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={qrisSandboxActionRunId === run.id}
+                                onClick={() =>
+                                  void handleSimulateQrisSandboxStatus(run.id, 'expired')
+                                }
+                              >
+                                Simulasikan kedaluwarsa
+                              </Button>
+                            </div>
+                          )}
+                          <p className="text-[11px] text-emerald-900/80 dark:text-emerald-200/80">
+                            Simulasi tidak mengubah hasil QA. Catat hasil dan unggah bukti hanya
+                            setelah eksekusi yang benar-benar dilakukan.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {run.result?.actualResult && (
                     <p className="text-xs text-stone-600 dark:text-stone-400">

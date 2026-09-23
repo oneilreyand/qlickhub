@@ -26,9 +26,11 @@ import { snapshotTestCase } from './testManagementService.js';
 import {
   computeContentHash,
   extractSpreadsheetHeaders,
+  findUnmappedSpreadsheetHeaders,
   getSpreadsheetSheets,
   parseCsvContent,
   parseXlsxContent,
+  resolveSpreadsheetColumnMapping,
 } from './spreadsheetParser.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import { iso } from '../../utils/dateUtils.js';
@@ -110,10 +112,13 @@ export class TestCaseImportService {
     const availableSheets = isBuffer ? getSpreadsheetSheets(fileBuffer, mimeType) : ['Sheet1'];
     const selectedSheet =
       sheetName && availableSheets.includes(sheetName) ? sheetName : availableSheets[0] || 'Sheet1';
+    const headers = extractSpreadsheetHeaders(fileBuffer, mimeType, selectedSheet);
+    const resolvedColumnMapping = resolveSpreadsheetColumnMapping(headers, columnMapping);
+    const unmappedHeaders = findUnmappedSpreadsheetHeaders(headers, columnMapping);
 
     const parsedRows = isBuffer
-      ? parseXlsxContent(fileBuffer, selectedSheet, columnMapping)
-      : parseCsvContent(fileBuffer.toString(), columnMapping);
+      ? parseXlsxContent(fileBuffer, selectedSheet, resolvedColumnMapping)
+      : parseCsvContent(fileBuffer.toString(), resolvedColumnMapping);
 
     if (parsedRows.length === 0) {
       throw new Error('BAD_REQUEST: The uploaded file contains no valid data rows or headers.');
@@ -156,7 +161,10 @@ export class TestCaseImportService {
     let duplicateCount = 0;
 
     for (const row of parsedRows) {
-      const errors: string[] = [];
+      const errors = unmappedHeaders.map(
+        (header) =>
+          `Column "${header}" is not recognized. Map it to a Test Case field before importing row ${row.rowNumber}.`,
+      );
       const data = row.data;
 
       const extRefRaw = (data.external_reference || '').trim();
@@ -320,8 +328,6 @@ export class TestCaseImportService {
       }
     });
 
-    const headers = extractSpreadsheetHeaders(fileBuffer, mimeType, selectedSheet);
-
     return {
       importSessionId,
       fileName,
@@ -334,7 +340,8 @@ export class TestCaseImportService {
       availableSheets,
       selectedSheet,
       headers,
-      columnMapping,
+      columnMapping: resolvedColumnMapping,
+      unmappedHeaders,
       expiresAt: expiresAt.toISOString(),
       rows: dryRunRows,
     };

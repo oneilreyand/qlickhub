@@ -203,13 +203,23 @@ describe('CreateSubtaskModal UI Component', () => {
       target: { value: 'Implement OAuth login' },
     });
     fireEvent.change(screen.getByLabelText('Pelaksana'), { target: { value: 'dev-1' } });
+    fireEvent.change(screen.getByLabelText('Tanggal Mulai (pasangan opsional)'), {
+      target: { value: '2026-09-01' },
+    });
+    fireEvent.change(screen.getByLabelText('Tanggal Tenggat (pasangan opsional)'), {
+      target: { value: '2026-09-05' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Buat Subtask' }));
 
     await waitFor(() => {
       expect(createSubtaskMock).toHaveBeenCalledWith(
         mockParentTask.workspaceId,
         mockParentTask.id,
-        expect.objectContaining({ requirementIds: [requirementId] }),
+        expect.objectContaining({
+          requirementIds: [requirementId],
+          startDate: '2026-09-01',
+          dueDate: '2026-09-05',
+        }),
       );
     });
   });

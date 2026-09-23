@@ -1,16 +1,13 @@
-import type { Task, ProductBrief } from '@qlick/contracts';
+import type {
+  Task,
+  ProductBrief,
+  TaskScheduleHealth,
+  TaskScheduleHealthStatus,
+} from '@qlick/contracts';
 
-export type ScheduleHealthStatus = 'on_track' | 'at_risk' | 'delayed' | 'completed' | 'unscheduled';
+export type ScheduleHealthStatus = TaskScheduleHealthStatus;
 
-export interface SubtaskScheduleHealth {
-  status: ScheduleHealthStatus;
-  label: string;
-  daysRemaining: number | null;
-  daysOverdue: number;
-  isOverdue: boolean;
-  isCompleted: boolean;
-  reason?: string;
-}
+export type SubtaskScheduleHealth = TaskScheduleHealth;
 
 export interface RoleTimelineStage {
   role: 'po' | 'backend' | 'frontend' | 'qa';
@@ -82,97 +79,19 @@ export function diffDays(dateAStr: string, dateBStr: string): number {
  */
 export function calculateSubtaskScheduleHealth(
   subtask: Task,
-  todayDate: Date = new Date(),
+  _todayDate?: Date,
 ): SubtaskScheduleHealth {
-  const todayStr = normalizeDateStr(todayDate);
-
-  if (subtask.status === 'done') {
-    return {
-      status: 'completed',
-      label: 'Selesai',
-      daysRemaining: null,
-      daysOverdue: 0,
-      isOverdue: false,
-      isCompleted: true,
-    };
-  }
-
-  if (subtask.status === 'canceled') {
-    return {
-      status: 'completed',
-      label: 'Dibatalkan',
-      daysRemaining: null,
-      daysOverdue: 0,
-      isOverdue: false,
-      isCompleted: true,
-    };
-  }
-
-  if (!subtask.dueDate) {
-    return {
+  return (
+    subtask.scheduleHealth ?? {
       status: 'unscheduled',
-      label: 'Tanpa Tenggat',
+      label: 'Status jadwal belum tersedia',
       daysRemaining: null,
       daysOverdue: 0,
       isOverdue: false,
       isCompleted: false,
-      reason: 'Subtask belum memiliki tenggat terjadwal',
-    };
-  }
-
-  const daysLeft = diffDays(subtask.dueDate, todayStr);
-
-  if (daysLeft < 0) {
-    const overdueDays = Math.abs(daysLeft);
-    return {
-      status: 'delayed',
-      label: `Terlambat ${overdueDays} hari`,
-      daysRemaining: daysLeft,
-      daysOverdue: overdueDays,
-      isOverdue: true,
-      isCompleted: false,
-      reason: `Tenggat ${subtask.dueDate} (terlewat ${overdueDays} hari)`,
-    };
-  }
-
-  if (subtask.status === 'changes_requested') {
-    return {
-      status: 'at_risk',
-      label: 'Perlu Perbaikan',
-      daysRemaining: daysLeft,
-      daysOverdue: 0,
-      isOverdue: false,
-      isCompleted: false,
-      reason: 'Reviewer meminta perbaikan sebelum verifikasi dapat dilanjutkan',
-    };
-  }
-
-  if (daysLeft <= 2) {
-    return {
-      status: 'at_risk',
-      label:
-        daysLeft === 0
-          ? 'Jatuh Tempo Hari Ini'
-          : daysLeft === 1
-            ? 'Jatuh Tempo Besok'
-            : 'Tersisa 2 Hari',
-      daysRemaining: daysLeft,
-      daysOverdue: 0,
-      isOverdue: false,
-      isCompleted: false,
-      reason: `Tenggat segera tiba (${subtask.dueDate})`,
-    };
-  }
-
-  return {
-    status: 'on_track',
-    label: `Tersisa ${daysLeft} hari`,
-    daysRemaining: daysLeft,
-    daysOverdue: 0,
-    isOverdue: false,
-    isCompleted: false,
-    reason: `Sesuai jadwal (tenggat ${subtask.dueDate})`,
-  };
+      reason: 'Muat ulang data untuk membaca status jadwal dari backend.',
+    }
+  );
 }
 
 /**

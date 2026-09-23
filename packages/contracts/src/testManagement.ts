@@ -498,6 +498,7 @@ export const TestCaseImportPreviewResponseSchema = z.object({
   selectedSheet: z.string().default('Sheet1'),
   headers: z.array(z.string()).default([]),
   columnMapping: z.record(z.string()).optional(),
+  unmappedHeaders: z.array(z.string()).default([]),
   expiresAt: z.string().datetime(),
   rows: z.array(TestCaseImportDryRunRowSchema),
 });

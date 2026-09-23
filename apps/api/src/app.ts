@@ -19,6 +19,7 @@ import { realtimeRoutes } from './modules/realtime/realtimeRoutes.js';
 import { metaRoutes } from './modules/meta/metaRoutes.js';
 import { workQueueRoutes } from './modules/workQueue/workQueueRoutes.js';
 import { featureReadinessRoutes } from './modules/featureReadiness/featureReadinessRoutes.js';
+import { qrisSandboxRoutes } from './modules/qrisSandbox/qrisSandboxRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
 import { rejectArchivedWorkspaceMutation } from './http/middleware/workspaceArchive.js';
@@ -73,6 +74,7 @@ export const createApp = () => {
   app.use('/v1', qaDocumentRoutes);
   app.use('/v1', attachmentRoutes);
   app.use('/v1', testManagementRoutes);
+  app.use('/v1', qrisSandboxRoutes);
   app.use('/v1', traceabilityRoutes);
   app.use('/v1', bugRoutes);
 

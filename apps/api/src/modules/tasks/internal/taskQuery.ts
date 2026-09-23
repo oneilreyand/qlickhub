@@ -34,6 +34,7 @@ import {
   TaskActivityListResponse,
   WorkspaceRole,
 } from '@qlick/contracts';
+import { getTaskScheduleHealth } from './taskScheduleHealth.js';
 
 // ---------------------------------------------------------------------------
 // Formatting helper
@@ -57,6 +58,10 @@ export function formatTask(t: TaskModel): Task {
     reviewNotes: json.reviewNotes || null,
     startDate: json.startDate || null,
     dueDate: json.dueDate || null,
+    scheduleHealth: getTaskScheduleHealth({
+      status: json.status,
+      dueDate: json.dueDate || null,
+    }),
     completedAt: json.completedAt ? new Date(json.completedAt).toISOString() : null,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: json.updatedAt ? new Date(json.updatedAt).toISOString() : new Date().toISOString(),

@@ -379,7 +379,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
     const totalDays = Math.max(1, diffDays(due, start));
     const elapsedDays = diffDays(todayStr, start);
-    const remainingDays = diffDays(due, todayStr);
+    const remainingDays = scheduleHealth.daysRemaining;
 
     let percent = Math.round((elapsedDays / totalDays) * 100);
     if (status === 'done' || status === 'canceled') {
@@ -388,8 +388,8 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       percent = Math.max(0, Math.min(100, percent));
     }
 
-    const isOverdue = remainingDays < 0 && status !== 'done' && status !== 'canceled';
-    const isCompleted = status === 'done';
+    const isOverdue = scheduleHealth.isOverdue;
+    const isCompleted = scheduleHealth.isCompleted;
 
     return {
       hasSchedule: true,
@@ -403,7 +403,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       isOverdue,
       isCompleted,
     };
-  }, [subtask]);
+  }, [subtask, scheduleHealth]);
 
   // 2-Tab Navigation State
   const [activeTab, setActiveTab] = useState<'work' | 'discussion'>('work');

@@ -26,6 +26,25 @@ import {
 import { accessTokenCookieName, signToken } from '../../auth/jwt.js';
 import { sessionManager } from '../../auth/sessionManager.js';
 
+/** A minimal stored ZIP fixture for exercising the XLSX parser without an external adapter. */
+function createXlsxFixture(entries: Record<string, string>): Buffer {
+  return Buffer.concat(
+    Object.entries(entries).map(([name, content]) => {
+      const fileName = Buffer.from(name, 'utf8');
+      const fileContent = Buffer.from(content, 'utf8');
+      const header = Buffer.alloc(30);
+      header.writeUInt32LE(0x04034b50, 0);
+      header.writeUInt16LE(20, 4);
+      header.writeUInt16LE(0, 6);
+      header.writeUInt16LE(0, 8);
+      header.writeUInt32LE(fileContent.length, 18);
+      header.writeUInt32LE(fileContent.length, 22);
+      header.writeUInt16LE(fileName.length, 26);
+      return Buffer.concat([header, fileName, fileContent]);
+    }),
+  );
+}
+
 describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVIDENCE)', () => {
   let server: Server;
   let baseUrl: string;
@@ -388,6 +407,16 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       const activated = JSON.parse(activateBody) as any;
       assert.strictEqual(activated.testCase.status, 'active');
 
+      const activatedVersion = await TestCaseVersionModel.findOne({
+        where: { workspaceId: workspaceA.id, testCaseId: created.testCase.id },
+        order: [['revision', 'DESC']],
+      });
+      assert.ok(activatedVersion);
+      assert.strictEqual(activatedVersion.revision, 2);
+      assert.strictEqual(activatedVersion.lifecycleStatus, 'active');
+      assert.strictEqual(activatedVersion.origin, 'native_revision');
+      assert.ok(activatedVersion.supersedesVersionId);
+
       const outbox = (
         await NotificationOutboxModel.findAll({
           where: { workspaceId: workspaceA.id, recipientUserId: po.id },
@@ -507,6 +536,98 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
       assert.strictEqual(data.preview.duplicateRows, 1);
       importSessionId = data.preview.importSessionId;
       validContentHash = data.preview.contentHash;
+    });
+
+    test('QA previews and commits a namespace-qualified XLSX with canonical headers', async () => {
+      const xlsxFixture = createXlsxFixture({
+        'xl/workbook.xml':
+          '<x:workbook><x:sheets><x:sheet name="Test Cases" r:id="rId1" /></x:sheets></x:workbook>',
+        'xl/_rels/workbook.xml.rels':
+          '<Relationships><Relationship Id="rId1" Target="worksheets/sheet1.xml" /></Relationships>',
+        'xl/worksheets/sheet1.xml': [
+          '<x:worksheet><x:sheetData>',
+          '<x:row r="1">',
+          '<x:c r="A1" t="str"><x:v>Test Case ID</x:v></x:c>',
+          '<x:c r="B1" t="str"><x:v>Title</x:v></x:c>',
+          '<x:c r="C1" t="str"><x:v>Requirement Code</x:v></x:c>',
+          '<x:c r="D1" t="str"><x:v>Priority</x:v></x:c>',
+          '<x:c r="E1" t="str"><x:v>Scenario Kind</x:v></x:c>',
+          '<x:c r="F1" t="str"><x:v>Test Type</x:v></x:c>',
+          '</x:row>',
+          '<x:row r="2">',
+          '<x:c r="A2" t="str"><x:v>TC-XLSX-001</x:v></x:c>',
+          '<x:c r="B2" t="str"><x:v>Namespace XLSX import</x:v></x:c>',
+          '<x:c r="C2" t="str"><x:v>REQ-INTAKE-001</x:v></x:c>',
+          '<x:c r="D2" t="str"><x:v>high</x:v></x:c>',
+          '<x:c r="E2" t="str"><x:v>positive</x:v></x:c>',
+          '<x:c r="F2" t="str"><x:v>e2e</x:v></x:c>',
+          '</x:row>',
+          '</x:sheetData></x:worksheet>',
+        ].join(''),
+      });
+
+      const previewRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/preview`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({
+            fileName: 'canonical_headers.xlsx',
+            fileBase64: xlsxFixture.toString('base64'),
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          }),
+        },
+      );
+
+      assert.strictEqual(previewRes.status, 200);
+      const previewData = (await previewRes.json()) as any;
+      assert.deepStrictEqual(previewData.preview.availableSheets, ['Test Cases']);
+      assert.strictEqual(previewData.preview.selectedSheet, 'Test Cases');
+      assert.strictEqual(previewData.preview.totalRows, 1);
+      assert.strictEqual(previewData.preview.validRows, 1);
+      assert.deepStrictEqual(previewData.preview.unmappedHeaders, []);
+      assert.strictEqual(previewData.preview.columnMapping.Title, 'title');
+      assert.strictEqual(previewData.preview.rows[0].title, 'Namespace XLSX import');
+
+      const commitRes = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/commit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({
+            importSessionId: previewData.preview.importSessionId,
+            contentHash: previewData.preview.contentHash,
+            mode: 'create_only',
+          }),
+        },
+      );
+      assert.strictEqual(commitRes.status, 201);
+      const imported = await TestCaseModel.findOne({
+        where: { workspaceId: workspaceA.id, externalReference: 'TC-XLSX-001' },
+      });
+      assert.strictEqual(imported?.title, 'Namespace XLSX import');
+      assert.strictEqual(imported?.testType, 'e2e');
+    });
+
+    test('Preview reports an unknown header with its affected row and cause', async () => {
+      const csvContent = [
+        'Title,Requirement Code,Unsupported Source Field',
+        'Unknown header example,REQ-INTAKE-001,unexpected value',
+      ].join('\n');
+      const res = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases/import/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ fileName: 'unknown_header.csv', fileContent: csvContent }),
+      });
+
+      assert.strictEqual(res.status, 200);
+      const data = (await res.json()) as any;
+      assert.deepStrictEqual(data.preview.unmappedHeaders, ['Unsupported Source Field']);
+      assert.strictEqual(data.preview.rows[0].sourceRowNumber, 2);
+      assert.match(
+        data.preview.rows[0].validationErrors[0],
+        /Column "Unsupported Source Field" is not recognized.*row 2/,
+      );
     });
 
     test('Commit import with tampered contentHash is rejected (400 Bad Request)', async () => {
@@ -1508,14 +1629,16 @@ describe('Test Case Intake & Evidence HTTP API Integration Tests (QA-INTAKE-EVID
         const getBody = (await getRes.json()) as any;
         assert.strictEqual(getBody.testCase.status, 'active');
 
-        // Verify TestCaseVersionModel was backfilled with revision 1 and marked active
+        // Verify the legacy snapshot was backfilled, then activation sealed a new active revision.
         const versionAfter = await TestCaseVersionModel.findOne({
           where: { workspaceId: workspaceA.id, testCaseId: unversionedDraftCase.id },
+          order: [['revision', 'DESC']],
         });
         assert.ok(versionAfter);
-        assert.strictEqual(versionAfter.revision, 1);
+        assert.strictEqual(versionAfter.revision, 2);
         assert.strictEqual(versionAfter.lifecycleStatus, 'active');
-        assert.strictEqual(versionAfter.origin, 'legacy_backfill');
+        assert.strictEqual(versionAfter.origin, 'native_revision');
+        assert.ok(versionAfter.supersedesVersionId);
       });
 
       test('after activation, release readiness shows requirement covered by active test case and passed gate', async () => {

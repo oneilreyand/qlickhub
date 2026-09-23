@@ -33,10 +33,7 @@ import { BarChart } from './Chart';
 import { StatCard } from './StatCard';
 import { QaTraceabilityMatrix } from './QaTraceabilityMatrix';
 import { QaDocumentsManager } from './QaDocumentsManager';
-import {
-  calculateSubtaskScheduleHealth,
-  ScheduleHealthStatus,
-} from '../../../lib/utils/scheduleHealth';
+import type { ScheduleHealthStatus } from '../../../lib/utils/scheduleHealth';
 import type { WorkspaceMemberItem } from '../../../lib/api/workspaceService';
 import type { ReleaseReadinessStateMap } from '../../../lib/hooks/useReleaseReadinessMap';
 
@@ -134,13 +131,6 @@ const deliveryAreaConfig: Record<
   },
 };
 
-function getTodayKey(): string {
-  const date = new Date();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${month}-${day}`;
-}
-
 function priorityWeight(priority: Task['priority']): number {
   return priorityOrder.indexOf(priority);
 }
@@ -185,8 +175,6 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
   }, [members]);
 
   const report = useMemo(() => {
-    const today = getTodayKey();
-
     // Collect all subtasks
     const allSubtasks: Task[] = [];
     for (const task of tasks) {
@@ -317,12 +305,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
         } else if (item.status === 'in_progress') {
           entry.inProgress += 1;
         }
-        if (
-          item.status !== 'done' &&
-          item.status !== 'canceled' &&
-          item.dueDate &&
-          item.dueDate < today
-        ) {
+        if (item.scheduleHealth?.status === 'delayed') {
           entry.overdue += 1;
         }
       }
@@ -343,8 +326,8 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
 
     const itemsForHealth = allSubtasks.length > 0 ? allSubtasks : tasks;
     for (const item of itemsForHealth) {
-      const health = calculateSubtaskScheduleHealth(item);
-      healthCounts[health.status] = (healthCounts[health.status] || 0) + 1;
+      const healthStatus = item.scheduleHealth?.status || 'unscheduled';
+      healthCounts[healthStatus] = (healthCounts[healthStatus] || 0) + 1;
     }
 
     const completedTasks = byStatus.done;
@@ -366,11 +349,15 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
     const openTasks = tasks.filter((t) => t.status !== 'done' && t.status !== 'canceled');
     const openSubtasks = allSubtasks.filter((s) => s.status !== 'done' && s.status !== 'canceled');
 
-    const overdueTasks = openTasks.filter((t) => Boolean(t.dueDate) && t.dueDate! < today);
-    const dueTodayTasks = openTasks.filter((t) => t.dueDate === today);
+    const overdueTasks = openTasks.filter((t) => t.scheduleHealth?.status === 'delayed');
+    const dueTodayTasks = openTasks.filter(
+      (t) => t.scheduleHealth?.status === 'at_risk' && t.scheduleHealth.daysRemaining === 0,
+    );
 
-    const overdueSubtasks = openSubtasks.filter((s) => Boolean(s.dueDate) && s.dueDate! < today);
-    const dueTodaySubtasks = openSubtasks.filter((s) => s.dueDate === today);
+    const overdueSubtasks = openSubtasks.filter((s) => s.scheduleHealth?.status === 'delayed');
+    const dueTodaySubtasks = openSubtasks.filter(
+      (s) => s.scheduleHealth?.status === 'at_risk' && s.scheduleHealth.daysRemaining === 0,
+    );
 
     const allAttentionItems = [
       ...overdueTasks.map((t) => ({ ...t, isSubtask: false })),
@@ -379,8 +366,8 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
       ...dueTodaySubtasks.map((s) => ({ ...s, isSubtask: true })),
     ]
       .sort((left, right) => {
-        const leftOverdue = left.dueDate && left.dueDate < today ? 0 : 1;
-        const rightOverdue = right.dueDate && right.dueDate < today ? 0 : 1;
+        const leftOverdue = left.scheduleHealth?.status === 'delayed' ? 0 : 1;
+        const rightOverdue = right.scheduleHealth?.status === 'delayed' ? 0 : 1;
         if (leftOverdue !== rightOverdue) return leftOverdue - rightOverdue;
         if (priorityWeight(left.priority) !== priorityWeight(right.priority)) {
           return priorityWeight(left.priority) - priorityWeight(right.priority);
@@ -819,7 +806,7 @@ export const TaskReportDashboard: React.FC<TaskReportDashboardProps> = ({
                 {report.allAttentionItems.length > 0 ? (
                   <div className="divide-y divide-stone-100 dark:divide-stone-800">
                     {report.allAttentionItems.map((item) => {
-                      const isOverdue = Boolean(item.dueDate) && item.dueDate! < getTodayKey();
+                      const isOverdue = item.scheduleHealth?.status === 'delayed';
                       const area = item.deliveryArea;
                       const areaCfg = area ? deliveryAreaConfig[area] : null;
 

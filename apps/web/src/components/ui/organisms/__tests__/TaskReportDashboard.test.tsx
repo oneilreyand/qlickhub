@@ -97,6 +97,14 @@ describe('TaskReportDashboard', () => {
         status: 'in_review',
         priority: 'high',
         dueDate: '2026-08-13',
+        scheduleHealth: {
+          status: 'delayed',
+          label: 'Terlambat 1 hari',
+          daysRemaining: -1,
+          daysOverdue: 1,
+          isOverdue: true,
+          isCompleted: false,
+        },
         title: 'Run smoke test',
         subtasks: [
           createTask({
@@ -113,6 +121,14 @@ describe('TaskReportDashboard', () => {
         status: 'in_progress',
         priority: 'urgent',
         dueDate: '2026-08-14',
+        scheduleHealth: {
+          status: 'at_risk',
+          label: 'Jatuh Tempo Hari Ini',
+          daysRemaining: 0,
+          daysOverdue: 0,
+          isOverdue: false,
+          isCompleted: false,
+        },
         title: 'Fix payment regression',
         subtasks: [
           createTask({

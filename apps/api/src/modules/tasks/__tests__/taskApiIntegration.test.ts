@@ -427,6 +427,64 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
   });
 
   describe('5. Assignee Membership & Folder Descendants', () => {
+    test('persists, reloads, edits, and evaluates a planned Subtask schedule in the backend', async () => {
+      const isoDate = (offsetDays: number) => {
+        const date = new Date();
+        date.setUTCDate(date.getUTCDate() + offsetDays);
+        return date.toISOString().slice(0, 10);
+      };
+      const pastStartDate = isoDate(-5);
+      const pastDueDate = isoDate(-3);
+      const futureStartDate = isoDate(3);
+      const futureDueDate = isoDate(5);
+      const parent = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          title: 'Schedule persistence parent',
+        }),
+      );
+      const subtask = await taskService.createTask(
+        user.id,
+        CreateTaskSchema.parse({
+          workspaceId: workspaceA.id,
+          parentTaskId: parent.id,
+          deliveryArea: 'frontend',
+          title: 'Schedule persistence frontend',
+          assigneeId: developerMember.id,
+          startDate: pastStartDate,
+          dueDate: pastDueDate,
+        }),
+      );
+
+      const persisted = await TaskModel.findByPk(subtask.id);
+      assert.strictEqual(persisted?.startDate, pastStartDate);
+      assert.strictEqual(persisted?.dueDate, pastDueDate);
+      assert.strictEqual(subtask.scheduleHealth?.status, 'delayed');
+      assert.strictEqual(subtask.scheduleHealth?.isOverdue, true);
+      assert.strictEqual(subtask.scheduleHealth?.daysOverdue, 3);
+
+      const reloaded = await taskService.getTask(workspaceA.id, subtask.id, user.id, 'owner');
+      assert.strictEqual(reloaded.startDate, pastStartDate);
+      assert.strictEqual(reloaded.dueDate, pastDueDate);
+      assert.strictEqual(reloaded.scheduleHealth?.status, 'delayed');
+      assert.strictEqual(reloaded.scheduleHealth?.daysOverdue, 3);
+
+      const edited = await taskService.updateTask(user.id, workspaceA.id, subtask.id, {
+        startDate: futureStartDate,
+        dueDate: futureDueDate,
+      });
+      assert.strictEqual(edited.startDate, futureStartDate);
+      assert.strictEqual(edited.dueDate, futureDueDate);
+      assert.strictEqual(edited.scheduleHealth?.status, 'on_track');
+      assert.strictEqual(edited.scheduleHealth?.isOverdue, false);
+
+      const editedReloaded = await taskService.getTask(workspaceA.id, subtask.id, user.id, 'owner');
+      assert.strictEqual(editedReloaded.startDate, futureStartDate);
+      assert.strictEqual(editedReloaded.dueDate, futureDueDate);
+      assert.strictEqual(editedReloaded.scheduleHealth?.status, 'on_track');
+    });
+
     test('Persists the JWT userId as the reporter when creating a task through the controller', async () => {
       let statusCode: number | undefined;
       let payload: any;
