@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ZoomIn, ZoomOut, RotateCcw, Maximize2, Film, ImageIcon } from 'lucide-react';
+import {
+  X,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Maximize2,
+  Film,
+  ImageIcon,
+  ImageOff,
+  ExternalLink,
+} from 'lucide-react';
 import { IconButton } from '../atoms/IconButton';
 
 export type MediaLightboxType = 'image' | 'video_direct' | 'video_embed';
@@ -22,12 +32,14 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
 }) => {
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [hasError, setHasError] = useState(false);
 
-  // Reset zoom & rotation on open/source change
+  // Reset zoom & rotation & error on open/source change
   useEffect(() => {
     if (isOpen) {
       setScale(1);
       setRotation(0);
+      setHasError(false);
     }
   }, [isOpen, src]);
 
@@ -109,7 +121,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-stone-900/95 border border-stone-700/60 shadow-lg">
-          {!isVideo && (
+          {!isVideo && !hasError && (
             <>
               <IconButton
                 label="Perbesar"
@@ -174,6 +186,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
             autoPlay
             playsInline
             src={src}
+            onError={() => setHasError(true)}
             className="max-h-[82vh] max-w-[88vw] rounded-2xl shadow-2xl bg-black border border-stone-800"
           >
             Browser Anda tidak mendukung pemutar video ini.
@@ -188,10 +201,41 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
               allowFullScreen
             />
           </div>
+        ) : hasError ? (
+          <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-stone-900/95 border border-stone-800 text-center text-stone-200 shadow-2xl max-w-md mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-4">
+              <ImageOff className="h-7 w-7 text-rose-400" />
+            </div>
+            <h4 className="text-sm font-bold text-stone-100 mb-1.5">
+              Gambar Tidak Dapat Dimuat
+            </h4>
+            <p className="text-xs text-stone-400 mb-5 leading-relaxed">
+              Tautan gambar ini mungkin diblokir oleh penyedia (seperti Google Drive / kebijakan CORS), membutuhkan hak akses login, atau bukan tautan langsung ke file gambar.
+            </p>
+            <div className="flex items-center gap-2">
+              <a
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#B1E743] hover:bg-[#9ed438] text-[#141413] text-xs font-bold transition-all shadow-sm"
+              >
+                <span>Buka Tautan Asli</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-medium transition-all"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
         ) : (
           <img
             src={src}
             alt={alt}
+            onError={() => setHasError(true)}
             style={{
               transform: `scale(${scale}) rotate(${rotation}deg)`,
               transition: 'transform 0.15s ease-out',

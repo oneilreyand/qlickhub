@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import {
   ZoomIn,
   Image as ImageIcon,
+  ImageOff,
+  Film,
+  Play,
   ExternalLink,
   CheckCircle2,
   AlertTriangle,
@@ -12,7 +15,332 @@ import {
   ClipboardCheck,
   Code2,
 } from 'lucide-react';
-import { ImageLightboxModal } from '../molecules/ImageLightboxModal';
+import { MediaLightboxModal, MediaLightboxType } from '../molecules/MediaLightboxModal';
+
+// Regex patterns to detect media URLs
+const IMAGE_EXT_REGEX = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)(\?.*)?$/i;
+const DIRECT_VIDEO_EXT_REGEX = /\.(mp4|webm|ogg|mov|m4v|mkv)(\?.*)?$/i;
+const YOUTUBE_REGEX =
+  /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
+const LOOM_REGEX = /(?:https?:\/\/)?(?:www\.)?loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/i;
+const VIMEO_REGEX = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/i;
+const STREAMABLE_REGEX = /(?:https?:\/\/)?(?:www\.)?streamable\.com\/(?:e\/)?([a-zA-Z0-9]+)/i;
+const GOOGLE_DRIVE_REGEX =
+  /(?:https?:\/\/)?(?:drive|docs)\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^&]+&)*id=)([a-zA-Z0-9_-]+)/i;
+
+function isCloudVideo(url: string): boolean {
+  if (DIRECT_VIDEO_EXT_REGEX.test(url)) return true;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes('/video/upload/') ||
+    lower.includes('/videos/') ||
+    (lower.includes('cloudinary.com') && lower.includes('/video/')) ||
+    (lower.includes('firebasestorage.googleapis.com') &&
+      (lower.includes('video') || lower.includes('.mp4')))
+  );
+}
+
+export interface DetectedMedia {
+  type: MediaLightboxType;
+  url: string;
+  embedUrl: string;
+  thumbnailUrl?: string;
+  badge: string;
+  isVideo: boolean;
+}
+
+export function detectMediaInfo(rawUrl: string, altHint = ''): DetectedMedia {
+  const url = rawUrl.trim();
+  const lowerAlt = altHint.toLowerCase();
+  const isAltVideoHint =
+    lowerAlt.includes('video') ||
+    lowerAlt.includes('rekaman') ||
+    lowerAlt.includes('screen') ||
+    lowerAlt.includes('play');
+
+  // 1. YouTube
+  const ytMatch = url.match(YOUTUBE_REGEX);
+  if (ytMatch && ytMatch[1]) {
+    const id = ytMatch[1];
+    return {
+      type: 'video_embed',
+      url,
+      embedUrl: `https://www.youtube.com/embed/${id}?autoplay=1`,
+      thumbnailUrl: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+      badge: 'YOUTUBE',
+      isVideo: true,
+    };
+  }
+
+  // 2. Loom
+  const loomMatch = url.match(LOOM_REGEX);
+  if (loomMatch && loomMatch[1]) {
+    const id = loomMatch[1];
+    return {
+      type: 'video_embed',
+      url,
+      embedUrl: `https://www.loom.com/embed/${id}`,
+      badge: 'LOOM',
+      isVideo: true,
+    };
+  }
+
+  // 3. Vimeo
+  const vimeoMatch = url.match(VIMEO_REGEX);
+  if (vimeoMatch && vimeoMatch[1]) {
+    const id = vimeoMatch[1];
+    return {
+      type: 'video_embed',
+      url,
+      embedUrl: `https://player.vimeo.com/video/${id}?autoplay=1`,
+      badge: 'VIMEO',
+      isVideo: true,
+    };
+  }
+
+  // 4. Streamable
+  const streamableMatch = url.match(STREAMABLE_REGEX);
+  if (streamableMatch && streamableMatch[1]) {
+    const id = streamableMatch[1];
+    return {
+      type: 'video_embed',
+      url,
+      embedUrl: `https://streamable.com/e/${id}?autoplay=1`,
+      badge: 'STREAMABLE',
+      isVideo: true,
+    };
+  }
+
+  // 5. Direct Video
+  if (isCloudVideo(url) || (isAltVideoHint && !IMAGE_EXT_REGEX.test(url) && !url.includes('drive.google.com'))) {
+    return {
+      type: 'video_direct',
+      url,
+      embedUrl: url,
+      badge: 'VIDEO',
+      isVideo: true,
+    };
+  }
+
+  // 6. Google Drive
+  const driveMatch = url.match(GOOGLE_DRIVE_REGEX);
+  if (driveMatch && driveMatch[1]) {
+    const fileId = driveMatch[1];
+    const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+    if (isAltVideoHint || url.toLowerCase().includes('video')) {
+      return {
+        type: 'video_embed',
+        url,
+        embedUrl: previewUrl,
+        badge: 'G-DRIVE VIDEO',
+        isVideo: true,
+      };
+    }
+    return {
+      type: 'image',
+      url: `https://lh3.googleusercontent.com/d/${fileId}`,
+      embedUrl: previewUrl,
+      thumbnailUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
+      badge: 'G-DRIVE',
+      isVideo: false,
+    };
+  }
+
+  // 7. Default Image
+  return {
+    type: 'image',
+    url,
+    embedUrl: url,
+    badge: 'IMAGE',
+    isVideo: false,
+  };
+}
+
+interface FormattedMediaCardProps {
+  src: string;
+  alt?: string;
+  onOpenLightbox: (src: string, type: MediaLightboxType, alt: string) => void;
+}
+
+const FormattedMediaCard: React.FC<FormattedMediaCardProps> = ({
+  src,
+  alt,
+  onOpenLightbox,
+}) => {
+  const [loadError, setLoadError] = useState(false);
+  const media = detectMediaInfo(src, alt);
+  const title = alt && alt !== 'Image' && alt !== 'Image Attachment' ? alt : undefined;
+
+  // 1. Direct Video Card (.mp4, .webm, etc.)
+  if (media.isVideo && media.type === 'video_direct') {
+    return (
+      <div
+        onClick={() => onOpenLightbox(media.url, 'video_direct', title || 'Pemutar Video')}
+        className="group relative my-2 overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800 bg-black/90 max-w-xl cursor-pointer transition-all hover:shadow-md hover:border-stone-400 dark:hover:border-stone-600"
+      >
+        <video
+          src={media.url}
+          preload="metadata"
+          playsInline
+          muted
+          onError={() => setLoadError(true)}
+          className="max-h-96 w-full object-contain rounded-xl bg-black"
+        />
+        <div className="absolute inset-0 bg-stone-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-bold pointer-events-none backdrop-blur-[2px]">
+          <div className="w-9 h-9 rounded-full bg-[#B1E743] text-[#141413] flex items-center justify-center shadow-lg">
+            <Play className="h-4 w-4 fill-current ml-0.5" />
+          </div>
+          <span>Klik untuk Memperbesar &amp; Memutar</span>
+        </div>
+        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-bold text-white flex items-center gap-1 backdrop-blur-xs border border-white/10">
+          <Film className="h-2.5 w-2.5 text-[#B1E743]" />
+          <span>{media.badge}</span>
+        </div>
+        <a
+          href={media.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 hover:bg-black/90 text-white transition-all text-[9px] font-bold flex items-center gap-1 backdrop-blur-xs border border-white/10"
+        >
+          <span>Buka</span>
+          <ExternalLink className="h-2.5 w-2.5" />
+        </a>
+        {title && (
+          <div className="border-t border-stone-800 bg-stone-900/90 px-3 py-1.5 text-[11px] text-stone-300">
+            {title}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 2. Embedded Video Card (YouTube, Loom, Vimeo, Streamable, Google Drive Video)
+  if (media.isVideo && media.type === 'video_embed') {
+    return (
+      <div
+        onClick={() => onOpenLightbox(media.embedUrl, 'video_embed', title || media.badge)}
+        className="group relative my-2 overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-950 max-w-xl cursor-pointer transition-all hover:shadow-md hover:border-stone-400 dark:hover:border-stone-600"
+      >
+        {media.thumbnailUrl ? (
+          <div className="relative aspect-video w-full overflow-hidden bg-stone-900">
+            <img
+              src={media.thumbnailUrl}
+              alt={title || media.badge}
+              className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-stone-950/30 group-hover:bg-stone-950/50 transition-colors flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-[#B1E743] text-[#141413] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                <Play className="h-5 w-5 fill-current ml-0.5" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="relative aspect-video w-full bg-stone-900/90 flex flex-col items-center justify-center p-4">
+            <div className="w-12 h-12 rounded-2xl bg-stone-800 border border-stone-700/80 flex items-center justify-center text-[#B1E743] shadow-lg group-hover:scale-110 transition-transform">
+              <Play className="h-5 w-5 fill-current ml-0.5" />
+            </div>
+            <span className="mt-2 text-xs font-semibold text-stone-200">
+              Putar Video
+            </span>
+            <span className="text-[10px] text-stone-400">
+              Klik untuk memutar langsung di modal
+            </span>
+          </div>
+        )}
+        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-bold text-white flex items-center gap-1 backdrop-blur-xs border border-white/10">
+          <Film className="h-2.5 w-2.5 text-[#B1E743]" />
+          <span>{media.badge}</span>
+        </div>
+        <a
+          href={media.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 hover:bg-black/90 text-white transition-all text-[9px] font-bold flex items-center gap-1 backdrop-blur-xs border border-white/10"
+        >
+          <span>Buka</span>
+          <ExternalLink className="h-2.5 w-2.5" />
+        </a>
+        {title && (
+          <div className="border-t border-stone-800 bg-stone-900/90 px-3 py-1.5 text-[11px] text-stone-300">
+            {title}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 3. Image Card with Load Failure Fallback
+  if (loadError) {
+    return (
+      <div className="my-2 p-3.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-100/70 dark:bg-stone-900/70 max-w-xl flex items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 rounded-lg bg-stone-200/80 dark:bg-stone-800 text-stone-500 dark:text-stone-400 shrink-0">
+            <ImageOff className="h-4 w-4" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold text-stone-800 dark:text-stone-200 truncate">
+              {title || 'Pratinjau gambar tidak dapat dimuat'}
+            </span>
+            <span className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
+              URL diblokir atau tidak dapat diakses langsung oleh peramban
+            </span>
+          </div>
+        </div>
+        <a
+          href={media.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="px-2.5 py-1 rounded-lg bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 text-[10px] font-bold inline-flex items-center gap-1 shrink-0 transition-all"
+        >
+          <span>Buka Tautan</span>
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => onOpenLightbox(media.url, 'image', alt || 'Image Preview')}
+      className="group relative my-2 overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-900/5 dark:bg-stone-900/60 max-w-xl cursor-pointer transition-all hover:shadow-md hover:border-stone-400 dark:hover:border-stone-600"
+    >
+      <img
+        src={media.url}
+        alt={alt || 'Image Attachment'}
+        className="max-h-96 w-full object-contain rounded-xl bg-stone-950/20 transition-transform duration-200 group-hover:scale-[1.01]"
+        loading="lazy"
+        onError={() => setLoadError(true)}
+      />
+      <div className="absolute inset-0 bg-stone-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-bold pointer-events-none backdrop-blur-[2px]">
+        <ZoomIn className="h-4 w-4" />
+        <span>Klik untuk Memperbesar</span>
+      </div>
+      <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-bold text-white flex items-center gap-1 backdrop-blur-xs">
+        <ImageIcon className="h-2.5 w-2.5 text-emerald-400" />
+        <span>{media.badge}</span>
+      </div>
+      <a
+        href={media.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-black/60 hover:bg-black/80 text-white transition-all text-[9px] font-bold flex items-center gap-1 backdrop-blur-xs"
+      >
+        <span>Buka</span>
+        <ExternalLink className="h-2.5 w-2.5" />
+      </a>
+      {title && (
+        <div className="border-t border-stone-200/60 bg-white/80 dark:border-stone-800/60 dark:bg-stone-900/80 px-3 py-1.5 text-[11px] text-stone-600 dark:text-stone-300">
+          {title}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export interface FormattedTextProps {
   content: string;
@@ -25,64 +353,33 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
   className = '',
   onImageClick,
 }) => {
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [lightboxAlt, setLightboxAlt] = useState<string>('');
+  const [lightbox, setLightbox] = useState<{
+    isOpen: boolean;
+    src: string;
+    type: MediaLightboxType;
+    alt: string;
+  }>({
+    isOpen: false,
+    src: '',
+    type: 'image',
+    alt: '',
+  });
 
   if (!content || !content.trim()) {
     return <span className="text-stone-400 italic">Belum ada deskripsi.</span>;
   }
 
-  const handleImageClick = (src: string, alt: string) => {
-    if (onImageClick) {
+  const handleOpenLightbox = (src: string, type: MediaLightboxType, alt: string) => {
+    if (onImageClick && type === 'image') {
       onImageClick(src, alt);
     } else {
-      setLightboxSrc(src);
-      setLightboxAlt(alt);
+      setLightbox({
+        isOpen: true,
+        src,
+        type,
+        alt,
+      });
     }
-  };
-
-  const renderImageCard = (src: string, alt?: string, key?: string | number) => {
-    const title = alt && alt !== 'Image' && alt !== 'Image Attachment' ? alt : undefined;
-    return (
-      <div
-        key={key}
-        onClick={() => handleImageClick(src, alt || 'Image Preview')}
-        className="group relative my-2 overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-900/5 dark:bg-stone-900/60 max-w-xl cursor-pointer transition-all hover:shadow-md hover:border-stone-400 dark:hover:border-stone-600"
-      >
-        <img
-          src={src}
-          alt={alt || 'Image Attachment'}
-          className="max-h-96 w-full object-contain rounded-xl bg-stone-950/20 transition-transform duration-200 group-hover:scale-[1.01]"
-          loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLElement).style.display = 'none';
-          }}
-        />
-        <div className="absolute inset-0 bg-stone-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-bold pointer-events-none backdrop-blur-[2px]">
-          <ZoomIn className="h-4 w-4" />
-          <span>Klik untuk Memperbesar</span>
-        </div>
-        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-bold text-white flex items-center gap-1 backdrop-blur-xs">
-          <ImageIcon className="h-2.5 w-2.5 text-emerald-400" />
-          <span>IMAGE</span>
-        </div>
-        <a
-          href={src}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-black/60 hover:bg-black/80 text-white transition-all text-[9px] font-bold flex items-center gap-1 backdrop-blur-xs"
-        >
-          <span>Buka</span>
-          <ExternalLink className="h-2.5 w-2.5" />
-        </a>
-        {title && (
-          <div className="border-t border-stone-200/60 bg-white/80 dark:border-stone-800/60 dark:bg-stone-900/80 px-3 py-1.5 text-[11px] text-stone-600 dark:text-stone-300">
-            {title}
-          </div>
-        )}
-      </div>
-    );
   };
 
   const lines = content.split('\n');
@@ -102,7 +399,14 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
       if (imgMatch) {
         const alt = imgMatch[1] || 'Image';
         const src = imgMatch[2];
-        return renderImageCard(src, alt, `img-${index}`);
+        return (
+          <FormattedMediaCard
+            key={`img-${index}`}
+            src={src}
+            alt={alt}
+            onOpenLightbox={handleOpenLightbox}
+          />
+        );
       }
 
       // Mentions
@@ -220,7 +524,14 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
     if (standaloneImgMatch) {
       const alt = standaloneImgMatch[1] || 'Image';
       const src = standaloneImgMatch[2];
-      elements.push(renderImageCard(src, alt, `img-block-${i}`));
+      elements.push(
+        <FormattedMediaCard
+          key={`img-block-${i}`}
+          src={src}
+          alt={alt}
+          onOpenLightbox={handleOpenLightbox}
+        />,
+      );
       continue;
     }
 
@@ -584,12 +895,13 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
   return (
     <>
       <div className={`space-y-0.5 font-sans leading-normal ${className}`}>{elements}</div>
-      {lightboxSrc && (
-        <ImageLightboxModal
-          isOpen={true}
-          src={lightboxSrc}
-          alt={lightboxAlt}
-          onClose={() => setLightboxSrc(null)}
+      {lightbox.isOpen && (
+        <MediaLightboxModal
+          isOpen={lightbox.isOpen}
+          src={lightbox.src}
+          type={lightbox.type}
+          alt={lightbox.alt}
+          onClose={() => setLightbox((prev) => ({ ...prev, isOpen: false }))}
         />
       )}
     </>

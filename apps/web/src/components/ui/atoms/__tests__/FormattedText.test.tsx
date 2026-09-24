@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { FormattedText, stripMarkdown } from '../FormattedText';
 
@@ -90,5 +90,55 @@ Acceptance Criteria:
     expect(screen.getByText('Kriteria Penerimaan')).toBeInTheDocument();
     expect(screen.getByText('User can select payment method')).toBeInTheDocument();
     expect(screen.getByText('Shows confirmation toast on success')).toBeInTheDocument();
+  });
+
+  it('renders interactive video card for direct video markdown', () => {
+    const { container } = render(
+      <FormattedText content="![k video](https://example.com/demo.mp4)" />,
+    );
+
+    expect(screen.getByText('VIDEO')).toBeInTheDocument();
+    expect(screen.getByText('k video')).toBeInTheDocument();
+    const video = container.querySelector('video');
+    expect(video).toBeInTheDocument();
+    expect(video).toHaveAttribute('src', 'https://example.com/demo.mp4');
+    expect(screen.getByText(/Klik untuk Memperbesar & Memutar/i)).toBeInTheDocument();
+  });
+
+  it('renders YouTube video card with thumbnail and YOUTUBE badge', () => {
+    render(
+      <FormattedText content="![Tutorial Video](https://www.youtube.com/watch?v=dQw4w9WgXcQ)" />,
+    );
+
+    expect(screen.getByText('YOUTUBE')).toBeInTheDocument();
+    expect(screen.getByText('Tutorial Video')).toBeInTheDocument();
+    const thumb = screen.getByAltText('Tutorial Video');
+    expect(thumb).toBeInTheDocument();
+    expect(thumb).toHaveAttribute('src', 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg');
+  });
+
+  it('renders Google Drive video card with G-DRIVE VIDEO badge when alt hints video', () => {
+    render(
+      <FormattedText content="![k video](https://drive.google.com/file/d/1a2b3c4d5e/view)" />,
+    );
+
+    expect(screen.getByText('G-DRIVE VIDEO')).toBeInTheDocument();
+    expect(screen.getByText('k video')).toBeInTheDocument();
+  });
+
+  it('renders fallback card when image fails to load', () => {
+    render(
+      <FormattedText content="![Broken Image](https://example.com/not-found.png)" />,
+    );
+
+    const img = screen.getByAltText('Broken Image');
+    expect(img).toBeInTheDocument();
+
+    // Trigger image error
+    fireEvent.error(img);
+
+    expect(screen.getByText('Broken Image')).toBeInTheDocument();
+    expect(screen.getByText(/Pratinjau gambar tidak dapat dimuat|URL diblokir/i)).toBeInTheDocument();
+    expect(screen.getByText('Buka Tautan')).toBeInTheDocument();
   });
 });
