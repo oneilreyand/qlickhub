@@ -28,6 +28,8 @@ Respons API `401 INVALID_CREDENTIALS` sekarang memberi pesan “Email atau kata 
 - `npm --workspace @qlick/web run typecheck` — lulus, 0 error.
 - `npm --workspace @qlick/web run build` — lulus; 1.714 modul ditransformasi.
 - `npm run docs:check` — lulus; 5/5 test, 0 failed, 0 skipped.
+- Vercel Production `dpl_DMuBktEYckzGKk6b8h89ad1KbJgJ` untuk commit `9ae42a7` — `Ready`; alias kanonikal `https://qlickhub.vercel.app` aktif.
+- Smoke check Production read-only — `/login` 200; `/v1/health` 200 dengan database `connected`; `/v1/workspaces` tanpa sesi 401; bundle aktif `index-C2r3PlRx.js` memuat pesan `INVALID_CREDENTIALS` yang baru.
 
 ## Risks or follow-up
 
