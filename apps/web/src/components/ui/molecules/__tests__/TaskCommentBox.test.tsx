@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
-import { TaskCommentBox } from '../TaskCommentBox';
+import { TaskCommentBox, EMPTY_DISCUSSION_ILLUSTRATION_URL } from '../TaskCommentBox';
 import type { TaskComment } from '@qlick/contracts';
 
 describe('TaskCommentBox Molecule Component', () => {
@@ -504,5 +504,64 @@ describe('TaskCommentBox Molecule Component', () => {
       fireEvent.click(confirmDeleteBtn);
     });
     expect(handleDeleteComment).toHaveBeenCalledWith('comm-1');
+  });
+
+  it('renders empty discussion illustration and falls back to default icon when image loading fails in stream variant', () => {
+    render(
+      <TaskCommentBox
+        variant="stream"
+        comments={[]}
+        currentUserId="user-2"
+        members={mockMembers}
+        onPostComment={vi.fn()}
+      />,
+    );
+
+    // Initial render: empty illustration img is displayed with valid link
+    const img = screen.getByAltText('Belum ada pesan diskusi');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('src', EMPTY_DISCUSSION_ILLUSTRATION_URL);
+
+    // Trigger onError (broken image) -> img unmounts and default icon takes over
+    fireEvent.error(img);
+    expect(screen.queryByAltText('Belum ada pesan diskusi')).not.toBeInTheDocument();
+    expect(screen.getByText('Belum ada pesan dalam diskusi ini. Mulai percakapan pertama!')).toBeInTheDocument();
+  });
+
+  it('renders empty discussion illustration and falls back to default icon in thread variant', () => {
+    render(
+      <TaskCommentBox
+        variant="thread"
+        comments={[]}
+        currentUserId="user-2"
+        members={mockMembers}
+        onPostComment={vi.fn()}
+      />,
+    );
+
+    const img = screen.getByAltText('Belum ada pesan diskusi');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('src', EMPTY_DISCUSSION_ILLUSTRATION_URL);
+
+    // Trigger onError (broken image)
+    fireEvent.error(img);
+    expect(screen.queryByAltText('Belum ada pesan diskusi')).not.toBeInTheDocument();
+  });
+
+  it('renders default icon directly if emptyIllustrationUrl is empty or not provided', () => {
+    render(
+      <TaskCommentBox
+        variant="stream"
+        comments={[]}
+        currentUserId="user-2"
+        members={mockMembers}
+        emptyIllustrationUrl=""
+        onPostComment={vi.fn()}
+      />,
+    );
+
+    // No image tag should be rendered
+    expect(screen.queryByAltText('Belum ada pesan diskusi')).not.toBeInTheDocument();
+    expect(screen.getByText('Belum ada pesan dalam diskusi ini. Mulai percakapan pertama!')).toBeInTheDocument();
   });
 });

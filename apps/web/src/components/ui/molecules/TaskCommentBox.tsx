@@ -94,6 +94,11 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
     target: 'comment' | 'reply';
   } | null>(null);
   const [mediaLinkUrl, setMediaLinkUrl] = useState('');
+  const [emptyIllustrationFailed, setEmptyIllustrationFailed] = useState(false);
+
+  useEffect(() => {
+    setEmptyIllustrationFailed(false);
+  }, [emptyIllustrationUrl]);
 
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -170,7 +175,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
     const specialty = member?.specialties?.[0];
 
     if (isMe) {
-      let roleTag = 'MEMBER';
+      let roleTag: string;
       if (role === 'po' || role === 'owner' || role === 'admin') roleTag = role.toUpperCase();
       else if (role === 'dev') roleTag = specialty ? specialty.toUpperCase() : 'DEV';
       else if (role === 'qa') roleTag = 'QA';
@@ -515,20 +520,25 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
           ) : rootComments.length === 0 ? (
             <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
               <div className="flex justify-center">
-                {emptyIllustrationUrl ? (
+                {emptyIllustrationUrl && !emptyIllustrationFailed ? (
                   <img
                     src={emptyIllustrationUrl}
                     alt="Belum ada pesan diskusi"
                     className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
                     loading="lazy"
+                    onError={() => setEmptyIllustrationFailed(true)}
                   />
                 ) : null}
                 <div
-                  className={`${emptyIllustrationUrl ? 'hidden dark:flex' : 'flex'} items-center justify-center py-2`}
+                  className={
+                    emptyIllustrationFailed || !emptyIllustrationUrl
+                      ? 'flex items-center justify-center py-2'
+                      : 'hidden dark:flex items-center justify-center py-2'
+                  }
                 >
-                  <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
+                  <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-inner">
                     <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
-                    <MessageSquare className="h-7 w-7 text-[#B1E743]" />
+                    <MessageSquare className="h-7 w-7 text-stone-700 dark:text-[#B1E743]" />
                   </div>
                 </div>
               </div>
@@ -1627,20 +1637,25 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
         /* Empty Discussion State */
         <div className="py-10 sm:py-12 px-4 text-center border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-stone-900/30 space-y-4 animate-fadeIn">
           <div className="flex justify-center">
-            {emptyIllustrationUrl ? (
+            {emptyIllustrationUrl && !emptyIllustrationFailed ? (
               <img
                 src={emptyIllustrationUrl}
                 alt="Belum ada pesan diskusi"
                 className="dark:hidden w-full max-w-[260px] sm:max-w-[320px] md:max-w-[380px] h-auto max-h-60 sm:max-h-72 object-contain mx-auto transition-transform duration-300 hover:scale-[1.03] drop-shadow-xs"
                 loading="lazy"
+                onError={() => setEmptyIllustrationFailed(true)}
               />
             ) : null}
             <div
-              className={`${emptyIllustrationUrl ? 'hidden dark:flex' : 'flex'} items-center justify-center py-2`}
+              className={
+                emptyIllustrationFailed || !emptyIllustrationUrl
+                  ? 'flex items-center justify-center py-2'
+                  : 'hidden dark:flex items-center justify-center py-2'
+              }
             >
-              <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-900 border border-stone-800 shadow-inner">
+              <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-inner">
                 <div className="absolute inset-0 rounded-2xl bg-[#B1E743]/10 blur-lg pointer-events-none" />
-                <MessageSquare className="h-7 w-7 text-[#B1E743]" />
+                <MessageSquare className="h-7 w-7 text-stone-700 dark:text-[#B1E743]" />
               </div>
             </div>
           </div>
