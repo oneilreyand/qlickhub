@@ -30,6 +30,10 @@ export function getHumanReadableApiErrorMessage(
   const normalizedCode = code?.toUpperCase();
   const normalizedServerMessage = serverMessage?.toLowerCase() || '';
 
+  if (normalizedCode === 'INVALID_CREDENTIALS') {
+    return 'Email atau kata sandi salah. Periksa kembali lalu coba masuk lagi.';
+  }
+
   if (
     normalizedCode === 'CONFLICT' &&
     normalizedServerMessage.includes('formal qa evidence is immutable')

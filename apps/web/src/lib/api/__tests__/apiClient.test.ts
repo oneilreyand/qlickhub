@@ -52,6 +52,16 @@ describe('apiClient error metadata', () => {
     );
   });
 
+  it('identifies invalid login credentials instead of calling them an expired session', () => {
+    expect(
+      getHumanReadableApiErrorMessage(
+        401,
+        'INVALID_CREDENTIALS',
+        'Email or password is incorrect.',
+      ),
+    ).toBe('Email atau kata sandi salah. Periksa kembali lalu coba masuk lagi.');
+  });
+
   it('explains Requirement finding scope and triage blockers in natural Indonesian', () => {
     expect(
       getHumanReadableApiErrorMessage(
