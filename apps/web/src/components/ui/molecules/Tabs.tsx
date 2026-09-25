@@ -169,7 +169,7 @@ export const Tabs: React.FC<TabsProps> = ({
               {tab.badge}
               {tab.count !== undefined && (
                 <span
-                  className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold ${
+                  className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-[11px] font-bold ${
                     isActive
                       ? 'bg-[#141413] text-[#B1E743] dark:bg-[#141413] dark:text-[#B1E743]'
                       : 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
@@ -217,7 +217,7 @@ export const Tabs: React.FC<TabsProps> = ({
               {tab.badge}
               {tab.count !== undefined && (
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] ${
+                  className={`rounded-full px-2 py-0.5 text-[11px] ${
                     isActive
                       ? 'bg-[#B1E743] text-[#141413] font-bold dark:bg-[#B1E743] dark:text-[#141413]'
                       : 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400'

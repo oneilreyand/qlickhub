@@ -395,12 +395,20 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 space-y-2">
+                    <div>
+                      <h4 className="break-words text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                        {item.title}
+                      </h4>
+                      <p className="mt-1 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
+                        {localizeReason(item.reason)}
+                      </p>
+                    </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="neutral" size="sm" icon={bucketIcons[item.bucketCode]}>
+                      <Badge variant="neutral" size="md" icon={bucketIcons[item.bucketCode]}>
                         {localizeTerm(item.subjectType)}
                       </Badge>
                       {item.priority && (
-                        <Badge variant={priorityVariants[item.priority]} size="sm">
+                        <Badge variant={priorityVariants[item.priority]} size="md">
                           Prioritas {localizeTerm(item.priority)}
                         </Badge>
                       )}
@@ -411,15 +419,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                         {workState.label}
                       </Badge>
                     </div>
-                    <div>
-                      <h4 className="break-words text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                        {item.title}
-                      </h4>
-                      <p className="mt-1 text-xs leading-relaxed text-stone-600 dark:text-stone-300">
-                        {localizeReason(item.reason)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-stone-500 dark:text-stone-400">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-stone-500 dark:text-stone-400">
                       <span className="font-semibold text-stone-700 dark:text-stone-300">
                         Berikutnya: {actionLabels[item.nextAction.code] || item.nextAction.label}
                       </span>

@@ -93,27 +93,42 @@ function renderSubtaskSummary(summary?: Task['subtaskSummary']) {
         Subtasks {summary.completed}/{summary.total}
       </span>
       {summary.areas.frontend.total > 0 && (
-        <span className="bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 px-2 py-0.5 rounded font-mono font-medium">
+        <span
+          title={`Frontend: ${summary.areas.frontend.completed} dari ${summary.areas.frontend.total} selesai`}
+          className="bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 px-2 py-0.5 rounded font-mono font-medium cursor-help"
+        >
           FE {summary.areas.frontend.completed}/{summary.areas.frontend.total}
         </span>
       )}
       {summary.areas.backend.total > 0 && (
-        <span className="bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] px-2 py-0.5 rounded font-mono font-bold">
+        <span
+          title={`Backend: ${summary.areas.backend.completed} dari ${summary.areas.backend.total} selesai`}
+          className="bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] px-2 py-0.5 rounded font-mono font-bold cursor-help"
+        >
           BE {summary.areas.backend.completed}/{summary.areas.backend.total}
         </span>
       )}
       {summary.areas.mobile.total > 0 && (
-        <span className="bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 px-2 py-0.5 rounded font-mono font-medium">
+        <span
+          title={`Mobile: ${summary.areas.mobile.completed} dari ${summary.areas.mobile.total} selesai`}
+          className="bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 px-2 py-0.5 rounded font-mono font-medium cursor-help"
+        >
           MOB {summary.areas.mobile.completed}/{summary.areas.mobile.total}
         </span>
       )}
       {summary.areas.fullstack.total > 0 && (
-        <span className="bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] px-2 py-0.5 rounded font-mono font-bold">
+        <span
+          title={`Fullstack: ${summary.areas.fullstack.completed} dari ${summary.areas.fullstack.total} selesai`}
+          className="bg-[#B1E743]/20 text-[#141413] dark:bg-[#B1E743]/20 dark:text-[#B1E743] px-2 py-0.5 rounded font-mono font-bold cursor-help"
+        >
           FS {summary.areas.fullstack.completed}/{summary.areas.fullstack.total}
         </span>
       )}
       {summary.areas.qa.total > 0 && (
-        <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 rounded font-mono font-medium">
+        <span
+          title={`Quality Assurance: ${summary.areas.qa.completed} dari ${summary.areas.qa.total} selesai`}
+          className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 rounded font-mono font-medium cursor-help"
+        >
           QA {summary.areas.qa.completed}/{summary.areas.qa.total}
         </span>
       )}
@@ -295,16 +310,30 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
 
       {/* Desktop Data Table View */}
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full text-left text-xs min-w-[650px]">
+        <table className="w-full text-left text-sm min-w-[650px]">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50/50 text-xs font-bold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-300">
-              <th className="py-3.5 px-3.5">ID / Judul Task</th>
-              <th className="py-3.5 px-3.5 whitespace-nowrap">Lokasi Folder</th>
-              <th className="py-3.5 px-3.5 whitespace-nowrap">Prioritas</th>
-              <th className="py-3.5 px-3.5 whitespace-nowrap">Tanggal</th>
-              <th className="py-3.5 px-3.5 whitespace-nowrap">Delivery &amp; Rilis</th>
-              <th className="py-3.5 px-3.5 whitespace-nowrap">Status</th>
-              <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Aksi</th>
+              <th scope="col" className="py-3.5 px-3.5">
+                ID / Judul Task
+              </th>
+              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
+                Lokasi Folder
+              </th>
+              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap w-[100px]">
+                Prioritas
+              </th>
+              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
+                Tanggal
+              </th>
+              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
+                Delivery &amp; Rilis
+              </th>
+              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap w-[120px]">
+                Status
+              </th>
+              <th scope="col" className="py-3.5 px-3.5 text-right whitespace-nowrap">
+                Aksi
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
@@ -365,10 +394,19 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                             </td>
                             <td className="py-3.5 px-3.5 whitespace-nowrap">
                               {task.startDate || task.dueDate ? (
-                                <div className="flex items-center gap-1.5 text-xs text-stone-700 dark:text-stone-300">
-                                  <Calendar className="h-3.5 w-3.5 text-stone-400 shrink-0" />
-                                  <span>
-                                    {task.startDate || '—'} /{' '}
+                                <div className="flex flex-col gap-0.5 text-xs text-stone-700 dark:text-stone-300">
+                                  <span className="inline-flex items-center gap-1">
+                                    <Calendar className="h-3.5 w-3.5 text-stone-400 shrink-0" />
+                                    <span className="text-stone-500 dark:text-stone-400">
+                                      Mulai:
+                                    </span>{' '}
+                                    {task.startDate || '—'}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Calendar className="h-3.5 w-3.5 text-stone-400 shrink-0" />
+                                    <span className="text-stone-500 dark:text-stone-400">
+                                      Tenggat:
+                                    </span>{' '}
                                     <strong className="text-stone-900 dark:text-stone-100">
                                       {task.dueDate || '—'}
                                     </strong>

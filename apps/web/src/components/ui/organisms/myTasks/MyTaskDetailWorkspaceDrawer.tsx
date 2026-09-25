@@ -160,7 +160,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   };
 
   const roleToolbar =
-    isPlanner || userRole.toLowerCase() === 'dev' ? (
+    isPlanner || userRole.toLowerCase() === 'dev' || userRole.toLowerCase() === 'qa' ? (
       <div className="flex min-w-0 items-center gap-2">
         <div className="min-w-0 flex-1 overflow-hidden">
           <Tabs
@@ -181,7 +181,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
         <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
           Area Kerja Developer
         </span>
-        <span className="hidden shrink-0 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[10px] font-extrabold text-sky-800 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-300 sm:inline-flex">
+        <span className="hidden shrink-0 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-xs font-extrabold text-sky-800 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-300 sm:inline-flex">
           Workspace Pelaksana
         </span>
       </div>
@@ -191,7 +191,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
         <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
           Area Pengujian &amp; Mutu QA
         </span>
-        <span className="hidden shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 sm:inline-flex">
+        <span className="hidden shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-extrabold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 sm:inline-flex">
           Verifikasi QA
         </span>
       </div>
@@ -202,7 +202,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
       isOpen={isOpen}
       onClose={onClose}
       title={task.title}
-      subtitle={`#${task.id.substring(0, 8)} • Alur Workspace`}
+      subtitle={`${isSubtask ? 'Subtask' : 'Task Induk'} · #${task.id.substring(0, 8)}`}
       width="4xl"
       defaultFullScreen={true}
       allowFullScreen={true}

@@ -23,7 +23,7 @@ export const Button: React.FC<ButtonProps> = ({
     'inline-flex items-center justify-center font-semibold rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:opacity-50 disabled:pointer-events-none select-none cursor-pointer';
 
   const sizeStyles = {
-    sm: 'min-h-[36px] px-3.5 text-xs gap-1.5',
+    sm: 'min-h-[40px] px-3.5 text-xs gap-1.5',
     md: 'min-h-[44px] px-4 text-sm gap-2',
     lg: 'min-h-[48px] px-6 text-base gap-2.5',
   };
@@ -50,7 +50,9 @@ export const Button: React.FC<ButtonProps> = ({
       {isLoading ? (
         <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
       ) : leftIcon ? (
-        <span className="inline-flex items-center justify-center shrink-0 self-center leading-none">{leftIcon}</span>
+        <span className="inline-flex items-center justify-center shrink-0 self-center leading-none">
+          {leftIcon}
+        </span>
       ) : null}
       {children && (
         <span className="inline-flex items-center justify-center leading-normal select-none">
@@ -58,7 +60,9 @@ export const Button: React.FC<ButtonProps> = ({
         </span>
       )}
       {!isLoading && rightIcon && (
-        <span className="inline-flex items-center justify-center shrink-0 self-center leading-none">{rightIcon}</span>
+        <span className="inline-flex items-center justify-center shrink-0 self-center leading-none">
+          {rightIcon}
+        </span>
       )}
     </button>
   );
