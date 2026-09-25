@@ -437,7 +437,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                     <Badge variant={severityVariant[bug.severity]} size="sm">
                       {bug.severity}
                     </Badge>
-                    <span className="text-[10px] font-mono text-stone-400">
+                    <span className="text-xs font-mono text-stone-400">
                       ID: {bug.id.slice(0, 8)}
                     </span>
                   </div>
@@ -453,7 +453,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
 
                 <dl className="grid gap-2 rounded-xl border border-stone-200 bg-stone-50/70 p-3 text-xs dark:border-stone-800 dark:bg-stone-900/60 sm:grid-cols-2">
                   <div className="min-w-0">
-                    <dt className="text-[10px] font-bold uppercase tracking-wide text-stone-400">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       Requirement
                     </dt>
                     <dd
@@ -464,7 +464,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                     </dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-[10px] font-bold uppercase tracking-wide text-stone-400">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       Developer yang Ditugaskan
                     </dt>
                     <dd className="mt-0.5 truncate font-semibold text-stone-700 dark:text-stone-300">
@@ -472,7 +472,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                     </dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-[10px] font-bold uppercase tracking-wide text-stone-400">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       Hasil Pengujian Asal
                     </dt>
                     <dd className="mt-0.5 flex items-center gap-1.5 font-semibold text-rose-700 dark:text-rose-300">
@@ -482,7 +482,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                     </dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-[10px] font-bold uppercase tracking-wide text-stone-400">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       Kandidat yang Diuji
                     </dt>
                     <dd className="mt-0.5 truncate font-semibold text-stone-700 dark:text-stone-300">
@@ -573,7 +573,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                   (bug.originatingTestResult?.evidence &&
                     bug.originatingTestResult.evidence.length > 0)) && (
                   <div className="mt-2 space-y-2 border-t border-stone-200 pt-3 dark:border-stone-800/80">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                    <span className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                       Bukti Tertaut
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -583,14 +583,14 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                           key={att.attachmentId}
                           className="relative flex items-center justify-between p-2.5 rounded-xl bg-white border border-stone-200 text-xs shadow-xs dark:bg-stone-900/60 dark:border-stone-800"
                         >
-                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-rose-50 text-rose-700 px-1.5 py-0.2 rounded border border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30">
+                          <span className="absolute -top-2.5 left-2 z-10 text-xs font-semibold bg-rose-50 text-rose-700 px-2 py-0.5 rounded border border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30">
                             Lampiran dari Hasil Pengujian
                           </span>
                           <div className="min-w-0 pr-2">
                             <p className="font-semibold text-stone-900 dark:text-stone-100 truncate">
                               {att.fileName}
                             </p>
-                            <p className="text-[10px] font-mono text-stone-500 dark:text-stone-400">
+                            <p className="text-xs font-mono text-stone-500 dark:text-stone-400">
                               {att.mimeType}
                             </p>
                           </div>
@@ -614,7 +614,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                       {/* Inherited external links */}
                       {originEvidenceLinks.map((link) => (
                         <div key={link.id} className="relative">
-                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-rose-50 text-rose-700 px-1.5 py-0.2 rounded border border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30">
+                          <span className="absolute -top-2.5 left-2 z-10 text-xs font-semibold bg-rose-50 text-rose-700 px-2 py-0.5 rounded border border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30">
                             Bukti dari Hasil Pengujian Asal
                           </span>
                           <EvidenceCard
@@ -636,7 +636,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                       {/* Bug-specific evidence links */}
                       {bugEvidenceLinks.map((link) => (
                         <div key={link.id} className="relative">
-                          <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-sky-50 text-sky-700 px-1.5 py-0.2 rounded border border-sky-200 dark:bg-sky-500/20 dark:text-sky-400 dark:border-sky-500/30">
+                          <span className="absolute -top-2.5 left-2 z-10 text-xs font-semibold bg-sky-50 text-sky-700 px-2 py-0.5 rounded border border-sky-200 dark:bg-sky-500/20 dark:text-sky-400 dark:border-sky-500/30">
                             {link.evidenceStage === 'resolution'
                               ? 'Bukti Perbaikan'
                               : 'Bukti Temuan'}
@@ -764,7 +764,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
             placeholder="commit:a1b2c3d atau deployment:stg-482"
             required
           />
-          <p className="-mt-2 text-[11px] text-stone-500 dark:text-stone-400">
+          <p className="-mt-2 text-xs text-stone-500 dark:text-stone-400">
             Identitas ini dipakai untuk menjaga setiap siklus perbaikan dan retest tetap terpisah.
           </p>
           <Textarea
@@ -840,7 +840,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                   {historyTarget.originatingTestResult.actualResult ||
                     historyTarget.reproductionDetails}
                 </p>
-                <p className="text-[11px] text-stone-500">
+                <p className="text-xs text-stone-500 dark:text-stone-400">
                   {historyTarget.originatingTestResult.testRun.build} ·{' '}
                   {historyTarget.originatingTestResult.testRun.environment}
                 </p>
@@ -916,7 +916,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                       </div>
 
                       <section className="space-y-2 rounded-xl border border-stone-200 p-3 dark:border-stone-800">
-                        <p className="text-[10px] font-extrabold uppercase tracking-wide text-stone-500">
+                        <p className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                           Perbaikan Developer
                         </p>
                         <p className="text-xs text-stone-700 dark:text-stone-300">
@@ -933,7 +933,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                             ))}
                           </div>
                         )}
-                        <details className="text-[11px] text-stone-500">
+                        <details className="text-xs text-stone-500 dark:text-stone-400">
                           <summary className="cursor-pointer font-semibold">Detail teknis</summary>
                           <dl className="mt-1 space-y-1 font-mono">
                             <div>
@@ -949,11 +949,11 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                       </section>
 
                       <section className="space-y-2 rounded-xl border border-stone-200 p-3 dark:border-stone-800">
-                        <p className="text-[10px] font-extrabold uppercase tracking-wide text-stone-500">
+                        <p className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                           Hasil Retest QA
                         </p>
                         {!attempt ? (
-                          <p className="text-xs text-stone-500">
+                          <p className="text-xs text-stone-500 dark:text-stone-400">
                             QA belum mencatat hasil retest untuk kandidat ini.
                           </p>
                         ) : (
@@ -961,7 +961,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                             <p className="text-xs text-stone-700 dark:text-stone-300">
                               {attempt.result.actualResult || 'Tidak ada hasil aktual.'}
                             </p>
-                            <p className="text-[11px] text-stone-500">
+                            <p className="text-xs text-stone-500 dark:text-stone-400">
                               {attempt.evidenceManifests.reduce(
                                 (count, manifest) => count + manifest.readyCount,
                                 0,
@@ -999,7 +999,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                                 ))}
                               </div>
                             )}
-                            <details className="text-[11px] text-stone-500">
+                            <details className="text-xs text-stone-500 dark:text-stone-400">
                               <summary className="cursor-pointer font-semibold">
                                 Detail teknis retest
                               </summary>
