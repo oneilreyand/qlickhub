@@ -87,7 +87,7 @@ describe('TaskDetailProductBriefTab', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Ringkasan' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Brief Produk' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Card checkout')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Cryptocurrency')).toBeInTheDocument();
     expect(screen.getByLabelText('Konteks produk dan referensi eksternal')).toHaveValue(
@@ -119,7 +119,7 @@ describe('TaskDetailProductBriefTab', () => {
     });
   });
 
-  test('renders Ringkasan read-only for QA', () => {
+  test('renders Brief Produk read-only for QA', () => {
     render(
       <TaskDetailProductBriefTab
         task={task}
@@ -131,7 +131,7 @@ describe('TaskDetailProductBriefTab', () => {
       />,
     );
 
-    expect(screen.getByText('Ringkasan hanya dapat dilihat')).toBeInTheDocument();
+    expect(screen.getByText('Brief Produk hanya dapat dilihat')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Card checkout')).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Simpan Versi Baru' })).not.toBeInTheDocument();
   });
@@ -149,7 +149,7 @@ describe('TaskDetailProductBriefTab', () => {
       />,
     );
 
-    expect(screen.getByText('Ringkasan tidak tersedia')).toBeInTheDocument();
+    expect(screen.getByText('Brief Produk tidak tersedia')).toBeInTheDocument();
     expect(screen.getByText('Gagal memuat dokumen dari server.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
     expect(onReload).toHaveBeenCalledTimes(1);
@@ -167,7 +167,7 @@ describe('TaskDetailProductBriefTab', () => {
       />,
     );
 
-    expect(screen.getByText('Ringkasan belum tersedia')).toBeInTheDocument();
+    expect(screen.getByText('Brief Produk belum tersedia')).toBeInTheDocument();
     expect(
       screen.getByText(
         'Product Owner, Admin, atau Owner perlu menentukan konteks dan cakupan Feature.',
@@ -187,11 +187,11 @@ describe('TaskDetailProductBriefTab', () => {
       />,
     );
 
-    expect(screen.getByDisplayValue(`Ringkasan ${task.title}`)).toBeInTheDocument();
-    const titleInput = screen.getByLabelText('Judul Ringkasan');
+    expect(screen.getByDisplayValue(`Brief Produk ${task.title}`)).toBeInTheDocument();
+    const titleInput = screen.getByLabelText('Judul Brief Produk');
     fireEvent.change(titleInput, { target: { value: '   ' } });
 
-    expect(screen.getByText('Judul Ringkasan wajib diisi.')).toBeInTheDocument();
+    expect(screen.getByText('Judul Brief Produk wajib diisi.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Simpan Versi Baru' })).toBeDisabled();
   });
 
