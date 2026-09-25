@@ -52,7 +52,7 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-screen bg-[#FBFCF7] font-sans text-[#22201F] transition-colors duration-200 dark:bg-[#141413] dark:text-stone-100">
+    <div className="flex flex-col min-h-screen w-full bg-[#FBFCF7] font-sans text-[#22201F] transition-colors duration-200 dark:bg-[#141413] dark:text-stone-100">
       {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -89,7 +89,7 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
       />
 
       {/* Main Content Area */}
-      <main className="mx-auto w-full min-w-0 max-w-full flex-1 px-4 py-4 sm:px-8 sm:py-6 lg:py-8">
+      <main className="mx-auto w-full min-w-0 max-w-7xl 2xl:max-w-[1600px] flex-1 px-4 py-4 sm:px-8 sm:py-6 lg:py-8">
         <ErrorBoundary key={`${location.pathname}${location.search}`}>{children}</ErrorBoundary>
       </main>
       <GlobalSnackbarHost />

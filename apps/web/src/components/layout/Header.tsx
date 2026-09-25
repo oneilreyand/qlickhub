@@ -138,8 +138,9 @@ export const Header: React.FC<HeaderProps> = ({
   const isSettingsActive = location.pathname === '/workspaces/settings';
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-stone-200/60 bg-[#FBFCF7]/95 px-4 backdrop-blur-md transition-colors sm:px-8 dark:border-stone-800/80 dark:bg-[#141413]/95 dark:text-stone-100">
-      {/* Left section: App Brand Logo & Workspace Switcher */}
+    <header className="sticky top-0 z-30 h-20 w-full border-b border-stone-200/60 bg-[#FBFCF7]/95 px-4 backdrop-blur-md transition-colors sm:px-8 dark:border-stone-800/80 dark:bg-[#141413]/95 dark:text-stone-100">
+      <div className="mx-auto flex h-full w-full max-w-7xl 2xl:max-w-[1600px] items-center justify-between">
+        {/* Left section: App Brand Logo & Workspace Switcher */}
       <div className="flex items-center gap-3 lg:gap-4">
         <IconButton
           onClick={onToggleMobileSidebar}
@@ -448,6 +449,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* User Profile & Password Modal */}

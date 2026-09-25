@@ -23,7 +23,7 @@ export const UserFlowPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-5xl mx-auto">
       <UserFlowGuide />
     </div>
   );
