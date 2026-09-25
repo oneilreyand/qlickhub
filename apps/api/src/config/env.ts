@@ -61,7 +61,6 @@ const envSchema = z.object({
   KV_REST_API_URL: z.string().url().optional(),
   KV_REST_API_TOKEN: z.string().min(1).optional(),
   RATE_LIMIT_KEY_SECRET: z.string().min(32).optional(),
-  PRODUCTION_DATA_RESET_TOKEN: z.string().min(32).optional(),
 });
 
 export const normalizeEnvironmentInput = (input: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
