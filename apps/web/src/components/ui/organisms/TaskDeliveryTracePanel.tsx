@@ -262,46 +262,50 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+        <Card className="p-4 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90 shadow-xs">
+          <p className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
             Cakupan struktur
           </p>
           <p className="mt-1 text-xl font-black text-stone-900 dark:text-stone-100">
             {trace.structural.coveragePercent ?? '—'}
             {trace.structural.coveragePercent !== null ? '%' : ''}
           </p>
-          <p className="text-[11px] text-stone-500">
+          <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
             {trace.structural.fullyCoveredRequirements}/{trace.structural.totalRequirements}{' '}
             Requirement selesai
           </p>
         </Card>
-        <Card className="p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+        <Card className="p-4 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90 shadow-xs">
+          <p className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
             Tautan implementasi
           </p>
           <p className="mt-1 text-xl font-black text-stone-900 dark:text-stone-100">
             {trace.structural.linkedImplementingSubtasks}/{trace.structural.totalFeatureSubtasks}
           </p>
-          <p className="text-[11px] text-stone-500">Subtask Feature yang tertaut ke Requirement</p>
+          <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
+            Subtask Feature yang tertaut ke Requirement
+          </p>
         </Card>
-        <Card className="p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+        <Card className="p-4 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90 shadow-xs">
+          <p className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
             Pengujian yang dijalankan
           </p>
           <p className="mt-1 text-xl font-black text-stone-900 dark:text-stone-100">
             {trace.execution.executedTestCases}/{trace.execution.totalTestCases}
           </p>
-          <p className="text-[11px] text-stone-500">Hanya hasil lulus atau gagal</p>
+          <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
+            Hanya hasil lulus atau gagal
+          </p>
         </Card>
-        <Card className="p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+        <Card className="p-4 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90 shadow-xs">
+          <p className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
             Tingkat Kelulusan
           </p>
           <p className="mt-1 text-xl font-black text-stone-900 dark:text-stone-100">
             {trace.execution.passRatePercent ?? '—'}
             {trace.execution.passRatePercent !== null ? '%' : ''}
           </p>
-          <p className="text-[11px] text-stone-500">
+          <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
             {trace.execution.failedTestCases} gagal · {trace.execution.pendingTestCases} menunggu
           </p>
         </Card>
@@ -317,9 +321,12 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
         </Alert>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {trace.requirements.map((node) => (
-          <Card key={node.requirement.id} className="space-y-4 p-4 sm:p-5">
+          <Card
+            key={node.requirement.id}
+            className="space-y-4 p-4 sm:p-5 border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900/90 shadow-xs"
+          >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -344,41 +351,41 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
             </div>
 
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-3 dark:border-stone-800 dark:bg-stone-950/40">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+              <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 dark:border-stone-800 dark:bg-stone-950/40">
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
                   Acceptance Criteria ({node.totalAcceptanceCriteria})
                 </p>
                 {node.acceptanceCriteria.length === 0 ? (
-                  <p className="mt-2 text-xs italic text-stone-500">
+                  <p className="mt-2 text-xs italic text-stone-500 dark:text-stone-400">
                     Belum ada Acceptance Criteria.
                   </p>
                 ) : (
-                  <ul className="mt-2 space-y-2">
+                  <ul className="mt-2.5 space-y-2">
                     {node.acceptanceCriteria.map((criterion) => (
                       <li
                         key={criterion.id}
                         className="flex items-start gap-2 text-xs text-stone-700 dark:text-stone-300"
                       >
-                        <span className="font-mono text-[10px] font-bold text-stone-500">
+                        <span className="font-mono text-xs font-bold text-stone-500 dark:text-stone-400 shrink-0">
                           {criterion.code}
                         </span>
-                        <span>{criterion.text}</span>
+                        <span className="leading-relaxed">{criterion.text}</span>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
 
-              <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-3 dark:border-stone-800 dark:bg-stone-950/40">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+              <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 dark:border-stone-800 dark:bg-stone-950/40">
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
                   Subtask implementasi ({node.totalImplementingSubtasks})
                 </p>
                 {node.implementingSubtasks.length === 0 ? (
-                  <p className="mt-2 text-xs italic text-stone-500">
+                  <p className="mt-2 text-xs italic text-stone-500 dark:text-stone-400">
                     Belum ada subtask implementasi yang tertaut.
                   </p>
                 ) : (
-                  <ul className="mt-2 space-y-2">
+                  <ul className="mt-2.5 space-y-2">
                     {node.implementingSubtasks.map((subtask) => (
                       <li
                         key={subtask.id}
@@ -395,16 +402,16 @@ export const TaskDeliveryTracePanel: React.FC<TaskDeliveryTracePanelProps> = ({
                 )}
               </div>
 
-              <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-3 dark:border-stone-800 dark:bg-stone-950/40">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+              <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 dark:border-stone-800 dark:bg-stone-950/40">
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
                   Test Cases ({node.totalTestCases})
                 </p>
                 {node.testCases.length === 0 ? (
-                  <p className="mt-2 text-xs italic text-stone-500">
+                  <p className="mt-2 text-xs italic text-stone-500 dark:text-stone-400">
                     Belum ada Test Case tingkat Requirement yang tertaut.
                   </p>
                 ) : (
-                  <ul className="mt-2 space-y-2">
+                  <ul className="mt-2.5 space-y-2">
                     {node.testCases.map((testCase) => (
                       <li
                         key={testCase.id}
