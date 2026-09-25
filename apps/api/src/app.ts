@@ -21,6 +21,7 @@ import { workQueueRoutes } from './modules/workQueue/workQueueRoutes.js';
 import { featureReadinessRoutes } from './modules/featureReadiness/featureReadinessRoutes.js';
 import { qrisSandboxRoutes } from './modules/qrisSandbox/qrisSandboxRoutes.js';
 import { capacityRoutes } from './modules/capacity/capacityRoutes.js';
+import { productionDataResetRoutes } from './modules/maintenance/productionDataReset.routes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
 import { rejectArchivedWorkspaceMutation } from './http/middleware/workspaceArchive.js';
@@ -63,6 +64,7 @@ export const createApp = () => {
 
   // Authentication, Workspace, Folder & Task APIs
   app.use('/v1', apiRateLimiter);
+  app.use('/v1', productionDataResetRoutes);
   app.use('/v1', rejectArchivedWorkspaceMutation);
   app.use('/v1/auth', authRouter);
   app.use('/v1', workQueueRoutes);
