@@ -30,7 +30,8 @@ against incompatible route-parameter types.
 - **Decision Snapshot:** Pin the API declaration to the exact, already locked and verified type
   version. It prevents a divergent Vercel install. A future Express v5 type migration must be a
   separate controller-validation task.
-- **Agent handoff and independent verification:** Cloud Git deployment remains to be observed.
+- **Agent handoff and independent verification:** Vercel independently built commit `92d44a2` and
+  produced Ready deployment `dpl_dWTjSKN7ULtUF5vDLjYt8AxfFK6h`.
 
 ## Source of truth and impact
 
@@ -53,10 +54,19 @@ against incompatible route-parameter types.
 - `git diff --check` — passed; no whitespace errors.
 - `npm run docs:check` — passed; 5/5 tests, 0 failed, 0 skipped.
 
+## Production release evidence
+
+- Commit `92d44a2` was built from Git branch `main` by Vercel CLI 59.25.4.
+- Deployment `dpl_dWTjSKN7ULtUF5vDLjYt8AxfFK6h` is `Ready` and owns
+  `https://qlickhub.vercel.app`.
+- Smoke checks: `/` returned 200; `/v1/health` returned `status: ok` with database `connected`;
+  unauthenticated `/v1/workspaces` returned 401.
+
 ## Risks or follow-up
 
-Observe the cloud Git build and Production smoke checks. Do not use `--prebuilt` as proof that the
-Git build has compiled.
+Vercel reported four dependency install-script warnings for Firebase, esbuild, and protobufjs;
+the build succeeded and the warnings are pre-existing dependency-policy notices. Do not use
+`--prebuilt` as proof that a Git build has compiled.
 
 ## Human decision summary
 
