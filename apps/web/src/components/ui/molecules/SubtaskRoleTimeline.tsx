@@ -184,37 +184,37 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
     switch (area) {
       case 'frontend':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
-            <Code2 className="h-3 w-3" /> FE
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Code2 className="h-3.5 w-3.5" /> FE
           </span>
         );
       case 'backend':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
-            <Layers className="h-3 w-3" /> BE
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
+            <Layers className="h-3.5 w-3.5" /> BE
           </span>
         );
       case 'mobile':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
-            <Smartphone className="h-3 w-3" /> MOB
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Smartphone className="h-3.5 w-3.5" /> MOB
           </span>
         );
       case 'fullstack':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
-            <Cpu className="h-3 w-3" /> FS
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold uppercase bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Cpu className="h-3.5 w-3.5" /> FS
           </span>
         );
       case 'qa':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
-            <Bug className="h-3 w-3" /> QA
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold uppercase bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
+            <Bug className="h-3.5 w-3.5" /> QA
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 shrink-0">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 shrink-0">
             SUBTASK
           </span>
         );
@@ -306,7 +306,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-            <span className="text-[11px] font-semibold opacity-80">
+            <span className="text-xs font-semibold opacity-80">
               {analysis.summary.completedSubtasks}/{analysis.summary.totalSubtasks} Subtask Selesai
             </span>
           </div>
@@ -320,7 +320,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
             <Clock className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
             <span>Alur Handoff Antarperan</span>
           </span>
-          <span className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
+          <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
             Spesifikasi PO ➔ Dev Backend ➔ Dev Frontend ➔ Verifikasi QA
           </span>
         </div>
@@ -383,9 +383,9 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                 </div>
 
                 {/* Timeline Dates Window */}
-                <div className="space-y-1 text-[11px] text-stone-600 dark:text-stone-300">
+                <div className="space-y-1 text-xs text-stone-600 dark:text-stone-300">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-stone-400 dark:text-stone-500 uppercase font-semibold">
+                    <span className="text-xs text-stone-400 dark:text-stone-500 uppercase font-semibold">
                       Rencana:
                     </span>
                     <span className="font-mono font-medium">
@@ -395,8 +395,8 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
 
                   {/* Overlap / Slippage alert */}
                   {stage.overlapWithNextDays > 0 && !isLast && (
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 pt-0.5">
-                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                    <div className="flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400 pt-0.5">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                       <span>
                         Tumpang tindih dengan peran berikutnya selama {stage.overlapWithNextDays}{' '}
                         hari
@@ -406,9 +406,9 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                 </div>
 
                 {/* Assignees and Subtasks count footer */}
-                <div className="flex items-center justify-between pt-1 border-t border-stone-200/60 dark:border-stone-800 text-[10px] text-stone-500 dark:text-stone-400">
+                <div className="flex items-center justify-between pt-1 border-t border-stone-200/60 dark:border-stone-800 text-xs text-stone-500 dark:text-stone-400">
                   <div className="flex items-center gap-1 truncate max-w-[120px]">
-                    <User className="h-3 w-3 shrink-0 text-stone-400" />
+                    <User className="h-3.5 w-3.5 shrink-0 text-stone-400" />
                     <span className="truncate">
                       {stage.assignees.length > 0
                         ? stage.assignees.map((a) => a.name).join(', ')
@@ -476,7 +476,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
           ))}
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] font-medium text-stone-500 dark:text-stone-400 flex-wrap">
+        <div className="flex items-center gap-3 text-xs font-medium text-stone-500 dark:text-stone-400 flex-wrap">
           <span className="flex items-center gap-1">
             <span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> BE
           </span>
@@ -503,7 +503,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
         <div className="flex overflow-x-auto min-w-0">
           {/* Left Column: Subtask Label & Role */}
           <div className="w-64 sm:w-72 md:w-80 shrink-0 sticky left-0 z-20 bg-white dark:bg-[#1C1A19] border-r border-stone-200 dark:border-stone-800 shadow-xs">
-            <div className="h-[72px] px-3 flex items-end justify-between pb-2.5 border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80 text-[10px] font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+            <div className="h-[72px] px-3 flex items-end justify-between pb-2.5 border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/80 text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
               <span>Peran &amp; Subtask</span>
               <span>Kondisi</span>
             </div>
@@ -548,7 +548,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                   <div
                     key={month.key}
                     style={{ width: `${month.days * 44}px` }}
-                    className="shrink-0 border-r border-stone-200 dark:border-stone-800 px-2 flex items-center text-[10px] font-extrabold uppercase tracking-wider text-stone-600 dark:text-stone-300"
+                    className="shrink-0 border-r border-stone-200 dark:border-stone-800 px-2 flex items-center text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300"
                   >
                     {month.label}
                   </div>
@@ -576,7 +576,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                     }`}
                   >
                     <span className="text-xs leading-tight font-bold">{col.label}</span>
-                    <span className="text-[10px] text-stone-400 leading-tight uppercase">
+                    <span className="text-xs text-stone-400 leading-tight uppercase">
                       {col.subLabel}
                     </span>
                   </div>
@@ -607,7 +607,7 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                   className="absolute top-0 bottom-0 z-10 w-0.5 bg-amber-500 shadow-sm pointer-events-none"
                 >
                   <div className="absolute top-[72px] -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white shadow-xs tracking-normal whitespace-nowrap border border-white dark:border-stone-900">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white shadow-xs tracking-normal whitespace-nowrap border border-white dark:border-stone-900">
                       Hari Ini
                     </span>
                   </div>
@@ -644,11 +644,11 @@ export const SubtaskRoleTimeline: React.FC<SubtaskRoleTimelineProps> = ({
                           ) : (
                             <Clock className="h-3 w-3 shrink-0 opacity-80" />
                           )}
-                          <span className="truncate text-[10px] font-bold">{st.title}</span>
+                          <span className="truncate text-xs font-bold">{st.title}</span>
                         </div>
                       </div>
                     ) : (
-                      <div className="pl-3 flex items-center gap-1.5 text-[11px] text-stone-400 dark:text-stone-500 italic">
+                      <div className="pl-3 flex items-center gap-1.5 text-xs text-stone-400 dark:text-stone-500 italic">
                         <Clock className="h-3.5 w-3.5 shrink-0 opacity-60" />
                         <span>Belum dijadwalkan (Tambahkan tanggal di tab Detail)</span>
                       </div>

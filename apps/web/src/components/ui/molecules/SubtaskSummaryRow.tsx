@@ -55,37 +55,37 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
     switch (area) {
       case 'frontend':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
-            <Code2 className="h-3 w-3" /> FE
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Code2 className="h-3.5 w-3.5" /> FE
           </span>
         );
       case 'backend':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
-            <Layers className="h-3 w-3" /> BE
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
+            <Layers className="h-3.5 w-3.5" /> BE
           </span>
         );
       case 'mobile':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
-            <Smartphone className="h-3 w-3" /> MOB
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Smartphone className="h-3.5 w-3.5" /> MOB
           </span>
         );
       case 'fullstack':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
-            <Cpu className="h-3 w-3" /> FS
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 shrink-0">
+            <Cpu className="h-3.5 w-3.5" /> FS
           </span>
         );
       case 'qa':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
-            <Bug className="h-3 w-3" /> QA
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50 shrink-0">
+            <Bug className="h-3.5 w-3.5" /> QA
           </span>
         );
       default:
         return (
-          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 shrink-0">
+          <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 shrink-0">
             SUBTASK
           </span>
         );
@@ -119,54 +119,52 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
         <div className="flex items-center gap-1.5 ml-0 sm:ml-1 shrink-0">
           {hasDescription && (
             <span
-              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"
               title="Has technical description"
             >
-              <FileText className="h-3 w-3 text-stone-400" />
+              <FileText className="h-3.5 w-3.5 text-stone-400" />
             </span>
           )}
 
           {hasUnreadComment ? (
             <span
-              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
               title={`${unreadCommentCount} pesan baru di subtask ini`}
             >
-              <MessageSquare className="h-3 w-3" />
+              <MessageSquare className="h-3.5 w-3.5" />
               <span>{commentCount}</span>
-              <span className="text-[9px] font-extrabold uppercase">
-                • +{unreadCommentCount} Baru
-              </span>
+              <span className="text-xs font-bold uppercase">• +{unreadCommentCount} Baru</span>
             </span>
           ) : commentCount > 0 ? (
             <span
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/50"
               title={`${commentCount} discussion comments`}
             >
-              <MessageSquare className="h-3 w-3" />
+              <MessageSquare className="h-3.5 w-3.5" />
               <span>{commentCount}</span>
             </span>
           ) : null}
 
           {isChangesRequested && (
             <span
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-900"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-900"
               title="Changes requested by reviewer"
             >
-              <AlertCircle className="h-3 w-3" />
+              <AlertCircle className="h-3.5 w-3.5" />
               <span>Perbaiki</span>
             </span>
           )}
 
           {dateRangeDisplay && (
             <span
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${
                 scheduleHealth.isOverdue
                   ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800 font-bold'
                   : 'bg-stone-100 text-stone-600 dark:bg-stone-800/80 dark:text-stone-400'
               }`}
               title={dateRangeDisplay}
             >
-              <Calendar className="h-3 w-3" />
+              <Calendar className="h-3.5 w-3.5" />
               <span>{dateRangeDisplay}</span>
             </span>
           )}
@@ -180,15 +178,15 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
       >
         {/* Assignee Avatar / Name */}
         <div
-          className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-stone-100/80 dark:bg-stone-800/70 text-[11px] text-stone-700 dark:text-stone-300"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-stone-100/80 dark:bg-stone-800/70 text-xs text-stone-700 dark:text-stone-300"
           title={`Penanggung jawab: ${assigneeName || 'Belum ditugaskan'}`}
         >
           {assigneeName ? (
-            <Avatar name={assigneeName} size="sm" className="h-4 w-4 text-[9px]" />
+            <Avatar name={assigneeName} size="sm" className="h-4.5 w-4.5 text-xs" />
           ) : (
-            <User className="h-3 w-3 text-stone-400" />
+            <User className="h-3.5 w-3.5 text-stone-400" />
           )}
-          <span className="max-w-[100px] truncate font-medium">{assigneeName || 'Unassigned'}</span>
+          <span className="max-w-[120px] truncate font-medium">{assigneeName || 'Unassigned'}</span>
         </div>
 
         {/* Static Status Badge (Read-Only) */}

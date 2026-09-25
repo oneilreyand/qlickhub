@@ -182,7 +182,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
               <ListTodo className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
               <span>Subtask Langsung ({subtasks.length})</span>
             </span>
-            <span className="text-[11px] font-semibold text-stone-500 dark:text-stone-400">
+            <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">
               • {metrics.completed}/{metrics.total} Selesai ({metrics.percent}%)
             </span>
           </div>
@@ -259,7 +259,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
               <Code2 className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
               <span className="font-bold text-sky-950 dark:text-sky-200 truncate">Frontend</span>
             </div>
-            <span className="font-mono text-[11px] font-bold text-sky-800 dark:text-sky-300">
+            <span className="font-mono text-xs font-bold text-sky-800 dark:text-sky-300">
               {metrics.feDone}/{metrics.feTotal}
             </span>
           </div>
@@ -270,7 +270,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
               <Layers className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
               <span className="font-bold text-amber-950 dark:text-amber-200 truncate">Backend</span>
             </div>
-            <span className="font-mono text-[11px] font-bold text-amber-800 dark:text-amber-300">
+            <span className="font-mono text-xs font-bold text-amber-800 dark:text-amber-300">
               {metrics.beDone}/{metrics.beTotal}
             </span>
           </div>
@@ -281,7 +281,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
               <Smartphone className="h-3.5 w-3.5 text-stone-600 dark:text-stone-400 shrink-0" />
               <span className="font-bold text-stone-900 dark:text-stone-200 truncate">Mobile</span>
             </div>
-            <span className="font-mono text-[11px] font-bold text-stone-700 dark:text-stone-300">
+            <span className="font-mono text-xs font-bold text-stone-700 dark:text-stone-300">
               {metrics.mobileDone}/{metrics.mobileTotal}
             </span>
           </div>
@@ -294,7 +294,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                 Fullstack
               </span>
             </div>
-            <span className="font-mono text-[11px] font-bold text-[#141413] dark:text-[#B1E743]">
+            <span className="font-mono text-xs font-bold text-[#141413] dark:text-[#B1E743]">
               {metrics.fullstackDone}/{metrics.fullstackTotal}
             </span>
           </div>
@@ -305,7 +305,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
               <Bug className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span className="font-bold text-emerald-950 dark:text-emerald-200 truncate">QA</span>
             </div>
-            <span className="font-mono text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+            <span className="font-mono text-xs font-bold text-emerald-800 dark:text-emerald-300">
               {metrics.qaDone}/{metrics.qaTotal}
             </span>
           </div>

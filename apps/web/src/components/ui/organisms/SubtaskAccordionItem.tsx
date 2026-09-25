@@ -427,7 +427,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       count: totalCommentsCount > 0 ? totalCommentsCount : undefined,
       badge: hasUnreadComment ? (
         <span
-          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-500/50 animate-pulse"
           title={`${unreadCommentCount} pesan diskusi baru masuk`}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />+{unreadCommentCount} Baru
@@ -468,7 +468,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
             {/* Reviewer Notes Banner if Changes Requested */}
             {subtask.reviewNotes && (
               <div className="p-2.5 rounded-xl bg-rose-50/90 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900/60 text-rose-900 dark:text-rose-200 space-y-1 text-xs">
-                <span className="font-bold flex items-center gap-1 text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-300">
+                <span className="font-bold flex items-center gap-1 text-xs uppercase tracking-wider text-rose-700 dark:text-rose-300">
                   <AlertCircle className="h-3.5 w-3.5" /> Reviewer Notes:
                 </span>
                 <p className="leading-relaxed">{subtask.reviewNotes}</p>
