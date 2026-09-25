@@ -320,6 +320,12 @@ Keputusan ini dijelaskan dalam
 - Runtime Vercel mengatur Express untuk mempercayai tepat satu proxy hop. Vercel menimpa `X-Forwarded-For` dengan IP klien sebelum fungsi dipanggil; konfigurasi permisif `trust proxy = true` dilarang karena dapat melemahkan limiter berbasis IP.
 - Vercel WAF dapat ditambahkan sebagai pertahanan IP di edge, tetapi tidak menggantikan enforcement per pengguna ini. Pilihan PostgreSQL dan aturan cutover tercatat di [ADR-006](adr/ADR-006-POSTGRESQL-LINK-PREVIEW-RATE-LIMIT.md), menggantikan pilihan provider wajib dalam [ADR-003](adr/ADR-003-DISTRIBUTED-LINK-PREVIEW-RATE-LIMIT.md). Saat beralih provider, drain/pause traffic link-preview sekurangnya 60 detik; deployment dengan provider berbeda tidak boleh diklaim berbagi counter.
 
+### Batas Privasi Kapasitas Lintas Workspace
+
+- Deteksi beban kerja anggota tim yang mencakup beberapa Workspace wajib menjaga kerahasiaan data proyek asal (`AUTH-011`).
+- Jika aktor perencana memeriksa konflik penugasan atau timeline, detail subtask dari Workspace lain disamarkan (**redacted**) secara ketat (hanya menampilkan jumlah bentrok dan rentang tanggal; dilarang membocorkan judul task, nama Workspace, deskripsi, atau link) kecuali jika aktor terbukti memiliki membership aktif terautentikasi pada Workspace asal tersebut.
+- Kebijakan ini diatur dalam [ADR-016](adr/ADR-016-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md).
+
 ---
 
 ## 6. Arsitektur Teknis & Database

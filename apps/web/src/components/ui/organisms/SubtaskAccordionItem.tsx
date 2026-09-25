@@ -25,6 +25,8 @@ import { LoadingSpinner } from '../atoms/LoadingSpinner';
 import { Alert } from '../atoms/Alert';
 import { Modal } from '../molecules/Modal';
 import { taskService } from '../../../lib/api/taskService';
+import { useAssignmentConflictPreview } from '../../../lib/hooks/useAssignmentConflictPreview';
+import { AssignmentConflictBanner } from '../molecules/AssignmentConflictBanner';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
@@ -209,6 +211,30 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
 
   const assigneeMember = members.find((m) => m.userId === subtask.assigneeId);
   const assigneeName = assigneeMember?.user?.name || assigneeMember?.user?.email;
+
+  const currentAssigneeMember = members.find((m) => m.userId === assigneeId);
+  const currentAssigneeName =
+    currentAssigneeMember?.user?.name ||
+    currentAssigneeMember?.user?.email ||
+    currentAssigneeMember?.userId;
+
+  const {
+    preview: conflictPreview,
+    isLoading: isConflictLoading,
+    error: conflictError,
+    refetch: refetchConflict,
+  } = useAssignmentConflictPreview({
+    workspaceId,
+    assigneeId,
+    startDate,
+    dueDate,
+    excludeSubtaskId: subtask.id,
+    enabled:
+      isItemExpanded &&
+      isPlanner &&
+      activeTab === 'settings' &&
+      Boolean(assigneeId && startDate && dueDate && !scheduleIssue),
+  });
 
   const filteredMembers = React.useMemo(() => {
     const area = deliveryArea || subtask.deliveryArea;
@@ -612,6 +638,19 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                   >
                     {scheduleIssueMessage}
                   </p>
+                )}
+
+                {/* Advisory Conflict Banner */}
+                {!scheduleIssue && isPlanner && (
+                  <AssignmentConflictBanner
+                    preview={conflictPreview}
+                    isLoading={isConflictLoading}
+                    error={conflictError}
+                    assigneeName={currentAssigneeName}
+                    startDate={startDate}
+                    dueDate={dueDate}
+                    onRetry={refetchConflict}
+                  />
                 )}
 
                 <div>

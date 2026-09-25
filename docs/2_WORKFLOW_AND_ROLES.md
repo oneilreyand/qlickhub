@@ -209,6 +209,14 @@ legacy tetap transitional dan tidak boleh diklaim telah memenuhi kebijakan ini.
 5. **Kelengkapan Timeline Task dan Subtask**: Jadwal boleh tidak ditentukan dengan mengosongkan `startDate` dan `dueDate`. Jika jadwal ditentukan, kedua tanggal wajib diisi dan `startDate` tidak boleh melewati `dueDate`. Aturan ini berlaku saat pembuatan maupun perubahan Task dan Subtask serta ditegakkan kembali oleh backend dan database.
 6. **Batas Evidence Gate**: Sampai Test Run memiliki scope Feature yang eksplisit, penyelesaian Subtask QA belum boleh diklaim sebagai bukti readiness. Readiness tetap dihitung backend melalui §7; pemasangan evidence gate pada transisi Subtask QA dilakukan setelah scope Test Run tidak dapat bercampur antar-Feature.
 
+### Deteksi Konflik Penugasan dan Kapasitas Tim
+
+- Ketika Planner (`owner`, `admin`, `po`) merencanakan atau mengubah Subtask dan memilih pelaksana serta tanggal mulai dan tenggat yang valid, backend mengevaluasi irisan jadwal terhadap subtask aktif pelaksana tersebut (`FLOW-007`).
+- Perhitungan irisan bersifat inklusif: `existing.startDate <= candidate.dueDate && existing.dueDate >= candidate.startDate`.
+- Subtask berstatus `done` dan `canceled` diabaikan. Subtask aktif tanpa jadwal dilaporkan sebagai "beban aktif tanpa jadwal; irisan waktu tidak dapat dinilai" dan tidak dihitung sebagai irisan tanggal.
+- Peringatan bersifat **murni advisory**: form dan API tidak pernah memblokir penugasan, tidak melakukan auto-reassign, dan tidak menurunkan prioritas.
+- Subtask dari Workspace lain disamarkan secara ketat (`AUTH-011`) kecuali jika aktor terbukti memiliki membership aktif di Workspace asal. Kebijakan ini diatur dalam [ADR-016](adr/ADR-016-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md).
+
 ### Definisi Putaran Review dan Pengembalian
 
 - Satu putaran review dimiliki oleh satu Development Subtask, satu jenis review, dan satu baseline.

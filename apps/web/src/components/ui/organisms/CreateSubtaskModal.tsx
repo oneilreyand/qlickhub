@@ -17,6 +17,8 @@ import { Skeleton } from '../atoms/Skeleton';
 import { Code2, Layers, Smartphone, Cpu, Bug } from 'lucide-react';
 import { taskService } from '../../../lib/api/taskService';
 import { requirementService } from '../../../lib/api/requirementService';
+import { useAssignmentConflictPreview } from '../../../lib/hooks/useAssignmentConflictPreview';
+import { AssignmentConflictBanner } from '../molecules/AssignmentConflictBanner';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
@@ -145,10 +147,27 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
     }
   }, [deliveryArea, filteredMembers, assigneeId]);
 
-  if (!parentTask || !canPlan) return null;
-
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
   const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
+
+  const selectedMember = members.find((m) => m.userId === assigneeId);
+  const selectedAssigneeName =
+    selectedMember?.user?.name || selectedMember?.user?.email || selectedMember?.userId;
+
+  const {
+    preview: conflictPreview,
+    isLoading: isConflictLoading,
+    error: conflictError,
+    refetch: refetchConflict,
+  } = useAssignmentConflictPreview({
+    workspaceId: activeWorkspaceId,
+    assigneeId,
+    startDate,
+    dueDate,
+    enabled: isOpen && canPlan && Boolean(assigneeId && startDate && dueDate && !scheduleIssue),
+  });
+
+  if (!parentTask || !canPlan) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -484,6 +503,19 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
           >
             {scheduleIssueMessage}
           </p>
+        )}
+
+        {/* Advisory Conflict Banner */}
+        {!scheduleIssue && (
+          <AssignmentConflictBanner
+            preview={conflictPreview}
+            isLoading={isConflictLoading}
+            error={conflictError}
+            assigneeName={selectedAssigneeName}
+            startDate={startDate}
+            dueDate={dueDate}
+            onRetry={refetchConflict}
+          />
         )}
 
         {/* Modal Actions */}

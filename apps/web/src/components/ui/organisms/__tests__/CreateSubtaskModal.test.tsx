@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, test, expect, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
+import { MemoryRouter } from 'react-router-dom';
 import { CreateSubtaskModal } from '../CreateSubtaskModal';
 import taskReducer from '../../../../store/taskSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
@@ -11,6 +12,13 @@ import type { Task } from '@qlick/contracts';
 const createSubtaskMock = vi.fn();
 const listRequirementsMock = vi.fn();
 const listTaskRequirementLinksMock = vi.fn();
+const previewAssignmentConflictMock = vi.fn();
+
+vi.mock('../../../../lib/api/capacityService', () => ({
+  capacityService: {
+    previewAssignmentConflict: (...args: any[]) => previewAssignmentConflictMock(...args),
+  },
+}));
 
 vi.mock('../../../../lib/api/taskService', () => ({
   taskService: {
@@ -106,12 +114,14 @@ describe('CreateSubtaskModal UI Component', () => {
     });
     render(
       <Provider store={store}>
-        <CreateSubtaskModal
-          parentTask={mockParentTask}
-          isOpen={true}
-          onClose={vi.fn()}
-          onCreated={vi.fn()}
-        />
+        <MemoryRouter>
+          <CreateSubtaskModal
+            parentTask={mockParentTask}
+            isOpen={true}
+            onClose={vi.fn()}
+            onCreated={vi.fn()}
+          />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -184,13 +194,15 @@ describe('CreateSubtaskModal UI Component', () => {
 
     render(
       <Provider store={store}>
-        <CreateSubtaskModal
-          parentTask={mockParentTask}
-          isOpen={true}
-          initialRequirementIds={[requirementId]}
-          onClose={vi.fn()}
-          onCreated={vi.fn()}
-        />
+        <MemoryRouter>
+          <CreateSubtaskModal
+            parentTask={mockParentTask}
+            isOpen={true}
+            initialRequirementIds={[requirementId]}
+            onClose={vi.fn()}
+            onCreated={vi.fn()}
+          />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -217,6 +229,116 @@ describe('CreateSubtaskModal UI Component', () => {
         mockParentTask.id,
         expect.objectContaining({
           requirementIds: [requirementId],
+          startDate: '2026-09-01',
+          dueDate: '2026-09-05',
+        }),
+      );
+    });
+  });
+
+  test('displays advisory conflict banner when schedule overlap is detected and permits submission', async () => {
+    previewAssignmentConflictMock.mockResolvedValue({
+      hasConflict: true,
+      conflicts: [
+        {
+          subtaskId: 'sub-existing',
+          title: 'Existing Feature Subtask',
+          deliveryArea: 'frontend',
+          status: 'in_progress',
+          startDate: '2026-09-02',
+          dueDate: '2026-09-06',
+          isRedacted: false,
+          workspaceId: mockParentTask.workspaceId,
+          workspaceName: 'Test Workspace',
+        },
+      ],
+      redactedCrossWorkspaceCount: 1,
+      unscheduledActiveCount: 2,
+      assigneeId: 'dev-1',
+    });
+
+    const store = configureStore({
+      reducer: {
+        task: taskReducer,
+        workspace: workspaceReducer,
+        ui: uiReducer,
+      },
+      preloadedState: {
+        workspace: {
+          workspaces: [
+            {
+              id: mockParentTask.workspaceId,
+              name: 'Test Workspace',
+              slug: 'test-workspace',
+              ownerId: 'user-1',
+              role: 'owner' as const,
+              createdAt: '2026-08-14T00:00:00.000Z',
+              updatedAt: '2026-08-14T00:00:00.000Z',
+            },
+          ],
+          activeWorkspaceId: mockParentTask.workspaceId,
+          members: [
+            {
+              id: 'member-dev-1',
+              workspaceId: mockParentTask.workspaceId,
+              userId: 'dev-1',
+              role: 'dev' as const,
+              specialties: ['frontend' as const],
+              joinedAt: '2026-08-14T00:00:00.000Z',
+              user: { id: 'dev-1', name: 'Frontend Developer', email: 'dev@example.com' },
+            },
+          ],
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: true,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <CreateSubtaskModal
+            parentTask={mockParentTask}
+            isOpen={true}
+            onClose={vi.fn()}
+            onCreated={vi.fn()}
+          />
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    fireEvent.change(screen.getByLabelText('Judul Subtask *'), {
+      target: { value: 'Subtask with advisory conflict' },
+    });
+    fireEvent.change(screen.getByLabelText('Pelaksana'), { target: { value: 'dev-1' } });
+    fireEvent.change(screen.getByLabelText('Tanggal Mulai (pasangan opsional)'), {
+      target: { value: '2026-09-01' },
+    });
+    fireEvent.change(screen.getByLabelText('Tanggal Tenggat (pasangan opsional)'), {
+      target: { value: '2026-09-05' },
+    });
+
+    // Wait for debounced conflict preview to render advisory banner
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Peringatan Irisan Jadwal (Advisory)' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Existing Feature Subtask')).toBeInTheDocument();
+      expect(screen.getByText('Tidak Memblokir Simpan')).toBeInTheDocument();
+    });
+
+    // Crucial business rule: Assignment remains strictly advisory, user CAN still submit!
+    fireEvent.click(screen.getByRole('button', { name: 'Buat Subtask' }));
+
+    await waitFor(() => {
+      expect(createSubtaskMock).toHaveBeenCalledWith(
+        mockParentTask.workspaceId,
+        mockParentTask.id,
+        expect.objectContaining({
+          title: 'Subtask with advisory conflict',
+          assigneeId: 'dev-1',
           startDate: '2026-09-01',
           dueDate: '2026-09-05',
         }),
