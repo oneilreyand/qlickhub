@@ -95,6 +95,10 @@ import {
   CreateRequirementFindingSchema,
   CreateRequirementFindingTriagePositionSchema,
   RequirementFindingStateSchema,
+  AssignmentConflictPreviewInputSchema,
+  AssignmentConflictPreviewResponseSchema,
+  TeamCapacityTimelineQuerySchema,
+  TeamCapacityTimelineResponseSchema,
 } from './index.js';
 
 describe('Contracts Validation Suite', () => {
@@ -1461,6 +1465,17 @@ describe('Contracts Validation Suite', () => {
             environment: 'staging',
           },
         },
+        originatingTestCase: {
+          availability: 'available',
+          versionId: '223e4567-e89b-42d3-a456-426614174008',
+          revision: 1,
+          title: 'Test checkout flow',
+          preconditions: 'User is logged in',
+          steps: ['Click checkout'],
+          expectedResult: 'Checkout succeeds',
+          testData: null,
+          requirementIds: [requirementId],
+        },
       });
 
       assert.strictEqual(contextualBug.requirement.code, 'REQ-CHECKOUT');
@@ -2326,4 +2341,136 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(state.findings[0].blocksNewWork, true);
     });
   });
+
+  describe('Capacity and Workload Conflict Contracts', () => {
+    const workspaceId = '123e4567-e89b-12d3-a456-426614174000';
+    const otherWorkspaceId = '923e4567-e89b-12d3-a456-426614174099';
+    const assigneeId = '223e4567-e89b-12d3-a456-426614174001';
+    const subtaskId = '323e4567-e89b-12d3-a456-426614174002';
+
+    test('validates AssignmentConflictPreviewInputSchema with ordered dates and rejects inverted dates', () => {
+      const valid = AssignmentConflictPreviewInputSchema.parse({
+        workspaceId,
+        assigneeId,
+        startDate: '2026-09-20',
+        dueDate: '2026-09-25',
+        excludeSubtaskId: subtaskId,
+      });
+      assert.strictEqual(valid.assigneeId, assigneeId);
+      assert.strictEqual(valid.startDate, '2026-09-20');
+
+      assert.throws(() => {
+        AssignmentConflictPreviewInputSchema.parse({
+          assigneeId,
+          startDate: '2026-09-25',
+          dueDate: '2026-09-20',
+        });
+      }, /Start Date cannot be after Due Date/);
+    });
+
+    test('validates AssignmentConflictPreviewResponseSchema with redacted and unredacted items', () => {
+      const response = AssignmentConflictPreviewResponseSchema.parse({
+        assigneeId,
+        startDate: '2026-09-20',
+        dueDate: '2026-09-25',
+        hasConflict: true,
+        conflictCount: 2,
+        conflicts: [
+          {
+            id: subtaskId,
+            workspaceId,
+            title: 'Slicing UI Dashboard',
+            deliveryArea: 'frontend',
+            status: 'in_progress',
+            startDate: '2026-09-18',
+            dueDate: '2026-09-22',
+            isRedacted: false,
+            isCurrentWorkspace: true,
+          },
+          {
+            startDate: '2026-09-21',
+            dueDate: '2026-09-24',
+            isRedacted: true,
+            isCurrentWorkspace: false,
+          },
+        ],
+        unscheduledActiveCount: 1,
+        unscheduledSubtasks: [
+          {
+            id: '423e4567-e89b-12d3-a456-426614174004',
+            workspaceId,
+            title: 'Refactor Utility',
+            deliveryArea: 'frontend',
+            status: 'todo',
+            isRedacted: false,
+            isCurrentWorkspace: true,
+          },
+        ],
+        advisoryMessage: 'Terdapat 2 jadwal bentrok dan 1 beban aktif tanpa jadwal.',
+      });
+
+      assert.strictEqual(response.hasConflict, true);
+      assert.strictEqual(response.conflicts.length, 2);
+      assert.strictEqual(response.conflicts[1].isRedacted, true);
+      assert.strictEqual(response.conflicts[1].title, undefined);
+      assert.strictEqual(response.unscheduledActiveCount, 1);
+    });
+
+    test('validates TeamCapacityTimelineQuerySchema with scope and filters', () => {
+      const query = TeamCapacityTimelineQuerySchema.parse({
+        workspaceId,
+        startDate: '2026-09-01',
+        endDate: '2026-09-30',
+        memberIds: `${assigneeId}, 323e4567-e89b-12d3-a456-426614174002`,
+        role: 'dev',
+        deliveryArea: 'frontend',
+        status: 'in_progress',
+        scope: 'all',
+      });
+      assert.strictEqual(query.scope, 'all');
+      assert.strictEqual(Array.isArray(query.memberIds), true);
+      assert.strictEqual((query.memberIds as string[]).length, 2);
+    });
+
+    test('validates TeamCapacityTimelineResponseSchema with member rows and subtasks', () => {
+      const response = TeamCapacityTimelineResponseSchema.parse({
+        workspaceId,
+        startDate: '2026-09-01',
+        endDate: '2026-09-30',
+        scope: 'workspace',
+        members: [
+          {
+            userId: assigneeId,
+            name: 'Budi Developer',
+            email: 'budi@example.com',
+            role: 'dev',
+            specialties: ['frontend'],
+            scheduledSubtasks: [
+              {
+                id: subtaskId,
+                workspaceId,
+                title: 'Integrasi Timeline',
+                deliveryArea: 'frontend',
+                status: 'in_progress',
+                priority: 'high',
+                startDate: '2026-09-10',
+                dueDate: '2026-09-15',
+                isRedacted: false,
+                isCurrentWorkspace: true,
+              },
+            ],
+            unscheduledSubtasks: [],
+            conflictCount: 0,
+          },
+        ],
+        totalMembers: 1,
+        totalScheduledSubtasks: 1,
+        totalUnscheduledSubtasks: 0,
+      });
+
+      assert.strictEqual(response.members[0].name, 'Budi Developer');
+      assert.strictEqual(response.members[0].scheduledSubtasks[0].title, 'Integrasi Timeline');
+    });
+  });
 });
+

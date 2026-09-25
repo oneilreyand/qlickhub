@@ -33,6 +33,7 @@ then update this index.
 | AUTH-008  | Only the signed-in author account may edit or soft-delete its own Task Discussion message.                                | [Architecture §5](1_ARCHITECTURE.md#kepemilikan-mutasi-pesan-discussion)            |
 | AUTH-009  | Normal QA execution is restricted to the assigned QA member; PO cannot execute or mutate QA Subtask status.               | [Workflow §4](2_WORKFLOW_AND_ROLES.md#4-siklus-hidup-subtask-subtask-state-machine) |
 | AUTH-010  | Owner/Admin QA execution requires a scoped, expiring, append-only break-glass capability; it is not a role-wide fallback. | [Workflow §4](2_WORKFLOW_AND_ROLES.md#4-siklus-hidup-subtask-subtask-state-machine) |
+| AUTH-011  | Cross-workspace capacity conflict summaries are strictly redacted (count and date range only; no task title, workspace name, description, or URL) unless the authenticated actor has active membership in the source workspace. | [Architecture §5](1_ARCHITECTURE.md#batas-privasi-kapasitas-lintas-workspace), [ADR-016](adr/ADR-016-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md) |
 
 ## Application Security
 
@@ -50,6 +51,8 @@ then update this index.
 | FLOW-004  | Task/Subtask timelines are either blank or contain an ordered Start/Due pair.                                                                                | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                      |
 | FLOW-005  | A Planner sets Feature readiness after recorded Dev/QA input; critical findings block new work unless an Owner/Admin records an audited emergency exception. | [Workflow §2](2_WORKFLOW_AND_ROLES.md#kesiapan-requirement-dan-triage-temuan)       |
 | FLOW-006  | Review rounds are counted per Development Subtask and review type; a material baseline change supersedes rather than fails the old round.                    | [Workflow §4](2_WORKFLOW_AND_ROLES.md#definisi-putaran-review-dan-pengembalian)     |
+| FLOW-007  | Subtask assignment conflict detection is advisory, inclusive (`existing.startDate <= candidate.dueDate && existing.dueDate >= candidate.startDate`), evaluates active non-terminal subtasks only, and never blocks mutation or triggers automated reallocation. | [Workflow §4](2_WORKFLOW_AND_ROLES.md#deteksi-konflik-penugasan-dan-kapasitas-tim), [ADR-016](adr/ADR-016-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md) |
+
 
 ## QA and Release
 
