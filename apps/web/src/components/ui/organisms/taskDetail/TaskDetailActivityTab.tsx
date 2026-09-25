@@ -116,7 +116,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
           {meta.decision === 'approved' ? 'Disetujui' : 'Ditolak'}
         </span>
         {meta.isOverride && (
-          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
             Override QA
           </span>
         )}
@@ -151,12 +151,12 @@ function renderHumanActivityDescription(act: TaskActivity) {
           </>
         )}
         {meta.reviewNotes && (
-          <span className="text-[11px] italic text-rose-600 dark:text-rose-400">
+          <span className="text-xs italic text-rose-600 dark:text-rose-400">
             (Catatan review: &ldquo;{meta.reviewNotes}&rdquo;)
           </span>
         )}
         {meta.roleMismatchOverride && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-semibold">
+          <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-semibold">
             Override Peran ({meta.assigneeRole})
           </span>
         )}
@@ -297,7 +297,7 @@ function renderHumanActivityDescription(act: TaskActivity) {
           "{meta.title || act.taskTitle || 'Subtask'}"
         </span>
         {meta.deliveryArea && (
-          <span className="ml-1 px-1.5 py-0.5 rounded bg-[#B1E743]/20 dark:bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] text-[10px] font-bold uppercase">
+          <span className="ml-1 px-1.5 py-0.5 rounded bg-[#B1E743]/20 dark:bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] text-xs font-bold uppercase">
             {meta.deliveryArea}
           </span>
         )}
@@ -464,11 +464,11 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
           <h3 className="text-xs font-bold text-stone-900 dark:text-stone-100">
             Aktivitas &amp; Jejak Audit
           </h3>
-          <p className="text-[11px] text-stone-500 dark:text-stone-400">
+          <p className="text-xs text-stone-500 dark:text-stone-400">
             Riwayat kronologis seluruh perubahan pada Task dan Subtask-nya.
           </p>
         </div>
-        <span className="text-[11px] font-semibold text-stone-400">{activityTotal} aktivitas</span>
+        <span className="text-xs font-semibold text-stone-400">{activityTotal} aktivitas</span>
       </div>
 
       {isLoadingActivity ? (
@@ -505,7 +505,7 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
             <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-200 font-bold">
               Belum ada aktivitas
             </p>
-            <p className="text-[11px] sm:text-xs text-stone-500 dark:text-stone-400 max-w-sm mx-auto leading-relaxed">
+            <p className="text-xs text-stone-500 dark:text-stone-400 max-w-sm mx-auto leading-relaxed">
               Perubahan status, penugasan, dan edit akan muncul di sini.
             </p>
           </div>
@@ -529,7 +529,7 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
                     {renderHumanActivityDescription(act)}
                   </div>
                   <span
-                    className="text-[11px] font-medium text-stone-400 dark:text-stone-500 shrink-0"
+                    className="text-xs font-medium text-stone-400 dark:text-stone-500 shrink-0"
                     title={new Date(act.createdAt).toLocaleString('id-ID')}
                   >
                     {formatRelativeTime(act.createdAt)}
@@ -537,11 +537,11 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
                 </div>
 
                 {act.isSubtask && act.taskTitle && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md">
-                    <ListTodo className="h-3 w-3" />
+                  <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md">
+                    <ListTodo className="h-3.5 w-3.5" />
                     <span>Subtask: {act.taskTitle}</span>
                     {act.deliveryArea && (
-                      <span className="uppercase text-[9px] font-bold px-1 bg-amber-200/60 dark:bg-amber-900/60 rounded">
+                      <span className="uppercase text-xs font-bold px-1.5 py-0.2 bg-amber-200/60 dark:bg-amber-900/60 rounded">
                         {act.deliveryArea}
                       </span>
                     )}
@@ -566,7 +566,7 @@ export const TaskDetailActivityTab: React.FC<TaskDetailActivityTabProps> = ({
         </div>
       )}
       {!activityError && activityTotal > pageSize && activities.length === activityTotal && (
-        <p className="text-center text-[11px] text-stone-400 pt-1">
+        <p className="text-center text-xs text-stone-400 pt-1">
           All {activityTotal} activity events loaded.
         </p>
       )}
