@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, Link as LinkIcon, Lock, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Lock, Plus, Trash2 } from 'lucide-react';
 import type {
   ProductBrief,
   ProductBriefScopeItem,
@@ -161,28 +161,31 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
         >
           {heading}
         </h3>
-        <p className="mt-0.5 text-[11px] text-stone-500 dark:text-stone-400">{description}</p>
+        <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{description}</p>
       </div>
 
       {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-stone-300 p-3 text-[11px] text-stone-500 dark:border-stone-700 dark:text-stone-400">
+        <p className="rounded-xl border border-dashed border-stone-300 p-3 text-xs text-stone-500 dark:border-stone-700 dark:text-stone-400">
           Belum ada item {heading.toLowerCase()}.
         </p>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {items.map((item, index) => (
-            <div key={item.id} className="flex items-start gap-2">
+            <div key={item.id} className="flex items-center gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-stone-200/80 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                {index + 1}
+              </span>
               <label htmlFor={`${kind}-scope-${item.id}`} className="sr-only">
                 Item {heading} {index + 1}
               </label>
-              <textarea
+              <input
+                type="text"
                 id={`${kind}-scope-${item.id}`}
                 aria-label={`Item ${heading} ${index + 1}`}
                 value={item.text}
                 onChange={(event) => updateScopeItem(kind, item.id, event.target.value)}
                 disabled={!canPlan || isSaving}
-                rows={2}
-                className="min-h-[72px] w-full resize-y rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
               />
               {canPlan && (
                 <IconButton
@@ -252,11 +255,11 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
           <div>
             <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">Ringkasan</h2>
             <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
-              Konteks Feature, referensi eksternal, komitmen, dan pengecualian yang jelas.
+              Konteks Feature, referensi eksternal, komitmen, dan batasan cakupan yang jelas.
             </p>
           </div>
         </div>
-        <span className="self-start rounded-lg bg-[#B1E743]/20 px-2 py-1 text-[11px] font-bold text-[#141413] dark:text-[#B1E743]">
+        <span className="self-start rounded-lg bg-[#B1E743]/20 px-2.5 py-1 text-xs font-bold text-[#141413] dark:text-[#B1E743]">
           {currentBrief ? `v${currentBrief.currentVersion.version}` : 'Draf baru'}
         </span>
       </div>
@@ -296,17 +299,10 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
         </Select>
       </div>
 
-      <Alert tone="info" title="Tempat menambahkan tautan eksternal">
-        <span className="inline-flex items-start gap-1.5">
-          <LinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Tambahkan tautan utama PRD, Figma,
-          riset, dan spesifikasi teknis di sini dengan label Markdown yang jelas. Gunakan URL sumber
-          Requirement hanya jika mengarah ke bagian yang mendefinisikan Requirement tersebut.
-        </span>
-      </Alert>
-
       <RichTextEditor
         id="product-brief-context"
         label="Konteks produk dan referensi eksternal"
+        helperText="Tambahkan tautan utama PRD, Figma, riset, dan spesifikasi teknis di sini dengan format [Nama](url)."
         value={contentMarkdown}
         onChange={setContentMarkdown}
         disabled={!canPlan || isSaving}
