@@ -458,12 +458,12 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
               {defaultTitle}
             </h3>
             {totalCommentsCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#B1E743] text-[#141413] shadow-xs">
+              <span className="px-2 py-0.5 rounded-full text-xs font-black bg-[#B1E743] text-[#141413] shadow-xs">
                 {totalCommentsCount}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-stone-500 dark:text-stone-400">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-stone-500 dark:text-stone-400">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>Thread Live</span>
           </div>
@@ -570,17 +570,19 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                         <Avatar
                           name={authorName}
                           size="sm"
-                          className="h-6 w-6 sm:h-7 sm:w-7 text-[10px] shrink-0 shadow-xs"
+                          className="h-6 w-6 sm:h-7 sm:w-7 text-xs shrink-0 shadow-xs"
                         />
                         <span className="font-bold text-xs sm:text-sm text-stone-900 dark:text-stone-100 truncate">
                           {authorName}
                         </span>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded tracking-wider uppercase ${roleBadge.classes}`}>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded tracking-wider uppercase font-bold ${roleBadge.classes}`}
+                        >
                           {roleBadge.label}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1.5 text-[10px] text-stone-400 dark:text-stone-500">
+                      <div className="flex items-center gap-1.5 text-xs text-stone-400 dark:text-stone-500">
                         <span>
                           {new Date(comment.createdAt || Date.now()).toLocaleTimeString([], {
                             hour: '2-digit',
@@ -589,7 +591,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                         </span>
                         {comment.editedAt && !comment.deletedAt && (
                           <span
-                            className="text-[9px] text-stone-400 italic bg-stone-100 dark:bg-stone-800 px-1 py-0.2 rounded"
+                            className="text-xs text-stone-400 italic bg-stone-100 dark:bg-stone-800 px-1 py-0.2 rounded"
                             title={`Diedit pada ${new Date(comment.editedAt).toLocaleTimeString()}`}
                           >
                             ✏️ diedit
@@ -659,14 +661,16 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                         </div>
                       </div>
                     ) : (
-                      <div className={`leading-relaxed text-xs sm:text-sm text-stone-800 dark:text-stone-200 ${comment.deletedAt ? 'italic opacity-60' : ''}`}>
+                      <div
+                        className={`leading-relaxed text-xs sm:text-sm text-stone-800 dark:text-stone-200 ${comment.deletedAt ? 'italic opacity-60' : ''}`}
+                      >
                         <DiscussionMediaRenderer content={comment.body} />
                       </div>
                     )}
 
                     {/* Mentions badge */}
                     {comment.mentions && comment.mentions.length > 0 && !comment.deletedAt && (
-                      <div className="flex items-center gap-1.5 text-[10px] text-amber-700 dark:text-amber-400 font-medium pt-0.5">
+                      <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400 font-medium pt-0.5">
                         <span>Mentions:</span>
                         {comment.mentions.map((m) => (
                           <span
@@ -688,9 +692,9 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                             setReplyParentId(isReplying ? null : comment.id);
                             setReplyText('');
                           }}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-500 hover:text-stone-900 dark:hover:text-[#B1E743] transition-colors py-1 px-1 -ml-1"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-stone-900 dark:hover:text-[#B1E743] transition-colors py-1 px-1 -ml-1"
                         >
-                          <Reply className="h-3 w-3" />
+                          <Reply className="h-3.5 w-3.5" />
                           <span>{isReplying ? 'Batal Balas' : 'Balas'}</span>
                         </button>
                       </div>
@@ -721,17 +725,19 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                 <Avatar
                                   name={replyAuthorName}
                                   size="sm"
-                                  className="h-5 w-5 text-[9px] shrink-0"
+                                  className="h-5 w-5 sm:h-6 sm:w-6 text-xs shrink-0"
                                 />
                                 <span className="font-bold text-xs text-stone-900 dark:text-stone-100 truncate">
                                   {replyAuthorName}
                                 </span>
-                                <span className={`text-[8px] px-1 py-0.2 rounded uppercase tracking-wider ${replyRoleBadge.classes}`}>
+                                <span
+                                  className={`text-xs px-1.5 py-0.5 rounded uppercase tracking-wider font-bold ${replyRoleBadge.classes}`}
+                                >
                                   {replyRoleBadge.label}
                                 </span>
                               </div>
 
-                              <div className="flex items-center gap-1.5 text-[9px] text-stone-400 dark:text-stone-500">
+                              <div className="flex items-center gap-1.5 text-xs text-stone-400 dark:text-stone-500">
                                 <span>
                                   {new Date(reply.createdAt || Date.now()).toLocaleTimeString([], {
                                     hour: '2-digit',
@@ -739,7 +745,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                   })}
                                 </span>
                                 {reply.editedAt && !reply.deletedAt && (
-                                  <span className="italic text-stone-400 text-[8px] bg-stone-100 dark:bg-stone-800 px-1 rounded">
+                                  <span className="italic text-stone-400 text-xs bg-stone-100 dark:bg-stone-800 px-1 rounded">
                                     ✏️ diedit
                                   </span>
                                 )}
@@ -789,7 +795,7 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => setEditingCommentId(null)}
-                                    className="h-6 text-[10px] px-2"
+                                    className="h-6.5 text-xs px-2"
                                   >
                                     Batal
                                   </Button>
@@ -799,14 +805,16 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                                     onClick={() => handleSaveEdit(reply.id)}
                                     isLoading={isSavingEdit}
                                     disabled={!editingCommentText.trim()}
-                                    className="h-6 text-[10px] px-2.5"
+                                    className="h-6.5 text-xs px-2.5"
                                   >
                                     Simpan
                                   </Button>
                                 </div>
                               </div>
                             ) : (
-                              <div className={`leading-relaxed text-xs text-stone-800 dark:text-stone-200 ${reply.deletedAt ? 'italic opacity-60' : ''}`}>
+                              <div
+                                className={`leading-relaxed text-xs text-stone-800 dark:text-stone-200 ${reply.deletedAt ? 'italic opacity-60' : ''}`}
+                              >
                                 <DiscussionMediaRenderer content={reply.body} />
                               </div>
                             )}
@@ -820,16 +828,16 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                   {isReplying && (
                     <div className="pl-3 sm:pl-6 border-l-2 border-[#B1E743]/50 dark:border-[#B1E743]/40 pt-1 mt-2 ml-2 sm:ml-3 animate-fadeIn">
                       <div className="p-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/90 dark:bg-stone-900/60 space-y-2">
-                        <div className="flex items-center justify-between text-[10px] font-bold text-stone-800 dark:text-stone-200">
+                        <div className="flex items-center justify-between text-xs font-bold text-stone-800 dark:text-stone-200">
                           <span className="flex items-center gap-1">
-                            <CornerDownRight className="h-3 w-3" /> Membalas @{authorName}...
+                            <CornerDownRight className="h-3.5 w-3.5" /> Membalas @{authorName}...
                           </span>
                           <button
                             type="button"
                             onClick={() => setReplyParentId(null)}
                             className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 p-1"
                           >
-                            <X className="h-3 w-3" />
+                            <X className="h-3.5 w-3.5" />
                           </button>
                         </div>
 
@@ -846,19 +854,19 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                             <button
                               type="button"
                               onClick={() => openMediaLinkDialog('image', 'reply')}
-                              className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-semibold hover:text-[#22201F] dark:hover:text-[#B1E743] flex items-center gap-1"
+                              className="text-xs px-2.5 py-1 rounded bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-semibold hover:text-[#22201F] dark:hover:text-[#B1E743] flex items-center gap-1"
                               title="Insert image link"
                             >
-                              <ImageIcon className="h-2.5 w-2.5 text-emerald-500" />
+                              <ImageIcon className="h-3 w-3 text-emerald-500" />
                               <span>+ Gambar</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => openMediaLinkDialog('video', 'reply')}
-                              className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-semibold hover:text-[#22201F] dark:hover:text-[#B1E743] flex items-center gap-1"
+                              className="text-xs px-2.5 py-1 rounded bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-semibold hover:text-[#22201F] dark:hover:text-[#B1E743] flex items-center gap-1"
                               title="Insert video link"
                             >
-                              <VideoIcon className="h-2.5 w-2.5 text-red-500" />
+                              <VideoIcon className="h-3 w-3 text-red-500" />
                               <span>+ Video</span>
                             </button>
                           </div>
@@ -907,38 +915,49 @@ export const TaskCommentBox: React.FC<TaskCommentBoxProps> = ({
                     setCommentText((prev) => (prev ? `@channel ${prev}` : '@channel '));
                   }
                 }}
-                className={`text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 transition-all ${
+                className={`text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 transition-all ${
                   commentText.includes('@channel')
                     ? 'bg-amber-500 text-white shadow-xs'
                     : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/60'
                 }`}
                 title="Broadcast ke semua anggota tim"
               >
-                <Volume2 className="h-3 w-3" />
+                <Volume2 className="h-3.5 w-3.5" />
                 <span>@channel</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => openMediaLinkDialog('image', 'comment')}
-                className="text-[10px] sm:text-xs px-2.5 py-1 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1 min-h-[28px]"
+                className="text-xs px-2.5 py-1 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1 min-h-[28px]"
               >
-                <ImageIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                <ImageIcon className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>+ Image Link</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => openMediaLinkDialog('video', 'comment')}
-                className="text-[10px] sm:text-xs px-2.5 py-1 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1 min-h-[28px]"
+                className="text-xs px-2.5 py-1 rounded-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold transition-colors flex items-center gap-1 min-h-[28px]"
               >
-                <VideoIcon className="h-3 w-3 text-red-500" />
+                <VideoIcon className="h-3.5 w-3.5 text-red-500" />
                 <span>+ Video Link</span>
               </button>
             </div>
 
-            <span className="text-[10px] text-stone-400 dark:text-stone-500 hidden sm:inline">
-              <kbd className="px-1 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-[9px] font-mono">Ctrl</kbd> / <kbd className="px-1 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-[9px] font-mono">⌘</kbd> + <kbd className="px-1 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-[9px] font-mono">Enter</kbd> untuk kirim
+            <span className="text-xs text-stone-400 dark:text-stone-500 hidden sm:inline">
+              <kbd className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-xs font-mono">
+                Ctrl
+              </kbd>{' '}
+              /{' '}
+              <kbd className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-xs font-mono">
+                ⌘
+              </kbd>{' '}
+              +{' '}
+              <kbd className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-xs font-mono">
+                Enter
+              </kbd>{' '}
+              untuk kirim
             </span>
           </div>
 
