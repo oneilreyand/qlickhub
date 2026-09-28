@@ -269,8 +269,9 @@ async function sendRequest<T>(
     }
 
     const rateLimit = getRateLimitInfo(response.headers);
-    if (response.status === 429 && rateLimit) {
-      notifyRateLimit(rateLimit);
+    if (response.status === 429) {
+      // Every 429 must remain actionable even if a proxy stripped standard headers.
+      notifyRateLimit(rateLimit ?? { remaining: 0 });
     }
 
     const error = new Error(
@@ -281,8 +282,8 @@ async function sendRequest<T>(
     if (validationErrors) {
       error.errors = validationErrors;
     }
-    if (rateLimit) {
-      error.rateLimit = rateLimit;
+    if (response.status === 429) {
+      error.rateLimit = rateLimit ?? { remaining: 0 };
     }
     throw error;
   }

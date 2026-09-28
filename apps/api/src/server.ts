@@ -1,6 +1,9 @@
+import dns from 'node:dns';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { sequelize } from './db/sequelize.js';
+
+dns.setDefaultResultOrder('ipv4first');
 
 const app = createApp();
 

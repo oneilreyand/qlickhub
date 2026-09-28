@@ -98,8 +98,19 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
     assert.ok(draft.productBrief.context, 'Should have product brief context');
     assert.ok(draft.productBrief.inScope.length > 0, 'Should have inScope items');
     assert.ok(draft.requirements.length > 0, 'Should have requirements');
-    assert.ok(draft.requirements[0].acceptanceCriteria.length > 0, 'Should have acceptance criteria');
+    assert.ok(
+      draft.requirements[0].acceptanceCriteria.length > 0,
+      'Should have acceptance criteria',
+    );
     assert.ok(draft.subtasks.length >= 3, 'Should have subtasks for web, backend, and qa');
+    assert.deepStrictEqual(draft.citations, [
+      {
+        sourceType: 'user_prompt',
+        label: 'Prompt Product Owner',
+        excerpt:
+          'Implementasi pembayaran QRIS dengan notifikasi webhook dan halaman bukti transaksi',
+      },
+    ]);
 
     // Confirm that no Task was created in DB during generateDraft (AI-001)
     const taskCount = await TaskModel.count({ where: { workspaceId: workspace.id } });
@@ -114,6 +125,14 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
           prompt: 'Testing unauthorized actor',
         }),
       /FORBIDDEN: You are not a member of this workspace/i,
+    );
+    await assert.rejects(
+      () =>
+        aiTaskGeneratorService.generateDraft(workspace.id, devUser.id, {
+          workspaceId: workspace.id,
+          prompt: 'Developer cannot create a root feature through AI.',
+        }),
+      /FORBIDDEN/i,
     );
   });
 
@@ -180,7 +199,11 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
     assert.ok(applyResult.task.id, 'Should have root task ID');
     assert.strictEqual(applyResult.task.title, 'Integrasi Pembayaran QRIS Dinamis');
     assert.strictEqual(applyResult.createdRequirementCount, 1);
-    assert.strictEqual(applyResult.createdSubtaskCount, 3, 'Only 3 enabled subtasks should be created');
+    assert.strictEqual(
+      applyResult.createdSubtaskCount,
+      3,
+      'Only 3 enabled subtasks should be created',
+    );
     assert.strictEqual(applyResult.hasProductBrief, true);
 
     // Verify persisted rows in PostgreSQL
@@ -213,15 +236,97 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
     assert.strictEqual(acs.length, 2);
 
     // Verify Product Brief
-    const brief = await qaDocumentService.getProductBrief(workspace.id, applyResult.task.id, poUser.id);
+    const brief = await qaDocumentService.getProductBrief(
+      workspace.id,
+      applyResult.task.id,
+      poUser.id,
+    );
     assert.ok(brief, 'Product brief should exist');
     assert.strictEqual(brief?.currentVersion.inScope.length, 3);
     assert.strictEqual(brief?.currentVersion.outScope.length, 2);
 
     // Verify audit logs
     const activities = await TaskActivityModel.findAll({
-      where: { workspaceId: workspace.id, taskId: applyResult.task.id },
+      where: { workspaceId: workspace.id },
     });
-    assert.ok(activities.some((a) => a.action === 'task_created'));
+    assert.ok(
+      activities.some((a) => a.taskId === applyResult.task.id && a.action === 'task_created'),
+    );
+    assert.strictEqual(
+      activities.filter((a) => a.action === 'subtask_created').length,
+      3,
+      'Each persisted subtask must have an audit activity',
+    );
+  });
+
+  test('rolls back every AI-created record when Product Brief persistence fails', async () => {
+    const title = `Rollback Product Brief ${Date.now()}`;
+    const hookName = `ai-product-brief-rollback-${Date.now()}`;
+    QaDocumentModel.addHook('beforeCreate', hookName, () => {
+      throw new Error('forced Product Brief persistence failure');
+    });
+
+    try {
+      await assert.rejects(
+        () =>
+          aiTaskGeneratorService.applyDraft(workspace.id, poUser.id, {
+            workspaceId: workspace.id,
+            task: { title, description: 'Must not be persisted.', priority: 'medium' },
+            productBrief: {
+              context: 'Transaction rollback coverage.',
+              inScope: ['Atomic write'],
+              outScope: [],
+            },
+            requirements: [
+              {
+                title: 'Atomic persistence',
+                description: 'All records share one transaction.',
+                acceptanceCriteria: [
+                  'Given Brief creation fails, when applying, then no Feature records persist',
+                ],
+              },
+            ],
+            subtasks: [
+              {
+                title: 'QA: Verify transaction rollback',
+                description: 'Assert no partial records remain.',
+                deliveryArea: 'qa',
+                priority: 'medium',
+                enabled: true,
+              },
+            ],
+          }),
+        /forced Product Brief persistence failure/,
+      );
+    } finally {
+      QaDocumentModel.removeHook('beforeCreate', hookName);
+    }
+
+    assert.strictEqual(
+      await TaskModel.count({ where: { workspaceId: workspace.id, title } }),
+      0,
+      'Root Task must roll back with the failed Product Brief',
+    );
+    assert.strictEqual(
+      await RequirementModel.count({
+        where: { workspaceId: workspace.id, title: 'Atomic persistence' },
+      }),
+      0,
+      'Requirements must roll back with the failed Product Brief',
+    );
+    assert.strictEqual(
+      await QaDocumentModel.count({
+        where: { workspaceId: workspace.id, title: `Brief Produk: ${title}` },
+      }),
+      0,
+      'Product Brief must not escape the rolled-back transaction',
+    );
+    assert.strictEqual(
+      await TaskActivityModel.count({
+        where: { workspaceId: workspace.id, action: 'task_created' },
+      }),
+      1,
+      'The failed apply must not add an extra root-task audit event',
+    );
   });
 });

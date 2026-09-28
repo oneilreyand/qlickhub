@@ -1,12 +1,22 @@
+import dns from 'node:dns';
 import { env } from '../../config/env.js';
-import {
-  GeneratedTaskDraft,
-  GeneratedTaskDraftSchema,
-  TargetPlatform,
-} from '@qlick/contracts';
+import { GeneratedTaskDraft, GeneratedTaskDraftSchema, TargetPlatform } from '@qlick/contracts';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch {}
+
+function promptCitation(prompt: string) {
+  const normalized = prompt.trim().replace(/\s+/g, ' ');
+  return {
+    sourceType: 'user_prompt' as const,
+    label: 'Prompt Product Owner' as const,
+    excerpt: normalized.slice(0, 500),
+  };
+}
 
 /**
- * Deterministic fallback draft used when in test environment or when GEMINI_API_KEY is not yet supplied.
+ * Deterministic fixture-like draft used only by the automated test environment.
  */
 export function buildDeterministicFallbackDraft(
   prompt: string,
@@ -83,6 +93,7 @@ export function buildDeterministicFallbackDraft(
       },
     ],
     subtasks,
+    citations: [promptCitation(cleanPrompt)],
     summary: `Draf berhasil di-generate dengan ${subtasks.length} subtask dan 1 requirement utama.`,
   };
 }
@@ -103,11 +114,13 @@ export class GeminiClient {
     prompt: string,
     targetPlatforms: TargetPlatform[] = ['web', 'backend', 'qa'],
   ): Promise<GeneratedTaskDraft> {
-    // If no API key configured, in test or development fallback gracefully
+    // Tests must be deterministic and never call an external provider.
+    if (process.env.NODE_ENV === 'test') {
+      return buildDeterministicFallbackDraft(prompt, targetPlatforms);
+    }
+
+    // A real runtime must fail closed instead of presenting fabricated planning data.
     if (!this.apiKey) {
-      if (process.env.NODE_ENV === 'test' || !env.GEMINI_API_KEY) {
-        return buildDeterministicFallbackDraft(prompt, targetPlatforms);
-      }
       throw new Error(
         'GEMINI_API_KEY is not configured on the server. Please configure GEMINI_API_KEY in your server environment (Google AI Studio: https://aistudio.google.com/).',
       );
@@ -205,35 +218,30 @@ Respon WAJIB dalam format JSON murni sesuai schema yang ditentukan.`;
       },
     };
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(30000),
-      });
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(30000),
+    });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Gemini API Error:', response.status, errorText);
-        throw new Error(`Google AI Studio error (${response.status}): ${errorText}`);
-      }
-
-      const json = (await response.json()) as any;
-      const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) {
-        throw new Error('Gemini did not return any candidate response text.');
-      }
-
-      const parsedJson = JSON.parse(rawText);
-      return GeneratedTaskDraftSchema.parse(parsedJson);
-    } catch (err) {
-      console.warn('⚠️ Gemini call failed, falling back to deterministic draft in dev/test:', err);
-      if (process.env.NODE_ENV === 'test' || !env.GEMINI_API_KEY) {
-        return buildDeterministicFallbackDraft(prompt, targetPlatforms);
-      }
-      throw err;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Gemini API Error:', response.status, errorText);
+      throw new Error(`Google AI Studio error (${response.status}): ${errorText}`);
     }
+
+    const json = (await response.json()) as any;
+    const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) {
+      throw new Error('Gemini did not return any candidate response text.');
+    }
+
+    const parsedJson = JSON.parse(rawText);
+    return GeneratedTaskDraftSchema.parse({
+      ...parsedJson,
+      citations: [promptCitation(prompt)],
+    });
   }
 }
 

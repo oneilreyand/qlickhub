@@ -77,7 +77,9 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
 
   // Preview editable state
   const [draft, setDraft] = useState<GeneratedTaskDraft | null>(null);
-  const [activeTab, setActiveTab] = useState<'task' | 'brief' | 'requirements' | 'subtasks'>('task');
+  const [activeTab, setActiveTab] = useState<'task' | 'brief' | 'requirements' | 'subtasks'>(
+    'task',
+  );
 
   // Input states for new items in preview
   const [newInScope, setNewInScope] = useState('');
@@ -142,7 +144,12 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
       setDraft(generated);
       setStep('preview');
       setActiveTab('task');
-      dispatch(enqueueSnackbar('Draf Feature berhasil dibuat! Silakan tinjau sebelum disimpan.', 'success'));
+      dispatch(
+        enqueueSnackbar(
+          'Draf Feature berhasil dibuat! Silakan tinjau sebelum disimpan.',
+          'success',
+        ),
+      );
     } catch (err) {
       dispatch(
         enqueueSnackbar(
@@ -247,6 +254,16 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
     });
   };
 
+  const updateScopeItem = (scope: 'inScope' | 'outScope', index: number, text: string) => {
+    if (!draft) return;
+    const items = [...draft.productBrief[scope]];
+    items[index] = text;
+    setDraft({
+      ...draft,
+      productBrief: { ...draft.productBrief, [scope]: items },
+    });
+  };
+
   const addOutScopeItem = () => {
     if (!draft || !newOutScope.trim()) return;
     setDraft({
@@ -311,6 +328,26 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
     setDraft({ ...draft, requirements: updatedReqs });
   };
 
+  const updateRequirementField = (
+    reqIndex: number,
+    field: 'title' | 'description',
+    value: string,
+  ) => {
+    if (!draft) return;
+    const requirements = [...draft.requirements];
+    requirements[reqIndex] = { ...requirements[reqIndex], [field]: value };
+    setDraft({ ...draft, requirements });
+  };
+
+  const updateAcceptanceCriterion = (reqIndex: number, acIndex: number, value: string) => {
+    if (!draft) return;
+    const requirements = [...draft.requirements];
+    const acceptanceCriteria = [...requirements[reqIndex].acceptanceCriteria];
+    acceptanceCriteria[acIndex] = value;
+    requirements[reqIndex] = { ...requirements[reqIndex], acceptanceCriteria };
+    setDraft({ ...draft, requirements });
+  };
+
   const getDeliveryAreaBadge = (area: DeliveryArea) => {
     switch (area) {
       case 'frontend':
@@ -331,7 +368,9 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={step === 'input' ? '✨ Generator Task & Feature AI' : 'Pratinjau & Edit Draf Feature (AI)'}
+      title={
+        step === 'input' ? '✨ Generator Task & Feature AI' : 'Pratinjau & Edit Draf Feature (AI)'
+      }
       description={
         step === 'input'
           ? 'Tulis deskripsi ide fitur, sistem AI Studio (Gemini) akan menyusun Task, Brief Produk, Requirement, dan Subtask.'
@@ -573,6 +612,10 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                     className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#B1E743] resize-y"
                   />
                 </div>
+                <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-3 text-xs text-stone-700 dark:border-sky-900/50 dark:bg-sky-950/20 dark:text-stone-200">
+                  <span className="font-semibold">Sumber draf:</span>{' '}
+                  {draft.citations.map((citation) => citation.label).join(', ')}
+                </div>
               </div>
             )}
 
@@ -603,7 +646,14 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                           key={idx}
                           className="flex items-center justify-between gap-2 text-xs text-stone-800 dark:text-stone-200 bg-white dark:bg-stone-900 px-2.5 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-900/40"
                         >
-                          <span className="truncate">✓ {item}</span>
+                          <Input
+                            value={item}
+                            onChange={(event) =>
+                              updateScopeItem('inScope', idx, event.target.value)
+                            }
+                            aria-label={`In-scope ${idx + 1}`}
+                            className="h-7 flex-1 text-xs"
+                          />
                           <button
                             type="button"
                             onClick={() => removeInScopeItem(idx)}
@@ -650,7 +700,14 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                           key={idx}
                           className="flex items-center justify-between gap-2 text-xs text-stone-800 dark:text-stone-200 bg-white dark:bg-stone-900 px-2.5 py-1.5 rounded-lg border border-amber-100 dark:border-amber-900/40"
                         >
-                          <span className="truncate">✕ {item}</span>
+                          <Input
+                            value={item}
+                            onChange={(event) =>
+                              updateScopeItem('outScope', idx, event.target.value)
+                            }
+                            aria-label={`Out-of-scope ${idx + 1}`}
+                            className="h-7 flex-1 text-xs"
+                          />
                           <button
                             type="button"
                             onClick={() => removeOutScopeItem(idx)}
@@ -697,15 +754,29 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                     key={reqIdx}
                     className="p-3.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50 space-y-2.5"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
-                        {reqIdx + 1}. {req.title}
-                      </span>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-900 dark:text-stone-100 mb-1">
+                        Requirement {reqIdx + 1}
+                      </label>
+                      <Input
+                        value={req.title}
+                        onChange={(event) =>
+                          updateRequirementField(reqIdx, 'title', event.target.value)
+                        }
+                        aria-label={`Judul requirement ${reqIdx + 1}`}
+                        className="text-xs"
+                      />
                     </div>
 
-                    {req.description && (
-                      <p className="text-xs text-stone-600 dark:text-stone-400">{req.description}</p>
-                    )}
+                    <textarea
+                      value={req.description}
+                      onChange={(event) =>
+                        updateRequirementField(reqIdx, 'description', event.target.value)
+                      }
+                      aria-label={`Deskripsi requirement ${reqIdx + 1}`}
+                      rows={2}
+                      className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#B1E743] dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                    />
 
                     <div>
                       <span className="block text-[11px] font-semibold text-stone-500 dark:text-stone-400 mb-1.5">
@@ -717,12 +788,14 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                             key={acIdx}
                             className="flex items-start justify-between gap-2 text-xs bg-white dark:bg-stone-800/80 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700/60"
                           >
-                            <span className="text-stone-700 dark:text-stone-300">
-                              <span className="font-semibold text-stone-500 mr-1.5">
-                                AC-{acIdx + 1}:
-                              </span>
-                              {ac}
-                            </span>
+                            <Input
+                              value={ac}
+                              onChange={(event) =>
+                                updateAcceptanceCriterion(reqIdx, acIdx, event.target.value)
+                              }
+                              aria-label={`Acceptance criterion ${reqIdx + 1}-${acIdx + 1}`}
+                              className="h-7 flex-1 text-xs"
+                            />
                             <button
                               type="button"
                               onClick={() => removeAcFromRequirement(reqIdx, acIdx)}
@@ -737,9 +810,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                       <div className="flex gap-1.5">
                         <Input
                           value={newAcText[reqIdx] || ''}
-                          onChange={(e) =>
-                            setNewAcText({ ...newAcText, [reqIdx]: e.target.value })
-                          }
+                          onChange={(e) => setNewAcText({ ...newAcText, [reqIdx]: e.target.value })}
                           placeholder="Tambah acceptance criterion (AC)..."
                           className="text-xs h-7"
                           onKeyDown={(e) => {
@@ -769,7 +840,8 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
             {activeTab === 'subtasks' && (
               <div className="space-y-2 pt-1 max-h-96 overflow-y-auto pr-1">
                 <p className="text-xs text-stone-500 dark:text-stone-400 mb-2">
-                  Pilih subtask yang ingin dibuat (centang untuk mengaktifkan, uncheck untuk membatalkan):
+                  Pilih subtask yang ingin dibuat (centang untuk mengaktifkan, uncheck untuk
+                  membatalkan):
                 </p>
                 {draft.subtasks.map((sub, idx) => (
                   <div
@@ -828,12 +900,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
 
             {/* FOOTER ACTIONS */}
             <div className="flex items-center justify-between border-t border-stone-100 dark:border-stone-800 pt-4 mt-6">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setStep('input')}
-              >
+              <Button type="button" variant="outline" size="sm" onClick={() => setStep('input')}>
                 <ArrowLeft className="h-3.5 w-3.5 mr-1" />
                 Ubah Prompt
               </Button>

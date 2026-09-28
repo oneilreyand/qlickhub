@@ -18,10 +18,7 @@ const mockDraft: GeneratedTaskDraft = {
   },
   productBrief: {
     context: 'Mempercepat proses checkout dan meningkatkan konversi sebesar 25%.',
-    inScope: [
-      'Generate invoice QRIS dinamis',
-      'Webhook penerimaan callback pembayaran',
-    ],
+    inScope: ['Generate invoice QRIS dinamis', 'Webhook penerimaan callback pembayaran'],
     outScope: ['Virtual account bank transfer'],
   },
   requirements: [
@@ -47,6 +44,13 @@ const mockDraft: GeneratedTaskDraft = {
       deliveryArea: 'frontend',
       priority: 'high',
       enabled: true,
+    },
+  ],
+  citations: [
+    {
+      sourceType: 'user_prompt',
+      label: 'Prompt Product Owner',
+      excerpt: 'Implementasi pembayaran QRIS dengan notifikasi webhook.',
     },
   ],
   summary: 'Draft generated successfully.',
@@ -185,14 +189,14 @@ describe('AiTaskGeneratorModal Organism', () => {
     const briefTab = screen.getByText(/Brief Produk/i);
     fireEvent.click(briefTab);
     expect(screen.getByText(/In-Scope \(Dikerjakan\):/i)).toBeInTheDocument();
-    expect(screen.getByText('✓ Generate invoice QRIS dinamis')).toBeInTheDocument();
-    expect(screen.getByText('✕ Virtual account bank transfer')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Generate invoice QRIS dinamis')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Virtual account bank transfer')).toBeInTheDocument();
 
     // Switch to Requirements tab
     const reqTab = screen.getByText(/Requirements \(1\)/i);
     fireEvent.click(reqTab);
-    expect(screen.getByText('1. Pembuatan Invoice QRIS')).toBeInTheDocument();
-    expect(screen.getByText(/Given total keranjang valid/i)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Pembuatan Invoice QRIS')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(/Given total keranjang valid/i)).toBeInTheDocument();
 
     // Switch to Subtasks tab
     const subtaskTab = screen.getByText(/Subtasks \(2\/2\)/i);

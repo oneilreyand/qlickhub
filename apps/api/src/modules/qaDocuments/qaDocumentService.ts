@@ -26,6 +26,7 @@ import {
   UpsertProductBriefInput,
 } from '@qlick/contracts';
 import { randomUUID } from 'node:crypto';
+import type { Transaction } from 'sequelize';
 
 function formatDocument(d: QaDocumentModel | Record<string, any>): QaDocument {
   const json = typeof (d as any).toJSON === 'function' ? (d as any).toJSON() : d;
@@ -78,7 +79,7 @@ function formatTaskDocumentLink(l: TaskDocumentModel): TaskDocumentLink {
 }
 
 function normalizeScopeItems(
-  items: Array<{ id?: string; text: string; position: number }> | undefined
+  items: Array<{ id?: string; text: string; position: number }> | undefined,
 ): ProductBriefScopeItem[] {
   return (items || []).map((item, index) => ({
     id: item.id || randomUUID(),
@@ -100,7 +101,7 @@ export class QaDocumentService {
   async listWorkspaceDocuments(
     workspaceId: string,
     folderId: string | undefined,
-    actorId: string
+    actorId: string,
   ): Promise<QaDocument[]> {
     const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadQaDocuments(member.role);
@@ -121,8 +122,12 @@ export class QaDocumentService {
   async getDocumentWithVersions(
     workspaceId: string,
     documentId: string,
-    actorId: string
-  ): Promise<{ document: QaDocument; versions: QaDocumentVersion[]; currentVersion: QaDocumentVersion }> {
+    actorId: string,
+  ): Promise<{
+    document: QaDocument;
+    versions: QaDocumentVersion[];
+    currentVersion: QaDocumentVersion;
+  }> {
     const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadQaDocuments(member.role);
 
@@ -139,7 +144,8 @@ export class QaDocumentService {
     });
 
     const formattedVersions = versions.map(formatVersion);
-    const current = formattedVersions.find((v) => v.version === doc.currentVersion) || formattedVersions[0];
+    const current =
+      formattedVersions.find((v) => v.version === doc.currentVersion) || formattedVersions[0];
 
     return {
       document: formatDocument(doc),
@@ -151,7 +157,7 @@ export class QaDocumentService {
   async createDocument(
     workspaceId: string,
     actorId: string,
-    input: Omit<CreateQaDocumentInput, 'workspaceId'>
+    input: Omit<CreateQaDocumentInput, 'workspaceId'>,
   ): Promise<{ document: QaDocument; version: QaDocumentVersion }> {
     const member = await requireActiveMember(workspaceId, actorId);
     assertCanCreateQaDocument(member.role);
@@ -184,7 +190,7 @@ export class QaDocumentService {
           currentVersion: 1,
           createdBy: actorId,
         },
-        { transaction }
+        { transaction },
       );
 
       const ver = await QaDocumentVersionModel.create(
@@ -200,7 +206,7 @@ export class QaDocumentService {
           changelog: input.changelog || 'Initial document creation',
           createdBy: actorId,
         },
-        { transaction }
+        { transaction },
       );
 
       return {
@@ -214,7 +220,7 @@ export class QaDocumentService {
     workspaceId: string,
     documentId: string,
     actorId: string,
-    input: Omit<CreateQaDocumentVersionInput, 'workspaceId' | 'documentId'>
+    input: Omit<CreateQaDocumentVersionInput, 'workspaceId' | 'documentId'>,
   ): Promise<{ document: QaDocument; version: QaDocumentVersion }> {
     const member = await requireActiveMember(workspaceId, actorId);
     assertCanCreateQaDocument(member.role);
@@ -253,7 +259,7 @@ export class QaDocumentService {
           changelog: input.changelog || `Updated to version ${nextVersionNumber}`,
           createdBy: actorId,
         },
-        { transaction }
+        { transaction },
       );
 
       return {
@@ -266,7 +272,7 @@ export class QaDocumentService {
   async getProductBrief(
     workspaceId: string,
     taskId: string,
-    actorId: string
+    actorId: string,
   ): Promise<ProductBrief | null> {
     const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadQaDocuments(member.role);
@@ -308,12 +314,16 @@ export class QaDocumentService {
     workspaceId: string,
     taskId: string,
     actorId: string,
-    input: Omit<UpsertProductBriefInput, 'workspaceId' | 'taskId'>
+    input: Omit<UpsertProductBriefInput, 'workspaceId' | 'taskId'>,
+    options: { transaction?: Transaction } = {},
   ): Promise<ProductBrief> {
     const member = await requireActiveMember(workspaceId, actorId);
     assertCanManageProductBrief(member.role);
 
-    const task = await TaskModel.findOne({ where: { id: taskId, workspaceId } });
+    const task = await TaskModel.findOne({
+      where: { id: taskId, workspaceId },
+      transaction: options.transaction,
+    });
     if (!task) {
       throw new Error('NOT_FOUND: Task not found in this workspace.');
     }
@@ -324,7 +334,7 @@ export class QaDocumentService {
     const outScope = normalizeScopeItems(input.outScope);
     const acceptanceCriteria = normalizeScopeItems(input.acceptanceCriteria);
 
-    return sequelize.transaction(async (transaction) => {
+    const writeProductBrief = async (transaction: Transaction) => {
       const existingLink = await TaskDocumentModel.findOne({
         where: { workspaceId, taskId, linkType: 'primary_prd' },
         transaction,
@@ -337,11 +347,11 @@ export class QaDocumentService {
       let previousStatus: string | null = null;
 
       if (existingLink) {
-        document = await QaDocumentModel.findOne({
+        document = (await QaDocumentModel.findOne({
           where: { id: existingLink.documentId, workspaceId, docType: 'product_brief' },
           transaction,
           lock: transaction.LOCK.UPDATE,
-        }) as QaDocumentModel;
+        })) as QaDocumentModel;
         if (!document) {
           throw new Error('BAD_REQUEST: The primary Product Brief link is invalid.');
         }
@@ -364,7 +374,7 @@ export class QaDocumentService {
             currentVersion: 1,
             createdBy: actorId,
           },
-          { transaction }
+          { transaction },
         );
         versionNumber = 1;
 
@@ -376,7 +386,7 @@ export class QaDocumentService {
             linkType: 'primary_prd',
             linkedBy: actorId,
           },
-          { transaction }
+          { transaction },
         );
       }
 
@@ -390,10 +400,12 @@ export class QaDocumentService {
           inScope,
           outScope,
           acceptanceCriteria,
-          changelog: input.changelog || (isNew ? 'Initial Product Brief created' : `Updated to version ${versionNumber}`),
+          changelog:
+            input.changelog ||
+            (isNew ? 'Initial Product Brief created' : `Updated to version ${versionNumber}`),
           createdBy: actorId,
         },
-        { transaction }
+        { transaction },
       );
 
       const action = isNew
@@ -418,20 +430,24 @@ export class QaDocumentService {
             acceptanceCriteriaCount: acceptanceCriteria.length,
           },
         },
-        { transaction }
+        { transaction },
       );
 
       return {
         document: formatDocument(document),
         currentVersion: formatVersion(version),
       };
-    });
+    };
+
+    return options.transaction
+      ? writeProductBrief(options.transaction)
+      : sequelize.transaction(writeProductBrief);
   }
 
   async listTaskDocumentLinks(
     workspaceId: string,
     taskId: string,
-    actorId: string
+    actorId: string,
   ): Promise<TaskDocumentLink[]> {
     const member = await requireActiveMember(workspaceId, actorId);
     assertCanReadQaDocuments(member.role);
@@ -456,7 +472,7 @@ export class QaDocumentService {
     workspaceId: string,
     taskId: string,
     actorId: string,
-    documentId: string
+    documentId: string,
   ): Promise<TaskDocumentLink> {
     const member = await requireActiveMember(workspaceId, actorId);
     const task = await TaskModel.findOne({
@@ -467,11 +483,10 @@ export class QaDocumentService {
       throw new Error('NOT_FOUND: Task not found in this workspace.');
     }
 
-    assertCanLinkQaDocument(
-      member.role,
-      actorId,
-      { parentTaskId: task.parentTaskId, assigneeId: task.assigneeId }
-    );
+    assertCanLinkQaDocument(member.role, actorId, {
+      parentTaskId: task.parentTaskId,
+      assigneeId: task.assigneeId,
+    });
 
     const doc = await QaDocumentModel.findOne({
       where: { id: documentId, workspaceId },
@@ -499,7 +514,7 @@ export class QaDocumentService {
           documentId,
           linkedBy: actorId,
         },
-        { transaction }
+        { transaction },
       );
 
       // Record Activity audit log in transaction
@@ -516,7 +531,7 @@ export class QaDocumentService {
             currentVersion: doc.currentVersion,
           },
         },
-        { transaction }
+        { transaction },
       );
 
       const loaded = await TaskDocumentModel.findByPk(link.id, {
@@ -532,7 +547,7 @@ export class QaDocumentService {
     workspaceId: string,
     taskId: string,
     actorId: string,
-    documentId: string
+    documentId: string,
   ): Promise<{ success: boolean }> {
     const member = await requireActiveMember(workspaceId, actorId);
     const task = await TaskModel.findOne({
@@ -543,11 +558,10 @@ export class QaDocumentService {
       throw new Error('NOT_FOUND: Task not found in this workspace.');
     }
 
-    assertCanLinkQaDocument(
-      member.role,
-      actorId,
-      { parentTaskId: task.parentTaskId, assigneeId: task.assigneeId }
-    );
+    assertCanLinkQaDocument(member.role, actorId, {
+      parentTaskId: task.parentTaskId,
+      assigneeId: task.assigneeId,
+    });
 
     const link = await TaskDocumentModel.findOne({
       where: { taskId, documentId, workspaceId },
@@ -573,7 +587,7 @@ export class QaDocumentService {
             title: link.document?.title || '',
           },
         },
-        { transaction }
+        { transaction },
       );
     });
 

@@ -4,7 +4,7 @@ RATE-LIMIT-USER-FEEDBACK — shorten the visible wait, show quota details, and s
 
 ## Outcome
 
-Production API and login rate-limit windows are now five minutes rather than fifteen, preserving the former average protection rate (API: 100/5 min; failed login: 3/5 min). The browser reads the existing IETF RateLimit headers, shows `remaining/limit`, and counts down from the server reset time. Login remains enabled while attempts remain; an exhausted limit disables it until the countdown expires. Authenticated pages show an equivalent dismissible 429 notification. Link-preview remains 30 requests per rolling 60 seconds.
+Production API and login rate-limit windows are now five minutes rather than fifteen (API: 100/5 min; failed login: 3/5 min). The browser reads IETF RateLimit headers when available, shows `remaining/limit`, and counts down from the server reset time. Every authenticated `429 RATE_LIMITED`, including one whose headers were stripped by an intermediary, shows an actionable dismissible notification. Login remains enabled while attempts remain; an exhausted limit disables it until the countdown expires. Link-preview remains 30 requests per rolling 60 seconds.
 
 ## Work assurance
 

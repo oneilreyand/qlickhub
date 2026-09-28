@@ -195,55 +195,40 @@ export class AiTaskGeneratorService {
         }
       }
 
-      // Commit transaction for root task, requirements, and subtasks
-      return {
-        rootTaskId: rootTask.id,
-        createdRequirementCount,
-        createdSubtaskCount,
-      };
-    }).then(async (result) => {
-      // 4. Create Product Brief via qaDocumentService (has its own transaction and validation)
-      let hasProductBrief = false;
-      if (input.productBrief && (input.productBrief.context || input.productBrief.inScope.length > 0)) {
-        try {
-          await qaDocumentService.upsertProductBrief(
-            workspaceId,
-            result.rootTaskId,
-            actorId,
-            {
-              title: `Brief Produk: ${input.task.title}`,
-              contentMarkdown: input.productBrief.context || '',
-              inScope: input.productBrief.inScope.map((item, idx) => ({
-                id: `scope-${idx + 1}`,
-                position: idx + 1,
-                text: item,
-              })),
-              outScope: input.productBrief.outScope.map((item, idx) => ({
-                id: `outscope-${idx + 1}`,
-                position: idx + 1,
-                text: item,
-              })),
-              acceptanceCriteria: [],
-              status: 'draft',
-            },
-          );
-          hasProductBrief = true;
-        } catch (err) {
-          console.warn('⚠️ Product brief creation warning:', err);
-        }
-      }
+      // 4. Product Brief is mandatory and participates in this same transaction.
+      await qaDocumentService.upsertProductBrief(
+        workspaceId,
+        rootTask.id,
+        actorId,
+        {
+          title: `Brief Produk: ${input.task.title}`,
+          contentMarkdown: input.productBrief.context || '',
+          inScope: input.productBrief.inScope.map((item, idx) => ({
+            id: `scope-${idx + 1}`,
+            position: idx + 1,
+            text: item,
+          })),
+          outScope: input.productBrief.outScope.map((item, idx) => ({
+            id: `outscope-${idx + 1}`,
+            position: idx + 1,
+            text: item,
+          })),
+          acceptanceCriteria: [],
+          status: 'draft',
+        },
+        { transaction },
+      );
 
-      // Re-read formatted task
-      const loadedTask = await TaskModel.findByPk(result.rootTaskId);
+      const loadedTask = await TaskModel.findByPk(rootTask.id, { transaction });
       if (!loadedTask) {
         throw new Error('FAILED_TO_LOAD: Created task could not be retrieved.');
       }
 
       return {
         task: formatTask(loadedTask),
-        createdSubtaskCount: result.createdSubtaskCount,
-        createdRequirementCount: result.createdRequirementCount,
-        hasProductBrief,
+        createdSubtaskCount,
+        createdRequirementCount,
+        hasProductBrief: true,
       };
     });
   }

@@ -2500,7 +2500,11 @@ describe('Contracts Validation Suite', () => {
         },
         productBrief: {
           context: 'Mempermudah pengguna baru mendaftar tanpa perlu membuat password baru.',
-          inScope: ['Login button di /login', 'Verifikasi ID Token di backend', 'Auto-create profile'],
+          inScope: [
+            'Login button di /login',
+            'Verifikasi ID Token di backend',
+            'Auto-create profile',
+          ],
           outScope: ['Integrasi Apple Sign In', 'Enterprise SAML SSO'],
         },
         requirements: [
@@ -2536,7 +2540,15 @@ describe('Contracts Validation Suite', () => {
             enabled: true,
           },
         ],
-        summary: 'Feature dibagi menjadi 1 root task, 1 brief produk, 1 requirement, dan 3 subtasks.',
+        citations: [
+          {
+            sourceType: 'user_prompt',
+            label: 'Prompt Product Owner',
+            excerpt: 'Tambahkan autentikasi Google SSO untuk pengguna baru.',
+          },
+        ],
+        summary:
+          'Feature dibagi menjadi 1 root task, 1 brief produk, 1 requirement, dan 3 subtasks.',
       });
 
       assert.strictEqual(draft.task.title, 'Autentikasi Google SSO');
@@ -2545,6 +2557,7 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(draft.requirements[0].acceptanceCriteria.length, 2);
       assert.strictEqual(draft.subtasks.length, 3);
       assert.strictEqual(draft.subtasks[2].deliveryArea, 'qa');
+      assert.strictEqual(draft.citations[0].sourceType, 'user_prompt');
     });
 
     test('validates ApplyTaskDraftInputSchema and ApplyTaskDraftResponseSchema', () => {
@@ -2578,6 +2591,15 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(applyInput.workspaceId, workspaceId);
       assert.strictEqual(applyInput.task.priority, 'urgent');
 
+      assert.throws(
+        () =>
+          ApplyTaskDraftInputSchema.parse({
+            ...applyInput,
+            task: { ...applyInput.task, startDate: '2026-10-02', dueDate: '2026-10-01' },
+          }),
+        /Start Date cannot be after Due Date/,
+      );
+
       const timestamp = new Date().toISOString();
       const applyResponse = ApplyTaskDraftResponseSchema.parse({
         task: {
@@ -2602,4 +2624,3 @@ describe('Contracts Validation Suite', () => {
     });
   });
 });
-

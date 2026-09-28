@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { TaskPrioritySchema, DeliveryAreaSchema, TaskSchema } from './task.js';
+import {
+  TaskPrioritySchema,
+  DeliveryAreaSchema,
+  TaskSchema,
+  getTaskScheduleValidationIssue,
+} from './task.js';
 
 export const TargetPlatformSchema = z.enum(['web', 'mobile', 'backend', 'fullstack', 'qa']);
 export type TargetPlatform = z.infer<typeof TargetPlatformSchema>;
@@ -9,7 +14,11 @@ export type TargetPlatform = z.infer<typeof TargetPlatformSchema>;
  */
 export const GenerateTaskDraftInputSchema = z.object({
   workspaceId: z.string().uuid(),
-  prompt: z.string().trim().min(5, 'Prompt minimal 5 karakter').max(4000, 'Prompt maksimal 4000 karakter'),
+  prompt: z
+    .string()
+    .trim()
+    .min(5, 'Prompt minimal 5 karakter')
+    .max(4000, 'Prompt maksimal 4000 karakter'),
   folderId: z.string().uuid().nullable().optional(),
   targetPlatforms: z.array(TargetPlatformSchema).optional(),
 });
@@ -43,6 +52,19 @@ export const GeneratedSubtaskDraftSchema = z.object({
 export type GeneratedSubtaskDraft = z.infer<typeof GeneratedSubtaskDraftSchema>;
 
 /**
+ * A source the reviewer can inspect before choosing to apply an AI draft.
+ * The current generator only derives content from the authenticated PO prompt;
+ * it never represents external research as a source.
+ */
+export const GeneratedTaskDraftCitationSchema = z.object({
+  sourceType: z.literal('user_prompt'),
+  label: z.literal('Prompt Product Owner'),
+  excerpt: z.string().trim().min(1).max(500),
+});
+
+export type GeneratedTaskDraftCitation = z.infer<typeof GeneratedTaskDraftCitationSchema>;
+
+/**
  * The complete AI-generated Task Draft structure returned for PO preview.
  */
 export const GeneratedTaskDraftSchema = z.object({
@@ -58,6 +80,7 @@ export const GeneratedTaskDraftSchema = z.object({
   }),
   requirements: z.array(GeneratedRequirementDraftSchema).default([]),
   subtasks: z.array(GeneratedSubtaskDraftSchema).default([]),
+  citations: z.array(GeneratedTaskDraftCitationSchema).min(1),
   summary: z.string().optional(),
 });
 
@@ -66,26 +89,35 @@ export type GeneratedTaskDraft = z.infer<typeof GeneratedTaskDraftSchema>;
 /**
  * Input for applying the reviewed AI task draft into persistent storage.
  */
-export const ApplyTaskDraftInputSchema = z.object({
-  workspaceId: z.string().uuid(),
-  folderId: z.string().uuid().nullable().optional(),
-  task: z.object({
-    title: z.string().trim().min(1, 'Judul task wajib diisi').max(200),
-    description: z.string().optional().default(''),
-    priority: TaskPrioritySchema.default('medium'),
-    startDate: z.string().nullable().optional(),
-    dueDate: z.string().nullable().optional(),
-  }),
-  productBrief: z
-    .object({
+export const ApplyTaskDraftInputSchema = z
+  .object({
+    workspaceId: z.string().uuid(),
+    folderId: z.string().uuid().nullable().optional(),
+    task: z.object({
+      title: z.string().trim().min(1, 'Judul task wajib diisi').max(200),
+      description: z.string().optional().default(''),
+      priority: TaskPrioritySchema.default('medium'),
+      startDate: z.string().nullable().optional(),
+      dueDate: z.string().nullable().optional(),
+    }),
+    productBrief: z.object({
       context: z.string().default(''),
       inScope: z.array(z.string().trim()).default([]),
       outScope: z.array(z.string().trim()).default([]),
-    })
-    .optional(),
-  requirements: z.array(GeneratedRequirementDraftSchema).optional().default([]),
-  subtasks: z.array(GeneratedSubtaskDraftSchema).optional().default([]),
-});
+    }),
+    requirements: z.array(GeneratedRequirementDraftSchema).optional().default([]),
+    subtasks: z.array(GeneratedSubtaskDraftSchema).optional().default([]),
+  })
+  .superRefine((data, ctx) => {
+    const issue = getTaskScheduleValidationIssue(data.task.startDate, data.task.dueDate);
+    if (issue) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: issue.message,
+        path: ['task', issue.field],
+      });
+    }
+  });
 
 export type ApplyTaskDraftInput = z.infer<typeof ApplyTaskDraftInputSchema>;
 

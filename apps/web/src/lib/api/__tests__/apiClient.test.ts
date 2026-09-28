@@ -122,4 +122,25 @@ describe('apiClient error metadata', () => {
     expect(onRateLimit).toHaveBeenCalledOnce();
     window.removeEventListener(RATE_LIMIT_EVENT, onRateLimit);
   });
+
+  it('still emits actionable feedback when a 429 has no rate-limit headers', async () => {
+    const onRateLimit = vi.fn();
+    window.addEventListener(RATE_LIMIT_EVENT, onRateLimit);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: { code: 'RATE_LIMITED' } }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+
+    await expect(apiClient('/limited-without-headers')).rejects.toMatchObject({
+      status: 429,
+      rateLimit: { remaining: 0 },
+    });
+    expect(onRateLimit).toHaveBeenCalledWith(expect.objectContaining({ detail: { remaining: 0 } }));
+    window.removeEventListener(RATE_LIMIT_EVENT, onRateLimit);
+  });
 });

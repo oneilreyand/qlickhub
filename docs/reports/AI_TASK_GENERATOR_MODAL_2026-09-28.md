@@ -5,6 +5,7 @@ Implementasi generator Feature & Task bertenaga AI menggunakan Google AI Studio 
 ## Outcome
 
 Fitur AI Task Generator kini berfungsi penuh dari ujung ke ujung:
+
 1. Product Owner dapat menginput prompt fitur pada modal `AiTaskGeneratorModal` (diakses via tombol `Buat via AI` di Task Hub Header atau banner pintas di dalam `CreateTaskModal`).
 2. Google AI Studio (Gemini) menghasilkan draf terstruktur dengan skema JSON resmi yang memetakan:
    - Detail Feature / Root Task (Title, Description, Priority).
@@ -13,6 +14,16 @@ Fitur AI Task Generator kini berfungsi penuh dari ujung ke ujung:
    - Delivery Subtasks (Frontend, Backend, Mobile, QA).
 3. Sesuai Policy `AI-001`, draf ditampilkan dalam **Interactive Preview Tabs** sebelum disimpan. PO dapat mengedit judul/deskripsi, menambah/menghapus butir cakupan, dan memilih subtask mana yang diaktifkan melalui checkbox.
 4. Menekan tombol `Terapkan & Buat Feature` mengeksekusi mutasi atomik batch di backend dalam satu transaksi Sequelize PostgreSQL yang terisolasi, mencatat audit log, dan langsung membuka drawer feature yang baru dibuat.
+
+## Work assurance
+
+- **Work Readiness Assessment:** 9/16, `Ready after split`; shared contract, API transaction, PostgreSQL evidence, UI interaction, dan dokumentasi terdampak.
+- **User plan approval:** User meminta perbaikan seluruh temuan audit pada 2026-09-28.
+- **AC-to-evidence:** cited draft dan validasi jadwal dibuktikan oleh contracts test; Apply atomic, audit subtask, RBAC dev denial, dan rollback Product Brief dibuktikan oleh PostgreSQL integration test; preview dan 429 fallback dibuktikan oleh web unit test.
+- **Evidence outcomes:** kegagalan Product Brief sengaja diinjeksi melalui hook model pada test disposable PostgreSQL; root Task terbukti tidak tersimpan. Gemini tidak dipanggil pada `NODE_ENV=test`; runtime tanpa key kini fail-closed.
+- **Change Impact Map:** Cross-boundary: generated-draft contract, Gemini client, task/brief transaction, audit, global rate-limit UI, Feature Card, TODO, dan report.
+- **Decision Snapshot:** Sitasi menunjuk prompt PO asal; generator tidak mengklaim sumber eksternal atau menjalankan retrieval baru.
+- **Independent verification:** pending CI; pemeriksaan lokal tercatat sebagai E2/E3 dan tidak menggantikan keputusan rilis.
 
 ## Source of truth and impact
 
@@ -49,9 +60,9 @@ Fitur AI Task Generator kini berfungsi penuh dari ujung ke ujung:
 ## Validation
 
 - `npm run docs:check`: 5/5 lulus (governance policy, markdown links, validasi feature card).
-- `npm --prefix packages/contracts test`: 80/80 passed (termasuk 3 test suite baru untuk kontrak AI Task Generator).
-- `NODE_ENV=test node --test apps/api/dist/modules/ai/__tests__/aiTaskGeneratorIntegration.test.js`: 3/3 passed (generasi draf tanpa mutasi DB di bawah AI-001, proteksi otorisasi, dan persistensi atomik multi-entitas).
-- `npm --prefix apps/web test src/components/ui/organisms/__tests__/AiTaskGeneratorModal.test.tsx src/components/ui/organisms/__tests__/CreateTaskModal.test.tsx -- --run`: 8/8 passed.
+- `npm --prefix packages/contracts test`: 80/80 passed, 0 failed, 0 skipped.
+- `NODE_ENV=test node --test apps/api/dist/modules/ai/__tests__/aiTaskGeneratorIntegration.test.js`: 4/4 passed against disposable PostgreSQL; termasuk rollback Product Brief, RBAC dev denial, dan audit subtask.
+- `npm --prefix apps/web test -- src/components/ui/organisms/__tests__/AiTaskGeneratorModal.test.tsx src/components/ui/organisms/__tests__/CreateTaskModal.test.tsx src/lib/api/__tests__/apiClient.test.ts`: 16/16 passed.
 - `npm --prefix apps/api run typecheck`: 0 error.
 - `npm --prefix apps/web run typecheck`: 0 error.
 - `npm --prefix apps/web run build`: 1,722 modul Vite berhasil terbangun bersih (exit 0) dengan chunk `aiTaskGenerator` terisolasi.
@@ -59,8 +70,8 @@ Fitur AI Task Generator kini berfungsi penuh dari ujung ke ujung:
 ## Risks or follow-up
 
 - Pengguna di lingkungan produksi/development perlu menambahkan `GEMINI_API_KEY` dari [Google AI Studio](https://aistudio.google.com/) pada file `.env` root.
-- Ketika `GEMINI_API_KEY` belum diset pada lingkungan pengujian lokal, sistem secara aman menggunakan fallback draf deterministik berkualitas tinggi tanpa mengakibatkan crash.
+- CI tetap perlu memverifikasi perubahan ini sebelum status rilis; runtime Gemini hidup belum menjadi bukti dari test deterministic.
 
 ## TODO update
 
-- `AI-TASK-GENERATOR-MODAL` → `Done`
+- `AI-TASK-GENERATOR-MODAL` → `In progress` until CI or an independent verifier accepts the evidence package.

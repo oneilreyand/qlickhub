@@ -1,8 +1,8 @@
 # AI-TASK-GENERATOR-MODAL — Generator Feature & Task Bertenaga AI (Google AI Studio)
 
-**Status:** Active  
-**Owner:** Product and Engineering  
-**Last reviewed:** 2026-09-28  
+**Status:** Active
+**Owner:** Product and Engineering
+**Last reviewed:** 2026-09-28
 **Applicable Policy IDs:** `AI-001`, `AUTH-001`, `AUTH-002`, `DOMAIN-002`, `DOMAIN-003`, `DOMAIN-004`, `DATA-001`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-003`, `DOC-004`
 
 ## 1. Tujuan dan Pengguna
@@ -10,19 +10,20 @@
 Menyediakan kapabilitas bagi Product Owner (PO) dan tim kepemimpinan produk untuk menyusun perencanaan Feature/Task secara komprehensif hanya dari satu prompt teks deskriptif, menggunakan Google AI Studio (Gemini).
 
 Fitur ini menghasilkan 4 entitas kanonikal sekaligus:
+
 1. **Detail Task** (Judul Feature, Deskripsi Markdown terstruktur, dan Tingkat Prioritas).
 2. **Product Brief** (Konteks masalah / latar belakang bisnis, batasan In-Scope, dan batasan Out-of-Scope).
 3. **Requirements & Acceptance Criteria** (Daftar Kebutuhan Fungsional beserta kriteria penerimaan pengujian berbasis Given-When-Then / AC).
 4. **Subtasks per Delivery Area** (Pecahan tugas teknis untuk Frontend, Backend, Mobile, dan QA).
 
-Sesuai `AI-001`, AI dilarang keras memutasi database secara otonom. Hasil prompt disajikan terlebih dahulu dalam modal pratinjau interaktif (*interactive preview*) di mana pengguna dapat meninjau, mengedit teks secara inline, menambah/menghapus butir cakupan, memilih subtask aktif melalui checklist, lalu menekan tombol persetujuan eksplisit (*Terapkan & Buat Feature*).
+Sesuai `AI-001`, AI dilarang keras memutasi database secara otonom. Hasil prompt disajikan terlebih dahulu sebagai draf yang mencantumkan sumber `Prompt Product Owner`; pengguna dapat meninjau, mengedit teks secara inline, menambah/menghapus butir cakupan, memilih subtask aktif melalui checklist, lalu menekan tombol persetujuan eksplisit (_Terapkan & Buat Feature_).
 
 ## 2. Requirement dan Acceptance Criteria
 
 - **REQ-AI-GEN-01**: Input prompt fleksibel dengan template prompt cepat, pemilih folder target, dan seleksi area kerja (Web, Backend, Mobile, QA).
   - **AC-1**: Pengguna dapat mengetikkan deskripsi fitur minimal 5 karakter dan maksimal 4000 karakter.
   - **AC-2**: Memilih ide prompt cepat otomatis mengisi kolom prompt tanpa reload.
-- **REQ-AI-GEN-02**: Pratinjau interaktif (*preview before submit*) dengan 4 tab hierarkis.
+- **REQ-AI-GEN-02**: Pratinjau interaktif (_preview before submit_) dengan 4 tab hierarkis.
   - **AC-3**: Draf hasil AI dikelompokkan ke dalam tab Detail Task, Brief Produk, Requirements, dan Subtasks.
   - **AC-4**: Pengguna dapat menyunting teks, menambah/menghapus butir cakupan in/out scope, serta mengaktifkan/menonaktifkan subtask sebelum submit.
 - **REQ-AI-GEN-03**: Pembuatan atomik di PostgreSQL dan pelacakan audit.
@@ -65,7 +66,7 @@ sequenceDiagram
 
 ## 5. API dan Shared Contract
 
-- Shared Contracts di [`packages/contracts/src/aiTaskGenerator.ts`](file:///Users/mac/.gemini/antigravity/worktrees/qlikhub/ai_task_generator_modal/packages/contracts/src/aiTaskGenerator.ts):
+- Shared Contracts di [`packages/contracts/src/aiTaskGenerator.ts`](../../packages/contracts/src/aiTaskGenerator.ts):
   - `GenerateTaskDraftInputSchema`
   - `GeneratedTaskDraftSchema`
   - `ApplyTaskDraftInputSchema`
@@ -82,10 +83,10 @@ sequenceDiagram
 
 ## 7. UI dan Interaction States
 
-- Dua titik masuk (*Hybrid Best Practice*):
-  1. Tombol `Buat via AI` di [`TaskHubHeader.tsx`](file:///Users/mac/.gemini/antigravity/worktrees/qlikhub/ai_task_generator_modal/apps/web/src/components/ui/organisms/taskHub/TaskHubHeader.tsx).
-  2. Banner pintas di bagian atas form [`CreateTaskModal.tsx`](file:///Users/mac/.gemini/antigravity/worktrees/qlikhub/ai_task_generator_modal/apps/web/src/components/ui/organisms/CreateTaskModal.tsx).
-- Komponen [`AiTaskGeneratorModal.tsx`](file:///Users/mac/.gemini/antigravity/worktrees/qlikhub/ai_task_generator_modal/apps/web/src/components/ui/organisms/AiTaskGeneratorModal.tsx):
+- Dua titik masuk (_Hybrid Best Practice_):
+  1. Tombol `Buat via AI` di [`TaskHubHeader.tsx`](../../apps/web/src/components/ui/organisms/taskHub/TaskHubHeader.tsx).
+  2. Banner pintas di bagian atas form [`CreateTaskModal.tsx`](../../apps/web/src/components/ui/organisms/CreateTaskModal.tsx).
+- Komponen [`AiTaskGeneratorModal.tsx`](../../apps/web/src/components/ui/organisms/AiTaskGeneratorModal.tsx):
   - Menggunakan Modal ukuran `3xl` dengan Stitch design tokens.
   - Loading spinner & disabled buttons saat proses generasi atau commit.
   - Alert banner kebijakan tata kelola AI `AI-001`.
@@ -100,8 +101,8 @@ sequenceDiagram
 
 ## 9. Release dan Readiness
 
-- Backward compatible: fitur bersifat *additive*, tidak mengubah schema database atau migrasi yang sudah ada.
-- Fallback deterministik: bila `GEMINI_API_KEY` belum diset saat pengujian lokal/test, sistem menggunakan draf deterministik terstruktur tanpa mengalami crash.
+- Backward compatible: fitur bersifat _additive_, tidak mengubah schema database atau migrasi yang sudah ada.
+- Fallback deterministik hanya berjalan pada `NODE_ENV=test`; runtime tanpa `GEMINI_API_KEY` atau provider gagal menampilkan error aman dan tidak mengembalikan data contoh.
 
 ## 10. Traceability
 
