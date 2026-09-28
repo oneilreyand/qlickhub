@@ -577,7 +577,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               >
                 3
               </div>
-              <span>Siap untuk QA</span>
+              <span>{subtask.status === 'in_review' ? 'Dalam Review QA' : 'Siap untuk QA'}</span>
             </div>
 
             <div className="h-0.5 flex-1 mx-2 bg-stone-200 dark:border-stone-800" />
@@ -603,16 +603,16 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           </div>
 
           {subtask.status === 'changes_requested' && (
-            <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
+            <div className="mt-3 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
               <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
               <div className="space-y-1">
                 <p className="font-extrabold">QA Meminta Perbaikan pada Subtask ini</p>
                 {subtask.reviewNotes && (
-                  <p className="text-amber-800 dark:text-amber-300 font-medium whitespace-pre-wrap">
+                  <p className="text-amber-800 dark:text-amber-300 font-semibold whitespace-pre-wrap">
                     Catatan QA: &quot;{subtask.reviewNotes}&quot;
                   </p>
                 )}
-                <p className="text-amber-700/80 dark:text-amber-400">
+                <p className="text-amber-700/90 dark:text-amber-300">
                   Klik tombol &quot;Lanjutkan Perbaikan Bug&quot; di atas untuk melanjutkan pengerjaan.
                 </p>
               </div>

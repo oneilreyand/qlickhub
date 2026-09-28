@@ -1411,7 +1411,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 {testCase.externalReference}
               </span>
             )}
-            <span className="text-xs font-semibold text-stone-400">
+            <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
               {testCase.requirementIds.length} Requirement
               {testCase.requirementIds.length === 1 ? '' : 's'}
             </span>
@@ -1432,7 +1432,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             {testCase.title}
           </h4>
           {testCase.description && (
-            <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+            <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-300">
               {testCase.description}
             </p>
           )}

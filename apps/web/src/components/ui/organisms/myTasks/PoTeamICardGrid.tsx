@@ -284,12 +284,12 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-sky-900 dark:text-sky-100">Tim Frontend</h3>
-                  <p className="text-[11px] text-sky-700/80 dark:text-sky-400">
+                  <p className="text-xs font-medium text-sky-700/90 dark:text-sky-300">
                     UI / UX / Web & Mobile
                   </p>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200">
+              <span className="px-2 py-0.5 rounded text-xs font-bold bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200">
                 {feCompleted}/{feSubtasks.length}
               </span>
             </div>
@@ -311,16 +311,19 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                     >
                       <div className="flex items-start justify-between gap-2">
                         <p
-                          className={`text-xs font-bold ${isDone ? 'line-through text-stone-400' : 'text-stone-900 dark:text-stone-100'} group-hover:text-sky-600 dark:group-hover:text-sky-400 line-clamp-2`}
+                          className={`text-xs font-bold line-clamp-2 ${isDone ? 'text-stone-600 dark:text-stone-300 font-medium' : 'text-stone-900 dark:text-stone-100'} group-hover:text-sky-600 dark:group-hover:text-sky-400`}
                         >
                           {st.title}
                         </p>
                         <TaskStatusBadge state={st.status} />
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400 pt-1">
+                      <div className="flex items-center justify-between text-xs font-medium text-stone-600 dark:text-stone-300 pt-1.5">
                         <span className="inline-flex items-center gap-1">
                           <User className="h-3 w-3 text-stone-400" />
-                          <span className="truncate max-w-[100px]">
+                          <span
+                            className="truncate max-w-[140px] sm:max-w-[170px]"
+                            title={getMemberName(st.assigneeId)}
+                          >
                             {getMemberName(st.assigneeId)}
                           </span>
                         </span>
@@ -338,7 +341,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
               variant="outline"
               size="sm"
               onClick={() => handleOpenCreateModal('frontend')}
-              className="w-full text-xs border-sky-300 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:text-sky-300 dark:hover:bg-sky-950"
+              className="w-full min-h-[36px] text-xs font-bold border-sky-300 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:text-sky-300 dark:hover:bg-sky-950"
               leftIcon={<Plus className="h-3.5 w-3.5" />}
             >
               Tambah Subtask FE
@@ -358,12 +361,12 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                   <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">
                     Tim Backend
                   </h3>
-                  <p className="text-[11px] text-amber-700/80 dark:text-amber-400">
+                  <p className="text-xs font-medium text-amber-700/90 dark:text-amber-300">
                     APIs / Database / Services
                   </p>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+              <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                 {beCompleted}/{beSubtasks.length}
               </span>
             </div>
@@ -385,16 +388,19 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                     >
                       <div className="flex items-start justify-between gap-2">
                         <p
-                          className={`text-xs font-bold ${isDone ? 'line-through text-stone-400' : 'text-stone-900 dark:text-stone-100'} group-hover:text-amber-600 dark:group-hover:text-amber-400 line-clamp-2`}
+                          className={`text-xs font-bold line-clamp-2 ${isDone ? 'text-stone-600 dark:text-stone-300 font-medium' : 'text-stone-900 dark:text-stone-100'} group-hover:text-amber-600 dark:group-hover:text-amber-400`}
                         >
                           {st.title}
                         </p>
                         <TaskStatusBadge state={st.status} />
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400 pt-1">
+                      <div className="flex items-center justify-between text-xs font-medium text-stone-600 dark:text-stone-300 pt-1.5">
                         <span className="inline-flex items-center gap-1">
                           <User className="h-3 w-3 text-stone-400" />
-                          <span className="truncate max-w-[100px]">
+                          <span
+                            className="truncate max-w-[140px] sm:max-w-[170px]"
+                            title={getMemberName(st.assigneeId)}
+                          >
                             {getMemberName(st.assigneeId)}
                           </span>
                         </span>
@@ -412,7 +418,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
               variant="outline"
               size="sm"
               onClick={() => handleOpenCreateModal('backend')}
-              className="w-full text-xs border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950"
+              className="w-full min-h-[36px] text-xs font-bold border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950"
               leftIcon={<Plus className="h-3.5 w-3.5" />}
             >
               Tambah Subtask BE
@@ -432,12 +438,12 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                   <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
                     QA &amp; Mutu
                   </h3>
-                  <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
+                  <p className="text-xs font-medium text-emerald-700/90 dark:text-emerald-300">
                     Pengujian &amp; Verifikasi
                   </p>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+              <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
                 {qaCompleted}/{qaSubtasks.length}
               </span>
             </div>
@@ -459,16 +465,19 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                     >
                       <div className="flex items-start justify-between gap-2">
                         <p
-                          className={`text-xs font-bold ${isDone ? 'line-through text-stone-400' : 'text-stone-900 dark:text-stone-100'} group-hover:text-emerald-600 dark:group-hover:text-emerald-400 line-clamp-2`}
+                          className={`text-xs font-bold line-clamp-2 ${isDone ? 'text-stone-600 dark:text-stone-300 font-medium' : 'text-stone-900 dark:text-stone-100'} group-hover:text-emerald-600 dark:group-hover:text-emerald-400`}
                         >
                           {st.title}
                         </p>
                         <TaskStatusBadge state={st.status} />
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400 pt-1">
+                      <div className="flex items-center justify-between text-xs font-medium text-stone-600 dark:text-stone-300 pt-1.5">
                         <span className="inline-flex items-center gap-1">
                           <User className="h-3 w-3 text-stone-400" />
-                          <span className="truncate max-w-[100px]">
+                          <span
+                            className="truncate max-w-[140px] sm:max-w-[170px]"
+                            title={getMemberName(st.assigneeId)}
+                          >
                             {getMemberName(st.assigneeId)}
                           </span>
                         </span>
@@ -486,7 +495,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
               variant="outline"
               size="sm"
               onClick={() => handleOpenCreateModal('qa')}
-              className="w-full text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950"
+              className="w-full min-h-[36px] text-xs font-bold border-emerald-300 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950"
               leftIcon={<Plus className="h-3.5 w-3.5" />}
             >
               Tambah Subtask QA
