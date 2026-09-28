@@ -2035,7 +2035,9 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   {executionStats?.failed || 0} Gagal
                 </span>
                 <span>·</span>
-                <span className="text-stone-500">{executionStats?.unexecuted || 0} Belum</span>
+                <span className="text-stone-500 dark:text-stone-400 font-medium">
+                  {executionStats?.unexecuted || 0} Belum
+                </span>
               </div>
             ),
           },
@@ -2197,7 +2199,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                       <CheckCircle2 className="h-2.5 w-2.5" /> Siap Sign-Off
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                       <Lock className="h-2.5 w-2.5" /> Terkunci
                     </span>
                   ),

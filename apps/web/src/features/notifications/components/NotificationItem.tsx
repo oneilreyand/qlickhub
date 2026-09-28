@@ -25,8 +25,16 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 }) => {
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => onClick(notif)}
-      className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3 ${
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(notif);
+        }
+      }}
+      className={`p-3 rounded-xl border text-left cursor-pointer transition-all duration-150 active:scale-[0.99] focus:outline-hidden focus:ring-2 focus:ring-[#B1E743] flex items-start gap-3 ${
         !notif.isRead
           ? 'border-[#B1E743]/50 bg-[#B1E743]/10 dark:border-[#B1E743]/40 dark:bg-stone-800/80 shadow-xs'
           : 'border-stone-200/50 bg-stone-50/30 hover:border-stone-200 hover:bg-stone-50/80 dark:border-stone-800/60 dark:bg-[#1C1A19]/50 dark:hover:border-stone-700 dark:hover:bg-stone-800/50'
