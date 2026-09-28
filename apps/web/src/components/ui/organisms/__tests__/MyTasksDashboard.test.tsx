@@ -385,4 +385,21 @@ describe('MyTasksDashboard Organism', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
     expect(props.onRefreshQueue).toHaveBeenCalledOnce();
   });
+
+  it('renders contextual guidance banner with Task Hub link and exposes total attention count badge', () => {
+    renderDashboard();
+
+    expect(
+      screen.getByText(
+        /Halaman ini memuat pekerjaan personal yang membutuhkan perhatian aktif Anda/i,
+      ),
+    ).toBeInTheDocument();
+    const taskHubLink = screen.getByRole('link', { name: 'Task Hub' });
+    expect(taskHubLink).toHaveAttribute('href', '/work');
+
+    const attentionTab = screen.getByRole('tab', { name: /Perlu Perhatian/ });
+    expect(attentionTab).toBeInTheDocument();
+    // Developer queue fixture has 1 assigned + 0 blocked + 1 bug = 2 total items
+    expect(attentionTab).toHaveTextContent('2');
+  });
 });

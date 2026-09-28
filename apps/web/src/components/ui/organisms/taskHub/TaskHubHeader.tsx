@@ -29,7 +29,8 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
             Task Hub
           </h1>
           <p className="text-sm font-medium text-stone-500 mt-1 dark:text-stone-400">
-            Workspace delivery berbasis QA untuk {workspaceName}.
+            Workspace delivery berbasis QA. Menampilkan backlog Feature dan kesiapan rilis untuk{' '}
+            {workspaceName}.
           </p>
         </div>
 

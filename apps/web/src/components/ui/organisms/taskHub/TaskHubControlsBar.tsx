@@ -20,6 +20,8 @@ interface TaskHubControlsBarProps {
   statusFilters: { label: string; value: string }[];
   isExpanded?: boolean;
   onToggleExpand?: () => void;
+  involvementFilter?: 'all' | 'mine';
+  onInvolvementFilterChange?: (filter: 'all' | 'mine') => void;
 }
 
 export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
@@ -37,6 +39,8 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
   statusFilters,
   isExpanded = false,
   onToggleExpand,
+  involvementFilter = 'all',
+  onInvolvementFilterChange,
 }) => {
   return (
     <div className="space-y-4">
@@ -88,7 +92,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
           )}
 
           <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-xs border border-stone-200/70 dark:border-stone-700/70">
-            <AnimatedCounter value={visibleTasksCount} suffix=" task" />
+            <AnimatedCounter value={visibleTasksCount} suffix=" Feature" />
           </span>
         </div>
       </div>
@@ -97,15 +101,48 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex-1 min-w-0">
           <SearchInput
-            aria-label="Filter task"
+            aria-label="Filter feature"
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
             onClear={onSearchClear}
-            placeholder="Cari task berdasarkan ID atau judul..."
+            placeholder="Cari feature berdasarkan ID atau judul..."
           />
         </div>
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+          {/* Involvement Scope Toggle: Semua Feature vs Melibatkan Saya */}
+          {onInvolvementFilterChange && (
+            <div
+              role="group"
+              aria-label="Filter keterlibatan feature"
+              className="flex items-center rounded-xl bg-stone-100 dark:bg-stone-800/80 p-1 border border-stone-200/80 dark:border-stone-700/80 shrink-0"
+            >
+              <button
+                type="button"
+                onClick={() => onInvolvementFilterChange('all')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  involvementFilter === 'all'
+                    ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                }`}
+              >
+                <span>Semua Feature</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onInvolvementFilterChange('mine')}
+                aria-label="Filter Feature yang melibatkan saya"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  involvementFilter === 'mine'
+                    ? 'bg-[#B1E743] text-[#141413] shadow-xs'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                }`}
+              >
+                <span>Melibatkan Saya</span>
+              </button>
+            </div>
+          )}
+
           {/* View Mode Toggle Switcher: Table vs Feature Schedule */}
           <div className="flex items-center rounded-xl bg-stone-100 dark:bg-stone-800/80 p-1 border border-stone-200/80 dark:border-stone-700/80 shrink-0">
             <button

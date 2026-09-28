@@ -18,6 +18,7 @@ import { TaskHubErrorBanner } from '../organisms/taskHub/TaskHubErrorBanner';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
+import { selectCurrentUserId } from '../../../store/authSlice';
 import {
   fetchFolderTree,
   createFolder as createFolderThunk,
@@ -84,10 +85,12 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     (state: RootState) => state.task?.detailLoadingTaskId || null,
   );
   const detailError = useAppSelector((state: RootState) => state.task?.detailError || null);
+  const currentUserId = useAppSelector(selectCurrentUserId);
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [involvementFilter, setInvolvementFilter] = useState<'all' | 'mine'>('all');
   const [datePresetView, setDatePresetView] = useState<TaskDatePreset | 'all'>('all');
   const [dateRange, setDateRange] = useState<DateRange>();
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
@@ -180,6 +183,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
             folderId: selectedFolderId || undefined,
             includeDescendants: selectedFolderIsParent,
             rootOnly: true,
+            includeSubtasks: true,
             includeSubtaskSummary: true,
             datePreset: datePresetView !== 'all' ? datePresetView : undefined,
             startDate: dateRange?.startDate || undefined,
@@ -278,6 +282,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
               folderId: selectedFolderId || undefined,
               includeDescendants: selectedFolderIsParent,
               rootOnly: true,
+              includeSubtasks: true,
               includeSubtaskSummary: true,
               datePreset: datePresetView !== 'all' ? datePresetView : undefined,
               startDate: dateRange?.startDate || undefined,
@@ -393,7 +398,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     }
   };
 
-  // Client-side search and status filter
+  // Client-side search, status filter, and involvement filter
   const visibleTasks = useMemo(() => {
     return hubTasks.filter((task) => {
       const matchesSearch =
@@ -407,9 +412,18 @@ export const TaskHubDashboardTemplate: React.FC = () => {
 
       const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesInvolvement =
+        involvementFilter === 'all' ||
+        Boolean(
+          currentUserId &&
+          (task.reporterId === currentUserId ||
+            task.assigneeId === currentUserId ||
+            task.subtasks?.some((st) => st.assigneeId === currentUserId)),
+        );
+
+      return matchesSearch && matchesStatus && matchesInvolvement;
     });
-  }, [hubTasks, debouncedSearchQuery, statusFilter]);
+  }, [hubTasks, debouncedSearchQuery, statusFilter, involvementFilter, currentUserId]);
 
   // Metrics calculation
   const totalTasksCount = hubTasks.length;
@@ -502,6 +516,8 @@ export const TaskHubDashboardTemplate: React.FC = () => {
               statusFilters={statusFilters}
               isExpanded={isTimelineExpanded}
               onToggleExpand={() => setIsTimelineExpanded((prev) => !prev)}
+              involvementFilter={involvementFilter}
+              onInvolvementFilterChange={setInvolvementFilter}
             />
 
             {taskError && (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckSquare, ListChecks, Plus, UserRoundCheck } from 'lucide-react';
+import { CheckSquare, Info, ListChecks, Plus, UserRoundCheck } from 'lucide-react';
 import type { Task, WorkQueueItem, WorkspaceRole } from '@qlick/contracts';
 import type {
   CreatedByMeTasksViewState,
@@ -62,6 +62,8 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
   const normalizedRole = userRole.toLowerCase();
   const canCreateTask = ['owner', 'admin', 'po'].includes(normalizedRole);
   const showsBugWorkspace = ['dev', 'qa'].includes(normalizedRole);
+  const totalAttentionCount =
+    queueState.queue?.buckets.reduce((acc, bucket) => acc + bucket.total, 0) ?? 0;
 
   const handleOpenItem = async (item: WorkQueueItem) => {
     if (item.subjectType === 'bug') {
@@ -103,6 +105,27 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
         )}
       </div>
 
+      {/* Contextual Guidance Banner */}
+      <div className="flex items-start sm:items-center gap-3 rounded-2xl bg-stone-100/90 dark:bg-stone-900/70 p-3.5 sm:px-4 text-xs text-stone-600 dark:text-stone-300 border border-stone-200/80 dark:border-stone-800">
+        <Info
+          className="h-4 w-4 text-[#7BB80E] dark:text-[#B1E743] shrink-0 mt-0.5 sm:mt-0"
+          aria-hidden="true"
+        />
+        <div className="flex-1 leading-relaxed">
+          <span>
+            Halaman ini memuat pekerjaan personal yang membutuhkan perhatian aktif Anda. Untuk
+            melihat seluruh Feature dan backlog proyek di Workspace, buka{' '}
+          </span>
+          <a
+            href="/work"
+            className="font-bold underline text-stone-900 hover:text-black dark:text-white dark:hover:text-[#B1E743]"
+          >
+            Task Hub
+          </a>
+          .
+        </div>
+      </div>
+
       <Tabs
         variant="pills"
         ariaLabel="Tampilan Tugas Saya"
@@ -112,6 +135,7 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
           {
             id: 'attention',
             label: 'Perlu Perhatian',
+            count: totalAttentionCount,
             icon: <ListChecks className="h-4 w-4" aria-hidden="true" />,
           },
           {

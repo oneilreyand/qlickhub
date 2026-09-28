@@ -314,7 +314,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50/50 text-xs font-bold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-300">
               <th scope="col" className="py-3.5 px-3.5">
-                ID / Judul Task
+                ID / Judul Feature
               </th>
               <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
                 Lokasi Folder
