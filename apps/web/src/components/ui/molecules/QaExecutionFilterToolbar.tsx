@@ -128,7 +128,7 @@ export const QaExecutionFilterToolbar: React.FC<QaExecutionFilterToolbarProps> =
                 ) : null}
                 <span>{option.label}</span>
                 <span
-                  className={`rounded-md px-1.5 py-0.2 text-[10px] font-bold ${
+                  className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${
                     isActive
                       ? 'bg-white/20 text-current'
                       : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'

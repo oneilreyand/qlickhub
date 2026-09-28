@@ -440,7 +440,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
             {parentTask && (
               <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 flex-wrap">
-                <span className="text-stone-400 font-bold uppercase text-[10px]">
+                <span className="text-stone-400 font-bold uppercase text-xs">
                   Feature Induk:
                 </span>
                 <span className="font-semibold text-stone-800 dark:text-stone-200 truncate max-w-md">
@@ -521,7 +521,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               }`}
             >
               <div
-                className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-extrabold ${
+                className={`grid h-6 w-6 place-items-center rounded-full text-xs font-extrabold ${
                   subtask.status === 'todo'
                     ? 'bg-[#B1E743] text-[#141413] dark:bg-[#B1E743] dark:text-[#141413]'
                     : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
@@ -536,21 +536,27 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
             <div
               className={`flex items-center gap-2 ${
-                subtask.status === 'in_progress'
-                  ? 'text-stone-900 dark:text-[#B1E743] font-extrabold'
+                subtask.status === 'in_progress' || subtask.status === 'changes_requested'
+                  ? subtask.status === 'changes_requested'
+                    ? 'text-amber-600 dark:text-amber-400 font-extrabold'
+                    : 'text-stone-900 dark:text-[#B1E743] font-extrabold'
                   : 'text-stone-500'
               }`}
             >
               <div
-                className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-extrabold ${
+                className={`grid h-6 w-6 place-items-center rounded-full text-xs font-extrabold ${
                   subtask.status === 'in_progress'
                     ? 'bg-[#B1E743] text-[#141413] dark:bg-[#B1E743] dark:text-[#141413]'
-                    : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                    : subtask.status === 'changes_requested'
+                      ? 'bg-amber-500 text-white dark:bg-amber-400 dark:text-stone-950'
+                      : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
                 }`}
               >
                 2
               </div>
-              <span>Sedang Dikerjakan</span>
+              <span>
+                {subtask.status === 'changes_requested' ? 'Perlu Perbaikan' : 'Sedang Dikerjakan'}
+              </span>
             </div>
 
             <div className="h-0.5 flex-1 mx-2 bg-stone-200 dark:border-stone-800" />
@@ -563,7 +569,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               }`}
             >
               <div
-                className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-extrabold ${
+                className={`grid h-6 w-6 place-items-center rounded-full text-xs font-extrabold ${
                   subtask.status === 'in_review'
                     ? 'bg-amber-500 text-white dark:bg-amber-400 dark:text-stone-950'
                     : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
@@ -584,7 +590,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               }`}
             >
               <div
-                className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-extrabold ${
+                className={`grid h-6 w-6 place-items-center rounded-full text-xs font-extrabold ${
                   subtask.status === 'done'
                     ? 'bg-[#B1E743] text-[#141413] dark:bg-[#B1E743] dark:text-[#141413]'
                     : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
@@ -595,6 +601,23 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               <span>Selesai</span>
             </div>
           </div>
+
+          {subtask.status === 'changes_requested' && (
+            <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-extrabold">QA Meminta Perbaikan pada Subtask ini</p>
+                {subtask.reviewNotes && (
+                  <p className="text-amber-800 dark:text-amber-300 font-medium whitespace-pre-wrap">
+                    Catatan QA: &quot;{subtask.reviewNotes}&quot;
+                  </p>
+                )}
+                <p className="text-amber-700/80 dark:text-amber-400">
+                  Klik tombol &quot;Lanjutkan Perbaikan Bug&quot; di atas untuk melanjutkan pengerjaan.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -620,7 +643,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   <User className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-stone-400 block">
+                  <span className="text-xs uppercase font-bold text-stone-400 block">
                     Developer yang Ditugaskan
                   </span>
                   <span className="text-xs sm:text-sm font-extrabold text-stone-800 dark:text-stone-200">
@@ -628,7 +651,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   </span>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase border border-stone-200 dark:border-stone-700">
+              <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase border border-stone-200 dark:border-stone-700">
                 Pelaksana
               </span>
             </Card>
@@ -639,7 +662,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   <ShieldCheck className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-stone-400 block">
+                  <span className="text-xs uppercase font-bold text-stone-400 block">
                     Product Owner (PO)
                   </span>
                   <span className="text-xs sm:text-sm font-extrabold text-stone-800 dark:text-stone-200">
@@ -647,7 +670,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   </span>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase border border-stone-200 dark:border-stone-700">
+              <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase border border-stone-200 dark:border-stone-700">
                 Perencana
               </span>
             </Card>
@@ -736,7 +759,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                               ? '⚡ Tenggat besok! Selesaikan hasil kerja developer'
                               : `Sesuai Jadwal — tersisa ${timelineStats.remainingDays} hari hingga tenggat komitmen (${timelineStats.dueDate})`}
                     </p>
-                    <p className="text-[11px] opacity-85 mt-0.5">
+                    <p className="text-xs opacity-85 mt-0.5">
                       {timelineStats.isOverdue
                         ? 'Pekerjaan telah melewati estimasi target. Harap segera submit handoff ke tim QA atau koordinasikan revisi timeline dengan PO.'
                         : 'Timeline berjalan sesuai target komitmen sprint yang direncanakan oleh Product Owner.'}
@@ -768,7 +791,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   <span className="text-xs font-extrabold uppercase tracking-wider text-stone-900 dark:text-stone-100 block">
                     Ringkasan Produk &amp; Spesifikasi dari PO
                   </span>
-                  <span className="text-[10px] text-stone-500 dark:text-stone-400">
+                  <span className="text-xs text-stone-500 dark:text-stone-400">
                     Spesifikasi acuan dari Product Owner (hanya baca)
                   </span>
                 </div>
@@ -804,7 +827,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
                     Hasil Kerja &amp; Catatan Implementasi Teknis
                   </h3>
-                  <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                  <p className="text-xs text-stone-500 dark:text-stone-400">
                     Catatan teknis, PR link, branch, dan staging demo hasil pekerjaan developer.
                   </p>
                 </div>
@@ -823,7 +846,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             {/* Deliverable Link Inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1">
+                <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
                   Pull Request (PR) URL
                 </label>
                 <Input
@@ -833,7 +856,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1">
+                <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
                   Nama Branch Git
                 </label>
                 <Input
@@ -843,7 +866,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1">
+                <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
                   Staging / Demo URL
                 </label>
                 <Input
@@ -856,7 +879,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
             {/* Technical Implementation Markdown Notes */}
             <div className="space-y-1.5">
-              <label className="block text-[11px] font-bold text-stone-500 dark:text-stone-400">
+              <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
                 Catatan Implementasi Teknis / Kontrak API (khusus Developer)
               </label>
               <textarea

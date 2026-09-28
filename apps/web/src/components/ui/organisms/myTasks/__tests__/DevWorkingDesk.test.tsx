@@ -11,6 +11,7 @@ import type { Task, TaskComment } from '@qlick/contracts';
 
 const taskServiceMock = vi.hoisted(() => ({
   listTaskComments: vi.fn(),
+  updateTask: vi.fn(),
 }));
 
 vi.mock('../../../../../lib/api/taskService', () => ({
@@ -102,6 +103,11 @@ describe('DevWorkingDesk Organism', () => {
       total: 0,
       page: 1,
       limit: 50,
+    });
+    taskServiceMock.updateTask.mockReset();
+    taskServiceMock.updateTask.mockResolvedValue({
+      ...mockSubtask,
+      status: 'in_progress',
     });
   });
 
@@ -258,5 +264,44 @@ describe('DevWorkingDesk Organism', () => {
 
     expect(screen.getByText(currentComment.body)).toBeInTheDocument();
     expect(screen.queryByText(previousComment.body)).not.toBeInTheDocument();
+  });
+
+  it('displays changes_requested status in stepper and allows developer to continue bug fixing', async () => {
+    const changesRequestedSubtask: Task = {
+      ...mockSubtask,
+      status: 'changes_requested',
+    };
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <DevWorkingDesk
+          subtask={changesRequestedSubtask}
+          parentTask={mockParent}
+          workspaceId="ws-1"
+          currentUserId="u-2"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Status badge and stepper should both reflect Perlu Perbaikan
+    expect(screen.getAllByText('Perlu Perbaikan')).toHaveLength(2);
+
+    // Action button to resume fixing should be visible
+    const resumeBtn = screen.getByText('Lanjutkan Perbaikan Bug');
+    expect(resumeBtn).toBeInTheDocument();
+
+    // Clicking resume should dispatch status update
+    fireEvent.click(resumeBtn);
+    expect(taskServiceMock.updateTask).toHaveBeenCalledWith(
+      'ws-1',
+      'st-dev-1',
+      expect.objectContaining({
+        status: 'in_progress',
+      }),
+    );
   });
 });

@@ -1341,7 +1341,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           </Badge>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-500 dark:text-stone-400">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
           <span className="capitalize">{testCase.testType}</span>
           <span>•</span>
           <span className="capitalize">{testCase.priority}</span>
@@ -1411,7 +1411,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 {testCase.externalReference}
               </span>
             )}
-            <span className="text-[10px] font-semibold text-stone-400">
+            <span className="text-xs font-semibold text-stone-400">
               {testCase.requirementIds.length} Requirement
               {testCase.requirementIds.length === 1 ? '' : 's'}
             </span>
@@ -1516,13 +1516,13 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               <ChevronDown className="h-3.5 w-3.5 text-stone-400 transition-transform group-open:rotate-180" />
               Detail Langkah &amp; Spesifikasi Pengujian
             </span>
-            <span className="text-[11px] font-normal text-stone-400">
+            <span className="text-xs font-normal text-stone-400">
               {testCase.steps.length} langkah
             </span>
           </summary>
           <div className="mt-2.5 grid gap-2.5 border-t border-stone-200/60 pt-2.5 dark:border-stone-800/80 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-lg bg-white p-2.5 dark:bg-stone-900/60 border border-stone-100 dark:border-stone-800/60">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-400">
                 Prasyarat
               </p>
               <p className="mt-0.5 text-xs text-stone-700 dark:text-stone-300">
@@ -1530,7 +1530,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               </p>
             </div>
             <div className="rounded-lg bg-white p-2.5 dark:bg-stone-900/60 border border-stone-100 dark:border-stone-800/60">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-400">
                 Langkah
               </p>
               {testCase.steps.length > 0 ? (
@@ -1544,7 +1544,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               )}
             </div>
             <div className="rounded-lg bg-white p-2.5 dark:bg-stone-900/60 border border-stone-100 dark:border-stone-800/60">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-400">
                 Hasil yang Diharapkan
               </p>
               <p className="mt-0.5 text-xs text-stone-700 dark:text-stone-300">
@@ -1552,7 +1552,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               </p>
             </div>
             <div className="rounded-lg bg-white p-2.5 dark:bg-stone-900/60 border border-stone-100 dark:border-stone-800/60">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-400">
                 Data Pengujian
               </p>
               <p className="mt-0.5 text-xs font-mono text-stone-700 dark:text-stone-300">
@@ -1601,7 +1601,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div>
                       <p className="font-bold text-stone-800 dark:text-stone-200">{run.build}</p>
-                      <p className="text-[11px] text-stone-500">
+                      <p className="text-xs text-stone-500">
                         {run.environment} · {new Date(run.startedAt).toLocaleString('id-ID')}
                       </p>
                     </div>
@@ -1647,7 +1647,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                             setSingleEvidenceReason('');
                             setAddResultEvidenceError(null);
                           }}
-                          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                         >
                           <Plus className="w-3 h-3" />
                           Tambah Bukti
@@ -1660,7 +1660,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                       <p className="font-bold text-emerald-950 dark:text-emerald-100">
                         Target QRIS sandbox non-finansial
                       </p>
-                      <p className="mt-1 text-[11px] text-emerald-900/80 dark:text-emerald-200/80">
+                      <p className="mt-1 text-xs text-emerald-900/80 dark:text-emerald-200/80">
                         Hanya membuat transaksi uji Rp0. Tidak menghubungi penyedia pembayaran dan
                         tidak memindahkan dana.
                       </p>
@@ -1690,7 +1690,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                             >
                               Sandbox: {sandboxTransaction.status}
                             </Badge>
-                            <span className="font-mono text-[10px] text-emerald-950/70 dark:text-emerald-200/70">
+                            <span className="font-mono text-xs text-emerald-950/70 dark:text-emerald-200/70">
                               {sandboxTransaction.sandboxReference}
                             </span>
                           </div>
@@ -1727,7 +1727,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                               </Button>
                             </div>
                           )}
-                          <p className="text-[11px] text-emerald-900/80 dark:text-emerald-200/80">
+                          <p className="text-xs text-emerald-900/80 dark:text-emerald-200/80">
                             Simulasi tidak mengubah hasil QA. Catat hasil dan unggah bukti hanya
                             setelah eksekusi yang benar-benar dilakukan.
                           </p>
@@ -1746,7 +1746,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   {((run.result?.evidence && run.result.evidence.length > 0) ||
                     evidenceLinks.length > 0) && (
                     <div className="mt-2 pt-2 border-t border-stone-200 dark:border-stone-800">
-                      <span className="text-[10px] font-bold uppercase text-stone-500 dark:text-stone-400 block mb-1.5">
+                      <span className="text-xs font-bold uppercase text-stone-500 dark:text-stone-400 block mb-1.5">
                         Bukti Hasil ({(run.result?.evidence?.length || 0) + evidenceLinks.length})
                       </span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1756,14 +1756,14 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                             key={att.attachmentId}
                             className="relative flex items-center justify-between p-2.5 rounded-xl bg-white border border-stone-200 text-xs shadow-xs dark:bg-stone-900/60 dark:border-stone-800"
                           >
-                            <span className="absolute -top-2 left-2 z-10 text-[9px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30">
+                            <span className="absolute -top-2 left-2 z-10 text-xs font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30">
                               File Resmi
                             </span>
                             <div className="min-w-0 pr-2">
                               <p className="font-semibold text-stone-900 dark:text-stone-100 truncate">
                                 {att.fileName}
                               </p>
-                              <p className="text-[10px] font-mono text-stone-500 dark:text-stone-400">
+                              <p className="text-xs font-mono text-stone-500 dark:text-stone-400">
                                 {att.mimeType}
                               </p>
                             </div>
@@ -1842,7 +1842,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
             {parentTask && (
               <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400">
-                <span className="text-stone-400 font-bold uppercase text-[10px]">
+                <span className="text-stone-400 font-bold uppercase text-xs">
                   Feature Induk:
                 </span>
                 <span className="font-semibold text-stone-800 dark:text-stone-200 truncate">
@@ -1983,22 +1983,22 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             icon: <Compass className="h-4 w-4" />,
             badge: workflowSummary ? (
               workflowSummary.blockers.length === 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
                   <CheckCircle2 className="h-2.5 w-2.5" /> Siap
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">
                   <AlertTriangle className="h-2.5 w-2.5" /> {workflowSummary.blockers.length}{' '}
                   Blocker
                 </span>
               )
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-400">
                 Memeriksa
               </span>
             ),
             sublabel: (
-              <div className="text-[11px] text-stone-600 dark:text-stone-400 truncate">
+              <div className="text-xs text-stone-600 dark:text-stone-400 truncate">
                 <span className="font-semibold text-stone-800 dark:text-stone-200">
                   {workflowSummary?.featureTitle || parentTask?.title || 'Feature'}
                 </span>{' '}
@@ -2013,20 +2013,20 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             icon: <CheckSquare className="h-4 w-4" />,
             badge: (
               <div className="flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-[10px] font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                   {executionStats
                     ? `${executionStats.total} Kasus`
                     : `${executionWorkspace?.executions?.length || 0} Kasus`}
                 </span>
                 {workflowSummary?.blockers.includes('unverified_bug') && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-xs font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
                     <AlertTriangle className="h-2.5 w-2.5" /> Retest
                   </span>
                 )}
               </div>
             ),
             sublabel: (
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-stone-600 dark:text-stone-400">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-stone-600 dark:text-stone-400">
                 <span className="text-emerald-700 dark:text-emerald-400 font-bold">
                   {executionStats?.passed || 0} Lulus
                 </span>
@@ -2091,7 +2091,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-3 dark:border-stone-800 dark:bg-stone-900/50">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
                     Feature yang Diuji
                   </span>
                   <p className="mt-1 text-sm font-bold text-stone-900 dark:text-stone-100">
@@ -2107,7 +2107,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 </div>
 
                 <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-3 dark:border-stone-800 dark:bg-stone-900/50">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
                     Aksi Selanjutnya
                   </span>
                   <p className="mt-1 text-sm font-bold text-emerald-800 dark:text-emerald-300">
@@ -2165,7 +2165,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   ariaLabel: 'Persiapan & Eksekusi',
                   icon: <CheckSquare className="h-4 w-4" />,
                   badge: (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-[10px] font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                       {executionStats
                         ? `${executionStats.total} Kasus`
                         : `${executionWorkspace?.executions?.length || 0} Kasus`}
@@ -2178,11 +2178,11 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   ariaLabel: 'Bug & Retest',
                   icon: <Bug className="h-4 w-4" />,
                   badge: workflowSummary?.blockers.includes('unverified_bug') ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
                       <AlertTriangle className="h-2.5 w-2.5" /> Perlu Retest
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-[10px] font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                       Nihil Bug
                     </span>
                   ),
@@ -2193,11 +2193,11 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                   ariaLabel: 'Persetujuan & Riwayat',
                   icon: <ShieldCheck className="h-4 w-4" />,
                   badge: qaCompletionReady ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#B1E743]/30 px-2 py-0.5 text-[10px] font-bold text-stone-900 dark:text-[#B1E743]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#B1E743]/30 px-2 py-0.5 text-xs font-bold text-stone-900 dark:text-[#B1E743]">
                       <CheckCircle2 className="h-2.5 w-2.5" /> Siap Sign-Off
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-[10px] font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-600 dark:bg-stone-800 dark:text-stone-400">
                       <Lock className="h-2.5 w-2.5" /> Terkunci
                     </span>
                   ),
@@ -2267,7 +2267,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3 dark:border-stone-800 dark:bg-stone-950/40">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500">
+                      <p className="text-xs font-extrabold uppercase tracking-wider text-stone-500">
                         Siklus Pengujian / Kandidat
                       </p>
                       {isLoadingTestCycles ? (
@@ -2396,7 +2396,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                           <div className="lg:col-span-4 flex flex-col gap-2">
                             <div className="flex items-center justify-between px-1 text-xs font-bold text-stone-600 dark:text-stone-400">
                               <span>Daftar Kasus ({filteredExecutions.length})</span>
-                              <span className="text-[10px] font-normal text-stone-400">
+                              <span className="text-xs font-normal text-stone-400">
                                 Pilih untuk eksekusi
                               </span>
                             </div>
@@ -2567,7 +2567,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           {runFormError && <Alert tone="error">{runFormError}</Alert>}
           {runTestCase && (
             <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-900/60">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                 Test Case dan Siklus Pengujian
               </p>
               <p className="mt-1 font-bold text-stone-900 dark:text-stone-100">
@@ -2689,7 +2689,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                         className="rounded border-slate-600 text-primary focus:ring-primary h-4 w-4"
                       />
                       <span className="truncate flex-1 font-medium">{att.fileName}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="text-xs text-slate-400 font-mono">
                         {(att.fileSize / 1024).toFixed(1)} KB
                       </span>
                     </label>

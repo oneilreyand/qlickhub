@@ -234,6 +234,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
             currentUserId={currentUserId || undefined}
             userRole={userRole}
             onDataChanged={onDataChanged}
+            onOpenFeature={onOpenFeature}
             onOpenDevView={(subtaskItem) => {
               setActiveSubtaskForExecution(subtaskItem);
               setActiveViewMode('dev');

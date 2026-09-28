@@ -234,4 +234,55 @@ describe('PoTeamICardGrid Organism', () => {
     });
     expect(screen.queryByText('Build Login Form UI')).not.toBeInTheDocument();
   });
+
+  it('renders Kelola Requirement Fitur button and calls onOpenFeature on click', async () => {
+    const onOpenFeature = vi.fn();
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <PoTeamICardGrid
+          task={mockParentTask}
+          workspaceId="ws-1"
+          currentUserId="u-1"
+          userRole="po"
+          onDataChanged={vi.fn()}
+          onOpenFeature={onOpenFeature}
+        />
+      </Provider>,
+    );
+
+    const manageBtn = screen.getByRole('button', { name: 'Kelola Requirement Fitur' });
+    expect(manageBtn).toBeInTheDocument();
+    fireEvent.click(manageBtn);
+    expect(onOpenFeature).toHaveBeenCalledWith(mockParentTask.id);
+  });
+
+  it('filters displayed team cards when clicking team segmented tabs', async () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <PoTeamICardGrid
+          task={mockParentTask}
+          workspaceId="ws-1"
+          currentUserId="u-1"
+          userRole="po"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    // Initial state: all cards visible
+    expect(screen.getByText('Tim Frontend')).toBeInTheDocument();
+    expect(screen.getByText('Tim Backend')).toBeInTheDocument();
+    expect(screen.getByText('QA & Mutu')).toBeInTheDocument();
+
+    // Click Frontend tab
+    const feTab = screen.getByRole('tab', { name: /Frontend/i });
+    fireEvent.click(feTab);
+
+    // Only Frontend card should be visible
+    expect(screen.getByText('Tim Frontend')).toBeInTheDocument();
+    expect(screen.queryByText('Tim Backend')).not.toBeInTheDocument();
+    expect(screen.queryByText('QA & Mutu')).not.toBeInTheDocument();
+  });
 });

@@ -34,7 +34,7 @@ export const QaWorkflowSummaryWidget: React.FC<QaWorkflowSummaryWidgetProps> = (
             <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
               Ringkasan Workflow QA
             </h3>
-            <p className="text-[11px] text-stone-600 dark:text-stone-400">
+            <p className="text-xs text-stone-600 dark:text-stone-400">
               Scope dan langkah berikutnya dihitung dari data QA yang tersimpan.
             </p>
           </div>
@@ -55,7 +55,7 @@ export const QaWorkflowSummaryWidget: React.FC<QaWorkflowSummaryWidgetProps> = (
         <div className="space-y-3 text-xs">
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
                 Cakupan &amp; Siklus Uji
               </p>
               <p className="mt-1 font-semibold text-stone-800 dark:text-stone-200 truncate">
@@ -67,7 +67,7 @@ export const QaWorkflowSummaryWidget: React.FC<QaWorkflowSummaryWidgetProps> = (
             </div>
 
             <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
                 Langkah Kerja Selanjutnya
               </p>
               <p className="mt-1 font-extrabold text-emerald-800 dark:text-emerald-300">
@@ -76,7 +76,7 @@ export const QaWorkflowSummaryWidget: React.FC<QaWorkflowSummaryWidgetProps> = (
             </div>
 
             <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60 sm:col-span-2 lg:col-span-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
                 Status Prasyarat Kesiapan
               </p>
               {workflowSummary.blockers.length > 0 ? (

@@ -12,12 +12,14 @@ import {
   TrendingUp,
   RotateCcw,
   Trash2,
+  FileCheck2,
 } from 'lucide-react';
 import type { Task, DeliveryArea, TaskComment } from '@qlick/contracts';
 import { Card } from '../../atoms/Card';
 import { Button } from '../../atoms/Button';
 import { ProgressBar } from '../../atoms/ProgressBar';
 import { Modal } from '../../molecules/Modal';
+import { Tabs } from '../../molecules/Tabs';
 import { TaskStatusBadge } from '../../molecules/TaskStatusBadge';
 import { TaskScheduleHealthBadge } from '../../molecules/TaskScheduleHealthBadge';
 import { calculateSubtaskScheduleHealth } from '../../../../lib/utils/scheduleHealth';
@@ -40,6 +42,7 @@ export interface PoTeamICardGridProps {
   onDataChanged: () => void;
   onOpenDevView?: (subtask: Task) => void;
   onOpenQaView?: (subtask: Task) => void;
+  onOpenFeature?: (featureTaskId: string) => void;
 }
 
 export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
@@ -50,11 +53,13 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
   onDataChanged,
   onOpenDevView,
   onOpenQaView,
+  onOpenFeature,
 }) => {
   const dispatch = useAppDispatch();
   const { members } = useAppSelector((state: RootState) => state.workspace);
 
   const [subtasks, setSubtasks] = useState<Task[]>(task.subtasks || []);
+  const [teamFilter, setTeamFilter] = useState<'all' | 'frontend' | 'backend' | 'qa'>('all');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [targetDeliveryArea, setTargetDeliveryArea] = useState<DeliveryArea>('frontend');
   const [selectedSubtask, setSelectedSubtask] = useState<Task | null>(null);
@@ -239,6 +244,16 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
 
           {/* Quick Actions */}
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {onOpenFeature && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenFeature(task.id)}
+                leftIcon={<FileCheck2 className="h-4 w-4" />}
+              >
+                Kelola Requirement Fitur
+              </Button>
+            )}
             {task.status === 'done' && (
               <Button
                 variant="outline"
@@ -272,227 +287,263 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
         onDataChanged={onDataChanged}
       />
 
-      {/* 3-Column Team iCard Grid (Frontend, Backend, QA) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* 1. Frontend Team iCard */}
-        <Card className="p-4 flex flex-col justify-between border-sky-200 dark:border-sky-900/60 bg-sky-50/30 dark:bg-sky-950/20 shadow-xs hover:border-sky-300 dark:hover:border-sky-800 transition-all">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-sky-100 dark:border-sky-900/50">
-              <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-900/60 dark:text-sky-300">
-                  <Code2 className="h-4 w-4" />
+      {/* Team Subtask Distribution Header & Selector */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+          <div>
+            <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+              Distribusi Subtask Tim
+            </h3>
+            <p className="text-xs text-stone-500 dark:text-stone-400">
+              Kelola delegasi pekerjaan teknis untuk tim Frontend, Backend, dan QA.
+            </p>
+          </div>
+          <Tabs
+            variant="pills"
+            activeTabId={teamFilter}
+            onChange={(id) => setTeamFilter(id as 'all' | 'frontend' | 'backend' | 'qa')}
+            ariaLabel="Filter tim subtask"
+            tabs={[
+              { id: 'all', label: 'Semua Tim', count: totalSubtasks },
+              { id: 'frontend', label: 'Frontend', count: feSubtasks.length },
+              { id: 'backend', label: 'Backend', count: beSubtasks.length },
+              { id: 'qa', label: 'QA', count: qaSubtasks.length },
+            ]}
+          />
+        </div>
+
+        {/* Team iCard Adaptive Container (1-column on drawer/mobile, 3-column on very wide view) */}
+        <div
+          className={`grid gap-4 ${
+            teamFilter === 'all' ? 'grid-cols-1 xl:grid-cols-3' : 'grid-cols-1'
+          }`}
+        >
+          {/* 1. Frontend Team iCard */}
+          {(teamFilter === 'all' || teamFilter === 'frontend') && (
+            <Card className="p-4 flex flex-col justify-between border-sky-200 dark:border-sky-900/60 bg-sky-50/30 dark:bg-sky-950/20 shadow-xs hover:border-sky-300 dark:hover:border-sky-800 transition-all">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-sky-100 dark:border-sky-900/50">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-900/60 dark:text-sky-300">
+                      <Code2 className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-sky-900 dark:text-sky-100">Tim Frontend</h3>
+                      <p className="text-xs text-sky-700/80 dark:text-sky-400">
+                        UI / UX / Web & Mobile
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200">
+                    {feCompleted}/{feSubtasks.length}
+                  </span>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-sky-900 dark:text-sky-100">Tim Frontend</h3>
-                  <p className="text-[11px] text-sky-700/80 dark:text-sky-400">
-                    UI / UX / Web & Mobile
-                  </p>
+
+                {/* FE Subtask List */}
+                <div className="space-y-2 min-h-[120px]">
+                  {feSubtasks.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-stone-400 dark:text-stone-500">
+                      Belum ada Subtask Frontend
+                    </div>
+                  ) : (
+                    feSubtasks.map((st) => {
+                      const isDone = st.status === 'done';
+                      return (
+                        <div
+                          key={st.id}
+                          onClick={() => setSelectedSubtask(st)}
+                          className="p-2.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 hover:border-sky-400 dark:hover:border-sky-600 transition-all cursor-pointer space-y-1.5 group"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p
+                              className={`text-xs font-bold ${isDone ? 'line-through text-stone-400' : 'text-stone-900 dark:text-stone-100'} group-hover:text-sky-600 dark:group-hover:text-sky-400 line-clamp-2`}
+                            >
+                              {st.title}
+                            </p>
+                            <TaskStatusBadge state={st.status} />
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 pt-1">
+                            <span className="inline-flex items-center gap-1 min-w-0">
+                              <User className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+                              <span className="truncate max-w-[180px]">
+                                {getMemberName(st.assigneeId)}
+                              </span>
+                            </span>
+                            {st.dueDate && <span className="shrink-0">Tenggat {st.dueDate}</span>}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200">
-                {feCompleted}/{feSubtasks.length}
-              </span>
-            </div>
 
-            {/* FE Subtask List */}
-            <div className="space-y-2 min-h-[140px]">
-              {feSubtasks.length === 0 ? (
-                <div className="py-6 text-center text-xs text-stone-400 dark:text-stone-500">
-                  Belum ada Subtask Frontend
-                </div>
-              ) : (
-                feSubtasks.map((st) => {
-                  const isDone = st.status === 'done';
-                  return (
-                    <div
-                      key={st.id}
-                      onClick={() => setSelectedSubtask(st)}
-                      className="p-2.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 hover:border-sky-400 dark:hover:border-sky-600 transition-all cursor-pointer space-y-1.5 group"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p
-                          className={`text-xs font-bold ${isDone ? 'line-through text-stone-400' : 'text-stone-900 dark:text-stone-100'} group-hover:text-sky-600 dark:group-hover:text-sky-400 line-clamp-2`}
-                        >
-                          {st.title}
-                        </p>
-                        <TaskStatusBadge state={st.status} />
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400 pt-1">
-                        <span className="inline-flex items-center gap-1">
-                          <User className="h-3 w-3 text-stone-400" />
-                          <span className="truncate max-w-[100px]">
-                            {getMemberName(st.assigneeId)}
-                          </span>
-                        </span>
-                        {st.dueDate && <span>Tenggat {st.dueDate}</span>}
-                      </div>
+              <div className="pt-3 border-t border-sky-100 dark:border-sky-900/40">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenCreateModal('frontend')}
+                  className="w-full text-xs border-sky-300 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:text-sky-300 dark:hover:bg-sky-950"
+                  leftIcon={<Plus className="h-3.5 w-3.5" />}
+                >
+                  Tambah Subtask FE
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {/* 2. Backend Team iCard */}
+          {(teamFilter === 'all' || teamFilter === 'backend') && (
+            <Card className="p-4 flex flex-col justify-between border-amber-200 dark:border-amber-900/60 bg-amber-50/30 dark:bg-amber-950/20 shadow-xs hover:border-amber-300 dark:hover:border-amber-800 transition-all">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-amber-100 dark:border-amber-900/50">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
+                      <Layers className="h-4 w-4" />
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-sky-100 dark:border-sky-900/40">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenCreateModal('frontend')}
-              className="w-full text-xs border-sky-300 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:text-sky-300 dark:hover:bg-sky-950"
-              leftIcon={<Plus className="h-3.5 w-3.5" />}
-            >
-              Tambah Subtask FE
-            </Button>
-          </div>
-        </Card>
-
-        {/* 2. Backend Team iCard */}
-        <Card className="p-4 flex flex-col justify-between border-amber-200 dark:border-amber-900/60 bg-amber-50/30 dark:bg-amber-950/20 shadow-xs hover:border-amber-300 dark:hover:border-amber-800 transition-all">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-amber-100 dark:border-amber-900/50">
-              <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
-                  <Layers className="h-4 w-4" />
+                    <div>
+                      <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">
+                        Tim Backend
+                      </h3>
+                      <p className="text-xs text-amber-700/80 dark:text-amber-400">
+                        APIs / Database / Services
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                    {beCompleted}/{beSubtasks.length}
+                  </span>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">
-                    Tim Backend
-                  </h3>
-                  <p className="text-[11px] text-amber-700/80 dark:text-amber-400">
-                    APIs / Database / Services
-                  </p>
+
+                {/* BE Subtask List */}
+                <div className="space-y-2 min-h-[120px]">
+                  {beSubtasks.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-stone-400 dark:text-stone-500">
+                      Belum ada Subtask Backend
+                    </div>
+                  ) : (
+                    beSubtasks.map((st) => {
+                      const isDone = st.status === 'done';
+                      return (
+                        <div
+                          key={st.id}
+                          onClick={() => setSelectedSubtask(st)}
+                          className="p-2.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 hover:border-amber-400 dark:hover:border-amber-600 transition-all cursor-pointer space-y-1.5 group"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p
+                              className={`text-xs font-bold ${isDone ? 'line-through text-stone-400' : 'text-stone-900 dark:text-stone-100'} group-hover:text-amber-600 dark:group-hover:text-amber-400 line-clamp-2`}
+                            >
+                              {st.title}
+                            </p>
+                            <TaskStatusBadge state={st.status} />
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 pt-1">
+                            <span className="inline-flex items-center gap-1 min-w-0">
+                              <User className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+                              <span className="truncate max-w-[180px]">
+                                {getMemberName(st.assigneeId)}
+                              </span>
+                            </span>
+                            {st.dueDate && <span className="shrink-0">Tenggat {st.dueDate}</span>}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                {beCompleted}/{beSubtasks.length}
-              </span>
-            </div>
 
-            {/* BE Subtask List */}
-            <div className="space-y-2 min-h-[140px]">
-              {beSubtasks.length === 0 ? (
-                <div className="py-6 text-center text-xs text-stone-400 dark:text-stone-500">
-                  Belum ada Subtask Backend
-                </div>
-              ) : (
-                beSubtasks.map((st) => {
-                  const isDone = st.status === 'done';
-                  return (
-                    <div
-                      key={st.id}
-                      onClick={() => setSelectedSubtask(st)}
-                      className="p-2.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 hover:border-amber-400 dark:hover:border-amber-600 transition-all cursor-pointer space-y-1.5 group"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p
-                          className={`text-xs font-bold ${isDone ? 'line-through text-stone-400' : 'text-stone-900 dark:text-stone-100'} group-hover:text-amber-600 dark:group-hover:text-amber-400 line-clamp-2`}
-                        >
-                          {st.title}
-                        </p>
-                        <TaskStatusBadge state={st.status} />
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400 pt-1">
-                        <span className="inline-flex items-center gap-1">
-                          <User className="h-3 w-3 text-stone-400" />
-                          <span className="truncate max-w-[100px]">
-                            {getMemberName(st.assigneeId)}
-                          </span>
-                        </span>
-                        {st.dueDate && <span>Tenggat {st.dueDate}</span>}
-                      </div>
+              <div className="pt-3 border-t border-amber-100 dark:border-amber-900/40">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenCreateModal('backend')}
+                  className="w-full text-xs border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950"
+                  leftIcon={<Plus className="h-3.5 w-3.5" />}
+                >
+                  Tambah Subtask BE
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {/* 3. QA & Quality Team iCard */}
+          {(teamFilter === 'all' || teamFilter === 'qa') && (
+            <Card className="p-4 flex flex-col justify-between border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/20 shadow-xs hover:border-emerald-300 dark:hover:border-emerald-800 transition-all">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-emerald-100 dark:border-emerald-900/50">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                      <Bug className="h-4 w-4" />
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-amber-100 dark:border-amber-900/40">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenCreateModal('backend')}
-              className="w-full text-xs border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950"
-              leftIcon={<Plus className="h-3.5 w-3.5" />}
-            >
-              Tambah Subtask BE
-            </Button>
-          </div>
-        </Card>
-
-        {/* 3. QA & Quality Team iCard */}
-        <Card className="p-4 flex flex-col justify-between border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/20 shadow-xs hover:border-emerald-300 dark:hover:border-emerald-800 transition-all">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-emerald-100 dark:border-emerald-900/50">
-              <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
-                  <Bug className="h-4 w-4" />
+                    <div>
+                      <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                        QA &amp; Mutu
+                      </h3>
+                      <p className="text-xs text-emerald-700/80 dark:text-emerald-400">
+                        Pengujian &amp; Verifikasi
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                    {qaCompleted}/{qaSubtasks.length}
+                  </span>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
-                    QA &amp; Mutu
-                  </h3>
-                  <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
-                    Pengujian &amp; Verifikasi
-                  </p>
+
+                {/* QA Subtask List */}
+                <div className="space-y-2 min-h-[120px]">
+                  {qaSubtasks.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-stone-400 dark:text-stone-500">
+                      Belum ada Subtask QA
+                    </div>
+                  ) : (
+                    qaSubtasks.map((st) => {
+                      const isDone = st.status === 'done';
+                      return (
+                        <div
+                          key={st.id}
+                          onClick={() => setSelectedSubtask(st)}
+                          className="p-2.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 hover:border-emerald-400 dark:hover:border-emerald-600 transition-all cursor-pointer space-y-1.5 group"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p
+                              className={`text-xs font-bold ${isDone ? 'line-through text-stone-400' : 'text-stone-900 dark:text-stone-100'} group-hover:text-emerald-600 dark:group-hover:text-emerald-400 line-clamp-2`}
+                            >
+                              {st.title}
+                            </p>
+                            <TaskStatusBadge state={st.status} />
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 pt-1">
+                            <span className="inline-flex items-center gap-1 min-w-0">
+                              <User className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+                              <span className="truncate max-w-[180px]">
+                                {getMemberName(st.assigneeId)}
+                              </span>
+                            </span>
+                            {st.dueDate && <span className="shrink-0">Tenggat {st.dueDate}</span>}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
-                {qaCompleted}/{qaSubtasks.length}
-              </span>
-            </div>
 
-            {/* QA Subtask List */}
-            <div className="space-y-2 min-h-[140px]">
-              {qaSubtasks.length === 0 ? (
-                <div className="py-6 text-center text-xs text-stone-400 dark:text-stone-500">
-                  Belum ada Subtask QA
-                </div>
-              ) : (
-                qaSubtasks.map((st) => {
-                  const isDone = st.status === 'done';
-                  return (
-                    <div
-                      key={st.id}
-                      onClick={() => setSelectedSubtask(st)}
-                      className="p-2.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 hover:border-emerald-400 dark:hover:border-emerald-600 transition-all cursor-pointer space-y-1.5 group"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p
-                          className={`text-xs font-bold ${isDone ? 'line-through text-stone-400' : 'text-stone-900 dark:text-stone-100'} group-hover:text-emerald-600 dark:group-hover:text-emerald-400 line-clamp-2`}
-                        >
-                          {st.title}
-                        </p>
-                        <TaskStatusBadge state={st.status} />
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400 pt-1">
-                        <span className="inline-flex items-center gap-1">
-                          <User className="h-3 w-3 text-stone-400" />
-                          <span className="truncate max-w-[100px]">
-                            {getMemberName(st.assigneeId)}
-                          </span>
-                        </span>
-                        {st.dueDate && <span>Tenggat {st.dueDate}</span>}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-emerald-100 dark:border-emerald-900/40">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenCreateModal('qa')}
-              className="w-full text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950"
-              leftIcon={<Plus className="h-3.5 w-3.5" />}
-            >
-              Tambah Subtask QA
-            </Button>
-          </div>
-        </Card>
+              <div className="pt-3 border-t border-emerald-100 dark:border-emerald-900/40">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenCreateModal('qa')}
+                  className="w-full text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950"
+                  leftIcon={<Plus className="h-3.5 w-3.5" />}
+                >
+                  Tambah Subtask QA
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* Subtask Drill-down Modal */}
@@ -565,7 +616,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             {/* Assignee & Dates */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               <div className="p-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
-                <span className="text-stone-400 block text-[10px] uppercase font-bold">
+                <span className="text-stone-400 block text-xs uppercase font-bold">
                   Penerima Tugas
                 </span>
                 <span className="font-bold text-stone-800 dark:text-stone-200">
@@ -573,7 +624,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                 </span>
               </div>
               <div className="p-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
-                <span className="text-stone-400 block text-[10px] uppercase font-bold">
+                <span className="text-stone-400 block text-xs uppercase font-bold">
                   Tanggal Mulai
                 </span>
                 <span className="font-bold text-stone-800 dark:text-stone-200">
@@ -581,7 +632,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
                 </span>
               </div>
               <div className="p-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
-                <span className="text-stone-400 block text-[10px] uppercase font-bold">
+                <span className="text-stone-400 block text-xs uppercase font-bold">
                   Target Tenggat
                 </span>
                 <span className="font-bold text-stone-800 dark:text-stone-200">
