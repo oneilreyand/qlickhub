@@ -195,7 +195,7 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                Kokpit Pengelolaan PO
+                Ringkasan Fitur &amp; Rilis
               </span>
               <TaskStatusBadge state={task.status} />
               <TaskScheduleHealthBadge status={calculateSubtaskScheduleHealth(task).status} />
@@ -263,17 +263,20 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
         </div>
       </Card>
 
-      <ReleaseAssurancePanel
-        workspaceId={workspaceId}
-        featureTaskId={task.id}
-        currentUserId={currentUserId}
-        userRole={userRole}
-        mode="release"
-        onDataChanged={onDataChanged}
-      />
+      {/* 3-Column Team Subtask Distribution (Frontend, Backend, QA) */}
+      <section aria-label="Distribusi Subtask Tim" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+              Distribusi Subtask Tim
+            </h3>
+            <p className="text-xs text-stone-500 dark:text-stone-400">
+              Pantau progres implementasi developer dan verifikasi QA untuk feature ini.
+            </p>
+          </div>
+        </div>
 
-      {/* 3-Column Team iCard Grid (Frontend, Backend, QA) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* 1. Frontend Team iCard */}
         <Card className="p-4 flex flex-col justify-between border-sky-200 dark:border-sky-900/60 bg-sky-50/30 dark:bg-sky-950/20 shadow-xs hover:border-sky-300 dark:hover:border-sky-800 transition-all">
           <div className="space-y-3">
@@ -503,6 +506,30 @@ export const PoTeamICardGrid: React.FC<PoTeamICardGridProps> = ({
           </div>
         </Card>
       </div>
+      </section>
+
+      {/* Release Assurance & Decision Panel */}
+      <section aria-label="Kesiapan Rilis Feature" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+              Kesiapan Rilis &amp; Keputusan PO
+            </h3>
+            <p className="text-xs text-stone-500 dark:text-stone-400">
+              Evaluasi sign-off pengujian mutu dan gerbang keputusan rilis ke produksi.
+            </p>
+          </div>
+        </div>
+
+        <ReleaseAssurancePanel
+          workspaceId={workspaceId}
+          featureTaskId={task.id}
+          currentUserId={currentUserId}
+          userRole={userRole}
+          mode="release"
+          onDataChanged={onDataChanged}
+        />
+      </section>
 
       {/* Subtask Drill-down Modal */}
       {selectedSubtask && (

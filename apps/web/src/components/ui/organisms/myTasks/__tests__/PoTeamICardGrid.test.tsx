@@ -169,7 +169,7 @@ describe('PoTeamICardGrid Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByText('Kokpit Pengelolaan PO')).toBeInTheDocument();
+    expect(screen.getByText('Ringkasan Fitur & Rilis')).toBeInTheDocument();
     expect(screen.getByText('User Authentication Flow')).toBeInTheDocument();
     expect(screen.getByText('Tim Frontend')).toBeInTheDocument();
     expect(screen.getByText('Tim Backend')).toBeInTheDocument();

@@ -113,8 +113,7 @@ const workflowBlockerCopy: Record<string, string> = {
   unverified_bug: 'Masih ada Bug yang belum diverifikasi melalui retest formal.',
 };
 
-type QaMacroTab = 'context' | 'testing';
-type QaTestingSubTab = 'preparation' | 'bugs' | 'sign_off';
+type QaWorkflowTab = 'context' | 'preparation' | 'bugs' | 'sign_off';
 
 type BugTraceOption = {
   key: string;
@@ -145,8 +144,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [isLoadingWorkflowSummary, setIsLoadingWorkflowSummary] = useState(false);
   const [workflowSummaryError, setWorkflowSummaryError] = useState<string | null>(null);
   const workflowSummaryRequestIdRef = useRef(0);
-  const [activeMacroTab, setActiveMacroTab] = useState<QaMacroTab>('testing');
-  const [activeTestingSubTab, setActiveTestingSubTab] = useState<QaTestingSubTab>('preparation');
+  const [activeWorkflowTab, setActiveWorkflowTab] = useState<QaWorkflowTab>('preparation');
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [executionWorkspace, setExecutionWorkspace] = useState<TaskTestExecutionWorkspace | null>(
     null,
@@ -316,12 +314,10 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
   useEffect(() => {
     if (focusTarget === 'test_cases') {
-      setActiveMacroTab('testing');
-      setActiveTestingSubTab('preparation');
+      setActiveWorkflowTab('preparation');
     }
     if (focusTarget === 'qa_sign_off') {
-      setActiveMacroTab('testing');
-      setActiveTestingSubTab('sign_off');
+      setActiveWorkflowTab('sign_off');
     }
   }, [focusTarget]);
 
@@ -2007,9 +2003,9 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             ),
           },
           {
-            id: 'testing',
-            label: '2. Area Pengujian & Mutu',
-            ariaLabel: 'Area Pengujian & Mutu',
+            id: 'preparation',
+            label: '2. Test Case & Eksekusi',
+            ariaLabel: 'Persiapan & Eksekusi',
             icon: <CheckSquare className="h-4 w-4" />,
             badge: (
               <div className="flex items-center gap-1.5">
@@ -2041,15 +2037,45 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               </div>
             ),
           },
+          {
+            id: 'bugs',
+            label: '3. Bug & Retest',
+            ariaLabel: 'Bug & Retest',
+            icon: <Bug className="h-4 w-4" />,
+            badge: workflowSummary?.blockers.includes('unverified_bug') ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
+                <AlertTriangle className="h-2.5 w-2.5" /> Perlu Retest
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                Nihil Bug
+              </span>
+            ),
+          },
+          {
+            id: 'sign_off',
+            label: '4. Persetujuan QA',
+            ariaLabel: 'Persetujuan & Riwayat',
+            icon: <ShieldCheck className="h-4 w-4" />,
+            badge: qaCompletionReady ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#B1E743]/30 px-2 py-0.5 text-xs font-bold text-stone-900 dark:text-[#B1E743]">
+                <CheckCircle2 className="h-2.5 w-2.5" /> Siap Sign-Off
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                <Lock className="h-2.5 w-2.5" /> Terkunci
+              </span>
+            ),
+          },
         ]}
-        activeTabId={activeMacroTab}
-        onChange={(tabId) => setActiveMacroTab(tabId as QaMacroTab)}
+        activeTabId={activeWorkflowTab}
+        onChange={(tabId) => setActiveWorkflowTab(tabId as QaWorkflowTab)}
         variant="cards"
         ariaLabel="Tahap workflow QA"
       />
 
       {/* Tab 1: Konteks & Spesifikasi Panel */}
-      {activeMacroTab === 'context' && (
+      {activeWorkflowTab === 'context' && (
         <section
           role="tabpanel"
           id="qa-macro-panel-context"
@@ -2143,11 +2169,11 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => setActiveMacroTab('testing')}
+                  onClick={() => setActiveWorkflowTab('preparation')}
                   rightIcon={<ChevronRight className="h-4 w-4" />}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
-                  Buka Area Pengujian &amp; Mutu
+                  Buka Test Case &amp; Eksekusi
                 </Button>
               </div>
             </Card>
@@ -2155,70 +2181,37 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         </section>
       )}
 
-      {/* Tab 2: Area Pengujian & Mutu Panel */}
-      {activeMacroTab === 'testing' && (
-        <div className="space-y-4">
-          <div className="bg-stone-50/80 dark:bg-stone-900/50 p-2 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-2xs">
-            <Tabs
-              tabs={[
-                {
-                  id: 'preparation',
-                  label: '1. Test Case & Eksekusi',
-                  ariaLabel: 'Persiapan & Eksekusi',
-                  icon: <CheckSquare className="h-4 w-4" />,
-                  badge: (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                      {executionStats
-                        ? `${executionStats.total} Kasus`
-                        : `${executionWorkspace?.executions?.length || 0} Kasus`}
-                    </span>
-                  ),
-                },
-                {
-                  id: 'bugs',
-                  label: '2. Bug & Retest',
-                  ariaLabel: 'Bug & Retest',
-                  icon: <Bug className="h-4 w-4" />,
-                  badge: workflowSummary?.blockers.includes('unverified_bug') ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
-                      <AlertTriangle className="h-2.5 w-2.5" /> Perlu Retest
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                      Nihil Bug
-                    </span>
-                  ),
-                },
-                {
-                  id: 'sign_off',
-                  label: '3. Persetujuan & Riwayat',
-                  ariaLabel: 'Persetujuan & Riwayat',
-                  icon: <ShieldCheck className="h-4 w-4" />,
-                  badge: qaCompletionReady ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#B1E743]/30 px-2 py-0.5 text-xs font-bold text-stone-900 dark:text-[#B1E743]">
-                      <CheckCircle2 className="h-2.5 w-2.5" /> Siap Sign-Off
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                      <Lock className="h-2.5 w-2.5" /> Terkunci
-                    </span>
-                  ),
-                },
-              ]}
-              activeTabId={activeTestingSubTab}
-              onChange={(subTabId) => setActiveTestingSubTab(subTabId as QaTestingSubTab)}
-              variant="pills"
-              ariaLabel="Sub-area kerja pengujian"
-            />
-          </div>
-
-          {/* Test Case Executions Workspace Card */}
-          {activeTestingSubTab === 'preparation' && (
-            <section
-              role="tabpanel"
-              id="qa-workflow-panel-preparation"
-              aria-label="Persiapan dan eksekusi QA"
-            >
+      {/* Tab 2: Test Case & Eksekusi Panel */}
+      {activeWorkflowTab === 'preparation' && (
+        <section
+          role="tabpanel"
+          id="qa-workflow-panel-preparation"
+          aria-label="Persiapan dan eksekusi QA"
+          className="space-y-4"
+        >
+          {/* Quick Context Summary Banner for QA */}
+          {(subtask.description || parentTask?.description) && (
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-stone-200 bg-stone-50/70 dark:border-stone-800 dark:bg-stone-900/40 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="text-stone-600 dark:text-stone-400 truncate">
+                  <strong className="text-stone-900 dark:text-stone-100">
+                    {workflowSummary?.featureTitle || parentTask?.title || 'Feature'}:
+                  </strong>{' '}
+                  {subtask.title}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveWorkflowTab('context')}
+                className="text-xs shrink-0 font-bold"
+                rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
+              >
+                Lihat Spesifikasi &amp; Prasyarat
+              </Button>
+            </div>
+          )}
               <Card
                 ref={testCasesRef}
                 id="qa-test-cases"
@@ -2449,7 +2442,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             </section>
           )}
 
-          {activeTestingSubTab === 'bugs' && (
+          {activeWorkflowTab === 'bugs' && (
             <section
               role="tabpanel"
               id="qa-workflow-panel-bugs"
@@ -2510,8 +2503,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 }}
                 onRetestRunStarted={(qaSubtaskId) => {
                   if (qaSubtaskId !== subtask.id) return;
-                  setActiveMacroTab('testing');
-                  setActiveTestingSubTab('preparation');
+                  setActiveWorkflowTab('preparation');
                   void loadExecutions();
                   void loadWorkflowSummary();
                 }}
@@ -2519,7 +2511,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             </section>
           )}
 
-          {activeTestingSubTab === 'sign_off' && (
+          {activeWorkflowTab === 'sign_off' && (
             <section
               role="tabpanel"
               id="qa-workflow-panel-sign-off"
@@ -2550,8 +2542,6 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               />
             </section>
           )}
-        </div>
-      )}
 
       {/* Start Test Run Modal */}
       <Modal

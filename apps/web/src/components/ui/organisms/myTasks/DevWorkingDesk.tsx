@@ -8,17 +8,13 @@ import {
   Play,
   Send,
   GitPullRequest,
-  ChevronDown,
-  ChevronUp,
   FileText,
   RotateCcw,
   Save,
-  Calendar,
   User,
   ShieldCheck,
   TrendingUp,
   AlertTriangle,
-  CheckCircle2,
   MessageSquare,
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskComment } from '@qlick/contracts';
@@ -27,7 +23,6 @@ import { Button } from '../../atoms/Button';
 import { Input } from '../../atoms/Input';
 import { FormattedText } from '../../atoms/FormattedText';
 import { Modal } from '../../molecules/Modal';
-import { ProgressBar } from '../../atoms/ProgressBar';
 import { Tabs, TabItem } from '../../molecules/Tabs';
 import { TaskStatusBadge } from '../../molecules/TaskStatusBadge';
 import { TaskScheduleHealthBadge } from '../../molecules/TaskScheduleHealthBadge';
@@ -93,7 +88,6 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   const { members } = useAppSelector((state: RootState) => state.workspace);
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [showPrdContext, setShowPrdContext] = useState(true);
   const [comments, setComments] = useState<TaskComment[]>([]);
 
   // Deliverable fields (parsed and persisted)
@@ -634,264 +628,160 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
       {/* TAB 1: WORK & DELIVERABLES */}
       {activeTab === 'work' && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* Stakeholders & Responsibility Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Card className="p-3.5 flex items-center justify-between border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19]">
-              <div className="flex items-center gap-2.5">
-                <div className="grid h-8 w-8 place-items-center rounded-xl bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200">
-                  <User className="h-4 w-4" />
-                </div>
-                <div>
-                  <span className="text-xs uppercase font-bold text-stone-400 block">
-                    Developer yang Ditugaskan
-                  </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-stone-800 dark:text-stone-200">
+        <div className="space-y-5 animate-fadeIn">
+          {/* Compact Metadata & Commitment Health Engine */}
+          <Card className="p-3.5 border-stone-200/80 dark:border-stone-800 bg-stone-50/70 dark:bg-[#1C1A19]">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-stone-400" />
+                  <span className="text-stone-500 dark:text-stone-400">Developer yang Ditugaskan</span>
+                  <span className="font-bold text-stone-900 dark:text-stone-100">
                     {getMemberName(subtask.assigneeId)}
                   </span>
-                </div>
-              </div>
-              <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase border border-stone-200 dark:border-stone-700">
-                Pelaksana
-              </span>
-            </Card>
-
-            <Card className="p-3.5 flex items-center justify-between border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19]">
-              <div className="flex items-center gap-2.5">
-                <div className="grid h-8 w-8 place-items-center rounded-xl bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200">
-                  <ShieldCheck className="h-4 w-4" />
-                </div>
-                <div>
-                  <span className="text-xs uppercase font-bold text-stone-400 block">
-                    Product Owner (PO)
+                  <span className="px-1.5 py-0.2 rounded text-2xs font-extrabold bg-stone-200/80 dark:bg-stone-800 text-stone-700 dark:text-stone-300 uppercase">
+                    Pelaksana
                   </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-stone-800 dark:text-stone-200">
+                </div>
+                <span className="text-stone-300 dark:text-stone-700 hidden sm:inline">•</span>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-stone-400" />
+                  <span className="text-stone-500 dark:text-stone-400">Product Owner (PO)</span>
+                  <span className="font-bold text-stone-900 dark:text-stone-100">
                     {getMemberName(parentTask?.reporterId || subtask.reporterId)}
                   </span>
+                  <span className="px-1.5 py-0.2 rounded text-2xs font-extrabold bg-stone-200/80 dark:bg-stone-800 text-stone-700 dark:text-stone-300 uppercase">
+                    Perencana
+                  </span>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase border border-stone-200 dark:border-stone-700">
-                Perencana
-              </span>
-            </Card>
-          </div>
 
-          {/* BLOCK B: Schedule Timeline & Commitment Health Engine */}
-          <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200 dark:border-stone-800">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-[#B1E743]" />
-                <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                  Timeline &amp; Status Komitmen
-                </h3>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs font-bold">
-                <span className="text-stone-500 dark:text-stone-400">Hari ini:</span>
-                <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-mono">
-                  {timelineStats.todayStr}
-                </span>
-              </div>
-            </div>
-
-            {timelineStats.hasSchedule ? (
-              <div className="space-y-3">
-                {/* Timeline Progress Bar */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center text-xs font-bold text-stone-600 dark:text-stone-400">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-stone-400" />
-                      <span>Mulai: {timelineStats.startDate}</span>
-                    </span>
-                    <span className="text-stone-900 dark:text-[#B1E743] font-extrabold">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 font-bold text-stone-700 dark:text-stone-300">
+                  <TrendingUp className="h-3.5 w-3.5 text-[#B1E743]" />
+                  <span>Timeline &amp; Status Komitmen</span>
+                </div>
+                {timelineStats.hasSchedule ? (
+                  <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
+                    <span>Mulai: {timelineStats.startDate}</span>
+                    <span>•</span>
+                    <span>Tenggat: {timelineStats.dueDate}</span>
+                    <span className="rounded px-2 py-0.5 font-mono text-2xs font-bold bg-stone-200 dark:bg-stone-800 text-stone-800 dark:text-stone-200">
                       {timelineStats.percent}% berjalan
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-stone-400" />
-                      <span>Tenggat: {timelineStats.dueDate}</span>
-                    </span>
-                  </div>
-
-                  <ProgressBar
-                    value={timelineStats.percent}
-                    max={100}
-                    variant={
-                      timelineStats.isCompleted
-                        ? 'brand'
-                        : timelineStats.isOverdue
-                          ? 'rose'
-                          : timelineStats.remainingDays !== null && timelineStats.remainingDays <= 2
-                            ? 'amber'
-                            : 'brand'
-                    }
-                  />
-                </div>
-
-                {/* Position Explanatory Banner */}
-                <div
-                  className={`p-3.5 rounded-xl border flex items-center gap-3 text-xs sm:text-sm font-medium ${
-                    timelineStats.isCompleted
-                      ? 'bg-stone-50 text-stone-900 border-stone-200/80 dark:bg-stone-900/60 dark:text-stone-100 dark:border-stone-800'
-                      : timelineStats.isOverdue
-                        ? 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                        : timelineStats.remainingDays !== null && timelineStats.remainingDays <= 2
-                          ? 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                          : 'bg-stone-50 text-stone-900 border-stone-200/80 dark:bg-stone-900/60 dark:text-stone-100 dark:border-stone-800'
-                  }`}
-                >
-                  {timelineStats.isCompleted ? (
-                    <CheckCircle2 className="h-5 w-5 text-[#B1E743] shrink-0" />
-                  ) : timelineStats.isOverdue ? (
-                    <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0" />
-                  ) : (
-                    <Clock className="h-5 w-5 text-stone-700 dark:text-[#B1E743] shrink-0" />
-                  )}
-
-                  <div>
-                    <p className="font-bold">
-                      {timelineStats.isCompleted
-                        ? 'Task selesai dan disetujui'
-                        : timelineStats.isOverdue
-                          ? `⚠️ Terlambat ${Math.abs(timelineStats.remainingDays || 0)} hari dari tenggat komitmen (${timelineStats.dueDate})`
-                          : timelineStats.remainingDays === 0
-                            ? '⚡ Tenggat hari ini! Siap diserahkan ke QA'
-                            : timelineStats.remainingDays === 1
-                              ? '⚡ Tenggat besok! Selesaikan hasil kerja developer'
-                              : `Sesuai Jadwal — tersisa ${timelineStats.remainingDays} hari hingga tenggat komitmen (${timelineStats.dueDate})`}
-                    </p>
-                    <p className="text-xs opacity-85 mt-0.5">
-                      {timelineStats.isOverdue
-                        ? 'Pekerjaan telah melewati estimasi target. Harap segera submit handoff ke tim QA atau koordinasikan revisi timeline dengan PO.'
-                        : 'Timeline berjalan sesuai target komitmen sprint yang direncanakan oleh Product Owner.'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 flex items-center gap-3 text-xs text-stone-600 dark:text-stone-400">
-                <Calendar className="h-4 w-4 text-stone-400 shrink-0" />
-                <span>
-                  Subtask ini belum memiliki <strong>tanggal mulai</strong> atau{' '}
-                  <strong>tenggat</strong>. Hubungi PO untuk menetapkan komitmen waktu.
-                </span>
-              </div>
-            )}
-          </Card>
-
-          {/* BLOCK A: PO Product Brief & Scope Context (Read-Only from PO) */}
-          <Card className="border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] overflow-hidden shadow-xs">
-            <button
-              type="button"
-              onClick={() => setShowPrdContext(!showPrdContext)}
-              aria-expanded={showPrdContext}
-              className="w-full p-4 flex items-center justify-between text-left bg-stone-50/60 dark:bg-stone-900/50 hover:bg-stone-100/60 dark:hover:bg-stone-900 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-                <div>
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-stone-900 dark:text-stone-100 block">
-                    Ringkasan Produk &amp; Spesifikasi dari PO
-                  </span>
-                  <span className="text-xs text-stone-600 dark:text-stone-300">
-                    Spesifikasi acuan dari Product Owner (hanya baca)
-                  </span>
-                </div>
-              </div>
-              {showPrdContext ? (
-                <ChevronUp className="h-4 w-4 text-stone-400" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-stone-400" />
-              )}
-            </button>
-
-            {showPrdContext && (
-              <div className="p-4 border-t border-stone-200 dark:border-stone-800 space-y-3 bg-white dark:bg-stone-950">
-                {parentTask?.description ? (
-                  <div className="max-h-60 overflow-y-auto pr-1 scrollbar-thin p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-sans border border-stone-200/60 dark:border-stone-800">
-                    <FormattedText content={parentTask.description} />
                   </div>
                 ) : (
-                  <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 text-xs sm:text-sm text-stone-500 italic border border-stone-200/60 dark:border-stone-800">
-                    Product Owner belum memberikan spesifikasi terperinci pada Task induk.
-                  </div>
+                  <span className="text-stone-400">Belum dijadwalkan</span>
                 )}
               </div>
-            )}
+            </div>
           </Card>
 
-          {/* BLOCK C: Dev Deliverables & Technical Implementation Notes */}
-          <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <GitPullRequest className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-                <div>
-                  <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                    Hasil Kerja &amp; Catatan Implementasi Teknis
-                  </h3>
-                  <p className="text-xs text-stone-500 dark:text-stone-400">
-                    Catatan teknis, PR link, branch, dan staging demo hasil pekerjaan developer.
-                  </p>
+          {/* 2-Column Responsive Layout: Left (PO Scope/Brief), Right (Dev Deliverables) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* Left: PO Product Brief & Scope Context (Read-Only) */}
+            <Card className="lg:col-span-6 p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] flex flex-col space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
+                  <div>
+                    <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                      Ringkasan Produk &amp; Spesifikasi dari PO
+                    </h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                      Kebutuhan dan kriteria acuan dari Product Owner (hanya baca)
+                    </p>
+                  </div>
                 </div>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleSaveDeliverables}
-                isLoading={isSavingNotes}
-                leftIcon={<Save className="h-3.5 w-3.5" />}
-              >
-                Simpan Catatan
-              </Button>
-            </div>
 
-            {/* Deliverable Link Inputs */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
-                  Pull Request (PR) URL
-                </label>
-                <Input
-                  value={prUrl}
-                  onChange={(e) => setPrUrl(e.target.value)}
-                  placeholder="https://github.com/.../pull/123"
-                />
+              <div className="flex-1 overflow-y-auto max-h-[520px] scrollbar-thin p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-sans border border-stone-200/60 dark:border-stone-800">
+                {parentTask?.description ? (
+                  <FormattedText content={parentTask.description} />
+                ) : (
+                  <p className="italic text-stone-500">
+                    Product Owner belum memberikan spesifikasi terperinci pada Task induk.
+                  </p>
+                )}
               </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
-                  Nama Branch Git
-                </label>
-                <Input
-                  value={branchName}
-                  onChange={(e) => setBranchName(e.target.value)}
-                  placeholder="feature/payment-gateway"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
-                  Staging / Demo URL
-                </label>
-                <Input
-                  value={stagingUrl}
-                  onChange={(e) => setStagingUrl(e.target.value)}
-                  placeholder="https://staging.app.io/..."
-                />
-              </div>
-            </div>
+            </Card>
 
-            {/* Technical Implementation Markdown Notes */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
-                Catatan Implementasi Teknis / Kontrak API (khusus Developer)
-              </label>
-              <textarea
-                value={technicalNotes}
-                onChange={(e) => setTechnicalNotes(e.target.value)}
-                rows={6}
-                placeholder="Tulis arsitektur teknis, migrasi database, bentuk endpoint, atau keputusan penting developer..."
-                className="w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:border-[#B1E743] dark:focus:border-[#B1E743] outline-none font-mono leading-relaxed"
-              />
-            </div>
-          </Card>
+            {/* Right: Dev Deliverables & Technical Implementation Notes */}
+            <Card className="lg:col-span-6 p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] flex flex-col space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
+                <div className="flex items-center gap-2">
+                  <GitPullRequest className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
+                  <div>
+                    <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                      Hasil Kerja &amp; Catatan Implementasi Teknis
+                    </h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                      PR link, branch, staging demo, dan catatan implementasi developer.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSaveDeliverables}
+                  isLoading={isSavingNotes}
+                  leftIcon={<Save className="h-3.5 w-3.5" />}
+                >
+                  Simpan Catatan
+                </Button>
+              </div>
+
+              {/* Deliverable Link Inputs */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
+                    Pull Request (PR) URL
+                  </label>
+                  <Input
+                    value={prUrl}
+                    onChange={(e) => setPrUrl(e.target.value)}
+                    placeholder="https://github.com/.../pull/123"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
+                      Nama Branch Git
+                    </label>
+                    <Input
+                      value={branchName}
+                      onChange={(e) => setBranchName(e.target.value)}
+                      placeholder="feature/payment-gateway"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
+                      Staging / Demo URL
+                    </label>
+                    <Input
+                      value={stagingUrl}
+                      onChange={(e) => setStagingUrl(e.target.value)}
+                      placeholder="https://staging.app.io/..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Technical Implementation Markdown Notes */}
+              <div className="space-y-1.5 flex-1 flex flex-col">
+                <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
+                  Catatan Implementasi Teknis / Kontrak API (khusus Developer)
+                </label>
+                <textarea
+                  value={technicalNotes}
+                  onChange={(e) => setTechnicalNotes(e.target.value)}
+                  rows={6}
+                  placeholder="Tulis arsitektur teknis, migrasi database, bentuk endpoint, atau keputusan penting developer..."
+                  className="w-full flex-1 min-h-[140px] rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:border-[#B1E743] dark:focus:border-[#B1E743] outline-none font-mono leading-relaxed"
+                />
+              </div>
+            </Card>
+          </div>
         </div>
       )}
 

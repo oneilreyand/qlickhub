@@ -144,12 +144,12 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   const isSubtask = Boolean(task.parentTaskId);
   const executionTask = activeSubtaskForExecution || task;
   const roleTabs: TabItem[] = [
-    { id: 'po', label: 'Kokpit PO & iCard', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
-    { id: 'dev', label: 'Area Kerja Dev', icon: <Code2 className="h-3.5 w-3.5" /> },
-    { id: 'qa', label: 'Area Pengujian QA', icon: <Bug className="h-3.5 w-3.5" /> },
+    { id: 'po', label: 'Ringkasan & Rilis (PO)', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
+    { id: 'dev', label: 'Pengerjaan Dev', icon: <Code2 className="h-3.5 w-3.5" /> },
+    { id: 'qa', label: 'Pengujian QA', icon: <Bug className="h-3.5 w-3.5" /> },
   ];
   const developerReviewTabs: TabItem[] = [
-    { id: 'dev', label: 'Area Kerja Dev', icon: <Code2 className="h-3.5 w-3.5" /> },
+    { id: 'dev', label: 'Pengerjaan Dev', icon: <Code2 className="h-3.5 w-3.5" /> },
     { id: 'qa', label: 'Bukti QA', icon: <Bug className="h-3.5 w-3.5" /> },
   ];
 
@@ -177,19 +177,19 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
       </div>
     ) : activeViewMode === 'dev' ? (
       <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
-        <Code2 className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+        <Code2 className="h-4 w-4 shrink-0 text-stone-700 dark:text-[#B1E743]" />
         <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
-          Area Kerja Developer
+          Pengerjaan Dev
         </span>
-        <span className="hidden shrink-0 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-xs font-extrabold text-sky-800 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-300 sm:inline-flex">
-          Workspace Pelaksana
+        <span className="hidden shrink-0 rounded-full border border-stone-200 bg-stone-100 px-2 py-0.5 text-xs font-extrabold text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 sm:inline-flex">
+          Pelaksana
         </span>
       </div>
     ) : (
       <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
         <Bug className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
         <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
-          Area Pengujian &amp; Mutu QA
+          Pengujian QA
         </span>
         <span className="hidden shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-extrabold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 sm:inline-flex">
           Verifikasi QA

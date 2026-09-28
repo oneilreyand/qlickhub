@@ -1232,38 +1232,32 @@ describe('QaTestingDesk Organism', () => {
     expect(splitBtn).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('renders rich Macro Stage Tabs and testing sub-tabs with dynamic metrics', async () => {
+  it('renders rich 4-stage workflow tabs with dynamic metrics', async () => {
     serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
     renderDesk();
 
     expect(await screen.findByRole('tab', { name: 'Persiapan & Eksekusi' })).toBeInTheDocument();
 
-    // Verify 2 Macro Tabs
+    // Verify 4 Stage Tabs
     const contextTab = screen.getByRole('tab', { name: 'Konteks & Spesifikasi' });
     expect(contextTab).toBeInTheDocument();
     expect(contextTab).toHaveTextContent('1. Konteks & Spesifikasi');
 
-    const testingAreaTab = screen.getByRole('tab', { name: 'Area Pengujian & Mutu' });
-    expect(testingAreaTab).toBeInTheDocument();
-    expect(testingAreaTab).toHaveTextContent('2. Area Pengujian & Mutu');
-    expect(testingAreaTab).toHaveTextContent('1 Kasus');
-
-    // Verify Sub-Tabs inside Area Pengujian & Mutu
     const preparationTab = screen.getByRole('tab', { name: 'Persiapan & Eksekusi' });
     expect(preparationTab).toBeInTheDocument();
-    expect(preparationTab).toHaveTextContent('1. Test Case & Eksekusi');
+    expect(preparationTab).toHaveTextContent('2. Test Case & Eksekusi');
     expect(preparationTab).toHaveTextContent('1 Kasus');
 
     const bugsTab = screen.getByRole('tab', { name: 'Bug & Retest' });
     expect(bugsTab).toBeInTheDocument();
-    expect(bugsTab).toHaveTextContent('2. Bug & Retest');
+    expect(bugsTab).toHaveTextContent('3. Bug & Retest');
 
     const signOffTab = screen.getByRole('tab', { name: 'Persetujuan & Riwayat' });
     expect(signOffTab).toBeInTheDocument();
-    expect(signOffTab).toHaveTextContent('3. Persetujuan & Riwayat');
+    expect(signOffTab).toHaveTextContent('4. Persetujuan QA');
   });
 
-  it('switches between Macro Tabs (Konteks & Spesifikasi vs Area Pengujian & Mutu)', async () => {
+  it('switches between Workflow Tabs smoothly', async () => {
     const user = userEvent.setup();
     renderDesk();
 
@@ -1275,9 +1269,11 @@ describe('QaTestingDesk Organism', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Hasil Kerja Developer & Verifikasi Lingkungan')).toBeInTheDocument();
 
-    const testingAreaTab = screen.getByRole('tab', { name: 'Area Pengujian & Mutu' });
-    await user.click(testingAreaTab);
-    expect(testingAreaTab).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'Persiapan & Eksekusi' })).toBeInTheDocument();
+    const preparationTab = screen.getByRole('tab', { name: 'Persiapan & Eksekusi' });
+    await user.click(preparationTab);
+    expect(preparationTab).toHaveAttribute('aria-selected', 'true');
+    expect(
+      screen.getByRole('tabpanel', { name: 'Persiapan dan eksekusi QA' }),
+    ).toBeInTheDocument();
   });
 });

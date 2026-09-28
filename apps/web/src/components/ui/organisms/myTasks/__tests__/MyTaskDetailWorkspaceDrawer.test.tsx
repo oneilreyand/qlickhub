@@ -148,16 +148,18 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByText('Kokpit PO & iCard')).toBeInTheDocument();
-    expect(screen.getByText('Area Kerja Dev')).toBeInTheDocument();
-    expect(screen.getByText('Area Pengujian QA')).toBeInTheDocument();
+    expect(screen.getByText('Ringkasan & Rilis (PO)')).toBeInTheDocument();
+    expect(screen.getByText('Pengerjaan Dev')).toBeInTheDocument();
+    expect(screen.getByText('Pengujian QA')).toBeInTheDocument();
     expect(screen.getByText('Peran: po')).toBeInTheDocument();
-    expect(screen.getByText('Kokpit Pengelolaan PO')).toBeInTheDocument();
+    expect(screen.getByText('Ringkasan Fitur & Rilis')).toBeInTheDocument();
 
     const drawerToolbar = screen.getByRole('toolbar', {
       name: 'Payment Integration Milestone navigation and controls',
     });
-    expect(drawerToolbar).toContainElement(screen.getByRole('tab', { name: 'Kokpit PO & iCard' }));
+    expect(drawerToolbar).toContainElement(
+      screen.getByRole('tab', { name: 'Ringkasan & Rilis (PO)' }),
+    );
     expect(drawerToolbar).toContainElement(
       screen.getByRole('button', { name: 'Kembali ke tampilan normal' }),
     );
@@ -183,11 +185,11 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    const devTab = screen.getByText('Area Kerja Dev');
+    const devTab = screen.getByText('Pengerjaan Dev');
     fireEvent.click(devTab);
     expect(screen.getByText(/Hasil Kerja & Catatan Implementasi Teknis/i)).toBeInTheDocument();
 
-    const qaTab = screen.getByText('Area Pengujian QA');
+    const qaTab = screen.getByText('Pengujian QA');
     fireEvent.click(qaTab);
     expect(screen.getByText(/Pengelolaan & Eksekusi Test Case/i)).toBeInTheDocument();
   });
@@ -218,7 +220,7 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
     ).toBeInTheDocument();
     expect(getParentTaskDeliveryTraceMock).toHaveBeenCalledWith('ws-1', mockSubtask.id);
 
-    fireEvent.click(screen.getByText('Area Pengujian QA'));
+    fireEvent.click(screen.getByText('Pengujian QA'));
     expect(await screen.findByText('Pengelolaan & Eksekusi Test Case')).toBeInTheDocument();
     expect(
       await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
@@ -283,7 +285,7 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
     );
 
     expect(screen.getByRole('tab', { name: 'Bukti QA' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Kokpit PO & iCard' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Ringkasan & Rilis (PO)' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Bukti QA' }));
     expect(await screen.findByText('Pengelolaan & Eksekusi Test Case')).toBeInTheDocument();
