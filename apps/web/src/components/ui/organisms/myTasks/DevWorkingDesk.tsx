@@ -21,6 +21,7 @@ import type { Task, TaskStatus, TaskComment } from '@qlick/contracts';
 import { Card } from '../../atoms/Card';
 import { Button } from '../../atoms/Button';
 import { Input } from '../../atoms/Input';
+import { Textarea } from '../../atoms/Textarea';
 import { FormattedText } from '../../atoms/FormattedText';
 import { Modal } from '../../molecules/Modal';
 import { Tabs, TabItem } from '../../molecules/Tabs';
@@ -770,14 +771,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               {/* Technical Implementation Markdown Notes */}
               <div className="space-y-1.5 flex-1 flex flex-col">
                 <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
-                  Catatan Implementasi Teknis / Kontrak API (khusus Developer)
+                  Catatan Implementasi Teknis
                 </label>
-                <textarea
+                <Textarea
                   value={technicalNotes}
                   onChange={(e) => setTechnicalNotes(e.target.value)}
                   rows={6}
-                  placeholder="Tulis arsitektur teknis, migrasi database, bentuk endpoint, atau keputusan penting developer..."
-                  className="w-full flex-1 min-h-[140px] rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:border-[#B1E743] dark:focus:border-[#B1E743] outline-none font-mono leading-relaxed"
+                  placeholder="Tulis ringkasan arsitektur teknis, migrasi database, bentuk endpoint, atau keputusan penting developer..."
+                  className="w-full flex-1 min-h-[140px] text-sm font-sans leading-relaxed"
                 />
               </div>
             </Card>
