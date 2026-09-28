@@ -50,33 +50,205 @@ graph LR
 7. Stop and surface conflicts between policy, contracts, implementation, and evidence.
 8. Never include values from `.env` or another secret store in documentation or evidence.
 
-The automated gate verifies required entry points, local links, unique Policy IDs, known policy
-references, Feature Card structure, and CI integration. Human semantic review remains mandatory
-for product behavior, authorization, destructive migrations, and release policy.
+The automated gate verifies required entry points, local target-file links in the active SSoT,
+Policy Registry, deployment document, and Feature Cards; it also verifies unique Policy IDs,
+known policy references, Feature Card structure, and CI integration. It does not validate fragment
+anchors, TODO entries, ADRs, reports, or semantic correctness. Human semantic review remains
+mandatory for product behavior, authorization, destructive migrations, and release policy.
 
 ---
 
-## 2. Siklus Hidup Pengerjaan Tugas (_8-Step Task Lifecycle_)
+## 2. Siklus Persiapan dan Pengerjaan Tugas (_Work Preflight & 8-Step Task Lifecycle_)
 
 ```mermaid
 flowchart TD
-    Step1["1. CLAIM\nUbah item di TODO.md menjadi 'In progress' + nama & tanggal"]
-    Step2["2. UNDERSTAND\nPelajari dokumen SSoT & telusuri implementasi kode eksisting"]
-    Step3["3. PLAN\nSusun rencana teknis, daftar berkas, dan strategi verifikasi"]
-    Step4["4. IMPLEMENT ATOMICALLY\nBangun vertical slice terkecil & gunakan ulang komponen atomic"]
-    Step5["5. VERIFY\nJalankan tes API/Web & buktikan migrasi PostgreSQL bersih"]
-    Step6["6. REVIEW\nPastikan kelengkapan 5 state UI (loading, empty, error, disabled, auth)"]
-    Step7["7. REPORT\nBuat laporan serah terima di docs/reports/ menggunakan template baku"]
-    Step8["8. UPDATE TODO\nTandai 'Done' di TODO.md (atau 'Blocked' jika terhambat)"]
+    Analysis["0. ANALYSE\nBaca SSoT, telusuri implementasi, capability, risiko, dan konflik"]
+    Preflight["1. WORK PREFLIGHT\nWRA + plan/pendekatan + jalur bukti setiap AC"]
+    Approval{"2. USER MENYETUJUI PLAN?"}
+    Step1["3. CLAIM / PARENT TASK\nBuat atau klaim satu item di TODO.md setelah approval"]
+    Step2["4. BREAK DOWN\nPecah vertical slice; BE/FE/QA hanya bila diperlukan"]
+    Step3["5. IMPLEMENT ATOMICALLY\nBangun vertical slice terkecil sesuai kontrak"]
+    Step4["6. VERIFY\nJalankan tes API/Web & buktikan migrasi PostgreSQL bersih"]
+    Step5["7. REVIEW OUTCOME\nCatat bukti sukses/gagal, gap, dan tindak lanjut"]
+    Step6["8. REPORT\nBuat laporan serah terima di docs/reports/ menggunakan template baku"]
+    Step7["9. UPDATE TODO\nTandai 'Done' atau 'Blocked' secara jujur"]
 
-    Step1 --> Step2 --> Step3 --> Step4 --> Step5 --> Step6 --> Step7 --> Step8
+    Analysis --> Preflight --> Approval
+    Approval -->|setuju| Step1 --> Step2 --> Step3 --> Step4 --> Step5 --> Step6 --> Step7
+    Approval -->|revisi / belum setuju| Preflight
 
     classDef phase fill:#E0F2FE,stroke:#0284C7,stroke-width:2px,color:#0B1C30;
     classDef done fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D;
+    classDef decision fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F;
 
-    class Step1,Step2,Step3,Step4,Step5,Step6,Step7 phase;
-    class Step8 done;
+    class Analysis,Preflight,Step1,Step2,Step3,Step4,Step5,Step6 phase;
+    class Approval decision;
+    class Step7 done;
 ```
+
+---
+
+### 2A. Protokol Assurance Kerja AI (_AI Work Assurance Protocol_)
+
+Protokol ini berlaku untuk pekerjaan yang akan mengubah repository, konfigurasi, data, atau
+deployment. Tujuannya adalah membuat handoff manusia → AI → AI → manusia dapat diaudit tanpa
+bergantung pada nama atau penyedia model. Model yang berbeda boleh menjalankan peran berbeda,
+tetapi perbedaan model bukan bukti independensi atau kebenaran.
+
+Keputusan tata kelola ini disetujui melalui
+[ADR-016](adr/ADR-016-VENDOR-NEUTRAL-AI-WORK-ASSURANCE.md). Detail operasional tetap kanonis di
+bagian ini.
+
+```mermaid
+flowchart LR
+    Request["Permintaan manusia"] --> Analysis["Analisis SSoT, kode, capability, risiko"]
+    Analysis --> Preflight["WRA + plan + pendekatan + AC-to-evidence"]
+    Preflight --> Ready{"Ready?"}
+    Ready -->|ready after split| Split["Pecah vertical slice"]
+    Split --> Preflight
+    Ready -->|blocked| Human["Keputusan manusia"]
+    Ready -->|ready| Approval{"Plan disetujui user?"}
+    Approval -->|revisi / belum setuju| Preflight
+    Approval -->|setuju| Parent["Buat / claim parent task"]
+    Parent --> Slice["Vertical slice teruji\nBE/FE/QA bila diperlukan"]
+    Slice --> Execute["Pelaksana"]
+    Execute --> Outcome{"Outcome evidence"}
+    Outcome -->|sukses| Evidence["Evidence Package"]
+    Outcome -->|gagal / blocked| Remediate["Catat failure evidence\nperbaiki, re-plan, Bug, atau Blocked"]
+    Remediate --> Slice
+    Evidence --> Verify["Verifikator independen / CI"]
+    Verify --> Human
+```
+
+#### A. Analisis, plan, dan persetujuan user
+
+Untuk setiap pekerjaan yang mengubah repository, konfigurasi, data, atau deployment, agent wajib
+melakukan analisis sebelum mengubah berkas atau meng-claim Task. Analisis membaca SSoT yang relevan,
+kontrak dan implementasi saat ini, lalu menyatakan fakta terkonfirmasi, konflik, capability/access,
+risiko, dan area yang tidak dapat diverifikasi.
+
+Berikutnya agent menawarkan plan dan pendekatan yang memuat WRA, scope, Acceptance Criteria (AC),
+Change Impact Map, Decision Snapshot bila material, berkas yang mungkin berubah, serta strategi
+evidence. Agent wajib meminta persetujuan eksplisit user atas plan dan pendekatan tersebut sebelum
+membuat atau meng-claim parent Task maupun melakukan perubahan repository. Jika user meminta revisi
+atau belum menyetujui, agent memperbarui plan dan tidak memulai eksekusi.
+
+Persetujuan plan hanya mengizinkan scope yang disetujui. Persetujuan ini tidak menggantikan Apply
+action untuk data Production, otorisasi backend, approval migrasi destruktif, atau keputusan rilis.
+Permintaan baca-saja yang tidak mengubah repository tidak memerlukan gerbang persetujuan ini.
+
+Sesudah approval, parent Task dipecah menjadi vertical slice yang masing-masing dapat dibuktikan
+terhadap AC. Subtask Backend, Frontend, dan QA dibuat hanya bila slice memerlukannya; pemecahan per
+lapisan tidak boleh menunda integrasi dan pengujian sampai seluruh layer selesai.
+
+#### B. Work Readiness Assessment sebelum klaim
+
+Sebelum mengklaim pekerjaan yang mengubah repository, agent membuat **Work Readiness Assessment
+(WRA)**. WRA adalah estimasi risiko, bukan janji durasi atau kepastian bahwa implementasi akan
+berhasil. Nilai delapan dimensi berikut dari `0` sampai `2`:
+
+| Dimensi                  | 0             | 1                    | 2                             |
+| ------------------------ | ------------- | -------------------- | ----------------------------- |
+| Kejelasan Requirement    | jelas         | asumsi kecil         | ambigu atau konflik           |
+| Lapisan terdampak        | satu          | dua                  | frontend, API, dan database   |
+| Data/migrasi             | tidak ada     | additive             | destruktif atau backfill      |
+| Authorization            | tidak berubah | pemeriksaan tambahan | boundary baru                 |
+| Shared contract          | tidak berubah | kompatibel           | breaking change               |
+| Ketersinggungan          | lokal         | beberapa konsumen    | lintas fitur/modul            |
+| Validasi                 | static/unit   | integration          | PostgreSQL, UAT, atau runtime |
+| Ketergantungan eksternal | tidak ada     | dapat dimock         | layanan atau akun nyata       |
+
+| Total | Klasifikasi dan tindakan minimum                                                            |
+| ----- | ------------------------------------------------------------------------------------------- |
+| 0–4   | Kecil; satu agent dapat menjalankan bila seluruh AC dapat dibuktikan.                       |
+| 5–8   | Sedang; sertakan Change Impact Map dan review terpisah.                                     |
+| 9–12  | Besar; pecah menjadi vertical slice sebelum implementasi.                                   |
+| 13–16 | Sangat berisiko; butuh keputusan manusia dan rencana rollout/recovery sebelum implementasi. |
+
+WRA juga menyatakan apakah agent memiliki akses untuk membaca SSoT, melihat kondisi repository,
+mengubah berkas yang diperlukan, menjalankan pemeriksaan yang diwajibkan, memakai PostgreSQL,
+mengakses browser/runtime atau layanan eksternal bila AC memerlukannya, serta bagian yang tidak
+dapat diverifikasi. Status WRA hanya `Ready`, `Ready after split`, atau `Blocked`. `Ready` dilarang
+jika salah satu Acceptance Criteria (AC) belum memiliki jalur evidence objektif.
+
+#### C. Kontrak pembuktian Acceptance Criteria
+
+Sebelum implementasi, rencana memetakan setiap AC ke bukti minimum: cara membuktikan, environment,
+pelaksana, verifikator, dan level evidence yang dibutuhkan. Contoh: penolakan akses memerlukan
+integration test `403`; persistensi memerlukan write lalu read-back melalui API pada PostgreSQL
+disposable; state UI memerlukan component/browser test; perjalanan nyata memerlukan UAT pada
+environment yang sesuai.
+
+| Level | Nama        | Bukti yang diizinkan                                                    | Batasan                                                                            |
+| ----- | ----------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| E0    | Claim       | Pernyataan agent tanpa sumber primer.                                   | Tidak pernah cukup untuk menerima AC.                                              |
+| E1    | Inspection  | Pembacaan kode, kontrak, atau dokumen.                                  | Tidak membuktikan eksekusi runtime.                                                |
+| E2    | Executed    | Perintah test, lint, typecheck, atau build dengan output dan exit code. | Hanya membuktikan cakupan pemeriksaan yang dijalankan.                             |
+| E3    | Persisted   | Data ditulis dan dibaca kembali melalui PostgreSQL/API terautentikasi.  | Environment dan scope data wajib dicatat.                                          |
+| E4    | Runtime/UAT | Perilaku diamati pada aplikasi/environment yang ditentukan.             | Tidak menggantikan tes integrasi bila persistensi/otorisasi juga harus dibuktikan. |
+
+Evidence level tidak boleh dinaikkan karena agent lain mempercayai laporan. Peningkatan hanya boleh
+terjadi setelah sumber primer atau pemeriksaan baru benar-benar dilakukan. Bukti yang tidak tersedia
+ditulis sebagai `unverified` atau gap, tidak diisi dengan inferensi atau data yang dibuat-buat.
+
+#### D. Outcome bukti sukses dan gagal
+
+Setiap pemeriksaan yang dijalankan menghasilkan outcome yang dicatat pada Evidence Package dan
+laporan. Outcome `sukses` memuat AC yang dibuktikan, perintah atau observasi primer, environment,
+exit code, jumlah pass/fail/skip/warning, level evidence tercapai, dan batas cakupannya. Outcome
+`gagal` atau `blocked` memuat AC yang terdampak, output kegagalan atau kondisi blocker, environment,
+langkah reproduksi bila tersedia, level evidence yang benar-benar tercapai, dan tindakan lanjutan.
+
+Kegagalan tidak boleh disembunyikan dengan menghapus, men-skip, atau melemahkan test. Jalur tindak
+lanjutnya adalah memperbaiki lalu menjalankan ulang pemeriksaan; membuka Bug bila merupakan defect
+produk; memperbarui plan bila scope/pendekatan perlu berubah; atau menandai Task `Blocked` bila
+otoritas, dependency, atau evidence primer tidak tersedia. Outcome `sukses` belum menerima AC sampai
+verifikator independen atau CI yang mencakup AC menyatakan hasilnya.
+
+Untuk hasil uji produk yang persisten, status `TestResult`, Evidence Manifest, Bug, dan retest tetap
+diatur secara kanonis oleh [Workflow & Role Governance §5–§6](2_WORKFLOW_AND_ROLES.md#5-manajemen-pengujian-native-qa-qa-test-management). Bagian ini mengatur outcome pekerjaan agent dan
+tidak menggandakan lifecycle QA tersebut.
+
+#### E. Analisis perubahan dan keputusan teknis
+
+Setiap rencana menyertakan **Change Impact Map** untuk area yang relevan: pemanggil dan error
+Function lokal; export/state/event Modul; alur peran Feature; shared contract; database/migrasi;
+authorization; UI states; evidence/release; operasional/deployment; dan SSoT/ADR/laporan.
+
+Klasifikasikan perubahan sebagai `Function change` (lokal), `Module change` (beberapa konsumen),
+`Feature change` (perjalanan pengguna), atau `Cross-boundary change` (contract, data,
+authorization, atau release gate). Klasifikasi yang lebih luas meningkatkan evidence dan kebutuhan
+review; klasifikasi tidak menggantikan Policy ID atau ADR yang sudah wajib.
+
+Perubahan yang memiliki alternatif material—terutama contract, data, authorization, workflow,
+arsitektur, migration, atau rollout—wajib mempunyai **Decision Snapshot**: masalah, pendekatan
+saat ini, opsi yang dipertimbangkan, pro dan kontra, pilihan beserta alasan, opsi yang ditolak,
+dampak kompatibilitas, rollout/rollback, dan konsekuensi bila tidak diubah. Perbaikan lokal yang
+jelas seperti typo tidak memerlukan snapshot penuh; ADR tetap wajib saat policy berubah.
+
+#### F. Handoff dan verifikasi independen
+
+Agent perencana tidak mengklaim implementasi selesai. Agent pelaksana tidak menjadi satu-satunya
+pihak yang menyatakan hasilnya benar. Handoff ke agent lain memuat: identitas tugas dan AC;
+peran/identitas agent; commit atau working-tree baseline; SSoT dan Policy ID; fakta, asumsi, dan
+keputusan manusia termasuk persetujuan plan; berkas diperiksa/berubah serta ringkasan diff;
+perintah aktual beserta exit code, pass/fail/skip/warning; environment/data; outcome sukses/gagal
+dan evidence level per AC; area belum diverifikasi; risiko, rollback, dan langkah berikutnya.
+
+Verifikator memeriksa sumber primer—diff, kontrak, output pemeriksaan, database, atau runtime—dan
+bukan hanya ringkasan pelaksana. Hasilnya wajib salah satu dari `Accepted`, `Accepted with gaps`,
+`Rejected`, atau `Blocked`, berikut alasan dan AC yang terpengaruh. Untuk pekerjaan kecil,
+CI deterministik dapat menjadi verifikator bila ia mencakup seluruh AC. Pekerjaan bernilai 5–8
+memerlukan review terpisah; pekerjaan bernilai 9–16 memerlukan verifikator independen serta
+keputusan manusia sesuai batas WRA. Verifikator harus memiliki konteks dan akses yang cukup untuk
+mereproduksi bukti; memakai model lain adalah opsional, bukan pengganti independensi tersebut.
+
+#### G. Ringkasan keputusan manusia
+
+Sebelum handoff akhir, agent menyajikan ringkasan yang dapat dibaca manusia: hasil yang dapat
+dipercaya, AC/evidence yang terpenuhi, gap atau risiko, pilihan/pro–kontra yang material, perubahan
+yang terdampak, dan keputusan yang masih membutuhkan manusia. Ringkasan ini mengarahkan pembaca ke
+evidence terperinci tetapi tidak menyembunyikan batas verifikasi.
 
 ---
 

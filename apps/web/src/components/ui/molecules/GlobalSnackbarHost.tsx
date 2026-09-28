@@ -2,10 +2,22 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Snackbar } from './Snackbar';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { dismissSnackbar, SnackbarNotification } from '../../../store/uiSlice';
+import { RATE_LIMIT_EVENT, RateLimitInfo } from '../../../lib/api/apiClient';
+import { RateLimitCountdown } from './RateLimitCountdown';
 
 export const GlobalSnackbarHost: React.FC = () => {
   const dispatch = useAppDispatch();
   const notifications = useAppSelector((state) => state.ui.notifications);
+  const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null);
+
+  useEffect(() => {
+    const handleRateLimit = (event: Event) => {
+      const detail = (event as CustomEvent<RateLimitInfo>).detail;
+      if (detail) setRateLimit(detail);
+    };
+    window.addEventListener(RATE_LIMIT_EVENT, handleRateLimit);
+    return () => window.removeEventListener(RATE_LIMIT_EVENT, handleRateLimit);
+  }, []);
 
   const handleDismiss = useCallback(
     (id: string) => {
@@ -14,10 +26,22 @@ export const GlobalSnackbarHost: React.FC = () => {
     [dispatch],
   );
 
-  if (!notifications.length) return null;
+  if (!notifications.length && !rateLimit) return null;
 
   return (
     <div className="pointer-events-none fixed inset-x-4 bottom-5 z-50 mx-auto flex w-auto max-w-sm flex-col gap-2 sm:inset-x-6">
+      {rateLimit && (
+        <div className="pointer-events-auto transition-transform duration-200 hover:scale-[1.01]">
+          <Snackbar
+            message={
+              <RateLimitCountdown rateLimit={rateLimit} onComplete={() => setRateLimit(null)} />
+            }
+            type="warning"
+            statusCode={429}
+            onClose={() => setRateLimit(null)}
+          />
+        </div>
+      )}
       {notifications.map((n) => (
         <div key={n.id} className="pointer-events-auto">
           <SnackbarItem notification={n} onClose={() => handleDismiss(n.id)} />

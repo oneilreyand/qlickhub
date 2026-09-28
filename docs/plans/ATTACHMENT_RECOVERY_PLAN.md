@@ -1,8 +1,12 @@
 # Attachment Migration & Storage Recovery Plan
 
 **Created:** 2026-08-21  
-**Status:** Active  
+**Status:** Historical recovery runbook — retained while migrations 48/49 and their verification commands exist.
 **Scope:** Safeguarding `task_attachments` and providing automated recovery for environments affected by legacy migration drift.
+
+This plan records a recovery procedure, not current product policy. Current attachment, security,
+and evidence rules remain in the canonical Architecture and Workflow documents. Confirm the
+current migration state and scripts before using this runbook in any environment.
 
 ---
 

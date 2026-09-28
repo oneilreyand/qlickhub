@@ -10,7 +10,7 @@ Start with the navigation map, then read every applicable SSoT before making cha
 2. [`docs/1_ARCHITECTURE.md`](docs/1_ARCHITECTURE.md) — SSoT for domain model, hierarchy, RBAC, schema, and security.
 3. [`docs/2_WORKFLOW_AND_ROLES.md`](docs/2_WORKFLOW_AND_ROLES.md) — SSoT for end-to-end role workflow, subtasks, QA test management, and release gates.
 4. [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md) — SSoT for atomic UI components, Stitch design tokens, and route layout.
-5. [`docs/4_AGENT_DEV_GUIDELINES.md`](docs/4_AGENT_DEV_GUIDELINES.md) — SSoT for developer rules, PostgreSQL test evidence policy, and handoff report template.
+5. [`docs/4_AGENT_DEV_GUIDELINES.md`](docs/4_AGENT_DEV_GUIDELINES.md) — SSoT for developer rules, AI work assurance, PostgreSQL test evidence policy, and handoff report template.
 6. [`docs/POLICY_REGISTRY.md`](docs/POLICY_REGISTRY.md) — stable identifiers pointing to approved SSoT rules; it never overrides the source document.
 7. [`TODO.md`](TODO.md) — Current prioritized active backlog.
 
@@ -20,10 +20,12 @@ When documents conflict, use this priority: explicit user instruction → securi
 
 - For all frontend work, follow [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md). Reuse the Atomic Design system before adding markup or styles to a page.
 - Work on exactly one TODO item or one tightly related subtask at a time.
+- Before claiming work that changes the repository, configuration, data, or deployment, complete the capability-aware Work Readiness Assessment in `docs/4_AGENT_DEV_GUIDELINES.md` §2A. Do not call work `Ready` until every Acceptance Criterion has an objective evidence path; split or block it truthfully when required.
 - Cite applicable Policy IDs from `docs/POLICY_REGISTRY.md` in Feature Knowledge Cards, plans, and reports when a policy boundary is involved.
 - Before editing, inspect the relevant code and identify the files likely to change.
 - Do not make silent product, role, schema, migration, or workflow assumptions. Resolve the answer from the source-of-truth documents and current implementation. If evidence conflicts or a choice materially changes behavior/data, document the conflict and request an explicit decision; mark the TODO item `Blocked` when work cannot safely continue.
-- Every plan must state confirmed facts, unresolved decisions, files likely to change, data/interface impact, authorization impact, migration risk, and validation evidence. Do not present guesses as repository facts.
+- Every plan must state confirmed facts, unresolved decisions, files likely to change, data/interface impact, authorization impact, migration risk, validation evidence, WRA result, AC-to-evidence mapping, and Change Impact Map. Add a Decision Snapshot with pro/con for material alternatives. Do not present guesses as repository facts.
+- An AI-to-AI handoff must carry the evidence package defined in `docs/4_AGENT_DEV_GUIDELINES.md` §2A. The receiving verifier checks primary evidence and returns `Accepted`, `Accepted with gaps`, `Rejected`, or `Blocked`; another model's summary is not proof.
 - Do not overwrite unrelated user changes, move existing code, or introduce a new framework without an explicit task.
 - Keep the frontend as React + Vite + React Router + Redux Toolkit/Redux Thunk.
 - Keep the backend as Express + TypeScript + Sequelize + PostgreSQL.
@@ -62,13 +64,14 @@ When documents conflict, use this priority: explicit user instruction → securi
 
 ## Task lifecycle
 
+0. **Work preflight** — Complete the Work Readiness Assessment for repository, configuration, data, or deployment changes; map every Acceptance Criterion to an objective evidence path.
 1. **Claim** — Change the selected item in `TODO.md` to `In progress`, with agent name/date if known.
 2. **Understand** — Read applicable delivery-plan/design sections and inspect current implementation.
-3. **Plan briefly** — State confirmed facts, unresolved decisions, files, data/interface impact, authorization, risks, and validation approach.
+3. **Plan briefly** — State confirmed facts, unresolved decisions, files, data/interface impact, authorization, risks, validation approach, WRA, AC-evidence mapping, impact map, and decision snapshot when applicable.
 4. **Implement atomically** — Deliver the smallest useful vertical slice. Reuse existing atoms, molecules, modules, and contracts.
 5. **Verify** — Run the narrowest relevant tests, then `npm run build` when frontend code changes. Record what was actually run.
 6. **Review** — Check empty/loading/error/permission states when the feature is data-driven.
-7. **Report** — Use `AGENT_REPORT_TEMPLATE.md`.
+7. **Report** — Use `AGENT_REPORT_TEMPLATE.md`, including reproducible handoff evidence and the independent-verification status.
 8. **Update TODO** — Mark complete only when verified; otherwise leave an explicit blocker or next action.
 
 ## Definition of done

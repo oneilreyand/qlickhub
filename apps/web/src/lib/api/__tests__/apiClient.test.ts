@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { apiClient, getHumanReadableApiErrorMessage } from '../apiClient';
+import {
+  apiClient,
+  getHumanReadableApiErrorMessage,
+  getRateLimitInfo,
+  RATE_LIMIT_EVENT,
+} from '../apiClient';
 
 describe('apiClient error metadata', () => {
   afterEach(() => {
@@ -77,5 +82,44 @@ describe('apiClient error metadata', () => {
         'A current triage decision is required before resolving a Requirement finding.',
       ),
     ).toMatch(/posisi terbaru Product, Development, dan QA/i);
+  });
+
+  it('uses the endpoint-specific draft-8 quota when multiple rate limiters add headers', () => {
+    const rateLimit = getRateLimitInfo(
+      new Headers({
+        RateLimit: '"api"; r=99; t=300, "login"; r=0; t=42',
+        'RateLimit-Policy': '"api"; q=100; w=300, "login"; q=3; w=300',
+        'Retry-After': '42',
+      }),
+    );
+
+    expect(rateLimit).toMatchObject({ limit: 3, remaining: 0, retryAfterSeconds: 42 });
+  });
+
+  it('emits safe quota information when a request is rate limited', async () => {
+    const onRateLimit = vi.fn();
+    window.addEventListener(RATE_LIMIT_EVENT, onRateLimit);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: { code: 'RATE_LIMITED' } }), {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            RateLimit: '"api"; r=0; t=18',
+            'RateLimit-Policy': '"api"; q=100; w=300',
+            'Retry-After': '18',
+          },
+        }),
+      ),
+    );
+
+    await expect(apiClient('/limited')).rejects.toMatchObject({
+      status: 429,
+      code: 'RATE_LIMITED',
+      rateLimit: { limit: 100, remaining: 0, retryAfterSeconds: 18 },
+    });
+    expect(onRateLimit).toHaveBeenCalledOnce();
+    window.removeEventListener(RATE_LIMIT_EVENT, onRateLimit);
   });
 });

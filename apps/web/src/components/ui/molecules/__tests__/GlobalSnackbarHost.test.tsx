@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { GlobalSnackbarHost } from '../GlobalSnackbarHost';
 import uiReducer, { enqueueSnackbar } from '../../../../store/uiSlice';
+import { RATE_LIMIT_EVENT } from '../../../../lib/api/apiClient';
 
 const createTestStore = () => {
   return configureStore({
@@ -88,5 +89,26 @@ describe('GlobalSnackbarHost Molecule', () => {
     expect(host).toHaveClass('fixed', 'inset-x-4', 'mx-auto', 'w-auto', 'max-w-sm');
     expect(host).not.toHaveClass('right-5', 'w-full');
     expect(message).toHaveClass('min-w-0', 'break-words');
+  });
+
+  it('shows server-provided quota and countdown when the API emits a rate-limit event', () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <GlobalSnackbarHost />
+      </Provider>,
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(RATE_LIMIT_EVENT, {
+          detail: { limit: 30, remaining: 0, resetAt: Date.now() + 60_000 },
+        }),
+      );
+    });
+
+    expect(screen.getByText(/Sisa kuota: 0 dari 30/i)).toBeInTheDocument();
+    expect(screen.getByText(/Coba lagi dalam 01:00/i)).toBeInTheDocument();
+    expect(screen.getByText('429')).toBeInTheDocument();
   });
 });

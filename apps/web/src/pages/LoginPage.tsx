@@ -5,6 +5,8 @@ import { Lock, Mail, ArrowRight, AlertTriangle, ShieldCheck, Sparkles } from 'lu
 import { Alert } from '../components/ui/atoms/Alert';
 import { Button } from '../components/ui/atoms/Button';
 import { Input } from '../components/ui/atoms/Input';
+import { RateLimitCountdown } from '../components/ui/molecules/RateLimitCountdown';
+import type { RateLimitInfo } from '../lib/api/apiClient';
 import { useAppDispatch } from '../store/hooks';
 import { setSessionUser } from '../store/authSlice';
 import { clearOnboardingDismissed } from '../lib/storage/browserStorage';
@@ -29,9 +31,16 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loginRateLimit, setLoginRateLimit] = useState<RateLimitInfo | null>(null);
+  const isLoginRateLimited = Boolean(
+    loginRateLimit?.remaining === 0 &&
+    loginRateLimit.resetAt &&
+    loginRateLimit.resetAt > Date.now(),
+  );
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoginRateLimited) return;
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -54,6 +63,7 @@ export const LoginPage: React.FC = () => {
       navigate(destination, { replace: true });
     } catch (err: any) {
       setIsLoading(false);
+      if (err?.rateLimit) setLoginRateLimit(err.rateLimit);
       setErrorMessage(
         err?.message || 'Otentikasi gagal. Pastikan email dan kata sandi Anda benar.',
       );
@@ -199,6 +209,21 @@ export const LoginPage: React.FC = () => {
             </Alert>
           )}
 
+          {loginRateLimit && (
+            <Alert
+              tone={loginRateLimit.remaining === 0 ? 'error' : 'warning'}
+              icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+              title={
+                loginRateLimit.remaining === 0 ? 'Percobaan masuk dibatasi' : 'Sisa percobaan masuk'
+              }
+            >
+              <RateLimitCountdown
+                rateLimit={loginRateLimit}
+                onComplete={() => setLoginRateLimit(null)}
+              />
+            </Alert>
+          )}
+
           {errorMessage && <Alert tone="error">{errorMessage}</Alert>}
 
           {/* Form Login */}
@@ -256,9 +281,14 @@ export const LoginPage: React.FC = () => {
                 type="submit"
                 className="w-full h-11 text-sm font-bold shadow-sm hover:shadow-md transition-all"
                 isLoading={isLoading}
+                disabled={isLoginRateLimited}
                 rightIcon={<ArrowRight className="h-4 w-4" />}
               >
-                {isLoading ? 'Sedang masuk…' : 'Masuk ke Qlick Hub'}
+                {isLoading
+                  ? 'Sedang masuk…'
+                  : isLoginRateLimited
+                    ? 'Tunggu sebelum mencoba lagi'
+                    : 'Masuk ke Qlick Hub'}
               </Button>
             </div>
           </form>

@@ -1,6 +1,14 @@
 /// <reference types="vite/client" />
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/v1';
+export const RATE_LIMIT_EVENT = 'qlickhub:rate-limit';
+
+export interface RateLimitInfo {
+  limit?: number;
+  remaining?: number;
+  retryAfterSeconds?: number;
+  resetAt?: number;
+}
 
 export interface ApiOptions extends RequestInit {
   params?: Record<string, string>;
@@ -16,6 +24,56 @@ const getRequestKey = (url: string, config: RequestInit) => {
 };
 
 let refreshPromise: Promise<boolean> | null = null;
+
+const getLastRateLimitValue = (header: string | null, names: string[]) => {
+  if (!header) return undefined;
+
+  let result: number | undefined;
+  const expression = new RegExp(`(?:^|[;,]\\s*)(?:${names.join('|')})\\s*=\\s*(\\d+)`, 'gi');
+  let match: RegExpExecArray | null;
+  while ((match = expression.exec(header)) !== null) {
+    const value = Number(match[1]);
+    if (Number.isSafeInteger(value) && value >= 0) result = value;
+  }
+  return result;
+};
+
+const getRetryAfterSeconds = (headers: Headers) => {
+  const retryAfter = headers.get('retry-after');
+  if (!retryAfter) return undefined;
+
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds);
+
+  const retryAt = Date.parse(retryAfter);
+  return Number.isNaN(retryAt) ? undefined : Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
+};
+
+/** Reads IETF RateLimit draft-8 headers without exposing identifiers or server internals. */
+export function getRateLimitInfo(headers: Headers): RateLimitInfo | undefined {
+  const rateLimitHeader = headers.get('ratelimit');
+  const policyHeader = headers.get('ratelimit-policy');
+  const remaining = getLastRateLimitValue(rateLimitHeader, ['r', 'remaining']);
+  const retryAfterSeconds =
+    getRetryAfterSeconds(headers) ?? getLastRateLimitValue(rateLimitHeader, ['t', 'reset']);
+  const limit = getLastRateLimitValue(policyHeader, ['q', 'limit']);
+
+  if (limit === undefined && remaining === undefined && retryAfterSeconds === undefined) {
+    return undefined;
+  }
+
+  return {
+    limit,
+    remaining,
+    retryAfterSeconds,
+    ...(retryAfterSeconds !== undefined && { resetAt: Date.now() + retryAfterSeconds * 1000 }),
+  };
+}
+
+function notifyRateLimit(rateLimit: RateLimitInfo) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<RateLimitInfo>(RATE_LIMIT_EVENT, { detail: rateLimit }));
+}
 
 /**
  * Converts transport errors into safe, actionable copy for the product UI.
@@ -117,6 +175,10 @@ export function getHumanReadableApiErrorMessage(
     return 'Sesi Anda telah berakhir. Silakan masuk kembali untuk melanjutkan.';
   }
 
+  if (normalizedCode === 'RATE_LIMITED' || status === 429) {
+    return 'Batas permintaan telah tercapai. Silakan tunggu sebelum mencoba lagi.';
+  }
+
   if (status >= 500) {
     return 'Terjadi gangguan pada layanan. Coba lagi beberapa saat.';
   }
@@ -206,6 +268,11 @@ async function sendRequest<T>(
       handleAuthFailure(errorCode);
     }
 
+    const rateLimit = getRateLimitInfo(response.headers);
+    if (response.status === 429 && rateLimit) {
+      notifyRateLimit(rateLimit);
+    }
+
     const error = new Error(
       getHumanReadableApiErrorMessage(response.status, errorCode, errorMessage),
     ) as any;
@@ -213,6 +280,9 @@ async function sendRequest<T>(
     error.code = errorCode || undefined;
     if (validationErrors) {
       error.errors = validationErrors;
+    }
+    if (rateLimit) {
+      error.rateLimit = rateLimit;
     }
     throw error;
   }

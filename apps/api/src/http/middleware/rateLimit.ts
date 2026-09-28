@@ -13,21 +13,29 @@ const rateLimitMessage = {
   message: 'Too many requests. Please try again later.',
 };
 
+// Keep the existing per-minute throughput while shortening the maximum wait a user sees.
+export const API_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+export const API_RATE_LIMIT_PRODUCTION_MAX = 100;
+export const LOGIN_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+export const LOGIN_RATE_LIMIT_PRODUCTION_MAX = 3;
+
 export const apiRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: env.NODE_ENV === 'production' ? 300 : 10000,
+  windowMs: API_RATE_LIMIT_WINDOW_MS,
+  limit: env.NODE_ENV === 'production' ? API_RATE_LIMIT_PRODUCTION_MAX : 10000,
   skip: () => env.NODE_ENV === 'test',
   standardHeaders: 'draft-8',
   legacyHeaders: false,
+  identifier: 'api',
   message: rateLimitMessage,
 }) as unknown as RequestHandler;
 
 export const loginRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: env.NODE_ENV === 'production' ? 10 : 1000,
+  windowMs: LOGIN_RATE_LIMIT_WINDOW_MS,
+  limit: env.NODE_ENV === 'production' ? LOGIN_RATE_LIMIT_PRODUCTION_MAX : 1000,
   skip: () => env.NODE_ENV !== 'production',
   standardHeaders: 'draft-8',
   legacyHeaders: false,
+  identifier: 'login',
   skipSuccessfulRequests: true,
   message: rateLimitMessage,
 }) as unknown as RequestHandler;
@@ -43,6 +51,7 @@ export const notificationRateLimiter = rateLimit({
   skip: () => env.NODE_ENV === 'test',
   standardHeaders: 'draft-8',
   legacyHeaders: false,
+  identifier: 'notification',
   keyGenerator: (req) => {
     // Use authenticated userId for per-user rate limiting; fallback to IP
     const user = (req as typeof req & { user?: { userId?: string } }).user;
@@ -119,6 +128,7 @@ export function createLinkPreviewRateLimiter(
     skip: options.skip ?? (() => environment === 'test'),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
+    identifier: 'link-preview',
     keyGenerator: (req) => {
       const user = (req as typeof req & { user?: { userId?: string } }).user;
       const rawIdentifier = user?.userId

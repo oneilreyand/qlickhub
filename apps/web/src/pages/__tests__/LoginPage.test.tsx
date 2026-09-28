@@ -177,6 +177,38 @@ describe('LoginPage Component', () => {
     });
   });
 
+  it('shows remaining login quota and disables login while the server reports a rate limit', async () => {
+    const store = createTestStore();
+    (authService.login as any).mockRejectedValueOnce({
+      message: 'Batas permintaan telah tercapai.',
+      rateLimit: { limit: 3, remaining: 0, resetAt: Date.now() + 60_000 },
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/login']}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Masukkan alamat email'), {
+      target: { value: 'wrong@company.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi'), {
+      target: { value: 'wrongpassword' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Masuk ke Qlick Hub/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Percobaan masuk dibatasi')).toBeInTheDocument();
+      expect(screen.getByText(/Sisa kuota: 0 dari 3/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Tunggu sebelum mencoba lagi/i })).toBeDisabled();
+    });
+  });
+
   it('allows toggling password visibility on the password field', () => {
     const store = createTestStore();
     render(

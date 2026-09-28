@@ -2,7 +2,7 @@ import React from 'react';
 import { Bell, CheckCircle2, AlertTriangle, XCircle, X } from 'lucide-react';
 
 export interface SnackbarProps {
-  message: string;
+  message: React.ReactNode;
   type?: 'success' | 'warning' | 'error' | 'info';
   statusCode?: number;
   onClose: () => void;

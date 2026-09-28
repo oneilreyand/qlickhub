@@ -353,3 +353,5 @@ Keputusan ini dijelaskan dalam
 
 - Setiap kapabilitas AI hanya menghasilkan draf usulan (_cited draft_).
 - AI **dilarang keras** melakukan mutasi data produksi secara otomatis/otonom tanpa tindakan eksplisit (_Apply action_) dari pengguna yang terautentikasi.
+- Protokol operasional analisis, persetujuan plan user, evidence outcome, dan verifikasi AI berada
+  secara kanonis di [Agent & Developer Guidelines](4_AGENT_DEV_GUIDELINES.md#2a-protokol-assurance-kerja-ai-ai-work-assurance-protocol) dan keputusan historisnya di [ADR-016](adr/ADR-016-VENDOR-NEUTRAL-AI-WORK-ASSURANCE.md) serta [ADR-017](adr/ADR-017-AI-PLAN-APPROVAL-AND-EVIDENCE-OUTCOMES.md). Persetujuan plan tidak menggantikan Apply action atau release decision.
