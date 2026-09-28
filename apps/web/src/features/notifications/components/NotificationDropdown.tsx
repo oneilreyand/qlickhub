@@ -61,13 +61,14 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {unreadCount > 0 && (
             <button
               type="button"
               onClick={onMarkAllAsRead}
-              className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:hover:text-stone-200 dark:hover:bg-stone-800 text-[11px] font-semibold flex items-center gap-1"
+              className="px-2.5 py-1 min-h-[32px] rounded-lg text-stone-600 hover:text-stone-900 bg-stone-100/70 hover:bg-stone-100 dark:text-stone-300 dark:bg-stone-800/60 dark:hover:text-stone-100 dark:hover:bg-stone-800 text-xs font-semibold flex items-center gap-1.5 transition-colors focus:outline-hidden focus:ring-2 focus:ring-[#B1E743]"
               title="Tandai semua sudah dibaca"
+              aria-label="Tandai semua notifikasi sudah dibaca"
             >
               <CheckCheck className="h-3.5 w-3.5" />
               <span>Baca semua</span>
@@ -77,8 +78,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
             <button
               type="button"
               onClick={onClearAll}
-              className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-[11px]"
+              className="p-1.5 min-h-[32px] min-w-[32px] grid place-items-center rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 transition-colors focus:outline-hidden focus:ring-2 focus:ring-rose-500"
               title="Hapus semua notifikasi"
+              aria-label="Hapus semua notifikasi"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -87,7 +89,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1 pt-2 pb-1 border-b border-stone-100 dark:border-stone-800 overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-1.5 pt-2 pb-1 border-b border-stone-100 dark:border-stone-800 overflow-x-auto scrollbar-none">
         {[
           { id: 'all', label: `Semua (${notifications.length})` },
           { id: 'unread', label: `Belum Dibaca (${unreadCount})` },
@@ -98,10 +100,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
             key={tab.id}
             type="button"
             onClick={() => setNotifFilter(tab.id as typeof notifFilter)}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 ${
+            className={`px-3 py-1.5 min-h-[32px] rounded-lg text-xs font-bold transition-all shrink-0 ${
               notifFilter === tab.id
-                ? 'bg-[#B1E743] text-[#141413] font-bold dark:bg-[#B1E743] dark:text-[#141413]'
-                : 'text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
+                ? 'bg-[#B1E743] text-[#141413] font-extrabold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-300 dark:hover:text-stone-100 dark:hover:bg-stone-800'
             }`}
           >
             {tab.label}
@@ -182,19 +184,19 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="mt-3 pt-2.5 border-t border-stone-100 dark:border-stone-800 flex justify-between items-center text-[11px]">
+      <div className="mt-3 pt-2.5 border-t border-stone-100 dark:border-stone-800 flex justify-between items-center text-xs">
         <button
           type="button"
           onClick={() => {
             navigate('/my-tasks');
             onClose();
           }}
-          className="font-bold text-stone-700 hover:text-stone-950 dark:text-[#B1E743] dark:hover:text-[#B1E743]/80 flex items-center gap-1"
+          className="font-bold text-stone-700 hover:text-stone-950 dark:text-[#B1E743] dark:hover:text-[#B1E743]/80 flex items-center gap-1.5 transition-colors focus:outline-hidden focus:underline"
         >
           <span>Buka Tugas Saya</span>
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="h-3.5 w-3.5" />
         </button>
-        <span className="text-stone-400">Pusat Kolaborasi</span>
+        <span className="text-stone-500 dark:text-stone-400 text-[11px]">Pusat Kolaborasi</span>
       </div>
     </div>
   );

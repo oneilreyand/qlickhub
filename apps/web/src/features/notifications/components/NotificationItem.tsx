@@ -26,10 +26,10 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   return (
     <div
       onClick={() => onClick(notif)}
-      className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-2.5 ${
+      className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3 ${
         !notif.isRead
           ? 'border-[#B1E743]/50 bg-[#B1E743]/10 dark:border-[#B1E743]/40 dark:bg-stone-800/80 shadow-xs'
-          : 'border-transparent hover:border-stone-200 hover:bg-stone-50/50 dark:hover:border-stone-800 dark:hover:bg-stone-800/40 text-stone-600 dark:text-stone-400'
+          : 'border-stone-200/50 bg-stone-50/30 hover:border-stone-200 hover:bg-stone-50/80 dark:border-stone-800/60 dark:bg-[#1C1A19]/50 dark:hover:border-stone-700 dark:hover:bg-stone-800/50'
       }`}
     >
       {/* Type Icon */}
@@ -97,29 +97,46 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 space-y-0.5">
-        <div className="flex items-center justify-between gap-1">
-          <p className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex items-center justify-between gap-1.5">
+          <p
+            className={`text-xs truncate ${
+              !notif.isRead
+                ? 'font-bold text-stone-900 dark:text-stone-100'
+                : 'font-semibold text-stone-800 dark:text-stone-200'
+            }`}
+          >
             {notif.title}
           </p>
-          <span className="text-[10px] text-stone-400 shrink-0">
+          <span className="text-[11px] font-medium text-stone-500 dark:text-stone-400 shrink-0">
             {new Date(notif.createdAt).toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit',
             })}
           </span>
         </div>
-        <p className="text-[11px] text-stone-600 dark:text-stone-300 line-clamp-2 leading-relaxed">
+        <p
+          className={`text-xs line-clamp-2 leading-relaxed ${
+            !notif.isRead
+              ? 'text-stone-700 dark:text-stone-200 font-medium'
+              : 'text-stone-600 dark:text-stone-300'
+          }`}
+        >
           {notif.message}
         </p>
         {notif.actorName && (
-          <p className="text-[10px] font-semibold text-stone-400 dark:text-stone-500">
-            Dari: {notif.actorName}
+          <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
+            Dari: <span className="font-semibold text-stone-700 dark:text-stone-300">{notif.actorName}</span>
           </p>
         )}
       </div>
 
-      {!notif.isRead && <span className="mt-1.5 h-2 w-2 rounded-full bg-[#B1E743] shrink-0" />}
+      {!notif.isRead && (
+        <span
+          className="mt-1.5 h-2 w-2 rounded-full bg-[#B1E743] ring-2 ring-white dark:ring-stone-900 shrink-0"
+          aria-label="Belum dibaca"
+        />
+      )}
     </div>
   );
 };

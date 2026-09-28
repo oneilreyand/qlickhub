@@ -517,7 +517,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               className={`flex items-center gap-2 ${
                 subtask.status === 'todo'
                   ? 'text-stone-900 dark:text-[#B1E743] font-extrabold'
-                  : 'text-stone-500'
+                  : 'text-stone-500 dark:text-stone-400 font-semibold'
               }`}
             >
               <div
@@ -540,7 +540,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   ? subtask.status === 'changes_requested'
                     ? 'text-amber-600 dark:text-amber-400 font-extrabold'
                     : 'text-stone-900 dark:text-[#B1E743] font-extrabold'
-                  : 'text-stone-500'
+                  : 'text-stone-500 dark:text-stone-400 font-semibold'
               }`}
             >
               <div
@@ -565,7 +565,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               className={`flex items-center gap-2 ${
                 subtask.status === 'in_review'
                   ? 'text-amber-600 dark:text-amber-400 font-extrabold'
-                  : 'text-stone-500'
+                  : 'text-stone-500 dark:text-stone-400 font-semibold'
               }`}
             >
               <div
@@ -586,7 +586,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               className={`flex items-center gap-2 ${
                 subtask.status === 'done'
                   ? 'text-stone-900 dark:text-[#B1E743] font-extrabold'
-                  : 'text-stone-500'
+                  : 'text-stone-500 dark:text-stone-400 font-semibold'
               }`}
             >
               <div
@@ -783,6 +783,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             <button
               type="button"
               onClick={() => setShowPrdContext(!showPrdContext)}
+              aria-expanded={showPrdContext}
               className="w-full p-4 flex items-center justify-between text-left bg-stone-50/60 dark:bg-stone-900/50 hover:bg-stone-100/60 dark:hover:bg-stone-900 transition-colors"
             >
               <div className="flex items-center gap-2">
@@ -791,7 +792,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   <span className="text-xs font-extrabold uppercase tracking-wider text-stone-900 dark:text-stone-100 block">
                     Ringkasan Produk &amp; Spesifikasi dari PO
                   </span>
-                  <span className="text-xs text-stone-500 dark:text-stone-400">
+                  <span className="text-xs text-stone-600 dark:text-stone-300">
                     Spesifikasi acuan dari Product Owner (hanya baca)
                   </span>
                 </div>
@@ -806,7 +807,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             {showPrdContext && (
               <div className="p-4 border-t border-stone-200 dark:border-stone-800 space-y-3 bg-white dark:bg-stone-950">
                 {parentTask?.description ? (
-                  <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-sans border border-stone-200/60 dark:border-stone-800">
+                  <div className="max-h-60 overflow-y-auto pr-1 scrollbar-thin p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-sans border border-stone-200/60 dark:border-stone-800">
                     <FormattedText content={parentTask.description} />
                   </div>
                 ) : (

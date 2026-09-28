@@ -300,7 +300,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
               {totalItems} tindakan
             </Badge>
           </div>
-          <p className="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+          <p className="mt-1 text-xs leading-relaxed text-stone-600 dark:text-stone-300">
             Prioritas {roleLabel} ditentukan dari alur Workspace yang tersimpan.
           </p>
         </div>
@@ -334,7 +334,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
             <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
               {bucketLabels[activeBucket.code]}
             </h3>
-            <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400" aria-live="polite">
+            <p className="mt-0.5 text-xs text-stone-600 dark:text-stone-300" aria-live="polite">
               Menampilkan {visibleItems.length} dari {activeBucket.total} pekerjaan prioritas.
             </p>
           </div>
@@ -399,7 +399,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                       <h4 className="break-words text-sm font-extrabold text-stone-900 dark:text-stone-100">
                         {item.title}
                       </h4>
-                      <p className="mt-1 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
+                      <p className="mt-1 text-sm leading-relaxed text-stone-700 dark:text-stone-200">
                         {localizeReason(item.reason)}
                       </p>
                     </div>
@@ -419,13 +419,13 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                         {workState.label}
                       </Badge>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-stone-500 dark:text-stone-400">
-                      <span className="font-semibold text-stone-700 dark:text-stone-300">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600 dark:text-stone-300">
+                      <span className="font-semibold text-stone-800 dark:text-stone-200">
                         Berikutnya: {actionLabels[item.nextAction.code] || item.nextAction.label}
                       </span>
                       {item.dueDate && (
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="inline-flex items-center gap-1 font-medium text-stone-600 dark:text-stone-300">
+                          <Calendar className="h-3.5 w-3.5 text-stone-400 dark:text-stone-400" aria-hidden="true" />
                           Tenggat {item.dueDate}
                         </span>
                       )}
