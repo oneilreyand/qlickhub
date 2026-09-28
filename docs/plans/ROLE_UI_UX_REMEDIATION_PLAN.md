@@ -22,13 +22,8 @@
 ## 2. Keputusan yang Perlu Disepakati (_Unresolved Decisions & Snapshot_)
 
 ### Decision Snapshot: Tata Letak iCard PO di Drawer
-- **Masalah:** Grid 3 kolom horizontal (`md:grid-cols-3`) di dalam drawer samping membuat kartu FE, BE, QA tertekan hingga ~200px lebar, memicu truncation teks dan eye strain.
-- **Opsi A (Segmented / Stacked View):** Mengubah kartu tim menjadi mode segmented selector (pilih tab tim FE, BE, QA) atau kartu tumpuk vertikal dengan accordion yang dapat dilipat. *(Direkomendasikan)*
-  - *Pro:* Sangat ramah drawer, tipografi terbaca lega, tombol aksi jelas, tidak ada teks terpotong.
-  - *Kontra:* Pengguna melihat subtask satu tim dalam satu waktu (bila memakai segmented) atau perlu scroll vertikal (bila stacked).
-- **Opsi B (Melebarkan Drawer ke Fullscreen):** Mengubah drawer menjadi modal fullscreen atau navigasi halaman terpisah.
-  - *Pro:* Menjaga tampilan 3 kolom tetap berdampingan.
-  - *Kontra:* Kehilangan sifat kontekstual drawer laci samping dan memutus alur browsing cepat antrean.
+- **Keputusan User (2026-09-28):** Berdasarkan instruksi user (*"apa yang berubah di tugas saya untuk role po, jangan ada perubahan"*), tata letak dan komponen PO (`PoTeamICardGrid.tsx`) dipertahankan 100% utuh sesuai kondisi aslinya. Tidak ada perubahan yang diterapkan pada antarmuka PO.
+- **Opsi Asli (Tetap Aktif):** Grid 3 kolom horizontal (`md:grid-cols-3`) tetap dipertahankan untuk PO.
 
 ### Decision Snapshot: Handoff & Deliverables Developer
 - **Masalah:** Tombol ganda "Simpan Catatan & Deliverables" vs "Serahkan ke QA", serta alur status `changes_requested`.
