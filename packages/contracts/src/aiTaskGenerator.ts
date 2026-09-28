@@ -1,0 +1,102 @@
+import { z } from 'zod';
+import { TaskPrioritySchema, DeliveryAreaSchema, TaskSchema } from './task.js';
+
+export const TargetPlatformSchema = z.enum(['web', 'mobile', 'backend', 'fullstack', 'qa']);
+export type TargetPlatform = z.infer<typeof TargetPlatformSchema>;
+
+/**
+ * Input for generating an AI task draft.
+ */
+export const GenerateTaskDraftInputSchema = z.object({
+  workspaceId: z.string().uuid(),
+  prompt: z.string().trim().min(5, 'Prompt minimal 5 karakter').max(4000, 'Prompt maksimal 4000 karakter'),
+  folderId: z.string().uuid().nullable().optional(),
+  targetPlatforms: z.array(TargetPlatformSchema).optional(),
+});
+
+export type GenerateTaskDraftInput = z.infer<typeof GenerateTaskDraftInputSchema>;
+
+/**
+ * Draft Requirement with its Acceptance Criteria.
+ */
+export const GeneratedRequirementDraftSchema = z.object({
+  title: z.string().trim().min(1, 'Judul requirement wajib diisi').max(255),
+  description: z.string().optional().default(''),
+  acceptanceCriteria: z
+    .array(z.string().trim().min(1, 'Kriteria penerimaan tidak boleh kosong'))
+    .default([]),
+});
+
+export type GeneratedRequirementDraft = z.infer<typeof GeneratedRequirementDraftSchema>;
+
+/**
+ * Draft Subtask.
+ */
+export const GeneratedSubtaskDraftSchema = z.object({
+  title: z.string().trim().min(1, 'Judul subtask wajib diisi').max(200),
+  description: z.string().optional().default(''),
+  deliveryArea: DeliveryAreaSchema,
+  priority: TaskPrioritySchema.default('medium'),
+  enabled: z.boolean().default(true),
+});
+
+export type GeneratedSubtaskDraft = z.infer<typeof GeneratedSubtaskDraftSchema>;
+
+/**
+ * The complete AI-generated Task Draft structure returned for PO preview.
+ */
+export const GeneratedTaskDraftSchema = z.object({
+  task: z.object({
+    title: z.string().trim().min(1, 'Judul task wajib diisi').max(200),
+    description: z.string().default(''),
+    priority: TaskPrioritySchema.default('medium'),
+  }),
+  productBrief: z.object({
+    context: z.string().default(''),
+    inScope: z.array(z.string().trim().min(1)).default([]),
+    outScope: z.array(z.string().trim().min(1)).default([]),
+  }),
+  requirements: z.array(GeneratedRequirementDraftSchema).default([]),
+  subtasks: z.array(GeneratedSubtaskDraftSchema).default([]),
+  summary: z.string().optional(),
+});
+
+export type GeneratedTaskDraft = z.infer<typeof GeneratedTaskDraftSchema>;
+
+/**
+ * Input for applying the reviewed AI task draft into persistent storage.
+ */
+export const ApplyTaskDraftInputSchema = z.object({
+  workspaceId: z.string().uuid(),
+  folderId: z.string().uuid().nullable().optional(),
+  task: z.object({
+    title: z.string().trim().min(1, 'Judul task wajib diisi').max(200),
+    description: z.string().optional().default(''),
+    priority: TaskPrioritySchema.default('medium'),
+    startDate: z.string().nullable().optional(),
+    dueDate: z.string().nullable().optional(),
+  }),
+  productBrief: z
+    .object({
+      context: z.string().default(''),
+      inScope: z.array(z.string().trim()).default([]),
+      outScope: z.array(z.string().trim()).default([]),
+    })
+    .optional(),
+  requirements: z.array(GeneratedRequirementDraftSchema).optional().default([]),
+  subtasks: z.array(GeneratedSubtaskDraftSchema).optional().default([]),
+});
+
+export type ApplyTaskDraftInput = z.infer<typeof ApplyTaskDraftInputSchema>;
+
+/**
+ * Response after applying the task draft.
+ */
+export const ApplyTaskDraftResponseSchema = z.object({
+  task: TaskSchema,
+  createdSubtaskCount: z.number().int().min(0),
+  createdRequirementCount: z.number().int().min(0),
+  hasProductBrief: z.boolean(),
+});
+
+export type ApplyTaskDraftResponse = z.infer<typeof ApplyTaskDraftResponseSchema>;

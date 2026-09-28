@@ -99,6 +99,10 @@ import {
   AssignmentConflictPreviewResponseSchema,
   TeamCapacityTimelineQuerySchema,
   TeamCapacityTimelineResponseSchema,
+  GenerateTaskDraftInputSchema,
+  GeneratedTaskDraftSchema,
+  ApplyTaskDraftInputSchema,
+  ApplyTaskDraftResponseSchema,
 } from './index.js';
 
 describe('Contracts Validation Suite', () => {
@@ -2470,6 +2474,131 @@ describe('Contracts Validation Suite', () => {
 
       assert.strictEqual(response.members[0].name, 'Budi Developer');
       assert.strictEqual(response.members[0].scheduledSubtasks[0].title, 'Integrasi Timeline');
+    });
+  });
+
+  describe('AI Task Generator contracts (AI-001, DOMAIN-002, DOMAIN-004)', () => {
+    const workspaceId = '123e4567-e89b-12d3-a456-426614174000';
+    const taskId = '123e4567-e89b-12d3-a456-426614174001';
+
+    test('validates GenerateTaskDraftInputSchema with prompt and optional folder/platforms', () => {
+      const input = GenerateTaskDraftInputSchema.parse({
+        workspaceId,
+        prompt: 'Implementasi autentikasi Google SSO dan Firebase FCM push notification',
+        targetPlatforms: ['web', 'backend', 'qa'],
+      });
+      assert.strictEqual(input.workspaceId, workspaceId);
+      assert.strictEqual(input.targetPlatforms?.length, 3);
+    });
+
+    test('validates GeneratedTaskDraftSchema structured output with 4-entity hierarchy', () => {
+      const draft = GeneratedTaskDraftSchema.parse({
+        task: {
+          title: 'Autentikasi Google SSO',
+          description: 'Mendukung login satu klik dengan Google OAuth2',
+          priority: 'high',
+        },
+        productBrief: {
+          context: 'Mempermudah pengguna baru mendaftar tanpa perlu membuat password baru.',
+          inScope: ['Login button di /login', 'Verifikasi ID Token di backend', 'Auto-create profile'],
+          outScope: ['Integrasi Apple Sign In', 'Enterprise SAML SSO'],
+        },
+        requirements: [
+          {
+            title: 'Verifikasi Token Google',
+            description: 'Backend memverifikasi aud dan sub dari Google token',
+            acceptanceCriteria: [
+              'Given valid Google ID token, when sent to /auth/google, then returns JWT access token',
+              'Given expired or malformed token, returns 401 INVALID_CREDENTIALS',
+            ],
+          },
+        ],
+        subtasks: [
+          {
+            title: 'BE: Endpoint verifikasi Google OAuth token',
+            description: 'Pasang google-auth-library di Express',
+            deliveryArea: 'backend',
+            priority: 'high',
+            enabled: true,
+          },
+          {
+            title: 'FE: Komponen Google Sign In Button',
+            description: 'Render tombol resmi Google di halaman login',
+            deliveryArea: 'frontend',
+            priority: 'high',
+            enabled: true,
+          },
+          {
+            title: 'QA: Test Case & UAT Google SSO',
+            description: 'Verifikasi skenario login sukses dan handling error expired token',
+            deliveryArea: 'qa',
+            priority: 'medium',
+            enabled: true,
+          },
+        ],
+        summary: 'Feature dibagi menjadi 1 root task, 1 brief produk, 1 requirement, dan 3 subtasks.',
+      });
+
+      assert.strictEqual(draft.task.title, 'Autentikasi Google SSO');
+      assert.strictEqual(draft.productBrief.inScope.length, 3);
+      assert.strictEqual(draft.requirements.length, 1);
+      assert.strictEqual(draft.requirements[0].acceptanceCriteria.length, 2);
+      assert.strictEqual(draft.subtasks.length, 3);
+      assert.strictEqual(draft.subtasks[2].deliveryArea, 'qa');
+    });
+
+    test('validates ApplyTaskDraftInputSchema and ApplyTaskDraftResponseSchema', () => {
+      const applyInput = ApplyTaskDraftInputSchema.parse({
+        workspaceId,
+        task: {
+          title: 'Integrasi Payment Gateway QRIS',
+          description: 'Menghadirkan pembayaran QRIS dinamis',
+          priority: 'urgent',
+        },
+        productBrief: {
+          context: 'Meningkatkan konversi pembayaran lokal.',
+          inScope: ['Generate dynamic QR', 'Webhook callback'],
+          outScope: ['Virtual account bank'],
+        },
+        requirements: [
+          {
+            title: 'QRIS Generation',
+            acceptanceCriteria: ['QR string valid EMVCo'],
+          },
+        ],
+        subtasks: [
+          {
+            title: 'BE: QRIS Endpoint',
+            deliveryArea: 'backend',
+            priority: 'urgent',
+          },
+        ],
+      });
+
+      assert.strictEqual(applyInput.workspaceId, workspaceId);
+      assert.strictEqual(applyInput.task.priority, 'urgent');
+
+      const timestamp = new Date().toISOString();
+      const applyResponse = ApplyTaskDraftResponseSchema.parse({
+        task: {
+          id: taskId,
+          workspaceId,
+          title: applyInput.task.title,
+          description: applyInput.task.description,
+          status: 'todo',
+          priority: 'urgent',
+          reporterId: '223e4567-e89b-12d3-a456-426614174001',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        createdSubtaskCount: 1,
+        createdRequirementCount: 1,
+        hasProductBrief: true,
+      });
+
+      assert.strictEqual(applyResponse.task.id, taskId);
+      assert.strictEqual(applyResponse.createdSubtaskCount, 1);
+      assert.strictEqual(applyResponse.hasProductBrief, true);
     });
   });
 });

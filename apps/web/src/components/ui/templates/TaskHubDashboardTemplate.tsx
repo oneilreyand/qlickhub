@@ -9,6 +9,7 @@ import { TaskCollection, type TaskDeliveryTraceRowState } from '../organisms/Tas
 import { TaskTimelineView } from '../organisms/TaskTimelineView';
 import { TaskDetailDrawer } from '../organisms/TaskDetailDrawer';
 import { CreateTaskModal } from '../organisms/CreateTaskModal';
+import { AiTaskGeneratorModal } from '../organisms/AiTaskGeneratorModal';
 import { TaskHubHeader } from '../organisms/taskHub/TaskHubHeader';
 import { TaskHubMetrics } from '../organisms/taskHub/TaskHubMetrics';
 import { TaskHubDatePresetBar } from '../organisms/taskHub/TaskHubDatePresetBar';
@@ -92,6 +93,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAiGeneratorModalOpen, setIsAiGeneratorModalOpen] = useState(false);
   const [isMobileFolderDrawerOpen, setIsMobileFolderDrawerOpen] = useState(false);
   const [deliveryTraceStateByTaskId, setDeliveryTraceStateByTaskId] = useState<
     Record<string, TaskDeliveryTraceRowState>
@@ -431,6 +433,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         canCreateTask={canCreateTask}
         isRefreshing={isTaskLoading || isFolderLoading}
         onCreateTask={() => setIsCreateModalOpen(true)}
+        onOpenAiGenerator={() => setIsAiGeneratorModalOpen(true)}
         onRefresh={() => void loadWorkspaceData()}
         onOpenMobileFolders={() => setIsMobileFolderDrawerOpen(true)}
       />
@@ -587,8 +590,22 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       <CreateTaskModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onOpenAiGenerator={() => setIsAiGeneratorModalOpen(true)}
         folders={folders}
         defaultFolderId={selectedFolderId}
+      />
+
+      {/* AI Task Generator Modal (AI-001) */}
+      <AiTaskGeneratorModal
+        isOpen={isAiGeneratorModalOpen}
+        onClose={() => setIsAiGeneratorModalOpen(false)}
+        folders={folders}
+        defaultFolderId={selectedFolderId}
+        onCreated={(newTaskId) => {
+          void loadWorkspaceData();
+          reloadReleaseReadiness();
+          handleOpenTask(newTaskId);
+        }}
       />
     </div>
   );

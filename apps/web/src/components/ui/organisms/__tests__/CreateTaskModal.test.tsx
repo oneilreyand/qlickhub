@@ -127,4 +127,29 @@ describe('CreateTaskModal Organism', () => {
     fireEvent.change(dueDate, { target: { value: '2026-09-08' } });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
+  it('renders AI generator shortcut banner when onOpenAiGenerator is provided and invokes it', () => {
+    const store = createTestStore();
+    const handleClose = vi.fn();
+    const handleOpenAi = vi.fn();
+
+    render(
+      <Provider store={store}>
+        <CreateTaskModal
+          isOpen={true}
+          onClose={handleClose}
+          onOpenAiGenerator={handleOpenAi}
+          folders={[]}
+        />
+      </Provider>,
+    );
+
+    expect(screen.getByText('Buat Feature Lengkap dengan AI')).toBeInTheDocument();
+    const aiBtn = screen.getByRole('button', { name: /✨ Buka AI/i });
+    expect(aiBtn).toBeInTheDocument();
+
+    fireEvent.click(aiBtn);
+    expect(handleClose).toHaveBeenCalled();
+    expect(handleOpenAi).toHaveBeenCalled();
+  });
 });

@@ -21,6 +21,7 @@ import { workQueueRoutes } from './modules/workQueue/workQueueRoutes.js';
 import { featureReadinessRoutes } from './modules/featureReadiness/featureReadinessRoutes.js';
 import { qrisSandboxRoutes } from './modules/qrisSandbox/qrisSandboxRoutes.js';
 import { capacityRoutes } from './modules/capacity/capacityRoutes.js';
+import { aiTaskGeneratorRoutes } from './modules/ai/aiTaskGeneratorRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
 import { rejectArchivedWorkspaceMutation } from './http/middleware/workspaceArchive.js';
@@ -79,6 +80,7 @@ export const createApp = () => {
   app.use('/v1', qrisSandboxRoutes);
   app.use('/v1', traceabilityRoutes);
   app.use('/v1', bugRoutes);
+  app.use('/v1', aiTaskGeneratorRoutes);
 
   app.use('/v1', releaseDecisionRoutes);
   app.use('/v1', notificationRoutes);

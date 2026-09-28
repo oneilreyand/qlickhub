@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, RefreshCw, Folder } from 'lucide-react';
+import { Plus, RefreshCw, Folder, Sparkles } from 'lucide-react';
 import { Button } from '../../atoms/Button';
 
 interface TaskHubHeaderProps {
@@ -7,6 +7,7 @@ interface TaskHubHeaderProps {
   canCreateTask: boolean;
   isRefreshing: boolean;
   onCreateTask: () => void;
+  onOpenAiGenerator?: () => void;
   onRefresh: () => void;
   onOpenMobileFolders: () => void;
 }
@@ -16,6 +17,7 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
   canCreateTask,
   isRefreshing,
   onCreateTask,
+  onOpenAiGenerator,
   onRefresh,
   onOpenMobileFolders,
 }) => {
@@ -31,16 +33,29 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {canCreateTask && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={onCreateTask}
-              leftIcon={<Plus className="h-4 w-4" />}
-            >
-              Buat Task
-            </Button>
+            <>
+              {onOpenAiGenerator && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenAiGenerator}
+                  className="border-[#B1E743] hover:bg-[#B1E743]/15 text-stone-900 dark:text-stone-100 font-semibold"
+                  leftIcon={<Sparkles className="h-4 w-4 text-[#7BB80E] dark:text-[#B1E743]" />}
+                >
+                  Buat via AI
+                </Button>
+              )}
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onCreateTask}
+                leftIcon={<Plus className="h-4 w-4" />}
+              >
+                Buat Task
+              </Button>
+            </>
           )}
 
           <Button

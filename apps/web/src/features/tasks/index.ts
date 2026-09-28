@@ -1,4 +1,5 @@
 export { CreateTaskModal } from '../../components/ui/organisms/CreateTaskModal';
+export { AiTaskGeneratorModal } from '../../components/ui/organisms/AiTaskGeneratorModal';
 export { CreateSubtaskModal } from '../../components/ui/organisms/CreateSubtaskModal';
 export { SubtaskList } from '../../components/ui/organisms/SubtaskList';
 export { SubtaskAccordionItem } from '../../components/ui/organisms/SubtaskAccordionItem';

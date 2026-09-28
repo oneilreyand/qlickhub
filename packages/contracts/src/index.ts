@@ -20,3 +20,4 @@ export * from './workQueue.js';
 export * from './problemDetail.js';
 export * from './notification.js';
 export * from './capacity.js';
+export * from './aiTaskGenerator.js';

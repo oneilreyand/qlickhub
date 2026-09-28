@@ -4,7 +4,7 @@ import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
-import { User } from 'lucide-react';
+import { User, Sparkles } from 'lucide-react';
 import { RichTextEditor } from '../molecules/RichTextEditor';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { createTask } from '../../../store/taskSlice';
@@ -18,6 +18,7 @@ interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated?: () => void;
+  onOpenAiGenerator?: () => void;
   folders: FolderTreeNode[];
   defaultFolderId?: string | null;
 }
@@ -26,6 +27,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen,
   onClose,
   onCreated,
+  onOpenAiGenerator,
   folders,
   defaultFolderId,
 }) => {
@@ -127,6 +129,34 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {onOpenAiGenerator && (
+          <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-stone-900 to-stone-800 text-white dark:from-stone-900 dark:to-stone-950 border border-stone-800 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-[#B1E743]/20 text-[#B1E743]">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-stone-100">Buat Feature Lengkap dengan AI</p>
+                <p className="text-[11px] text-stone-400">
+                  Susun task, brief produk, requirement & subtask otomatis.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                onOpenAiGenerator();
+              }}
+              className="text-xs py-1 px-3 h-8 bg-[#B1E743] hover:bg-[#9ed438] text-stone-950 font-bold"
+            >
+              ✨ Buka AI
+            </Button>
+          </div>
+        )}
+
         <div>
           <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
             Judul Task <span className="text-rose-500">*</span>

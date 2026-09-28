@@ -61,6 +61,8 @@ const envSchema = z.object({
   KV_REST_API_URL: z.string().url().optional(),
   KV_REST_API_TOKEN: z.string().min(1).optional(),
   RATE_LIMIT_KEY_SECRET: z.string().min(32).optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
 });
 
 export const normalizeEnvironmentInput = (input: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
