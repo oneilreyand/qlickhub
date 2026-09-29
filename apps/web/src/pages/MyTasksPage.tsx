@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Task, WorkQueueItem } from '@qlick/contracts';
+import type { WorkQueueItem } from '@qlick/contracts';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { RootState } from '../store/store';
@@ -9,7 +9,6 @@ import { enqueueSnackbar } from '../store/uiSlice';
 import { MyTaskDetailWorkspaceDrawer, MyTasksDashboard } from '../features/myTasks';
 import { CreateTaskModal } from '../features/tasks';
 import { EmptyWorkspaceOnboarding } from '../features/workspaces';
-import { useCreatedByMeTasks } from '../lib/hooks/useCreatedByMeTasks';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { useRoleAwareWorkQueue } from '../lib/hooks/useRoleAwareWorkQueue';
 
@@ -73,7 +72,6 @@ export const MyTasksPage: React.FC = () => {
   const { state: workQueueState, reload: reloadWorkQueue } = useRoleAwareWorkQueue(
     activeWorkspaceId || undefined,
   );
-  const createdTasks = useCreatedByMeTasks(activeWorkspaceId || undefined);
 
   const handleOpenTaskById = async (taskId: string) => {
     if (!activeWorkspaceId) return;
@@ -109,11 +107,6 @@ export const MyTasksPage: React.FC = () => {
     await handleOpenTaskById(item.subjectId);
   };
 
-  const handleOpenCreatedTask = async (task: Task) => {
-    setQueueFocusTarget(null);
-    await handleOpenTaskById(task.id);
-  };
-
   const handleCloseDrawer = () => {
     dispatch(setSelectedTaskId(null));
     setQueueFocusTarget(null);
@@ -139,19 +132,9 @@ export const MyTasksPage: React.FC = () => {
         userRole={userRole}
         workspaceId={activeWorkspaceId || undefined}
         queueState={workQueueState}
-        createdTasksState={createdTasks.state}
-        createdTasksSearch={createdTasks.filters.search}
-        createdTasksStatus={createdTasks.filters.status}
-        createdTasksPriority={createdTasks.filters.priority}
         onRefreshQueue={reloadWorkQueue}
-        onRefreshCreatedTasks={createdTasks.reload}
         onOpenQueueItem={handleOpenQueueItem}
-        onOpenCreatedTask={handleOpenCreatedTask}
         onOpenTaskById={handleOpenTaskById}
-        onCreatedTasksSearchChange={createdTasks.setSearch}
-        onCreatedTasksStatusChange={createdTasks.setStatus}
-        onCreatedTasksPriorityChange={createdTasks.setPriority}
-        onCreatedTasksPageChange={createdTasks.setPage}
         onBugDataChanged={reloadWorkQueue}
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
       />
@@ -179,7 +162,6 @@ export const MyTasksPage: React.FC = () => {
           reloadTasks();
           reloadReleaseReadiness();
           reloadWorkQueue();
-          createdTasks.reload();
         }}
       />
 
@@ -190,7 +172,6 @@ export const MyTasksPage: React.FC = () => {
         onCreated={() => {
           reloadTasks();
           reloadWorkQueue();
-          createdTasks.reload();
         }}
         folders={folders}
       />
