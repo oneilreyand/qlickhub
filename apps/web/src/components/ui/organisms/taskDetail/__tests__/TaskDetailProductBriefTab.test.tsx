@@ -224,4 +224,54 @@ describe('TaskDetailProductBriefTab', () => {
     await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
     expect(screen.queryByText('Perubahan belum disimpan')).not.toBeInTheDocument();
   });
+
+  test('does not announce unsaved changes on initial mount when brief has 1-based scope positions or whitespace', () => {
+    const onDirtyChange = vi.fn();
+    const briefWithOneBasedIndices: ProductBrief = {
+      ...brief,
+      document: {
+        ...brief.document,
+        title: 'Checkout Ringkasan Produk   ',
+      },
+      currentVersion: {
+        ...brief.currentVersion,
+        title: 'Checkout Ringkasan Produk   ',
+        inScope: [
+          {
+            id: '10000000-0000-4000-8000-000000000006',
+            position: 1, // 1-based index from DB or AI generator
+            text: 'Card checkout   ',
+          },
+          {
+            id: '10000000-0000-4000-8000-000000000007',
+            position: 2,
+            text: 'QRIS dynamic',
+          },
+        ],
+        outScope: [
+          {
+            id: '10000000-0000-4000-8000-000000000008',
+            position: 1,
+            text: 'Cryptocurrency',
+          },
+        ],
+      },
+    };
+
+    render(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="po"
+        productBrief={briefWithOneBasedIndices}
+        loadError={null}
+        onReload={vi.fn()}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
+
+    expect(screen.queryByText('Perubahan belum disimpan')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simpan Versi Baru' })).toBeDisabled();
+    expect(onDirtyChange).toHaveBeenCalledWith(false);
+  });
 });

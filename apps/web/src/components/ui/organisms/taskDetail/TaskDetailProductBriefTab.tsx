@@ -74,22 +74,24 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
     setSaveError(null);
   }, [productBrief, task.id, task.title]);
 
-  const normalizedScope = (items: ProductBriefScopeItem[]) =>
+  const normalizedScope = (items: ProductBriefScopeItem[] = []) =>
     items
       .filter((item) => item.text.trim())
-      .map((item, position) => ({ ...item, text: item.text.trim(), position }));
-  const normalizedCurrentScope = (items: ProductBriefScopeItem[]) =>
-    items.map(({ id, text, position }) => ({ id, text: text.trim(), position }));
-  const initialTitle = currentBrief?.document.title || `Brief Produk ${task.title}`;
+      .map((item, position) => ({
+        id: item.id,
+        text: item.text.trim(),
+        position,
+      }));
+  const initialTitle = (currentBrief?.document.title || `Brief Produk ${task.title}`).trim();
   const hasUnsavedChanges =
     canPlan &&
     (title.trim() !== initialTitle ||
       contentMarkdown !== (currentBrief?.currentVersion.contentMarkdown || '') ||
       status !== (currentBrief?.document.status || 'draft') ||
       JSON.stringify(normalizedScope(inScope)) !==
-        JSON.stringify(normalizedCurrentScope(currentBrief?.currentVersion.inScope || [])) ||
+        JSON.stringify(normalizedScope(currentBrief?.currentVersion.inScope)) ||
       JSON.stringify(normalizedScope(outScope)) !==
-        JSON.stringify(normalizedCurrentScope(currentBrief?.currentVersion.outScope || [])));
+        JSON.stringify(normalizedScope(currentBrief?.currentVersion.outScope)));
 
   useEffect(() => {
     onDirtyChange?.(hasUnsavedChanges);
