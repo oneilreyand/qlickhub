@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "id": "AGENT-APPROVAL-ENFORCEMENT-V1-FINAL-CLOSEOUT",
+  "changedFiles": ["TODO.md", "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V1_FINAL_CLOSEOUT_PLAN.md", "docs/reports/AGENT_APPROVAL_ENFORCEMENT_V1_CLOSURE_2026-09-29.md", "docs/reports/AGENT_APPROVAL_ENFORCEMENT_V1_STALE_MANIFEST_FIX_2026-09-29.md", "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V1-FINAL-CLOSEOUT.json"],
+  "scopes": [],
+  "evidence": {},
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5888284814",
+    "recordId": "5888284814",
+    "planDigest": "sha256:5a5497d19c0a0f408d5f1de870c6e7a317278815d9f4ef98a8222b26131ef0f1",
+    "baselineCommit": "866755f069df7236a52731159ddafe4e77df1362",
+    "approvedBy": "oneilreyand",
+    "approvedAt": "2026-09-29T10:22:06.315Z",
+    "expiresAt": "2026-10-06T10:22:06.320Z",
+    "allowedFiles": ["TODO.md", "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V1_FINAL_CLOSEOUT_PLAN.md", "docs/reports/AGENT_APPROVAL_ENFORCEMENT_V1_CLOSURE_2026-09-29.md", "docs/reports/AGENT_APPROVAL_ENFORCEMENT_V1_STALE_MANIFEST_FIX_2026-09-29.md", "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V1-FINAL-CLOSEOUT.json"],
+    "roleScope": { "targetRoles": [], "preservedRoles": [] },
+    "allowedStateChanges": ["record final V1 merge evidence and mark the approval-enforcement task done without runtime, data, role, deployment, or permission change"]
+  }
+}
