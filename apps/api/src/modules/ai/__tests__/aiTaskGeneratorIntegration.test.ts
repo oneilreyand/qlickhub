@@ -87,13 +87,16 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
   });
 
   test('generateDraft generates a comprehensive cited draft without mutating DB (AI-001)', async () => {
-    const draft = await aiTaskGeneratorService.generateDraft(workspace.id, poUser.id, {
+    const result = await aiTaskGeneratorService.generateDraft(workspace.id, poUser.id, {
       workspaceId: workspace.id,
       prompt: 'Implementasi pembayaran QRIS dengan notifikasi webhook dan halaman bukti transaksi',
       folderId: folder.id,
       targetPlatforms: ['web', 'backend', 'qa'],
     });
 
+    assert.strictEqual(result.outcome, 'draft');
+    assert.ok(result.outcome === 'draft', 'Descriptive prompt should return a reviewable draft');
+    const draft = result.draft;
     assert.ok(draft.task.title, 'Should have task title');
     assert.ok(draft.productBrief.context, 'Should have product brief context');
     assert.ok(draft.productBrief.inScope.length > 0, 'Should have inScope items');
@@ -115,6 +118,27 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
     // Confirm that no Task was created in DB during generateDraft (AI-001)
     const taskCount = await TaskModel.count({ where: { workspaceId: workspace.id } });
     assert.strictEqual(taskCount, 0, 'No task should be created prior to user Apply action');
+  });
+
+  test('generateDraft asks for clarification instead of fabricating a Feature from unintelligible text', async () => {
+    const prompt =
+      'aswdas asdnasjkldn asdjjaskld askljdaskl dsakljdklas dklasjdnla jkdszbfl sdzkhsdzbflsdjkb fsdzkjbfsdzfsdz';
+    const result = await aiTaskGeneratorService.generateDraft(workspace.id, poUser.id, {
+      workspaceId: workspace.id,
+      prompt,
+      folderId: folder.id,
+    });
+
+    assert.strictEqual(result.outcome, 'clarification');
+    if (result.outcome === 'clarification') {
+      assert.ok(result.clarification.questions.length > 0);
+      assert.strictEqual(result.clarification.citations[0].excerpt, prompt);
+    }
+    assert.strictEqual(
+      await TaskModel.count({ where: { workspaceId: workspace.id } }),
+      0,
+      'Clarification must not create a Root Task before an explicit Apply action',
+    );
   });
 
   test('generateDraft enforces active workspace membership and planner authorization', async () => {

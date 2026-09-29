@@ -13,7 +13,7 @@ import { qaDocumentService } from '../qaDocuments/qaDocumentService.js';
 import { geminiClient } from './geminiClient.js';
 import {
   GenerateTaskDraftInput,
-  GeneratedTaskDraft,
+  GenerateTaskDraftResponse,
   ApplyTaskDraftInput,
   ApplyTaskDraftResponse,
 } from '@qlick/contracts';
@@ -28,7 +28,7 @@ export class AiTaskGeneratorService {
     workspaceId: string,
     actorId: string,
     input: GenerateTaskDraftInput,
-  ): Promise<GeneratedTaskDraft> {
+  ): Promise<GenerateTaskDraftResponse> {
     const member = await requireActiveMember(workspaceId, actorId);
     assertCanCreateTask(member.role);
 

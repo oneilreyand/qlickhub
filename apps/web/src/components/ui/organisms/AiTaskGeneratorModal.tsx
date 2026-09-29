@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FolderTreeNode,
   GeneratedTaskDraft,
+  GeneratedTaskClarification,
   TargetPlatform,
   TaskPriority,
   DeliveryArea,
@@ -26,6 +27,7 @@ import {
   ArrowLeft,
   ShieldCheck,
   CheckCircle2,
+  HelpCircle,
 } from 'lucide-react';
 
 export interface AiTaskGeneratorModalProps {
@@ -35,24 +37,6 @@ export interface AiTaskGeneratorModalProps {
   folders: FolderTreeNode[];
   defaultFolderId?: string | null;
 }
-
-const QUICK_PROMPTS = [
-  {
-    label: 'Pembayaran QRIS',
-    prompt:
-      'Integrasi checkout dengan pembayaran QRIS dinamis, validasi callback webhook, auto-expired setelah 15 menit, dan halaman verifikasi bukti bayar.',
-  },
-  {
-    label: 'Google OAuth SSO',
-    prompt:
-      'Fitur login satu-klik menggunakan Google OAuth2 SSO, verifikasi token di backend, auto-create user profile baru, dan proteksi brute-force.',
-  },
-  {
-    label: 'Ekspor Laporan Excel',
-    prompt:
-      'Fitur ekspor laporan transaksi berkala ke format XLSX dan CSV dengan filter rentang tanggal, status, dan pengiriman notifikasi ketika file siap diunduh.',
-  },
-];
 
 export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
   isOpen,
@@ -77,6 +61,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
 
   // Preview editable state
   const [draft, setDraft] = useState<GeneratedTaskDraft | null>(null);
+  const [clarification, setClarification] = useState<GeneratedTaskClarification | null>(null);
   const [activeTab, setActiveTab] = useState<'task' | 'brief' | 'requirements' | 'subtasks'>(
     'task',
   );
@@ -94,6 +79,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
       setStep('input');
       setPrompt('');
       setDraft(null);
+      setClarification(null);
       setActiveTab('task');
     }
   }, [isOpen, defaultFolderId]);
@@ -141,7 +127,15 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
         targetPlatforms,
       });
 
-      setDraft(generated);
+      if (generated.outcome === 'clarification') {
+        setDraft(null);
+        setClarification(generated.clarification);
+        setStep('input');
+        return;
+      }
+
+      setClarification(null);
+      setDraft(generated.draft);
       setStep('preview');
       setActiveTab('task');
       dispatch(
@@ -386,7 +380,10 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
             </label>
             <textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => {
+                setPrompt(e.target.value);
+                setClarification(null);
+              }}
               placeholder="Contoh: Buatkan fitur pembayaran QRIS dinamis untuk checkout e-commerce dengan notifikasi webhook, batas waktu bayar 15 menit, dan halaman bukti pembayaran..."
               rows={4}
               required
@@ -394,24 +391,27 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
             />
           </div>
 
-          {/* Quick template prompt chips */}
-          <div>
-            <span className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1.5">
-              Ide Prompt Cepat:
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {QUICK_PROMPTS.map((qp, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setPrompt(qp.prompt)}
-                  className="px-2.5 py-1 text-xs rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/60 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 transition-colors"
-                >
-                  💡 {qp.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {clarification && (
+            <section
+              role="status"
+              aria-live="polite"
+              className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
+            >
+              <div className="flex items-center gap-2 font-semibold">
+                <HelpCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                Butuh klarifikasi sebelum membuat draf
+              </div>
+              <p>{clarification.message}</p>
+              <ul className="list-disc space-y-1 pl-5">
+                {clarification.questions.map((question) => (
+                  <li key={question}>{question}</li>
+                ))}
+              </ul>
+              <p className="text-amber-800 dark:text-amber-300">
+                Lengkapi prompt di atas, lalu generate kembali. Tidak ada Feature yang dibuat.
+              </p>
+            </section>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div>

@@ -29,6 +29,9 @@ Sesuai `AI-001`, AI dilarang keras memutasi database secara otonom. Hasil prompt
 - **REQ-AI-GEN-03**: Pembuatan atomik di PostgreSQL dan pelacakan audit.
   - **AC-5**: Seluruh entitas tersimpan dalam satu transaksi database Sequelize; jika terjadi kegagalan, tidak ada data setengah jadi.
   - **AC-6**: Audit log `task_created` dan `subtask_created` tercatat secara persisten.
+- **REQ-AI-GEN-04**: Generator tidak boleh membuat rancangan dari prompt yang jelas tidak dapat dipahami.
+  - **AC-7**: Teks acak yang jelas tidak bermakna menghasilkan respons `clarification` tercantum sumber prompt dan sedikitnya satu pertanyaan tindak lanjut; respons itu tidak memuat draf yang dapat diterapkan.
+  - **AC-8**: Modal tetap pada langkah input, menampilkan pertanyaan klarifikasi, dan tidak menampilkan kontrol Apply sampai respons `draft` yang ditinjau pengguna diterima.
 
 ## 3. Alur Lintas Peran
 
@@ -42,16 +45,28 @@ sequenceDiagram
 
     PO->>UI: Masukkan prompt fitur & klik 'Generate Draf'
     UI->>API: POST /v1/workspaces/:id/ai/generate-task-draft
-    API->>AI: generateContent (Structured Output JSON Schema)
-    AI-->>API: Validated JSON Draft
-    API-->>UI: 200 OK (Task, Brief, Reqs, Subtasks)
-    UI-->>PO: Tampilkan Interactive Preview Tabs
-    PO->>UI: Review, edit judul/scope, toggle subtask, klik 'Terapkan'
-    UI->>API: POST /v1/workspaces/:id/ai/apply-task-draft
-    API->>DB: Atomic Transaction (Task + Brief + Req/AC + Subtasks + Audit)
-    DB-->>API: Committed
-    API-->>UI: 201 Created (task, created counts)
-    UI-->>PO: Toast sukses & buka TaskDetailDrawer
+    API->>API: Deteksi teks acak yang jelas tidak bermakna
+    alt Prompt jelas tidak dapat dipahami
+        API-->>UI: 200 OK (`outcome: clarification`)
+        UI-->>PO: Tampilkan pertanyaan klarifikasi; tidak ada kontrol Apply
+    else Prompt perlu evaluasi AI
+        API->>AI: generateContent (Structured Output JSON Schema)
+        alt Prompt dapat dipahami
+            AI-->>API: Validated JSON Draft
+            API-->>UI: 200 OK (`outcome: draft`)
+            UI-->>PO: Tampilkan Interactive Preview Tabs
+            PO->>UI: Review, edit judul/scope, toggle subtask, klik 'Terapkan'
+            UI->>API: POST /v1/workspaces/:id/ai/apply-task-draft
+            API->>DB: Atomic Transaction (Task + Brief + Req/AC + Subtasks + Audit)
+            DB-->>API: Committed
+            API-->>UI: 201 Created (task, created counts)
+            UI-->>PO: Toast sukses & buka TaskDetailDrawer
+        else Konteks belum cukup
+            AI-->>API: JSON clarification
+            API-->>UI: 200 OK (`outcome: clarification`)
+            UI-->>PO: Tampilkan pertanyaan klarifikasi; tidak ada kontrol Apply
+        end
+    end
 ```
 
 ## 4. Data dan Relasi
@@ -69,6 +84,7 @@ sequenceDiagram
 - Shared Contracts di [`packages/contracts/src/aiTaskGenerator.ts`](../../packages/contracts/src/aiTaskGenerator.ts):
   - `GenerateTaskDraftInputSchema`
   - `GeneratedTaskDraftSchema`
+  - `GenerateTaskDraftResponseSchema` (`draft` atau `clarification` tercantum sumber prompt)
   - `ApplyTaskDraftInputSchema`
   - `ApplyTaskDraftResponseSchema`
 - Endpoints:
@@ -90,14 +106,16 @@ sequenceDiagram
   - Menggunakan Modal ukuran `3xl` dengan Stitch design tokens.
   - Loading spinner & disabled buttons saat proses generasi atau commit.
   - Alert banner kebijakan tata kelola AI `AI-001`.
+  - State klarifikasi untuk prompt yang tidak dapat dipahami; state ini tidak pernah membuat atau menampilkan draf yang dapat diterapkan.
   - Aksesibilitas keyboard dan navigasi form responsif.
 
 ## 8. Pengujian dan Evidence
 
-- **Contracts Test**: 80/80 tes lulus di `packages/contracts/src/contracts.test.ts`.
-- **Backend PostgreSQL Integration Test**: 3/3 tes lulus di `apps/api/src/modules/ai/__tests__/aiTaskGeneratorIntegration.test.ts` (generasi non-otonom, otorisasi RBAC, mutasi atomik multi-entitas).
-- **Frontend Unit Tests**: 4/4 tes lulus di `apps/web/src/components/ui/organisms/__tests__/AiTaskGeneratorModal.test.tsx` dan 4/4 tes lulus di `CreateTaskModal.test.tsx`.
-- **Build Checks**: Vite 1,722 modul terbangun bersih tanpa error typecheck.
+- **Contracts Test**: 81/81 tes lulus di `packages/contracts/src/contracts.test.ts`, termasuk union respons klarifikasi tercantum sumber.
+- **API Unit Test**: 2/2 tes lulus di `apps/api/src/modules/ai/__tests__/geminiClient.test.ts`; teks acak tidak menghasilkan draf, sedangkan prompt deskriptif tetap menghasilkan draf.
+- **Backend PostgreSQL Integration Test**: 5/5 tes lulus di `apps/api/src/modules/ai/__tests__/aiTaskGeneratorIntegration.test.ts`, termasuk klarifikasi tanpa Root Task, generasi non-otonom, otorisasi RBAC, dan mutasi atomik multi-entitas.
+- **Frontend Unit Tests**: 5/5 tes lulus di `apps/web/src/components/ui/organisms/__tests__/AiTaskGeneratorModal.test.tsx`, termasuk state klarifikasi tanpa preview atau Apply.
+- **Build Checks**: Vite 1,723 modul terbangun bersih tanpa error typecheck.
 
 ## 9. Release dan Readiness
 

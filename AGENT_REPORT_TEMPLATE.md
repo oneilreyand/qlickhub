@@ -15,6 +15,7 @@ Use this format at the end of every task.
 
 - **Work Readiness Assessment:** <score /16, `Ready` | `Ready after split` | `Blocked`, and reason>
 - **User plan approval:** <approved scope/approach, decision date or message reference; or N/A for read-only work>
+- **Step approval log:** <for every state-changing step: proposed bounded action, explicit user approval reference, outcome evidence; or N/A for read-only work>
 - **Agent capability and access:** <what the executor/verifier could and could not inspect or run>
 - **AC-to-evidence matrix:**
 
@@ -26,6 +27,8 @@ Use this format at the end of every task.
 - **Change Impact Map:** <Function | Module | Feature | Cross-boundary; affected consumers, contract, data, authorization, UI, release, operations, and documentation, or N/A with reason>
 - **Decision Snapshot:** <options, pro/con, chosen approach, compatibility, rollout/rollback, or N/A with reason>
 - **Agent handoff and independent verification:** <baseline, executor, verifier/CI, primary evidence rechecked, final verification result, and any gaps>
+- **Quality review:** <scope and method; reuse/DRY, duplicate/overlap, obsolete/unused code, boundary/best-practice, and regression-evidence findings; each marked resolved, follow-up, blocked, or evidence-backed none found>
+- **Cross-layer quality gates:** <responsive phone/tablet/desktop evidence and Atomic decomposition review when UI changes; relation/index/N+1/query-plan evidence when data access changes; FE/BE performance measurement; AI technology/model decision snapshot when applicable; or N/A with reason>
 
 ## Source of truth and impact
 

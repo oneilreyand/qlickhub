@@ -87,6 +87,35 @@ export const GeneratedTaskDraftSchema = z.object({
 export type GeneratedTaskDraft = z.infer<typeof GeneratedTaskDraftSchema>;
 
 /**
+ * A non-mutating response used when the prompt does not contain enough usable
+ * product intent to safely propose a Feature draft.
+ */
+export const GeneratedTaskClarificationSchema = z.object({
+  message: z.string().trim().min(1).max(500),
+  questions: z.array(z.string().trim().min(1).max(300)).min(1).max(4),
+  citations: z.array(GeneratedTaskDraftCitationSchema).min(1),
+});
+
+export type GeneratedTaskClarification = z.infer<typeof GeneratedTaskClarificationSchema>;
+
+/**
+ * Generation deliberately distinguishes a reviewable draft from a request for
+ * more context. A clarification response never exposes an Apply-able draft.
+ */
+export const GenerateTaskDraftResponseSchema = z.discriminatedUnion('outcome', [
+  z.object({
+    outcome: z.literal('draft'),
+    draft: GeneratedTaskDraftSchema,
+  }),
+  z.object({
+    outcome: z.literal('clarification'),
+    clarification: GeneratedTaskClarificationSchema,
+  }),
+]);
+
+export type GenerateTaskDraftResponse = z.infer<typeof GenerateTaskDraftResponseSchema>;
+
+/**
  * Input for applying the reviewed AI task draft into persistent storage.
  */
 export const ApplyTaskDraftInputSchema = z

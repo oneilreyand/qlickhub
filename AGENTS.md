@@ -21,11 +21,13 @@ When documents conflict, use this priority: explicit user instruction → securi
 - For all frontend work, follow [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md). Reuse the Atomic Design system before adding markup or styles to a page.
 - Work on exactly one TODO item or one tightly related subtask at a time.
 - Before claiming work that changes the repository, configuration, data, or deployment, complete the capability-aware Work Readiness Assessment in `docs/4_AGENT_DEV_GUIDELINES.md` §2A. Do not call work `Ready` until every Acceptance Criterion has an objective evidence path; split or block it truthfully when required.
+- Before every state-changing execution step, obtain the user approval required by `docs/4_AGENT_DEV_GUIDELINES.md` §2A.A.1. Read-only inspection may establish facts, but it must not be used to infer approval, fill an unknown, or advance to a mutation.
 - Cite applicable Policy IDs from `docs/POLICY_REGISTRY.md` in Feature Knowledge Cards, plans, and reports when a policy boundary is involved.
 - Before editing, inspect the relevant code and identify the files likely to change.
 - Do not make silent product, role, schema, migration, or workflow assumptions. Resolve the answer from the source-of-truth documents and current implementation. If evidence conflicts or a choice materially changes behavior/data, document the conflict and request an explicit decision; mark the TODO item `Blocked` when work cannot safely continue.
 - Every plan must state confirmed facts, unresolved decisions, files likely to change, data/interface impact, authorization impact, migration risk, validation evidence, WRA result, AC-to-evidence mapping, and Change Impact Map. Add a Decision Snapshot with pro/con for material alternatives. Do not present guesses as repository facts.
 - An AI-to-AI handoff must carry the evidence package defined in `docs/4_AGENT_DEV_GUIDELINES.md` §2A. The receiving verifier checks primary evidence and returns `Accepted`, `Accepted with gaps`, `Rejected`, or `Blocked`; another model's summary is not proof.
+- Complete the evidence-backed quality review defined in `docs/4_AGENT_DEV_GUIDELINES.md` §2A.H before calling repository-changing work done; reuse, duplicate/overlapping behavior, obsolete or unused code, tests, and documentation must each have an explicit finding or evidence-backed `none found` result.
 - Do not overwrite unrelated user changes, move existing code, or introduce a new framework without an explicit task.
 - Keep the frontend as React + Vite + React Router + Redux Toolkit/Redux Thunk.
 - Keep the backend as Express + TypeScript + Sequelize + PostgreSQL.
@@ -58,9 +60,11 @@ When documents conflict, use this priority: explicit user instruction → securi
 
 - Inspect `apps/web/src/components/ui` and the Component Gallery before creating frontend markup. Reuse an existing atom, molecule, organism, layout pattern, icon treatment, spacing scale, and interaction state whenever one already matches.
 - Pages coordinate routing, data loading, permissions, and composition. Repeated presentation and interactions belong in the Atomic Design system at the smallest reusable level.
+- Apply the responsive and Atomic decomposition gate in `docs/3_UI_ATOMIC_DESIGN_SYSTEM.md` §7 before completing frontend work: prove phone, tablet, and desktop behavior; split a component when its independent responsibilities or reusable interaction patterns no longer fit one Atomic layer.
 - Use existing Tailwind/theme tokens; do not introduce arbitrary hex colors, one-off shadows, radii, typography, spacing, or parallel light/dark palettes. The Stitch colors above are the only product accents unless an explicit design decision adds another token.
-- New or changed UI must be checked at desktop and mobile widths and must include keyboard focus, accessible names, minimum touch targets, label/icon status cues, loading, empty, error, disabled, and permission-denied states where relevant.
+- New or changed UI must be checked at phone, tablet, and desktop widths and must include keyboard focus, accessible names, minimum touch targets, label/icon status cues, loading, empty, error, disabled, and permission-denied states where relevant.
 - Do not duplicate shared business calculations in React. Coverage, readiness, permissions, queue reasons, and release gates come from authenticated backend interfaces; the UI only presents them.
+- Apply the database-relation, performance, and AI-technology gates in `docs/1_ARCHITECTURE.md` §6 and `docs/4_AGENT_DEV_GUIDELINES.md` §2A.I–J; a schema/query/performance/model decision without the required evidence remains blocked rather than assumed.
 
 ## Task lifecycle
 
@@ -68,7 +72,7 @@ When documents conflict, use this priority: explicit user instruction → securi
 1. **Claim** — Change the selected item in `TODO.md` to `In progress`, with agent name/date if known.
 2. **Understand** — Read applicable delivery-plan/design sections and inspect current implementation.
 3. **Plan briefly** — State confirmed facts, unresolved decisions, files, data/interface impact, authorization, risks, validation approach, WRA, AC-evidence mapping, impact map, and decision snapshot when applicable.
-4. **Implement atomically** — Deliver the smallest useful vertical slice. Reuse existing atoms, molecules, modules, and contracts.
+4. **Implement atomically** — Before each state-changing execution step, present the bounded next step and wait for user approval; then deliver only that approved slice. Reuse existing atoms, molecules, modules, and contracts.
 5. **Verify** — Run the narrowest relevant tests, then `npm run build` when frontend code changes. Record what was actually run.
 6. **Review** — Check empty/loading/error/permission states when the feature is data-driven.
 7. **Report** — Use `AGENT_REPORT_TEMPLATE.md`, including reproducible handoff evidence and the independent-verification status.

@@ -1,6 +1,11 @@
 import dns from 'node:dns';
 import { env } from '../../config/env.js';
-import { GeneratedTaskDraft, GeneratedTaskDraftSchema, TargetPlatform } from '@qlick/contracts';
+import {
+  GenerateTaskDraftResponse,
+  GeneratedTaskClarificationSchema,
+  GeneratedTaskDraftSchema,
+  TargetPlatform,
+} from '@qlick/contracts';
 
 try {
   dns.setDefaultResultOrder('ipv4first');
@@ -16,12 +21,53 @@ function promptCitation(prompt: string) {
 }
 
 /**
+ * Reject only clearly machine-like text locally. Less obvious ambiguity is
+ * deliberately delegated to Gemini so valid short or domain-specific prompts
+ * are not blocked by a brittle dictionary check.
+ */
+export function isObviouslyUnintelligiblePrompt(prompt: string): boolean {
+  const words = prompt.toLocaleLowerCase('id-ID').match(/[\p{L}\p{N}]+/gu) || [];
+  const letters = words.join('').replace(/[^\p{L}]/gu, '');
+  if (letters.length < 24 || words.length < 3) return false;
+
+  const vowelCount = (letters.match(/[aiueo]/giu) || []).length;
+  const vowelRatio = vowelCount / letters.length;
+  const opaqueLongWordCount = words.filter((word) => {
+    if (word.length < 8) return false;
+    const wordVowelCount = (word.match(/[aiueo]/giu) || []).length;
+    return wordVowelCount / word.length <= 0.2;
+  }).length;
+
+  return vowelRatio < 0.18 && opaqueLongWordCount >= 2;
+}
+
+export function buildPromptClarification(prompt: string): GenerateTaskDraftResponse {
+  return {
+    outcome: 'clarification',
+    clarification: {
+      message:
+        'Saya belum dapat memahami kebutuhan produk dari prompt ini, sehingga belum aman membuat draf Feature.',
+      questions: [
+        'Fitur atau masalah apa yang ingin diselesaikan?',
+        'Siapa pengguna yang terdampak dan hasil apa yang mereka butuhkan?',
+        'Sebutkan alur utama, aturan penting, atau batasan yang perlu dipenuhi.',
+      ],
+      citations: [promptCitation(prompt)],
+    },
+  };
+}
+
+/**
  * Deterministic fixture-like draft used only by the automated test environment.
  */
 export function buildDeterministicFallbackDraft(
   prompt: string,
   targetPlatforms: TargetPlatform[] = ['web', 'backend', 'qa'],
-): GeneratedTaskDraft {
+): GenerateTaskDraftResponse {
+  if (isObviouslyUnintelligiblePrompt(prompt)) {
+    return buildPromptClarification(prompt);
+  }
+
   const cleanPrompt = prompt.trim();
   const title = cleanPrompt.length > 50 ? `${cleanPrompt.slice(0, 47)}...` : cleanPrompt;
 
@@ -64,37 +110,40 @@ export function buildDeterministicFallbackDraft(
   }
 
   return {
-    task: {
-      title,
-      description: `## Ringkasan Fitur\n${cleanPrompt}\n\n### Tujuan Pengiriman\nMemberikan solusi terpadu yang siap diuji dan dideploy sesuai standar mutu Qlick Hub.`,
-      priority: 'medium',
-    },
-    productBrief: {
-      context: `Permintaan produk untuk: ${cleanPrompt}. Dibuat otomatis melalui AI Generator untuk mempercepat proses perencanaan PO.`,
-      inScope: [
-        `Implementasi alur utama sesuai prompt: ${title}`,
-        'Validasi input dan penanganan error standar',
-        'Pelacakan aktivitas audit di sistem',
-      ],
-      outScope: [
-        'Kustomisasi integrasi sistem pihak ketiga di luar lingkup',
-        'Fitur batch berulang tingkat lanjut untuk fase berikutnya',
-      ],
-    },
-    requirements: [
-      {
-        title: `Kebutuhan Fungsional: ${title}`,
-        description: `Spesifikasi alur dan perilaku yang diharapkan untuk ${cleanPrompt}.`,
-        acceptanceCriteria: [
-          `Given pengguna terautentikasi, when mengakses fitur ${title}, then sistem merespons dengan data yang valid`,
-          'Given input tidak valid, when disubmit, then sistem menampilkan pesan kesalahan yang ramah pengguna',
-          'Given proses berhasil, when selesai, then perubahan tercatat dalam jejak aktivitas audit',
+    outcome: 'draft',
+    draft: {
+      task: {
+        title,
+        description: `## Ringkasan Fitur\n${cleanPrompt}\n\n### Tujuan Pengiriman\nMemberikan solusi terpadu yang siap diuji dan dideploy sesuai standar mutu Qlick Hub.`,
+        priority: 'medium',
+      },
+      productBrief: {
+        context: `Permintaan produk untuk: ${cleanPrompt}. Dibuat otomatis melalui AI Generator untuk mempercepat proses perencanaan PO.`,
+        inScope: [
+          `Implementasi alur utama sesuai prompt: ${title}`,
+          'Validasi input dan penanganan error standar',
+          'Pelacakan aktivitas audit di sistem',
+        ],
+        outScope: [
+          'Kustomisasi integrasi sistem pihak ketiga di luar lingkup',
+          'Fitur batch berulang tingkat lanjut untuk fase berikutnya',
         ],
       },
-    ],
-    subtasks,
-    citations: [promptCitation(cleanPrompt)],
-    summary: `Draf berhasil di-generate dengan ${subtasks.length} subtask dan 1 requirement utama.`,
+      requirements: [
+        {
+          title: `Kebutuhan Fungsional: ${title}`,
+          description: `Spesifikasi alur dan perilaku yang diharapkan untuk ${cleanPrompt}.`,
+          acceptanceCriteria: [
+            `Given pengguna terautentikasi, when mengakses fitur ${title}, then sistem merespons dengan data yang valid`,
+            'Given input tidak valid, when disubmit, then sistem menampilkan pesan kesalahan yang ramah pengguna',
+            'Given proses berhasil, when selesai, then perubahan tercatat dalam jejak aktivitas audit',
+          ],
+        },
+      ],
+      subtasks,
+      citations: [promptCitation(cleanPrompt)],
+      summary: `Draf berhasil di-generate dengan ${subtasks.length} subtask dan 1 requirement utama.`,
+    },
   };
 }
 
@@ -113,7 +162,11 @@ export class GeminiClient {
   async generateTaskDraft(
     prompt: string,
     targetPlatforms: TargetPlatform[] = ['web', 'backend', 'qa'],
-  ): Promise<GeneratedTaskDraft> {
+  ): Promise<GenerateTaskDraftResponse> {
+    if (isObviouslyUnintelligiblePrompt(prompt)) {
+      return buildPromptClarification(prompt);
+    }
+
     // Tests must be deterministic and never call an external provider.
     if (process.env.NODE_ENV === 'test') {
       return buildDeterministicFallbackDraft(prompt, targetPlatforms);
@@ -129,7 +182,11 @@ export class GeminiClient {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
 
     const systemInstruction = `Anda adalah Senior Technical Product Owner dan QA Lead di platform Qlick Hub.
-Analisis prompt fitur produk yang diberikan pengguna dan pecah menjadi rancangan pengiriman perangkat lunak yang lengkap dan terstruktur:
+Sebelum membuat draf, nilai apakah prompt berisi kebutuhan produk yang dapat dipahami. Jika prompt berupa teks acak, tidak bermakna, atau tidak memiliki konteks yang cukup untuk membuat draf secara bertanggung jawab, jawab dengan outcome "clarification". Jangan mengarang Feature, Requirement, Acceptance Criteria, atau Subtask untuk prompt seperti itu.
+
+Untuk outcome "clarification", isi clarification.message dengan alasan singkat dan clarification.questions dengan 1-4 pertanyaan konkret dalam Bahasa Indonesia. Jangan isi task, productBrief, requirements, atau subtasks.
+
+Hanya jika kebutuhan dapat dipahami, jawab dengan outcome "draft" dan pecah menjadi rancangan pengiriman perangkat lunak yang lengkap dan terstruktur:
 1. Task (Feature / Root Task):
    - title: Judul ringkas, profesional, dan to the point (maks 200 karakter).
    - description: Markdown deskriptif lengkap dengan tujuan bisnis dan gambaran arsitektur.
@@ -150,6 +207,7 @@ Respon WAJIB dalam format JSON murni sesuai schema yang ditentukan.`;
     const responseSchema = {
       type: 'OBJECT',
       properties: {
+        outcome: { type: 'STRING', enum: ['draft', 'clarification'] },
         task: {
           type: 'OBJECT',
           properties: {
@@ -196,9 +254,16 @@ Respon WAJIB dalam format JSON murni sesuai schema yang ditentukan.`;
             required: ['title', 'deliveryArea', 'priority'],
           },
         },
+        clarification: {
+          type: 'OBJECT',
+          properties: {
+            message: { type: 'STRING' },
+            questions: { type: 'ARRAY', items: { type: 'STRING' } },
+          },
+        },
         summary: { type: 'STRING' },
       },
-      required: ['task', 'productBrief', 'requirements', 'subtasks'],
+      required: ['outcome'],
     };
 
     const requestBody = {
@@ -238,10 +303,27 @@ Respon WAJIB dalam format JSON murni sesuai schema yang ditentukan.`;
     }
 
     const parsedJson = JSON.parse(rawText);
-    return GeneratedTaskDraftSchema.parse({
-      ...parsedJson,
-      citations: [promptCitation(prompt)],
-    });
+    if (parsedJson?.outcome === 'clarification') {
+      return {
+        outcome: 'clarification',
+        clarification: GeneratedTaskClarificationSchema.parse({
+          ...parsedJson.clarification,
+          citations: [promptCitation(prompt)],
+        }),
+      };
+    }
+
+    if (parsedJson?.outcome !== 'draft') {
+      throw new Error('Gemini returned an unsupported generation outcome.');
+    }
+
+    return {
+      outcome: 'draft',
+      draft: GeneratedTaskDraftSchema.parse({
+        ...parsedJson,
+        citations: [promptCitation(prompt)],
+      }),
+    };
   }
 }
 

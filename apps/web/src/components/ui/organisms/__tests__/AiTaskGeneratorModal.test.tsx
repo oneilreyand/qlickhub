@@ -56,6 +56,23 @@ const mockDraft: GeneratedTaskDraft = {
   summary: 'Draft generated successfully.',
 };
 
+const mockDraftResponse = { outcome: 'draft' as const, draft: mockDraft };
+
+const mockClarificationResponse = {
+  outcome: 'clarification' as const,
+  clarification: {
+    message: 'Saya belum dapat memahami kebutuhan produk dari prompt ini.',
+    questions: ['Fitur atau masalah apa yang ingin diselesaikan?'],
+    citations: [
+      {
+        sourceType: 'user_prompt' as const,
+        label: 'Prompt Product Owner' as const,
+        excerpt: 'aswdas asdnasjkldn',
+      },
+    ],
+  },
+};
+
 const createTestStore = () => {
   return configureStore({
     reducer: {
@@ -97,7 +114,7 @@ describe('AiTaskGeneratorModal Organism', () => {
     vi.clearAllMocks();
   });
 
-  it('renders Step 1 with prompt textarea, quick prompts, platforms, and AI-001 notice', () => {
+  it('renders Step 1 with prompt textarea, platforms, and AI-001 notice', () => {
     const store = createTestStore();
     render(
       <Provider store={store}>
@@ -109,13 +126,11 @@ describe('AiTaskGeneratorModal Organism', () => {
     expect(
       screen.getByPlaceholderText(/Contoh: Buatkan fitur pembayaran QRIS dinamis/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Ide Prompt Cepat:/i)).toBeInTheDocument();
-    expect(screen.getByText('💡 Pembayaran QRIS')).toBeInTheDocument();
     expect(screen.getByText(/Tata Kelola AI \(Policy AI-001\):/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Generate Draf Feature/i })).toBeInTheDocument();
   });
 
-  it('clicking a quick prompt populates the prompt textarea', () => {
+  it('allows user to type into the prompt textarea', () => {
     const store = createTestStore();
     render(
       <Provider store={store}>
@@ -123,17 +138,15 @@ describe('AiTaskGeneratorModal Organism', () => {
       </Provider>,
     );
 
-    const qrisBtn = screen.getByText('💡 Pembayaran QRIS');
-    fireEvent.click(qrisBtn);
-
     const textarea = screen.getByPlaceholderText(
       /Contoh: Buatkan fitur pembayaran QRIS dinamis/i,
     ) as HTMLTextAreaElement;
-    expect(textarea.value).toContain('QRIS dinamis');
+    fireEvent.change(textarea, { target: { value: 'Fitur baru notifikasi email' } });
+    expect(textarea.value).toBe('Fitur baru notifikasi email');
   });
 
   it('generates draft and displays interactive preview tabs (Step 2), then applies draft', async () => {
-    vi.spyOn(aiTaskGeneratorService, 'generateDraft').mockResolvedValue(mockDraft);
+    vi.spyOn(aiTaskGeneratorService, 'generateDraft').mockResolvedValue(mockDraftResponse);
     vi.spyOn(aiTaskGeneratorService, 'applyDraft').mockResolvedValue({
       task: {
         id: 'task-123',
@@ -184,6 +197,7 @@ describe('AiTaskGeneratorModal Organism', () => {
 
     // Check Task tab values
     expect(screen.getByDisplayValue('Integrasi Pembayaran QRIS Dinamis')).toBeInTheDocument();
+    expect(screen.getByText(/Sumber draf:/i)).toBeInTheDocument();
 
     // Switch to Brief Produk tab
     const briefTab = screen.getByText(/Brief Produk/i);
@@ -191,12 +205,18 @@ describe('AiTaskGeneratorModal Organism', () => {
     expect(screen.getByText(/In-Scope \(Dikerjakan\):/i)).toBeInTheDocument();
     expect(screen.getByDisplayValue('Generate invoice QRIS dinamis')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Virtual account bank transfer')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('In-scope 1'), {
+      target: { value: 'Generate invoice QRIS terverifikasi' },
+    });
 
     // Switch to Requirements tab
     const reqTab = screen.getByText(/Requirements \(1\)/i);
     fireEvent.click(reqTab);
     expect(screen.getByDisplayValue('Pembuatan Invoice QRIS')).toBeInTheDocument();
     expect(screen.getByDisplayValue(/Given total keranjang valid/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Judul requirement 1'), {
+      target: { value: 'Pembuatan Invoice QRIS Terverifikasi' },
+    });
 
     // Switch to Subtasks tab
     const subtaskTab = screen.getByText(/Subtasks \(2\/2\)/i);
@@ -215,6 +235,12 @@ describe('AiTaskGeneratorModal Organism', () => {
           task: expect.objectContaining({
             title: 'Integrasi Pembayaran QRIS Dinamis',
           }),
+          productBrief: expect.objectContaining({
+            inScope: expect.arrayContaining(['Generate invoice QRIS terverifikasi']),
+          }),
+          requirements: expect.arrayContaining([
+            expect.objectContaining({ title: 'Pembuatan Invoice QRIS Terverifikasi' }),
+          ]),
         }),
       );
       expect(handleCreated).toHaveBeenCalledWith('task-123');
@@ -222,8 +248,38 @@ describe('AiTaskGeneratorModal Organism', () => {
     });
   });
 
+  it('asks for clarification and keeps Apply unavailable when generation has no usable intent', async () => {
+    vi.spyOn(aiTaskGeneratorService, 'generateDraft').mockResolvedValue(mockClarificationResponse);
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    fireEvent.change(
+      screen.getByPlaceholderText(/Contoh: Buatkan fitur pembayaran QRIS dinamis/i),
+      {
+        target: { value: 'aswdas asdnasjkldn asdjjaskld sdzkhsdzbflsdjkb' },
+      },
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Generate Draf Feature/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Butuh klarifikasi sebelum membuat draf',
+      );
+    });
+    expect(screen.getByText('Fitur atau masalah apa yang ingin diselesaikan?')).toBeInTheDocument();
+    expect(screen.queryByText('Pratinjau & Edit Draf Feature (AI)')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Terapkan & Buat Feature/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('allows returning to Step 1 via Ubah Prompt button', async () => {
-    vi.spyOn(aiTaskGeneratorService, 'generateDraft').mockResolvedValue(mockDraft);
+    vi.spyOn(aiTaskGeneratorService, 'generateDraft').mockResolvedValue(mockDraftResponse);
 
     const store = createTestStore();
     render(

@@ -100,6 +100,7 @@ import {
   TeamCapacityTimelineQuerySchema,
   TeamCapacityTimelineResponseSchema,
   GenerateTaskDraftInputSchema,
+  GenerateTaskDraftResponseSchema,
   GeneratedTaskDraftSchema,
   ApplyTaskDraftInputSchema,
   ApplyTaskDraftResponseSchema,
@@ -2558,6 +2559,28 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(draft.subtasks.length, 3);
       assert.strictEqual(draft.subtasks[2].deliveryArea, 'qa');
       assert.strictEqual(draft.citations[0].sourceType, 'user_prompt');
+    });
+
+    test('validates a cited clarification response without an Apply-able draft', () => {
+      const response = GenerateTaskDraftResponseSchema.parse({
+        outcome: 'clarification',
+        clarification: {
+          message: 'Prompt belum menjelaskan kebutuhan produk.',
+          questions: ['Fitur atau masalah apa yang ingin diselesaikan?'],
+          citations: [
+            {
+              sourceType: 'user_prompt',
+              label: 'Prompt Product Owner',
+              excerpt: 'aswdas asdnasjkldn',
+            },
+          ],
+        },
+      });
+
+      assert.strictEqual(response.outcome, 'clarification');
+      if (response.outcome === 'clarification') {
+        assert.strictEqual(response.clarification.questions.length, 1);
+      }
     });
 
     test('validates ApplyTaskDraftInputSchema and ApplyTaskDraftResponseSchema', () => {

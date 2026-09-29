@@ -341,6 +341,8 @@ Keputusan ini dijelaskan dalam
 1. **PostgreSQL Default**: Seluruh data persisten dikelola via Sequelize dengan relasi formal dan foreign key. Raw SQL berparameter hanya digunakan untuk kebutuhan PostgreSQL-spesifik (`pgvector`, indeks khusus, analitik).
 2. **Kanonikal Migrasi**: Setiap perubahan skema tabel wajib melalui file migrasi Sequelize di `apps/api/src/db/migrations/`, sesuai konfigurasi Sequelize CLI aktif.
 3. **Transaksi & Audit**: Semua mutasi data jamak (_multi-record writes_) wajib dibungkus dalam `sequelize.transaction()` dan mencatat riwayat ke tabel audit/aktivitas Workspace.
+4. **Audit relasi dan akses data**: Setiap perubahan model, migration, atau query menyatakan ownership/kardinalitas, foreign key dan aturan penghapusan yang relevan, scope Workspace, transaksi, serta indeks atau alasan tidak membutuhkan indeks. Jalur baca yang berubah diperiksa dari risiko N+1, unbounded read, sorting/filter tanpa indeks, dan kebocoran antar-Workspace; query plan pada PostgreSQL disposable diperlukan bila jalur tersebut berisiko atau hasil pengukuran memerlukannya.
+5. **Bukti performa**: Perubahan yang berpotensi memengaruhi waktu muat, render, payload, query count, latency, atau kapasitas mencatat baseline atau alasan baseline belum tersedia, metode/environment pengukuran, hasil, serta batas yang masih tidak terverifikasi. Tidak ada angka ambang universal tanpa keputusan Product; perbandingan yang jujur lebih penting daripada klaim cepat tanpa pengukuran.
 
 ### C. Penyimpanan Berkas & Bukti (_Evidence Storage_)
 
@@ -353,5 +355,6 @@ Keputusan ini dijelaskan dalam
 
 - Setiap kapabilitas AI hanya menghasilkan draf usulan (_cited draft_).
 - AI **dilarang keras** melakukan mutasi data produksi secara otomatis/otonom tanpa tindakan eksplisit (_Apply action_) dari pengguna yang terautentikasi.
-- Protokol operasional analisis, persetujuan plan user, evidence outcome, dan verifikasi AI berada
-  secara kanonis di [Agent & Developer Guidelines](4_AGENT_DEV_GUIDELINES.md#2a-protokol-assurance-kerja-ai-ai-work-assurance-protocol) dan keputusan historisnya di [ADR-016](adr/ADR-016-VENDOR-NEUTRAL-AI-WORK-ASSURANCE.md) serta [ADR-017](adr/ADR-017-AI-PLAN-APPROVAL-AND-EVIDENCE-OUTCOMES.md). Persetujuan plan tidak menggantikan Apply action atau release decision.
+- Pemilihan atau perubahan provider, model, prompt/structured-output approach, fallback, atau data yang dikirim ke AI wajib memiliki Decision Snapshot dan evidence evaluasi; tujuan, data classification, kualitas, latency, biaya, failure handling, observability, dan batas keamanan dicatat sebelum perubahan. Secret dan data sensitif tetap tidak boleh masuk ke browser atau evidence.
+- Protokol operasional analisis, checkpoint persetujuan user per langkah yang mengubah state,
+  quality review berbukti, performance evidence, keputusan teknologi/model AI, dan verifikasi AI berada secara kanonis di [Agent & Developer Guidelines](4_AGENT_DEV_GUIDELINES.md#2a-protokol-assurance-kerja-ai-ai-work-assurance-protocol) dan keputusan historisnya di [ADR-016](adr/ADR-016-VENDOR-NEUTRAL-AI-WORK-ASSURANCE.md), [ADR-017](adr/ADR-017-AI-PLAN-APPROVAL-AND-EVIDENCE-OUTCOMES.md), [ADR-018](adr/ADR-018-AI-STEP-APPROVAL-AND-QUALITY-REVIEW.md), serta [ADR-019](adr/ADR-019-CROSS-LAYER-QUALITY-PERFORMANCE-AND-AI-TECHNOLOGY-GATES.md). Persetujuan plan tidak menggantikan checkpoint langkah, Apply action, atau release decision.

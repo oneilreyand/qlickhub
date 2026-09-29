@@ -1,7 +1,7 @@
 import { apiClient } from './apiClient';
 import {
   GenerateTaskDraftInput,
-  GeneratedTaskDraft,
+  GenerateTaskDraftResponse,
   ApplyTaskDraftInput,
   ApplyTaskDraftResponse,
 } from '@qlick/contracts';
@@ -10,8 +10,8 @@ export const aiTaskGeneratorService = {
   async generateDraft(
     workspaceId: string,
     input: Omit<GenerateTaskDraftInput, 'workspaceId'>,
-  ): Promise<GeneratedTaskDraft> {
-    return apiClient<GeneratedTaskDraft>(
+  ): Promise<GenerateTaskDraftResponse> {
+    return apiClient<GenerateTaskDraftResponse>(
       `/workspaces/${workspaceId}/ai/generate-task-draft`,
       {
         method: 'POST',
@@ -24,12 +24,9 @@ export const aiTaskGeneratorService = {
     workspaceId: string,
     input: Omit<ApplyTaskDraftInput, 'workspaceId'>,
   ): Promise<ApplyTaskDraftResponse> {
-    return apiClient<ApplyTaskDraftResponse>(
-      `/workspaces/${workspaceId}/ai/apply-task-draft`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ ...input, workspaceId }),
-      },
-    );
+    return apiClient<ApplyTaskDraftResponse>(`/workspaces/${workspaceId}/ai/apply-task-draft`, {
+      method: 'POST',
+      body: JSON.stringify({ ...input, workspaceId }),
+    });
   },
 };

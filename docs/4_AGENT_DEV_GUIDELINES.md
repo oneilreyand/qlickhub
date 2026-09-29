@@ -137,6 +137,28 @@ Persetujuan plan hanya mengizinkan scope yang disetujui. Persetujuan ini tidak m
 action untuk data Production, otorisasi backend, approval migrasi destruktif, atau keputusan rilis.
 Permintaan baca-saja yang tidak mengubah repository tidak memerlukan gerbang persetujuan ini.
 
+#### A.1 Checkpoint persetujuan langkah dan larangan asumsi
+
+Selain persetujuan plan, agent wajib meminta persetujuan eksplisit user **sebelum setiap langkah
+eksekusi yang mengubah state**. Langkah tersebut mencakup, setidaknya, claim atau perubahan status
+Task, perubahan berkas atau konfigurasi, menjalankan migrasi atau mutasi data, memasang atau
+memperbarui dependency, menjalankan pemeriksaan yang menulis state persisten, membuat artefak
+eksternal, dan deployment. Persetujuan untuk langkah sebelumnya tidak mengizinkan langkah
+berikutnya secara otomatis, kecuali user secara eksplisit menyetujui urutan langkah yang terbatas
+dan setiap mutasinya telah disebutkan dalam plan.
+
+Sebelum meminta checkpoint, agent menyajikan langkah berikut yang dibatasi: tujuan, target/file atau
+environment, mutasi yang akan terjadi, bukti yang diharapkan, risiko atau cara pemulihan, dan fakta
+atau asumsi yang belum terjawab. Agent hanya menjalankan mutasi yang disetujui itu, lalu melaporkan
+outcome evidence sebelum meminta checkpoint berikutnya. Pembacaan SSoT, kode, kontrak, diff,
+status, atau output yang murni baca-saja boleh dilakukan tanpa checkpoint untuk membangun pertanyaan
+berbasis fakta; pemeriksaan tersebut tidak boleh dipakai sebagai persetujuan tersirat.
+
+Fakta yang belum terbukti diberi label `unknown` atau `unverified`. Agent dilarang mengisi kekosongan
+dengan asumsi, memilih alternatif material, atau melakukan mutasi yang bergantung pada asumsi itu.
+Bila user tidak menjawab checkpoint atau bukti primer tidak tersedia, langkah berstatus `Blocked` dan
+pekerjaan tidak maju secara diam-diam.
+
 Sesudah approval, parent Task dipecah menjadi vertical slice yang masing-masing dapat dibuktikan
 terhadap AC. Subtask Backend, Frontend, dan QA dibuat hanya bila slice memerlukannya; pemecahan per
 lapisan tidak boleh menunda integrasi dan pengujian sampai seluruh layer selesai.
@@ -249,6 +271,56 @@ Sebelum handoff akhir, agent menyajikan ringkasan yang dapat dibaca manusia: has
 dipercaya, AC/evidence yang terpenuhi, gap atau risiko, pilihan/pro–kontra yang material, perubahan
 yang terdampak, dan keputusan yang masih membutuhkan manusia. Ringkasan ini mengarahkan pembaca ke
 evidence terperinci tetapi tidak menyembunyikan batas verifikasi.
+
+#### H. Quality review berbukti
+
+Sebelum pekerjaan yang mengubah repository dinyatakan selesai, pelaksana atau verifikator menjalankan
+quality review yang proporsional terhadap Change Impact Map. Review memakai sumber primer—pencarian
+kode, dependency/import graph bila tersedia, diff, kontrak, tes, dan dokumentasi—bukan asumsi dari
+nama file atau ringkasan agent. Hasilnya mencatat scope, metode, temuan, bukti, serta status tiap
+dimensi berikut:
+
+| Dimensi                        | Pertanyaan yang harus dijawab                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Reuse / DRY                    | Apakah atom, modul, helper, kontrak, atau aturan bisnis yang sudah ada dapat dipakai alih-alih menambah implementasi paralel?         |
+| Duplikasi atau tumpang tindih  | Apakah perubahan membuat dua fungsi, endpoint, state, perhitungan, atau dokumen kanonis yang melakukan tanggung jawab sama?           |
+| Kode usang atau tidak terpakai | Apakah export, import, dependency, cabang, test fixture, konfigurasi, atau dokumentasi menjadi tidak dirujuk atau tidak lagi benar?   |
+| Best practice dan boundary     | Apakah desain tetap mengikuti SSoT, kontrak, otorisasi backend, migrasi, error handling, accessibility, dan batas layer yang berlaku? |
+| Bukti regresi                  | Apakah pemeriksaan yang benar-benar dijalankan mencakup perilaku terdampak dan mencatat batas yang belum tercakup?                    |
+
+`Tidak ada temuan` hanya sah bila metode dan scope inspeksinya dicatat. Temuan tidak boleh dihapus
+dari laporan: setiap temuan menjadi perbaikan dalam scope, follow-up, atau blocker dengan alasan dan
+persetujuan user. Quality review tidak menggantikan test, PostgreSQL evidence, QA Test Result, atau
+verifikasi independen yang diwajibkan bagian lain.
+
+#### I. Evidence lintas layer: responsivitas, relasi database, dan performa
+
+Untuk perubahan frontend, agent mengikuti [UI Design System §7](3_UI_ATOMIC_DESIGN_SYSTEM.md#7-responsive--atomic-quality-gate): bukti untuk ponsel, tablet, dan desktop dicatat bersama scope
+interaksi dan state yang diuji; review Atomic menentukan reuse atau pemecahan berdasarkan tanggung
+jawab independen, bukan jumlah baris. UI yang mengubah layout tetapi tidak memiliki bukti tablet
+tetap `unverified` dan tidak dapat diklaim selesai.
+
+Untuk perubahan model, migrasi, repository, service, endpoint, atau query, evidence package
+menyatakan relasi/ownership, cardinality, foreign key dan lifecycle penghapusan, Workspace scope,
+transaksi, indeks, serta risiko N+1 atau unbounded read. Bila akses data berisiko atau metrik
+menunjukkannya, jalankan dan catat `EXPLAIN`/`EXPLAIN ANALYZE` pada PostgreSQL disposable dengan
+data representatif; jangan menjalankan query diagnostik berat di Production tanpa otoritas khusus.
+
+Setiap perubahan yang dapat memengaruhi performa frontend atau backend menentukan metode pengukuran
+yang sesuai sebelum implementasi: misalnya build/payload dan render/loading route di frontend; atau
+query count, pagination, query plan, dan latency endpoint di backend. Catat baseline bila tersedia,
+environment/data, hasil, dan gap. Tidak ada baseline atau angka budget yang belum disetujui bukan
+izin untuk mengklaim performa; statusnya `unverified` atau `Blocked` sesuai AC.
+
+#### J. Keputusan teknologi dan model AI
+
+Sebelum menambah atau mengubah teknologi, provider/model AI, prompt strategy, structured output,
+retrieval/context source, atau fallback, agent membuat Decision Snapshot yang mencatat: tujuan dan
+AC, alternatif kompatibel dengan stack, data classification dan data yang dikirim, authorization
+dan secret boundary, kualitas/evaluasi yang dapat direproduksi, latency, biaya, failure/retry/
+fallback behavior, observability, rollout/rollback, serta bukti yang diperlukan. Model/vendor tidak
+boleh dipilih hanya karena nama atau asumsi kemampuan; perubahan tetap mengikuti checkpoint user,
+cited-draft/Apply boundary, dan kontrak yang berlaku.
 
 ---
 

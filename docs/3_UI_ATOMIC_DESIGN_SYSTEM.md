@@ -254,3 +254,46 @@ graph TD
     class S_Deny deny;
     class S_Success ok;
 ```
+
+---
+
+## 7. Responsive & Atomic Quality Gate
+
+Kebijakan ini berlaku untuk **web responsif** Qlick Hub. Ia tidak mengklaim menguji atau mengatur
+aplikasi native iOS/Android; delivery area `mobile` native memerlukan keputusan, tooling, dan
+evidence sendiri sebelum diaktifkan.
+
+### A. Matriks responsif wajib
+
+Setiap perubahan UI membuktikan perilaku pada tiga kelas viewport berikut, menggunakan ukuran
+representatif yang dicatat dalam evidence:
+
+| Kelas   | Rentang/breakpoint yang dilindungi | Minimum pemeriksaan                                                                                                 |
+| ------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Ponsel  | `< 768px`                          | Tidak ada overflow horizontal, hierarchy tetap terbaca, target sentuh dan drawer/modal dapat dipakai.               |
+| Tablet  | `768px–1023px`                     | Layout transisi tidak menyembunyikan aksi, grid/kolom tidak saling bertabrakan, dan navigasi tetap dapat dijangkau. |
+| Desktop | `≥ 1024px`                         | Layout lebar memakai ruang dengan benar tanpa merusak shell, tabel, drawer, atau keyboard flow.                     |
+
+Evidence minimum memuat viewport yang benar-benar diperiksa, route/komponen, mode terang/gelap bila
+terdampak, serta keyboard, fokus, touch target, loading, empty, error, disabled, dan
+permission-denied state yang relevan. Bukti visual/manual tidak digantikan oleh asumsi dari class
+Tailwind; test komponen tidak menggantikan pemeriksaan responsif saat layout berubah.
+
+### B. Gate pemeliharaan Atomic Design
+
+Sebelum membuat atau memperbesar komponen, pencariannya harus mencakup katalog, Component Gallery,
+dan pemakaian komponen serupa. Hasilnya mencatat komponen yang dipakai ulang atau alasan berbukti
+mengapa tidak ada yang cocok. Page hanya mengorkestrasi route, data, permission, dan komposisi;
+perhitungan bisnis atau pola presentasi berulang tidak boleh disimpan di Page.
+
+Komponen **wajib dipecah** ketika ia memiliki dua atau lebih tanggung jawab yang dapat diuji atau
+digunakan ulang secara mandiri—misalnya pengambilan/normalisasi data, logika interaksi terpisah,
+dan presentasi berulang—atau ketika perubahan satu bagian berisiko mengubah konsumen lain yang tidak
+terkait. Pemecahan mengikuti lapisan terkecil yang tepat: primitive → atom, kombinasi interaksi
+stabil → molekul, modul konteks fitur → organisme, dan komposisi route → template/page. Jumlah baris
+semata bukan alasan yang cukup untuk memecah atau mempertahankan komponen.
+
+Review mencatat batas tanggung jawab, props/state/event yang diekspor, konsumen terdampak, test yang
+menjaga perilaku sebelum dan sesudah pemecahan, serta temuan duplikasi/artefak usang. Tidak ada
+temuan hanya valid jika pencarian dan scope review dicatat. Policies: `UI-001`, `UI-002`, `UI-003`,
+`UI-004`.

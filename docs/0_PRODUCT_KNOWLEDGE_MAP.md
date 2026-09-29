@@ -35,12 +35,12 @@ Test Case dan menyegel hasil/evidence; lalu PO membuat keputusan rilis berdasark
 readiness. Jika tes gagal atau rilis ditolak, pekerjaan kembali ke Delivery atau Planning dengan
 temuan yang dapat ditelusuri—bukan dengan asumsi baru.
 
-| Jika Anda…    | Baca terlebih dahulu                                                                                 | Lalu lakukan                                                                                                                            |
-| ------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Product Owner | [Architecture](1_ARCHITECTURE.md), lalu [Workflow](2_WORKFLOW_AND_ROLES.md)                          | Tegaskan scope dan AC, lalu putuskan rilis setelah QA Sign-off.                                                                         |
-| Developer     | [Workflow](2_WORKFLOW_AND_ROLES.md), [Policy Registry](POLICY_REGISTRY.md), dan Feature Card terkait | Kerjakan Subtask dalam scope yang disetujui dan serahkan bukti yang dapat diverifikasi.                                                 |
-| QA            | Feature Card terkait, lalu [Workflow](2_WORKFLOW_AND_ROLES.md)                                       | Uji AC, segel Result/evidence, kelola Bug/retest, dan beri sign-off atau blocker.                                                       |
-| Agent AI      | [Reading Path AI](#ai-agent), lalu SSoT yang relevan                                                 | Analisis dahulu, tawarkan plan untuk persetujuan user, lalu jalankan WRA/evidence atau berhenti saat bukti maupun otoritas tidak cukup. |
+| Jika Anda…    | Baca terlebih dahulu                                                                                 | Lalu lakukan                                                                                                                                           |
+| ------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Product Owner | [Architecture](1_ARCHITECTURE.md), lalu [Workflow](2_WORKFLOW_AND_ROLES.md)                          | Tegaskan scope dan AC, lalu putuskan rilis setelah QA Sign-off.                                                                                        |
+| Developer     | [Workflow](2_WORKFLOW_AND_ROLES.md), [Policy Registry](POLICY_REGISTRY.md), dan Feature Card terkait | Kerjakan Subtask dalam scope yang disetujui dan serahkan bukti yang dapat diverifikasi.                                                                |
+| QA            | Feature Card terkait, lalu [Workflow](2_WORKFLOW_AND_ROLES.md)                                       | Uji AC, segel Result/evidence, kelola Bug/retest, dan beri sign-off atau blocker.                                                                      |
+| Agent AI      | [Reading Path AI](#ai-agent), lalu SSoT yang relevan                                                 | Analisis dahulu, tawarkan plan, lalu minta persetujuan user untuk setiap langkah yang mengubah state; berhenti saat bukti maupun otoritas tidak cukup. |
 
 ## 2. Domain Context Map
 
@@ -169,8 +169,9 @@ executed; it cannot silently create or replace product policy.
    implementasi, capability, risiko, serta konflik sebelum mengubah berkas.
 2. Untuk pekerjaan yang mengubah repository, konfigurasi, data, atau deployment, tawarkan WRA,
    plan, pendekatan, Change Impact Map, dan jalur evidence untuk persetujuan eksplisit user.
-3. Setelah user menyetujui plan, buat atau claim parent Task lalu pecah menjadi vertical slice
-   teruji; subtask Backend, Frontend, dan QA hanya dibuat bila memang diperlukan.
+3. Setelah user menyetujui plan, minta checkpoint sebelum setiap langkah yang mengubah state;
+   langkah yang disetujui saja boleh membuat/claim parent Task atau mengerjakan vertical slice
+   teruji. Subtask Backend, Frontend, dan QA hanya dibuat bila memang diperlukan.
 4. Before claiming a repository-changing task, complete the Work Readiness Assessment in
    [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md#2a-protokol-assurance-kerja-ai-ai-work-assurance-protocol).
 5. Resolve terminology and mandatory rules through the Policy Registry.
@@ -208,14 +209,18 @@ flowchart LR
     Analysis --> Plan["WRA + proposed plan + AC-to-evidence"]
     Plan --> Approval{"User approves plan?"}
     Approval -->|revise / no| Plan
-    Approval -->|yes| Parent["Create or claim parent Task"]
+    Approval -->|yes| StepApproval{"User approves next state-changing step?"}
+    StepApproval -->|no / revise| Plan
+    StepApproval -->|yes| Parent["Create or claim parent Task"]
     Parent --> Impact["Identify policy and affected surfaces"]
     Impact --> Decision{"Policy changes?"}
     Decision -->|yes| ADR["Record decision in ADR"]
     ADR --> SSoT["Update canonical SSoT"]
     Decision -->|no| Contract["Confirm executable contract"]
     SSoT --> Contract
-    Contract --> Slice["Implement tested vertical slice"]
+    Contract --> SliceApproval{"User approves implementation step?"}
+    SliceApproval -->|no / revise| Plan
+    SliceApproval -->|yes| Slice["Implement tested vertical slice"]
     Slice --> Verification
     Verification -->|failed / blocked| Failure["Record failure evidence\nfix, re-plan, Bug, or Blocked"]
     Failure --> Slice
