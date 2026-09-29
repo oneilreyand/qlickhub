@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "id": "AGENT-APPROVAL-ENFORCEMENT-V1-CLOSURE",
+  "changedFiles": [
+    "TODO.md",
+    "docs/adr/ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md",
+    "docs/adr/README.md",
+    "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V1_CLOSURE_PLAN.md",
+    "docs/reports/AGENT_APPROVAL_ENFORCEMENT_V1_CLOSURE_2026-09-29.md",
+    "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V1-CLOSURE.json"
+  ],
+  "scopes": [],
+  "evidence": {},
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5887212639",
+    "recordId": "5887212639",
+    "planDigest": "sha256:d7ae53ad3fba369b267bff5d716cd0faf15b9b561deb224aaa7802a2bdcdaed4",
+    "baselineCommit": "ff9b6603c6afcd49a7d8497619264b397335f0c8",
+    "approvedBy": "oneilreyand",
+    "approvedAt": "2026-09-29T09:12:50.859Z",
+    "expiresAt": "2026-10-06T09:12:50.864Z",
+    "allowedFiles": [
+      "TODO.md",
+      "docs/adr/ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md",
+      "docs/adr/README.md",
+      "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V1_CLOSURE_PLAN.md",
+      "docs/reports/AGENT_APPROVAL_ENFORCEMENT_V1_CLOSURE_2026-09-29.md",
+      "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V1-CLOSURE.json"
+    ],
+    "roleScope": {
+      "targetRoles": [],
+      "preservedRoles": []
+    },
+    "allowedStateChanges": [
+      "document and close V1 approval enforcement with no runtime, database, role, or deployment change"
+    ]
+  }
+}
