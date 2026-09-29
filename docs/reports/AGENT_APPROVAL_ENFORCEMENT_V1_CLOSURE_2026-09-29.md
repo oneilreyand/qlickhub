@@ -66,4 +66,8 @@ V1 is merged with prior CI and independent review evidence. This closure documen
 
 ## TODO update
 
-- `AGENT-APPROVAL-ENFORCEMENT-V1` → `In progress` pending closure validation and PR verification.
+- `AGENT-APPROVAL-ENFORCEMENT-V1` → `Done` after PR #3 merged at `866755f069df7236a52731159ddafe4e77df1362` with `verify` success and independent review approval.
+
+## Final closeout evidence
+
+PR #3 merged on 2026-09-29 after `verify` and Vercel checks succeeded and `mandorreyand02` approved the PR. The repair ensured only current approval manifests are validated when a shared administrative file such as `TODO.md` appears in historical manifests. V1 is complete for protected-`main` acceptance. V2 prevention of local agent writes remains deferred and is not claimed by this report.

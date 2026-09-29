@@ -65,4 +65,8 @@ The current gate safely blocks the branch but for the wrong reason: a historical
 
 ## TODO update
 
-- `AGENT-APPROVAL-ENFORCEMENT-V1` → `In progress` pending repair and closure PR verification.
+- `AGENT-APPROVAL-ENFORCEMENT-V1` → `Done` after PR #3 merged at `866755f069df7236a52731159ddafe4e77df1362` with `verify` success and independent review approval.
+
+## Final closeout evidence
+
+PR #3 merged on 2026-09-29 after GitHub CI and independent review succeeded. The regression test protects against stale version 2 manifests being selected solely because they overlap a later diff on `TODO.md`; unapproved changed files remain fail-closed. V2 managed-write prevention is explicitly out of scope and remains unimplemented.
