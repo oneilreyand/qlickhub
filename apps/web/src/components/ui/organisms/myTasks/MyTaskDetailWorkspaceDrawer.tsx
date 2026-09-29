@@ -223,6 +223,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
             releaseReadinessState={releaseReadinessState}
             onOpenFeature={onOpenFeature}
             onRetry={() => void loadFeatureContext()}
+            userRole={userRole}
           />
         )}
 
@@ -251,6 +252,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
             parentTask={parentTask || (isSubtask ? null : task)}
             workspaceId={activeWorkspaceId}
             currentUserId={currentUserId || undefined}
+            userRole={userRole}
             onDataChanged={onDataChanged}
             onBackToOverview={() => setActiveViewMode('po')}
           />

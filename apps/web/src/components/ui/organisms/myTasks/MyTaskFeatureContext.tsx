@@ -37,6 +37,7 @@ interface MyTaskFeatureContextProps {
   releaseReadinessState?: ReleaseReadinessViewState;
   onOpenFeature?: (featureTaskId: string) => void;
   onRetry: () => void;
+  userRole?: string;
 }
 
 const structuralLabels: Record<
@@ -133,7 +134,11 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
   releaseReadinessState,
   onOpenFeature,
   onRetry,
+  userRole,
 }) => {
+  const isDev =
+    (userRole || '').toLowerCase() === 'dev' || (userRole || '').toLowerCase() === 'developer';
+
   if (isLoading && !trace) {
     return (
       <Card className="space-y-3 p-4 sm:p-5" aria-label="Memuat konteks Feature">
@@ -216,23 +221,25 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
             </p>
           )}
         </div>
-        <div className="space-y-2 sm:text-right">
-          <DeliveryTraceSignal trace={trace} className="shrink-0" />
-          {releaseReadinessState && (
-            <ReleaseReadinessSignal state={releaseReadinessState} showReason />
-          )}
-          {onOpenFeature && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="!min-h-[44px] w-full sm:w-auto"
-              leftIcon={<ArrowLeft className="h-3.5 w-3.5" />}
-              onClick={() => onOpenFeature(trace.featureTask.id)}
-            >
-              Kembali ke Feature
-            </Button>
-          )}
-        </div>
+        {(!isDev || onOpenFeature) && (
+          <div className="space-y-2 sm:text-right">
+            {!isDev && <DeliveryTraceSignal trace={trace} className="shrink-0" />}
+            {!isDev && releaseReadinessState && (
+              <ReleaseReadinessSignal state={releaseReadinessState} showReason />
+            )}
+            {onOpenFeature && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="!min-h-[44px] w-full sm:w-auto"
+                leftIcon={<ArrowLeft className="h-3.5 w-3.5" />}
+                onClick={() => onOpenFeature(trace.featureTask.id)}
+              >
+                Kembali ke Feature
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="border-t border-stone-200 pt-4 dark:border-stone-800">

@@ -5,7 +5,7 @@ import { createReleaseReadinessViewState } from '../../../../../test/releaseRead
 import { MyTaskFeatureContext } from '../MyTaskFeatureContext';
 
 describe('MyTaskFeatureContext', () => {
-  it('shows persisted parent Feature, linked Requirement, criteria, and server trace state', () => {
+  it('shows persisted parent Feature, linked Requirement, criteria, and server trace state for PO review', () => {
     const trace = createDeliveryTraceFixture();
     const task = trace.featureSubtasks[0];
     const onOpenFeature = vi.fn();
@@ -20,6 +20,7 @@ describe('MyTaskFeatureContext', () => {
         releaseReadinessState={createReleaseReadinessViewState()}
         onOpenFeature={onOpenFeature}
         onRetry={vi.fn()}
+        userRole="po"
       />,
     );
 
@@ -38,6 +39,35 @@ describe('MyTaskFeatureContext', () => {
     expect(screen.getByText(/1\/2 Subtask pengembangan telah selesai/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Kembali ke Feature' }));
     expect(onOpenFeature).toHaveBeenCalledWith(trace.featureTask.id);
+  });
+
+  it('hides delivery trace and release readiness signals on dev role', () => {
+    const trace = createDeliveryTraceFixture();
+    const task = trace.featureSubtasks[0];
+    const onOpenFeature = vi.fn();
+
+    render(
+      <MyTaskFeatureContext
+        task={task}
+        trace={trace}
+        isLoading={false}
+        error={null}
+        permissionDenied={false}
+        releaseReadinessState={createReleaseReadinessViewState()}
+        onOpenFeature={onOpenFeature}
+        onRetry={vi.fn()}
+        userRole="dev"
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Checkout Feature' })).toBeInTheDocument();
+    expect(screen.getByText('Review checkout before confirmation')).toBeInTheDocument();
+    expect(screen.queryByText(/Cakupan/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Rilis terblokir/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Subtask pengembangan telah selesai/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Belum ada hasil pengujian/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/gate perlu ditindaklanjuti/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Kembali ke Feature' })).toBeInTheDocument();
   });
 
   it('shows an explicit empty link state without fabricating subtask coverage', () => {

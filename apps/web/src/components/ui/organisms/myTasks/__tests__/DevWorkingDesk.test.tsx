@@ -111,7 +111,7 @@ describe('DevWorkingDesk Organism', () => {
     });
   });
 
-  it('renders developer workstation with workflow stepper, schedule timeline, and separated PO vs Dev notes', async () => {
+  it('renders developer workstation with workflow stepper, schedule timeline, and separated PO vs Dev notes for PO review', async () => {
     const store = createTestStore();
     render(
       <Provider store={store}>
@@ -120,6 +120,7 @@ describe('DevWorkingDesk Organism', () => {
           parentTask={mockParent}
           workspaceId="ws-1"
           currentUserId="u-2"
+          userRole="po"
           onDataChanged={vi.fn()}
         />
       </Provider>,
@@ -169,6 +170,39 @@ describe('DevWorkingDesk Organism', () => {
     // Switch to Team Discussion tab
     fireEvent.click(discussionTab);
     expect(screen.getByText(/Diskusi Kolaborasi Subtask/i)).toBeInTheDocument();
+  });
+
+  it('hides PO brief specification card and expands deliverables to full width on dev role', async () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <DevWorkingDesk
+          subtask={mockSubtask}
+          parentTask={mockParent}
+          workspaceId="ws-1"
+          currentUserId="u-2"
+          userRole="dev"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText('Area Kerja Frontend')).toBeInTheDocument();
+    expect(screen.getByText('Implement Navigation Bar Component')).toBeInTheDocument();
+    expect(screen.queryByText('Ringkasan Produk & Spesifikasi dari PO')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Kebutuhan dan kriteria acuan dari Product Owner (hanya baca)'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/PRD: Must include header, sidebar, and theme toggle/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Hasil Kerja & Catatan Implementasi Teknis')).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue('https://github.com/org/repo/pull/123'),
+    ).toBeInTheDocument();
   });
 
   it('opens Serahkan ke QA modal when clicking Serahkan ke QA button', async () => {

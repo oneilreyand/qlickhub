@@ -44,6 +44,7 @@ export interface DevWorkingDeskProps {
   parentTask?: Task | null;
   workspaceId: string;
   currentUserId?: string;
+  userRole?: string;
   onDataChanged: () => void;
   onBackToOverview?: () => void;
 }
@@ -83,8 +84,11 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   parentTask,
   workspaceId,
   currentUserId,
+  userRole = 'dev',
   onDataChanged,
 }) => {
+  const isDev =
+    userRole.toLowerCase() === 'dev' || userRole.toLowerCase() === 'developer';
   const dispatch = useAppDispatch();
   const { members } = useAppSelector((state: RootState) => state.workspace);
 
@@ -678,37 +682,38 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             </div>
           </Card>
 
-          {/* 2-Column Responsive Layout: Left (PO Scope/Brief), Right (Dev Deliverables) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            {/* Left: PO Product Brief & Scope Context (Read-Only) */}
-            <Card className="lg:col-span-6 p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] flex flex-col space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
-                  <div>
-                    <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                      Ringkasan Produk &amp; Spesifikasi dari PO
-                    </h3>
-                    <p className="text-xs text-stone-500 dark:text-stone-400">
-                      Kebutuhan dan kriteria acuan dari Product Owner (hanya baca)
-                    </p>
+          {/* Responsive Layout: Full Width for Dev, 2-Column for PO/Planner Review */}
+          <div className={isDev ? 'space-y-5' : 'grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch'}>
+            {!isDev && (
+              <Card className="lg:col-span-6 p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] flex flex-col space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
+                    <div>
+                      <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                        Ringkasan Produk &amp; Spesifikasi dari PO
+                      </h3>
+                      <p className="text-xs text-stone-500 dark:text-stone-400">
+                        Kebutuhan dan kriteria acuan dari Product Owner (hanya baca)
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex-1 overflow-y-auto max-h-[520px] scrollbar-thin p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-sans border border-stone-200/60 dark:border-stone-800">
-                {parentTask?.description ? (
-                  <FormattedText content={parentTask.description} />
-                ) : (
-                  <p className="italic text-stone-500">
-                    Product Owner belum memberikan spesifikasi terperinci pada Task induk.
-                  </p>
-                )}
-              </div>
-            </Card>
+                <div className="flex-1 overflow-y-auto max-h-[520px] scrollbar-thin p-3.5 rounded-xl bg-stone-50 dark:bg-stone-900/60 text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-sans border border-stone-200/60 dark:border-stone-800">
+                  {parentTask?.description ? (
+                    <FormattedText content={parentTask.description} />
+                  ) : (
+                    <p className="italic text-stone-500">
+                      Product Owner belum memberikan spesifikasi terperinci pada Task induk.
+                    </p>
+                  )}
+                </div>
+              </Card>
+            )}
 
             {/* Right: Dev Deliverables & Technical Implementation Notes */}
-            <Card className="lg:col-span-6 p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] flex flex-col space-y-4">
+            <Card className={`${isDev ? 'w-full' : 'lg:col-span-6'} p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] flex flex-col space-y-4`}>
               <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
                 <div className="flex items-center gap-2">
                   <GitPullRequest className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
