@@ -1,5 +1,9 @@
 name: CI
 
+permissions:
+  contents: read
+  issues: read
+
 on:
   pull_request:
   push:
@@ -28,12 +32,22 @@ jobs:
       NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run validate
+      - run: npm run quality:test
+      - run: npm run quality:check -- --base "${QUALITY_BASE_REF}"
+        env:
+          QUALITY_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+      - run: npm run quality:approval:check -- --base "${QUALITY_BASE_REF}"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          QUALITY_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
       - run: npm --prefix packages/contracts run build
       - run: npm --prefix apps/api run typecheck
       - run: npm --prefix apps/web run typecheck

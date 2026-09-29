@@ -28,3 +28,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-017](ADR-017-AI-PLAN-APPROVAL-AND-EVIDENCE-OUTCOMES.md)                  | AI plan approval and evidence outcomes                    |
 | [ADR-018](ADR-018-AI-STEP-APPROVAL-AND-QUALITY-REVIEW.md)                     | AI step approval and evidence-backed quality review       |
 | [ADR-019](ADR-019-CROSS-LAYER-QUALITY-PERFORMANCE-AND-AI-TECHNOLOGY-GATES.md) | Cross-layer quality, performance, and AI technology gates |
+| [ADR-020](ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md)            | Proposed verifiable agent change-approval enforcement     |
