@@ -29,3 +29,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-018](ADR-018-AI-STEP-APPROVAL-AND-QUALITY-REVIEW.md)                     | AI step approval and evidence-backed quality review       |
 | [ADR-019](ADR-019-CROSS-LAYER-QUALITY-PERFORMANCE-AND-AI-TECHNOLOGY-GATES.md) | Cross-layer quality, performance, and AI technology gates |
 | [ADR-020](ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md)            | Verifiable agent change-approval enforcement              |
+| [ADR-021](ADR-021-TASK-BOUND-AGENT-WRITE-BROKER.md)                            | Task-bound agent write broker for the QlickHub pilot       |
