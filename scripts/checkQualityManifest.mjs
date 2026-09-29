@@ -341,7 +341,7 @@ export async function resolveGitHubApprovals({
 }) {
   const matchingVersion2Manifests = manifests.filter(
     (manifest) =>
-      manifest.version === 2 && manifest.changedFiles.some((file) => changedFiles.includes(file)),
+      manifest.version === 2 && manifest.changedFiles.every((file) => changedFiles.includes(file)),
   );
   const issues = [];
   const approvedFiles = new Set(

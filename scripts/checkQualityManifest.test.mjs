@@ -233,6 +233,57 @@ test('reports an external approval whose payload differs from its manifest', asy
   ]);
 });
 
+test('excludes a stale approval manifest that only overlaps the current diff on TODO.md', async () => {
+  const staleManifest = structuredClone(validApprovalManifest);
+  staleManifest.id = 'AGENT-APPROVAL-STALE';
+  staleManifest.changedFiles = ['TODO.md', 'docs/plans/HISTORICAL_PLAN.md'];
+  staleManifest.approval.allowedFiles = [...staleManifest.changedFiles];
+  staleManifest.approval.recordId = 'stale-record';
+  staleManifest.approval.baselineCommit = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+  const currentManifest = structuredClone(validApprovalManifest);
+  currentManifest.id = 'AGENT-APPROVAL-CURRENT';
+  currentManifest.changedFiles = ['TODO.md', 'scripts/checkQualityManifest.mjs'];
+  currentManifest.approval.allowedFiles = [...currentManifest.changedFiles];
+  currentManifest.approval.recordId = 'current-record';
+  currentManifest.approval.baselineCommit = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+  const commentFor = (manifest) => ({
+    html_url: manifest.approval.recordUrl,
+    user: { login: manifest.approval.approvedBy },
+    author_association: 'OWNER',
+    body: `<!-- qlickhub-agent-approval:v1\n${JSON.stringify({
+      taskId: manifest.id,
+      planDigest: manifest.approval.planDigest,
+      baselineCommit: manifest.approval.baselineCommit,
+      approvedAt: manifest.approval.approvedAt,
+      expiresAt: manifest.approval.expiresAt,
+      allowedFiles: manifest.approval.allowedFiles,
+      roleScope: manifest.approval.roleScope,
+      allowedStateChanges: manifest.approval.allowedStateChanges,
+    })}\n-->`,
+  });
+
+  const result = await resolveGitHubApprovals({
+    changedFiles: currentManifest.changedFiles,
+    manifests: [staleManifest, currentManifest],
+    repository: 'example/qlickhub',
+    token: 'test-token',
+    baseCommit: currentManifest.approval.baselineCommit,
+    fetchImpl: async (url) => ({
+      ok: true,
+      json: async () =>
+        url.includes('stale-record') ? commentFor(staleManifest) : commentFor(currentManifest),
+    }),
+  });
+
+  assert.deepEqual(
+    result.matchingVersion2Manifests.map((manifest) => manifest.id),
+    ['AGENT-APPROVAL-CURRENT'],
+  );
+  assert.deepEqual(result.issues, []);
+});
+
 test('rejects a changed file without a version 2 approval manifest', async () => {
   const result = await resolveGitHubApprovals({
     changedFiles: ['apps/web/src/App.tsx'],
