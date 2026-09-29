@@ -1,6 +1,6 @@
 # ADR-020: Verifiable Agent Change-Approval Enforcement
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-29
 **Decision owner:** Product
 **Implementation stakeholders:** Product, Engineering, QA, repository administrators, and AI agents

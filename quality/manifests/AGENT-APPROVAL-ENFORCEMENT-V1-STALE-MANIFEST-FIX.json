@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "id": "AGENT-APPROVAL-ENFORCEMENT-V1-STALE-MANIFEST-FIX",
+  "changedFiles": [
+    "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V1_STALE_MANIFEST_FIX_PLAN.md",
+    "docs/reports/AGENT_APPROVAL_ENFORCEMENT_V1_STALE_MANIFEST_FIX_2026-09-29.md",
+    "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V1-STALE-MANIFEST-FIX.json",
+    "scripts/checkQualityManifest.mjs",
+    "scripts/checkQualityManifest.test.mjs"
+  ],
+  "scopes": [],
+  "evidence": {},
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5887893167",
+    "recordId": "5887893167",
+    "planDigest": "sha256:44680cf2e3d7c77e2c16e372d7c708014dc670723e6cbb39c94e534b6a5fb88b",
+    "baselineCommit": "ff9b6603c6afcd49a7d8497619264b397335f0c8",
+    "approvedBy": "oneilreyand",
+    "approvedAt": "2026-09-29T09:56:36.926Z",
+    "expiresAt": "2026-10-06T09:56:36.933Z",
+    "allowedFiles": [
+      "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V1_STALE_MANIFEST_FIX_PLAN.md",
+      "docs/reports/AGENT_APPROVAL_ENFORCEMENT_V1_STALE_MANIFEST_FIX_2026-09-29.md",
+      "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V1-STALE-MANIFEST-FIX.json",
+      "scripts/checkQualityManifest.mjs",
+      "scripts/checkQualityManifest.test.mjs"
+    ],
+    "roleScope": { "targetRoles": [], "preservedRoles": [] },
+    "allowedStateChanges": [
+      "repair stale version 2 manifest matching while preserving fail-closed approval coverage"
+    ]
+  }
+}
