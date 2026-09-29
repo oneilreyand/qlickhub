@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "id": "AGENT-APPROVAL-ENFORCEMENT-V2",
+  "changedFiles": [
+    "TODO.md",
+    "docs/4_AGENT_DEV_GUIDELINES.md",
+    "docs/POLICY_REGISTRY.md",
+    "docs/adr/ADR-021-TASK-BOUND-AGENT-WRITE-BROKER.md",
+    "docs/adr/README.md",
+    "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V2_PLAN.md",
+    "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V2.json"
+  ],
+  "scopes": [],
+  "evidence": {},
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5888922032",
+    "recordId": "5888922032",
+    "planDigest": "sha256:18e5814f61095e15009c995862493bd94373a8d51857882630d3bf48daf9bbeb",
+    "baselineCommit": "54643f7efa469b131d5c1db7d793037a29940a69",
+    "approvedBy": "oneilreyand",
+    "approvedAt": "2026-09-29T11:02:18Z",
+    "expiresAt": "2026-10-06T11:02:18Z",
+    "allowedFiles": [
+      "TODO.md",
+      "docs/4_AGENT_DEV_GUIDELINES.md",
+      "docs/POLICY_REGISTRY.md",
+      "docs/adr/ADR-021-TASK-BOUND-AGENT-WRITE-BROKER.md",
+      "docs/adr/README.md",
+      "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V2_PLAN.md",
+      "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V2.json"
+    ],
+    "roleScope": {
+      "targetRoles": [],
+      "preservedRoles": []
+    },
+    "allowedStateChanges": [
+      "publish QlickHub-only V2 broker policy and implementation plan without host runtime activation"
+    ]
+  }
+}

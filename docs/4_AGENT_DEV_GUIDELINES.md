@@ -322,6 +322,27 @@ fallback behavior, observability, rollout/rollback, serta bukti yang diperlukan.
 boleh dipilih hanya karena nama atau asumsi kemampuan; perubahan tetap mengikuti checkpoint user,
 cited-draft/Apply boundary, dan kontrak yang berlaku.
 
+#### K. Batas kapabilitas broker perubahan agent
+
+Untuk lingkungan agent terkelola yang telah mengaktifkan V2, agent tidak mendapat kapabilitas
+tulis langsung ke worktree repository. Agent boleh membaca, menganalisis, membuat diff/patch, dan
+menjalankan pemeriksaan yang tidak mengubah state. Satu-satunya jalur mutasi adalah broker yang
+terpisah dari environment agent dan memegang worktree bersih miliknya sendiri.
+
+Sebelum menerapkan patch, broker wajib memverifikasi record approval eksternal yang berlaku,
+task ID, digest rencana, baseline commit, daftar file yang persis, state change yang diizinkan,
+masa berlaku, serta lease tulis eksklusif untuk task tersebut. Broker menolak patch saat salah satu
+fakta itu tidak cocok, approval kedaluwarsa, scope bertambah, atau lease dipegang pelaksana lain.
+Approval melekat pada task dan scope, bukan pada vendor atau identitas agent; handoff hanya boleh
+terjadi setelah lease dilepas atau kedaluwarsa dan pemeriksaan yang sama lulus kembali.
+
+Broker menyimpan audit yang cukup untuk mereproduksi keputusan (task, actor, record approval,
+file yang diminta/diterapkan, baseline dan hasil), tetapi tidak boleh menyimpan atau mencetak token,
+kredensial, atau isi secret. V2 tidak dapat diklaim aktif hanya karena dokumen, hook, atau wrapper
+repository ada; uji runtime harus membuktikan bahwa tulis langsung benar-benar ditolak dan jalur
+broker saja yang dapat memodifikasi worktree. Pengecualian, recovery, dan rollback tetap memerlukan
+otoritas manusia yang eksplisit.
+
 ---
 
 ## 3. Kebijakan Basis Data & Bukti Pengujian (_Database & Test Evidence_)
