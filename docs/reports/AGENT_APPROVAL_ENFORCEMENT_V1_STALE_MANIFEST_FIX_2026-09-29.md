@@ -4,7 +4,7 @@ Repair stale version 2 approval-manifest matching that blocks an independently a
 
 ## Outcome
 
-The stale-manifest regression was first reproduced as a failing test, then corrected by requiring a selected manifest's complete file scope to be present in the current diff. The focused suite now passes 19/19 and documentation governance passes 5/5. Commit-level approval validation, CI, and independent PR verification remain pending; this repair is not complete.
+The stale-manifest regression was first reproduced as a failing test, then corrected by requiring a selected manifest's complete file scope to be present in the current diff. Full local validation now passes: focused suite 19/19, documentation governance 5/5, quality coverage for 11 combined changed files, and CI-equivalent approval enforcement with exactly two relevant manifests. GitHub CI and independent PR verification remain pending; this repair is not complete.
 
 ## Work assurance
 
@@ -17,14 +17,14 @@ The stale-manifest regression was first reproduced as a failing test, then corre
 | Acceptance Criterion | Required / achieved evidence level (E0–E4) | Primary evidence and environment | Verification status |
 | --- | --- | --- | --- |
 | A stale manifest sharing only `TODO.md` is excluded. | E2/E2 | New `checkQualityManifest.test.mjs` regression test, clean closure worktree. | Accepted with gaps — CI/review pending. |
-| A current manifest with full file scope in the diff remains selected. | E2/E2 | Same regression test passes after containment predicate repair. | Accepted with gaps — CI-equivalent command pending after commit. |
+| A current manifest with full file scope in the diff remains selected. | E2/E2 | Same regression test and CI-equivalent gate pass after containment predicate repair. | Accepted with gaps — GitHub CI/review pending. |
 | A changed file without approval remains rejected. | E2/E2 | Existing missing-manifest test remains in 19/19 passing suite. | Accepted with gaps — CI/review pending. |
 | No application runtime or persistence surface changes. | E1/E1 | Exact five-file repair scope inspection. | Accepted with gaps — PR diff review pending. |
 
-- **Evidence outcomes:** before this repair, the CI-equivalent command inspected 6 changed files and 2 version 2 manifests, then failed because historical `AGENT-APPROVAL-ENFORCEMENT-V1` shares `TODO.md` and its old baseline differs from the current closure base. The new regression test initially failed with both `AGENT-APPROVAL-STALE` and `AGENT-APPROVAL-CURRENT` selected. After the one-line containment repair, `npm run quality:test` passed 19/19, `npm run docs:check` passed 5/5, and `git diff --check` found no whitespace errors. Commit-level approval validation, CI, and independent review remain pending.
+- **Evidence outcomes:** before this repair, the CI-equivalent command inspected 6 changed files and 2 version 2 manifests, then failed because historical `AGENT-APPROVAL-ENFORCEMENT-V1` shares `TODO.md` and its old baseline differs from the current closure base. The new regression test initially failed with both `AGENT-APPROVAL-STALE` and `AGENT-APPROVAL-CURRENT` selected. After the one-line containment repair, `npm run quality:test` passed 19/19, `npm run docs:check` passed 5/5, `npm run quality:check` reported complete coverage for 11 changed files, the CI-equivalent approval gate selected only the closure and repair manifests with no gap, and whitespace checks passed. GitHub CI and independent review remain pending.
 - **Change Impact Map:** cross-boundary checker selection and module test changes only; runtime application surfaces are unaffected.
 - **Decision Snapshot:** complete-scope containment is selected over any-file overlap; exact-one-manifest equality and bypassing the gap are rejected.
-- **Agent handoff and independent verification:** pending CI-equivalent pass after commit, CI, and PR review.
+- **Agent handoff and independent verification:** CI-equivalent pass achieved; GitHub CI and PR review pending.
 - **Quality review:** preliminary review found the repair reuses the existing approval resolver and test suite, adds no parallel checker or policy definition, and leaves application runtime boundaries unchanged. Final committed-diff review remains pending.
 - **Cross-layer quality gates:** not applicable; no UI, data-access, performance, or AI technology/model change.
 
@@ -50,7 +50,9 @@ The stale-manifest regression was first reproduced as a failing test, then corre
 - `npm run quality:test` — passed, 19/19 tests, 0 failed, 0 skipped, clean closure worktree after repair.
 - `npm run docs:check` — passed, 5/5 tests, 0 failed, 0 skipped.
 - `git diff --check` — passed, 0 whitespace errors.
-- Pending after commit: quality/approval checks with the full committed diff, CI, and independent PR review.
+- `npm run quality:check -- --base ff9b6603c6afcd49a7d8497619264b397335f0c8` — passed; 11 changed files, complete quality coverage.
+- CI-equivalent approval enforcement — passed; exactly 2 current manifests selected, no approval gap.
+- Pending: GitHub CI and independent PR review.
 
 ## Risks or follow-up
 
