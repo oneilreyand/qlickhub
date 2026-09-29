@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Qlick Hub Quality Evidence Manifest",
+  "type": "object",
+  "required": ["version", "id", "changedFiles", "scopes", "evidence"],
+  "properties": {
+    "version": { "enum": [1, 2] },
+    "id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9_-]+$" },
+    "changedFiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "scopes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["ui", "dataAccess", "performance", "ai"] }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status", "artifacts"],
+        "properties": {
+          "status": { "enum": ["planned", "collected", "blocked", "not_applicable"] },
+          "artifacts": { "type": "array", "items": { "type": "string" } },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "required": [
+        "authority",
+        "recordUrl",
+        "recordId",
+        "planDigest",
+        "baselineCommit",
+        "approvedBy",
+        "approvedAt",
+        "expiresAt",
+        "allowedFiles",
+        "roleScope",
+        "allowedStateChanges"
+      ],
+      "properties": {
+        "authority": { "const": "github" },
+        "recordUrl": { "type": "string", "format": "uri" },
+        "recordId": { "type": "string", "minLength": 1 },
+        "planDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "baselineCommit": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "allowedFiles": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "roleScope": {
+          "type": "object",
+          "required": ["targetRoles", "preservedRoles"],
+          "properties": {
+            "targetRoles": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "preservedRoles": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "allowedStateChanges": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

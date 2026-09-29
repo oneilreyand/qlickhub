@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "id": "AGENT-APPROVAL-ENFORCEMENT-V1",
+  "changedFiles": [
+    "TODO.md",
+    "docs/adr/ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md",
+    "docs/adr/README.md",
+    "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V1_PLAN.md",
+    "package.json",
+    "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V1.json",
+    "quality/quality-manifest.schema.json",
+    "scripts/checkQualityManifest.mjs",
+    "scripts/checkQualityManifest.test.mjs",
+    ".github/workflows/ci.yml"
+  ],
+  "scopes": [],
+  "evidence": {},
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5885500192",
+    "recordId": "5885500192",
+    "planDigest": "sha256:ad4758a3abcb323eee707eea1ea921d8e9cb55d737eb30c06c413404989d25cb",
+    "baselineCommit": "fa53f50226fdb584f5555ad2cef21b44ccccd71e",
+    "approvedBy": "oneilreyand",
+    "approvedAt": "2026-09-29T07:08:32.000Z",
+    "expiresAt": "2026-10-06T07:08:32.000Z",
+    "allowedFiles": [
+      ".github/workflows/ci.yml",
+      "TODO.md",
+      "docs/adr/ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md",
+      "docs/adr/README.md",
+      "docs/plans/AGENT_APPROVAL_ENFORCEMENT_V1_PLAN.md",
+      "package.json",
+      "quality/manifests/AGENT-APPROVAL-ENFORCEMENT-V1.json",
+      "quality/quality-manifest.schema.json",
+      "scripts/checkQualityManifest.mjs",
+      "scripts/checkQualityManifest.test.mjs"
+    ],
+    "roleScope": {
+      "targetRoles": [],
+      "preservedRoles": []
+    },
+    "allowedStateChanges": ["implement and activate fail-closed approval verification in CI"]
+  }
+}
