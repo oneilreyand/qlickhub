@@ -101,6 +101,7 @@ export class AiTaskGeneratorService {
 
       // 2. Create Requirements and Acceptance Criteria if present
       let createdRequirementCount = 0;
+      const createdRequirementIds: string[] = [];
       if (input.requirements && input.requirements.length > 0) {
         for (let i = 0; i < input.requirements.length; i++) {
           const reqDraft = input.requirements[i];
@@ -117,6 +118,7 @@ export class AiTaskGeneratorService {
             },
             { transaction },
           );
+          createdRequirementIds.push(req.id);
 
           // Link Requirement to the root Task
           await TaskRequirementModel.create(
@@ -174,6 +176,21 @@ export class AiTaskGeneratorService {
             },
             { transaction },
           );
+
+          // Auto-link subtask to the feature's requirements for initial traceability
+          if (createdRequirementIds.length > 0) {
+            for (const requirementId of createdRequirementIds) {
+              await TaskRequirementModel.create(
+                {
+                  workspaceId,
+                  taskId: createdSub.id,
+                  requirementId,
+                  linkedBy: actorId,
+                },
+                { transaction },
+              );
+            }
+          }
 
           await TaskActivityModel.create(
             {

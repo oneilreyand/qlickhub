@@ -259,6 +259,14 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
     });
     assert.strictEqual(acs.length, 2);
 
+    // Verify each subtask is also linked to the requirement for traceability
+    for (const sub of subtasks) {
+      const subtaskReqLink = await TaskRequirementModel.findOne({
+        where: { taskId: sub.id, requirementId: reqLinks[0].requirementId },
+      });
+      assert.ok(subtaskReqLink, `Subtask ${sub.title} must be linked to the Requirement`);
+    }
+
     // Verify Product Brief
     const brief = await qaDocumentService.getProductBrief(
       workspace.id,

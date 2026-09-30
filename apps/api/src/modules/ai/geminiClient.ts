@@ -179,8 +179,6 @@ export class GeminiClient {
       );
     }
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
-
     const systemInstruction = `Anda adalah Senior Technical Product Owner dan QA Lead di platform Qlick Hub.
 Sebelum membuat draf, nilai apakah prompt berisi kebutuhan produk yang dapat dipahami. Jika prompt berupa teks acak, tidak bermakna, atau tidak memiliki konteks yang cukup untuk membuat draf secara bertanggung jawab, jawab dengan outcome "clarification". Jangan mengarang Feature, Requirement, Acceptance Criteria, atau Subtask untuk prompt seperti itu.
 
@@ -283,20 +281,76 @@ Respon WAJIB dalam format JSON murni sesuai schema yang ditentukan.`;
       },
     };
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(30000),
-    });
+    const candidateModels = [
+      this.model,
+      this.model !== 'gemini-3.1-flash-lite-preview'
+        ? 'gemini-3.1-flash-lite-preview'
+        : 'gemini-2.5-flash',
+    ];
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Gemini API Error:', response.status, errorText);
-      throw new Error(`Google AI Studio error (${response.status}): ${errorText}`);
+    let lastError: Error | null = null;
+    let json: any = null;
+
+    for (const currentModel of candidateModels) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${this.apiKey}`;
+
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(30000),
+          });
+
+          if (response.ok) {
+            json = (await response.json()) as any;
+            break;
+          }
+
+          const errorText = await response.text();
+          console.warn(
+            `[GeminiClient] Model ${currentModel} (attempt ${attempt}/2) failed (${response.status}):`,
+            errorText,
+          );
+
+          // Retryable status codes on Google AI Studio: 503 (High demand / unavailable), 429 (rate limit spike)
+          const isRetryable = response.status === 503 || response.status === 429;
+          if (isRetryable && attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            continue;
+          }
+
+          lastError = new Error(
+            response.status === 503
+              ? 'Layanan Google AI Studio sedang mengalami lonjakan beban tinggi (503 High Demand). Silakan coba beberapa saat lagi.'
+              : `Google AI Studio error (${response.status}): ${errorText}`,
+          );
+
+          if (isRetryable) {
+            // Move to fallback candidate model
+            break;
+          } else {
+            throw lastError;
+          }
+        } catch (err: any) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+          if (attempt < 2 && err.name !== 'AbortError') {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+          }
+        }
+      }
+
+      if (json) {
+        break;
+      }
     }
 
-    const json = (await response.json()) as any;
+    if (!json) {
+      throw (
+        lastError || new Error('Google AI Studio tidak merespons setelah beberapa kali percobaan.')
+      );
+    }
     const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawText) {
       throw new Error('Gemini did not return any candidate response text.');
@@ -317,10 +371,20 @@ Respon WAJIB dalam format JSON murni sesuai schema yang ditentukan.`;
       throw new Error('Gemini returned an unsupported generation outcome.');
     }
 
+    const safeProductBrief =
+      parsedJson.productBrief && typeof parsedJson.productBrief === 'object'
+        ? parsedJson.productBrief
+        : {
+            context: parsedJson.task?.description || '',
+            inScope: parsedJson.task?.title ? [parsedJson.task.title] : [],
+            outScope: [],
+          };
+
     return {
       outcome: 'draft',
       draft: GeneratedTaskDraftSchema.parse({
         ...parsedJson,
+        productBrief: safeProductBrief,
         citations: [promptCitation(prompt)],
       }),
     };

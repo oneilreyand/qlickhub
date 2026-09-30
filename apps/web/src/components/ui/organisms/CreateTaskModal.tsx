@@ -1,23 +1,71 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { TaskPriority, FolderTreeNode, getTaskScheduleValidationIssue } from '@qlick/contracts';
+import {
+  TaskPriority,
+  FolderTreeNode,
+  DeliveryArea,
+  getTaskScheduleValidationIssue,
+} from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
-import { User, Sparkles } from 'lucide-react';
+import {
+  User,
+  Sparkles,
+  ListChecks,
+  Layers,
+  Plus,
+  Trash2,
+  CheckSquare,
+  Square,
+} from 'lucide-react';
 import { RichTextEditor } from '../molecules/RichTextEditor';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { createTask } from '../../../store/taskSlice';
+import { fetchTasks } from '../../../store/taskSlice';
 import { fetchMembers } from '../../../store/workspaceSlice';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
 import { selectCurrentUserId } from '../../../store/authSlice';
 import { getIndonesianTaskScheduleMessage } from '../../../lib/i18n/indonesianCopy';
+import { aiTaskGeneratorService } from '../../../lib/api/aiTaskGeneratorService';
+
+const DELIVERY_AREA_OPTIONS: { id: DeliveryArea; label: string; badge: string }[] = [
+  {
+    id: 'frontend',
+    label: 'Frontend',
+    badge:
+      'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+  },
+  {
+    id: 'backend',
+    label: 'Backend',
+    badge:
+      'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800',
+  },
+  {
+    id: 'qa',
+    label: 'QA / Testing',
+    badge:
+      'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
+  },
+  {
+    id: 'mobile',
+    label: 'Mobile',
+    badge:
+      'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',
+  },
+  {
+    id: 'fullstack',
+    label: 'Fullstack',
+    badge:
+      'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800',
+  },
+];
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreated?: () => void;
+  onCreated?: (newTaskId?: string) => void;
   onOpenAiGenerator?: () => void;
   folders: FolderTreeNode[];
   defaultFolderId?: string | null;
@@ -41,6 +89,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [requirementTitle, setRequirementTitle] = useState('');
+  const [acceptanceCriteria, setAcceptanceCriteria] = useState<string[]>([
+    'Fitur dapat diakses dan berfungsi sesuai spesifikasi',
+  ]);
+  const [selectedAreas, setSelectedAreas] = useState<DeliveryArea[]>(['frontend', 'backend', 'qa']);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const prevIsOpenRef = useRef(false);
@@ -73,6 +126,40 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
   const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
 
+  const handleAddCriterion = () => {
+    setAcceptanceCriteria((prev) => [...prev, '']);
+  };
+
+  const handleUpdateCriterion = (index: number, value: string) => {
+    setAcceptanceCriteria((prev) => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+  };
+
+  const handleRemoveCriterion = (index: number) => {
+    if (acceptanceCriteria.length <= 1) return;
+    setAcceptanceCriteria((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleToggleArea = (area: DeliveryArea) => {
+    if (selectedAreas.includes(area)) {
+      if (selectedAreas.length > 1) {
+        setSelectedAreas(selectedAreas.filter((a) => a !== area));
+      } else {
+        dispatch(
+          enqueueSnackbar(
+            'Minimal 1 area delivery harus dipilih untuk subtask pelaksana.',
+            'warning',
+          ),
+        );
+      }
+    } else {
+      setSelectedAreas([...selectedAreas, area]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeWorkspaceId) return;
@@ -87,31 +174,79 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       return;
     }
 
+    const validCriteria = acceptanceCriteria.map((c) => c.trim()).filter(Boolean);
+    if (validCriteria.length === 0) {
+      dispatch(enqueueSnackbar('Minimal 1 kriteria penerimaan (AC) wajib diisi.', 'error'));
+      return;
+    }
+
+    if (selectedAreas.length === 0) {
+      dispatch(enqueueSnackbar('Pilih minimal 1 area delivery untuk subtask pelaksana.', 'error'));
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await dispatch(
-        createTask({
-          workspaceId: activeWorkspaceId,
-          input: {
-            title: title.trim(),
-            description: description.trim() || undefined,
-            folderId: folderId || null,
-            status: 'todo',
-            priority,
-            assigneeId: undefined,
-            startDate: startDate || undefined,
-            dueDate: dueDate || undefined,
+      const finalReqTitle = requirementTitle.trim() || `Kebutuhan Utama: ${title.trim()}`;
+      const subtasksPayload = selectedAreas.map((area) => {
+        const areaOption = DELIVERY_AREA_OPTIONS.find((o) => o.id === area);
+        const areaLabel = areaOption ? areaOption.label : area.toUpperCase();
+        return {
+          deliveryArea: area,
+          title: `[${areaLabel}] Implementasi ${title.trim()}`,
+          description: `Subtask eksekusi ${areaLabel} untuk feature ${title.trim()}.`,
+          priority,
+          enabled: true,
+        };
+      });
+
+      const result = await aiTaskGeneratorService.applyDraft(activeWorkspaceId, {
+        folderId: folderId || undefined,
+        task: {
+          title: title.trim(),
+          description: description.trim(),
+          priority,
+          startDate: startDate || undefined,
+          dueDate: dueDate || undefined,
+        },
+        productBrief: {
+          context: description.trim() || `Spesifikasi awal untuk ${title.trim()}`,
+          inScope: [title.trim()],
+          outScope: [],
+        },
+        requirements: [
+          {
+            title: finalReqTitle,
+            description: description.trim() || '',
+            acceptanceCriteria: validCriteria,
           },
+        ],
+        subtasks: subtasksPayload,
+      });
+
+      dispatch(
+        fetchTasks({
+          workspaceId: activeWorkspaceId,
           query: folderId ? { folderId } : {},
         }),
-      ).unwrap();
+      );
 
-      dispatch(enqueueSnackbar('Parent Task berhasil dibuat.', 'success'));
+      dispatch(
+        enqueueSnackbar(
+          `Feature "${result.task.title}" berhasil dibuat dengan ${result.createdSubtaskCount} subtask dan ${result.createdRequirementCount} requirement.`,
+          'success',
+        ),
+      );
+
       setTitle('');
       setDescription('');
       setStartDate('');
       setDueDate('');
-      onCreated?.();
+      setRequirementTitle('');
+      setAcceptanceCriteria(['Fitur dapat diakses dan berfungsi sesuai spesifikasi']);
+      setSelectedAreas(['frontend', 'backend', 'qa']);
+
+      onCreated?.(result.task.id);
       onClose();
     } catch (err) {
       dispatch(enqueueSnackbar(err instanceof Error ? err.message : 'Task gagal dibuat.', 'error'));
@@ -136,7 +271,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-stone-100">Buat Feature Lengkap dengan AI</p>
+                <p className="text-xs font-semibold text-stone-100">
+                  Buat Feature Lengkap dengan AI
+                </p>
                 <p className="text-[11px] text-stone-400">
                   Susun task, brief produk, requirement & subtask otomatis.
                 </p>
@@ -292,6 +429,124 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               {scheduleIssueMessage}
             </p>
           )}
+        </div>
+
+        {/* Requirement & Acceptance Criteria Section (SSoT DOMAIN-003) */}
+        <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/30 space-y-3">
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-[#7BB80E] dark:text-[#B1E743]" />
+            <h4 className="text-xs font-bold text-stone-800 dark:text-stone-200">
+              Spesifikasi Kebutuhan & Kriteria Penerimaan (AC)
+            </h4>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/20">
+              Wajib SSoT
+            </span>
+          </div>
+          <p className="text-[11px] text-stone-500 dark:text-stone-400">
+            Setiap Feature wajib memiliki minimal 1 Requirement dan kriteria penerimaan terukur.
+          </p>
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
+              Judul Requirement Utama
+            </label>
+            <Input
+              value={requirementTitle}
+              onChange={(e) => setRequirementTitle(e.target.value)}
+              placeholder="Contoh: Otentikasi dan sesi pengguna (opsional, default: Kebutuhan Utama)"
+              maxLength={200}
+              aria-label="Judul Requirement"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                Kriteria Penerimaan (AC) <span className="text-rose-500">*</span>
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddCriterion}
+                className="text-[11px] py-0.5 px-2 h-6"
+                aria-label="Tambah Kriteria Penerimaan"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Tambah AC
+              </Button>
+            </div>
+
+            {acceptanceCriteria.map((criterion, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-stone-400 w-5 text-right shrink-0">
+                  {idx + 1}.
+                </span>
+                <Input
+                  value={criterion}
+                  onChange={(e) => handleUpdateCriterion(idx, e.target.value)}
+                  placeholder="Contoh: Given data valid, when submit, then status 200"
+                  aria-label={`Kriteria Penerimaan ${idx + 1}`}
+                  required
+                />
+                {acceptanceCriteria.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveCriterion(idx)}
+                    className="p-1.5 h-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 shrink-0"
+                    aria-label={`Hapus Kriteria ${idx + 1}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Subtask & Delivery Areas Section (SSoT DOMAIN-002) */}
+        <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/30 space-y-3">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-[#7BB80E] dark:text-[#B1E743]" />
+            <h4 className="text-xs font-bold text-stone-800 dark:text-stone-200">
+              Subtask Pelaksana & Area Delivery
+            </h4>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-400 font-semibold border border-blue-500/20">
+              {selectedAreas.length} Area Terpilih
+            </span>
+          </div>
+          <p className="text-[11px] text-stone-500 dark:text-stone-400">
+            Setiap Feature wajib memiliki minimal 1 Subtask. Pilih area teknis untuk membuat subtask
+            eksekusi otomatis.
+          </p>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {DELIVERY_AREA_OPTIONS.map((area) => {
+              const isSelected = selectedAreas.includes(area.id);
+              return (
+                <button
+                  key={area.id}
+                  type="button"
+                  onClick={() => handleToggleArea(area.id)}
+                  aria-label={`Area ${area.label}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                    isSelected
+                      ? `${area.badge} shadow-xs font-semibold ring-1 ring-stone-400/30`
+                      : 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 hover:border-stone-300'
+                  }`}
+                >
+                  {isSelected ? (
+                    <CheckSquare className="h-3.5 w-3.5 text-[#7BB80E] dark:text-[#B1E743]" />
+                  ) : (
+                    <Square className="h-3.5 w-3.5" />
+                  )}
+                  <span>{area.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-stone-100 dark:border-stone-800 pt-4 mt-6">

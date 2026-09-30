@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "id": "TASK-AND-FEATURE-GENERATION-COMPLIANCE",
+  "changedFiles": [
+    "TODO.md",
+    "apps/api/src/modules/ai/__tests__/aiTaskGeneratorIntegration.test.ts",
+    "apps/api/src/modules/ai/aiTaskGeneratorService.ts",
+    "apps/api/src/modules/ai/geminiClient.ts",
+    "apps/web/src/components/ui/organisms/AiTaskGeneratorModal.tsx",
+    "apps/web/src/components/ui/organisms/CreateTaskModal.tsx",
+    "apps/web/src/components/ui/organisms/__tests__/AiTaskGeneratorModal.test.tsx",
+    "apps/web/src/components/ui/organisms/__tests__/CreateTaskModal.test.tsx",
+    "docs/plans/TASK_AND_FEATURE_GENERATION_COMPLIANCE_PLAN.md",
+    "docs/reports/TASK_AND_FEATURE_GENERATION_COMPLIANCE_2026-09-30.md",
+    "packages/contracts/src/aiTaskGenerator.ts",
+    "packages/contracts/src/contracts.test.ts",
+    "quality/manifests/TASK-AND-FEATURE-GENERATION-COMPLIANCE.json"
+  ],
+  "scopes": ["ai", "performance", "ui"],
+  "evidence": {
+    "ai": {
+      "status": "collected",
+      "artifacts": [
+        "node --test apps/api/dist/modules/ai/__tests__/aiTaskGeneratorIntegration.test.js: 5 passed",
+        "node --test apps/api/dist/modules/ai/__tests__/geminiClient.test.js: 2 passed",
+        "npm --prefix packages/contracts test: 81 passed"
+      ]
+    },
+    "performance": {
+      "status": "collected",
+      "artifacts": [
+        "npm --prefix apps/web run build: 1722 modules transformed in 3.18s",
+        "npm --prefix apps/api run build: tsc clean exit 0"
+      ]
+    },
+    "ui": {
+      "status": "collected",
+      "artifacts": [
+        "node --test (AiTaskGeneratorModal.test.tsx): 7 passed",
+        "node --test (CreateTaskModal.test.tsx): 7 passed"
+      ]
+    }
+  }
+}

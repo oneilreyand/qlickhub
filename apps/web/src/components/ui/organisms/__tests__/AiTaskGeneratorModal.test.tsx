@@ -303,4 +303,77 @@ describe('AiTaskGeneratorModal Organism', () => {
 
     expect(screen.getByText('✨ Generator Task & Feature AI')).toBeInTheDocument();
   });
+
+  it('disables apply button and shows warning banner when all subtasks are unchecked (AC-1.2)', async () => {
+    vi.spyOn(aiTaskGeneratorService, 'generateDraft').mockResolvedValue(mockDraftResponse);
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    const textarea = screen.getByPlaceholderText(/Contoh: Buatkan fitur pembayaran QRIS dinamis/i);
+    fireEvent.change(textarea, { target: { value: 'Fitur pembayaran QRIS dinamis' } });
+    fireEvent.click(screen.getByRole('button', { name: /Generate Draf Feature/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Pratinjau & Edit Draf Feature (AI)')).toBeInTheDocument();
+    });
+
+    // Switch to Subtasks tab
+    fireEvent.click(screen.getByText(/Subtasks \(2\/2\)/i));
+
+    // Disable both subtasks by toggling their check buttons
+    const toggle1 = screen.getByLabelText('Toggle subtask 1');
+    const toggle2 = screen.getByLabelText('Toggle subtask 2');
+
+    fireEvent.click(toggle1);
+    fireEvent.click(toggle2);
+
+    // Warning banner should appear
+    expect(
+      screen.getByText('Wajib mengaktifkan minimal 1 Subtask sebelum Feature dapat disimpan.'),
+    ).toBeInTheDocument();
+
+    // Apply button should be disabled
+    const applyBtn = screen.getByRole('button', { name: /Terapkan & Buat Feature/i });
+    expect(applyBtn).toBeDisabled();
+  });
+
+  it('disables apply button and shows warning banner when an acceptance criterion is deleted leaving requirement empty (AC-1.2)', async () => {
+    vi.spyOn(aiTaskGeneratorService, 'generateDraft').mockResolvedValue(mockDraftResponse);
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    const textarea = screen.getByPlaceholderText(/Contoh: Buatkan fitur pembayaran QRIS dinamis/i);
+    fireEvent.change(textarea, { target: { value: 'Fitur pembayaran QRIS dinamis' } });
+    fireEvent.click(screen.getByRole('button', { name: /Generate Draf Feature/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Pratinjau & Edit Draf Feature (AI)')).toBeInTheDocument();
+    });
+
+    // Switch to Requirements tab
+    fireEvent.click(screen.getByText(/Requirements \(1\)/i));
+
+    // Delete the single AC in requirement 1
+    const deleteAcBtn = screen.getByLabelText('Hapus AC 1-1');
+    fireEvent.click(deleteAcBtn);
+
+    // Warning banner should appear
+    expect(
+      screen.getByText('Setiap Requirement wajib memiliki minimal 1 Acceptance Criterion (AC).'),
+    ).toBeInTheDocument();
+
+    // Apply button should be disabled
+    const applyBtn = screen.getByRole('button', { name: /Terapkan & Buat Feature/i });
+    expect(applyBtn).toBeDisabled();
+  });
 });

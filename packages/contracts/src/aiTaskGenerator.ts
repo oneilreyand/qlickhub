@@ -33,7 +33,7 @@ export const GeneratedRequirementDraftSchema = z.object({
   description: z.string().optional().default(''),
   acceptanceCriteria: z
     .array(z.string().trim().min(1, 'Kriteria penerimaan tidak boleh kosong'))
-    .default([]),
+    .min(1, 'Minimal 1 kriteria penerimaan (AC) wajib diisi'),
 });
 
 export type GeneratedRequirementDraft = z.infer<typeof GeneratedRequirementDraftSchema>;
@@ -73,11 +73,13 @@ export const GeneratedTaskDraftSchema = z.object({
     description: z.string().default(''),
     priority: TaskPrioritySchema.default('medium'),
   }),
-  productBrief: z.object({
-    context: z.string().default(''),
-    inScope: z.array(z.string().trim().min(1)).default([]),
-    outScope: z.array(z.string().trim().min(1)).default([]),
-  }),
+  productBrief: z
+    .object({
+      context: z.string().default(''),
+      inScope: z.array(z.string().trim().min(1)).default([]),
+      outScope: z.array(z.string().trim().min(1)).default([]),
+    })
+    .default({ context: '', inScope: [], outScope: [] }),
   requirements: z.array(GeneratedRequirementDraftSchema).default([]),
   subtasks: z.array(GeneratedSubtaskDraftSchema).default([]),
   citations: z.array(GeneratedTaskDraftCitationSchema).min(1),
@@ -129,13 +131,17 @@ export const ApplyTaskDraftInputSchema = z
       startDate: z.string().nullable().optional(),
       dueDate: z.string().nullable().optional(),
     }),
-    productBrief: z.object({
-      context: z.string().default(''),
-      inScope: z.array(z.string().trim()).default([]),
-      outScope: z.array(z.string().trim()).default([]),
-    }),
-    requirements: z.array(GeneratedRequirementDraftSchema).optional().default([]),
-    subtasks: z.array(GeneratedSubtaskDraftSchema).optional().default([]),
+    productBrief: z
+      .object({
+        context: z.string().default(''),
+        inScope: z.array(z.string().trim()).default([]),
+        outScope: z.array(z.string().trim()).default([]),
+      })
+      .default({ context: '', inScope: [], outScope: [] }),
+    requirements: z
+      .array(GeneratedRequirementDraftSchema)
+      .min(1, 'Minimal 1 Requirement wajib disertakan'),
+    subtasks: z.array(GeneratedSubtaskDraftSchema).min(1, 'Minimal 1 Subtask wajib disertakan'),
   })
   .superRefine((data, ctx) => {
     const issue = getTaskScheduleValidationIssue(data.task.startDate, data.task.dueDate);
@@ -144,6 +150,26 @@ export const ApplyTaskDraftInputSchema = z
         code: z.ZodIssueCode.custom,
         message: issue.message,
         path: ['task', issue.field],
+      });
+    }
+
+    const enabledSubtasks = (data.subtasks || []).filter((s) => s.enabled !== false);
+    if (enabledSubtasks.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Minimal 1 Subtask harus aktif dan dipilih untuk dikerjakan tim',
+        path: ['subtasks'],
+      });
+    }
+
+    const hasEmptyAc = (data.requirements || []).some(
+      (r) => !r.acceptanceCriteria || r.acceptanceCriteria.length === 0,
+    );
+    if (hasEmptyAc) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Setiap Requirement wajib memiliki minimal 1 kriteria penerimaan (AC)',
+        path: ['requirements'],
       });
     }
   });

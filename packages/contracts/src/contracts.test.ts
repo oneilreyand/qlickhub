@@ -2618,6 +2618,53 @@ describe('Contracts Validation Suite', () => {
         () =>
           ApplyTaskDraftInputSchema.parse({
             ...applyInput,
+            requirements: [],
+          }),
+        /Minimal 1 Requirement wajib disertakan/,
+      );
+
+      assert.throws(
+        () =>
+          ApplyTaskDraftInputSchema.parse({
+            ...applyInput,
+            requirements: [
+              {
+                title: 'Req without AC',
+                acceptanceCriteria: [],
+              },
+            ],
+          }),
+        /Minimal 1 kriteria penerimaan \(AC\) wajib diisi/,
+      );
+
+      assert.throws(
+        () =>
+          ApplyTaskDraftInputSchema.parse({
+            ...applyInput,
+            subtasks: [],
+          }),
+        /Minimal 1 Subtask wajib disertakan/,
+      );
+
+      assert.throws(
+        () =>
+          ApplyTaskDraftInputSchema.parse({
+            ...applyInput,
+            subtasks: [
+              {
+                title: 'Disabled subtask',
+                deliveryArea: 'frontend',
+                enabled: false,
+              },
+            ],
+          }),
+        /Minimal 1 Subtask harus aktif dan dipilih untuk dikerjakan tim/,
+      );
+
+      assert.throws(
+        () =>
+          ApplyTaskDraftInputSchema.parse({
+            ...applyInput,
             task: { ...applyInput.task, startDate: '2026-10-02', dueDate: '2026-10-01' },
           }),
         /Start Date cannot be after Due Date/,
