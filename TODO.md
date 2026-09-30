@@ -29,6 +29,8 @@ Workspace → Folder → Feature / Story (root Task)
 
 ## Active work
 
+- [ ] **In progress** (Codex — 2026-09-30) — **FIX-CAPACITY-RESPONSE-ADAPTER: Pulihkan pemeriksaan bentrok jadwal Subtask dan Timeline Kapasitas Tim dengan menyelaraskan adaptor frontend pada respons kapasitas backend yang sudah kanonis.** Scope hanya membaca respons langsung yang dikembalikan API; tidak ada perubahan endpoint, kontrak backend, otorisasi, data, migrasi, atau deployment. Policies: `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-003`, `DOC-004`.
+
 - [ ] **In progress** (Codex — 2026-09-30) — **FEATURE-CATALOG-AND-ROLE-FLOWS: Buat halaman depan dokumentasi Feature yang memperlihatkan seluruh katalog, pengelompokan area produk, serta alur baca dan handoff Owner/Admin, PO, Developer, dan QA.** Tahap ini tidak memindahkan, mengganti nama, atau menghapus 33 kartu Feature lama; katalog dan flow hanya menaut ke sumber yang ada. Migrasi tiap kartu ke folder per-role dilakukan kemudian melalui approval terpisah. Policies: `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`, `DOC-005`.
 
 - [ ] **In progress** (Codex — 2026-09-30) — **FEATURE-DOCUMENT-TREE-MIGRATION: Tambahkan format folder kanonis untuk Feature lintas-role, dengan README bergambar alur, dokumen per Owner/Admin, PO, Developer, dan QA, serta dokumen kontrak, otorisasi, dan pengujian bersama.** Kartu Feature satu-berkas lama tetap valid; tidak ada bulk move, rename, atau penghapusan kartu lama dalam slice ini. Migrasi dilakukan hanya saat Feature aktif disentuh melalui approval terpisah. Policies: `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`, `DOC-005`.
