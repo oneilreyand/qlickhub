@@ -6,7 +6,9 @@ import {
   extractPolicyIds,
   extractReferencedPolicyIds,
   validateFeatureCard,
+  validateFeatureCatalog,
   validateFeatureFolder,
+  validateFeatureNavigation,
 } from './checkDocs.mjs';
 
 test('extractPolicyIds reads only registry table identifiers', () => {
@@ -100,4 +102,25 @@ test('validateFeatureFolder requires the role and shared-contract documents', ()
     'docs/features/EXAMPLE is missing required file: roles/developer.md',
     'docs/features/EXAMPLE is missing required file: roles/qa.md',
   ]);
+});
+
+test('validateFeatureNavigation requires the expected catalogue sections', () => {
+  assert.deepEqual(
+    validateFeatureNavigation(
+      '## Cara memakai katalog',
+      ['## Cara memakai katalog', '## QA'],
+      'catalog.md',
+    ),
+    ['catalog.md is missing required navigation heading: ## QA'],
+  );
+});
+
+test('validateFeatureCatalog requires every legacy Feature exactly once', () => {
+  assert.deepEqual(
+    validateFeatureCatalog('[A](A.md)\n[A again](A.md)', ['A.md', 'B.md'], 'catalog.md'),
+    [
+      'catalog.md repeats legacy Feature link: A.md',
+      'catalog.md is missing legacy Feature link: B.md',
+    ],
+  );
 });

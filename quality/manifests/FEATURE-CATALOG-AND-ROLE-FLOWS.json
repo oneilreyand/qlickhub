@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "id": "FEATURE-CATALOG-AND-ROLE-FLOWS",
+  "changedFiles": [
+    "TODO.md",
+    "docs/features/README.md",
+    "docs/features/FEATURE_CATALOG.md",
+    "docs/features/ROLE_FLOWS.md",
+    "docs/plans/FEATURE_CATALOG_AND_ROLE_FLOWS_PLAN.md",
+    "docs/reports/FEATURE_CATALOG_AND_ROLE_FLOWS_2026-09-30.md",
+    "quality/manifests/FEATURE-CATALOG-AND-ROLE-FLOWS.json",
+    "scripts/checkDocs.mjs",
+    "scripts/checkDocs.test.mjs"
+  ],
+  "scopes": [],
+  "evidence": {
+    "documentation": {
+      "status": "collected",
+      "artifacts": [
+        "npm run docs:check: 8 passed, 0 failed, 0 skipped",
+        "npm run quality:check: coverage complete",
+        "git diff --check: passed"
+      ],
+      "notes": "GitHub Owner approval verified at issue comment 5906294098; independent pull-request review and merge remain pending."
+    }
+  },
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5906294098",
+    "recordId": "5906294098",
+    "planDigest": "sha256:fe8fabc5706930c58967a135d99f9eb4f7c99936e4b97f14e62b914556bccb93",
+    "baselineCommit": "54219301b2e56ed676f9079c0b569ffdb75c7c42",
+    "approvedBy": "oneilreyand",
+    "approvedAt": "2026-09-30T07:23:52Z",
+    "expiresAt": "2026-10-07T07:23:52Z",
+    "allowedFiles": [
+      "TODO.md",
+      "docs/features/README.md",
+      "docs/features/FEATURE_CATALOG.md",
+      "docs/features/ROLE_FLOWS.md",
+      "docs/plans/FEATURE_CATALOG_AND_ROLE_FLOWS_PLAN.md",
+      "docs/reports/FEATURE_CATALOG_AND_ROLE_FLOWS_2026-09-30.md",
+      "quality/manifests/FEATURE-CATALOG-AND-ROLE-FLOWS.json",
+      "scripts/checkDocs.mjs",
+      "scripts/checkDocs.test.mjs"
+    ],
+    "roleScope": {
+      "targetRoles": [],
+      "preservedRoles": []
+    },
+    "allowedStateChanges": [
+      "create a Feature catalogue and role-first navigation for all legacy Feature Cards without moving legacy cards or changing application runtime"
+    ]
+  }
+}
