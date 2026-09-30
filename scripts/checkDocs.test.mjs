@@ -6,6 +6,7 @@ import {
   extractPolicyIds,
   extractReferencedPolicyIds,
   validateFeatureCard,
+  validateFeatureFolder,
 } from './checkDocs.mjs';
 
 test('extractPolicyIds reads only registry table identifiers', () => {
@@ -87,4 +88,16 @@ ${[
     validateFeatureCard(template, new Set(['AUTH-001']), 'active.md').join('\n'),
     /Active but still contains an unresolved placeholder/,
   );
+});
+
+test('validateFeatureFolder requires the role and shared-contract documents', () => {
+  assert.deepEqual(validateFeatureFolder(['README.md', 'product.md'], 'docs/features/EXAMPLE'), [
+    'docs/features/EXAMPLE is missing required file: contracts.md',
+    'docs/features/EXAMPLE is missing required file: authorization.md',
+    'docs/features/EXAMPLE is missing required file: testing.md',
+    'docs/features/EXAMPLE is missing required file: roles/owner-admin.md',
+    'docs/features/EXAMPLE is missing required file: roles/po.md',
+    'docs/features/EXAMPLE is missing required file: roles/developer.md',
+    'docs/features/EXAMPLE is missing required file: roles/qa.md',
+  ]);
 });

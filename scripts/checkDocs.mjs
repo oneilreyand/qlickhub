@@ -36,6 +36,17 @@ const featureHeadings = [
 
 const featureMetadata = ['Status', 'Owner', 'Last reviewed', 'Applicable Policy IDs'];
 const allowedFeatureStatuses = new Set(['Draft', 'Active', 'Superseded', 'Archived']);
+const featureFolderRequiredFiles = [
+  'README.md',
+  'product.md',
+  'contracts.md',
+  'authorization.md',
+  'testing.md',
+  'roles/owner-admin.md',
+  'roles/po.md',
+  'roles/developer.md',
+  'roles/qa.md',
+];
 
 export function extractPolicyIds(markdown) {
   return [...markdown.matchAll(/^\|\s*([A-Z]+-\d{3})\s*\|/gm)].map((match) => match[1]);
@@ -153,18 +164,50 @@ export function validateFeatureCard(content, policyIds, relativeFile = 'feature.
   return errors;
 }
 
+export function validateFeatureFolder(fileNames, relativeDirectory = 'feature') {
+  const available = new Set(fileNames);
+  return featureFolderRequiredFiles
+    .filter((file) => !available.has(file))
+    .map((file) => `${relativeDirectory} is missing required file: ${file}`);
+}
+
 function validateFeatureCards(policyIds, errors) {
   const featuresDirectory = path.join(repositoryRoot, 'docs/features');
   if (!fs.existsSync(featuresDirectory)) return;
 
-  const featureFiles = collectMarkdownFiles(featuresDirectory).filter(
-    (file) => !['README.md', 'FEATURE_TEMPLATE.md'].includes(path.basename(file)),
-  );
+  const featureFiles = fs
+    .readdirSync(featuresDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+    .map((entry) => path.join(featuresDirectory, entry.name))
+    .filter((file) => !['README.md', 'FEATURE_TEMPLATE.md'].includes(path.basename(file)));
 
   for (const featureFile of featureFiles) {
     const relativeFile = path.relative(repositoryRoot, featureFile);
     const content = fs.readFileSync(featureFile, 'utf8');
     errors.push(...validateFeatureCard(content, policyIds, relativeFile));
+  }
+
+  const featureDirectories = fs
+    .readdirSync(featuresDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name !== '_template');
+
+  for (const featureDirectory of featureDirectories) {
+    const absoluteDirectory = path.join(featuresDirectory, featureDirectory.name);
+    const relativeDirectory = path.relative(repositoryRoot, absoluteDirectory);
+    const markdownFiles = collectMarkdownFiles(absoluteDirectory);
+    const relativeFiles = markdownFiles.map((file) => path.relative(absoluteDirectory, file));
+    errors.push(...validateFeatureFolder(relativeFiles, relativeDirectory));
+
+    const readmePath = path.join(absoluteDirectory, 'README.md');
+    if (fs.existsSync(readmePath)) {
+      errors.push(
+        ...validateFeatureCard(
+          fs.readFileSync(readmePath, 'utf8'),
+          policyIds,
+          path.relative(repositoryRoot, readmePath),
+        ),
+      );
+    }
   }
 }
 

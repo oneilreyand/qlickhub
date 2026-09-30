@@ -1,3 +1,12 @@
+# Legacy Single-file Feature Card Template
+
+**Format:** Legacy compatibility template
+**Preferred format:** [Feature folder template](_template/README.md)
+
+Use the folder template for a Feature that crosses roles or application layers. This file remains
+valid for a small Feature Card and for existing cards during the gradual migration; do not convert
+an existing card unless its active work explicitly includes that migration.
+
 # [FEATURE-ID] Feature Name
 
 **Status:** Draft  

@@ -41,14 +41,19 @@ graph LR
 
 1. Cite stable Policy IDs when a Feature Card, plan, test, or report crosses a policy boundary.
 2. Change policy through an ADR and the affected canonical SSoT before changing implementation.
-3. Use [`features/FEATURE_TEMPLATE.md`](features/FEATURE_TEMPLATE.md) for cross-role or
-   cross-layer feature knowledge.
+3. Use the [Feature folder template](features/_template/README.md) for cross-role or cross-layer
+   feature knowledge. The legacy [`features/FEATURE_TEMPLATE.md`](features/FEATURE_TEMPLATE.md)
+   remains available only for small cards and compatibility during approved migration.
 4. Treat shared contracts as the executable interface boundary; do not restate their field shapes
    in multiple documents.
 5. Treat reports as observed evidence, never as a source of new product policy.
 6. Run `npm run docs:check`; `npm run validate` and CI enforce this structural gate.
 7. Stop and surface conflicts between policy, contracts, implementation, and evidence.
 8. Never include values from `.env` or another secret store in documentation or evidence.
+9. A folder Feature Card keeps one canonical `README.md` with the required metadata, diagram, and
+   traceability; role-specific actions belong in `roles/`, while shared contract, authorization,
+   and test evidence live in their dedicated files. A role document never replaces backend
+   authorization or duplicates a global SSoT rule.
 
 The automated gate verifies required entry points, local target-file links in the active SSoT,
 Policy Registry, deployment document, and Feature Cards; it also verifies unique Policy IDs,
