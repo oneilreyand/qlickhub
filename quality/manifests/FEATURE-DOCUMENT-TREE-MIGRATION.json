@@ -1,0 +1,81 @@
+{
+  "version": 2,
+  "id": "FEATURE-DOCUMENT-TREE-MIGRATION",
+  "changedFiles": [
+    "TODO.md",
+    "docs/0_PRODUCT_KNOWLEDGE_MAP.md",
+    "docs/4_AGENT_DEV_GUIDELINES.md",
+    "docs/POLICY_REGISTRY.md",
+    "docs/adr/ADR-022-FEATURE-KNOWLEDGE-TREE.md",
+    "docs/adr/README.md",
+    "docs/features/FEATURE_TEMPLATE.md",
+    "docs/features/README.md",
+    "docs/features/_template/README.md",
+    "docs/features/_template/authorization.md",
+    "docs/features/_template/contracts.md",
+    "docs/features/_template/product.md",
+    "docs/features/_template/roles/developer.md",
+    "docs/features/_template/roles/owner-admin.md",
+    "docs/features/_template/roles/po.md",
+    "docs/features/_template/roles/qa.md",
+    "docs/features/_template/testing.md",
+    "docs/plans/FEATURE_DOCUMENT_TREE_MIGRATION_PLAN.md",
+    "docs/reports/FEATURE_DOCUMENT_TREE_MIGRATION_2026-09-30.md",
+    "quality/manifests/FEATURE-DOCUMENT-TREE-MIGRATION.json",
+    "scripts/checkDocs.mjs",
+    "scripts/checkDocs.test.mjs"
+  ],
+  "scopes": [],
+  "evidence": {
+    "documentation": {
+      "status": "collected",
+      "artifacts": [
+        "npm run docs:check: 6 passed, 0 failed, 0 skipped",
+        "git diff --check: passed",
+        "local Markdown link scan: 300 scanned, 0 broken"
+      ],
+      "notes": "GitHub Owner approval is bound to this version-2 manifest; independent review is still required before merge."
+    }
+  },
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5902715806",
+    "recordId": "5902715806",
+    "planDigest": "sha256:da979b2ad4afa9bfa21b854d7b55703992c9abf24799f9c9943884204f15309f",
+    "baselineCommit": "fcce72472510857122554f32874ece72df976307",
+    "approvedBy": "oneilreyand",
+    "approvedAt": "2026-09-30T02:11:57Z",
+    "expiresAt": "2026-10-07T02:11:57Z",
+    "allowedFiles": [
+      "TODO.md",
+      "docs/0_PRODUCT_KNOWLEDGE_MAP.md",
+      "docs/4_AGENT_DEV_GUIDELINES.md",
+      "docs/POLICY_REGISTRY.md",
+      "docs/adr/ADR-022-FEATURE-KNOWLEDGE-TREE.md",
+      "docs/adr/README.md",
+      "docs/features/FEATURE_TEMPLATE.md",
+      "docs/features/README.md",
+      "docs/features/_template/README.md",
+      "docs/features/_template/authorization.md",
+      "docs/features/_template/contracts.md",
+      "docs/features/_template/product.md",
+      "docs/features/_template/roles/developer.md",
+      "docs/features/_template/roles/owner-admin.md",
+      "docs/features/_template/roles/po.md",
+      "docs/features/_template/roles/qa.md",
+      "docs/features/_template/testing.md",
+      "docs/plans/FEATURE_DOCUMENT_TREE_MIGRATION_PLAN.md",
+      "docs/reports/FEATURE_DOCUMENT_TREE_MIGRATION_2026-09-30.md",
+      "quality/manifests/FEATURE-DOCUMENT-TREE-MIGRATION.json",
+      "scripts/checkDocs.mjs",
+      "scripts/checkDocs.test.mjs"
+    ],
+    "roleScope": {
+      "targetRoles": [],
+      "preservedRoles": []
+    },
+    "allowedStateChanges": [
+      "create and validate the Feature documentation tree templates and checker compatibility without moving legacy Feature cards or changing application runtime"
+    ]
+  }
+}

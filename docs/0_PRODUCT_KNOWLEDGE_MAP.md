@@ -109,20 +109,20 @@ graph TD
 
 ## 4. Canonical Sources and Precedence
 
-| Information needed                                          | Canonical source                                            |
-| ----------------------------------------------------------- | ----------------------------------------------------------- |
-| Product domain, hierarchy, RBAC, schema, security           | [Architecture](1_ARCHITECTURE.md)                           |
-| Role workflow, state machines, QA, release gates            | [Workflow and Roles](2_WORKFLOW_AND_ROLES.md)               |
-| Routes, components, design tokens, UI states                | [UI Atomic Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)     |
-| Engineering lifecycle, test evidence, Definition of Done    | [Agent and Developer Guidelines](4_AGENT_DEV_GUIDELINES.md) |
-| Stable identifiers pointing to approved rules               | [Policy Registry](POLICY_REGISTRY.md)                       |
-| Runtime request/response types and shared interfaces        | [Shared contracts](../packages/contracts/src)               |
-| Why an architectural or product decision was made           | [Architecture decision index](adr/README.md)                |
-| One vertical feature across PO, Backend, Frontend, and QA   | [Feature knowledge cards](features/README.md)               |
-| Current implementation priority and status                  | [TODO](../TODO.md)                                          |
-| Plans and implementation proposals                          | [Plans index](plans/README.md)                              |
-| Commands run and evidence actually observed                 | [Reports index](reports/README.md)                          |
-| Local, Preview, and Production configuration and deployment | [Deployment & Environments](DEPLOYMENT_AND_ENVIRONMENTS.md) |
+| Information needed                                          | Canonical source                                                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Product domain, hierarchy, RBAC, schema, security           | [Architecture](1_ARCHITECTURE.md)                                                                 |
+| Role workflow, state machines, QA, release gates            | [Workflow and Roles](2_WORKFLOW_AND_ROLES.md)                                                     |
+| Routes, components, design tokens, UI states                | [UI Atomic Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                           |
+| Engineering lifecycle, test evidence, Definition of Done    | [Agent and Developer Guidelines](4_AGENT_DEV_GUIDELINES.md)                                       |
+| Stable identifiers pointing to approved rules               | [Policy Registry](POLICY_REGISTRY.md)                                                             |
+| Runtime request/response types and shared interfaces        | [Shared contracts](../packages/contracts/src)                                                     |
+| Why an architectural or product decision was made           | [Architecture decision index](adr/README.md)                                                      |
+| One vertical feature across PO, Backend, Frontend, and QA   | [Feature knowledge cards](features/README.md) — folder overview, role paths, and shared contracts |
+| Current implementation priority and status                  | [TODO](../TODO.md)                                                                                |
+| Plans and implementation proposals                          | [Plans index](plans/README.md)                                                                    |
+| Commands run and evidence actually observed                 | [Reports index](reports/README.md)                                                                |
+| Local, Preview, and Production configuration and deployment | [Deployment & Environments](DEPLOYMENT_AND_ENVIRONMENTS.md)                                       |
 
 Conflict precedence remains:
 
@@ -142,25 +142,29 @@ executed; it cannot silently create or replace product policy.
 
 1. Read the product overview and official terminology in Architecture.
 2. Read planning, QA publication, readiness, and release rules in Workflow and Roles.
-3. Read the relevant Feature Knowledge Card and linked decision records.
+3. Read the relevant Feature Knowledge Card `README.md`, then only the role path and shared
+   documents required for the decision.
 
 ### Backend Developer
 
 1. Read Architecture, especially hierarchy, RBAC, persistence, and security boundaries.
-2. Read the relevant workflow and Policy IDs.
+2. Read the relevant workflow and Policy IDs, then the Feature `README.md`, role path, and shared
+   contract/authorization documents that apply.
 3. Inspect shared contracts, Sequelize models/migrations, policy services, and PostgreSQL tests.
 4. For runtime or release work, follow [Deployment & Environments](DEPLOYMENT_AND_ENVIRONMENTS.md).
 
 ### Frontend Developer
 
 1. Read the relevant role workflow and backend-owned business rules.
-2. Read the UI Design System and inspect the component gallery.
+2. Read the UI Design System and inspect the component gallery; use the Feature role path for the
+   intended UI outcomes, not as a replacement for backend authorization.
 3. Consume shared contracts; never recreate authorization or readiness calculations in React.
 
 ### QA
 
 1. Read Requirement and Acceptance Criteria from the Feature Knowledge Card.
-2. Read Test Case, immutable result, Bug/retest, evidence, and release rules in Workflow.
+2. Read Test Case, immutable result, Bug/retest, evidence, and release rules in Workflow, then the
+   Feature `testing.md` and QA role path.
 3. Verify persisted behavior and record the actual evidence in a task report.
 
 ### AI Agent
@@ -174,7 +178,8 @@ executed; it cannot silently create or replace product policy.
    teruji. Subtask Backend, Frontend, dan QA hanya dibuat bila memang diperlukan.
 4. Before claiming a repository-changing task, complete the Work Readiness Assessment in
    [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md#2a-protokol-assurance-kerja-ai-ai-work-assurance-protocol).
-5. Resolve terminology and mandatory rules through the Policy Registry.
+5. Resolve terminology and mandatory rules through the Policy Registry. For a folder Feature Card,
+   read `README.md` first, then only the role/shared path relevant to the requested change.
 6. Catat outcome evidence sukses maupun gagal; jangan menyembunyikan gap, lalu hentikan dan
    laporkan konflik ketika policy, contract, implementation, dan evidence tidak selaras.
 
