@@ -18,6 +18,8 @@ const requiredFiles = [
   'docs/POLICY_REGISTRY.md',
   'docs/DEPLOYMENT_AND_ENVIRONMENTS.md',
   'docs/features/README.md',
+  'docs/features/FEATURE_CATALOG.md',
+  'docs/features/ROLE_FLOWS.md',
   'docs/features/FEATURE_TEMPLATE.md',
 ];
 
@@ -47,6 +49,18 @@ const featureFolderRequiredFiles = [
   'roles/developer.md',
   'roles/qa.md',
 ];
+
+const featureNavigationRequirements = {
+  'docs/features/FEATURE_CATALOG.md': [
+    '## Cara memakai katalog',
+    '## 1. Planning, Delivery, dan Task Hub',
+    '## 2. QA, Evidence, Bug, dan Release Readiness',
+    '## 3. Workspace, Membership, dan Collaboration',
+    '## 4. Security dan Reliability',
+    '## 5. AI Assistance',
+  ],
+  'docs/features/ROLE_FLOWS.md': ['## Owner / Admin', '## Product Owner', '## Developer', '## QA'],
+};
 
 export function extractPolicyIds(markdown) {
   return [...markdown.matchAll(/^\|\s*([A-Z]+-\d{3})\s*\|/gm)].map((match) => match[1]);
@@ -171,15 +185,50 @@ export function validateFeatureFolder(fileNames, relativeDirectory = 'feature') 
     .map((file) => `${relativeDirectory} is missing required file: ${file}`);
 }
 
+export function validateFeatureNavigation(content, requiredHeadings, relativeFile) {
+  return requiredHeadings
+    .filter((heading) => !content.includes(heading))
+    .map((heading) => `${relativeFile} is missing required navigation heading: ${heading}`);
+}
+
+export function validateFeatureCatalog(content, legacyFeatureFileNames, relativeFile) {
+  const linkCounts = new Map();
+  const expected = new Set(legacyFeatureFileNames);
+
+  for (const rawTarget of extractMarkdownLinks(content)) {
+    const targetFile = path.basename(rawTarget.replace(/^<|>$/g, '').split('#')[0].trim());
+    if (expected.has(targetFile)) {
+      linkCounts.set(targetFile, (linkCounts.get(targetFile) ?? 0) + 1);
+    }
+  }
+
+  const errors = [];
+  for (const fileName of [...expected].sort()) {
+    const count = linkCounts.get(fileName) ?? 0;
+    if (count === 0) errors.push(`${relativeFile} is missing legacy Feature link: ${fileName}`);
+    if (count > 1) errors.push(`${relativeFile} repeats legacy Feature link: ${fileName}`);
+  }
+  return errors;
+}
+
+function legacyFeatureCardFiles(featuresDirectory) {
+  return fs
+    .readdirSync(featuresDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+    .map((entry) => path.join(featuresDirectory, entry.name))
+    .filter(
+      (file) =>
+        !['README.md', 'FEATURE_TEMPLATE.md', 'FEATURE_CATALOG.md', 'ROLE_FLOWS.md'].includes(
+          path.basename(file),
+        ),
+    );
+}
+
 function validateFeatureCards(policyIds, errors) {
   const featuresDirectory = path.join(repositoryRoot, 'docs/features');
   if (!fs.existsSync(featuresDirectory)) return;
 
-  const featureFiles = fs
-    .readdirSync(featuresDirectory, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
-    .map((entry) => path.join(featuresDirectory, entry.name))
-    .filter((file) => !['README.md', 'FEATURE_TEMPLATE.md'].includes(path.basename(file)));
+  const featureFiles = legacyFeatureCardFiles(featuresDirectory);
 
   for (const featureFile of featureFiles) {
     const relativeFile = path.relative(repositoryRoot, featureFile);
@@ -208,6 +257,28 @@ function validateFeatureCards(policyIds, errors) {
         ),
       );
     }
+  }
+}
+
+function validateFeatureNavigationDocuments(errors) {
+  for (const [relativeFile, headings] of Object.entries(featureNavigationRequirements)) {
+    const absoluteFile = path.join(repositoryRoot, relativeFile);
+    if (!fs.existsSync(absoluteFile)) continue;
+    errors.push(
+      ...validateFeatureNavigation(fs.readFileSync(absoluteFile, 'utf8'), headings, relativeFile),
+    );
+  }
+
+  const featuresDirectory = path.join(repositoryRoot, 'docs/features');
+  const catalogPath = path.join(featuresDirectory, 'FEATURE_CATALOG.md');
+  if (fs.existsSync(catalogPath)) {
+    errors.push(
+      ...validateFeatureCatalog(
+        fs.readFileSync(catalogPath, 'utf8'),
+        legacyFeatureCardFiles(featuresDirectory).map((file) => path.basename(file)),
+        'docs/features/FEATURE_CATALOG.md',
+      ),
+    );
   }
 }
 
@@ -244,6 +315,7 @@ export function runDocumentationChecks() {
   validateKnowledgeEntryPoint(errors);
   const policyIds = validatePolicyRegistry(errors);
   validateFeatureCards(policyIds, errors);
+  validateFeatureNavigationDocuments(errors);
   validateLocalLinks(errors);
   return errors;
 }
