@@ -16,6 +16,9 @@ import {
   GenerateTaskDraftResponse,
   ApplyTaskDraftInput,
   ApplyTaskDraftResponse,
+  RefineTaskChatInput,
+  RefineTaskChatResponse,
+  SynthesizeTaskDraftFromChatInput,
 } from '@qlick/contracts';
 import { formatTask } from '../tasks/internal/taskQuery.js';
 
@@ -42,6 +45,54 @@ export class AiTaskGeneratorService {
     }
 
     return geminiClient.generateTaskDraft(input.prompt, input.targetPlatforms);
+  }
+
+  /**
+   * Refines a task requirement conversation interactively with AI Co-Pilot.
+   * Adheres to Policy AI-001 (conversational guidance only, no DB mutation).
+   */
+  async refineChat(
+    workspaceId: string,
+    actorId: string,
+    input: RefineTaskChatInput,
+  ): Promise<RefineTaskChatResponse> {
+    const member = await requireActiveMember(workspaceId, actorId);
+    assertCanCreateTask(member.role);
+
+    if (input.folderId) {
+      const folder = await WorkFolderModel.findOne({
+        where: { id: input.folderId, workspaceId },
+      });
+      if (!folder) {
+        throw new Error('NOT_FOUND: Work folder not found in this workspace.');
+      }
+    }
+
+    return geminiClient.refineTaskChat(input.messages, input.targetPlatforms);
+  }
+
+  /**
+   * Synthesizes a structured 4-entity Feature draft directly from a multi-turn chat discussion.
+   * Adheres to Policy AI-001 (returns a cited draft for user review, no autonomous DB mutation).
+   */
+  async synthesizeFromChat(
+    workspaceId: string,
+    actorId: string,
+    input: SynthesizeTaskDraftFromChatInput,
+  ): Promise<GenerateTaskDraftResponse> {
+    const member = await requireActiveMember(workspaceId, actorId);
+    assertCanCreateTask(member.role);
+
+    if (input.folderId) {
+      const folder = await WorkFolderModel.findOne({
+        where: { id: input.folderId, workspaceId },
+      });
+      if (!folder) {
+        throw new Error('NOT_FOUND: Work folder not found in this workspace.');
+      }
+    }
+
+    return geminiClient.synthesizeTaskDraftFromChat(input.messages, input.targetPlatforms);
   }
 
   /**

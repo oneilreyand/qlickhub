@@ -104,6 +104,9 @@ import {
   GeneratedTaskDraftSchema,
   ApplyTaskDraftInputSchema,
   ApplyTaskDraftResponseSchema,
+  RefineTaskChatInputSchema,
+  RefineTaskChatResponseSchema,
+  SynthesizeTaskDraftFromChatInputSchema,
 } from './index.js';
 
 describe('Contracts Validation Suite', () => {
@@ -2644,6 +2647,72 @@ describe('Contracts Validation Suite', () => {
       assert.strictEqual(applyResponse.task.id, taskId);
       assert.strictEqual(applyResponse.createdSubtaskCount, 1);
       assert.strictEqual(applyResponse.hasProductBrief, true);
+    });
+
+    test('validates RefineTaskChatInputSchema with multi-turn messages and platforms', () => {
+      const input = RefineTaskChatInputSchema.parse({
+        workspaceId,
+        messages: [
+          {
+            id: 'msg-1',
+            role: 'user',
+            content: 'Saya ingin membuat Task Management Engine SDLC',
+          },
+          {
+            id: 'msg-2',
+            role: 'assistant',
+            content: 'Role apa saja yang akan menggunakan sistem ini?',
+          },
+          {
+            id: 'msg-3',
+            role: 'user',
+            content: 'Ada 3 role: PO, DEV, dan QA dengan state machine 9 status.',
+          },
+        ],
+        targetPlatforms: ['web', 'backend', 'qa'],
+      });
+
+      assert.strictEqual(input.workspaceId, workspaceId);
+      assert.strictEqual(input.messages.length, 3);
+      assert.strictEqual(input.messages[0].role, 'user');
+    });
+
+    test('validates RefineTaskChatResponseSchema with guidance, readiness, and quick replies', () => {
+      const response = RefineTaskChatResponseSchema.parse({
+        reply:
+          'Alur kerja SDLC 3 role sangat jelas. Apakah ingin langsung saya rakit draf Feature-nya?',
+        suggestedPrompt: 'Task Management Engine SDLC 3 role (PO, DEV, QA) dengan 9 siklus status',
+        isReadyToSynthesize: true,
+        quickReplies: ['Ya, rakit draf sekarang', 'Tambahkan aturan notifikasi email'],
+        citations: [
+          {
+            sourceType: 'user_prompt',
+            label: 'Prompt Product Owner',
+            excerpt: 'Ada 3 role: PO, DEV, dan QA',
+          },
+        ],
+      });
+
+      assert.strictEqual(response.isReadyToSynthesize, true);
+      assert.strictEqual(response.quickReplies.length, 2);
+      assert.strictEqual(response.citations.length, 1);
+    });
+
+    test('validates SynthesizeTaskDraftFromChatInputSchema', () => {
+      const synthInput = SynthesizeTaskDraftFromChatInputSchema.parse({
+        workspaceId,
+        messages: [
+          {
+            id: 'msg-1',
+            role: 'user',
+            content: 'Implementasikan Task Management Engine dengan 3 role dan 9 status.',
+          },
+        ],
+        targetPlatforms: ['backend', 'web', 'qa'],
+      });
+
+      assert.strictEqual(synthInput.workspaceId, workspaceId);
+      assert.strictEqual(synthInput.messages.length, 1);
     });
   });
 });
