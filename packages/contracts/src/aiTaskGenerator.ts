@@ -33,7 +33,7 @@ export const GeneratedRequirementDraftSchema = z.object({
   description: z.string().optional().default(''),
   acceptanceCriteria: z
     .array(z.string().trim().min(1, 'Kriteria penerimaan tidak boleh kosong'))
-    .default([]),
+    .min(1, 'Minimal 1 kriteria penerimaan (AC) wajib diisi'),
 });
 
 export type GeneratedRequirementDraft = z.infer<typeof GeneratedRequirementDraftSchema>;
@@ -73,11 +73,13 @@ export const GeneratedTaskDraftSchema = z.object({
     description: z.string().default(''),
     priority: TaskPrioritySchema.default('medium'),
   }),
-  productBrief: z.object({
-    context: z.string().default(''),
-    inScope: z.array(z.string().trim().min(1)).default([]),
-    outScope: z.array(z.string().trim().min(1)).default([]),
-  }),
+  productBrief: z
+    .object({
+      context: z.string().default(''),
+      inScope: z.array(z.string().trim().min(1)).default([]),
+      outScope: z.array(z.string().trim().min(1)).default([]),
+    })
+    .default({ context: '', inScope: [], outScope: [] }),
   requirements: z.array(GeneratedRequirementDraftSchema).default([]),
   subtasks: z.array(GeneratedSubtaskDraftSchema).default([]),
   citations: z.array(GeneratedTaskDraftCitationSchema).min(1),
@@ -129,13 +131,17 @@ export const ApplyTaskDraftInputSchema = z
       startDate: z.string().nullable().optional(),
       dueDate: z.string().nullable().optional(),
     }),
-    productBrief: z.object({
-      context: z.string().default(''),
-      inScope: z.array(z.string().trim()).default([]),
-      outScope: z.array(z.string().trim()).default([]),
-    }),
-    requirements: z.array(GeneratedRequirementDraftSchema).optional().default([]),
-    subtasks: z.array(GeneratedSubtaskDraftSchema).optional().default([]),
+    productBrief: z
+      .object({
+        context: z.string().default(''),
+        inScope: z.array(z.string().trim()).default([]),
+        outScope: z.array(z.string().trim()).default([]),
+      })
+      .default({ context: '', inScope: [], outScope: [] }),
+    requirements: z
+      .array(GeneratedRequirementDraftSchema)
+      .min(1, 'Minimal 1 Requirement wajib disertakan'),
+    subtasks: z.array(GeneratedSubtaskDraftSchema).min(1, 'Minimal 1 Subtask wajib disertakan'),
   })
   .superRefine((data, ctx) => {
     const issue = getTaskScheduleValidationIssue(data.task.startDate, data.task.dueDate);
@@ -144,6 +150,26 @@ export const ApplyTaskDraftInputSchema = z
         code: z.ZodIssueCode.custom,
         message: issue.message,
         path: ['task', issue.field],
+      });
+    }
+
+    const enabledSubtasks = (data.subtasks || []).filter((s) => s.enabled !== false);
+    if (enabledSubtasks.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Minimal 1 Subtask harus aktif dan dipilih untuk dikerjakan tim',
+        path: ['subtasks'],
+      });
+    }
+
+    const hasEmptyAc = (data.requirements || []).some(
+      (r) => !r.acceptanceCriteria || r.acceptanceCriteria.length === 0,
+    );
+    if (hasEmptyAc) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Setiap Requirement wajib memiliki minimal 1 kriteria penerimaan (AC)',
+        path: ['requirements'],
       });
     }
   });
@@ -161,3 +187,56 @@ export const ApplyTaskDraftResponseSchema = z.object({
 });
 
 export type ApplyTaskDraftResponse = z.infer<typeof ApplyTaskDraftResponseSchema>;
+
+/**
+ * Role in an interactive AI task refinement discussion.
+ */
+export const TaskChatRoleSchema = z.enum(['user', 'assistant']);
+export type TaskChatRole = z.infer<typeof TaskChatRoleSchema>;
+
+/**
+ * Single message in an interactive task refinement conversation.
+ */
+export const TaskChatMessageSchema = z.object({
+  id: z.string().min(1),
+  role: TaskChatRoleSchema,
+  content: z.string().trim().min(1, 'Pesan tidak boleh kosong').max(8000),
+  timestamp: z.string().optional(),
+});
+export type TaskChatMessage = z.infer<typeof TaskChatMessageSchema>;
+
+/**
+ * Input for continuing an interactive task refinement discussion with AI Co-Pilot.
+ */
+export const RefineTaskChatInputSchema = z.object({
+  workspaceId: z.string().uuid(),
+  messages: z.array(TaskChatMessageSchema).min(1, 'Minimal 1 pesan percakapan'),
+  targetPlatforms: z.array(TargetPlatformSchema).optional(),
+  folderId: z.string().uuid().nullable().optional(),
+});
+export type RefineTaskChatInput = z.infer<typeof RefineTaskChatInputSchema>;
+
+/**
+ * Response from AI Co-Pilot during interactive task refinement.
+ */
+export const RefineTaskChatResponseSchema = z.object({
+  reply: z.string().trim().min(1),
+  suggestedPrompt: z.string().optional(),
+  isReadyToSynthesize: z.boolean().default(false),
+  quickReplies: z.array(z.string().trim()).optional().default([]),
+  citations: z.array(GeneratedTaskDraftCitationSchema).min(1),
+});
+export type RefineTaskChatResponse = z.infer<typeof RefineTaskChatResponseSchema>;
+
+/**
+ * Input for synthesizing a complete 4-entity Feature draft directly from chat history.
+ */
+export const SynthesizeTaskDraftFromChatInputSchema = z.object({
+  workspaceId: z.string().uuid(),
+  messages: z.array(TaskChatMessageSchema).min(1, 'Minimal 1 pesan percakapan'),
+  targetPlatforms: z.array(TargetPlatformSchema).optional(),
+  folderId: z.string().uuid().nullable().optional(),
+});
+export type SynthesizeTaskDraftFromChatInput = z.infer<
+  typeof SynthesizeTaskDraftFromChatInputSchema
+>;
