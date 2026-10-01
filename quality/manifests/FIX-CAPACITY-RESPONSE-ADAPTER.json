@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "id": "FIX-CAPACITY-RESPONSE-ADAPTER",
+  "changedFiles": [
+    "TODO.md",
+    "apps/web/src/lib/api/capacityService.ts",
+    "apps/web/src/lib/api/__tests__/capacityService.test.ts",
+    "docs/plans/FIX_CAPACITY_RESPONSE_ADAPTER_PLAN.md",
+    "docs/reports/FIX_CAPACITY_RESPONSE_ADAPTER_2026-09-30.md",
+    "quality/manifests/FIX-CAPACITY-RESPONSE-ADAPTER.json"
+  ],
+  "scopes": ["ui", "performance"],
+  "evidence": {
+    "ui": {
+      "status": "collected",
+      "artifacts": [
+        "npm --prefix apps/web run test -- src/lib/api/__tests__/capacityService.test.ts: 2 passed, 0 failed",
+        "npm --prefix apps/web run typecheck: passed",
+        "npm --prefix apps/web run build: passed (1,722 modules)",
+        "npm run docs:check: 8 passed, 0 failed, 0 skipped"
+      ],
+      "notes": "The authenticated manual Task Hub retry is pending because the existing browser session was redirected to login during hot reload; no credentials or session bypass were attempted."
+    },
+    "performance": {
+      "status": "collected",
+      "artifacts": [
+        "Code review of apps/web/src/lib/api/capacityService.ts: the existing two HTTP calls and their route, method, and query construction are unchanged; only the response object passed to the existing schema parser changed from response.data to response."
+      ],
+      "notes": "No performance benchmark is applicable because the repair adds no request, query, rendering loop, or data transformation; the collected evidence verifies that the existing request count and request shape are unchanged."
+    }
+  },
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5909479401",
+    "recordId": "5909479401",
+    "approvedBy": "oneilreyand",
+    "planDigest": "sha256:2cd5bd3e018d6f1bcd52254c7fd929b7873893fe59d6d970fb4a5bb9803a4172",
+    "baselineCommit": "e95b26a191592e3c56c27b00de0f7b2c6cc1b210",
+    "approvedAt": "2026-09-30T10:32:08Z",
+    "expiresAt": "2026-10-07T10:32:08Z",
+    "allowedFiles": [
+      "TODO.md",
+      "apps/web/src/lib/api/capacityService.ts",
+      "apps/web/src/lib/api/__tests__/capacityService.test.ts",
+      "docs/plans/FIX_CAPACITY_RESPONSE_ADAPTER_PLAN.md",
+      "docs/reports/FIX_CAPACITY_RESPONSE_ADAPTER_2026-09-30.md",
+      "quality/manifests/FIX-CAPACITY-RESPONSE-ADAPTER.json"
+    ],
+    "roleScope": {
+      "targetRoles": [],
+      "preservedRoles": ["Owner", "Admin", "PO", "Developer", "QA"]
+    },
+    "allowedStateChanges": [
+      "Repair the frontend capacity response adapter and add regression coverage without changing backend API, authorization, persistence, or deployment."
+    ]
+  }
+}
