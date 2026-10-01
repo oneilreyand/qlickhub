@@ -1,0 +1,92 @@
+{
+  "version": 2,
+  "id": "TIMELINE-CAPACITY-V2",
+  "changedFiles": [
+    "TODO.md",
+    "apps/api/src/modules/capacity/__tests__/capacityApiIntegration.test.ts",
+    "apps/api/src/modules/capacity/capacityService.ts",
+    "apps/web/src/components/ui/atoms/Button.tsx",
+    "apps/web/src/components/ui/atoms/IconButton.tsx",
+    "apps/web/src/components/ui/atoms/__tests__/Button.test.tsx",
+    "apps/web/src/components/ui/atoms/__tests__/IconButton.test.tsx",
+    "apps/web/src/components/ui/molecules/DateRangePicker.tsx",
+    "apps/web/src/components/ui/molecules/__tests__/DateRangePicker.test.tsx",
+    "apps/web/src/components/ui/organisms/TeamCapacityTimeline.tsx",
+    "apps/web/src/components/ui/organisms/__tests__/TeamCapacityTimeline.test.tsx",
+    "apps/web/src/lib/api/__tests__/capacityService.test.ts",
+    "apps/web/src/lib/api/capacityService.ts",
+    "docs/adr/ADR-023-DELIVERY-CAPACITY-TIMELINE.md",
+    "docs/adr/README.md",
+    "docs/features/WORKLOAD_CONFLICT_AND_TEAM_TIMELINE.md",
+    "docs/plans/TIMELINE_CAPACITY_V2_PLAN.md",
+    "docs/reports/TIMELINE_CAPACITY_V2_2026-09-30.md",
+    "packages/contracts/src/capacity.ts",
+    "packages/contracts/src/contracts.test.ts",
+    "quality/manifests/TIMELINE-CAPACITY-V2.json"
+  ],
+  "scopes": ["ui", "dataAccess", "performance"],
+  "evidence": {
+    "ui": {
+      "status": "collected",
+      "artifacts": [
+        "npm --prefix apps/web run test -- src/components/ui/atoms/__tests__/Button.test.tsx src/components/ui/atoms/__tests__/IconButton.test.tsx src/components/ui/molecules/__tests__/DateRangePicker.test.tsx src/components/ui/organisms/__tests__/TeamCapacityTimeline.test.tsx: 4 files, 12 passed, 0 failed, 0 skipped"
+      ],
+      "notes": "Component evidence covers 44px atom controls, responsive DateRangePicker bounds, ordered-range feedback, keyboard-focus return, the Timeline toolbar/filter layout, visible outside-window work count, authenticated-detail loading surface, Task Hub deep link, redaction behavior, and retry state. Signed-in local responsive UAT remains pending."
+    },
+    "dataAccess": {
+      "status": "collected",
+      "artifacts": [
+        "NODE_ENV=test node --test dist/modules/capacity/__tests__/capacityApiIntegration.test.js: 10 passed, 0 failed, 0 skipped against disposable PostgreSQL through authenticated HTTP endpoints"
+      ],
+      "notes": "The persisted integration test proves delivery-role rows, active versus terminal filtering, in-window/unscheduled/outside-window categorisation, and existing cross-workspace authorization boundaries."
+    },
+    "performance": {
+      "status": "collected",
+      "artifacts": [
+        "Code review of apps/api/src/modules/capacity/capacityService.ts: outside-window categorisation is performed in the existing loaded-subtask loop and adds no database query.",
+        "Code review of apps/web/src/components/ui/organisms/TeamCapacityTimeline.tsx: Task detail is requested only after a non-redacted item is selected; it does not expand the timeline response or create an N+1 timeline load."
+      ],
+      "notes": "No performance benchmark is applicable to this bounded read-model change. The request count is unchanged for initial Timeline load; one existing authenticated Task read is deferred to an explicit detail interaction."
+    }
+  },
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5922390775",
+    "recordId": "5922390775",
+    "approvedBy": "oneilreyand",
+    "planDigest": "sha256:8ffc2a7f184c2d32595b8bda2b80a5b328e2f98311b901f9c6cb2c3a681ca241",
+    "baselineCommit": "e7c4041418edf16c0a532e6e5def0f4a7c06ed8d",
+    "approvedAt": "2026-09-30T14:27:52Z",
+    "expiresAt": "2026-10-07T14:27:52Z",
+    "allowedFiles": [
+      "TODO.md",
+      "apps/api/src/modules/capacity/__tests__/capacityApiIntegration.test.ts",
+      "apps/api/src/modules/capacity/capacityService.ts",
+      "apps/web/src/components/ui/atoms/Button.tsx",
+      "apps/web/src/components/ui/atoms/IconButton.tsx",
+      "apps/web/src/components/ui/atoms/__tests__/Button.test.tsx",
+      "apps/web/src/components/ui/atoms/__tests__/IconButton.test.tsx",
+      "apps/web/src/components/ui/molecules/DateRangePicker.tsx",
+      "apps/web/src/components/ui/molecules/__tests__/DateRangePicker.test.tsx",
+      "apps/web/src/components/ui/organisms/TeamCapacityTimeline.tsx",
+      "apps/web/src/components/ui/organisms/__tests__/TeamCapacityTimeline.test.tsx",
+      "apps/web/src/lib/api/__tests__/capacityService.test.ts",
+      "apps/web/src/lib/api/capacityService.ts",
+      "docs/adr/ADR-023-DELIVERY-CAPACITY-TIMELINE.md",
+      "docs/adr/README.md",
+      "docs/features/WORKLOAD_CONFLICT_AND_TEAM_TIMELINE.md",
+      "docs/plans/TIMELINE_CAPACITY_V2_PLAN.md",
+      "docs/reports/TIMELINE_CAPACITY_V2_2026-09-30.md",
+      "packages/contracts/src/capacity.ts",
+      "packages/contracts/src/contracts.test.ts",
+      "quality/manifests/TIMELINE-CAPACITY-V2.json"
+    ],
+    "roleScope": {
+      "targetRoles": [],
+      "preservedRoles": ["Owner", "Admin", "PO", "Developer", "QA"]
+    },
+    "allowedStateChanges": [
+      "Implement Timeline Capacity V2 and V2.1 UI audit remediation: enforce Developer/QA delivery rows, active-work categorisation and outside-window counts, add a custom date range and on-demand authenticated Task detail, enforce 44px shared Button/IconButton targets, and improve DateRangePicker accessibility and Timeline toolbar layout; no migration, authorization mutation, deployment, push, or merge."
+    ]
+  }
+}

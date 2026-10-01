@@ -23,7 +23,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
     danger:
       'text-rose-500 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300',
   };
-  const sizes = { sm: 'h-9 w-9', md: 'h-11 w-11' };
+  const sizes = { sm: 'h-11 w-11', md: 'h-11 w-11' };
 
   return (
     <button
@@ -33,7 +33,9 @@ export const IconButton: React.FC<IconButtonProps> = ({
       className={`inline-flex items-center justify-center shrink-0 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}
       {...props}
     >
-      <span className="inline-flex items-center justify-center shrink-0 leading-none">{children}</span>
+      <span className="inline-flex items-center justify-center shrink-0 leading-none">
+        {children}
+      </span>
     </button>
   );
 };

@@ -17,12 +17,15 @@ import type {
   TeamCapacityTimelineResponse,
   TimelineSubtaskItem,
   DeliveryArea,
-  TaskStatus,
+  ActiveCapacityTaskStatus,
   CapacityScope,
+  Task,
 } from '@qlick/contracts';
 import { capacityService } from '../../../lib/api/capacityService';
+import { taskService } from '../../../lib/api/taskService';
 import { normalizeDateStr, diffDays } from '../../../lib/utils/scheduleHealth';
 import { Button } from '../atoms/Button';
+import { IconButton } from '../atoms/IconButton';
 import { Select } from '../atoms/Select';
 import { Badge } from '../atoms/Badge';
 import { Card } from '../atoms/Card';
@@ -30,6 +33,7 @@ import { Alert } from '../atoms/Alert';
 import { Skeleton } from '../atoms/Skeleton';
 import { TaskStatusBadge } from '../molecules/TaskStatusBadge';
 import { Modal } from '../molecules/Modal';
+import { DateRangePicker } from '../molecules/DateRangePicker';
 
 export interface TeamCapacityTimelineProps {
   workspaceId: string;
@@ -90,6 +94,9 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSubtask, setSelectedSubtask] = useState<TimelineSubtaskItem | null>(null);
+  const [selectedTaskDetail, setSelectedTaskDetail] = useState<Task | null>(null);
+  const [isTaskDetailLoading, setIsTaskDetailLoading] = useState(false);
+  const [taskDetailError, setTaskDetailError] = useState<string | null>(null);
   const [expandedUnscheduledMemberIds, setExpandedUnscheduledMemberIds] = useState<Set<string>>(
     new Set(),
   );
@@ -108,7 +115,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
         scope,
         role: role || undefined,
         deliveryArea: (deliveryArea as DeliveryArea) || undefined,
-        status: (status as TaskStatus) || undefined,
+        status: (status as ActiveCapacityTaskStatus) || undefined,
         memberId: memberId || undefined,
       });
       setTimelineData(response);
@@ -122,6 +129,46 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
   useEffect(() => {
     void loadTimeline();
   }, [loadTimeline]);
+
+  useEffect(() => {
+    if (!selectedSubtask || selectedSubtask.isRedacted) {
+      setSelectedTaskDetail(null);
+      setTaskDetailError(null);
+      setIsTaskDetailLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setSelectedTaskDetail(null);
+    setTaskDetailError(null);
+    setIsTaskDetailLoading(true);
+
+    void taskService
+      .getTask(selectedSubtask.workspaceId, selectedSubtask.id)
+      .then((task) => {
+        if (!isCancelled) setSelectedTaskDetail(task);
+      })
+      .catch((err: unknown) => {
+        if (!isCancelled) {
+          setTaskDetailError(
+            err instanceof Error ? err.message : 'Detail Task tidak dapat dimuat.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) setIsTaskDetailLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedSubtask]);
+
+  const closeTaskDetail = useCallback(() => {
+    setSelectedSubtask(null);
+    setSelectedTaskDetail(null);
+    setTaskDetailError(null);
+  }, []);
 
   // Date range navigation
   const handleShiftDate = (direction: 'prev' | 'next') => {
@@ -263,6 +310,13 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
 
           {/* Scale & Navigation toolbar */}
           <div className="flex items-center gap-2 flex-wrap">
+            <DateRangePicker
+              value={dateRange}
+              onChange={(range) => setDateRange(range || getDefaultDateRange(scale))}
+              placeholder="Pilih rentang Timeline"
+              className="w-full sm:w-auto"
+            />
+
             {/* Scale toggle */}
             <div className="inline-flex rounded-xl border border-stone-200 dark:border-stone-800 p-0.5 bg-stone-100 dark:bg-stone-800/60 text-xs">
               <button
@@ -271,7 +325,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
                   setScale('day');
                   setDateRange(getDefaultDateRange('day'));
                 }}
-                className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                className={`min-h-[44px] px-3 rounded-lg font-semibold transition-colors ${
                   scale === 'day'
                     ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs'
                     : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
@@ -285,7 +339,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
                   setScale('week');
                   setDateRange(getDefaultDateRange('week'));
                 }}
-                className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                className={`min-h-[44px] px-3 rounded-lg font-semibold transition-colors ${
                   scale === 'week'
                     ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs'
                     : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
@@ -299,7 +353,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
                   setScale('month');
                   setDateRange(getDefaultDateRange('month'));
                 }}
-                className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                className={`min-h-[44px] px-3 rounded-lg font-semibold transition-colors ${
                   scale === 'month'
                     ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs'
                     : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
@@ -311,14 +365,13 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
 
             {/* Date shift controls */}
             <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
+              <IconButton
+                label="Rentang sebelumnya"
                 onClick={() => handleShiftDate('prev')}
-                aria-label="Rentang sebelumnya"
+                variant="default"
               >
                 <ChevronLeft className="h-4 w-4" />
-              </Button>
+              </IconButton>
               <Button
                 variant="outline"
                 size="sm"
@@ -327,14 +380,13 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
               >
                 Hari Ini
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
+              <IconButton
+                label="Rentang berikutnya"
                 onClick={() => handleShiftDate('next')}
-                aria-label="Rentang berikutnya"
+                variant="default"
               >
                 <ChevronRight className="h-4 w-4" />
-              </Button>
+              </IconButton>
             </div>
 
             <Button
@@ -351,7 +403,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
         </div>
 
         {/* Filters Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-4 mt-4 border-t border-stone-100 dark:border-stone-800 text-xs">
+        <div className="grid grid-cols-1 gap-2.5 border-t border-stone-100 pt-4 text-xs sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 dark:border-stone-800">
           {/* Scope Toggle */}
           <div>
             <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
@@ -396,8 +448,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
               onChange={(e) => setRole(e.target.value)}
               aria-label="Filter Peran"
             >
-              <option value="">Semua Peran</option>
-              <option value="po">Product Owner</option>
+              <option value="">Semua Pelaksana Delivery</option>
               <option value="dev">Developer</option>
               <option value="qa">QA Engineer</option>
             </Select>
@@ -425,7 +476,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
           {/* Status Filter */}
           <div>
             <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
-              Status Subtask
+              Status Kapasitas
             </label>
             <Select
               value={status}
@@ -438,14 +489,6 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
               <option value="in_review">In Review</option>
               <option value="changes_requested">Changes Requested</option>
             </Select>
-          </div>
-
-          {/* Active Range Indicator */}
-          <div className="flex flex-col justify-end">
-            <span className="text-[10px] text-stone-500 dark:text-stone-400">Rentang Waktu:</span>
-            <span className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-              {dateRange.startDate} s/d {dateRange.endDate}
-            </span>
           </div>
         </div>
       </Card>
@@ -542,7 +585,9 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
                                 {member.role.toUpperCase()}
                               </Badge>
                             </div>
-                            <div className="text-[11px] text-stone-500 truncate">{member.email}</div>
+                            <div className="text-[11px] text-stone-500 truncate">
+                              {member.email}
+                            </div>
                             {member.specialties && member.specialties.length > 0 && (
                               <div className="flex gap-1 flex-wrap pt-0.5">
                                 {member.specialties.map((s) => (
@@ -561,10 +606,18 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
                           <div className="flex items-center gap-1.5 pt-2 text-[10px]">
                             <span
                               className="px-1.5 py-0.5 rounded font-semibold bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800"
-                              title="Subtask terjadwal"
+                              title="Subtask aktif yang terjadwal dalam rentang yang terlihat"
                             >
                               {scheduledTasks.length} terjadwal
                             </span>
+                            {member.outsideWindowSubtaskCount > 0 && (
+                              <span
+                                className="px-1.5 py-0.5 rounded font-semibold bg-violet-50 dark:bg-violet-950/60 text-violet-800 dark:text-violet-300 border border-violet-200 dark:border-violet-800"
+                                title="Subtask aktif yang memiliki jadwal, tetapi seluruh jadwalnya berada di luar rentang yang terlihat"
+                              >
+                                {member.outsideWindowSubtaskCount} di luar rentang
+                              </span>
+                            )}
                             {unscheduledTasks.length > 0 && (
                               <button
                                 type="button"
@@ -614,20 +667,18 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
 
                                   // Clamp dates to visible range
                                   const effectiveStart =
-                                    subStart < dateRange.startDate
-                                      ? dateRange.startDate
-                                      : subStart;
+                                    subStart < dateRange.startDate ? dateRange.startDate : subStart;
                                   const effectiveEnd =
-                                    subDue > dateRange.endDate
-                                      ? dateRange.endDate
-                                      : subDue;
+                                    subDue > dateRange.endDate ? dateRange.endDate : subDue;
 
                                   const startOffsetDays = diffDays(
                                     effectiveStart,
                                     dateRange.startDate,
                                   );
-                                  const durationDays =
-                                    Math.max(1, diffDays(effectiveEnd, effectiveStart) + 1);
+                                  const durationDays = Math.max(
+                                    1,
+                                    diffDays(effectiveEnd, effectiveStart) + 1,
+                                  );
 
                                   const leftPercent = (startOffsetDays / totalDays) * 100;
                                   const widthPercent = (durationDays / totalDays) * 100;
@@ -690,9 +741,12 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                             {unscheduledTasks.map((un) => (
-                              <div
+                              <button
                                 key={un.id}
-                                className="p-2 rounded-lg bg-white dark:bg-stone-900 border border-amber-200/70 dark:border-amber-800/40 text-xs flex items-center justify-between gap-2 shadow-2xs"
+                                type="button"
+                                onClick={() => setSelectedSubtask(un)}
+                                className="w-full p-2 rounded-lg bg-white dark:bg-stone-900 border border-amber-200/70 dark:border-amber-800/40 text-left text-xs flex items-center justify-between gap-2 shadow-2xs transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                title={`Lihat detail ${un.title}`}
                               >
                                 <div className="flex items-center gap-1.5 min-w-0">
                                   <Badge variant="neutral" size="sm">
@@ -703,7 +757,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
                                   </span>
                                 </div>
                                 <TaskStatusBadge state={un.status} size="sm" />
-                              </div>
+                              </button>
                             ))}
                           </div>
                         </div>
@@ -721,7 +775,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
       {selectedSubtask && (
         <Modal
           isOpen={Boolean(selectedSubtask)}
-          onClose={() => setSelectedSubtask(null)}
+          onClose={closeTaskDetail}
           title={selectedSubtask.isRedacted ? 'Pekerjaan Aktif Lain' : selectedSubtask.title}
           size="md"
         >
@@ -736,7 +790,9 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-800">
                   <div>
-                    <span className="block text-[10px] text-stone-500 font-medium">Area Delivery</span>
+                    <span className="block text-[10px] text-stone-500 font-medium">
+                      Area Delivery
+                    </span>
                     <span className="font-bold text-stone-900 dark:text-stone-100 uppercase">
                       {selectedSubtask.deliveryArea || 'Tidak Ada'}
                     </span>
@@ -746,23 +802,73 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
                     <TaskStatusBadge state={selectedSubtask.status} size="sm" />
                   </div>
                   <div>
-                    <span className="block text-[10px] text-stone-500 font-medium">Tanggal Mulai</span>
+                    <span className="block text-[10px] text-stone-500 font-medium">
+                      Tanggal Mulai
+                    </span>
                     <span className="font-semibold text-stone-800 dark:text-stone-200">
                       {selectedSubtask.startDate || '—'}
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] text-stone-500 font-medium">Tanggal Tenggat</span>
+                    <span className="block text-[10px] text-stone-500 font-medium">
+                      Tanggal Tenggat
+                    </span>
                     <span className="font-semibold text-stone-800 dark:text-stone-200">
                       {selectedSubtask.dueDate || '—'}
                     </span>
                   </div>
                 </div>
+
+                {isTaskDetailLoading && (
+                  <div aria-label="Memuat detail Task" className="space-y-2">
+                    <Skeleton className="h-4 w-28 rounded" />
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                  </div>
+                )}
+
+                {taskDetailError && (
+                  <Alert tone="error" title="Detail Task tidak dapat dimuat">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{taskDetailError}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedSubtask({ ...selectedSubtask })}
+                      >
+                        Coba Lagi
+                      </Button>
+                    </div>
+                  </Alert>
+                )}
+
+                {selectedTaskDetail && (
+                  <div className="space-y-3 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
+                    <div>
+                      <span className="block text-[10px] font-medium text-stone-500">
+                        Deskripsi
+                      </span>
+                      <p className="mt-1 whitespace-pre-wrap text-stone-800 dark:text-stone-200">
+                        {selectedTaskDetail.description || 'Belum ada deskripsi untuk Task ini.'}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-t border-stone-100 pt-3 dark:border-stone-800">
+                      <span className="text-[10px] text-stone-500">
+                        Prioritas: <strong>{selectedTaskDetail.priority.toUpperCase()}</strong>
+                      </span>
+                      <a
+                        href={`/projects/${selectedTaskDetail.workspaceId}/tasks/${selectedTaskDetail.id}`}
+                        className="font-bold text-emerald-700 underline underline-offset-2 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
+                      >
+                        Buka di Task Hub
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             <div className="flex justify-end pt-2 border-t border-stone-100 dark:border-stone-800">
-              <Button size="sm" variant="outline" onClick={() => setSelectedSubtask(null)}>
+              <Button size="sm" variant="outline" onClick={closeTaskDetail}>
                 Tutup
               </Button>
             </div>

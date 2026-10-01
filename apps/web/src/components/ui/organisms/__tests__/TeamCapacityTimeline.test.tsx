@@ -2,13 +2,33 @@ import { render, screen, waitFor, fireEvent, within } from '@testing-library/rea
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { TeamCapacityTimeline } from '../TeamCapacityTimeline';
 import { capacityService } from '../../../../lib/api/capacityService';
-import type { TeamCapacityTimelineResponse } from '@qlick/contracts';
+import { taskService } from '../../../../lib/api/taskService';
+import type { Task, TeamCapacityTimelineResponse } from '@qlick/contracts';
 
 vi.mock('../../../../lib/api/capacityService', () => ({
   capacityService: {
     getTeamTimeline: vi.fn(),
   },
 }));
+
+vi.mock('../../../../lib/api/taskService', () => ({
+  taskService: {
+    getTask: vi.fn(),
+  },
+}));
+
+const mockTaskDetail = {
+  id: 'sub-1',
+  workspaceId: 'ws-1',
+  title: 'FE UI Component',
+  description: 'Membuat komponen UI yang dapat digunakan ulang.',
+  deliveryArea: 'frontend',
+  status: 'in_progress',
+  priority: 'medium',
+  reporterId: 'reporter-1',
+  createdAt: '2026-09-01T00:00:00.000Z',
+  updatedAt: '2026-09-01T00:00:00.000Z',
+} as Task;
 
 const mockTimelineData: TeamCapacityTimelineResponse = {
   workspaceId: 'ws-1',
@@ -18,6 +38,7 @@ const mockTimelineData: TeamCapacityTimelineResponse = {
   totalMembers: 1,
   totalScheduledSubtasks: 2,
   totalUnscheduledSubtasks: 1,
+  totalOutsideWindowSubtasks: 1,
   members: [
     {
       userId: 'dev-1',
@@ -26,6 +47,7 @@ const mockTimelineData: TeamCapacityTimelineResponse = {
       role: 'dev',
       specialties: ['frontend'],
       conflictCount: 1,
+      outsideWindowSubtaskCount: 1,
       scheduledSubtasks: [
         {
           id: 'sub-1',
@@ -73,6 +95,7 @@ const mockTimelineData: TeamCapacityTimelineResponse = {
 describe('TeamCapacityTimeline Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(taskService.getTask).mockResolvedValue(mockTaskDetail);
   });
 
   test('fetches and renders team timeline with members and subtask bars', async () => {
@@ -96,6 +119,10 @@ describe('TeamCapacityTimeline Component', () => {
 
     expect(screen.getByText('2 terjadwal')).toBeInTheDocument();
     expect(screen.getByText('1 tanpa jadwal')).toBeInTheDocument();
+    expect(screen.getByText('1 di luar rentang')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pilih rentang tanggal' })).toBeInTheDocument();
+    expect(screen.queryByText('Rentang Waktu:')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('combobox')).toHaveLength(5);
   });
 
   test('expands unscheduled subtasks when clicking unscheduled chip', async () => {
@@ -145,6 +172,14 @@ describe('TeamCapacityTimeline Component', () => {
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText('Area Delivery')).toBeInTheDocument();
     expect(within(dialog).getByText('FE UI Component')).toBeInTheDocument();
+    expect(
+      within(dialog).getByText('Membuat komponen UI yang dapat digunakan ulang.'),
+    ).toBeInTheDocument();
+    expect(taskService.getTask).toHaveBeenCalledWith('ws-1', 'sub-1');
+    expect(within(dialog).getByRole('link', { name: 'Buka di Task Hub' })).toHaveAttribute(
+      'href',
+      '/projects/ws-1/tasks/sub-1',
+    );
   });
 
   test('displays redacted alert when clicking a redacted subtask bar', async () => {
@@ -193,6 +228,34 @@ describe('TeamCapacityTimeline Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Developer Satu')).toBeInTheDocument();
+    });
+  });
+
+  test('applies a custom date range through the shared DateRangePicker', async () => {
+    vi.mocked(capacityService.getTeamTimeline).mockResolvedValue(mockTimelineData);
+
+    render(
+      <TeamCapacityTimeline
+        workspaceId="ws-1"
+        initialStartDate="2026-09-01"
+        initialEndDate="2026-09-15"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capacityService.getTeamTimeline).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pilih rentang tanggal' }));
+    fireEvent.change(screen.getByLabelText('Tanggal Mulai'), { target: { value: '2026-10-01' } });
+    fireEvent.change(screen.getByLabelText('Tanggal Akhir'), { target: { value: '2026-10-31' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Terapkan Rentang' }));
+
+    await waitFor(() => {
+      expect(capacityService.getTeamTimeline).toHaveBeenLastCalledWith(
+        'ws-1',
+        expect.objectContaining({ startDate: '2026-10-01', endDate: '2026-10-31' }),
+      );
     });
   });
 });

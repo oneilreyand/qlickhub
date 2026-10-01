@@ -46,6 +46,7 @@ const timeline: TeamCapacityTimelineResponse = {
   totalMembers: 0,
   totalScheduledSubtasks: 0,
   totalUnscheduledSubtasks: 0,
+  totalOutsideWindowSubtasks: 0,
 };
 
 describe('capacityService response adapter', () => {
