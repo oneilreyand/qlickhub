@@ -75,6 +75,30 @@ export function extractMarkdownLinks(markdown) {
   return [...withoutCodeFences.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)].map((match) => match[1].trim());
 }
 
+export function validateAdrIndex(adrFileNames, indexMarkdown, relativeDirectory = 'docs/adr') {
+  const errors = [];
+  const adrFiles = adrFileNames.filter((fileName) => /^ADR-\d{3}-.+\.md$/.test(fileName));
+  const adrNumbers = adrFiles.map((fileName) => fileName.match(/^ADR-(\d{3})-/)?.[1]);
+
+  for (const number of new Set(adrNumbers)) {
+    if (adrNumbers.filter((candidate) => candidate === number).length > 1) {
+      errors.push(`Duplicate ADR number in ${relativeDirectory}: ADR-${number}.`);
+    }
+  }
+
+  const indexedFiles = extractMarkdownLinks(indexMarkdown)
+    .map((target) => path.basename(target.replace(/^<|>$/g, '').split('#')[0].trim()))
+    .filter((fileName) => /^ADR-\d{3}-.+\.md$/.test(fileName));
+
+  for (const adrFile of adrFiles.sort()) {
+    const count = indexedFiles.filter((fileName) => fileName === adrFile).length;
+    if (count === 0) errors.push(`${relativeDirectory}/README.md is missing ADR link: ${adrFile}`);
+    if (count > 1) errors.push(`${relativeDirectory}/README.md repeats ADR link: ${adrFile}`);
+  }
+
+  return errors;
+}
+
 function collectMarkdownFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = path.join(directory, entry.name);
@@ -282,6 +306,18 @@ function validateFeatureNavigationDocuments(errors) {
   }
 }
 
+function validateAdrDocuments(errors) {
+  const adrDirectory = path.join(repositoryRoot, 'docs/adr');
+  const indexPath = path.join(adrDirectory, 'README.md');
+  if (!fs.existsSync(adrDirectory) || !fs.existsSync(indexPath)) return;
+
+  const adrFileNames = fs
+    .readdirSync(adrDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name);
+  errors.push(...validateAdrIndex(adrFileNames, fs.readFileSync(indexPath, 'utf8')));
+}
+
 function validateLocalLinks(errors) {
   const filesToCheck = [
     path.join(repositoryRoot, 'AGENTS.md'),
@@ -316,6 +352,7 @@ export function runDocumentationChecks() {
   const policyIds = validatePolicyRegistry(errors);
   validateFeatureCards(policyIds, errors);
   validateFeatureNavigationDocuments(errors);
+  validateAdrDocuments(errors);
   validateLocalLinks(errors);
   return errors;
 }

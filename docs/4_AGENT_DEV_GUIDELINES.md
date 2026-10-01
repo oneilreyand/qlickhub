@@ -142,27 +142,34 @@ Persetujuan plan hanya mengizinkan scope yang disetujui. Persetujuan ini tidak m
 action untuk data Production, otorisasi backend, approval migrasi destruktif, atau keputusan rilis.
 Permintaan baca-saja yang tidak mengubah repository tidak memerlukan gerbang persetujuan ini.
 
-#### A.1 Checkpoint persetujuan langkah dan larangan asumsi
+#### A.1 Approval Window dan larangan asumsi
 
-Selain persetujuan plan, agent wajib meminta persetujuan eksplisit user **sebelum setiap langkah
-eksekusi yang mengubah state**. Langkah tersebut mencakup, setidaknya, claim atau perubahan status
-Task, perubahan berkas atau konfigurasi, menjalankan migrasi atau mutasi data, memasang atau
-memperbarui dependency, menjalankan pemeriksaan yang menulis state persisten, membuat artefak
-eksternal, dan deployment. Persetujuan untuk langkah sebelumnya tidak mengizinkan langkah
-berikutnya secara otomatis, kecuali user secara eksplisit menyetujui urutan langkah yang terbatas
-dan setiap mutasinya telah disebutkan dalam plan.
+Selain persetujuan plan, agent wajib memperoleh persetujuan eksplisit user atas satu **Approval
+Window** sebelum mengubah state. Approval Window menggantikan checkpoint per-mutasi untuk pekerjaan
+rutin yang terbatas; ia bukan otoritas terbuka untuk seluruh Task atau repository.
 
-Sebelum meminta checkpoint, agent menyajikan langkah berikut yang dibatasi: tujuan, target/file atau
-environment, mutasi yang akan terjadi, bukti yang diharapkan, risiko atau cara pemulihan, dan fakta
-atau asumsi yang belum terjawab. Agent hanya menjalankan mutasi yang disetujui itu, lalu melaporkan
-outcome evidence sebelum meminta checkpoint berikutnya. Pembacaan SSoT, kode, kontrak, diff,
-status, atau output yang murni baca-saja boleh dilakukan tanpa checkpoint untuk membangun pertanyaan
-berbasis fakta; pemeriksaan tersebut tidak boleh dipakai sebagai persetujuan tersirat.
+Rencana Approval Window wajib menyatakan: identitas Task; baseline commit; tujuan dan Acceptance
+Criteria; daftar file atau path yang dibatasi; urutan state change yang diizinkan; pemeriksaan dan
+bukti yang akan dijalankan; risiko/pemulihan; serta masa berlaku. Dengan satu approval, agent boleh
+claim atau memperbarui status Task, mengubah berkas dalam scope, menjalankan pemeriksaan, memperbaiki
+kegagalan yang masih berada dalam AC dan scope yang sama, membuat commit, mendorong branch non-
+protected, dan membuat atau memperbarui draft Pull Request. Agent melaporkan outcome evidence ketika
+urutan berakhir, bukan setelah setiap edit kecil.
 
-Fakta yang belum terbukti diberi label `unknown` atau `unverified`. Agent dilarang mengisi kekosongan
-dengan asumsi, memilih alternatif material, atau melakukan mutasi yang bergantung pada asumsi itu.
-Bila user tidak menjawab checkpoint atau bukti primer tidak tersedia, langkah berstatus `Blocked` dan
-pekerjaan tidak maju secara diam-diam.
+Agent wajib berhenti dan meminta approval baru sebelum: merge atau push ke branch protected;
+deployment atau mutasi data Production; migrasi destruktif/backfill; perubahan authorization, RBAC,
+secret, credential, atau dependency; force-push atau penulisan ulang riwayat; membuat artefak
+eksternal yang tidak disebutkan; memperluas scope/path atau mengubah baseline; approval kedaluwarsa;
+atau menangani kegagalan yang membutuhkan perubahan perilaku, keputusan produk, atau alternatif
+material. Kebijakan broker V2 di §2A.K tetap memerlukan verifikasi scope, baseline, masa berlaku,
+dan lease yang lebih ketat saat aktif.
+
+Pembacaan SSoT, kode, kontrak, diff, status, atau output yang murni baca-saja boleh dilakukan tanpa
+approval untuk membangun pertanyaan berbasis fakta; pemeriksaan tersebut tidak boleh dipakai sebagai
+persetujuan tersirat. Fakta yang belum terbukti diberi label `unknown` atau `unverified`. Agent
+dilarang mengisi kekosongan dengan asumsi, memilih alternatif material, atau melakukan mutasi yang
+bergantung pada asumsi itu. Bila user tidak menjawab permintaan approval baru atau bukti primer tidak
+tersedia, pekerjaan berstatus `Blocked` dan tidak maju secara diam-diam.
 
 Sesudah approval, parent Task dipecah menjadi vertical slice yang masing-masing dapat dibuktikan
 terhadap AC. Subtask Backend, Frontend, dan QA dibuat hanya bila slice memerlukannya; pemecahan per
@@ -324,8 +331,8 @@ retrieval/context source, atau fallback, agent membuat Decision Snapshot yang me
 AC, alternatif kompatibel dengan stack, data classification dan data yang dikirim, authorization
 dan secret boundary, kualitas/evaluasi yang dapat direproduksi, latency, biaya, failure/retry/
 fallback behavior, observability, rollout/rollback, serta bukti yang diperlukan. Model/vendor tidak
-boleh dipilih hanya karena nama atau asumsi kemampuan; perubahan tetap mengikuti checkpoint user,
-cited-draft/Apply boundary, dan kontrak yang berlaku.
+boleh dipilih hanya karena nama atau asumsi kemampuan; perubahan tetap mengikuti Approval Window
+atau high-risk approval, cited-draft/Apply boundary, dan kontrak yang berlaku.
 
 #### K. Batas kapabilitas broker perubahan agent
 
@@ -400,7 +407,7 @@ graph TD
     C1 -- "Ya" --> C2{"2. RBAC & Validasi API Ditegakkan?"}
     C1 -- "Tidak" --> Reject["Belum Selesai (Revisi Implementasi)"]
 
-    C2 -- "Ya" --> C3{"3. UI Sesuai Stitch Tokens & WCAG AAA?"}
+    C2 -- "Ya" --> C3{"3. UI Sesuai Stitch Tokens & WCAG 2.2 AA?"}
     C2 -- "Tidak" --> Reject
 
     C3 -- "Ya" --> C4{"4. Penanganan 5 State UI Lengkap?"}

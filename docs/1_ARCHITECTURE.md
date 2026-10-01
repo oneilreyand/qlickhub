@@ -324,7 +324,7 @@ Keputusan ini dijelaskan dalam
 
 - Deteksi beban kerja anggota tim yang mencakup beberapa Workspace wajib menjaga kerahasiaan data proyek asal (`AUTH-011`).
 - Jika aktor perencana memeriksa konflik penugasan atau timeline, detail subtask dari Workspace lain disamarkan (**redacted**) secara ketat (hanya menampilkan jumlah bentrok dan rentang tanggal; dilarang membocorkan judul task, nama Workspace, deskripsi, atau link) kecuali jika aktor terbukti memiliki membership aktif terautentikasi pada Workspace asal tersebut.
-- Kebijakan ini diatur dalam [ADR-016](adr/ADR-016-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md).
+- Kebijakan ini diatur dalam [ADR-024](adr/ADR-024-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md).
 
 ---
 

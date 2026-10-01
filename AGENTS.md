@@ -21,7 +21,7 @@ When documents conflict, use this priority: explicit user instruction → securi
 - For all frontend work, follow [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md). Reuse the Atomic Design system before adding markup or styles to a page.
 - Work on exactly one TODO item or one tightly related subtask at a time.
 - Before claiming work that changes the repository, configuration, data, or deployment, complete the capability-aware Work Readiness Assessment in `docs/4_AGENT_DEV_GUIDELINES.md` §2A. Do not call work `Ready` until every Acceptance Criterion has an objective evidence path; split or block it truthfully when required.
-- Before every state-changing execution step, obtain the user approval required by `docs/4_AGENT_DEV_GUIDELINES.md` §2A.A.1. Read-only inspection may establish facts, but it must not be used to infer approval, fill an unknown, or advance to a mutation.
+- Before repository-changing work, obtain either a bounded **Approval Window** or the explicit high-risk approval required by `docs/4_AGENT_DEV_GUIDELINES.md` §2A.A.1. Read-only inspection may establish facts, but it must not be used to infer approval, fill an unknown, or advance to a mutation.
 - Cite applicable Policy IDs from `docs/POLICY_REGISTRY.md` in Feature Knowledge Cards, plans, and reports when a policy boundary is involved.
 - Before editing, inspect the relevant code and identify the files likely to change.
 - Do not make silent product, role, schema, migration, or workflow assumptions. Resolve the answer from the source-of-truth documents and current implementation. If evidence conflicts or a choice materially changes behavior/data, document the conflict and request an explicit decision; mark the TODO item `Blocked` when work cannot safely continue.
@@ -34,7 +34,7 @@ When documents conflict, use this priority: explicit user instruction → securi
 - Treat PostgreSQL through Sequelize as the default. Use parameterized raw SQL only for `pgvector`, indexes, analytics, or PostgreSQL-specific needs.
 - Enforce authorization in backend policy/services. UI visibility is not authorization.
 - Never expose `DATABASE_URL`, JWT secrets, Google Drive service-account credentials, or AI keys to the browser.
-- Keep the Stitch design contract intact: Inter, primary brand lime `#B1E743` (with `#141413` charcoal contrast text for WCAG AAA compliance), emerald `#10B981`, amber `#F59E0B`, neutral `#64748B`, sidebar navy `#0B1C30`, 16px cards, and accessible dark mode.
+- Keep the Stitch design contract intact: Inter, primary brand lime `#B1E743` (with `#141413` charcoal text, a WCAG AAA-verified pair), emerald `#10B981`, amber `#F59E0B`, neutral `#64748B`, sidebar navy `#0B1C30`, 16px cards, accessible dark mode, and the WCAG 2.2 AA baseline defined in the UI SSoT.
 
 ## Documentation compliance
 
@@ -72,7 +72,7 @@ When documents conflict, use this priority: explicit user instruction → securi
 1. **Claim** — Change the selected item in `TODO.md` to `In progress`, with agent name/date if known.
 2. **Understand** — Read applicable delivery-plan/design sections and inspect current implementation.
 3. **Plan briefly** — State confirmed facts, unresolved decisions, files, data/interface impact, authorization, risks, validation approach, WRA, AC-evidence mapping, impact map, and decision snapshot when applicable.
-4. **Implement atomically** — Before each state-changing execution step, present the bounded next step and wait for user approval; then deliver only that approved slice. Reuse existing atoms, molecules, modules, and contracts.
+4. **Implement atomically** — Execute the approved bounded sequence without repeated checkpoints; pause at every Approval Window stop condition or unapproved mutation. Reuse existing atoms, molecules, modules, and contracts.
 5. **Verify** — Run the narrowest relevant tests, then `npm run build` when frontend code changes. Record what was actually run.
 6. **Review** — Check empty/loading/error/permission states when the feature is data-driven.
 7. **Report** — Use `AGENT_REPORT_TEMPLATE.md`, including reproducible handoff evidence and the independent-verification status.

@@ -32,3 +32,5 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-021](ADR-021-TASK-BOUND-AGENT-WRITE-BROKER.md)                           | Task-bound agent write broker for the QlickHub pilot       |
 | [ADR-022](ADR-022-FEATURE-KNOWLEDGE-TREE.md)                                  | Feature documentation tree, role paths, and diagram entry  |
 | [ADR-023](ADR-023-DELIVERY-CAPACITY-TIMELINE.md)                              | Delivery-capacity Timeline semantics and detail disclosure |
+| [ADR-024](ADR-024-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md)  | Workload conflict and cross-Workspace privacy boundary     |
+| [ADR-025](ADR-025-APPROVAL-WINDOWS-FOR-AGENT-WORK.md)                         | Approval Windows for bounded agent work                    |
