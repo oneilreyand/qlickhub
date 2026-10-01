@@ -11,7 +11,13 @@ import {
   Smartphone,
   Cpu,
 } from 'lucide-react';
-import type { Task, DeliveryArea, ProductBrief, DeveloperSpecialty } from '@qlick/contracts';
+import type {
+  Task,
+  DeliveryArea,
+  ProductBrief,
+  DeveloperSpecialty,
+  Requirement,
+} from '@qlick/contracts';
 import { Accordion } from '../atoms/Accordion';
 import { SubtaskAccordionItem } from './SubtaskAccordionItem';
 import { SubtaskRoleTimeline } from '../molecules/SubtaskRoleTimeline';
@@ -31,6 +37,7 @@ export interface SubtaskListProps {
   parentTask?: Task | null;
   productBrief?: ProductBrief | null;
   currentUserId?: string;
+  eligibleRequirements?: Requirement[];
   members?: Array<{
     userId: string;
     role: string;
@@ -55,6 +62,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
   parentTask = null,
   productBrief = null,
   currentUserId,
+  eligibleRequirements,
   members = [],
   isLoading = false,
   error = null,
@@ -477,6 +485,7 @@ export const SubtaskList: React.FC<SubtaskListProps> = ({
                   subtask={st}
                   workspaceId={workspaceId}
                   currentUserId={currentUserId}
+                  eligibleRequirements={eligibleRequirements}
                   members={members}
                   canMutate={canMutate}
                   canPlan={canPlan}

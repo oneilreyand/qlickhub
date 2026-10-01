@@ -120,4 +120,71 @@ describe('OverviewStoreDashboard', () => {
     expect(screen.getByText('Engineering Tasks')).toBeInTheDocument();
     expect(screen.getByText('QA & Traceability')).toBeInTheDocument();
   });
+
+  it('correctly counts 1 root task as Total Tugas and displays 5 subtasks badge when subtasks exist', () => {
+    const parentTask: any = {
+      id: 'task-1',
+      workspaceId: 'ws-1',
+      parentTaskId: null,
+      title: 'Main Feature Task',
+      status: 'in_progress',
+      priority: 'high',
+      reporterId: 'usr-1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      subtaskSummary: {
+        total: 5,
+        completed: 2,
+        areas: {
+          frontend: { total: 2, completed: 1 },
+          backend: { total: 2, completed: 1 },
+          mobile: { total: 0, completed: 0 },
+          fullstack: { total: 0, completed: 0 },
+          qa: { total: 1, completed: 0 },
+        },
+      },
+    };
+
+    renderWithProviders(<OverviewStoreDashboard />, {
+      workspace: {
+        activeWorkspaceId: 'ws-1',
+        workspaces: [
+          {
+            id: 'ws-1',
+            name: 'Workspace Alpha',
+            slug: 'workspace-alpha',
+            ownerId: 'usr-1',
+            role: 'owner',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          } as any,
+        ],
+        isLoading: false,
+        isInitialized: true,
+        members: [],
+        isMembersLoading: false,
+        error: null,
+      },
+      task: {
+        tasks: [parentTask],
+        total: 1,
+        page: 1,
+        limit: 50,
+        listScope:
+          'ws-1:{"limit":100,"rootOnly":true,"includeSubtasks":true,"includeSubtaskSummary":true}',
+        listRequestId: null,
+        selectedTaskId: null,
+        queryFilter: {},
+        isLoading: false,
+        detailLoadingTaskId: null,
+        detailError: null,
+        isMutating: false,
+        error: null,
+      },
+    });
+
+    expect(screen.getByText('Total Tugas')).toBeInTheDocument();
+    expect(screen.getByText('5 Subtask')).toBeInTheDocument();
+    expect(screen.getByText(/1 tugas utama \(5 subtask terhubung\)/i)).toBeInTheDocument();
+  });
 });

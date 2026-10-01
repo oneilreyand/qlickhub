@@ -72,4 +72,26 @@ describe('TaskHubMetrics Organism', () => {
     // When urgentCount is 0, status badge should be Normal
     expect(screen.getByText('Normal')).toBeInTheDocument();
   });
+
+  it('renders subtask badge when totalSubtasksCount is provided and greater than 0', () => {
+    render(
+      <TaskHubMetrics
+        totalTasksCount={1}
+        totalSubtasksCount={5}
+        foldersCount={1}
+        doneCount={0}
+        donePercentage={0}
+        inReviewCount={0}
+        urgentCount={0}
+      />,
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1200);
+    });
+
+    expect(screen.getByText('Total Task')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('5 Subtask')).toBeInTheDocument();
+  });
 });

@@ -47,7 +47,7 @@ export const loginRateLimiter = rateLimit({
  */
 export const notificationRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  limit: 5,
+  limit: env.NODE_ENV === 'production' ? 15 : 1000,
   skip: () => env.NODE_ENV === 'test',
   standardHeaders: 'draft-8',
   legacyHeaders: false,

@@ -42,6 +42,7 @@ const bugFixture = (status: BugStatus = 'open'): BugWithContext => ({
   featureTaskId: ids.feature,
   requirementId: ids.requirement,
   testResultId: ids.result,
+  environment: 'staging',
   assigneeId: ids.dev,
   title: 'Checkout request returns 500',
   severity: 'critical',

@@ -4,6 +4,7 @@ import { AnimatedCounter } from '../../atoms/AnimatedCounter';
 
 interface TaskHubMetricsProps {
   totalTasksCount: number;
+  totalSubtasksCount?: number;
   foldersCount: number;
   doneCount: number;
   donePercentage: number;
@@ -13,6 +14,7 @@ interface TaskHubMetricsProps {
 
 export const TaskHubMetrics: React.FC<TaskHubMetricsProps> = ({
   totalTasksCount,
+  totalSubtasksCount,
   foldersCount: _foldersCount,
   doneCount,
   donePercentage,
@@ -35,6 +37,11 @@ export const TaskHubMetrics: React.FC<TaskHubMetricsProps> = ({
           <span className="text-3xl font-extrabold text-[#22201F] dark:text-white">
             <AnimatedCounter value={totalTasksCount} />
           </span>
+          {typeof totalSubtasksCount === 'number' && totalSubtasksCount > 0 && (
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
+              {totalSubtasksCount} Subtask
+            </span>
+          )}
         </div>
       </div>
 

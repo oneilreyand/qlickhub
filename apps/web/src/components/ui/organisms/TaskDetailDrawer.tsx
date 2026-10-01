@@ -511,6 +511,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     task && !task.parentTaskId && incompleteSubtasks.length > 0,
   );
 
+  const featureEligibleRequirements = React.useMemo(() => {
+    if (!requirementInitialState) return undefined;
+    const linkedIds = new Set(requirementInitialState.taskLinks.map((l) => l.requirementId));
+    return requirementInitialState.requirements.filter(
+      (r) => r.status === 'active' && linkedIds.has(r.id),
+    );
+  }, [requirementInitialState]);
+
   const loadActivity = async (page = activityPage, append = false, requestId?: number) => {
     if (!effectiveWorkspaceId || !task) return;
     setIsLoadingActivity(true);
@@ -1250,6 +1258,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               productBrief={productBrief}
               workspaceId={activeWorkspaceId || ''}
               currentUserId={currentUserId || undefined}
+              eligibleRequirements={featureEligibleRequirements}
               members={members}
               isLoading={isLoadingSubtasks}
               error={subtasksError}
@@ -1273,6 +1282,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               onRetry={() => void loadSubtasks()}
               onSubtaskUpdated={(updated) => {
                 setSubtasks((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+                void loadDeliveryTrace();
                 onDataChanged?.();
               }}
               onSubtaskDeleted={(subtaskId) => {

@@ -1100,6 +1100,7 @@ describe('QaTestingDesk Organism', () => {
         featureTaskId: ids.feature,
         requirementId: ids.requirement,
         testResultId: ids.result,
+        environment: 'staging',
         assigneeId: ids.dev,
         title: 'Checkout request returns 500',
         severity: 'critical',
@@ -1272,8 +1273,6 @@ describe('QaTestingDesk Organism', () => {
     const preparationTab = screen.getByRole('tab', { name: 'Persiapan & Eksekusi' });
     await user.click(preparationTab);
     expect(preparationTab).toHaveAttribute('aria-selected', 'true');
-    expect(
-      screen.getByRole('tabpanel', { name: 'Persiapan dan eksekusi QA' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('tabpanel', { name: 'Persiapan dan eksekusi QA' })).toBeInTheDocument();
   });
 });

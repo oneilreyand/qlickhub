@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import type { BugSeverity, BugStatus } from '@qlick/contracts';
+import type { BugEnvironment, BugSeverity, BugStatus } from '@qlick/contracts';
 import { sequelize } from '../sequelize.js';
 
 export interface BugAttributes {
@@ -7,7 +7,8 @@ export interface BugAttributes {
   workspaceId: string;
   featureTaskId: string;
   requirementId: string;
-  testResultId: string;
+  testResultId?: string | null;
+  environment: BugEnvironment;
   assigneeId: string;
   title: string;
   severity: BugSeverity;
@@ -23,7 +24,15 @@ export interface BugAttributes {
 
 type BugCreationAttributes = Optional<
   BugAttributes,
-  'id' | 'status' | 'resolutionNotes' | 'resolvedAt' | 'verifiedAt' | 'createdAt' | 'updatedAt'
+  | 'id'
+  | 'status'
+  | 'testResultId'
+  | 'environment'
+  | 'resolutionNotes'
+  | 'resolvedAt'
+  | 'verifiedAt'
+  | 'createdAt'
+  | 'updatedAt'
 >;
 
 export class BugModel extends Model<BugAttributes, BugCreationAttributes> implements BugAttributes {
@@ -31,7 +40,8 @@ export class BugModel extends Model<BugAttributes, BugCreationAttributes> implem
   declare workspaceId: string;
   declare featureTaskId: string;
   declare requirementId: string;
-  declare testResultId: string;
+  declare testResultId: string | null;
+  declare environment: BugEnvironment;
   declare assigneeId: string;
   declare title: string;
   declare severity: BugSeverity;
@@ -51,7 +61,13 @@ BugModel.init(
     workspaceId: { type: DataTypes.UUID, allowNull: false, field: 'workspace_id' },
     featureTaskId: { type: DataTypes.UUID, allowNull: false, field: 'feature_task_id' },
     requirementId: { type: DataTypes.UUID, allowNull: false, field: 'requirement_id' },
-    testResultId: { type: DataTypes.UUID, allowNull: false, field: 'test_result_id' },
+    testResultId: { type: DataTypes.UUID, allowNull: true, field: 'test_result_id' },
+    environment: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'staging',
+      field: 'environment',
+    },
     assigneeId: { type: DataTypes.UUID, allowNull: false, field: 'assignee_id' },
     title: { type: DataTypes.STRING(255), allowNull: false },
     severity: { type: DataTypes.STRING(32), allowNull: false },

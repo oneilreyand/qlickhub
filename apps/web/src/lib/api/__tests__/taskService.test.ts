@@ -58,6 +58,7 @@ describe('taskService', () => {
         ok: false,
         status: 403,
         statusText: 'Forbidden',
+        headers: new Headers(),
         json: async () => ({ error: { message: 'You are not allowed to move Task ini' } }),
       }),
     );

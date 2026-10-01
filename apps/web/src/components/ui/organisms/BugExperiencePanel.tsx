@@ -471,25 +471,38 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                       {bug.assignee.name}
                     </dd>
                   </div>
-                  <div className="min-w-0">
-                    <dt className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Hasil Pengujian Asal
-                    </dt>
-                    <dd className="mt-0.5 flex items-center gap-1.5 font-semibold text-rose-700 dark:text-rose-300">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      {testResultStatusCopy[bug.originatingTestResult.status] ||
-                        bug.originatingTestResult.status}
-                    </dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
-                      Kandidat yang Diuji
-                    </dt>
-                    <dd className="mt-0.5 truncate font-semibold text-stone-700 dark:text-stone-300">
-                      {bug.originatingTestResult.testRun.build} ·{' '}
-                      {bug.originatingTestResult.testRun.environment}
-                    </dd>
-                  </div>
+                  {bug.originatingTestResult ? (
+                    <>
+                      <div className="min-w-0">
+                        <dt className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                          Hasil Pengujian Asal
+                        </dt>
+                        <dd className="mt-0.5 flex items-center gap-1.5 font-semibold text-rose-700 dark:text-rose-300">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          {testResultStatusCopy[bug.originatingTestResult.status] ||
+                            bug.originatingTestResult.status}
+                        </dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                          Kandidat yang Diuji
+                        </dt>
+                        <dd className="mt-0.5 truncate font-semibold text-stone-700 dark:text-stone-300">
+                          {bug.originatingTestResult.testRun.build} ·{' '}
+                          {bug.originatingTestResult.testRun.environment}
+                        </dd>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="min-w-0 col-span-2">
+                      <dt className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                        Lingkungan Pelaporan
+                      </dt>
+                      <dd className="mt-0.5 flex items-center gap-1.5 font-semibold text-stone-700 dark:text-stone-300 capitalize">
+                        {bug.environment || 'staging'}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
 
                 <div className="space-y-2 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
@@ -832,25 +845,30 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                   <h4 className="text-xs font-extrabold uppercase tracking-wide text-rose-700 dark:text-rose-300">
                     Temuan awal
                   </h4>
-                  <Badge variant="blocked" size="sm">
-                    {historyTarget.originatingTestResult.status}
-                  </Badge>
+                  {historyTarget.originatingTestResult && (
+                    <Badge variant="blocked" size="sm">
+                      {historyTarget.originatingTestResult.status}
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-xs text-stone-600 dark:text-stone-400">
-                  {historyTarget.originatingTestResult.actualResult ||
+                  {historyTarget.originatingTestResult?.actualResult ||
                     historyTarget.reproductionDetails}
                 </p>
                 <p className="text-xs text-stone-500 dark:text-stone-400">
-                  {historyTarget.originatingTestResult.testRun.build} ·{' '}
-                  {historyTarget.originatingTestResult.testRun.environment}
+                  {historyTarget.originatingTestResult
+                    ? `${historyTarget.originatingTestResult.testRun.build} · ${historyTarget.originatingTestResult.testRun.environment}`
+                    : `Lingkungan: ${historyTarget.environment || 'staging'}`}
                 </p>
-                {(historyTarget.originatingTestResult.evidence.length > 0 ||
-                  historyTarget.originatingTestResult.evidenceLinks.length > 0 ||
+                {((historyTarget.originatingTestResult?.evidence &&
+                  historyTarget.originatingTestResult.evidence.length > 0) ||
+                  (historyTarget.originatingTestResult?.evidenceLinks &&
+                    historyTarget.originatingTestResult.evidenceLinks.length > 0) ||
                   historyTarget.bugEvidenceLinks.some(
                     (link) => link.evidenceStage !== 'resolution',
                   )) && (
                   <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2">
-                    {historyTarget.originatingTestResult.evidence.map((evidence) => (
+                    {historyTarget.originatingTestResult?.evidence.map((evidence) => (
                       <a
                         key={evidence.attachmentId}
                         href={taskService.getAttachmentDownloadUrl(
@@ -866,7 +884,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
                         {evidence.fileName}
                       </a>
                     ))}
-                    {historyTarget.originatingTestResult.evidenceLinks.map((link) => (
+                    {historyTarget.originatingTestResult?.evidenceLinks.map((link) => (
                       <EvidenceCard
                         key={link.id}
                         link={link}
