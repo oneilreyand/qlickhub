@@ -68,15 +68,12 @@ When documents conflict, use this priority: explicit user instruction → securi
 
 ## Task lifecycle
 
-0. **Work preflight** — Complete the Work Readiness Assessment for repository, configuration, data, or deployment changes; map every Acceptance Criterion to an objective evidence path.
-1. **Claim** — Change the selected item in `TODO.md` to `In progress`, with agent name/date if known.
-2. **Understand** — Read applicable delivery-plan/design sections and inspect current implementation.
-3. **Plan briefly** — State confirmed facts, unresolved decisions, files, data/interface impact, authorization, risks, validation approach, WRA, AC-evidence mapping, impact map, and decision snapshot when applicable.
-4. **Implement atomically** — Execute the approved bounded sequence without repeated checkpoints; pause at every Approval Window stop condition or unapproved mutation. Reuse existing atoms, molecules, modules, and contracts.
-5. **Verify** — Run the narrowest relevant tests, then `npm run build` when frontend code changes. Record what was actually run.
-6. **Review** — Check empty/loading/error/permission states when the feature is data-driven.
-7. **Report** — Use `AGENT_REPORT_TEMPLATE.md`, including reproducible handoff evidence and the independent-verification status.
-8. **Update TODO** — Mark complete only when verified; otherwise leave an explicit blocker or next action.
+Follow the canonical [six-stage flow](docs/4_AGENT_DEV_GUIDELINES.md#flow-ringkas-enam-tahap)
+and its assurance requirements. Present the plan and Approval Window together for one consent,
+then execute the bounded sequence without repeated checkpoints. Claim/create the task after
+approval, keep one task identity through handoffs, and record applicable verification before
+updating `TODO.md`. Use [the report template](AGENT_REPORT_TEMPLATE.md) for detailed evidence and
+give the user a concise result with links. Pause at the canonical stop conditions.
 
 ## Definition of done
 

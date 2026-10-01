@@ -25,7 +25,7 @@
     "validate": "npm run docs:check && npm run lint && npm run typecheck",
     "docs:check": "node --test scripts/checkDocs.test.mjs && node scripts/checkDocs.mjs",
     "quality:check": "node scripts/checkQualityManifest.mjs --mode report",
-    "quality:approval:check": "node scripts/checkQualityManifest.mjs --mode report --approval-mode enforce",
+    "quality:approval:check": "node scripts/checkQualityManifest.mjs --mode report --approval-mode report",
     "quality:test": "node --test scripts/checkQualityManifest.test.mjs",
     "env:setup:local": "node scripts/setupLocalEnv.mjs",
     "env:check": "node scripts/checkEnv.mjs",

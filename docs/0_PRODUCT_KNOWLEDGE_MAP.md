@@ -173,7 +173,9 @@ executed; it cannot silently create or replace product policy.
    implementasi, capability, risiko, serta konflik sebelum mengubah berkas.
 2. Untuk pekerjaan yang mengubah repository, konfigurasi, data, atau deployment, tawarkan WRA,
    plan, pendekatan, Change Impact Map, dan jalur evidence untuk persetujuan eksplisit user.
-3. Setelah user menyetujui plan, gunakan [Approval Window](4_AGENT_DEV_GUIDELINES.md#a1-approval-window-dan-larangan-asumsi)
+3. Sajikan plan dan [Approval Window](4_AGENT_DEV_GUIDELINES.md#a1-approval-window-dan-larangan-asumsi)
+   bersama untuk satu persetujuan sesuai [flow kanonis](4_AGENT_DEV_GUIDELINES.md#flow-ringkas-enam-tahap).
+   Setelah disetujui, gunakan window
    untuk urutan mutasi rutin yang terbatas. Agent berhenti untuk aksi berisiko, perubahan scope,
    atau bukti yang tidak cukup; hanya urutan yang disetujui boleh membuat/claim parent Task atau
    mengerjakan vertical slice teruji. Subtask Backend, Frontend, dan QA hanya dibuat bila memang
@@ -214,25 +216,23 @@ graph LR
 flowchart LR
     Change["Requested change"] --> Analysis["Analyse SSoT, code, capability, risk"]
     Analysis --> Plan["WRA + proposed plan + AC-to-evidence"]
-    Plan --> Approval{"User approves plan?"}
+    Plan --> Approval{"User approves plan + window once?"}
     Approval -->|revise / no| Plan
-    Approval -->|yes| StepApproval{"User approves next state-changing step?"}
-    StepApproval -->|no / revise| Plan
-    StepApproval -->|yes| Parent["Create or claim parent Task"]
+    Approval -->|yes| Parent["Create or claim parent Task"]
     Parent --> Impact["Identify policy and affected surfaces"]
     Impact --> Decision{"Policy changes?"}
     Decision -->|yes| ADR["Record decision in ADR"]
     ADR --> SSoT["Update canonical SSoT"]
     Decision -->|no| Contract["Confirm executable contract"]
     SSoT --> Contract
-    Contract --> SliceApproval{"User approves implementation step?"}
-    SliceApproval -->|no / revise| Plan
-    SliceApproval -->|yes| Slice["Implement tested vertical slice"]
+    Contract --> Slice["Implement tested vertical slice + update affected docs"]
     Slice --> Verification
     Verification -->|failed / blocked| Failure["Record failure evidence\nfix, re-plan, Bug, or Blocked"]
-    Failure --> Slice
-    Verification -->|passed| Report["Record success evidence"]
-    Report --> Backlog["Update TODO"]
+    Failure -->|same-scope fix| Slice
+    Failure -->|scope / authority / evidence blocker| Human
+    Verification -->|passed| Report["Concise result + primary evidence"]
+    Report --> Backlog["Update TODO against AC; preserve pending merge / release"]
+    Slice -.->|stop condition| Human["New human decision"]
 ```
 
 The repository enforces the structural part of this loop through `npm run docs:check`, which is

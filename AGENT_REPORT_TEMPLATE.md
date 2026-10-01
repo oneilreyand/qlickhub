@@ -15,7 +15,7 @@ Use this format at the end of every task.
 
 - **Work Readiness Assessment:** <score /16, `Ready` | `Ready after split` | `Blocked`, and reason>
 - **User plan approval:** <approved scope/approach, decision date or message reference; or N/A for read-only work>
-- **Step approval log:** <for every state-changing step: proposed bounded action, explicit user approval reference, outcome evidence; or N/A for read-only work>
+- **Approval Window / high-risk decisions:** <one approval reference for the plan and bounded sequence, task, baseline, scope, allowed actions, expiry and outcome; record new approval only at a stop condition; or N/A for read-only work>
 - **Agent capability and access:** <what the executor/verifier could and could not inspect or run>
 - **AC-to-evidence matrix:**
 

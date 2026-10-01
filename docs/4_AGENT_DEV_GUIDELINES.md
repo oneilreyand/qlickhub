@@ -57,38 +57,59 @@ graph LR
 
 The automated gate verifies required entry points, local target-file links in the active SSoT,
 Policy Registry, deployment document, and Feature Cards; it also verifies unique Policy IDs,
-known policy references, Feature Card structure, and CI integration. It does not validate fragment
-anchors, TODO entries, ADRs, reports, or semantic correctness. Human semantic review remains
+known policy references, Feature Card structure, CI integration, and unique ADR numbers/index entries.
+It does not validate fragment anchors, TODO status, report evidence, all ADR content, or semantic correctness. Human semantic review remains
 mandatory for product behavior, authorization, destructive migrations, and release policy.
 
 ---
 
-## 2. Siklus Persiapan dan Pengerjaan Tugas (_Work Preflight & 8-Step Task Lifecycle_)
+## 2. Siklus Persiapan dan Pengerjaan Tugas (_Work Preflight & Task Lifecycle_)
+
+### Flow ringkas enam tahap
+
+Flow ini berlaku lintas agent dan penyedia AI. Detail assurance di §2A mendukung keenam tahap;
+detail tersebut bukan rangkaian approval tambahan. Keputusan: [ADR-026](adr/ADR-026-CONCISE-AGENT-DELIVERY-FLOW.md).
+
+1. **Ngobrol dan pahami kebutuhan.** Baca SSoT dan implementasi yang relevan. Tanyakan hanya
+   keputusan material yang belum terjawab oleh user, SSoT, atau evidence; gabungkan pertanyaan
+   terkait dalam satu pesan. Pilihan implementasi rutin mengikuti aturan yang sudah terkonfirmasi.
+2. **Buat rencana singkat.** Tampilkan tujuan, scope, draft task, AC, risiko, strategi test, dan
+   Approval Window bersama. Catat WRA, baseline, impact, dan evidence secara ringkas dalam satu
+   record task/plan; area tidak terdampak cukup diberi `N/A` dengan alasan. Jangan mengulang
+   analisis yang masih berlaku atau menyalinnya ke banyak dokumen.
+3. **Satu persetujuan, lalu buat atau claim task.** Satu jawaban yang menyetujui rencana beserta
+   window cukup untuk urutan yang disebutkan. Draft task sebelum persetujuan belum menjadi issue
+   eksternal atau perubahan backlog. Gunakan task yang sudah ada bila cocok; jangan membuat duplikat.
+4. **Kerjakan sampai kandidat teruji.** Jalankan implementasi, dokumentasi, pemeriksaan, dan
+   perbaikan dalam scope tanpa approval per edit. Kebijakan baru dicatat lewat ADR dan SSoT sebelum
+   implementasi; Feature Card terdampak diperbarui bersama kode dalam perubahan/PR yang sama.
+5. **Test dan review sesuai dampak.** Jalankan tes regresi relevan; lint/typecheck untuk kode yang
+   berubah; build bila frontend berubah; PostgreSQL dan UI evidence bila berlaku; serta
+   `npm run docs:check` untuk perubahan dokumen/kebijakan. Review makna dokumen terhadap SSoT,
+   kontrak, kode, dan AC secara terpisah dari pemeriksaan struktur. Pemeriksaan yang telah lulus
+   diulang bila perubahan, kegagalan, atau scope baru membenarkannya; gap tetap dicatat.
+6. **Kirim hasil singkat dan jaga kelanjutan.** Laporkan hasil, ringkasan test, tautan PR/evidence,
+   gap, dan keputusan berikutnya. Simpan bukti rinci sekali memakai template laporan. Bedakan
+   kandidat siap merge, sudah merge, dan hasil yang terverifikasi pada environment target; tutup
+   task hanya saat AC dan verifikasi yang berlaku terpenuhi. Handoff memakai task yang sama,
+   commit/baseline terakhir, approval yang masih valid, bukti, blocker, dan langkah berikutnya.
 
 ```mermaid
 flowchart TD
-    Analysis["0. ANALYSE\nBaca SSoT, telusuri implementasi, capability, risiko, dan konflik"]
-    Preflight["1. WORK PREFLIGHT\nWRA + plan/pendekatan + jalur bukti setiap AC"]
-    Approval{"2. USER MENYETUJUI PLAN?"}
-    Step1["3. CLAIM / PARENT TASK\nBuat atau klaim satu item di TODO.md setelah approval"]
-    Step2["4. BREAK DOWN\nPecah vertical slice; BE/FE/QA hanya bila diperlukan"]
-    Step3["5. IMPLEMENT ATOMICALLY\nBangun vertical slice terkecil sesuai kontrak"]
-    Step4["6. VERIFY\nJalankan tes API/Web & buktikan migrasi PostgreSQL bersih"]
-    Step5["7. REVIEW OUTCOME\nCatat bukti sukses/gagal, gap, dan tindak lanjut"]
-    Step6["8. REPORT\nBuat laporan serah terima di docs/reports/ menggunakan template baku"]
-    Step7["9. UPDATE TODO\nTandai 'Done' atau 'Blocked' secara jujur"]
-
-    Analysis --> Preflight --> Approval
-    Approval -->|setuju| Step1 --> Step2 --> Step3 --> Step4 --> Step5 --> Step6 --> Step7
-    Approval -->|revisi / belum setuju| Preflight
-
-    classDef phase fill:#E0F2FE,stroke:#0284C7,stroke-width:2px,color:#0B1C30;
-    classDef done fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D;
-    classDef decision fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F;
-
-    class Analysis,Preflight,Step1,Step2,Step3,Step4,Step5,Step6 phase;
-    class Approval decision;
-    class Step7 done;
+    Understand["1. Pahami kebutuhan"] --> Plan["2. Rencana + draft task + Approval Window"]
+    Plan --> Approval{"Satu persetujuan"}
+    Approval -->|revisi| Plan
+    Approval -->|setuju| Task["3. Buat / claim task"]
+    Task --> Execute["4. Implementasi + dokumentasi"]
+    Execute --> Verify["5. Test + review evidence dan dokumen"]
+    Verify -->|perbaikan dalam scope| Execute
+    Verify -->|kandidat teruji| Result["6. Hasil + PR + gap / langkah berikutnya"]
+    Execute -.->|stop condition| Decision["Keputusan manusia"]
+    Result --> Release["Persetujuan merge / release bila diperlukan"]
+    Release --> Target["Verifikasi target sesuai AC"]
+    Target -->|terpenuhi| Close["Tutup task + arsip bukti"]
+    Target -->|temuan| Followup["Bug / follow-up tertaut"]
+    Followup --> Plan
 ```
 
 ---
@@ -112,7 +133,7 @@ flowchart LR
     Ready -->|ready after split| Split["Pecah vertical slice"]
     Split --> Preflight
     Ready -->|blocked| Human["Keputusan manusia"]
-    Ready -->|ready| Approval{"Plan disetujui user?"}
+    Ready -->|ready| Approval{"Plan + Approval Window disetujui sekali?"}
     Approval -->|revisi / belum setuju| Preflight
     Approval -->|setuju| Parent["Buat / claim parent task"]
     Parent --> Slice["Vertical slice teruji\nBE/FE/QA bila diperlukan"]
@@ -136,7 +157,11 @@ Berikutnya agent menawarkan plan dan pendekatan yang memuat WRA, scope, Acceptan
 Change Impact Map, Decision Snapshot bila material, berkas yang mungkin berubah, serta strategi
 evidence. Agent wajib meminta persetujuan eksplisit user atas plan dan pendekatan tersebut sebelum
 membuat atau meng-claim parent Task maupun melakukan perubahan repository. Jika user meminta revisi
-atau belum menyetujui, agent memperbarui plan dan tidak memulai eksekusi.
+atau belum menyetujui, agent memperbarui plan dan tidak memulai eksekusi. Plan dan Approval Window
+disajikan bersama; satu persetujuan mencakup keduanya bila scope dan urutannya jelas. Jangan meminta
+persetujuan yang sama lagi pada claim, edit, test, commit, push branch, atau draft PR yang telah
+tercakup. Jawaban yang mengacu pada plan tersebut seperti `setuju` atau `jalankan` berlaku untuk
+urutan itu; diam, pesan ambigu, atau permintaan analisis saja bukan approval.
 
 Persetujuan plan hanya mengizinkan scope yang disetujui. Persetujuan ini tidak menggantikan Apply
 action untuk data Production, otorisasi backend, approval migrasi destruktif, atau keputusan rilis.
@@ -144,8 +169,8 @@ Permintaan baca-saja yang tidak mengubah repository tidak memerlukan gerbang per
 
 #### A.1 Approval Window dan larangan asumsi
 
-Selain persetujuan plan, agent wajib memperoleh persetujuan eksplisit user atas satu **Approval
-Window** sebelum mengubah state. Approval Window menggantikan checkpoint per-mutasi untuk pekerjaan
+Agent menyertakan satu **Approval Window** pada plan dan memperoleh persetujuan eksplisit user
+atas paket tersebut sebelum mengubah state. Approval Window menggantikan checkpoint per-mutasi untuk pekerjaan
 rutin yang terbatas; ia bukan otoritas terbuka untuk seluruh Task atau repository.
 
 Rencana Approval Window wajib menyatakan: identitas Task; baseline commit; tujuan dan Acceptance
