@@ -26,7 +26,7 @@
     "recordId": "5923195599",
     "approvedBy": "oneilreyand",
     "planDigest": "sha256:771c4bca2569f53e207d2b8cf64b7474dd00216def25a86f3ba59c9fc838bc07",
-    "baselineCommit": "e7c4041418edf16c0a532e6e5def0f4a7c06ed8d",
+    "baselineCommit": "52f12f3a80e5ce35ca70d9cde6cebcbbb22adcb7",
     "approvedAt": "2026-10-01T01:57:26Z",
     "expiresAt": "2026-10-08T01:57:26Z",
     "allowedFiles": [
