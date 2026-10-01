@@ -17,6 +17,7 @@ import {
 } from '../../db/models/index.js';
 
 const ACTIVE_TASK_STATUSES = ['todo', 'in_progress', 'in_review', 'changes_requested'];
+const DELIVERY_CAPACITY_ROLES = ['dev', 'qa'];
 
 function getStartOfMonth(date: Date): string {
   const y = date.getUTCFullYear();
@@ -41,7 +42,12 @@ export class CapacityService {
     actorId: string,
     input: AssignmentConflictPreviewInput,
   ): Promise<AssignmentConflictPreviewResponse> {
-    const { assigneeId, startDate: candidateStart, dueDate: candidateDue, excludeSubtaskId } = input;
+    const {
+      assigneeId,
+      startDate: candidateStart,
+      dueDate: candidateDue,
+      excludeSubtaskId,
+    } = input;
 
     // Find all active subtasks assigned to the assignee
     const whereClause: Record<string, unknown> = {
@@ -79,8 +85,7 @@ export class CapacityService {
       // Check if task has complete schedule
       if (task.startDate && task.dueDate) {
         // Inclusive overlap rule: existing.startDate <= candidate.dueDate && existing.dueDate >= candidate.startDate
-        const isOverlapping =
-          task.startDate <= candidateDue && task.dueDate >= candidateStart;
+        const isOverlapping = task.startDate <= candidateDue && task.dueDate >= candidateStart;
 
         if (isOverlapping) {
           if (isCurrentWorkspace || actorCanAccessWorkspace) {
@@ -175,14 +180,12 @@ export class CapacityService {
     const actorWorkspaceIds = new Set(actorMemberships.map((m) => m.workspaceId));
 
     // Get members of current workspace
-    const memberWhere: Record<string, unknown> = { workspaceId };
-    if (query.role) {
-      memberWhere.role = query.role;
-    }
+    const memberWhere: Record<string, unknown> = {
+      workspaceId,
+      role: query.role || { [Op.in]: DELIVERY_CAPACITY_ROLES },
+    };
     if (query.memberIds) {
-      const ids = Array.isArray(query.memberIds)
-        ? query.memberIds
-        : [query.memberIds];
+      const ids = Array.isArray(query.memberIds) ? query.memberIds : [query.memberIds];
       if (ids.length > 0) {
         memberWhere.userId = { [Op.in]: ids };
       }
@@ -212,6 +215,7 @@ export class CapacityService {
     const taskWhere: Record<string, unknown> = {
       parentTaskId: { [Op.ne]: null },
       assigneeId: { [Op.in]: memberIds },
+      status: query.status || { [Op.in]: ACTIVE_TASK_STATUSES },
     };
 
     if (scope === 'workspace') {
@@ -246,6 +250,7 @@ export class CapacityService {
     const members: TeamCapacityMemberTimeline[] = [];
     let totalScheduledSubtasks = 0;
     let totalUnscheduledSubtasks = 0;
+    let totalOutsideWindowSubtasks = 0;
 
     for (const wm of workspaceMembers) {
       const user = (wm as unknown as { user?: { name?: string; email?: string } }).user;
@@ -253,6 +258,7 @@ export class CapacityService {
 
       const scheduled: TimelineSubtaskItem[] = [];
       const unscheduled: TimelineSubtaskItem[] = [];
+      let outsideWindowSubtaskCount = 0;
 
       for (const t of userSubtasks) {
         const isCurrentWorkspace = t.workspaceId === workspaceId;
@@ -275,6 +281,10 @@ export class CapacityService {
               isRedacted,
               isCurrentWorkspace,
             });
+          } else {
+            // Preserve the workload signal without returning an out-of-range bar.
+            // This count intentionally does not reveal protected cross-workspace task details.
+            outsideWindowSubtaskCount++;
           }
         } else {
           // Unscheduled active subtask
@@ -295,9 +305,7 @@ export class CapacityService {
 
       // Calculate conflict count among active scheduled subtasks
       let conflictCount = 0;
-      const activeScheduled = scheduled.filter((s) =>
-        ACTIVE_TASK_STATUSES.includes(s.status),
-      );
+      const activeScheduled = scheduled.filter((s) => ACTIVE_TASK_STATUSES.includes(s.status));
       for (let i = 0; i < activeScheduled.length; i++) {
         for (let j = i + 1; j < activeScheduled.length; j++) {
           const a = activeScheduled[i];
@@ -313,6 +321,7 @@ export class CapacityService {
 
       totalScheduledSubtasks += scheduled.length;
       totalUnscheduledSubtasks += unscheduled.length;
+      totalOutsideWindowSubtasks += outsideWindowSubtaskCount;
 
       const specialtiesList = (
         (wm as unknown as { specialties?: WorkspaceMemberSpecialtyModel[] }).specialties || []
@@ -326,6 +335,7 @@ export class CapacityService {
         specialties: specialtiesList,
         scheduledSubtasks: scheduled,
         unscheduledSubtasks: unscheduled,
+        outsideWindowSubtaskCount,
         conflictCount,
       });
     }
@@ -339,6 +349,7 @@ export class CapacityService {
       totalMembers: members.length,
       totalScheduledSubtasks,
       totalUnscheduledSubtasks,
+      totalOutsideWindowSubtasks,
     };
   }
 }

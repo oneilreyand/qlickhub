@@ -4,9 +4,9 @@ import {
   TeamCapacityTimelineResponseSchema,
   type AssignmentConflictPreviewInput,
   type AssignmentConflictPreviewResponse,
+  type ActiveCapacityTaskStatus,
   type TeamCapacityTimelineResponse,
   type DeliveryArea,
-  type TaskStatus,
   type CapacityScope,
 } from '@qlick/contracts';
 import { apiClient } from './apiClient';
@@ -18,7 +18,7 @@ export interface GetTeamTimelineParams {
   scope?: CapacityScope;
   role?: string;
   deliveryArea?: DeliveryArea;
-  status?: TaskStatus;
+  status?: ActiveCapacityTaskStatus;
   memberId?: string;
 }
 

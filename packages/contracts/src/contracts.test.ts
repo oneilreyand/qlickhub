@@ -2465,12 +2465,14 @@ describe('Contracts Validation Suite', () => {
               },
             ],
             unscheduledSubtasks: [],
+            outsideWindowSubtaskCount: 1,
             conflictCount: 0,
           },
         ],
         totalMembers: 1,
         totalScheduledSubtasks: 1,
         totalUnscheduledSubtasks: 0,
+        totalOutsideWindowSubtasks: 1,
       });
 
       assert.strictEqual(response.members[0].name, 'Budi Developer');

@@ -284,11 +284,16 @@ export async function listTasksImpl(
     if (query.datePreset === 'today') {
       addScheduleOverlap(todayStr, todayStr);
     } else if (query.datePreset === 'this_week' || query.datePreset === 'week') {
-      const day = now.getDay();
-      const diffToMon = now.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(now.setDate(diffToMon)).toISOString().split('T')[0];
-      const sunday = new Date(now.setDate(diffToMon + 6)).toISOString().split('T')[0];
-      addScheduleOverlap(monday, sunday);
+      const mondayOffset = (now.getUTCDay() + 6) % 7;
+      const mondayDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - mondayOffset),
+      );
+      const sundayDate = new Date(mondayDate);
+      sundayDate.setUTCDate(mondayDate.getUTCDate() + 6);
+      addScheduleOverlap(
+        mondayDate.toISOString().split('T')[0],
+        sundayDate.toISOString().split('T')[0],
+      );
     } else if (query.datePreset === 'this_month' || query.datePreset === 'month') {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)

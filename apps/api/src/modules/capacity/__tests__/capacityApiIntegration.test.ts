@@ -36,6 +36,8 @@ describe('Capacity & Workload Conflict API Integration (AUTH-011, FLOW-007)', ()
   let subtaskExistingA1: TaskModel;
   let subtaskExistingA2: TaskModel;
   let subtaskDoneA: TaskModel;
+  let subtaskCanceledA: TaskModel;
+  let subtaskOutsideWindowA: TaskModel;
   let subtaskUnscheduledA: TaskModel;
   let subtaskOtherWsB: TaskModel;
 
@@ -220,7 +222,35 @@ describe('Capacity & Workload Conflict API Integration (AUTH-011, FLOW-007)', ()
       dueDate: '2026-10-14',
     });
 
-    // d. Subtask in Workspace A: Active but unscheduled (startDate null, dueDate null)
+    // d. Subtask in Workspace A: scheduled active work entirely outside the October view.
+    subtaskOutsideWindowA = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: rootTaskA.id,
+      title: 'Active Work Outside October',
+      deliveryArea: 'frontend',
+      status: 'in_review',
+      priority: 'medium',
+      assigneeId: devUser.id,
+      reporterId: poUser.id,
+      startDate: '2026-11-03',
+      dueDate: '2026-11-07',
+    });
+
+    // e. Terminal canceled work in the requested interval (MUST BE IGNORED).
+    subtaskCanceledA = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: rootTaskA.id,
+      title: 'Canceled Subtask A',
+      deliveryArea: 'frontend',
+      status: 'canceled',
+      priority: 'low',
+      assigneeId: devUser.id,
+      reporterId: poUser.id,
+      startDate: '2026-10-16',
+      dueDate: '2026-10-18',
+    });
+
+    // f. Subtask in Workspace A: Active but unscheduled (startDate null, dueDate null)
     subtaskUnscheduledA = await TaskModel.create({
       workspaceId: workspaceA.id,
       parentTaskId: rootTaskA.id,
@@ -234,7 +264,7 @@ describe('Capacity & Workload Conflict API Integration (AUTH-011, FLOW-007)', ()
       dueDate: null,
     });
 
-    // e. Subtask in Workspace B: 2026-10-14 to 2026-10-18 (active, in_progress)
+    // g. Subtask in Workspace B: 2026-10-14 to 2026-10-18 (active, in_progress)
     subtaskOtherWsB = await TaskModel.create({
       workspaceId: workspaceB.id,
       parentTaskId: rootTaskB.id,
@@ -311,10 +341,19 @@ describe('Capacity & Workload Conflict API Integration (AUTH-011, FLOW-007)', ()
     assert.strictEqual(otherWsConflict.dueDate, '2026-10-18');
 
     // Verify subtaskExistingA2 and subtaskDoneA are NOT in conflicts
-    assert.strictEqual(data.conflicts.some((c) => c.id === subtaskExistingA2.id), false);
-    assert.strictEqual(data.conflicts.some((c) => c.id === subtaskDoneA.id), false);
+    assert.strictEqual(
+      data.conflicts.some((c) => c.id === subtaskExistingA2.id),
+      false,
+    );
+    assert.strictEqual(
+      data.conflicts.some((c) => c.id === subtaskDoneA.id),
+      false,
+    );
     // Verify subtaskUnscheduledA is reported in unscheduledSubtasks
-    assert.strictEqual(data.unscheduledSubtasks.some((u) => u.id === subtaskUnscheduledA.id), true);
+    assert.strictEqual(
+      data.unscheduledSubtasks.some((u) => u.id === subtaskUnscheduledA.id),
+      true,
+    );
   });
 
   test('POST /capacity/assignment-preview: excludes the edited subtask itself (excludeSubtaskId)', async () => {
@@ -452,7 +491,7 @@ describe('Capacity & Workload Conflict API Integration (AUTH-011, FLOW-007)', ()
     assert.strictEqual(response.status, 400);
   });
 
-  test('GET /capacity/timeline: returns team timeline per member with scheduled & unscheduled subtasks', async () => {
+  test('GET /capacity/timeline: returns delivery roles and categorizes active workload without terminal inflation', async () => {
     const response = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/capacity/timeline?startDate=2026-10-01&endDate=2026-10-31&scope=workspace`,
       {
@@ -467,13 +506,48 @@ describe('Capacity & Workload Conflict API Integration (AUTH-011, FLOW-007)', ()
 
     assert.strictEqual(data.workspaceId, workspaceA.id);
     assert.strictEqual(data.scope, 'workspace');
-    assert.ok(data.members.length >= 4);
+    assert.deepStrictEqual(data.members.map((member) => member.role).sort(), ['dev', 'dev', 'qa']);
+    assert.strictEqual(
+      data.members.some((member) => member.userId === ownerUser.id),
+      false,
+    );
+    assert.strictEqual(
+      data.members.some((member) => member.userId === poUser.id),
+      false,
+    );
 
     const devMember = data.members.find((m) => m.userId === devUser.id);
     assert.ok(devMember);
     assert.strictEqual(devMember.name, 'Capacity Dev 1');
-    assert.ok(devMember.scheduledSubtasks.length >= 2);
-    assert.ok(devMember.unscheduledSubtasks.length >= 1);
+    assert.strictEqual(devMember.scheduledSubtasks.length, 2);
+    assert.strictEqual(devMember.unscheduledSubtasks.length, 1);
+    assert.strictEqual(devMember.outsideWindowSubtaskCount, 1);
+    assert.strictEqual(data.totalScheduledSubtasks, 2);
+    assert.strictEqual(data.totalUnscheduledSubtasks, 1);
+    assert.strictEqual(data.totalOutsideWindowSubtasks, 1);
+    assert.strictEqual(
+      devMember.scheduledSubtasks.some((subtask) => subtask.id === subtaskDoneA.id),
+      false,
+    );
+    assert.strictEqual(
+      devMember.scheduledSubtasks.some((subtask) => subtask.id === subtaskCanceledA.id),
+      false,
+    );
+    assert.strictEqual(
+      devMember.scheduledSubtasks.some((subtask) => subtask.id === subtaskOutsideWindowA.id),
+      false,
+    );
+  });
+
+  test('GET /capacity/timeline: rejects terminal status filters for a delivery-capacity view', async () => {
+    const response = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/capacity/timeline?status=done`,
+      {
+        headers: { Cookie: poCookie },
+      },
+    );
+
+    assert.strictEqual(response.status, 400);
   });
 
   test('GET /capacity/timeline: allows Developer and QA to view team timeline in read-only mode', async () => {
