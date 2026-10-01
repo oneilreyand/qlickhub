@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "id": "FIX-TASK-DATE-PRESET-FILTER",
+  "changedFiles": [
+    "TODO.md",
+    "apps/api/src/modules/tasks/internal/taskQuery.ts",
+    "apps/api/src/modules/tasks/__tests__/taskApiIntegration.test.ts",
+    "docs/plans/FIX_TASK_DATE_PRESET_FILTER_PLAN.md",
+    "docs/reports/FIX_TASK_DATE_PRESET_FILTER_2026-10-01.md",
+    "quality/manifests/FIX-TASK-DATE-PRESET-FILTER.json"
+  ],
+  "scopes": ["dataAccess"],
+  "evidence": {
+    "dataAccess": {
+      "status": "collected",
+      "artifacts": [
+        "NODE_ENV=test node --test dist/modules/tasks/__tests__/taskApiIntegration.test.js: 30 leaf tests passed, 0 failed, 0 skipped against disposable PostgreSQL after the fix.",
+        "npm --prefix apps/api run build: passed before the repaired integration run."
+      ],
+      "notes": "The repair changes only UTC week-boundary derivation before the existing Sequelize overlap predicate. It adds no query, relation, raw SQL, index, migration, or authorization path."
+    }
+  },
+  "approval": {
+    "authority": "github",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5923195599",
+    "recordId": "5923195599",
+    "approvedBy": "oneilreyand",
+    "planDigest": "sha256:771c4bca2569f53e207d2b8cf64b7474dd00216def25a86f3ba59c9fc838bc07",
+    "baselineCommit": "e7c4041418edf16c0a532e6e5def0f4a7c06ed8d",
+    "approvedAt": "2026-10-01T01:57:26Z",
+    "expiresAt": "2026-10-08T01:57:26Z",
+    "allowedFiles": [
+      "TODO.md",
+      "apps/api/src/modules/tasks/internal/taskQuery.ts",
+      "apps/api/src/modules/tasks/__tests__/taskApiIntegration.test.ts",
+      "docs/plans/FIX_TASK_DATE_PRESET_FILTER_PLAN.md",
+      "docs/reports/FIX_TASK_DATE_PRESET_FILTER_2026-10-01.md",
+      "quality/manifests/FIX-TASK-DATE-PRESET-FILTER.json"
+    ],
+    "roleScope": {
+      "targetRoles": [],
+      "preservedRoles": ["Owner", "Admin", "PO", "Developer", "QA"]
+    },
+    "allowedStateChanges": [
+      "Repair the Task this_week date-preset boundary calculation, add authenticated PostgreSQL regression evidence, update bounded plan/report/quality evidence, amend the local repair commit, and push the repair to existing PR #9; no migration, authorization mutation, deployment, production-data operation, or merge."
+    ]
+  }
+}

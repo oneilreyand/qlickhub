@@ -29,6 +29,8 @@ Workspace → Folder → Feature / Story (root Task)
 
 ## Active work
 
+- [ ] **In progress** (Codex - 2026-10-01) - **FIX-TASK-DATE-PRESET-FILTER: Perbaiki batas kalender preset `this_week` agar Task terjadwal yang melintasi hari ini tetap muncul pada minggu yang sama.** Perbaikan hanya mengubah kalkulasi rentang baca di backend dan regresi PostgreSQL terautentikasi; tidak ada perubahan API, migrasi, otorisasi, data produksi, atau deployment. Policies: `CONTRACT-001`, `DATA-001`, `TEST-001`, `DOC-003`, `DOC-004`.
+
 - [ ] **In progress** (Codex — 2026-09-30) — **TIMELINE-CAPACITY-V2: Jadikan Timeline Kapasitas sebagai pandangan beban kerja delivery yang akurat untuk Developer dan QA, dengan status aktif sebagai default, rentang tanggal kustom, penjelasan pekerjaan di luar rentang, serta detail Task yang dapat ditelusuri.** Tidak ada migrasi atau perubahan hak mutasi; privasi lintas Workspace tetap ditegakkan backend. Policies: `AUTH-001`, `AUTH-002`, `AUTH-011`, `DATA-001`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-001`, `DOC-003`, `DOC-004`.
 
 - [ ] **In progress** (Codex — 2026-09-30) — **FIX-CAPACITY-RESPONSE-ADAPTER: Pulihkan pemeriksaan bentrok jadwal Subtask dan Timeline Kapasitas Tim dengan menyelaraskan adaptor frontend pada respons kapasitas backend yang sudah kanonis.** Scope hanya membaca respons langsung yang dikembalikan API; tidak ada perubahan endpoint, kontrak backend, otorisasi, data, migrasi, atau deployment. Policies: `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-003`, `DOC-004`.

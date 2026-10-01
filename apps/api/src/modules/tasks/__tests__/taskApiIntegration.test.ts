@@ -748,13 +748,17 @@ describe('Task API Integration & Business Rules Tests (T3)', () => {
       assert.ok(todayList.tasks.some((t) => t.id === todayTask.id));
       assert.ok(todayList.tasks.some((t) => t.id === spanningTodayTask.id));
 
-      for (const datePreset of ['this_week', 'this_month'] as const) {
-        const calendarList = await taskService.listTasks(
-          workspaceA.id,
-          TaskListQuerySchema.parse({ workspaceId: workspaceA.id, datePreset }),
-        );
-        assert.ok(calendarList.tasks.some((t) => t.id === spanningTodayTask.id));
-      }
+      const thisWeekList = await taskService.listTasks(
+        workspaceA.id,
+        TaskListQuerySchema.parse({ workspaceId: workspaceA.id, datePreset: 'this_week' }),
+      );
+      assert.ok(thisWeekList.tasks.some((t) => t.id === spanningTodayTask.id));
+
+      const thisMonthList = await taskService.listTasks(
+        workspaceA.id,
+        TaskListQuerySchema.parse({ workspaceId: workspaceA.id, datePreset: 'this_month' }),
+      );
+      assert.ok(thisMonthList.tasks.some((t) => t.id === spanningTodayTask.id));
 
       // Test 'overdue' preset
       const overdueQuery = TaskListQuerySchema.parse({
