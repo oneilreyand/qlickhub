@@ -11,8 +11,9 @@ Start with the navigation map, then read every applicable SSoT before making cha
 3. [`docs/2_WORKFLOW_AND_ROLES.md`](docs/2_WORKFLOW_AND_ROLES.md) — SSoT for end-to-end role workflow, subtasks, QA test management, and release gates.
 4. [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md) — SSoT for atomic UI components, Stitch design tokens, and route layout.
 5. [`docs/4_AGENT_DEV_GUIDELINES.md`](docs/4_AGENT_DEV_GUIDELINES.md) — SSoT for developer rules, AI work assurance, PostgreSQL test evidence policy, and handoff report template.
-6. [`docs/POLICY_REGISTRY.md`](docs/POLICY_REGISTRY.md) — stable identifiers pointing to approved SSoT rules; it never overrides the source document.
-7. [`TODO.md`](TODO.md) — Current prioritized active backlog.
+6. [`docs/5_AUTONOMOUS_AGENT_OPERATIONS.md`](docs/5_AUTONOMOUS_AGENT_OPERATIONS.md) — SSoT for autonomous agent execution, automated gates, and operational recovery.
+7. [`docs/POLICY_REGISTRY.md`](docs/POLICY_REGISTRY.md) — stable identifiers pointing to approved SSoT rules; it never overrides the source document.
+8. [`TODO.md`](TODO.md) — Current prioritized active backlog.
 
 When documents conflict, use this priority: explicit user instruction → security constraints → SSoT Architecture & Workflow (`docs/1_ARCHITECTURE.md`, `docs/2_WORKFLOW_AND_ROLES.md`) → UI Design System (`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`) → Agent Guidelines (`docs/4_AGENT_DEV_GUIDELINES.md`) → TODO.
 
@@ -20,8 +21,8 @@ When documents conflict, use this priority: explicit user instruction → securi
 
 - For all frontend work, follow [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md). Reuse the Atomic Design system before adding markup or styles to a page.
 - Work on exactly one TODO item or one tightly related subtask at a time.
-- Before claiming work that changes the repository, configuration, data, or deployment, complete the capability-aware Work Readiness Assessment in `docs/4_AGENT_DEV_GUIDELINES.md` §2A. Do not call work `Ready` until every Acceptance Criterion has an objective evidence path; split or block it truthfully when required.
-- Before repository-changing work, obtain either a bounded **Approval Window** or the explicit high-risk approval required by `docs/4_AGENT_DEV_GUIDELINES.md` §2A.A.1. Read-only inspection may establish facts, but it must not be used to infer approval, fill an unknown, or advance to a mutation.
+- Before autonomous work that changes the repository, configuration, data, or deployment, complete the capability-aware Work Readiness Assessment and an Execution Record in `docs/4_AGENT_DEV_GUIDELINES.md` §2A. Do not call work `Ready` until every Acceptance Criterion has an objective evidence path; split, quarantine, or block it truthfully when required.
+- Agents may execute repository, configuration, data, deployment, protected-branch, RBAC, and secret operations without per-action human approval only through the automated controls in `docs/5_AUTONOMOUS_AGENT_OPERATIONS.md`. Read-only inspection may establish facts, but it must not fill unknowns or justify a mutation that violates an automated policy.
 - Cite applicable Policy IDs from `docs/POLICY_REGISTRY.md` in Feature Knowledge Cards, plans, and reports when a policy boundary is involved.
 - Before editing, inspect the relevant code and identify the files likely to change.
 - Do not make silent product, role, schema, migration, or workflow assumptions. Resolve the answer from the source-of-truth documents and current implementation. If evidence conflicts or a choice materially changes behavior/data, document the conflict and request an explicit decision; mark the TODO item `Blocked` when work cannot safely continue.
@@ -68,12 +69,12 @@ When documents conflict, use this priority: explicit user instruction → securi
 
 ## Task lifecycle
 
-Follow the canonical [six-stage flow](docs/4_AGENT_DEV_GUIDELINES.md#flow-ringkas-enam-tahap)
-and its assurance requirements. Present the plan and Approval Window together for one consent,
-then execute the bounded sequence without repeated checkpoints. Claim/create the task after
-approval, keep one task identity through handoffs, and record applicable verification before
-updating `TODO.md`. Use [the report template](AGENT_REPORT_TEMPLATE.md) for detailed evidence and
-give the user a concise result with links. Pause at the canonical stop conditions.
+Follow the canonical [six-stage autonomous flow](docs/4_AGENT_DEV_GUIDELINES.md#flow-ringkas-enam-tahap)
+and its assurance requirements. Record the plan, WRA, scope, baseline, and automated policy result
+before claiming/creating the task; execute without human checkpoints while the policy engine permits
+it. Keep one task identity through handoffs, record applicable verification before updating `TODO.md`,
+and use [the report template](AGENT_REPORT_TEMPLATE.md) for detailed evidence. Pause only at an
+automated stop, quarantine, or recovery condition.
 
 ## Definition of done
 
@@ -95,4 +96,4 @@ A TODO item is done only when all applicable items are true:
 - Do not silently use fake data in a production path. Mock fixtures must live in the contracts/test area and be labelled.
 - Do not make direct database calls from frontend features.
 - Do not skip migrations for persisted schema changes.
-- Do not create autonomous AI actions; AI returns cited drafts until the user applies them.
+- Autonomous AI actions are permitted under `AI-015` through `AI-019`; they must preserve non-secret audit evidence, independent verification, and automated recovery controls.

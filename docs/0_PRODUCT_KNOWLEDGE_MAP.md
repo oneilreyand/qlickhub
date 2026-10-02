@@ -2,7 +2,7 @@
 
 **Status:** Active navigation index  
 **Owner:** Product and Engineering  
-**Last reviewed:** 2026-09-25
+**Last reviewed:** 2026-10-02
 
 **Scope:** Entry point for Product Owner, Backend, Frontend, QA, developers, and AI agents.
 
@@ -35,12 +35,12 @@ Test Case dan menyegel hasil/evidence; lalu PO membuat keputusan rilis berdasark
 readiness. Jika tes gagal atau rilis ditolak, pekerjaan kembali ke Delivery atau Planning dengan
 temuan yang dapat ditelusuri—bukan dengan asumsi baru.
 
-| Jika Anda…    | Baca terlebih dahulu                                                                                 | Lalu lakukan                                                                                                                                              |
-| ------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Product Owner | [Architecture](1_ARCHITECTURE.md), lalu [Workflow](2_WORKFLOW_AND_ROLES.md)                          | Tegaskan scope dan AC, lalu putuskan rilis setelah QA Sign-off.                                                                                           |
-| Developer     | [Workflow](2_WORKFLOW_AND_ROLES.md), [Policy Registry](POLICY_REGISTRY.md), dan Feature Card terkait | Kerjakan Subtask dalam scope yang disetujui dan serahkan bukti yang dapat diverifikasi.                                                                   |
-| QA            | Feature Card terkait, lalu [Workflow](2_WORKFLOW_AND_ROLES.md)                                       | Uji AC, segel Result/evidence, kelola Bug/retest, dan beri sign-off atau blocker.                                                                         |
-| Agent AI      | [Reading Path AI](#ai-agent), lalu SSoT yang relevan                                                 | Analisis dahulu, tawarkan plan dan Approval Window; kerjakan urutan yang disetujui lalu berhenti saat batas scope, risiko, bukti, atau otoritas tercapai. |
+| Jika Anda…    | Baca terlebih dahulu                                                                                 | Lalu lakukan                                                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Product Owner | [Architecture](1_ARCHITECTURE.md), lalu [Workflow](2_WORKFLOW_AND_ROLES.md)                          | Tegaskan scope dan AC, lalu putuskan rilis setelah QA Sign-off.                                                                            |
+| Developer     | [Workflow](2_WORKFLOW_AND_ROLES.md), [Policy Registry](POLICY_REGISTRY.md), dan Feature Card terkait | Kerjakan Subtask dalam scope yang disetujui dan serahkan bukti yang dapat diverifikasi.                                                    |
+| QA            | Feature Card terkait, lalu [Workflow](2_WORKFLOW_AND_ROLES.md)                                       | Uji AC, segel Result/evidence, kelola Bug/retest, dan beri sign-off atau blocker.                                                          |
+| Agent AI      | [Reading Path AI](#ai-agent), lalu SSoT yang relevan                                                 | Analisis, catat Execution Record, lalu jalankan secara otonom selama policy otomatis, verifier independen, dan recovery control terpenuhi. |
 
 ## 2. Domain Context Map
 
@@ -89,6 +89,7 @@ graph TD
     Map --> Workflow["2. Workflow and Roles<br/>PO, Developer, QA, release"]
     Map --> UI["3. UI Design System<br/>Routes, components, states"]
     Map --> Guidelines["4. Agent Guidelines<br/>Delivery and evidence rules"]
+    Map --> AgentOps["5. Autonomous Agent Operations<br/>Control plane and recovery"]
     Map --> Policies["Policy Registry<br/>Stable rule identifiers"]
     Map --> Contracts["Executable Contracts<br/>packages/contracts/src"]
     Map --> Features["Feature Knowledge Cards<br/>docs/features"]
@@ -115,6 +116,7 @@ graph TD
 | Role workflow, state machines, QA, release gates            | [Workflow and Roles](2_WORKFLOW_AND_ROLES.md)                                                     |
 | Routes, components, design tokens, UI states                | [UI Atomic Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                           |
 | Engineering lifecycle, test evidence, Definition of Done    | [Agent and Developer Guidelines](4_AGENT_DEV_GUIDELINES.md)                                       |
+| Autonomous agent execution, policy gates, recovery          | [Autonomous Agent Operations](5_AUTONOMOUS_AGENT_OPERATIONS.md)                                   |
 | Stable identifiers pointing to approved rules               | [Policy Registry](POLICY_REGISTRY.md)                                                             |
 | Runtime request/response types and shared interfaces        | [Shared contracts](../packages/contracts/src)                                                     |
 | Why an architectural or product decision was made           | [Architecture decision index](adr/README.md)                                                      |
@@ -171,15 +173,13 @@ executed; it cannot silently create or replace product policy.
 
 1. Start here, then read every SSoT relevant to the requested change dan analisis kontrak,
    implementasi, capability, risiko, serta konflik sebelum mengubah berkas.
-2. Untuk pekerjaan yang mengubah repository, konfigurasi, data, atau deployment, tawarkan WRA,
-   plan, pendekatan, Change Impact Map, dan jalur evidence untuk persetujuan eksplisit user.
-3. Sajikan plan dan [Approval Window](4_AGENT_DEV_GUIDELINES.md#a1-approval-window-dan-larangan-asumsi)
-   bersama untuk satu persetujuan sesuai [flow kanonis](4_AGENT_DEV_GUIDELINES.md#flow-ringkas-enam-tahap).
-   Setelah disetujui, gunakan window
-   untuk urutan mutasi rutin yang terbatas. Agent berhenti untuk aksi berisiko, perubahan scope,
-   atau bukti yang tidak cukup; hanya urutan yang disetujui boleh membuat/claim parent Task atau
-   mengerjakan vertical slice teruji. Subtask Backend, Frontend, dan QA hanya dibuat bila memang
-   diperlukan.
+2. Untuk pekerjaan yang mengubah repository, konfigurasi, data, atau deployment, buat WRA, plan,
+   Change Impact Map, dan Execution Record. Policy engine memeriksa capability, scope, baseline,
+   evidence, biaya, serta recovery tanpa meminta persetujuan manusia per tindakan.
+3. Ikuti [flow kanonis](4_AGENT_DEV_GUIDELINES.md#flow-ringkas-enam-tahap) dan
+   [Autonomous Agent Operations](5_AUTONOMOUS_AGENT_OPERATIONS.md). Agent berhenti, rollback, atau
+   quarantine saat policy otomatis, verifier, atau bukti gagal; subtask Backend, Frontend, dan QA
+   dibuat hanya bila slice memerlukannya.
 4. Before claiming a repository-changing task, complete the Work Readiness Assessment in
    [Agent Guidelines](4_AGENT_DEV_GUIDELINES.md#2a-protokol-assurance-kerja-ai-ai-work-assurance-protocol).
 5. Resolve terminology and mandatory rules through the Policy Registry. For a folder Feature Card,
@@ -215,10 +215,10 @@ graph LR
 ```mermaid
 flowchart LR
     Change["Requested change"] --> Analysis["Analyse SSoT, code, capability, risk"]
-    Analysis --> Plan["WRA + proposed plan + AC-to-evidence"]
-    Plan --> Approval{"User approves plan + window once?"}
-    Approval -->|revise / no| Plan
-    Approval -->|yes| Parent["Create or claim parent Task"]
+    Analysis --> Plan["WRA + Execution Record + AC-to-evidence"]
+    Plan --> Policy{"Automated policy permits execution?"}
+    Policy -->|no| Quarantine["Quarantine / record incident / recover"]
+    Policy -->|yes| Parent["Create or claim parent Task"]
     Parent --> Impact["Identify policy and affected surfaces"]
     Impact --> Decision{"Policy changes?"}
     Decision -->|yes| ADR["Record decision in ADR"]
@@ -229,10 +229,10 @@ flowchart LR
     Slice --> Verification
     Verification -->|failed / blocked| Failure["Record failure evidence\nfix, re-plan, Bug, or Blocked"]
     Failure -->|same-scope fix| Slice
-    Failure -->|scope / authority / evidence blocker| Human
+    Failure -->|scope / authority / evidence blocker| Quarantine
     Verification -->|passed| Report["Concise result + primary evidence"]
     Report --> Backlog["Update TODO against AC; preserve pending merge / release"]
-    Slice -.->|stop condition| Human["New human decision"]
+    Slice -.->|stop condition| Quarantine
 ```
 
 The repository enforces the structural part of this loop through `npm run docs:check`, which is

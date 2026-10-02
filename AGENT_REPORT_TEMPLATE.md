@@ -14,8 +14,8 @@ Use this format at the end of every task.
 ## Work assurance
 
 - **Work Readiness Assessment:** <score /16, `Ready` | `Ready after split` | `Blocked`, and reason>
-- **User plan approval:** <approved scope/approach, decision date or message reference; or N/A for read-only work>
-- **Approval Window / high-risk decisions:** <one approval reference for the plan and bounded sequence, task, baseline, scope, allowed actions, expiry and outcome; record new approval only at a stop condition; or N/A for read-only work>
+- **Execution Record / automated policy:** <record link; task/event, mode, baseline, exact paths, requested/prohibited capabilities, state-change sequence, AC-to-evidence, executor/verifier identity, lease/expiry, retry/timeout/cost limits, recovery, policy decision and outcome; label a simulation explicitly, or N/A for read-only inspection>
+- **Read-only integrity evidence:** <before/after HEAD, index/status/content digests, comparison, and excluded/ignored-file or transient-mutation limitations; `git diff --check` is whitespace evidence only>
 - **Agent capability and access:** <what the executor/verifier could and could not inspect or run>
 - **AC-to-evidence matrix:**
 
@@ -51,9 +51,9 @@ Use this format at the end of every task.
 
 - <Known limitation, blocker, migration step, or `None`>
 
-## Human decision summary
+## Operational decision summary
 
-<Trusted outcome, AC/evidence gaps, material trade-offs and affected areas, plus any decision that still requires human authority.>
+<Trusted outcome, AC/evidence gaps, material trade-offs and affected areas, plus any automated policy, recovery, or quarantine decision.>
 
 ## TODO update
 

@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Product and Engineering
-**Last reviewed:** 2026-09-28
+**Last reviewed:** 2026-10-02
 **Applicable Policy IDs:** `AI-001`, `AUTH-001`, `AUTH-002`, `DOMAIN-002`, `DOMAIN-003`, `DOMAIN-004`, `DATA-001`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-003`, `DOC-004`
 
 ## 1. Tujuan dan Pengguna
@@ -16,7 +16,12 @@ Fitur ini menghasilkan 4 entitas kanonikal sekaligus:
 3. **Requirements & Acceptance Criteria** (Daftar Kebutuhan Fungsional beserta kriteria penerimaan pengujian berbasis Given-When-Then / AC).
 4. **Subtasks per Delivery Area** (Pecahan tugas teknis untuk Frontend, Backend, Mobile, dan QA).
 
-Sesuai `AI-001`, AI dilarang keras memutasi database secara otonom. Hasil prompt disajikan terlebih dahulu sebagai draf yang mencantumkan sumber `Prompt Product Owner`; pengguna dapat meninjau, mengedit teks secara inline, menambah/menghapus butir cakupan, memilih subtask aktif melalui checklist, lalu menekan tombol persetujuan eksplisit (_Terapkan & Buat Feature_).
+Sesuai `AI-001`, kapabilitas AI dapat beroperasi secara otonom melalui control plane. Modal ini tetap
+memilih pengalaman produk _preview before submit_: hasil prompt disajikan sebagai draf yang
+mencantumkan sumber `Prompt Product Owner`; pengguna dapat meninjau, mengedit teks secara inline,
+menambah/menghapus butir cakupan, memilih subtask aktif melalui checklist, lalu menekan
+_Terapkan & Buat Feature_. Interaksi ini adalah pilihan UX fitur, bukan larangan global terhadap
+agent otonom.
 
 ## 2. Requirement dan Acceptance Criteria
 

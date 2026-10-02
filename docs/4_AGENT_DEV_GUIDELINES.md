@@ -68,20 +68,22 @@ mandatory for product behavior, authorization, destructive migrations, and relea
 ### Flow ringkas enam tahap
 
 Flow ini berlaku lintas agent dan penyedia AI. Detail assurance di §2A mendukung keenam tahap;
-detail tersebut bukan rangkaian approval tambahan. Keputusan: [ADR-026](adr/ADR-026-CONCISE-AGENT-DELIVERY-FLOW.md).
+detail tersebut adalah policy otomatis, bukan rangkaian approval manusia. Keputusan aktif:
+[ADR-027](adr/ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md).
 
 1. **Ngobrol dan pahami kebutuhan.** Baca SSoT dan implementasi yang relevan. Tanyakan hanya
    keputusan material yang belum terjawab oleh user, SSoT, atau evidence; gabungkan pertanyaan
    terkait dalam satu pesan. Pilihan implementasi rutin mengikuti aturan yang sudah terkonfirmasi.
-2. **Buat rencana singkat.** Tampilkan tujuan, scope, draft task, AC, risiko, strategi test, dan
-   Approval Window bersama. Catat WRA, baseline, impact, dan evidence secara ringkas dalam satu
+2. **Buat rencana singkat.** Catat tujuan, scope, draft task, AC, risiko, strategi test, serta
+   Execution Record. Catat WRA, baseline, impact, dan evidence secara ringkas dalam satu
    record task/plan; area tidak terdampak cukup diberi `N/A` dengan alasan. Jangan mengulang
    analisis yang masih berlaku atau menyalinnya ke banyak dokumen.
-3. **Satu persetujuan, lalu buat atau claim task.** Satu jawaban yang menyetujui rencana beserta
-   window cukup untuk urutan yang disebutkan. Draft task sebelum persetujuan belum menjadi issue
-   eksternal atau perubahan backlog. Gunakan task yang sudah ada bila cocok; jangan membuat duplikat.
+3. **Policy otomatis, lalu buat atau claim task.** Control plane memvalidasi record, baseline,
+   scope, capability, limits, evidence, dan recovery. Draft task yang lolos dapat menjadi issue
+   eksternal atau perubahan backlog tanpa consent manusia per tindakan. Gunakan task yang sudah ada
+   bila cocok; jangan membuat duplikat.
 4. **Kerjakan sampai kandidat teruji.** Jalankan implementasi, dokumentasi, pemeriksaan, dan
-   perbaikan dalam scope tanpa approval per edit. Kebijakan baru dicatat lewat ADR dan SSoT sebelum
+   perbaikan dalam scope selama policy mengizinkan. Kebijakan baru dicatat lewat ADR dan SSoT sebelum
    implementasi; Feature Card terdampak diperbarui bersama kode dalam perubahan/PR yang sama.
 5. **Test dan review sesuai dampak.** Jalankan tes regresi relevan; lint/typecheck untuk kode yang
    berubah; build bila frontend berubah; PostgreSQL dan UI evidence bila berlaku; serta
@@ -89,26 +91,26 @@ detail tersebut bukan rangkaian approval tambahan. Keputusan: [ADR-026](adr/ADR-
    kontrak, kode, dan AC secara terpisah dari pemeriksaan struktur. Pemeriksaan yang telah lulus
    diulang bila perubahan, kegagalan, atau scope baru membenarkannya; gap tetap dicatat.
 6. **Kirim hasil singkat dan jaga kelanjutan.** Laporkan hasil, ringkasan test, tautan PR/evidence,
-   gap, dan keputusan berikutnya. Simpan bukti rinci sekali memakai template laporan. Bedakan
+   gap, dan tindakan pemulihan berikutnya. Simpan bukti rinci sekali memakai template laporan. Bedakan
    kandidat siap merge, sudah merge, dan hasil yang terverifikasi pada environment target; tutup
    task hanya saat AC dan verifikasi yang berlaku terpenuhi. Handoff memakai task yang sama,
-   commit/baseline terakhir, approval yang masih valid, bukti, blocker, dan langkah berikutnya.
+   commit/baseline terakhir, Execution Record, bukti, blocker, dan langkah berikutnya.
 
 ```mermaid
 flowchart TD
-    Understand["1. Pahami kebutuhan"] --> Plan["2. Rencana + draft task + Approval Window"]
-    Plan --> Approval{"Satu persetujuan"}
-    Approval -->|revisi| Plan
-    Approval -->|setuju| Task["3. Buat / claim task"]
+    Understand["1. Pahami kebutuhan"] --> Plan["2. Rencana + Execution Record"]
+    Plan --> Policy{"Automated policy"}
+    Policy -->|quarantine| Recover["Rollback / revoke / incident"]
+    Policy -->|pass| Task["3. Buat / claim task"]
     Task --> Execute["4. Implementasi + dokumentasi"]
     Execute --> Verify["5. Test + review evidence dan dokumen"]
     Verify -->|perbaikan dalam scope| Execute
     Verify -->|kandidat teruji| Result["6. Hasil + PR + gap / langkah berikutnya"]
-    Execute -.->|stop condition| Decision["Keputusan manusia"]
-    Result --> Release["Persetujuan merge / release bila diperlukan"]
+    Execute -.->|stop condition| Recover
+    Result --> Release["Auto-merge / canary release bila policy lulus"]
     Release --> Target["Verifikasi target sesuai AC"]
     Target -->|terpenuhi| Close["Tutup task + arsip bukti"]
-    Target -->|temuan| Followup["Bug / follow-up tertaut"]
+    Target -->|temuan| Followup["Bug / rollback / quarantine"]
     Followup --> Plan
 ```
 
@@ -117,25 +119,25 @@ flowchart TD
 ### 2A. Protokol Assurance Kerja AI (_AI Work Assurance Protocol_)
 
 Protokol ini berlaku untuk pekerjaan yang akan mengubah repository, konfigurasi, data, atau
-deployment. Tujuannya adalah membuat handoff manusia → AI → AI → manusia dapat diaudit tanpa
+deployment. Tujuannya adalah membuat handoff agent → agent dan control plane dapat diaudit tanpa
 bergantung pada nama atau penyedia model. Model yang berbeda boleh menjalankan peran berbeda,
 tetapi perbedaan model bukan bukti independensi atau kebenaran.
 
-Keputusan tata kelola ini disetujui melalui
-[ADR-016](adr/ADR-016-VENDOR-NEUTRAL-AI-WORK-ASSURANCE.md). Detail operasional tetap kanonis di
-bagian ini.
+Keputusan tata kelola otonom disetujui melalui
+[ADR-027](adr/ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md). Detail control plane kanonis di
+[Autonomous Agent Operations](5_AUTONOMOUS_AGENT_OPERATIONS.md).
 
 ```mermaid
 flowchart LR
-    Request["Permintaan manusia"] --> Analysis["Analisis SSoT, kode, capability, risiko"]
+    Request["Task, event, atau schedule"] --> Analysis["Analisis SSoT, kode, capability, risiko"]
     Analysis --> Preflight["WRA + plan + pendekatan + AC-to-evidence"]
     Preflight --> Ready{"Ready?"}
     Ready -->|ready after split| Split["Pecah vertical slice"]
     Split --> Preflight
-    Ready -->|blocked| Human["Keputusan manusia"]
-    Ready -->|ready| Approval{"Plan + Approval Window disetujui sekali?"}
-    Approval -->|revisi / belum setuju| Preflight
-    Approval -->|setuju| Parent["Buat / claim parent task"]
+    Ready -->|blocked| Quarantine["Quarantine / incident / recovery"]
+    Ready -->|ready| Policy{"Control plane policy lulus?"}
+    Policy -->|tidak| Quarantine
+    Policy -->|ya| Parent["Buat / claim parent task"]
     Parent --> Slice["Vertical slice teruji\nBE/FE/QA bila diperlukan"]
     Slice --> Execute["Pelaksana"]
     Execute --> Outcome{"Outcome evidence"}
@@ -143,60 +145,44 @@ flowchart LR
     Outcome -->|gagal / blocked| Remediate["Catat failure evidence\nperbaiki, re-plan, Bug, atau Blocked"]
     Remediate --> Slice
     Evidence --> Verify["Verifikator independen / CI"]
-    Verify --> Human
+    Verify --> Release["Auto-merge / canary / rollout bila policy lulus"]
+    Release --> Quarantine
 ```
 
-#### A. Analisis, plan, dan persetujuan user
+#### A. Analisis, plan, dan eksekusi otonom
 
 Untuk setiap pekerjaan yang mengubah repository, konfigurasi, data, atau deployment, agent wajib
 melakukan analisis sebelum mengubah berkas atau meng-claim Task. Analisis membaca SSoT yang relevan,
 kontrak dan implementasi saat ini, lalu menyatakan fakta terkonfirmasi, konflik, capability/access,
 risiko, dan area yang tidak dapat diverifikasi.
 
-Berikutnya agent menawarkan plan dan pendekatan yang memuat WRA, scope, Acceptance Criteria (AC),
-Change Impact Map, Decision Snapshot bila material, berkas yang mungkin berubah, serta strategi
-evidence. Agent wajib meminta persetujuan eksplisit user atas plan dan pendekatan tersebut sebelum
-membuat atau meng-claim parent Task maupun melakukan perubahan repository. Jika user meminta revisi
-atau belum menyetujui, agent memperbarui plan dan tidak memulai eksekusi. Plan dan Approval Window
-disajikan bersama; satu persetujuan mencakup keduanya bila scope dan urutannya jelas. Jangan meminta
-persetujuan yang sama lagi pada claim, edit, test, commit, push branch, atau draft PR yang telah
-tercakup. Jawaban yang mengacu pada plan tersebut seperti `setuju` atau `jalankan` berlaku untuk
-urutan itu; diam, pesan ambigu, atau permintaan analisis saja bukan approval.
+Berikutnya agent membuat plan dan Execution Record yang memuat WRA, scope, Acceptance Criteria (AC),
+Change Impact Map, Decision Snapshot bila material, berkas yang mungkin berubah, strategi evidence,
+capability request, limits, dan recovery. Control plane memutuskan eksekusi berdasarkan record ini;
+agent tidak meminta persetujuan eksplisit user untuk claim, edit, test, commit, push, merge,
+deployment, data mutation, RBAC, atau secret rotation. Permintaan baca-saja tidak memerlukan record,
+tetapi bila evidence tidak cukup untuk mutasi maka policy menolak atau mengarantina eksekusi.
 
-Persetujuan plan hanya mengizinkan scope yang disetujui. Persetujuan ini tidak menggantikan Apply
-action untuk data Production, otorisasi backend, approval migrasi destruktif, atau keputusan rilis.
-Permintaan baca-saja yang tidak mengubah repository tidak memerlukan gerbang persetujuan ini.
+#### A.1 Execution Record dan larangan asumsi
 
-#### A.1 Approval Window dan larangan asumsi
+Execution Record wajib menyatakan: identitas Task/event; baseline commit; tujuan dan Acceptance
+Criteria; daftar file/path atau target operasi; urutan state change; capability yang diminta;
+pemeriksaan dan bukti; risiko/pemulihan; expiry/lease; retry, waktu, dan biaya maksimum. Control
+plane mengevaluasi record sebelum menerbitkan capability sementara. Record bukan otoritas terbuka
+untuk seluruh Task atau repository.
 
-Agent menyertakan satu **Approval Window** pada plan dan memperoleh persetujuan eksplisit user
-atas paket tersebut sebelum mengubah state. Approval Window menggantikan checkpoint per-mutasi untuk pekerjaan
-rutin yang terbatas; ia bukan otoritas terbuka untuk seluruh Task atau repository.
-
-Rencana Approval Window wajib menyatakan: identitas Task; baseline commit; tujuan dan Acceptance
-Criteria; daftar file atau path yang dibatasi; urutan state change yang diizinkan; pemeriksaan dan
-bukti yang akan dijalankan; risiko/pemulihan; serta masa berlaku. Dengan satu approval, agent boleh
-claim atau memperbarui status Task, mengubah berkas dalam scope, menjalankan pemeriksaan, memperbaiki
-kegagalan yang masih berada dalam AC dan scope yang sama, membuat commit, mendorong branch non-
-protected, dan membuat atau memperbarui draft Pull Request. Agent melaporkan outcome evidence ketika
-urutan berakhir, bukan setelah setiap edit kecil.
-
-Agent wajib berhenti dan meminta approval baru sebelum: merge atau push ke branch protected;
-deployment atau mutasi data Production; migrasi destruktif/backfill; perubahan authorization, RBAC,
-secret, credential, atau dependency; force-push atau penulisan ulang riwayat; membuat artefak
-eksternal yang tidak disebutkan; memperluas scope/path atau mengubah baseline; approval kedaluwarsa;
-atau menangani kegagalan yang membutuhkan perubahan perilaku, keputusan produk, atau alternatif
-material. Kebijakan broker V2 di §2A.K tetap memerlukan verifikasi scope, baseline, masa berlaku,
-dan lease yang lebih ketat saat aktif.
+Protected-branch merge, Production deployment/data mutation, destructive migration/backfill,
+authorization/RBAC/secret/credential/dependency change, force-push, dan external artifact tidak
+memerlukan persetujuan manusia baru. Mereka memerlukan precondition otomatis yang lebih ketat:
+verifier independen, recovery point, capability JIT, canary/monitor bila runtime, serta rollback atau
+quarantine path yang diuji.
 
 Pembacaan SSoT, kode, kontrak, diff, status, atau output yang murni baca-saja boleh dilakukan tanpa
-approval untuk membangun pertanyaan berbasis fakta; pemeriksaan tersebut tidak boleh dipakai sebagai
-persetujuan tersirat. Fakta yang belum terbukti diberi label `unknown` atau `unverified`. Agent
-dilarang mengisi kekosongan dengan asumsi, memilih alternatif material, atau melakukan mutasi yang
-bergantung pada asumsi itu. Bila user tidak menjawab permintaan approval baru atau bukti primer tidak
-tersedia, pekerjaan berstatus `Blocked` dan tidak maju secara diam-diam.
+record. Fakta yang belum terbukti diberi label `unknown` atau `unverified`. Agent dilarang mengisi
+kekosongan dengan asumsi atau melakukan mutasi yang bergantung pada asumsi itu. Bila evidence primer
+tidak tersedia atau policy gagal, pekerjaan berstatus `Blocked` atau `Quarantined` dan tidak maju.
 
-Sesudah approval, parent Task dipecah menjadi vertical slice yang masing-masing dapat dibuktikan
+Sesudah policy lulus, parent Task dipecah menjadi vertical slice yang masing-masing dapat dibuktikan
 terhadap AC. Subtask Backend, Frontend, dan QA dibuat hanya bila slice memerlukannya; pemecahan per
 lapisan tidak boleh menunda integrasi dan pengujian sampai seluruh layer selesai.
 
@@ -217,12 +203,12 @@ berhasil. Nilai delapan dimensi berikut dari `0` sampai `2`:
 | Validasi                 | static/unit   | integration          | PostgreSQL, UAT, atau runtime |
 | Ketergantungan eksternal | tidak ada     | dapat dimock         | layanan atau akun nyata       |
 
-| Total | Klasifikasi dan tindakan minimum                                                            |
-| ----- | ------------------------------------------------------------------------------------------- |
-| 0–4   | Kecil; satu agent dapat menjalankan bila seluruh AC dapat dibuktikan.                       |
-| 5–8   | Sedang; sertakan Change Impact Map dan review terpisah.                                     |
-| 9–12  | Besar; pecah menjadi vertical slice sebelum implementasi.                                   |
-| 13–16 | Sangat berisiko; butuh keputusan manusia dan rencana rollout/recovery sebelum implementasi. |
+| Total | Klasifikasi dan tindakan minimum                                                                                              |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 0–4   | Kecil; satu agent dapat menjalankan bila seluruh AC dapat dibuktikan.                                                         |
+| 5–8   | Sedang; sertakan Change Impact Map dan review terpisah.                                                                       |
+| 9–12  | Besar; pecah menjadi vertical slice sebelum implementasi.                                                                     |
+| 13–16 | Sangat berisiko; butuh verifier independen, control-plane policy, dan rencana rollout/recovery otomatis sebelum implementasi. |
 
 WRA juga menyatakan apakah agent memiliki akses untuk membaca SSoT, melihat kondisi repository,
 mengubah berkas yang diperlukan, menjalankan pemeriksaan yang diwajibkan, memakai PostgreSQL,
@@ -289,8 +275,8 @@ jelas seperti typo tidak memerlukan snapshot penuh; ADR tetap wajib saat policy 
 
 Agent perencana tidak mengklaim implementasi selesai. Agent pelaksana tidak menjadi satu-satunya
 pihak yang menyatakan hasilnya benar. Handoff ke agent lain memuat: identitas tugas dan AC;
-peran/identitas agent; commit atau working-tree baseline; SSoT dan Policy ID; fakta, asumsi, dan
-keputusan manusia termasuk persetujuan plan; berkas diperiksa/berubah serta ringkasan diff;
+peran/identitas agent; commit atau working-tree baseline; SSoT dan Policy ID; fakta, asumsi,
+Execution Record, serta hasil policy; berkas diperiksa/berubah serta ringkasan diff;
 perintah aktual beserta exit code, pass/fail/skip/warning; environment/data; outcome sukses/gagal
 dan evidence level per AC; area belum diverifikasi; risiko, rollback, dan langkah berikutnya.
 
@@ -299,15 +285,15 @@ bukan hanya ringkasan pelaksana. Hasilnya wajib salah satu dari `Accepted`, `Acc
 `Rejected`, atau `Blocked`, berikut alasan dan AC yang terpengaruh. Untuk pekerjaan kecil,
 CI deterministik dapat menjadi verifikator bila ia mencakup seluruh AC. Pekerjaan bernilai 5–8
 memerlukan review terpisah; pekerjaan bernilai 9–16 memerlukan verifikator independen serta
-keputusan manusia sesuai batas WRA. Verifikator harus memiliki konteks dan akses yang cukup untuk
+control-plane policy yang memverifikasi recovery. Verifikator harus memiliki konteks dan akses yang cukup untuk
 mereproduksi bukti; memakai model lain adalah opsional, bukan pengganti independensi tersebut.
 
-#### G. Ringkasan keputusan manusia
+#### G. Ringkasan operasional
 
-Sebelum handoff akhir, agent menyajikan ringkasan yang dapat dibaca manusia: hasil yang dapat
-dipercaya, AC/evidence yang terpenuhi, gap atau risiko, pilihan/pro–kontra yang material, perubahan
-yang terdampak, dan keputusan yang masih membutuhkan manusia. Ringkasan ini mengarahkan pembaca ke
-evidence terperinci tetapi tidak menyembunyikan batas verifikasi.
+Sebelum handoff akhir, agent menyajikan ringkasan operasional: hasil yang dapat dipercaya,
+AC/evidence yang terpenuhi, gap atau risiko, pilihan/pro–kontra yang material, perubahan yang
+terdampak, policy decision, dan recovery yang tersedia. Ringkasan ini mengarahkan pembaca ke evidence
+terperinci tetapi tidak menyembunyikan batas verifikasi.
 
 #### H. Quality review berbukti
 
@@ -356,29 +342,22 @@ retrieval/context source, atau fallback, agent membuat Decision Snapshot yang me
 AC, alternatif kompatibel dengan stack, data classification dan data yang dikirim, authorization
 dan secret boundary, kualitas/evaluasi yang dapat direproduksi, latency, biaya, failure/retry/
 fallback behavior, observability, rollout/rollback, serta bukti yang diperlukan. Model/vendor tidak
-boleh dipilih hanya karena nama atau asumsi kemampuan; perubahan tetap mengikuti Approval Window
-atau high-risk approval, cited-draft/Apply boundary, dan kontrak yang berlaku.
+boleh dipilih hanya karena nama atau asumsi kemampuan; perubahan mengikuti Execution Record,
+control-plane policy, dan kontrak yang berlaku.
 
-#### K. Batas kapabilitas broker perubahan agent
+#### K. Batas kapabilitas control plane agent
 
-Untuk lingkungan agent terkelola yang telah mengaktifkan V2, agent tidak mendapat kapabilitas
-tulis langsung ke worktree repository. Agent boleh membaca, menganalisis, membuat diff/patch, dan
-menjalankan pemeriksaan yang tidak mengubah state. Satu-satunya jalur mutasi adalah broker yang
-terpisah dari environment agent dan memegang worktree bersih miliknya sendiri.
+Control plane terpisah menerbitkan capability just-in-time untuk worktree, provider deployment,
+database, RBAC, atau secret operations. Sebelum menerbitkannya, control plane memverifikasi Execution
+Record, task/event, baseline, scope, evidence, recovery, limit, dan exclusive lease. Ia menolak atau
+mengarantina operasi saat fakta tidak cocok, expiry/limit habis, scope bertambah, verifier gagal,
+atau lease dipegang pelaksana lain.
 
-Sebelum menerapkan patch, broker wajib memverifikasi record approval eksternal yang berlaku,
-task ID, digest rencana, baseline commit, daftar file yang persis, state change yang diizinkan,
-masa berlaku, serta lease tulis eksklusif untuk task tersebut. Broker menolak patch saat salah satu
-fakta itu tidak cocok, approval kedaluwarsa, scope bertambah, atau lease dipegang pelaksana lain.
-Approval melekat pada task dan scope, bukan pada vendor atau identitas agent; handoff hanya boleh
-terjadi setelah lease dilepas atau kedaluwarsa dan pemeriksaan yang sama lulus kembali.
-
-Broker menyimpan audit yang cukup untuk mereproduksi keputusan (task, actor, record approval,
-file yang diminta/diterapkan, baseline dan hasil), tetapi tidak boleh menyimpan atau mencetak token,
-kredensial, atau isi secret. V2 tidak dapat diklaim aktif hanya karena dokumen, hook, atau wrapper
-repository ada; uji runtime harus membuktikan bahwa tulis langsung benar-benar ditolak dan jalur
-broker saja yang dapat memodifikasi worktree. Pengecualian, recovery, dan rollback tetap memerlukan
-otoritas manusia yang eksplisit.
+Control plane menyimpan audit yang cukup untuk mereproduksi keputusan (task/event, actor/job,
+Execution Record, capability identifier, target, baseline, dan hasil), tetapi tidak boleh menyimpan
+atau mencetak token, kredensial, atau isi secret. Runtime autonomy tidak dapat diklaim aktif hanya
+karena dokumen, hook, atau wrapper ada; uji runtime harus membuktikan capability JIT, pemisahan
+executor/verifier, denial policy, rollback, quarantine, dan redaksi secret.
 
 ---
 

@@ -15,6 +15,7 @@ const requiredFiles = [
   'docs/2_WORKFLOW_AND_ROLES.md',
   'docs/3_UI_ATOMIC_DESIGN_SYSTEM.md',
   'docs/4_AGENT_DEV_GUIDELINES.md',
+  'docs/5_AUTONOMOUS_AGENT_OPERATIONS.md',
   'docs/POLICY_REGISTRY.md',
   'docs/DEPLOYMENT_AND_ENVIRONMENTS.md',
   'docs/features/README.md',
@@ -324,7 +325,7 @@ function validateLocalLinks(errors) {
     ...collectMarkdownFiles(path.join(repositoryRoot, 'docs')).filter((file) => {
       const relativeFile = path.relative(repositoryRoot, file);
       return (
-        /^docs\/[0-4]_/.test(relativeFile) ||
+        /^docs\/[0-5]_/.test(relativeFile) ||
         relativeFile === 'docs/POLICY_REGISTRY.md' ||
         relativeFile === 'docs/DEPLOYMENT_AND_ENVIRONMENTS.md' ||
         relativeFile.startsWith('docs/features/')
