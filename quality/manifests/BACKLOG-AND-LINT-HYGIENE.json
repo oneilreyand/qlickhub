@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "id": "BACKLOG-AND-LINT-HYGIENE",
+  "changedFiles": [
+    "TODO.md",
+    "apps/api/src/modules/ai/geminiClient.ts",
+    "apps/api/src/modules/realtime/__tests__/realtimeStream.test.ts",
+    "apps/api/src/modules/testManagement/spreadsheetParser.ts",
+    "apps/web/src/components/ui/atoms/FormattedText.tsx",
+    "apps/web/src/components/ui/molecules/TaskStatusBadge.tsx",
+    "apps/web/src/components/ui/organisms/myTasks/__tests__/TestCaseImportWizardModal.test.tsx",
+    "docs/archive/TODO_COMPLETED_2026-10-02.md",
+    "docs/plans/BACKLOG_AND_LINT_HYGIENE_PLAN.md",
+    "docs/reports/BACKLOG_AND_LINT_HYGIENE_2026-10-02.md",
+    "quality/manifests/BACKLOG-AND-LINT-HYGIENE.json"
+  ],
+  "scopes": ["ai", "performance", "ui"],
+  "evidence": {
+    "ai": {
+      "status": "collected",
+      "artifacts": [
+        "npm --prefix apps/api run test:integration (PostgreSQL 16): 477 passed, 0 failed, 0 skipped"
+      ],
+      "notes": "geminiClient.ts change only documents an existing empty catch; no model, prompt, or request change."
+    },
+    "performance": {
+      "status": "collected",
+      "artifacts": [
+        "npm --prefix apps/web run build: passed",
+        "npm --prefix apps/web test: 595 passed, 0 failed"
+      ],
+      "notes": "No runtime logic change; regex and string values are identical."
+    },
+    "ui": {
+      "status": "collected",
+      "artifacts": [
+        "npm --prefix apps/web test: 595 passed, 0 failed",
+        "npm --prefix apps/web run build: passed"
+      ],
+      "notes": "FormattedText regex and TaskStatusBadge initial values are behavior-neutral; no visual change."
+    }
+  }
+}

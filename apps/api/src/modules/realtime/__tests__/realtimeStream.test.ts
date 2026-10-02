@@ -61,7 +61,7 @@ describe('Realtime SSE & Event Stream Integration Tests', () => {
       CreateTaskSchema.parse({
         workspaceId: workspace.id,
         title: 'Realtime Discussion Task Feature',
-      })
+      }),
     );
 
     task = (await TaskModel.findByPk(created.id))!;
@@ -113,7 +113,9 @@ describe('Realtime SSE & Event Stream Integration Tests', () => {
           const last = receivedEvents[receivedEvents.length - 1];
           try {
             last.payload = JSON.parse(data.replace('data: ', '').trim());
-          } catch {}
+          } catch {
+            // Ignore partial SSE frames; the next chunk completes the payload.
+          }
         }
         return true;
       },
@@ -135,7 +137,7 @@ describe('Realtime SSE & Event Stream Integration Tests', () => {
       CreateTaskCommentSchema.parse({
         body: 'Halo @indra ada update realtime diskusi baru nih!',
         mentionedUserIds: [indra.id],
-      })
+      }),
     );
 
     // Verify discussion event arrived
@@ -161,7 +163,9 @@ describe('Realtime SSE & Event Stream Integration Tests', () => {
           const last = receivedEvents[receivedEvents.length - 1];
           try {
             last.payload = JSON.parse(data.replace('data: ', '').trim());
-          } catch {}
+          } catch {
+            // Ignore partial SSE frames; the next chunk completes the payload.
+          }
         }
         return true;
       },
@@ -188,7 +192,7 @@ describe('Realtime SSE & Event Stream Integration Tests', () => {
     });
 
     const notifEvent = receivedEvents.find(
-      (e) => e.event === 'notification:new' && e.payload?.data?.type === 'assignment'
+      (e) => e.event === 'notification:new' && e.payload?.data?.type === 'assignment',
     );
 
     assert.ok(notifEvent, 'Dev Budi must receive notification:new realtime event');

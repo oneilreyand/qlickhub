@@ -112,7 +112,10 @@ export function detectMediaInfo(rawUrl: string, altHint = ''): DetectedMedia {
   }
 
   // 5. Direct Video
-  if (isCloudVideo(url) || (isAltVideoHint && !IMAGE_EXT_REGEX.test(url) && !url.includes('drive.google.com'))) {
+  if (
+    isCloudVideo(url) ||
+    (isAltVideoHint && !IMAGE_EXT_REGEX.test(url) && !url.includes('drive.google.com'))
+  ) {
     return {
       type: 'video_direct',
       url,
@@ -162,11 +165,7 @@ interface FormattedMediaCardProps {
   onOpenLightbox: (src: string, type: MediaLightboxType, alt: string) => void;
 }
 
-const FormattedMediaCard: React.FC<FormattedMediaCardProps> = ({
-  src,
-  alt,
-  onOpenLightbox,
-}) => {
+const FormattedMediaCard: React.FC<FormattedMediaCardProps> = ({ src, alt, onOpenLightbox }) => {
   const [loadError, setLoadError] = useState(false);
   const media = detectMediaInfo(src, alt);
   const title = alt && alt !== 'Image' && alt !== 'Image Attachment' ? alt : undefined;
@@ -241,12 +240,8 @@ const FormattedMediaCard: React.FC<FormattedMediaCardProps> = ({
             <div className="w-12 h-12 rounded-2xl bg-stone-800 border border-stone-700/80 flex items-center justify-center text-[#B1E743] shadow-lg group-hover:scale-110 transition-transform">
               <Play className="h-5 w-5 fill-current ml-0.5" />
             </div>
-            <span className="mt-2 text-xs font-semibold text-stone-200">
-              Putar Video
-            </span>
-            <span className="text-[10px] text-stone-400">
-              Klik untuk memutar langsung di modal
-            </span>
+            <span className="mt-2 text-xs font-semibold text-stone-200">Putar Video</span>
+            <span className="text-[10px] text-stone-400">Klik untuk memutar langsung di modal</span>
           </div>
         )}
         <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-bold text-white flex items-center gap-1 backdrop-blur-xs border border-white/10">
@@ -539,7 +534,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
     if (
       line.trim().startsWith('|') &&
       i + 1 < lines.length &&
-      /^\|[\s|:\-]+\|/.test(lines[i + 1].trim())
+      /^\|[\s|:-]+\|/.test(lines[i + 1].trim())
     ) {
       const tableLines: string[] = [];
       let j = i;
