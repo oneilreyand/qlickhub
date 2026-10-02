@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "id": "TASK-AND-FEATURE-GENERATION-COMPLIANCE",
+  "changedFiles": [
+    "apps/api/src/modules/ai/__tests__/aiTaskGeneratorIntegration.test.ts",
+    "apps/api/src/modules/ai/aiTaskGeneratorService.ts",
+    "apps/web/src/components/ui/organisms/AiTaskGeneratorModal.tsx",
+    "apps/web/src/components/ui/organisms/CreateTaskModal.tsx",
+    "apps/web/src/components/ui/organisms/__tests__/AiTaskGeneratorModal.test.tsx",
+    "apps/web/src/components/ui/organisms/__tests__/CreateTaskModal.test.tsx",
+    "docs/archive/TODO_COMPLETED_2026-10-02.md",
+    "docs/plans/TASK_AND_FEATURE_GENERATION_COMPLIANCE_PLAN.md",
+    "docs/reports/SYNC_TASK_AND_FEATURE_GENERATION_COMPLIANCE_2026-10-02.md",
+    "docs/reports/TASK_AND_FEATURE_GENERATION_COMPLIANCE_2026-09-30.md",
+    "packages/contracts/src/contracts.test.ts",
+    "quality/manifests/TASK-AND-FEATURE-GENERATION-COMPLIANCE.json"
+  ],
+  "scopes": ["ai", "dataAccess", "performance", "ui"],
+  "evidence": {
+    "ai": {
+      "status": "collected",
+      "artifacts": [
+        "NODE_ENV=test node --test apps/api/dist/modules/ai/__tests__/aiTaskGeneratorIntegration.test.js: 8 passed, 0 failed, 0 skipped against disposable PostgreSQL",
+        "npm --prefix packages/contracts run test: 84 passed across 23 suites"
+      ]
+    },
+    "dataAccess": {
+      "status": "collected",
+      "artifacts": [
+        "npm --prefix apps/api run test:integration: 477 passed, 0 failed, 0 skipped across 104 suites against disposable PostgreSQL",
+        "NODE_ENV=test node --test apps/api/dist/modules/tasks/__tests__/taskApiIntegration.test.js: 30 passed, 0 failed, 0 skipped against disposable PostgreSQL including weekly date preset fix",
+        "npm --prefix apps/api run db:migrate:test: exit 0, schema up to date"
+      ]
+    },
+    "performance": {
+      "status": "collected",
+      "artifacts": [
+        "npm --prefix apps/web run build: built in 3.41s, 60 bundle chunks transformed",
+        "npm --prefix apps/api run build: tsc clean exit 0",
+        "npm --prefix packages/contracts run build: tsc clean exit 0"
+      ]
+    },
+    "ui": {
+      "status": "collected",
+      "artifacts": [
+        "npm --prefix apps/web test src/components/ui/organisms/__tests__/AiTaskGeneratorModal.test.tsx src/components/ui/organisms/__tests__/CreateTaskModal.test.tsx: 18 passed across 2 test files (11 AiTaskGeneratorModal, 7 CreateTaskModal)"
+      ]
+    }
+  }
+}

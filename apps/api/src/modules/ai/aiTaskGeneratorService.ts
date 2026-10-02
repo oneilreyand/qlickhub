@@ -15,6 +15,7 @@ import {
   GenerateTaskDraftInput,
   GenerateTaskDraftResponse,
   ApplyTaskDraftInput,
+  ApplyTaskDraftInputSchema,
   ApplyTaskDraftResponse,
   RefineTaskChatInput,
   RefineTaskChatResponse,
@@ -103,12 +104,17 @@ export class AiTaskGeneratorService {
     actorId: string,
     input: ApplyTaskDraftInput,
   ): Promise<ApplyTaskDraftResponse> {
+    const validatedInput = ApplyTaskDraftInputSchema.parse({
+      ...input,
+      workspaceId: input.workspaceId || workspaceId,
+    });
+
     const member = await requireActiveMember(workspaceId, actorId);
     assertCanCreateTask(member.role);
 
-    if (input.folderId) {
+    if (validatedInput.folderId) {
       const folder = await WorkFolderModel.findOne({
-        where: { id: input.folderId, workspaceId },
+        where: { id: validatedInput.folderId, workspaceId },
       });
       if (!folder) {
         throw new Error('NOT_FOUND: Work folder not found in this workspace.');
@@ -120,16 +126,18 @@ export class AiTaskGeneratorService {
       const rootTask = await TaskModel.create(
         {
           workspaceId,
-          folderId: input.folderId || null,
+          folderId: validatedInput.folderId || null,
           parentTaskId: null,
           deliveryArea: null,
-          title: input.task.title.trim(),
-          description: input.task.description ? input.task.description.trim() : null,
-          priority: input.task.priority,
+          title: validatedInput.task.title.trim(),
+          description: validatedInput.task.description
+            ? validatedInput.task.description.trim()
+            : null,
+          priority: validatedInput.task.priority,
           status: 'todo',
           reporterId: actorId,
-          startDate: input.task.startDate || null,
-          dueDate: input.task.dueDate || null,
+          startDate: validatedInput.task.startDate || null,
+          dueDate: validatedInput.task.dueDate || null,
         },
         { transaction },
       );
@@ -152,9 +160,10 @@ export class AiTaskGeneratorService {
 
       // 2. Create Requirements and Acceptance Criteria if present
       let createdRequirementCount = 0;
-      if (input.requirements && input.requirements.length > 0) {
-        for (let i = 0; i < input.requirements.length; i++) {
-          const reqDraft = input.requirements[i];
+      const createdRequirementIds: string[] = [];
+      if (validatedInput.requirements && validatedInput.requirements.length > 0) {
+        for (let i = 0; i < validatedInput.requirements.length; i++) {
+          const reqDraft = validatedInput.requirements[i];
           const codeCandidate = `REQ-${Date.now().toString(36).slice(-3).toUpperCase()}${i + 1}`;
 
           const req = await RequirementModel.create(
@@ -168,6 +177,7 @@ export class AiTaskGeneratorService {
             },
             { transaction },
           );
+          createdRequirementIds.push(req.id);
 
           // Link Requirement to the root Task
           await TaskRequirementModel.create(
@@ -206,8 +216,8 @@ export class AiTaskGeneratorService {
 
       // 3. Create Subtasks if present
       let createdSubtaskCount = 0;
-      if (input.subtasks && input.subtasks.length > 0) {
-        for (const sub of input.subtasks) {
+      if (validatedInput.subtasks && validatedInput.subtasks.length > 0) {
+        for (const sub of validatedInput.subtasks) {
           // If explicitly marked as enabled: false, skip
           if (sub.enabled === false) continue;
 
@@ -215,7 +225,7 @@ export class AiTaskGeneratorService {
             {
               workspaceId,
               parentTaskId: rootTask.id,
-              folderId: input.folderId || null,
+              folderId: validatedInput.folderId || null,
               deliveryArea: sub.deliveryArea,
               title: sub.title.trim(),
               description: sub.description ? sub.description.trim() : null,
@@ -225,6 +235,21 @@ export class AiTaskGeneratorService {
             },
             { transaction },
           );
+
+          // Auto-link subtask to the feature's requirements for initial traceability
+          if (createdRequirementIds.length > 0) {
+            for (const requirementId of createdRequirementIds) {
+              await TaskRequirementModel.create(
+                {
+                  workspaceId,
+                  taskId: createdSub.id,
+                  requirementId,
+                  linkedBy: actorId,
+                },
+                { transaction },
+              );
+            }
+          }
 
           await TaskActivityModel.create(
             {
@@ -252,14 +277,14 @@ export class AiTaskGeneratorService {
         rootTask.id,
         actorId,
         {
-          title: `Brief Produk: ${input.task.title}`,
-          contentMarkdown: input.productBrief.context || '',
-          inScope: input.productBrief.inScope.map((item, idx) => ({
+          title: `Brief Produk: ${validatedInput.task.title}`,
+          contentMarkdown: validatedInput.productBrief.context || '',
+          inScope: (validatedInput.productBrief.inScope || []).map((item, idx) => ({
             id: `scope-${idx + 1}`,
             position: idx + 1,
             text: item,
           })),
-          outScope: input.productBrief.outScope.map((item, idx) => ({
+          outScope: (validatedInput.productBrief.outScope || []).map((item, idx) => ({
             id: `outscope-${idx + 1}`,
             position: idx + 1,
             text: item,

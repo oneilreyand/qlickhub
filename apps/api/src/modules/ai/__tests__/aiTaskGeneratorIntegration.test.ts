@@ -259,6 +259,14 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
     });
     assert.strictEqual(acs.length, 2);
 
+    // Verify each subtask is also linked to the requirement for traceability
+    for (const sub of subtasks) {
+      const subtaskReqLink = await TaskRequirementModel.findOne({
+        where: { taskId: sub.id, requirementId: reqLinks[0].requirementId },
+      });
+      assert.ok(subtaskReqLink, `Subtask ${sub.title} must be linked to the Requirement`);
+    }
+
     // Verify Product Brief
     const brief = await qaDocumentService.getProductBrief(
       workspace.id,
@@ -412,6 +420,81 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
       assert.ok(draftResult.draft.subtasks.length > 0);
       assert.ok(draftResult.draft.productBrief.inScope.length > 0);
       assert.strictEqual(draftResult.draft.citations[0].sourceType, 'user_prompt');
+    }
+  });
+
+  test('applying draft synthesized from chat enforces compliance guards and persists linked subtasks in PostgreSQL (AI-001, DOMAIN-002, DOMAIN-004)', async () => {
+    const draftResult = await aiTaskGeneratorService.synthesizeFromChat(workspace.id, poUser.id, {
+      workspaceId: workspace.id,
+      messages: [
+        { id: 'm-1', role: 'user', content: 'Fitur Checkout Terintegrasi' },
+        { id: 'm-2', role: 'assistant', content: 'Apakah butuh backend dan frontend?' },
+        { id: 'm-3', role: 'user', content: 'Ya, butuh backend dan frontend.' },
+      ],
+      targetPlatforms: ['backend', 'web'],
+    });
+
+    assert.strictEqual(draftResult.outcome, 'draft');
+    if (draftResult.outcome !== 'draft') return;
+
+    // 1. Guard check: rejecting apply when all subtasks disabled
+    await assert.rejects(
+      () =>
+        aiTaskGeneratorService.applyDraft(workspace.id, poUser.id, {
+          workspaceId: workspace.id,
+          folderId: folder.id,
+          task: draftResult.draft.task,
+          productBrief: draftResult.draft.productBrief,
+          requirements: draftResult.draft.requirements,
+          subtasks: draftResult.draft.subtasks.map((s) => ({ ...s, enabled: false })),
+        }),
+      /Minimal 1 Subtask harus aktif dan dipilih untuk dikerjakan tim/,
+    );
+
+    // 2. Guard check: rejecting apply when AC is stripped to empty
+    await assert.rejects(
+      () =>
+        aiTaskGeneratorService.applyDraft(workspace.id, poUser.id, {
+          workspaceId: workspace.id,
+          folderId: folder.id,
+          task: draftResult.draft.task,
+          productBrief: draftResult.draft.productBrief,
+          requirements: draftResult.draft.requirements.map((r) => ({
+            ...r,
+            acceptanceCriteria: [],
+          })),
+          subtasks: draftResult.draft.subtasks,
+        }),
+      /Minimal 1 kriteria penerimaan \(AC\) wajib diisi/,
+    );
+
+    // 3. Successful apply of compliant chat-synthesized draft
+    const applied = await aiTaskGeneratorService.applyDraft(workspace.id, poUser.id, {
+      workspaceId: workspace.id,
+      folderId: folder.id,
+      task: draftResult.draft.task,
+      productBrief: draftResult.draft.productBrief,
+      requirements: draftResult.draft.requirements,
+      subtasks: draftResult.draft.subtasks,
+    });
+
+    assert.ok(applied.task.id);
+    assert.ok(applied.createdRequirementCount >= 1);
+    assert.ok(applied.createdSubtaskCount >= 1);
+
+    // Verify subtasks are auto-linked to the requirement
+    const subtasks = await TaskModel.findAll({
+      where: { parentTaskId: applied.task.id },
+    });
+    assert.ok(subtasks.length >= 1);
+    const reqLinks = await TaskRequirementModel.findAll({
+      where: { taskId: applied.task.id },
+    });
+    for (const sub of subtasks) {
+      const subtaskReqLink = await TaskRequirementModel.findOne({
+        where: { taskId: sub.id, requirementId: reqLinks[0].requirementId },
+      });
+      assert.ok(subtaskReqLink, `Subtask ${sub.title} must be auto-linked to requirement`);
     }
   });
 });

@@ -304,6 +304,79 @@ describe('AiTaskGeneratorModal Organism', () => {
     expect(screen.getByText('✨ Generator Task & Feature AI')).toBeInTheDocument();
   });
 
+  it('disables apply button and shows warning banner when all subtasks are unchecked (AC-1.2)', async () => {
+    vi.spyOn(aiTaskGeneratorService, 'generateDraft').mockResolvedValue(mockDraftResponse);
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    const textarea = screen.getByPlaceholderText(/Contoh: Buatkan fitur pembayaran QRIS dinamis/i);
+    fireEvent.change(textarea, { target: { value: 'Fitur pembayaran QRIS dinamis' } });
+    fireEvent.click(screen.getByRole('button', { name: /Generate Draf Feature/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Pratinjau & Edit Draf Feature (AI)')).toBeInTheDocument();
+    });
+
+    // Switch to Subtasks tab
+    fireEvent.click(screen.getByText(/Subtasks \(2\/2\)/i));
+
+    // Disable both subtasks by toggling their check buttons
+    const toggle1 = screen.getByLabelText('Toggle subtask 1');
+    const toggle2 = screen.getByLabelText('Toggle subtask 2');
+
+    fireEvent.click(toggle1);
+    fireEvent.click(toggle2);
+
+    // Warning banner should appear
+    expect(
+      screen.getByText('Wajib mengaktifkan minimal 1 Subtask sebelum Feature dapat disimpan.'),
+    ).toBeInTheDocument();
+
+    // Apply button should be disabled
+    const applyBtn = screen.getByRole('button', { name: /Terapkan & Buat Feature/i });
+    expect(applyBtn).toBeDisabled();
+  });
+
+  it('disables apply button and shows warning banner when an acceptance criterion is deleted leaving requirement empty (AC-1.2)', async () => {
+    vi.spyOn(aiTaskGeneratorService, 'generateDraft').mockResolvedValue(mockDraftResponse);
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    const textarea = screen.getByPlaceholderText(/Contoh: Buatkan fitur pembayaran QRIS dinamis/i);
+    fireEvent.change(textarea, { target: { value: 'Fitur pembayaran QRIS dinamis' } });
+    fireEvent.click(screen.getByRole('button', { name: /Generate Draf Feature/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Pratinjau & Edit Draf Feature (AI)')).toBeInTheDocument();
+    });
+
+    // Switch to Requirements tab
+    fireEvent.click(screen.getByText(/Requirements \(1\)/i));
+
+    // Delete the single AC in requirement 1
+    const deleteAcBtn = screen.getByLabelText('Hapus AC 1-1');
+    fireEvent.click(deleteAcBtn);
+
+    // Warning banner should appear
+    expect(
+      screen.getByText('Setiap Requirement wajib memiliki minimal 1 Acceptance Criterion (AC).'),
+    ).toBeInTheDocument();
+
+    // Apply button should be disabled
+    const applyBtn = screen.getByRole('button', { name: /Terapkan & Buat Feature/i });
+    expect(applyBtn).toBeDisabled();
+  });
+
   it('switches to Mode Diskusi (AI Co-Pilot) and shows interactive chat interface', () => {
     const store = createTestStore();
     render(
@@ -482,5 +555,64 @@ describe('AiTaskGeneratorModal Organism', () => {
     ).toBeInTheDocument();
     // Modal stays in chat mode (does not jump to preview)
     expect(screen.queryByText('Pratinjau & Edit Draf Feature (AI)')).not.toBeInTheDocument();
+  });
+
+  it('enforces compliance guard on synthesized chat draft when subtasks are disabled in preview (AC-1.2)', async () => {
+    const mockRefineChatResponse = {
+      reply: 'Kebutuhan sudah siap dirakit.',
+      suggestedPrompt: 'Fitur pembayaran QRIS',
+      isReadyToSynthesize: true,
+      quickReplies: ['Rakit sekarang'],
+      citations: [
+        {
+          sourceType: 'user_prompt' as const,
+          label: 'Prompt Product Owner' as const,
+          excerpt: 'QRIS',
+        },
+      ],
+    };
+
+    vi.spyOn(aiTaskGeneratorService, 'refineChat').mockResolvedValue(mockRefineChatResponse);
+    vi.spyOn(aiTaskGeneratorService, 'synthesizeFromChat').mockResolvedValue(mockDraftResponse);
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Mode Diskusi \(AI Co-Pilot\)/i }));
+
+    const chatInput = screen.getByPlaceholderText(
+      /Ketik ide atau tanggapan Anda untuk AI Co-Pilot/i,
+    );
+    fireEvent.change(chatInput, { target: { value: 'Buat fitur QRIS' } });
+    fireEvent.click(screen.getByTitle('Kirim pesan'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Rakit Draf Feature/i })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Rakit Draf Feature/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Pratinjau & Edit Draf Feature (AI)')).toBeInTheDocument();
+    });
+
+    // Switch to Subtasks tab in preview
+    fireEvent.click(screen.getByText(/Subtasks \(2\/2\)/i));
+
+    // Disable both subtasks
+    fireEvent.click(screen.getByLabelText('Toggle subtask 1'));
+    fireEvent.click(screen.getByLabelText('Toggle subtask 2'));
+
+    // Compliance banner must be displayed
+    expect(
+      screen.getByText('Wajib mengaktifkan minimal 1 Subtask sebelum Feature dapat disimpan.'),
+    ).toBeInTheDocument();
+
+    // Apply button must be disabled
+    expect(screen.getByRole('button', { name: /Terapkan & Buat Feature/i })).toBeDisabled();
   });
 });
