@@ -2,7 +2,7 @@
 
 **Status:** Active operational guide  
 **Owner:** Engineering  
-**Last reviewed:** 2026-10-02
+**Last reviewed:** 2026-09-02  
 **Applicable Policy IDs:** `DOC-001`, `DOC-004`, `DATA-001`
 
 Panduan ini adalah pintu masuk operasional untuk menjalankan Qlick Hub secara lokal serta
@@ -158,25 +158,21 @@ allowlist. `CORS_ORIGIN` tetap harus berisi origin stabil yang memang diizinkan.
 Production bukan sekadar menjalankan perintah deploy. Gunakan urutan berikut agar aplikasi dan
 schema tidak drift:
 
-1. Agent membuat Execution Record dan policy engine memverifikasi evidence build, test, security,
-   capability, biaya, serta recovery. Tidak ada persetujuan manusia per rilis.
+1. Pastikan perubahan sudah memiliki persetujuan rilis dan laporan verifikasi yang berlaku.
 2. Jalankan `npm ci`, `npm run validate`, `npm run env:check`, dan `npm run build`.
 3. Audit target database dan status seluruh canonical migration secara read-only.
-4. Buat serta verifikasi backup/restorable recovery point sebelum migrasi yang mengubah schema.
-5. Policy engine menerbitkan `MIGRATION_DATABASE_URL` sementara kepada runner rilis dan menjalankan
-   `npm run db:migrate:prod` hanya jika precondition migrasi dan recovery point lulus. Migrasi
-   destruktif wajib memiliki strategi expand/contract, canary, dan rollback/restore otomatis.
-6. Deploy canary ke Production melalui Git integration atau `vercel --prod`, lalu naikkan rollout
-   otomatis hanya bila health, error rate, latency, dan security check memenuhi policy.
+4. Siapkan backup/restorable recovery plan sebelum migrasi yang mengubah schema.
+5. Dengan persetujuan eksplisit untuk target Production, inject `MIGRATION_DATABASE_URL` ke
+   runner rilis dan jalankan `npm run db:migrate:prod`. Jangan menjalankan `db:migrate:undo`
+   secara otomatis pada data Production.
+6. Deploy ke Production melalui Git integration yang telah disetujui atau `vercel --prod`.
 7. Verifikasi root/login, `/v1`, `/v1/health`, koneksi database, CORS dari origin Production,
    penolakan endpoint terlindungi tanpa sesi, lalu smoke test terotentikasi per peran.
-8. Bila gate atau SLO gagal, control plane rollback, revoke capability, dan quarantine execution
-   secara otomatis. Catat deployment ID, URL, command, hasil, warnings, migration status, dan
-   rollback target di `docs/reports/` tanpa menyalin nilai env.
+8. Catat deployment ID, URL, command, hasil, warnings, migration status, dan rollback target di
+   `docs/reports/` tanpa menyalin nilai env.
 
 Migrasi tidak dijalankan otomatis dari `vercel.json`; ini disengaja agar build web/API tidak
-diam-diam mengubah schema. Control plane otonom menjalankan migrasi sebagai langkah eksplisit yang
-tercatat; utamakan migrasi additive/backward-compatible sebelum deploy kode.
+diam-diam mengubah schema. Utamakan migrasi additive/backward-compatible sebelum deploy kode.
 
 ## 7. URL Production dan custom domain
 

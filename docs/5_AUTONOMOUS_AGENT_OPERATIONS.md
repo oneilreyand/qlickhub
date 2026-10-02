@@ -1,13 +1,17 @@
 # 5. Autonomous Agent Operations — Qlick Hub SSoT
 
-**Status:** Active Single Source of Truth (SSoT)  
+**Status:** Proposed target state — not in force  
 **Owner:** Product and Engineering  
-**Decision:** [ADR-027](adr/ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md)  
-**Scope:** Autonomous agent execution for repository, infrastructure, configuration, data, and deployment operations.
+**Decision:** [ADR-027](adr/ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md) (Proposed)  
+**Scope:** Proposed autonomous agent execution architecture for repository, infrastructure, configuration, data, and deployment operations.
 
-This document governs operational agents working on Qlick Hub. It does not alter the persisted
+> [!IMPORTANT]
+> **Proposed Target State — Not in Force**  
+> Dokumen ini mendefinisikan rencana arsitektur target operasi otonom untuk evaluasi Owner dan **belum berlaku aktif** di repositori ini. Sampai sebuah ADR aktivasi terpisah disetujui secara eksplisit oleh Owner, aturan Approval Window ([ADR-025](adr/ADR-025-APPROVAL-WINDOWS-FOR-AGENT-WORK.md)) dan seluruh stop condition pada ADR-025 §3 tetap berlaku penuh bagi seluruh agen. Hasil dari validator lokal atau mode dry-run tidak pernah menjadi izin mutasi.
+
+This document outlines the proposed target operational model for agents working on Qlick Hub. It does not alter the persisted
 Workspace roles or the PO/QA product workflow defined in [Workflow and Roles](2_WORKFLOW_AND_ROLES.md).
-An agent may autonomously perform operational mutations, but application authorization remains
+An agent may autonomously perform operational mutations only once activated by a future ADR; until then, application authorization remains
 enforced at the backend boundary and every action remains attributable in non-secret audit evidence.
 
 ## 1. Operating model
@@ -27,13 +31,13 @@ flowchart LR
     Policy -->|fail| Recover
 ```
 
-Human observation, reports, and policy authoring are not per-operation approval gates. A control
+Human observation, reports, and policy authoring are not per-operation approval gates in this target model. A control
 plane decides from machine-verifiable evidence whether to issue an operation capability.
 
 ## 2. Prinsip operasi
 
-1. **Otonom secara default.** Agen dapat plan, claim Task, edit, test, merge, deploy, migrate,
-   mutate data, rotate secret, dan change RBAC tanpa persetujuan manusia per tindakan.
+1. **Otonom secara default (target).** Agen dapat plan, claim Task, edit, test, merge, deploy, migrate,
+   mutate data, rotate secret, dan change RBAC tanpa persetujuan manusia per tindakan setelah aktivasi.
 2. **Policy-bound, bukan unrestricted.** Setiap execution memakai `Execution Record` yang memuat
    task/event, baseline, scope, Acceptance Criteria, capability, evidence, recovery, lease/expiry,
    batas waktu, retry, dan biaya. Control plane menolak record yang tidak lengkap atau melanggar
@@ -84,7 +88,7 @@ job. Model yang berbeda saja bukan bukti pemisahan.
 | RBAC change             | authorization integration evidence dan audit target              | revoke capability/restore policy state                |
 | Secret rotation         | opaque provider reference, readiness check, no plaintext logging | rotate/revoke provider reference tanpa mencetak nilai |
 
-Operasi ini tidak meminta persetujuan manusia baru. Jika recovery otomatis tidak dapat dibuktikan,
+Operasi ini tidak meminta persetujuan manusia baru di model target. Jika recovery otomatis tidak dapat dibuktikan,
 policy menolak execution sebelum mutasi dimulai.
 
 ## 6. Kegagalan, pemulihan, dan observabilitas
@@ -101,10 +105,10 @@ outcome. Audit tidak menyimpan credential, token, connection string, atau isi se
 
 ## 7. Runtime activation boundary
 
-Dokumen ini mengesahkan arah policy, bukan bukti bahwa control plane telah diimplementasikan.
+Dokumen ini mendefinisikan rancangan target arsitektur, bukan bukti bahwa control plane telah diimplementasikan atau aktif.
 Otonomi runtime hanya boleh diklaim aktif setelah test membuktikan capability JIT, pemisahan
 executor/verifier, denial policy, canary, rollback, quarantine, audit, dan secret redaction pada
-environment target. Sampai itu tersedia, dokumentasi tidak boleh mengklaim bahwa Production telah
+environment target, serta disetujui lewat ADR aktivasi terpisah oleh Owner. Sampai itu tersedia, dokumentasi tidak boleh mengklaim bahwa Production telah
 dikelola oleh agent otonom.
 
 ### Dry-run validator lokal
@@ -138,3 +142,13 @@ Untuk pilot baca-saja, jalankan `node scripts/checkExecutionRecord.mjs --snapsho
 sesudah pemeriksaan. Bandingkan HEAD, digest index, status, dan isi semua file tracked/untracked
 yang tidak diabaikan Git. Snapshot ini membuktikan kesamaan state yang diamati; ia tidak mengawasi
 perubahan sementara atau file ignored. Output JSON hanya berisi digest, tanpa isi file.
+
+## 8. Owner decisions required at activation
+
+Sebelum aktivasi runtime model operasi otonom ini diberlakukan melalui ADR terpisah, Owner wajib memutuskan parameter kebijakan berikut:
+
+1. **Mutasi Data Production:** Apakah mutasi atau reset data Production tetap memerlukan persetujuan manusia eksplisit per kejadian, atau dapat didelegasikan ke control plane dengan prasyarat snapshot recovery terverifikasi.
+2. **Perubahan Otorisasi dan RBAC:** Apakah perubahan role aplikasi, penambahan permission baru, atau modifikasi membership policy tetap membutuhkan persetujuan Owner per tindakan.
+3. **Rotasi Secret:** Apakah penerbitan dan rotasi secret/kredensial API eksternal dapat dilakukan secara mandiri oleh agen melalui opaque capability, atau memerlukan otorisasi manual.
+4. **Migrasi Destruktif:** Apakah migrasi database dengan risiko kehilangan data (drop column, drop table, perubahan tipe data breaking) wajib dihentikan untuk persetujuan manusia terpisah sebelum diterapkan ke Production.
+5. **Merge ke Protected Branch (`main`):** Apakah penggabungan kode ke branch utama tetap mempertahankan gerbang pull request review manual oleh Owner, atau dapat di-merge otonom setelah lulus CI dan independent verifier.

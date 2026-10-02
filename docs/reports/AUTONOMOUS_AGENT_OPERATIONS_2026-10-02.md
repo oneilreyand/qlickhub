@@ -1,105 +1,82 @@
 ## Task
 
-AUTONOMOUS-AGENT-OPERATIONS
+REVISE-AUTONOMOUS-AGENT-OPERATIONS-AS-PROPOSED
 
 ## Outcome
 
-The active documentation policy now permits policy-bound autonomous agent operations without
-per-action human approval. It replaces Approval Windows with an Execution Record and documents the
-required control plane, just-in-time capabilities, independent verification, canary rollout,
-rollback, quarantine, and non-secret audit trail. No runtime control plane, credential, Production
-mutation, deployment, application contract, or database migration was performed.
+ADR-027 and `docs/5_AUTONOMOUS_AGENT_OPERATIONS.md` are documented as a **Proposed target state (not in force)** for Owner evaluation. The active repository governance remains strictly bound by Approval Windows ([ADR-025](file:///Users/mac/Documents/GitHub/qlikhub/docs/adr/ADR-025-APPROVAL-WINDOWS-FOR-AGENT-WORK.md)) and its canonical stop conditions. All active SSoT files (`AGENTS.md`, `docs/4_AGENT_DEV_GUIDELINES.md`, `docs/0_PRODUCT_KNOWLEDGE_MAP.md`, `docs/1_ARCHITECTURE.md`, `docs/DEPLOYMENT_AND_ENVIRONMENTS.md`, `AGENT_REPORT_TEMPLATE.md`, and `docs/POLICY_REGISTRY.md`) continue to mandate human Approval Windows and stop conditions. Policies `AI-015` through `AI-019` are marked `[Proposed — target state, not in force; ADR-027]`. The local validation scripts (`scripts/checkExecutionRecord*`) are retained as dry-run tools.
 
 ## Work assurance
 
-- **Work Readiness Assessment:** 7/16, `Ready`. Confirmed Product direction; documentation and
-  operational authorization policy are affected across several canonical sources. No runtime/data
-  migration is part of this slice. Risk is contained by documenting a runtime-activation boundary.
-- **User plan approval:** Product confirmed full autonomous operation, including protected branch,
-  Production, data, RBAC, and secret operations, then instructed implementation in this task.
-- **Execution Record / automated policy:** Documentation policy task; baseline `611acc9`; scope is
-  `AGENTS.md`, canonical agent/deployment/architecture SSoT, Policy Registry, ADR index/new ADR,
-  active AI feature card, report template, TODO, and the new autonomous-operations SSoT. No runtime
-  capability was requested or issued.
-- **Agent capability and access:** The executor inspected and edited repository documentation and
-  ran local documentation checks. It did not access any Production environment, secret, provider,
-  database, or deployment system.
+- **Work Readiness Assessment:** 7/16, `Ready`. Governance and documentation revision aligning target state proposal with active Approval Window policy. No application code, runtime infrastructure, database schema, or production mutation was touched.
+- **User plan approval:** User instructed revision of PR #15: ADR-027 status to Proposed, docs/5 to proposed target state (not in force), active files restored to origin/main Approval Window rules, Section 8 added to docs/5 for activation decisions, and keep dry-run tools.
+- **Approval Window / high-risk decisions:** Scope strictly limited to governance and documentation files in PR #15 (`AGENTS.md`, `docs/4_AGENT_DEV_GUIDELINES.md`, `docs/5_AUTONOMOUS_AGENT_OPERATIONS.md`, `docs/POLICY_REGISTRY.md`, `docs/0_PRODUCT_KNOWLEDGE_MAP.md`, `docs/1_ARCHITECTURE.md`, `docs/DEPLOYMENT_AND_ENVIRONMENTS.md`, `AGENT_REPORT_TEMPLATE.md`, `docs/features/AI_TASK_GENERATOR_MODAL.md`, `docs/adr/ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md`, `docs/adr/README.md`, and this report). No merge to main.
+- **Agent capability and access:** The executor inspected and edited repository documentation, ran validation suites and policy tests in the local worktree, and prepared the PR update without touching production or credentials.
+- **AC-to-evidence matrix:**
 
-### AC-to-evidence matrix
+| Acceptance Criterion                                                                                                                                | Required / achieved evidence level (E0–E4) | Primary evidence and environment                                                                                        | Verification status |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| ADR-027 marked Proposed, "Would supersede, upon activation ADR", and context updated to target evaluation.                                          | E1 / E1                                    | [ADR-027](../adr/ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md) inspection.                                                    | Accepted            |
+| docs/5 status set to "Proposed target state — not in force" with prominent alert banner.                                                            | E1 / E1                                    | [docs/5](../5_AUTONOMOUS_AGENT_OPERATIONS.md) header inspection.                                                        | Accepted            |
+| docs/5 §8 specifies the 5 Owner decisions required at activation (Prod mutation, RBAC, secret rotation, destructive migrations, merge to main).     | E1 / E1                                    | [docs/5 §8](../5_AUTONOMOUS_AGENT_OPERATIONS.md#8-owner-decisions-required-at-activation) inspection.                   | Accepted            |
+| Active governance files (`AGENTS.md`, `docs/4`, `docs/0`, `docs/1`, `DEPLOYMENT`, `POLICY_REGISTRY`, template) retain active Approval Window rules. | E2 / E2                                    | Git diff vs `origin/main`, `npm run docs:check` (9/9 passed).                                                           | Accepted            |
+| Policy IDs `AI-015`–`AI-019` marked Proposed in registry.                                                                                           | E1 / E1                                    | [POLICY_REGISTRY.md](../POLICY_REGISTRY.md) table inspection.                                                           | Accepted            |
+| Validator `scripts/checkExecutionRecord*` and tests retained as dry-run tools.                                                                      | E2 / E2                                    | `npm run agent:policy:test` (22/22 passed).                                                                             | Accepted            |
+| Repository-wide validation passes without errors.                                                                                                   | E2 / E2                                    | `npm run validate` (docs:check 9/9, policy:test 22/22, lint 0 errors / 38 warnings, typecheck api/web/contracts green). | Accepted            |
 
-| Acceptance Criterion                                                                                                           | Required / achieved evidence level (E0–E4) | Primary evidence and environment                                                                     | Verification status |
-| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ------------------- |
-| Active agent documentation removes per-action human approval and cited-draft/Apply restrictions.                               | E2 / E2                                    | Repository-wide active-doc search and `npm run docs:check` on local worktree.                        | Accepted with gaps  |
-| The replacement policy defines Execution Record, verifier separation, JIT capability, canary, rollback, quarantine, and audit. | E1 / E1                                    | [Autonomous Agent Operations](../5_AUTONOMOUS_AGENT_OPERATIONS.md) and ADR-027 inspection.           | Accepted with gaps  |
-| Active registry, map, architecture, deployment guide, instructions, and report template agree.                                 | E2 / E2                                    | `npm run docs:check` (9/9 tests passed, 0 failed, 0 skipped) and policy-reference search.            | Accepted with gaps  |
-| Documentation does not falsely claim runtime autonomous control plane activation.                                              | E1 / E1                                    | [Autonomous Agent Operations §7](../5_AUTONOMOUS_AGENT_OPERATIONS.md#7-runtime-activation-boundary). | Accepted            |
-
-- **Evidence outcomes:** `npm run docs:check` passed (9/9 Node tests, 0 failed, 0 skipped; local
-  worktree); documentation governance passed. `git diff --check` passed with no whitespace errors.
-  No runtime tests were applicable because no runtime code or infrastructure changed.
-- **Change Impact Map:** Cross-boundary documentation policy change. Affects agent operation,
-  autonomous deployment guidance, documentation lifecycle, audit/evidence terminology, and policy
-  identifiers. No frontend, backend API, shared contract, database schema, application RBAC,
-  migration, or live deployment changed.
-- **Decision Snapshot:** Selected policy-bound autonomy: no human approval gate, with automated
-  capability, independent verification, canary, rollback, and quarantine. Rejected an Approval
-  Window because it adds human coordination latency; rejected standing unrestricted credentials
-  because they provide no bounded recovery or audit boundary. Recorded in ADR-027.
-- **Agent handoff and independent verification:** No independent agent/CI verifier was available
-  for this documentation-only local change. Local structural verification completed; the result is
-  `Accepted with gaps` pending an independent semantic review of the policy decision.
-- **Quality review:** Inspected the active documentation diff and searched active documents for
-  obsolete approval/cited-draft rules. Reuse/DRY: one canonical `docs/5` SSoT is linked rather than
-  copying operating rules. Duplicate/overlap: none found in active agent-operation sources; older
-  ADRs remain as explicitly superseded historical records. Obsolete/unused: Approval Window policy
-  references were replaced in active instructions; historical ADR-017/018/020/021/025/026 are
-  retained. Boundary/best practice: runtime activation is explicitly unverified and secrets remain
-  redacted. Regression evidence: documentation checks passed.
-- **Cross-layer quality gates:** N/A. No UI, data access, model, migration, performance, or AI model
-  provider implementation changed.
+- **Evidence outcomes:**
+  - `npm run docs:check`: 9 passed, 0 failed, 0 skipped.
+  - `npm run agent:policy:test`: 22 passed, 0 failed, 0 skipped.
+  - `npm run validate`: passed (lint 0 errors, typecheck contracts/api/web passed).
+- **Change Impact Map:** Pure documentation and governance refinement. Does not alter frontend, backend API, shared contracts, database migrations, application RBAC, or live infrastructure.
+- **Decision Snapshot:** Retain Approval Window (ADR-025) as active repository policy. Position ADR-027 as a proposed target state requiring an explicit future activation ADR and specific Owner activation decisions.
+- **Agent handoff and independent verification:** Owner semantic review on PR #15 is required.
+- **Quality review:**
+  - Reuse/DRY: Shared policy references across docs/0, docs/1, docs/4, and AGENTS.md link to docs/5 with explicit "(proposed target state, not in force)" disclaimers.
+  - Duplicate/overlap: None. Active rules point to ADR-025; proposed target rules point to ADR-027.
+  - Obsolete/unused: Reverted unilateral claims of active autonomy back to active Approval Window policy.
+  - Boundary/best practice: Emphasized that dry-run results or local validator passes never constitute permission to execute mutations.
 
 ## Source of truth and impact
 
-- **Applicable SSoT:** [Product Knowledge Map](../0_PRODUCT_KNOWLEDGE_MAP.md),
-  [Architecture](../1_ARCHITECTURE.md), [Agent Guidelines](../4_AGENT_DEV_GUIDELINES.md),
-  [Autonomous Agent Operations](../5_AUTONOMOUS_AGENT_OPERATIONS.md),
-  [Deployment & Environments](../DEPLOYMENT_AND_ENVIRONMENTS.md), and
-  [Policy Registry](../POLICY_REGISTRY.md).
-- **Policy IDs:** `AI-001`, `AI-006`, `AI-007`, `AI-009`, `AI-010`, `AI-012`–`AI-019`, `DOC-001`–`DOC-004`.
-- **Data/interface impact:** None. The policy describes future operational capabilities but changes
-  no API, persisted record, schema, or runtime interface.
-- **Authorization impact:** Agent operational governance now authorizes autonomous actions in policy;
-  user-facing Workspace RBAC and backend enforcement are unchanged. Runtime authorization remains
-  unimplemented and unverified.
-- **Migration risk:** None. No migration was created or run.
+- **Applicable SSoT:** [Product Knowledge Map](../0_PRODUCT_KNOWLEDGE_MAP.md), [Architecture](../1_ARCHITECTURE.md), [Agent Guidelines](../4_AGENT_DEV_GUIDELINES.md), [Autonomous Agent Operations](../5_AUTONOMOUS_AGENT_OPERATIONS.md), [Deployment & Environments](../DEPLOYMENT_AND_ENVIRONMENTS.md), [Policy Registry](../POLICY_REGISTRY.md), [ADR-025](../adr/ADR-025-APPROVAL-WINDOWS-FOR-AGENT-WORK.md), and [ADR-027](../adr/ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md).
+- **Policy IDs:** `AI-001`, `AI-006`–`AI-014` (Active); `AI-015`–`AI-019` (Proposed); `DOC-001`–`DOC-004`.
+- **Data/interface impact:** None.
+- **Authorization impact:** Active Approval Window rules remain strictly in force. Autonomy is proposed only.
+- **Migration risk:** None.
 
 ## Changed files
 
-- `AGENTS.md` and `AGENT_REPORT_TEMPLATE.md` — replace approval language with autonomous execution records.
-- `docs/0_PRODUCT_KNOWLEDGE_MAP.md`, `docs/1_ARCHITECTURE.md`, `docs/4_AGENT_DEV_GUIDELINES.md`, and `docs/DEPLOYMENT_AND_ENVIRONMENTS.md` — align active SSoT and deployment flow.
-- `docs/5_AUTONOMOUS_AGENT_OPERATIONS.md` — new canonical control-plane operating model.
-- `docs/POLICY_REGISTRY.md`, `docs/adr/ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md`, and `docs/adr/README.md` — policy identifiers and decision history.
-- `docs/features/AI_TASK_GENERATOR_MODAL.md` — distinguish its preview UX from a global ban on autonomous agents.
-- `TODO.md` and this report — record local outcome and evidence.
+- `AGENTS.md` — restored active Approval Window and stop conditions; referenced docs/5 as proposed target state.
+- `docs/4_AGENT_DEV_GUIDELINES.md` — restored active Approval Window and write-broker rules; noted docs/5 as proposed target state.
+- `docs/5_AUTONOMOUS_AGENT_OPERATIONS.md` — status changed to Proposed target state (not in force); added banner warning; added §8 Owner decisions required at activation.
+- `docs/adr/ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md` — status changed to Proposed; "Would supersede, upon activation ADR"; context updated.
+- `docs/POLICY_REGISTRY.md` — restored AI-001..AI-014 to active Approval Window text; added AI-015..AI-019 as Proposed.
+- `docs/0_PRODUCT_KNOWLEDGE_MAP.md` — restored reading path table and flowchart to Approval Window; listed docs/5 as proposed target state.
+- `docs/1_ARCHITECTURE.md` — restored §6.D to cited-draft/Apply boundary, noting docs/5 as proposed target.
+- `docs/DEPLOYMENT_AND_ENVIRONMENTS.md` — restored explicit human release and migration approval requirements.
+- `docs/features/AI_TASK_GENERATOR_MODAL.md` — restored cited-draft preview text.
+- `AGENT_REPORT_TEMPLATE.md` — restored Approval Window and Human decision summary sections.
+- `docs/adr/README.md` — indexed ADR-027.
+- `TODO.md` — preserved `AUTONOMOUS-AGENT-OPERATIONS` and `AUTONOMOUS-CONTROL-PLANE-DRY-RUN` as In progress (pending Owner review).
+- `docs/reports/AUTONOMOUS_AGENT_OPERATIONS_2026-10-02.md` — updated report to record Proposed status.
 
 ## Validation
 
-- `npm run docs:check` — passed: 9/9 tests, 0 failed, 0 skipped; Documentation governance passed.
-- `git diff --check` — passed: no whitespace errors.
+- `npm run docs:check` — 9/9 passed, 0 failed, 0 skipped.
+- `npm run agent:policy:test` — 22/22 passed, 0 failed, 0 skipped.
+- `npm run validate` — clean pass across docs:check, agent:policy:test, lint, and typecheck.
 
 ## Risks or follow-up
 
-- The runtime control plane is not implemented. Do not claim active autonomous Production operation
-  until it proves JIT capability, executor/verifier isolation, automated policy denial, canary,
-  rollback, quarantine, audit, and secret redaction on the target environment.
-- Independent semantic verification of this high-impact policy decision remains outstanding.
+- PR #15 must remain in Draft state for Owner review.
+- Runtime autonomy is not in force. No agent may bypass Approval Windows or human gates until an activation ADR is formally approved by the Owner.
 
-## Operational decision summary
+## Human decision summary
 
-The repository now defines autonomous, policy-bound agent delivery without per-action human
-approval. It retains machine-enforced verification and recovery controls. The trustworthy claim is
-limited to documentation policy; runtime autonomy remains unverified.
+ADR-027 and `docs/5_AUTONOMOUS_AGENT_OPERATIONS.md` are positioned as a proposed target architecture. Active governance remains under ADR-025 Approval Windows. The Owner must review PR #15 and evaluate the 5 activation decisions outlined in `docs/5 §8`.
 
 ## TODO update
 
-- `AUTONOMOUS-AGENT-OPERATIONS` → `Done locally`
+- `AUTONOMOUS-AGENT-OPERATIONS` remains `In progress` (Codex — 2026-10-02; pending Owner review).
+- `AUTONOMOUS-CONTROL-PLANE-DRY-RUN` remains `In progress` (Codex — 2026-10-02; pending Owner review).
