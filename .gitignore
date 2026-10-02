@@ -18,4 +18,5 @@ drive-production.json
 
 # Persisted attachment/evidence files are runtime data, not source files.
 data/evidence_storage/
+apps/api/data/
 outputs/

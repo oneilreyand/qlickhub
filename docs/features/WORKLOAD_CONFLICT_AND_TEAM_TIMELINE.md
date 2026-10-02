@@ -95,7 +95,7 @@ Hal yang tidak termasuk dalam cakupan:
   - **Error & Retry**: Pesan kesalahan tersanitasi disertai tombol coba lagi jika koneksi gagal.
   - **Disabled**: Tombol atau kontrol dinonaktifkan saat sedang submit atau memuat.
   - **Permission-denied**: Peringatan akses ditolak jika mencoba mengakses resource tanpa izin.
-- Aksesibilitas & Tema: Mengikuti Stitch design system (`#B1E743`, font Inter, dark/light contrast WCAG AAA, atribut ARIA, fokus keyboard).
+- Aksesibilitas & Tema: Mengikuti Stitch design system (`#B1E743`, font Inter, baseline WCAG 2.2 AA dengan AAA hanya pada pasangan warna yang diverifikasi, atribut ARIA, fokus keyboard).
 
 ## 8. Pengujian dan Evidence
 
