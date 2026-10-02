@@ -108,9 +108,12 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       : placeholder;
 
   return (
-    <div className={`relative inline-block max-w-full text-left ${className}`} ref={containerRef}>
+    <div
+      className={`relative inline-block w-full max-w-full text-left ${className}`}
+      ref={containerRef}
+    >
       {/* Trigger controls */}
-      <div className="relative inline-flex max-w-full">
+      <div className="relative flex w-full max-w-full min-w-0">
         <Button
           ref={triggerRef}
           type="button"
@@ -121,11 +124,13 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           aria-label="Pilih rentang tanggal"
           aria-haspopup="dialog"
           aria-controls={isOpen ? popoverId : undefined}
-          leftIcon={<Calendar className="h-4 w-4" />}
-          rightIcon={!internalRange ? <ChevronDown className="h-4 w-4" /> : undefined}
-          className={`max-w-full justify-between text-left ${internalRange ? 'pr-12' : ''}`}
+          leftIcon={<Calendar className="h-4 w-4 shrink-0" />}
+          rightIcon={!internalRange ? <ChevronDown className="h-4 w-4 shrink-0" /> : undefined}
+          className={`w-full max-w-full min-w-0 justify-between text-left overflow-hidden ${internalRange ? 'pr-11' : ''}`}
         >
-          <span className="truncate">{labelText}</span>
+          <span className="truncate min-w-0 flex-1 text-left" title={labelText}>
+            {labelText}
+          </span>
         </Button>
         {internalRange && (
           <IconButton

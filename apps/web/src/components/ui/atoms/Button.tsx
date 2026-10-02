@@ -60,7 +60,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </span>
         ) : null}
         {children && (
-          <span className="inline-flex items-center justify-center leading-normal select-none">
+          <span className="inline-flex items-center justify-center leading-normal select-none min-w-0 max-w-full">
             {children}
           </span>
         )}
