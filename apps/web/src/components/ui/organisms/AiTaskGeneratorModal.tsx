@@ -91,6 +91,17 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
     'task',
   );
 
+  const enabledSubtaskCount = draft?.subtasks.filter((s) => s.enabled).length ?? 0;
+  const requirementCount = draft?.requirements.length ?? 0;
+  const hasEmptyRequirementAc =
+    draft?.requirements.some((r) => !r.acceptanceCriteria || r.acceptanceCriteria.length === 0) ??
+    false;
+  const isDraftIncomplete =
+    !draft?.task.title.trim() ||
+    enabledSubtaskCount === 0 ||
+    requirementCount === 0 ||
+    hasEmptyRequirementAc;
+
   // Input states for new items in preview
   const [newInScope, setNewInScope] = useState('');
   const [newOutScope, setNewOutScope] = useState('');
@@ -207,6 +218,32 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
 
     if (!draft.task.title.trim()) {
       dispatch(enqueueSnackbar('Judul Task wajib diisi.', 'error'));
+      setActiveTab('task');
+      return;
+    }
+
+    if (requirementCount === 0) {
+      dispatch(enqueueSnackbar('Minimal 1 Requirement wajib disertakan pada Feature.', 'error'));
+      setActiveTab('requirements');
+      return;
+    }
+
+    if (hasEmptyRequirementAc) {
+      dispatch(
+        enqueueSnackbar(
+          'Setiap Requirement wajib memiliki minimal 1 kriteria penerimaan (AC).',
+          'error',
+        ),
+      );
+      setActiveTab('requirements');
+      return;
+    }
+
+    if (enabledSubtaskCount === 0) {
+      dispatch(
+        enqueueSnackbar('Minimal 1 Subtask harus aktif dan dipilih untuk dikerjakan tim.', 'error'),
+      );
+      setActiveTab('subtasks');
       return;
     }
 
@@ -1179,6 +1216,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                               type="button"
                               onClick={() => removeAcFromRequirement(reqIdx, acIdx)}
                               className="text-stone-400 hover:text-rose-500 shrink-0 mt-0.5"
+                              aria-label={`Hapus AC ${reqIdx + 1}-${acIdx + 1}`}
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>
@@ -1236,6 +1274,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                         type="button"
                         onClick={() => toggleSubtask(idx)}
                         className="mt-0.5 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 shrink-0"
+                        aria-label={`Toggle subtask ${idx + 1}`}
                       >
                         {sub.enabled ? (
                           <CheckSquare className="h-4 w-4 text-[#7BB80E] dark:text-[#B1E743]" />
@@ -1269,6 +1308,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                       onClick={() => removeSubtask(idx)}
                       className="text-stone-400 hover:text-rose-500 shrink-0 p-1"
                       title="Hapus subtask dari draf"
+                      aria-label={`Hapus subtask ${idx + 1}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -1278,6 +1318,21 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
             )}
 
             {/* FOOTER ACTIONS */}
+            {isDraftIncomplete && (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-300">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>
+                  {!draft.task.title.trim()
+                    ? 'Judul Feature wajib diisi.'
+                    : requirementCount === 0
+                      ? 'Wajib menyertakan minimal 1 Requirement sebelum Feature dapat disimpan.'
+                      : hasEmptyRequirementAc
+                        ? 'Setiap Requirement wajib memiliki minimal 1 Acceptance Criterion (AC).'
+                        : 'Wajib mengaktifkan minimal 1 Subtask sebelum Feature dapat disimpan.'}
+                </span>
+              </div>
+            )}
+
             <div className="flex items-center justify-between border-t border-stone-100 dark:border-stone-800 pt-4 mt-6">
               <Button type="button" variant="outline" size="sm" onClick={() => setStep('input')}>
                 <ArrowLeft className="h-3.5 w-3.5 mr-1" />
@@ -1294,7 +1349,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                   size="sm"
                   onClick={handleApply}
                   isLoading={isSubmitting}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isDraftIncomplete}
                 >
                   <CheckCircle2 className="h-4 w-4 mr-1.5 text-stone-950" />
                   Terapkan & Buat Feature
