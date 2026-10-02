@@ -267,23 +267,19 @@ describe('TaskTimelineView', () => {
     );
   });
 
-  it('triggers onToggleExpand when Lebar Penuh button is clicked', () => {
-    const handleToggleExpand = vi.fn();
+  it('does not render duplicate Lebar Penuh button (managed by TaskHubControlsBar)', () => {
     render(
       <TaskTimelineView
         tasks={mockTasks}
         folders={mockFolders}
         isLoading={false}
         onSelect={vi.fn()}
-        isExpanded={false}
-        onToggleExpand={handleToggleExpand}
       />,
     );
 
-    const fullWidthBtn = screen.getByRole('button', { name: /buka timeline selebar layar/i });
-    expect(fullWidthBtn).toBeInTheDocument();
-    fireEvent.click(fullWidthBtn);
-    expect(handleToggleExpand).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole('button', { name: /buka timeline selebar layar/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('toggles buka semua subtasks when Buka Semua Subtask button is clicked', async () => {

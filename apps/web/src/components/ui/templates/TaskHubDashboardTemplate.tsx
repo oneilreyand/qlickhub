@@ -555,8 +555,6 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 isLoading={isTaskLoading}
                 selectedTaskId={selectedTaskId}
                 onSelect={(task) => handleOpenTask(task.id)}
-                isExpanded={isTimelineExpanded}
-                onToggleExpand={() => setIsTimelineExpanded((prev) => !prev)}
               />
             )}
           </Card>
