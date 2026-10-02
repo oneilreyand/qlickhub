@@ -21,6 +21,7 @@ const requiredFiles = [
   'docs/features/FEATURE_CATALOG.md',
   'docs/features/ROLE_FLOWS.md',
   'docs/features/FEATURE_TEMPLATE.md',
+  'docs/adr/README.md',
 ];
 
 const featureHeadings = [
@@ -260,6 +261,56 @@ function validateFeatureCards(policyIds, errors) {
   }
 }
 
+const adrFilePattern = /^ADR-(\d{3})-[A-Z0-9-]+\.md$/;
+
+export function validateAdrRecords(
+  adrFileNames,
+  indexContent,
+  relativeIndex = 'docs/adr/README.md',
+) {
+  const errors = [];
+  const filesByNumber = new Map();
+  for (const fileName of adrFileNames) {
+    const number = fileName.match(adrFilePattern)?.[1];
+    if (!number) {
+      errors.push(`docs/adr/${fileName} does not follow the ADR-NNN-TITLE.md naming pattern.`);
+      continue;
+    }
+    filesByNumber.set(number, [...(filesByNumber.get(number) ?? []), fileName]);
+  }
+  for (const [number, files] of [...filesByNumber].sort()) {
+    if (files.length > 1) {
+      errors.push(`ADR number ${number} is used by more than one file: ${files.sort().join(', ')}`);
+    }
+  }
+
+  const linkCounts = new Map();
+  for (const rawTarget of extractMarkdownLinks(indexContent)) {
+    const fileName = path.basename(rawTarget.replace(/^<|>$/g, '').split('#')[0].trim());
+    if (adrFilePattern.test(fileName)) {
+      linkCounts.set(fileName, (linkCounts.get(fileName) ?? 0) + 1);
+    }
+  }
+  for (const fileName of [...adrFileNames].filter((name) => adrFilePattern.test(name)).sort()) {
+    const count = linkCounts.get(fileName) ?? 0;
+    if (count === 0) errors.push(`${relativeIndex} is missing ADR link: ${fileName}`);
+    if (count > 1) errors.push(`${relativeIndex} repeats ADR link: ${fileName}`);
+  }
+  return errors;
+}
+
+function validateAdrs(errors) {
+  const adrDirectory = path.join(repositoryRoot, 'docs/adr');
+  const indexPath = path.join(adrDirectory, 'README.md');
+  if (!fs.existsSync(adrDirectory) || !fs.existsSync(indexPath)) return;
+
+  const adrFileNames = fs
+    .readdirSync(adrDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'README.md')
+    .map((entry) => entry.name);
+  errors.push(...validateAdrRecords(adrFileNames, fs.readFileSync(indexPath, 'utf8')));
+}
+
 function validateFeatureNavigationDocuments(errors) {
   for (const [relativeFile, headings] of Object.entries(featureNavigationRequirements)) {
     const absoluteFile = path.join(repositoryRoot, relativeFile);
@@ -285,18 +336,20 @@ function validateFeatureNavigationDocuments(errors) {
 function validateLocalLinks(errors) {
   const filesToCheck = [
     path.join(repositoryRoot, 'AGENTS.md'),
+    path.join(repositoryRoot, 'README.md'),
     ...collectMarkdownFiles(path.join(repositoryRoot, 'docs')).filter((file) => {
       const relativeFile = path.relative(repositoryRoot, file);
       return (
         /^docs\/[0-4]_/.test(relativeFile) ||
         relativeFile === 'docs/POLICY_REGISTRY.md' ||
         relativeFile === 'docs/DEPLOYMENT_AND_ENVIRONMENTS.md' ||
-        relativeFile.startsWith('docs/features/')
+        relativeFile.startsWith('docs/features/') ||
+        relativeFile.startsWith('docs/adr/')
       );
     }),
   ];
 
-  for (const sourceFile of filesToCheck) {
+  for (const sourceFile of filesToCheck.filter((file) => fs.existsSync(file))) {
     const content = fs.readFileSync(sourceFile, 'utf8');
     for (const rawTarget of extractMarkdownLinks(content)) {
       const target = resolveLocalLink(sourceFile, rawTarget);
@@ -316,6 +369,7 @@ export function runDocumentationChecks() {
   const policyIds = validatePolicyRegistry(errors);
   validateFeatureCards(policyIds, errors);
   validateFeatureNavigationDocuments(errors);
+  validateAdrs(errors);
   validateLocalLinks(errors);
   return errors;
 }

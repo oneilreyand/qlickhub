@@ -5,6 +5,7 @@ import {
   extractMarkdownLinks,
   extractPolicyIds,
   extractReferencedPolicyIds,
+  validateAdrRecords,
   validateFeatureCard,
   validateFeatureCatalog,
   validateFeatureFolder,
@@ -123,4 +124,36 @@ test('validateFeatureCatalog requires every legacy Feature exactly once', () => 
       'catalog.md is missing legacy Feature link: B.md',
     ],
   );
+});
+
+test('validateAdrRecords rejects duplicate ADR numbers', () => {
+  const files = ['ADR-016-ALPHA.md', 'ADR-016-BETA.md'];
+  const index = '[ADR-016](ADR-016-ALPHA.md)\n[ADR-016](ADR-016-BETA.md)';
+
+  assert.deepEqual(validateAdrRecords(files, index, 'index.md'), [
+    'ADR number 016 is used by more than one file: ADR-016-ALPHA.md, ADR-016-BETA.md',
+  ]);
+});
+
+test('validateAdrRecords requires every ADR exactly once in the index', () => {
+  const files = ['ADR-001-ALPHA.md', 'ADR-002-BETA.md'];
+  const index = '[ADR-001](ADR-001-ALPHA.md)\n[again](ADR-001-ALPHA.md)';
+
+  assert.deepEqual(validateAdrRecords(files, index, 'index.md'), [
+    'index.md repeats ADR link: ADR-001-ALPHA.md',
+    'index.md is missing ADR link: ADR-002-BETA.md',
+  ]);
+});
+
+test('validateAdrRecords rejects files outside the ADR naming pattern', () => {
+  assert.deepEqual(validateAdrRecords(['ADR-7-short.md'], '', 'index.md'), [
+    'docs/adr/ADR-7-short.md does not follow the ADR-NNN-TITLE.md naming pattern.',
+  ]);
+});
+
+test('validateAdrRecords accepts unique, fully indexed ADRs', () => {
+  const files = ['ADR-001-ALPHA.md', 'ADR-002-BETA.md'];
+  const index = '| [ADR-001](ADR-001-ALPHA.md) | A |\n| [ADR-002](ADR-002-BETA.md#context) | B |';
+
+  assert.deepEqual(validateAdrRecords(files, index, 'index.md'), []);
 });

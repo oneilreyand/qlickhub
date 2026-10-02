@@ -31,3 +31,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-020](ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md)            | Verifiable agent change-approval enforcement              |
 | [ADR-021](ADR-021-TASK-BOUND-AGENT-WRITE-BROKER.md)                           | Task-bound agent write broker for the QlickHub pilot      |
 | [ADR-022](ADR-022-FEATURE-KNOWLEDGE-TREE.md)                                  | Feature documentation tree, role paths, and diagram entry |
+| [ADR-023](ADR-023-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md)  | Workload conflict and cross-Workspace privacy boundary    |

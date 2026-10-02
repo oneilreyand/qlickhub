@@ -215,7 +215,7 @@ legacy tetap transitional dan tidak boleh diklaim telah memenuhi kebijakan ini.
 - Perhitungan irisan bersifat inklusif: `existing.startDate <= candidate.dueDate && existing.dueDate >= candidate.startDate`.
 - Subtask berstatus `done` dan `canceled` diabaikan. Subtask aktif tanpa jadwal dilaporkan sebagai "beban aktif tanpa jadwal; irisan waktu tidak dapat dinilai" dan tidak dihitung sebagai irisan tanggal.
 - Peringatan bersifat **murni advisory**: form dan API tidak pernah memblokir penugasan, tidak melakukan auto-reassign, dan tidak menurunkan prioritas.
-- Subtask dari Workspace lain disamarkan secara ketat (`AUTH-011`) kecuali jika aktor terbukti memiliki membership aktif di Workspace asal. Kebijakan ini diatur dalam [ADR-016](adr/ADR-016-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md).
+- Subtask dari Workspace lain disamarkan secara ketat (`AUTH-011`) kecuali jika aktor terbukti memiliki membership aktif di Workspace asal. Kebijakan ini diatur dalam [ADR-023](adr/ADR-023-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md).
 
 ### Definisi Putaran Review dan Pengembalian
 
