@@ -11,8 +11,9 @@ Start with the navigation map, then read every applicable SSoT before making cha
 3. [`docs/2_WORKFLOW_AND_ROLES.md`](docs/2_WORKFLOW_AND_ROLES.md) — SSoT for end-to-end role workflow, subtasks, QA test management, and release gates.
 4. [`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md) — SSoT for atomic UI components, Stitch design tokens, and route layout.
 5. [`docs/4_AGENT_DEV_GUIDELINES.md`](docs/4_AGENT_DEV_GUIDELINES.md) — SSoT for developer rules, AI work assurance, PostgreSQL test evidence policy, and handoff report template.
-6. [`docs/POLICY_REGISTRY.md`](docs/POLICY_REGISTRY.md) — stable identifiers pointing to approved SSoT rules; it never overrides the source document.
-7. [`TODO.md`](TODO.md) — Current prioritized active backlog.
+6. [`docs/5_AUTONOMOUS_AGENT_OPERATIONS.md`](docs/5_AUTONOMOUS_AGENT_OPERATIONS.md) — proposed target state (not in force) for autonomous operations.
+7. [`docs/POLICY_REGISTRY.md`](docs/POLICY_REGISTRY.md) — stable identifiers pointing to approved SSoT rules; it never overrides the source document.
+8. [`TODO.md`](TODO.md) — Current prioritized active backlog.
 
 When documents conflict, use this priority: explicit user instruction → security constraints → SSoT Architecture & Workflow (`docs/1_ARCHITECTURE.md`, `docs/2_WORKFLOW_AND_ROLES.md`) → UI Design System (`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`) → Agent Guidelines (`docs/4_AGENT_DEV_GUIDELINES.md`) → TODO.
 
@@ -95,4 +96,4 @@ A TODO item is done only when all applicable items are true:
 - Do not silently use fake data in a production path. Mock fixtures must live in the contracts/test area and be labelled.
 - Do not make direct database calls from frontend features.
 - Do not skip migrations for persisted schema changes.
-- Do not create autonomous AI actions; AI returns cited drafts until the user applies them.
+- Do not create autonomous AI actions; AI returns cited drafts until the user applies them. Autonomous operational execution under docs/5 is a proposed target state and remains not in force until an activation ADR is approved.

@@ -12,6 +12,9 @@ Every contributor and AI agent starts at
 map and [`POLICY_REGISTRY.md`](POLICY_REGISTRY.md) are navigation/index layers; they do not change
 the precedence below.
 
+> [!NOTE]
+> Rencana arsitektur target operasi otonom didokumentasikan di [`5_AUTONOMOUS_AGENT_OPERATIONS.md`](5_AUTONOMOUS_AGENT_OPERATIONS.md) dengan status _proposed target state_ (belum berlaku). Selama belum ada ADR aktivasi terpisah, pedoman Approval Window pada dokumen ini tetap berlaku penuh.
+
 ```mermaid
 graph LR
     User["1. Instruksi Langsung Pengguna"] --> Security["2. Batasan Keamanan (Security Constraints)"]

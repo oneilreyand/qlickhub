@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "taskId": "AUTONOMOUS-CONTROL-PLANE-DRY-RUN",
+  "mode": "dry-run",
+  "baselineCommit": "0333a67473a696fe77283314b48ada80420f4069",
+  "allowedPaths": [
+    "package.json",
+    "AGENT_REPORT_TEMPLATE.md",
+    "scripts/checkDocs.mjs",
+    "scripts/checkExecutionRecord.mjs",
+    "scripts/checkExecutionRecord.test.mjs",
+    "quality/execution-records/AUTONOMOUS-CONTROL-PLANE-DRY-RUN.json",
+    "docs/5_AUTONOMOUS_AGENT_OPERATIONS.md",
+    "docs/plans/AUTONOMOUS_CONTROL_PLANE_DRY_RUN_PLAN.md",
+    "docs/plans/AGY_AUTONOMOUS_DRY_RUN_PILOT.md",
+    "docs/reports/AUTONOMOUS_CONTROL_PLANE_DRY_RUN_2026-10-02.md",
+    "TODO.md"
+  ],
+  "requestedCapabilities": ["fs:read", "fs:write", "exec:test"],
+  "prohibitedCapabilities": ["git:commit", "deploy:preview", "deploy:production", "secret:read"],
+  "stateChanges": [
+    "add local Execution Record validator and deterministic tests",
+    "add a dry-run policy decision command",
+    "record evidence without issuing credentials or performing deployment"
+  ],
+  "acceptanceCriteria": [
+    {
+      "id": "AC-1",
+      "evidenceLevel": "E2",
+      "description": "Incomplete, expired, scope-violating, baseline-mismatched, or read-only write records are denied.",
+      "evidenceCommand": "npm run agent:policy:test"
+    },
+    {
+      "id": "AC-2",
+      "evidenceLevel": "E2",
+      "description": "A valid scoped dry-run record receives an allow decision without a capability token.",
+      "evidenceCommand": "npm run agent:policy:check -- --record quality/execution-records/AUTONOMOUS-CONTROL-PLANE-DRY-RUN.json"
+    },
+    {
+      "id": "AC-3",
+      "evidenceLevel": "E2",
+      "description": "Recognised secret-shaped values cause denial and do not enter the decision output.",
+      "evidenceCommand": "npm run agent:policy:test"
+    },
+    {
+      "id": "AC-4",
+      "evidenceLevel": "E2",
+      "description": "Documentation and the pilot instructions preserve the runtime activation boundary.",
+      "evidenceCommand": "npm run docs:check"
+    }
+  ],
+  "evidenceCommands": [
+    "npm run agent:policy:test",
+    "npm run agent:policy:check -- --record quality/execution-records/AUTONOMOUS-CONTROL-PLANE-DRY-RUN.json",
+    "npm run docs:check",
+    "git diff --check"
+  ],
+  "executor": "codex-local",
+  "verifier": "codex-thread-01a0f033-df5b-7560-a69e-136a2a9abe9c",
+  "leaseExpiresAt": "2026-10-03T23:59:00.000Z",
+  "retryLimit": 0,
+  "timeoutMinutes": 20,
+  "costBudgetUsd": 0,
+  "recovery": {
+    "rollbackTarget": "remove only this task's reviewed patch hunks and task-created files; preserve pre-existing dirty changes",
+    "quarantineAction": "stop the dry-run and preserve the denial output; no credential or deployment action exists"
+  },
+  "policyIds": [
+    "AI-002",
+    "AI-003",
+    "AI-004",
+    "AI-008",
+    "AI-009",
+    "AI-012",
+    "AI-015",
+    "AI-016",
+    "AI-018",
+    "AI-019",
+    "DOC-001",
+    "DOC-003",
+    "DOC-004"
+  ]
+}

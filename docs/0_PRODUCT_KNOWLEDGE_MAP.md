@@ -89,6 +89,7 @@ graph TD
     Map --> Workflow["2. Workflow and Roles<br/>PO, Developer, QA, release"]
     Map --> UI["3. UI Design System<br/>Routes, components, states"]
     Map --> Guidelines["4. Agent Guidelines<br/>Delivery and evidence rules"]
+    Map --> AgentOps["5. Autonomous Agent Operations<br/>Proposed target (not in force)"]
     Map --> Policies["Policy Registry<br/>Stable rule identifiers"]
     Map --> Contracts["Executable Contracts<br/>packages/contracts/src"]
     Map --> Features["Feature Knowledge Cards<br/>docs/features"]
@@ -109,20 +110,21 @@ graph TD
 
 ## 4. Canonical Sources and Precedence
 
-| Information needed                                          | Canonical source                                                                                  |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Product domain, hierarchy, RBAC, schema, security           | [Architecture](1_ARCHITECTURE.md)                                                                 |
-| Role workflow, state machines, QA, release gates            | [Workflow and Roles](2_WORKFLOW_AND_ROLES.md)                                                     |
-| Routes, components, design tokens, UI states                | [UI Atomic Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                           |
-| Engineering lifecycle, test evidence, Definition of Done    | [Agent and Developer Guidelines](4_AGENT_DEV_GUIDELINES.md)                                       |
-| Stable identifiers pointing to approved rules               | [Policy Registry](POLICY_REGISTRY.md)                                                             |
-| Runtime request/response types and shared interfaces        | [Shared contracts](../packages/contracts/src)                                                     |
-| Why an architectural or product decision was made           | [Architecture decision index](adr/README.md)                                                      |
-| One vertical feature across PO, Backend, Frontend, and QA   | [Feature knowledge cards](features/README.md) — folder overview, role paths, and shared contracts |
-| Current implementation priority and status                  | [TODO](../TODO.md)                                                                                |
-| Plans and implementation proposals                          | [Plans index](plans/README.md)                                                                    |
-| Commands run and evidence actually observed                 | [Reports index](reports/README.md)                                                                |
-| Local, Preview, and Production configuration and deployment | [Deployment & Environments](DEPLOYMENT_AND_ENVIRONMENTS.md)                                       |
+| Information needed                                                                 | Canonical source                                                                                  |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Product domain, hierarchy, RBAC, schema, security                                  | [Architecture](1_ARCHITECTURE.md)                                                                 |
+| Role workflow, state machines, QA, release gates                                   | [Workflow and Roles](2_WORKFLOW_AND_ROLES.md)                                                     |
+| Routes, components, design tokens, UI states                                       | [UI Atomic Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                           |
+| Engineering lifecycle, test evidence, Definition of Done                           | [Agent and Developer Guidelines](4_AGENT_DEV_GUIDELINES.md)                                       |
+| Autonomous agent execution, policy gates, recovery (proposed target, not in force) | [Autonomous Agent Operations](5_AUTONOMOUS_AGENT_OPERATIONS.md)                                   |
+| Stable identifiers pointing to approved rules                                      | [Policy Registry](POLICY_REGISTRY.md)                                                             |
+| Runtime request/response types and shared interfaces                               | [Shared contracts](../packages/contracts/src)                                                     |
+| Why an architectural or product decision was made                                  | [Architecture decision index](adr/README.md)                                                      |
+| One vertical feature across PO, Backend, Frontend, and QA                          | [Feature knowledge cards](features/README.md) — folder overview, role paths, and shared contracts |
+| Current implementation priority and status                                         | [TODO](../TODO.md)                                                                                |
+| Plans and implementation proposals                                                 | [Plans index](plans/README.md)                                                                    |
+| Commands run and evidence actually observed                                        | [Reports index](reports/README.md)                                                                |
+| Local, Preview, and Production configuration and deployment                        | [Deployment & Environments](DEPLOYMENT_AND_ENVIRONMENTS.md)                                       |
 
 Conflict precedence remains:
 
