@@ -2,9 +2,13 @@
 
 Qlick Hub is a unified Task Management & QA-native delivery workspace connecting Product Owners, Developers, and QA. It uses npm workspaces for the React/Vite web app, Express API, and shared API contracts.
 
-## Single Source of Truth (SSoT) Documentation
+## Documentation
 
-The authoritative documentation for this repository is organized into 4 core SSoT pillars in [`docs/`](docs/):
+Start with [`docs/0_PRODUCT_KNOWLEDGE_MAP.md`](docs/0_PRODUCT_KNOWLEDGE_MAP.md). It is the mandatory
+entry point for people and AI agents: it gives role-specific reading paths and explains where each
+kind of truth lives. Agents must also follow [`AGENTS.md`](AGENTS.md).
+
+The canonical rules live in four Single Source of Truth (SSoT) documents:
 
 | SSoT Document                                                                | Scope & Focus                                                                                                        |
 | :--------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- |
@@ -13,8 +17,16 @@ The authoritative documentation for this repository is organized into 4 core SSo
 | [**`docs/3_UI_ATOMIC_DESIGN_SYSTEM.md`**](docs/3_UI_ATOMIC_DESIGN_SYSTEM.md) | Atomic UI System (`apps/web/src/components/ui/`), Stitch Design Tokens (`#B1E743` Lime), Routes & Component Gallery. |
 | [**`docs/4_AGENT_DEV_GUIDELINES.md`**](docs/4_AGENT_DEV_GUIDELINES.md)       | AI Agent & Developer Operating Rules, Definition of Done, PostgreSQL Test Evidence Policy, and Report Template.      |
 
-- Active Backlog & Sprint Tracking: [`TODO.md`](TODO.md)
-- Agent Operating Rules & Source of Truth Hierarchy: [`AGENTS.md`](AGENTS.md)
+Supporting documents link to the SSoT and never override it:
+
+- [`docs/POLICY_REGISTRY.md`](docs/POLICY_REGISTRY.md) — stable Policy IDs that point to approved SSoT rules.
+- [`docs/adr/`](docs/adr/README.md) — why architectural and product decisions were made.
+- [`docs/features/`](docs/features/README.md) — Feature Catalog, Role Flows, and Feature Knowledge Cards.
+- [`docs/plans/`](docs/plans/README.md) — plans and proposals; not policy.
+- [`docs/reports/`](docs/reports/README.md) — observed verification evidence; not policy.
+- [`TODO.md`](TODO.md) — active backlog and status.
+
+When documents conflict, follow the precedence defined in [`AGENTS.md`](AGENTS.md).
 
 ## Local development
 
