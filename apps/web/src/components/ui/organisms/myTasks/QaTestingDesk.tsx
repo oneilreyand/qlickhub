@@ -1257,6 +1257,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         featureTaskId: executionWorkspace.featureTaskId,
         requirementId: selectedTrace.requirementId,
         testResultId: selectedTrace.testResultId,
+        environment: 'staging',
         assigneeId: bugAssigneeId,
         title: bugTitle.trim(),
         severity: bugSeverity,
@@ -1838,9 +1839,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
 
             {parentTask && (
               <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400">
-                <span className="text-stone-400 font-bold uppercase text-xs">
-                  Feature Induk:
-                </span>
+                <span className="text-stone-400 font-bold uppercase text-xs">Feature Induk:</span>
                 <span className="font-semibold text-stone-800 dark:text-stone-200 truncate">
                   {parentTask.title}
                 </span>
@@ -2212,336 +2211,335 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               </Button>
             </div>
           )}
-              <Card
-                ref={testCasesRef}
-                id="qa-test-cases"
-                tabIndex={focusTarget === 'test_cases' ? -1 : undefined}
-                className="p-5 border-stone-200/80 dark:border-stone-800 space-y-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-3 dark:border-stone-800">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                        Pengelolaan &amp; Eksekusi Test Case
-                      </h3>
-                    </div>
-                    <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
-                      Pembuatan manual dan impor spreadsheet yang tertaut ke Requirement Feature.
+          <Card
+            ref={testCasesRef}
+            id="qa-test-cases"
+            tabIndex={focusTarget === 'test_cases' ? -1 : undefined}
+            className="p-5 border-stone-200/80 dark:border-stone-800 space-y-4"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-3 dark:border-stone-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                    Pengelolaan &amp; Eksekusi Test Case
+                  </h3>
+                </div>
+                <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
+                  Pembuatan manual dan impor spreadsheet yang tertaut ke Requirement Feature.
+                </p>
+              </div>
+
+              {canAuthorTests && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsImportWizardOpen(true)}
+                    leftIcon={<Upload className="h-3.5 w-3.5" />}
+                  >
+                    Impor Spreadsheet
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setIsTestCaseFormOpen(true)}
+                    disabled={isLoadingRequirementOptions || requirementOptions.length === 0}
+                    title={
+                      isLoadingRequirementOptions
+                        ? 'Memuat Requirement tertaut'
+                        : 'Tautkan minimal satu Requirement aktif ke Feature sebelum membuat Test Case.'
+                    }
+                    leftIcon={<Plus className="h-3.5 w-3.5" />}
+                  >
+                    Test Case Baru
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3 dark:border-stone-800 dark:bg-stone-950/40">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-wider text-stone-500">
+                    Siklus Pengujian / Kandidat
+                  </p>
+                  {isLoadingTestCycles ? (
+                    <Skeleton className="mt-1 h-4 w-56" />
+                  ) : selectedTestCycle ? (
+                    <p className="mt-1 text-xs font-semibold text-stone-800 dark:text-stone-200">
+                      Siklus aktif · {selectedTestCycle.build} · {selectedTestCycle.environment}
                     </p>
-                  </div>
-
-                  {canAuthorTests && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsImportWizardOpen(true)}
-                        leftIcon={<Upload className="h-3.5 w-3.5" />}
-                      >
-                        Impor Spreadsheet
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => setIsTestCaseFormOpen(true)}
-                        disabled={isLoadingRequirementOptions || requirementOptions.length === 0}
-                        title={
-                          isLoadingRequirementOptions
-                            ? 'Memuat Requirement tertaut'
-                            : 'Tautkan minimal satu Requirement aktif ke Feature sebelum membuat Test Case.'
-                        }
-                        leftIcon={<Plus className="h-3.5 w-3.5" />}
-                      >
-                        Test Case Baru
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3 dark:border-stone-800 dark:bg-stone-950/40">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-xs font-extrabold uppercase tracking-wider text-stone-500">
-                        Siklus Pengujian / Kandidat
-                      </p>
-                      {isLoadingTestCycles ? (
-                        <Skeleton className="mt-1 h-4 w-56" />
-                      ) : selectedTestCycle ? (
-                        <p className="mt-1 text-xs font-semibold text-stone-800 dark:text-stone-200">
-                          Siklus aktif · {selectedTestCycle.build} · {selectedTestCycle.environment}
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
-                          Belum ada Siklus Pengujian aktif. Pengujian baru tidak dapat memakai
-                          konteks kandidat yang ambigu.
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {testCycles.length > 0 && (
-                        <Select
-                          value={selectedTestCycleId}
-                          onChange={(event) => setSelectedTestCycleId(event.target.value)}
-                          aria-label="Pilih Siklus Pengujian"
-                          className="min-w-52"
-                        >
-                          <option value="">Pilih Siklus Pengujian</option>
-                          {testCycles.map((cycle) => (
-                            <option key={cycle.id} value={cycle.id}>
-                              {cycle.build} · {cycle.environment}
-                            </option>
-                          ))}
-                        </Select>
-                      )}
-                      {canExecuteTests && (
-                        <Button variant="outline" size="sm" onClick={openTestCycleModal}>
-                          Buat Siklus Pengujian
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {testCycleError && !isTestCycleModalOpen && (
-                    <Alert tone="warning" title="Konteks Siklus Pengujian belum tersedia">
-                      {testCycleError}
-                    </Alert>
-                  )}
-                </div>
-
-                {isLoadingExecutions ? (
-                  <div className="space-y-3">
-                    <Skeleton className="h-24 w-full rounded-2xl" />
-                    <Skeleton className="h-24 w-full rounded-2xl" />
-                  </div>
-                ) : executionPermissionDenied ? (
-                  <Alert tone="warning" title="Akses pengelolaan pengujian dibatasi">
-                    Peran Workspace Anda tidak dapat melihat Test Case yang tersimpan dalam konteks
-                    ini.
-                  </Alert>
-                ) : executionError ? (
-                  <Alert tone="error" title="Eksekusi pengujian tidak dapat dimuat">
-                    <div className="space-y-2">
-                      <p>{executionError}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void loadExecutions()}
-                        aria-label="Muat ulang eksekusi pengujian"
-                      >
-                        Muat ulang eksekusi
-                      </Button>
-                    </div>
-                  </Alert>
-                ) : !executionWorkspace || executionWorkspace.executions.length === 0 ? (
-                  <div className="space-y-3">
-                    {requirementOptionsError ? (
-                      <Alert tone="error" title="Requirement tertaut tidak dapat dimuat">
-                        {requirementOptionsError}
-                      </Alert>
-                    ) : !isLoadingRequirementOptions && requirementOptions.length === 0 ? (
-                      <Alert tone="info" title="Tautkan Requirement sebelum membuat Test Case">
-                        {isPlanner
-                          ? 'Feature ini belum memiliki Requirement aktif yang tertaut. Tautkan minimal satu Requirement aktif ke Feature ini dari panel Requirement agar QA dapat menyusun Test Case.'
-                          : 'Feature ini belum memiliki Requirement aktif yang tertaut. Hubungi Product Owner atau Admin untuk menautkan Requirement ke Feature ini agar Anda dapat menyusun Test Case.'}
-                      </Alert>
-                    ) : null}
-                    <EmptyState
-                      icon={<CheckSquare className="h-6 w-6" />}
-                      title="Belum ada Test Case yang tertaut ke Feature ini"
-                      description="Buat Test Case baru atau impor baris CSV/XLSX yang tertaut ke Requirement."
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {!canExecuteTests && (
-                      <Alert tone="info" title="Pengujian hanya dapat dilihat">
-                        Peran Anda dapat melihat Test Case dan riwayat pengujian. Hanya QA yang
-                        dapat memulai pengujian, mencatat hasil, dan menambahkan bukti.
-                      </Alert>
-                    )}
-
-                    <QaExecutionFilterToolbar
-                      stats={executionStats}
-                      filterOptions={filterOptions}
-                      statusFilter={statusFilter}
-                      onStatusFilterChange={setStatusFilter}
-                      viewMode={viewMode}
-                      onViewModeChange={setViewMode}
-                    />
-
-                    {/* Test Cases Layout (Split or List) */}
-                    {viewMode === 'split' ? (
-                      filteredExecutions.length === 0 ? (
-                        <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-6 text-center dark:border-stone-800 dark:bg-stone-900/40">
-                          <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-                            Tidak ada Test Case dengan status pengujian &quot;{statusFilter}&quot;.
-                          </p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-3"
-                            onClick={() => setStatusFilter('all')}
-                          >
-                            Tampilkan Semua Test Case
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                          {/* Master List Column */}
-                          <div className="lg:col-span-4 flex flex-col gap-2">
-                            <div className="flex items-center justify-between px-1 text-xs font-bold text-stone-600 dark:text-stone-400">
-                              <span>Daftar Kasus ({filteredExecutions.length})</span>
-                              <span className="text-xs font-normal text-stone-400">
-                                Pilih untuk eksekusi
-                              </span>
-                            </div>
-                            <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
-                              {filteredExecutions.map(renderTestCaseMasterItem)}
-                            </div>
-                          </div>
-
-                          {/* Detail Pane Column */}
-                          <div className="lg:col-span-8 min-w-0">
-                            {activeExecution ? (
-                              renderTestCaseDetail(activeExecution)
-                            ) : (
-                              <EmptyState
-                                icon={<CheckSquare className="h-6 w-6" />}
-                                title="Pilih Test Case"
-                                description="Pilih salah satu Test Case dari daftar di sebelah kiri untuk melihat detail atau menjalankan pengujian."
-                              />
-                            )}
-                          </div>
-                        </div>
-                      )
-                    ) : (
-                      <div className="space-y-4">
-                        {filteredExecutions.length === 0 ? (
-                          <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-6 text-center dark:border-stone-800 dark:bg-stone-900/40">
-                            <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-                              Tidak ada Test Case dengan status pengujian &quot;{statusFilter}
-                              &quot;.
-                            </p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mt-3"
-                              onClick={() => setStatusFilter('all')}
-                            >
-                              Tampilkan Semua Test Case
-                            </Button>
-                          </div>
-                        ) : (
-                          filteredExecutions.map(renderTestCaseDetail)
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Card>
-            </section>
-          )}
-
-          {activeWorkflowTab === 'bugs' && (
-            <section
-              role="tabpanel"
-              id="qa-workflow-panel-bugs"
-              aria-label="Bug dan retest"
-              className="space-y-4"
-            >
-              <Card className="space-y-4 border-stone-200/80 p-5 dark:border-stone-800">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Bug className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                      <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                        Bug &amp; Retest
-                      </h3>
-                    </div>
+                  ) : (
                     <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
-                      Catat Bug dari hasil gagal atau terblokir. Retest dimulai dari konteks Bug
-                      pada antrean kerja agar Result lama dan bukti siklus sebelumnya tetap terbaca.
+                      Belum ada Siklus Pengujian aktif. Pengujian baru tidak dapat memakai konteks
+                      kandidat yang ambigu.
                     </p>
-                  </div>
-                  {canOpenBugReport && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => openBugModal()}
-                      disabled={bugTraceOptions.length === 0}
-                      title={
-                        bugTraceOptions.length === 0
-                          ? 'Catat hasil pengujian yang gagal atau terblokir terlebih dahulu'
-                          : 'Buat Bug tertaut'
-                      }
-                      leftIcon={<AlertTriangle className="h-4 w-4" />}
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {testCycles.length > 0 && (
+                    <Select
+                      value={selectedTestCycleId}
+                      onChange={(event) => setSelectedTestCycleId(event.target.value)}
+                      aria-label="Pilih Siklus Pengujian"
+                      className="min-w-52"
                     >
-                      Catat Bug
+                      <option value="">Pilih Siklus Pengujian</option>
+                      {testCycles.map((cycle) => (
+                        <option key={cycle.id} value={cycle.id}>
+                          {cycle.build} · {cycle.environment}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                  {canExecuteTests && (
+                    <Button variant="outline" size="sm" onClick={openTestCycleModal}>
+                      Buat Siklus Pengujian
                     </Button>
                   )}
                 </div>
-                {workflowSummary?.blockers.includes('unverified_bug') ? (
-                  <Alert tone="warning" title="Retest masih diperlukan">
-                    Pilih Bug di bawah untuk melihat setiap perbaikan dan memulai retest pada Siklus
-                    Pengujian yang tepat.
+              </div>
+              {testCycleError && !isTestCycleModalOpen && (
+                <Alert tone="warning" title="Konteks Siklus Pengujian belum tersedia">
+                  {testCycleError}
+                </Alert>
+              )}
+            </div>
+
+            {isLoadingExecutions ? (
+              <div className="space-y-3">
+                <Skeleton className="h-24 w-full rounded-2xl" />
+                <Skeleton className="h-24 w-full rounded-2xl" />
+              </div>
+            ) : executionPermissionDenied ? (
+              <Alert tone="warning" title="Akses pengelolaan pengujian dibatasi">
+                Peran Workspace Anda tidak dapat melihat Test Case yang tersimpan dalam konteks ini.
+              </Alert>
+            ) : executionError ? (
+              <Alert tone="error" title="Eksekusi pengujian tidak dapat dimuat">
+                <div className="space-y-2">
+                  <p>{executionError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void loadExecutions()}
+                    aria-label="Muat ulang eksekusi pengujian"
+                  >
+                    Muat ulang eksekusi
+                  </Button>
+                </div>
+              </Alert>
+            ) : !executionWorkspace || executionWorkspace.executions.length === 0 ? (
+              <div className="space-y-3">
+                {requirementOptionsError ? (
+                  <Alert tone="error" title="Requirement tertaut tidak dapat dimuat">
+                    {requirementOptionsError}
                   </Alert>
-                ) : (
-                  <Alert tone="info" title="Tidak ada retest yang menunggu">
-                    Bug yang sudah memiliki hasil retest tetap dapat dibaca pada riwayat Bug tanpa
-                    menambah tindakan baru di tahap ini.
+                ) : !isLoadingRequirementOptions && requirementOptions.length === 0 ? (
+                  <Alert tone="info" title="Tautkan Requirement sebelum membuat Test Case">
+                    {isPlanner
+                      ? 'Feature ini belum memiliki Requirement aktif yang tertaut. Tautkan minimal satu Requirement aktif ke Feature ini dari panel Requirement agar QA dapat menyusun Test Case.'
+                      : 'Feature ini belum memiliki Requirement aktif yang tertaut. Hubungi Product Owner atau Admin untuk menautkan Requirement ke Feature ini agar Anda dapat menyusun Test Case.'}
+                  </Alert>
+                ) : null}
+                <EmptyState
+                  icon={<CheckSquare className="h-6 w-6" />}
+                  title="Belum ada Test Case yang tertaut ke Feature ini"
+                  description="Buat Test Case baru atau impor baris CSV/XLSX yang tertaut ke Requirement."
+                />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {!canExecuteTests && (
+                  <Alert tone="info" title="Pengujian hanya dapat dilihat">
+                    Peran Anda dapat melihat Test Case dan riwayat pengujian. Hanya QA yang dapat
+                    memulai pengujian, mencatat hasil, dan menambahkan bukti.
                   </Alert>
                 )}
-              </Card>
-              <BugExperiencePanel
-                workspaceId={workspaceId}
-                userRole={userRole}
-                mode="feature"
-                featureTaskId={parentTask?.id || subtask.id}
-                onDataChanged={() => {
-                  void loadWorkflowSummary();
-                  onDataChanged();
-                }}
-                onRetestRunStarted={(qaSubtaskId) => {
-                  if (qaSubtaskId !== subtask.id) return;
-                  setActiveWorkflowTab('preparation');
-                  void loadExecutions();
-                  void loadWorkflowSummary();
-                }}
-              />
-            </section>
-          )}
 
-          {activeWorkflowTab === 'sign_off' && (
-            <section
-              role="tabpanel"
-              id="qa-workflow-panel-sign-off"
-              aria-label="Persetujuan QA dan riwayat"
-              className="space-y-6"
-            >
-              <ReleaseAssurancePanel
-                workspaceId={workspaceId}
-                featureTaskId={parentTask?.id || subtask.id}
-                userRole={userRole}
-                mode="qa"
-                focusWhenReady={focusTarget === 'qa_sign_off'}
-                qaWorkflowSummary={workflowSummary}
-                isQaWorkflowSummaryLoading={isLoadingWorkflowSummary}
-                qaWorkflowSummaryError={workflowSummaryError}
-                onDataChanged={() => {
-                  void loadWorkflowSummary();
-                  onDataChanged();
-                }}
-              />
-              <SubtaskCommentBox
-                comments={comments}
-                currentUserId={currentUserId}
-                members={members}
-                onPostComment={handlePostComment}
-                title="Diskusi Kolaborasi & Masukan QA"
-                maxHeight="max-h-[500px]"
-              />
-            </section>
-          )}
+                <QaExecutionFilterToolbar
+                  stats={executionStats}
+                  filterOptions={filterOptions}
+                  statusFilter={statusFilter}
+                  onStatusFilterChange={setStatusFilter}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                />
+
+                {/* Test Cases Layout (Split or List) */}
+                {viewMode === 'split' ? (
+                  filteredExecutions.length === 0 ? (
+                    <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-6 text-center dark:border-stone-800 dark:bg-stone-900/40">
+                      <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                        Tidak ada Test Case dengan status pengujian &quot;{statusFilter}&quot;.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => setStatusFilter('all')}
+                      >
+                        Tampilkan Semua Test Case
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                      {/* Master List Column */}
+                      <div className="lg:col-span-4 flex flex-col gap-2">
+                        <div className="flex items-center justify-between px-1 text-xs font-bold text-stone-600 dark:text-stone-400">
+                          <span>Daftar Kasus ({filteredExecutions.length})</span>
+                          <span className="text-xs font-normal text-stone-400">
+                            Pilih untuk eksekusi
+                          </span>
+                        </div>
+                        <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
+                          {filteredExecutions.map(renderTestCaseMasterItem)}
+                        </div>
+                      </div>
+
+                      {/* Detail Pane Column */}
+                      <div className="lg:col-span-8 min-w-0">
+                        {activeExecution ? (
+                          renderTestCaseDetail(activeExecution)
+                        ) : (
+                          <EmptyState
+                            icon={<CheckSquare className="h-6 w-6" />}
+                            title="Pilih Test Case"
+                            description="Pilih salah satu Test Case dari daftar di sebelah kiri untuk melihat detail atau menjalankan pengujian."
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="space-y-4">
+                    {filteredExecutions.length === 0 ? (
+                      <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-6 text-center dark:border-stone-800 dark:bg-stone-900/40">
+                        <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                          Tidak ada Test Case dengan status pengujian &quot;{statusFilter}
+                          &quot;.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => setStatusFilter('all')}
+                        >
+                          Tampilkan Semua Test Case
+                        </Button>
+                      </div>
+                    ) : (
+                      filteredExecutions.map(renderTestCaseDetail)
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+        </section>
+      )}
+
+      {activeWorkflowTab === 'bugs' && (
+        <section
+          role="tabpanel"
+          id="qa-workflow-panel-bugs"
+          aria-label="Bug dan retest"
+          className="space-y-4"
+        >
+          <Card className="space-y-4 border-stone-200/80 p-5 dark:border-stone-800">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Bug className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                    Bug &amp; Retest
+                  </h3>
+                </div>
+                <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+                  Catat Bug dari hasil gagal atau terblokir. Retest dimulai dari konteks Bug pada
+                  antrean kerja agar Result lama dan bukti siklus sebelumnya tetap terbaca.
+                </p>
+              </div>
+              {canOpenBugReport && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => openBugModal()}
+                  disabled={bugTraceOptions.length === 0}
+                  title={
+                    bugTraceOptions.length === 0
+                      ? 'Catat hasil pengujian yang gagal atau terblokir terlebih dahulu'
+                      : 'Buat Bug tertaut'
+                  }
+                  leftIcon={<AlertTriangle className="h-4 w-4" />}
+                >
+                  Catat Bug
+                </Button>
+              )}
+            </div>
+            {workflowSummary?.blockers.includes('unverified_bug') ? (
+              <Alert tone="warning" title="Retest masih diperlukan">
+                Pilih Bug di bawah untuk melihat setiap perbaikan dan memulai retest pada Siklus
+                Pengujian yang tepat.
+              </Alert>
+            ) : (
+              <Alert tone="info" title="Tidak ada retest yang menunggu">
+                Bug yang sudah memiliki hasil retest tetap dapat dibaca pada riwayat Bug tanpa
+                menambah tindakan baru di tahap ini.
+              </Alert>
+            )}
+          </Card>
+          <BugExperiencePanel
+            workspaceId={workspaceId}
+            userRole={userRole}
+            mode="feature"
+            featureTaskId={parentTask?.id || subtask.id}
+            onDataChanged={() => {
+              void loadWorkflowSummary();
+              onDataChanged();
+            }}
+            onRetestRunStarted={(qaSubtaskId) => {
+              if (qaSubtaskId !== subtask.id) return;
+              setActiveWorkflowTab('preparation');
+              void loadExecutions();
+              void loadWorkflowSummary();
+            }}
+          />
+        </section>
+      )}
+
+      {activeWorkflowTab === 'sign_off' && (
+        <section
+          role="tabpanel"
+          id="qa-workflow-panel-sign-off"
+          aria-label="Persetujuan QA dan riwayat"
+          className="space-y-6"
+        >
+          <ReleaseAssurancePanel
+            workspaceId={workspaceId}
+            featureTaskId={parentTask?.id || subtask.id}
+            userRole={userRole}
+            mode="qa"
+            focusWhenReady={focusTarget === 'qa_sign_off'}
+            qaWorkflowSummary={workflowSummary}
+            isQaWorkflowSummaryLoading={isLoadingWorkflowSummary}
+            qaWorkflowSummaryError={workflowSummaryError}
+            onDataChanged={() => {
+              void loadWorkflowSummary();
+              onDataChanged();
+            }}
+          />
+          <SubtaskCommentBox
+            comments={comments}
+            currentUserId={currentUserId}
+            members={members}
+            onPostComment={handlePostComment}
+            title="Diskusi Kolaborasi & Masukan QA"
+            maxHeight="max-h-[500px]"
+          />
+        </section>
+      )}
 
       {/* Start Test Run Modal */}
       <Modal

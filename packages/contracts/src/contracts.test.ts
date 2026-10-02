@@ -1484,7 +1484,7 @@ describe('Contracts Validation Suite', () => {
       });
 
       assert.strictEqual(contextualBug.requirement.code, 'REQ-CHECKOUT');
-      assert.strictEqual(contextualBug.originatingTestResult.testRun.environment, 'staging');
+      assert.strictEqual(contextualBug.originatingTestResult?.testRun.environment, 'staging');
     });
 
     test('validates contextual retest input and an unbounded cycle-oriented history', () => {

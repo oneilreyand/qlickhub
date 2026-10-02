@@ -9,11 +9,21 @@ import workspaceReducer from '../../../../store/workspaceSlice';
 import taskReducer from '../../../../store/taskSlice';
 import uiReducer from '../../../../store/uiSlice';
 import { capacityService } from '../../../../lib/api/capacityService';
-import type { Task } from '@qlick/contracts';
+import { requirementService } from '../../../../lib/api/requirementService';
+import type { Task, Requirement } from '@qlick/contracts';
 
 vi.mock('../../../../lib/api/capacityService', () => ({
   capacityService: {
     previewAssignmentConflict: vi.fn(),
+  },
+}));
+
+vi.mock('../../../../lib/api/requirementService', () => ({
+  requirementService: {
+    listRequirements: vi.fn().mockResolvedValue([]),
+    listTaskRequirementLinks: vi.fn().mockResolvedValue([]),
+    linkRequirement: vi.fn().mockResolvedValue({}),
+    unlinkRequirement: vi.fn().mockResolvedValue({}),
   },
 }));
 
@@ -23,6 +33,33 @@ vi.mock('../../../../lib/api/taskService', () => ({
     updateTask: vi.fn().mockResolvedValue({}),
   },
 }));
+
+const mockRequirements: Requirement[] = [
+  {
+    id: 'req-1',
+    workspaceId: 'ws-1',
+    code: 'REQ-101',
+    title: 'State Machine Spec',
+    description: 'Spec details',
+    url: null,
+    status: 'active',
+    createdBy: 'po-1',
+    createdAt: '2026-08-01T00:00:00.000Z',
+    updatedAt: '2026-08-01T00:00:00.000Z',
+  },
+  {
+    id: 'req-2',
+    workspaceId: 'ws-1',
+    code: 'REQ-102',
+    title: 'API Status Transition Spec',
+    description: 'Transition details',
+    url: null,
+    status: 'active',
+    createdBy: 'po-1',
+    createdAt: '2026-08-01T00:00:00.000Z',
+    updatedAt: '2026-08-01T00:00:00.000Z',
+  },
+];
 
 const mockSubtask: Task = {
   id: 'subtask-123',
@@ -154,5 +191,246 @@ describe('SubtaskAccordionItem Component', () => {
     // Verify "Simpan Detail" button is still accessible and enabled
     const saveBtn = screen.getByRole('button', { name: 'Simpan Detail' });
     expect(saveBtn).toBeEnabled();
+  });
+
+  test('displays covered requirements and links selected requirement on save', async () => {
+    vi.mocked(requirementService.listTaskRequirementLinks).mockResolvedValueOnce([
+      {
+        id: 'link-1',
+        workspaceId: 'ws-1',
+        taskId: 'subtask-123',
+        requirementId: 'req-1',
+        linkedBy: 'po-1',
+        createdAt: '2026-08-01T00:00:00.000Z',
+      },
+    ]);
+
+    const store = configureStore({
+      reducer: {
+        workspace: workspaceReducer,
+        task: taskReducer,
+        ui: uiReducer,
+      },
+      preloadedState: {
+        workspace: {
+          workspaces: [
+            {
+              id: 'ws-1',
+              name: 'Test Workspace',
+              slug: 'test-workspace',
+              role: 'po' as const,
+              ownerId: 'po-1',
+              createdAt: '2026-01-01',
+              updatedAt: '2026-01-01',
+            },
+          ],
+          activeWorkspaceId: 'ws-1',
+          members: mockMembers as any,
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: true,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Accordion>
+            <SubtaskAccordionItem
+              subtask={mockSubtask}
+              workspaceId="ws-1"
+              currentUserId="po-1"
+              eligibleRequirements={mockRequirements}
+              members={mockMembers}
+              canMutate={true}
+              canPlan={true}
+            />
+          </Accordion>
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    // Open accordion
+    const trigger = screen.getByRole('button', { name: /Subtask UI Implementation/i });
+    fireEvent.click(trigger);
+
+    // Switch to Detail tab
+    const detailTab = await screen.findByRole('tab', { name: /Detail/i });
+    fireEvent.click(detailTab);
+
+    // Verify requirements section and pre-checked state
+    const req1Checkbox = await screen.findByLabelText(/REQ-101 — State Machine Spec/i);
+    const req2Checkbox = await screen.findByLabelText(/REQ-102 — API Status Transition Spec/i);
+
+    expect(req1Checkbox).toBeChecked();
+    expect(req2Checkbox).not.toBeChecked();
+
+    // Check req2
+    fireEvent.click(req2Checkbox);
+    expect(req2Checkbox).toBeChecked();
+
+    // Click "Simpan Detail"
+    const saveBtn = screen.getByRole('button', { name: 'Simpan Detail' });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(requirementService.linkRequirement).toHaveBeenCalledWith(
+        'ws-1',
+        'subtask-123',
+        'req-2',
+      );
+      expect(requirementService.unlinkRequirement).not.toHaveBeenCalled();
+    });
+  });
+
+  test('unlinks requirement when unchecked and saved', async () => {
+    vi.mocked(requirementService.listTaskRequirementLinks).mockResolvedValueOnce([
+      {
+        id: 'link-1',
+        workspaceId: 'ws-1',
+        taskId: 'subtask-123',
+        requirementId: 'req-1',
+        linkedBy: 'po-1',
+        createdAt: '2026-08-01T00:00:00.000Z',
+      },
+    ]);
+
+    const store = configureStore({
+      reducer: {
+        workspace: workspaceReducer,
+        task: taskReducer,
+        ui: uiReducer,
+      },
+      preloadedState: {
+        workspace: {
+          workspaces: [
+            {
+              id: 'ws-1',
+              name: 'Test Workspace',
+              slug: 'test-workspace',
+              role: 'po' as const,
+              ownerId: 'po-1',
+              createdAt: '2026-01-01',
+              updatedAt: '2026-01-01',
+            },
+          ],
+          activeWorkspaceId: 'ws-1',
+          members: mockMembers as any,
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: true,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Accordion>
+            <SubtaskAccordionItem
+              subtask={mockSubtask}
+              workspaceId="ws-1"
+              currentUserId="po-1"
+              eligibleRequirements={mockRequirements}
+              members={mockMembers}
+              canMutate={true}
+              canPlan={true}
+            />
+          </Accordion>
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    // Open accordion
+    const trigger = screen.getByRole('button', { name: /Subtask UI Implementation/i });
+    fireEvent.click(trigger);
+
+    // Switch to Detail tab
+    const detailTab = await screen.findByRole('tab', { name: /Detail/i });
+    fireEvent.click(detailTab);
+
+    // Uncheck req1
+    const req1Checkbox = await screen.findByLabelText(/REQ-101 — State Machine Spec/i);
+    expect(req1Checkbox).toBeChecked();
+    fireEvent.click(req1Checkbox);
+    expect(req1Checkbox).not.toBeChecked();
+
+    // Click "Simpan Detail"
+    const saveBtn = screen.getByRole('button', { name: 'Simpan Detail' });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(requirementService.unlinkRequirement).toHaveBeenCalledWith(
+        'ws-1',
+        'subtask-123',
+        'req-1',
+      );
+    });
+  });
+
+  test('shows empty notice when no eligible requirements exist in parent feature', async () => {
+    vi.mocked(requirementService.listTaskRequirementLinks).mockResolvedValueOnce([]);
+
+    const store = configureStore({
+      reducer: {
+        workspace: workspaceReducer,
+        task: taskReducer,
+        ui: uiReducer,
+      },
+      preloadedState: {
+        workspace: {
+          workspaces: [
+            {
+              id: 'ws-1',
+              name: 'Test Workspace',
+              slug: 'test-workspace',
+              role: 'po' as const,
+              ownerId: 'po-1',
+              createdAt: '2026-01-01',
+              updatedAt: '2026-01-01',
+            },
+          ],
+          activeWorkspaceId: 'ws-1',
+          members: mockMembers as any,
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: true,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Accordion>
+            <SubtaskAccordionItem
+              subtask={mockSubtask}
+              workspaceId="ws-1"
+              currentUserId="po-1"
+              eligibleRequirements={[]}
+              members={mockMembers}
+              canMutate={true}
+              canPlan={true}
+            />
+          </Accordion>
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    // Open accordion
+    const trigger = screen.getByRole('button', { name: /Subtask UI Implementation/i });
+    fireEvent.click(trigger);
+
+    // Switch to Detail tab
+    const detailTab = await screen.findByRole('tab', { name: /Detail/i });
+    fireEvent.click(detailTab);
+
+    expect(
+      await screen.findByText(/Belum ada Requirement aktif yang terhubung ke Feature ini/i),
+    ).toBeInTheDocument();
   });
 });

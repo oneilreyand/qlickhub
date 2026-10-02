@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FileText, MessageSquare, Settings, AlertCircle, Trash2 } from 'lucide-react';
 import type {
   Task,
@@ -6,6 +6,7 @@ import type {
   TaskComment,
   DeliveryArea,
   DeveloperSpecialty,
+  Requirement,
 } from '@qlick/contracts';
 import { getTaskScheduleValidationIssue } from '@qlick/contracts';
 import {
@@ -21,10 +22,13 @@ import { Tabs, TabItem } from '../molecules/Tabs';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
 import { Input } from '../atoms/Input';
+import { Checkbox } from '../atoms/Checkbox';
+import { Skeleton } from '../atoms/Skeleton';
 import { LoadingSpinner } from '../atoms/LoadingSpinner';
 import { Alert } from '../atoms/Alert';
 import { Modal } from '../molecules/Modal';
 import { taskService } from '../../../lib/api/taskService';
+import { requirementService } from '../../../lib/api/requirementService';
 import { useAssignmentConflictPreview } from '../../../lib/hooks/useAssignmentConflictPreview';
 import { AssignmentConflictBanner } from '../molecules/AssignmentConflictBanner';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -36,6 +40,7 @@ export interface SubtaskAccordionItemProps {
   subtask: Task;
   workspaceId: string;
   currentUserId?: string;
+  eligibleRequirements?: Requirement[];
   members?: Array<{
     userId: string;
     role: string;
@@ -54,6 +59,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   subtask,
   workspaceId,
   currentUserId,
+  eligibleRequirements,
   members = [],
   canMutate = true,
   canPlan = false,
@@ -84,6 +90,16 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [hasUnreadComment, setHasUnreadComment] = useState(initialUnreadCount > 0);
   const [unreadCommentCount, setUnreadCommentCount] = useState(initialUnreadCount);
+
+  // Subtask covered requirements data
+  const [eligibleRequirementsList, setEligibleRequirementsList] = useState<Requirement[]>(
+    eligibleRequirements || [],
+  );
+  const [selectedRequirementIds, setSelectedRequirementIds] = useState<string[]>([]);
+  const [initialLinkedRequirementIds, setInitialLinkedRequirementIds] = useState<string[]>([]);
+  const [isRequirementsLoading, setIsRequirementsLoading] = useState(false);
+  const [requirementsError, setRequirementsError] = useState<string | null>(null);
+  const hasLoadedRequirementsRef = useRef(false);
 
   useEffect(() => {
     if (initialUnreadCount > 0) {
@@ -267,11 +283,62 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
     }
   };
 
+  const loadRequirementData = useCallback(async () => {
+    if (!workspaceId || !subtask.id) return;
+    setIsRequirementsLoading(true);
+    setRequirementsError(null);
+    try {
+      const promises: [Promise<any>, Promise<any>] = [
+        requirementService.listTaskRequirementLinks(workspaceId, subtask.id),
+        eligibleRequirements && eligibleRequirements.length > 0
+          ? Promise.resolve(eligibleRequirements)
+          : subtask.parentTaskId
+            ? Promise.all([
+                requirementService.listRequirements(workspaceId),
+                requirementService.listTaskRequirementLinks(workspaceId, subtask.parentTaskId),
+              ]).then(([allReqs, parentLinks]) => {
+                const parentLinkedIds = new Set(
+                  (parentLinks || []).map((l: any) => l.requirementId),
+                );
+                return (allReqs || []).filter(
+                  (r: Requirement) => r.status === 'active' && parentLinkedIds.has(r.id),
+                );
+              })
+            : Promise.resolve([]),
+      ];
+
+      const [subtaskLinks, eligible] = await Promise.all(promises);
+      const linkedIds = (subtaskLinks || []).map((l: any) => l.requirementId);
+      setInitialLinkedRequirementIds(linkedIds);
+      setSelectedRequirementIds(linkedIds);
+      setEligibleRequirementsList(eligible || []);
+      hasLoadedRequirementsRef.current = true;
+    } catch (err) {
+      setRequirementsError(
+        err instanceof Error ? err.message : 'Requirement tertaut gagal dimuat.',
+      );
+    } finally {
+      setIsRequirementsLoading(false);
+    }
+  }, [workspaceId, subtask.id, subtask.parentTaskId, eligibleRequirements]);
+
   useEffect(() => {
     if (isItemExpanded && !hasLoadedData && !isLoadingData) {
       void loadSubtaskData();
     }
   }, [isItemExpanded, hasLoadedData, isLoadingData]);
+
+  useEffect(() => {
+    if (isItemExpanded && activeTab === 'settings' && !hasLoadedRequirementsRef.current) {
+      void loadRequirementData();
+    }
+  }, [isItemExpanded, activeTab, loadRequirementData]);
+
+  useEffect(() => {
+    if (eligibleRequirements && eligibleRequirements.length > 0) {
+      setEligibleRequirementsList(eligibleRequirements);
+    }
+  }, [eligibleRequirements]);
 
   const handleSaveDescription = async (newDescription: string) => {
     try {
@@ -381,7 +448,38 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
         reviewNotes: reviewNotes || null,
         deliveryArea: deliveryArea === '' ? undefined : deliveryArea,
       });
-      dispatch(enqueueSnackbar('Detail Subtask berhasil diperbarui', 'success'));
+
+      let requirementsChanged = false;
+      if (hasLoadedRequirementsRef.current) {
+        const toLink = selectedRequirementIds.filter(
+          (id) => !initialLinkedRequirementIds.includes(id),
+        );
+        const toUnlink = initialLinkedRequirementIds.filter(
+          (id) => !selectedRequirementIds.includes(id),
+        );
+
+        if (toLink.length > 0 || toUnlink.length > 0) {
+          requirementsChanged = true;
+          await Promise.all([
+            ...toLink.map((reqId) =>
+              requirementService.linkRequirement(workspaceId, subtask.id, reqId),
+            ),
+            ...toUnlink.map((reqId) =>
+              requirementService.unlinkRequirement(workspaceId, subtask.id, reqId),
+            ),
+          ]);
+          setInitialLinkedRequirementIds([...selectedRequirementIds]);
+        }
+      }
+
+      dispatch(
+        enqueueSnackbar(
+          requirementsChanged
+            ? 'Detail Subtask dan tautan Requirement berhasil diperbarui'
+            : 'Detail Subtask berhasil diperbarui',
+          'success',
+        ),
+      );
       onSubtaskUpdated?.(updated);
     } catch (err) {
       dispatch(
@@ -664,6 +762,71 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     placeholder="e.g. Please add error handling for 422 before marking done"
                     disabled={!canMutate || !isPlanner}
                   />
+                </div>
+
+                {/* Requirements Covered Section */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-stone-700 dark:text-stone-300">
+                        Requirement yang Dicakup
+                      </p>
+                      <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                        Pilih Requirement aktif dari Feature induk yang dikerjakan oleh Subtask ini.
+                      </p>
+                    </div>
+                    {hasLoadedRequirementsRef.current && (
+                      <span className="text-[11px] font-bold text-stone-600 dark:text-stone-400">
+                        {selectedRequirementIds.length} tertaut
+                      </span>
+                    )}
+                  </div>
+
+                  {isRequirementsLoading ? (
+                    <div aria-label="Memuat Requirement tertaut" className="space-y-1.5">
+                      <Skeleton className="h-9 w-full rounded-xl" />
+                      <Skeleton className="h-9 w-full rounded-xl" />
+                    </div>
+                  ) : requirementsError ? (
+                    <Alert tone="error">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <span>{requirementsError}</span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void loadRequirementData()}
+                        >
+                          Coba Lagi
+                        </Button>
+                      </div>
+                    </Alert>
+                  ) : eligibleRequirementsList.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50 p-3 text-xs text-stone-500 dark:border-stone-800 dark:bg-stone-950/50 dark:text-stone-400">
+                      Belum ada Requirement aktif yang terhubung ke Feature ini. Tautkan atau buat
+                      Requirement di tab Requirement terlebih dahulu.
+                    </div>
+                  ) : (
+                    <div className="max-h-40 space-y-1 overflow-y-auto rounded-xl border border-stone-200 p-2.5 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-950/30">
+                      {eligibleRequirementsList.map((requirement) => (
+                        <Checkbox
+                          key={requirement.id}
+                          id={`subtask-${subtask.id}-req-${requirement.id}`}
+                          label={`${requirement.code} — ${requirement.title}`}
+                          checked={selectedRequirementIds.includes(requirement.id)}
+                          disabled={!canMutate || !isPlanner}
+                          onChange={() =>
+                            setSelectedRequirementIds((current) =>
+                              current.includes(requirement.id)
+                                ? current.filter((id) => id !== requirement.id)
+                                : [...current, requirement.id],
+                            )
+                          }
+                          className="w-full text-xs"
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {canMutate && isPlanner && (

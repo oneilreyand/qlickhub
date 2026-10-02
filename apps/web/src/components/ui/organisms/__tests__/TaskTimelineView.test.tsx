@@ -163,6 +163,14 @@ describe('TaskTimelineView', () => {
         startDate: '2026-09-01',
         dueDate: '2026-09-05',
         status: 'in_progress',
+        scheduleHealth: {
+          status: 'delayed',
+          label: 'Terlambat 2 hari',
+          daysRemaining: null,
+          daysOverdue: 2,
+          isOverdue: true,
+          isCompleted: false,
+        },
       },
       {
         ...mockTasks[1],
@@ -344,9 +352,7 @@ describe('TaskTimelineView', () => {
 
     // Verify Today marker floating badge ("Hari Ini") is positioned inside Sept 17 column (day 7 to day 8: 24.1379% to 27.5862%)
     const todayBadges = screen.getAllByText('Hari Ini');
-    const floatingPinBadge = todayBadges.find((el) =>
-      el.className.includes('rounded-full'),
-    );
+    const floatingPinBadge = todayBadges.find((el) => el.className.includes('rounded-full'));
     expect(floatingPinBadge).toBeDefined();
     const todayMarkerLine = floatingPinBadge!.closest('.absolute.top-0.bottom-0');
     expect(todayMarkerLine).not.toBeNull();
@@ -379,4 +385,3 @@ describe('TaskTimelineView', () => {
     expect(weekColHeader?.className).toContain('bg-amber-50/60');
   });
 });
-
