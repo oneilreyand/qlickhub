@@ -25,13 +25,13 @@
         "npm run validate (local macOS): docs:check 12 passed, 0 failed, 0 skipped; lint 0 errors, 37 pre-existing warnings; typecheck passed",
         "node scripts/checkDocs.mjs with the old ADR-016 Workload file present: failed with 2 expected ADR errors"
       ],
-      "notes": "Approval recorded after implementation; the record covers the exact committed scope of PR #12."
+      "notes": "GitHub Owner approval verified at issue comment 5953829178 (posted after implementation; covers the exact committed scope of PR #12). Independent pull-request review and merge remain pending."
     }
   },
   "approval": {
     "authority": "github",
-    "recordUrl": "REPLACE_WITH_COMMENT_URL",
-    "recordId": "REPLACE_WITH_COMMENT_ID",
+    "recordUrl": "https://github.com/oneilreyand/qlickhub/issues/1#issuecomment-5953829178",
+    "recordId": "5953829178",
     "planDigest": "sha256:3881714d0370164e04b4cc32114b9544813a9e5c294f0c797f0e6fbb2fea3114",
     "baselineCommit": "c67d532c4773f5bf9e11fbfebbbe30efce2fb268",
     "approvedBy": "oneilreyand",
