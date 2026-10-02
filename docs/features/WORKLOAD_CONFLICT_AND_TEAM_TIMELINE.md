@@ -3,17 +3,19 @@
 **Status:** Active  
 **Owner:** Engineering and Product  
 **Last reviewed:** 2026-09-25  
-**Applicable Policy IDs:** `AUTH-001`, `AUTH-002`, `AUTH-004`, `AUTH-011`, `FLOW-002`, `FLOW-004`, `FLOW-007`, `DATA-001`, `DATA-002`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`  
+**Applicable Policy IDs:** `AUTH-001`, `AUTH-002`, `AUTH-004`, `AUTH-011`, `FLOW-002`, `FLOW-004`, `FLOW-007`, `DATA-001`, `DATA-002`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`
 
 ## 1. Tujuan dan Pengguna
 
 Fitur ini memberikan transparansi beban kerja tim kepada Product Owner, Workspace Admin, dan Owner saat merencanakan atau mengubah Subtask. Sistem menyajikan deteksi irisan jadwal (Workload Conflict) secara advisory ketika pelaksana dan tanggal dipilih, serta menyediakan halaman visual khusus **Timeline Tim** pada rute `/reports`.
 
 Pengguna fitur ini adalah:
+
 - **Product Owner, Admin, dan Owner**: Mengatur penugasan Subtask, mengantisipasi bentrokan jadwal anggota tim, dan memantau kapasitas tim secara visual.
 - **Developer dan QA**: Memahami alokasi waktu dan timeline kerja tim tanpa dibebani izin planning yang tidak sah.
 
 Hal yang tidak termasuk dalam cakupan:
+
 - Pemblokiran mutasi task (penugasan bersifat murni advisory).
 - Auto-reassignment atau otomatisasi prioritas tanpa persetujuan manusia.
 - Hak planning baru bagi Developer dan QA.
@@ -34,8 +36,8 @@ Hal yang tidak termasuk dalam cakupan:
 - **REQ-CAPACITY-4**: Halaman Timeline Tim (`/reports`).
   - **AC-CAPACITY-9**: Halaman `/reports` dikosongkan dari dashboard analitik/chart lama dan menyajikan komponen `TeamCapacityTimeline`.
   - **AC-CAPACITY-10**: Timeline Tim mendukung skala Hari, Minggu, Bulan, dan pemilih rentang tanggal kustom.
-  - **AC-CAPACITY-11**: Terdapat filter anggota, role, delivery area, status, serta scope Workspace (Workspace aktif vs Semua).
-  - **AC-CAPACITY-12**: Satu baris per anggota dengan bar Subtask sesuai jadwal persisted, penanda "Hari Ini", scroll horizontal responsif, dan daftar khusus beban tanpa jadwal.
+  - **AC-CAPACITY-11**: Terdapat filter anggota, role delivery, delivery area, status, serta scope Workspace (Workspace aktif vs Semua).
+  - **AC-CAPACITY-12**: Satu baris per anggota delivery (`dev`, `qa`) dengan bar Subtask aktif sesuai jadwal persisted, penanda "Hari Ini", scroll horizontal responsif, pemilih rentang tanggal kustom, ringkasan kerja di luar rentang, dan daftar khusus beban tanpa jadwal. Owner, Admin, dan PO bukan baris kapasitas delivery.
   - **AC-CAPACITY-13**: Warning konflik pada modal/accordion menyediakan tautan ke `/reports` dengan assignee dan rentang tanggal terfilter otomatis.
 
 ## 3. Alur Lintas Peran
@@ -77,6 +79,7 @@ Hal yang tidak termasuk dalam cakupan:
 - **`AUTH-002`**: Otorisasi ditegakkan di backend middleware dan policy, bukan di UI.
 - **`AUTH-004` & `FLOW-002`**: Hak akses `POST /assignment-preview` dibatasi pada role `owner`, `admin`, `po`. Role `dev` dan `qa` ditolak `403 Forbidden`.
 - **`AUTH-011`**: Redaksi otomatis diterapkan di backend jika data subtask berasal dari Workspace yang tidak dapat diakses oleh aktor.
+- **Kapasitas delivery:** Timeline menghitung Subtask aktif `todo`, `in_progress`, `in_review`, dan `changes_requested` untuk anggota delivery saja. Subtask `done` dan `canceled` tidak dihitung sebagai kapasitas aktif.
 
 ## 7. UI dan Interaction States
 
@@ -92,7 +95,7 @@ Hal yang tidak termasuk dalam cakupan:
   - **Error & Retry**: Pesan kesalahan tersanitasi disertai tombol coba lagi jika koneksi gagal.
   - **Disabled**: Tombol atau kontrol dinonaktifkan saat sedang submit atau memuat.
   - **Permission-denied**: Peringatan akses ditolak jika mencoba mengakses resource tanpa izin.
-- Aksesibilitas & Tema: Mengikuti Stitch design system (`#B1E743`, font Inter, dark/light contrast WCAG AAA, atribut ARIA, fokus keyboard).
+- Aksesibilitas & Tema: Mengikuti Stitch design system (`#B1E743`, font Inter, baseline WCAG 2.2 AA dengan AAA hanya pada pasangan warna yang diverifikasi, atribut ARIA, fokus keyboard).
 
 ## 8. Pengujian dan Evidence
 
@@ -107,7 +110,7 @@ Hal yang tidak termasuk dalam cakupan:
 - **Frontend Tests**:
   - `CreateSubtaskModal.test.tsx`: Render preview, banner konflik, deep link ke `/reports`, non-blocking submission.
   - `SubtaskAccordionItem.test.tsx`: Trigger preview pada edit detail subtask dengan `excludeSubtaskId`.
-  - `TeamCapacityTimeline.test.tsx`: Render skala waktu, bar per anggota, daftar beban tanpa jadwal, penanda Hari Ini.
+  - `TeamCapacityTimeline.test.tsx`: Render skala waktu, rentang tanggal kustom, bar per anggota delivery, daftar beban tanpa jadwal, item di luar rentang, detail Task on-demand, dan penanda Hari Ini.
   - `ReportPage.test.tsx`: Render murni Timeline Tim dan inisialisasi filter dari search parameters.
 
 ## 9. Release dan Readiness

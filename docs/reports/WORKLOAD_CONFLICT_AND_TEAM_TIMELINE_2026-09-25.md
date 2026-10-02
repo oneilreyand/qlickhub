@@ -32,7 +32,7 @@ Perubahan utama yang dihadirkan:
    - `ReportPage.tsx` — Halaman `/reports` dikosongkan dari dashboard/laporan lama dan kini menjadi host tunggal `TeamCapacityTimeline`; URL params (`memberId`, `startDate`, `endDate`, `scale`, `scope`) diteruskan dari search params.
 
 5. **Dokumentasi & ADR:**
-   - `docs/adr/ADR-016-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md` — ADR untuk kebijakan privacy lintas Workspace.
+   - `docs/adr/ADR-024-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md` — ADR untuk kebijakan privacy lintas Workspace (dinomori ulang untuk menghapus duplikasi ADR-016).
    - `docs/features/WORKLOAD_CONFLICT_AND_TEAM_TIMELINE.md` — Feature Card lengkap.
    - `docs/1_ARCHITECTURE.md` — Catatan AUTH-011 dan FLOW-007.
    - `docs/2_WORKFLOW_AND_ROLES.md` — Catatan FLOW-007.
@@ -49,6 +49,7 @@ Perubahan utama yang dihadirkan:
 ## Changed files
 
 ### Backend
+
 - `apps/api/src/app.ts` — Mendaftarkan `capacityRouter` di `/workspaces/:workspaceId/capacity`.
 - `apps/api/src/db/migrations/20260925000085-add-tasks-assignee-schedule-status-index.cjs` — [NEW] Additive composite index.
 - `apps/api/src/modules/capacity/capacityController.ts` — [NEW] Controller dua endpoint.
@@ -57,11 +58,13 @@ Perubahan utama yang dihadirkan:
 - `apps/api/src/modules/capacity/__tests__/capacityApiIntegration.test.js` — [NEW] 9 integration tests (real PostgreSQL).
 
 ### Contracts
+
 - `packages/contracts/src/capacity.ts` — [NEW] Semua skema kapasitas/konflik.
 - `packages/contracts/src/index.ts` — Re-export skema baru.
 - `packages/contracts/src/contracts.test.ts` — 4 contract tests baru.
 
 ### Frontend
+
 - `apps/web/src/lib/api/capacityService.ts` — [NEW] API client.
 - `apps/web/src/lib/hooks/useAssignmentConflictPreview.ts` — [NEW] Debounced conflict preview hook.
 - `apps/web/src/components/ui/molecules/AssignmentConflictBanner.tsx` — [NEW] Advisory conflict banner molecule.
@@ -77,7 +80,8 @@ Perubahan utama yang dihadirkan:
 - `apps/web/src/pages/__tests__/ReportPage.test.tsx` — [NEW] 3 unit tests.
 
 ### Docs
-- `docs/adr/ADR-016-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md` — [NEW] ADR.
+
+- `docs/adr/ADR-024-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md` — [NEW] ADR (dinomori ulang untuk menghapus duplikasi ADR-016).
 - `docs/features/WORKLOAD_CONFLICT_AND_TEAM_TIMELINE.md` — [NEW] Feature Card.
 - `docs/1_ARCHITECTURE.md` — Catatan AUTH-011 dan FLOW-007.
 - `docs/2_WORKFLOW_AND_ROLES.md` — Catatan FLOW-007.
@@ -88,10 +92,13 @@ Perubahan utama yang dihadirkan:
 ## Validation
 
 ### Backend Integration Tests (Real PostgreSQL)
+
 ```
 node --test apps/api/dist/modules/capacity/__tests__/capacityApiIntegration.test.js
 ```
+
 **Hasil: 9/9 lulus (100%)**
+
 - ✅ POST /assignment-preview → 200 dengan konflik terdeteksi
 - ✅ POST /assignment-preview → 200 tanpa konflik
 - ✅ POST /assignment-preview → 200 abaikan subtask done/canceled
@@ -103,13 +110,17 @@ node --test apps/api/dist/modules/capacity/__tests__/capacityApiIntegration.test
 - ✅ GET /timeline → 403 non-member workspace
 
 ### Contract Tests
+
 ```
 npm --prefix packages/contracts run test
 ```
+
 **Hasil: 77/77 lulus (100%)**
+
 - 4 test baru: `AssignmentConflictPreviewResponse`, `TeamCapacityTimelineResponse`, unscheduled items, redacted cross-workspace items.
 
 ### Frontend Unit Tests
+
 ```
 npm --prefix apps/web run test -- src/components/ui/molecules/__tests__/AssignmentConflictBanner.test.tsx
 npm --prefix apps/web run test -- src/components/ui/organisms/__tests__/TeamCapacityTimeline.test.tsx
@@ -117,7 +128,9 @@ npm --prefix apps/web run test -- src/components/ui/organisms/__tests__/CreateSu
 npm --prefix apps/web run test -- src/components/ui/organisms/__tests__/SubtaskAccordionItem.test.tsx
 npm --prefix apps/web run test -- src/pages/__tests__/ReportPage.test.tsx
 ```
+
 **Hasil: 17/17 lulus (100%)**
+
 - `AssignmentConflictBanner.test.tsx`: 5/5 (null/no-conflict/loading/error/full conflict + redacted)
 - `TeamCapacityTimeline.test.tsx`: 5/5 (fetch+render, unscheduled expand, modal open, redacted modal, error+retry)
 - `CreateSubtaskModal.test.tsx`: 3/3 (existing + advisory banner + submission tetap bisa)
@@ -125,15 +138,19 @@ npm --prefix apps/web run test -- src/pages/__tests__/ReportPage.test.tsx
 - `ReportPage.test.tsx`: 3/3 (loading spinner, empty workspace, URL params forwarded)
 
 ### Build
+
 ```
 npm --prefix apps/web run build
 ```
+
 **Hasil: Exit code 0, 1.719 modul, dist/ terbentuk**
 
 ### Docs Check
+
 ```
 npm run docs:check
 ```
+
 **Hasil: 5/5 lulus**
 
 ## Known gaps

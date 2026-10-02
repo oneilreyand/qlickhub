@@ -9,6 +9,7 @@ import {
   FileBarChart,
   CheckSquare,
   BookOpen,
+  Crown,
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { selectCurrentUserRole } from '../../store/authSlice';
@@ -48,6 +49,12 @@ const navItems: NavItem[] = [
     icon: FileBarChart,
   },
   {
+    name: 'Leader Hub',
+    path: '/leader-hub',
+    icon: Crown,
+    badge: 'Leader',
+  },
+  {
     name: 'Panduan Alur Kerja',
     path: '/user-flows',
     icon: BookOpen,
@@ -81,11 +88,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   ).toLowerCase();
   const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
   const canAccessUISystem = userRole === 'owner';
+  const canAccessLeaderHub = ['owner', 'admin'].includes(userRole);
 
   // Mobile drawers always render expanded navigation.
   const isExpanded = isHovered || Boolean(onCloseMobile);
 
   const visibleNavItems = navItems.filter((item) => {
+    if (item.path === '/leader-hub') {
+      return canAccessLeaderHub;
+    }
     if (item.path === '/user-flows') {
       return featureVisibility.userFlowGuide;
     }

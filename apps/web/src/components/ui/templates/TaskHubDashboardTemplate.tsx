@@ -427,6 +427,14 @@ export const TaskHubDashboardTemplate: React.FC = () => {
 
   // Metrics calculation
   const totalTasksCount = hubTasks.length;
+  const totalSubtasksCount = useMemo(() => {
+    return hubTasks.reduce((acc, t) => {
+      if (t.subtaskSummary) {
+        return acc + t.subtaskSummary.total;
+      }
+      return acc + (t.subtasks?.length || 0);
+    }, 0);
+  }, [hubTasks]);
   const doneCount = hubTasks.filter((t) => t.status === 'done').length;
   const inReviewCount = hubTasks.filter((t) => t.status === 'in_review').length;
   const urgentCount = hubTasks.filter(
@@ -455,6 +463,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
       {/* 4 Metric Widget Cards Grid */}
       <TaskHubMetrics
         totalTasksCount={totalTasksCount}
+        totalSubtasksCount={totalSubtasksCount}
         foldersCount={folders.length}
         doneCount={doneCount}
         donePercentage={donePercentage}
@@ -546,8 +555,6 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 isLoading={isTaskLoading}
                 selectedTaskId={selectedTaskId}
                 onSelect={(task) => handleOpenTask(task.id)}
-                isExpanded={isTimelineExpanded}
-                onToggleExpand={() => setIsTimelineExpanded((prev) => !prev)}
               />
             )}
           </Card>

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
 import {
   generateTaskDraft,
+  refineTaskChat,
+  synthesizeFromChat,
   applyTaskDraft,
 } from './aiTaskGeneratorController.js';
 
@@ -11,6 +13,18 @@ aiTaskGeneratorRoutes.post(
   '/workspaces/:workspaceId/ai/generate-task-draft',
   authenticate,
   generateTaskDraft,
+);
+
+aiTaskGeneratorRoutes.post(
+  '/workspaces/:workspaceId/ai/chat-refinement',
+  authenticate,
+  refineTaskChat,
+);
+
+aiTaskGeneratorRoutes.post(
+  '/workspaces/:workspaceId/ai/synthesize-from-chat',
+  authenticate,
+  synthesizeFromChat,
 );
 
 aiTaskGeneratorRoutes.post(

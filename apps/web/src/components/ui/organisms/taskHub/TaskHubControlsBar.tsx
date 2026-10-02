@@ -173,26 +173,30 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
             </button>
           </div>
 
-          <div className="grid w-full grid-cols-[minmax(8.5rem,1fr)_9rem] items-end gap-2 sm:w-80">
-            <DateRangePicker
-              value={dateRange}
-              onChange={onDateRangeChange}
-              placeholder="Rentang khusus"
-              className="min-w-0 w-full [&>button]:w-full"
-            />
-            <Select
-              id="task-status-filter"
-              aria-label="Filter task berdasarkan status"
-              value={statusFilter}
-              onChange={(event) => onStatusFilterChange(event.target.value)}
-              className="w-full"
-            >
-              {statusFilters.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.value === 'ALL' ? 'Semua status' : status.label}
-                </option>
-              ))}
-            </Select>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-64 min-w-0">
+              <DateRangePicker
+                value={dateRange}
+                onChange={onDateRangeChange}
+                placeholder="Rentang khusus"
+                className="w-full"
+              />
+            </div>
+            <div className="w-full sm:w-36 shrink-0">
+              <Select
+                id="task-status-filter"
+                aria-label="Filter task berdasarkan status"
+                value={statusFilter}
+                onChange={(event) => onStatusFilterChange(event.target.value)}
+                className="w-full"
+              >
+                {statusFilters.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.value === 'ALL' ? 'Semua status' : status.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
         </div>
       </div>

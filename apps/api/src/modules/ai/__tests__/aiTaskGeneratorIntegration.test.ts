@@ -361,4 +361,65 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
       'The failed apply must not add an extra root-task audit event',
     );
   });
+
+  test('refineChat guides the requirements conversation interactively without mutating DB (AI-001)', async () => {
+    const chatResult = await aiTaskGeneratorService.refineChat(workspace.id, poUser.id, {
+      workspaceId: workspace.id,
+      messages: [
+        {
+          id: 'msg-1',
+          role: 'user',
+          content: 'Saya ingin membuat fitur pembayaran QRIS dinamis untuk checkout e-commerce',
+        },
+      ],
+      targetPlatforms: ['web', 'backend', 'qa'],
+    });
+
+    assert.ok(chatResult.reply.length > 0);
+    assert.strictEqual(typeof chatResult.isReadyToSynthesize, 'boolean');
+    assert.strictEqual(chatResult.citations[0].sourceType, 'user_prompt');
+
+    // Enforce authorization: Dev cannot use chat refinement
+    await assert.rejects(
+      () =>
+        aiTaskGeneratorService.refineChat(workspace.id, devUser.id, {
+          workspaceId: workspace.id,
+          messages: [{ id: 'm-1', role: 'user', content: 'Coba tes chat' }],
+        }),
+      /FORBIDDEN: Only Product Owner, Admin, or Owner can create tasks/,
+    );
+  });
+
+  test('synthesizeFromChat produces a complete 4-entity Feature draft from chat history (AI-001, DOMAIN-002, DOMAIN-004)', async () => {
+    const draftResult = await aiTaskGeneratorService.synthesizeFromChat(workspace.id, poUser.id, {
+      workspaceId: workspace.id,
+      messages: [
+        {
+          id: 'msg-1',
+          role: 'user',
+          content: 'Saya ingin membuat Task Management Engine SDLC',
+        },
+        {
+          id: 'msg-2',
+          role: 'assistant',
+          content: 'Siapa saja role yang terlibat dan bagaimana alur statusnya?',
+        },
+        {
+          id: 'msg-3',
+          role: 'user',
+          content: 'Ada 3 role: PO, DEV, dan QA dengan state machine 9 status.',
+        },
+      ],
+      targetPlatforms: ['backend', 'web', 'qa'],
+    });
+
+    assert.strictEqual(draftResult.outcome, 'draft');
+    if (draftResult.outcome === 'draft') {
+      assert.ok(draftResult.draft.task.title.length > 0);
+      assert.ok(draftResult.draft.requirements.length > 0);
+      assert.ok(draftResult.draft.subtasks.length > 0);
+      assert.ok(draftResult.draft.productBrief.inScope.length > 0);
+      assert.strictEqual(draftResult.draft.citations[0].sourceType, 'user_prompt');
+    }
+  });
 });

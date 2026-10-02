@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FolderTreeNode,
   GeneratedTaskDraft,
@@ -6,6 +6,7 @@ import {
   TargetPlatform,
   TaskPriority,
   DeliveryArea,
+  TaskChatMessage,
 } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
@@ -28,6 +29,12 @@ import {
   ShieldCheck,
   CheckCircle2,
   HelpCircle,
+  MessageSquare,
+  Send,
+  Zap,
+  Bot,
+  User,
+  Loader2,
 } from 'lucide-react';
 
 export interface AiTaskGeneratorModalProps {
@@ -37,6 +44,14 @@ export interface AiTaskGeneratorModalProps {
   folders: FolderTreeNode[];
   defaultFolderId?: string | null;
 }
+
+const INITIAL_CO_PILOT_MESSAGE: TaskChatMessage = {
+  id: 'init-1',
+  role: 'assistant',
+  content:
+    'Halo! Saya AI Task Architect Co-Pilot. Ceritakan fitur atau perbaikan apa yang ingin Anda bangun. Saya akan membimbing Anda merumuskan requirement, kriteria penerimaan (AC), dan pembagian tugas untuk tim pengembang & QA.',
+  timestamp: new Date().toISOString(),
+};
 
 export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
   isOpen,
@@ -49,6 +64,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
   const { activeWorkspaceId } = useAppSelector((state: RootState) => state.workspace);
 
   const [step, setStep] = useState<'input' | 'preview'>('input');
+  const [generatorMode, setGeneratorMode] = useState<'quick' | 'chat'>('quick');
   const [prompt, setPrompt] = useState('');
   const [folderId, setFolderId] = useState<string | null>(defaultFolderId || null);
   const [targetPlatforms, setTargetPlatforms] = useState<TargetPlatform[]>([
@@ -58,6 +74,15 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Chat Co-Pilot states
+  const [chatMessages, setChatMessages] = useState<TaskChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isRefiningChat, setIsRefiningChat] = useState(false);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [isReadyToSynthesize, setIsReadyToSynthesize] = useState(false);
+  const [quickReplies, setQuickReplies] = useState<string[]>([]);
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
   // Preview editable state
   const [draft, setDraft] = useState<GeneratedTaskDraft | null>(null);
@@ -85,15 +110,36 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setFolderId(defaultFolderId || null);
+      if (chatMessages.length === 0) {
+        setChatMessages([INITIAL_CO_PILOT_MESSAGE]);
+        setQuickReplies([
+          'Fitur Pembayaran QRIS',
+          'Autentikasi & Reset Password',
+          'Export Laporan',
+        ]);
+      }
     } else {
       // Reset on close
       setStep('input');
+      setGeneratorMode('quick');
       setPrompt('');
       setDraft(null);
       setClarification(null);
       setActiveTab('task');
+      setChatMessages([]);
+      setChatInput('');
+      setIsReadyToSynthesize(false);
+      setQuickReplies([]);
     }
   }, [isOpen, defaultFolderId]);
+
+  useEffect(() => {
+    if (generatorMode === 'chat' && step === 'input') {
+      if (typeof chatMessagesEndRef.current?.scrollIntoView === 'function') {
+        chatMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [chatMessages, isRefiningChat, generatorMode, step]);
 
   const flattenFolders = (
     items: FolderTreeNode[],
@@ -233,6 +279,106 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSendChatMessage = async (contentToSend?: string) => {
+    const text = (contentToSend ?? chatInput).trim();
+    if (!text || !activeWorkspaceId || isRefiningChat || isSynthesizing) return;
+
+    const userMsg: TaskChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: text,
+      timestamp: new Date().toISOString(),
+    };
+
+    const updatedMessages = [...chatMessages, userMsg];
+    setChatMessages(updatedMessages);
+    setChatInput('');
+    setIsRefiningChat(true);
+
+    try {
+      const response = await aiTaskGeneratorService.refineChat(activeWorkspaceId, {
+        messages: updatedMessages,
+        targetPlatforms,
+        folderId: folderId || undefined,
+      });
+
+      const assistantMsg: TaskChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: response.reply,
+        timestamp: new Date().toISOString(),
+      };
+
+      setChatMessages([...updatedMessages, assistantMsg]);
+      setIsReadyToSynthesize(response.isReadyToSynthesize);
+      setQuickReplies(response.quickReplies || []);
+    } catch (err) {
+      dispatch(
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Gagal berdiskusi dengan AI Co-Pilot.',
+          'error',
+        ),
+      );
+    } finally {
+      setIsRefiningChat(false);
+    }
+  };
+
+  const handleSynthesizeFromChat = async () => {
+    if (!activeWorkspaceId || isSynthesizing) return;
+
+    const hasUserMessage = chatMessages.some((m) => m.role === 'user');
+    if (!hasUserMessage) {
+      dispatch(
+        enqueueSnackbar('Silakan kirimkan ide atau kebutuhan fitur Anda terlebih dahulu.', 'error'),
+      );
+      return;
+    }
+
+    setIsSynthesizing(true);
+    try {
+      const result = await aiTaskGeneratorService.synthesizeFromChat(activeWorkspaceId, {
+        messages: chatMessages,
+        targetPlatforms,
+        folderId: folderId || undefined,
+      });
+
+      if (result.outcome === 'clarification') {
+        const clarificationMsg: TaskChatMessage = {
+          id: `clarify-${Date.now()}`,
+          role: 'assistant',
+          content: `Saya butuh informasi tambahan sebelum merakit draf:\n\n${result.clarification.message}\n\n${result.clarification.questions.map((q) => `• ${q}`).join('\n')}`,
+          timestamp: new Date().toISOString(),
+        };
+        setChatMessages((prev) => [...prev, clarificationMsg]);
+        dispatch(
+          enqueueSnackbar('AI membutuhkan klarifikasi tambahan sebelum merakit draf.', 'info'),
+        );
+        return;
+      }
+
+      setClarification(null);
+      setDraft(result.draft);
+      setStep('preview');
+      setActiveTab('task');
+      dispatch(
+        enqueueSnackbar(
+          'Draf Feature berhasil dirakit dari diskusi! Silakan tinjau sebelum disimpan.',
+          'success',
+        ),
+      );
+    } catch (err) {
+      dispatch(
+        enqueueSnackbar(
+          err instanceof Error ? err.message : 'Gagal merakit draf task dari diskusi.',
+          'error',
+        ),
+      );
+    } finally {
+      setIsSynthesizing(false);
     }
   };
 
@@ -410,126 +556,359 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
       size="3xl"
     >
       {step === 'input' ? (
-        <form onSubmit={handleGenerate} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Prompt Deskripsi Fitur <span className="text-rose-500">*</span>
-            </label>
-            <textarea
-              value={prompt}
-              onChange={(e) => {
-                setPrompt(e.target.value);
-                setClarification(null);
-              }}
-              placeholder="Contoh: Buatkan fitur pembayaran QRIS dinamis untuk checkout e-commerce dengan notifikasi webhook, batas waktu bayar 15 menit, dan halaman bukti pembayaran..."
-              rows={4}
-              required
-              className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#B1E743] resize-y"
-            />
+        <div className="space-y-4">
+          {/* Segmented Mode Switcher */}
+          <div className="flex rounded-xl bg-stone-100 dark:bg-stone-800/70 p-1 border border-stone-200 dark:border-stone-700/60">
+            <button
+              type="button"
+              onClick={() => setGeneratorMode('quick')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold rounded-lg transition-all ${
+                generatorMode === 'quick'
+                  ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs border border-stone-200/50 dark:border-stone-700'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+              }`}
+            >
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              <span>Mode Cepat (Satu Prompt)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setGeneratorMode('chat')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold rounded-lg transition-all ${
+                generatorMode === 'chat'
+                  ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs border border-stone-200/50 dark:border-stone-700'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+              }`}
+            >
+              <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+              <span>Mode Diskusi (AI Co-Pilot)</span>
+              {chatMessages.filter((m) => m.role === 'user').length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-[#B1E743] text-stone-900 font-bold">
+                  {chatMessages.filter((m) => m.role === 'user').length}
+                </span>
+              )}
+            </button>
           </div>
 
-          {clarification && (
-            <section
-              role="status"
-              aria-live="polite"
-              className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
-            >
-              <div className="flex items-center gap-2 font-semibold">
-                <HelpCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Butuh klarifikasi sebelum membuat draf
+          {generatorMode === 'quick' ? (
+            /* QUICK MODE (SINGLE PROMPT) */
+            <form onSubmit={handleGenerate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                  Prompt Deskripsi Fitur <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => {
+                    setPrompt(e.target.value);
+                    setClarification(null);
+                  }}
+                  placeholder="Contoh: Buatkan fitur pembayaran QRIS dinamis untuk checkout e-commerce dengan notifikasi webhook, batas waktu bayar 15 menit, dan halaman bukti pembayaran..."
+                  rows={4}
+                  required
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#B1E743] resize-y"
+                />
               </div>
-              <p>{clarification.message}</p>
-              <ul className="list-disc space-y-1 pl-5">
-                {clarification.questions.map((question) => (
-                  <li key={question}>{question}</li>
-                ))}
-              </ul>
-              <p className="text-amber-800 dark:text-amber-300">
-                Lengkapi prompt di atas, lalu generate kembali. Tidak ada Feature yang dibuat.
-              </p>
-            </section>
-          )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                Lokasi Folder Target
-              </label>
-              <Select
-                value={folderId || ''}
-                onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
-                aria-label="Lokasi folder target"
+              {clarification && (
+                <section
+                  role="status"
+                  aria-live="polite"
+                  className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
+                >
+                  <div className="flex items-center gap-2 font-semibold">
+                    <HelpCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    Butuh klarifikasi sebelum membuat draf
+                  </div>
+                  <p>{clarification.message}</p>
+                  <ul className="list-disc space-y-1 pl-5">
+                    {clarification.questions.map((question) => (
+                      <li key={question}>{question}</li>
+                    ))}
+                  </ul>
+                  <p className="text-amber-800 dark:text-amber-300">
+                    Lengkapi prompt di atas atau beralih ke Mode Diskusi untuk dipandu langkah demi
+                    langkah.
+                  </p>
+                </section>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                    Lokasi Folder Target
+                  </label>
+                  <Select
+                    value={folderId || ''}
+                    onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
+                    aria-label="Lokasi folder target"
+                  >
+                    <option value="">Tanpa Folder (Root Workspace)</option>
+                    {flatFolders.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {'\u00A0'.repeat(f.depth * 4)}
+                        {f.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                    Target Subtask Area
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {(
+                      [
+                        { id: 'web', label: 'Frontend (Web)' },
+                        { id: 'backend', label: 'Backend' },
+                        { id: 'mobile', label: 'Mobile' },
+                        { id: 'qa', label: 'QA Testing' },
+                      ] as const
+                    ).map((item) => {
+                      const isSelected = targetPlatforms.includes(item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => togglePlatform(item.id)}
+                          className={`px-2.5 py-1 text-xs rounded-lg font-medium border transition-colors ${
+                            isSelected
+                              ? 'bg-[#B1E743]/20 border-[#B1E743] text-stone-900 dark:text-stone-100'
+                              : 'bg-stone-50 dark:bg-stone-800/40 border-stone-200 dark:border-stone-800 text-stone-500'
+                          }`}
+                        >
+                          {isSelected ? '✓ ' : '+ '}
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Governance Policy Notice */}
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-300 mt-2">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <div>
+                  <span className="font-semibold">Tata Kelola AI (Policy AI-001):</span> AI Studio
+                  hanya menghasilkan draf rancangan. Data tidak akan langsung diubah di database
+                  sebelum Anda meninjau dan menekan tombol persetujuan pada langkah berikutnya.
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-stone-100 dark:border-stone-800 pt-4 mt-4">
+                <Button type="button" variant="outline" size="sm" onClick={onClose}>
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isGenerating}
+                  disabled={isGenerating || !prompt.trim()}
+                >
+                  <Sparkles className="h-4 w-4 mr-1.5 text-stone-950" />
+                  Generate Draf Feature
+                </Button>
+              </div>
+            </form>
+          ) : (
+            /* CHAT MODE (AI CO-PILOT) */
+            <div className="space-y-3">
+              {/* Chat Message Scrollable Container */}
+              <div
+                className="max-h-[300px] min-h-[220px] overflow-y-auto space-y-3 p-3.5 bg-stone-50/70 dark:bg-stone-900/50 rounded-xl border border-stone-200 dark:border-stone-800"
+                aria-label="Riwayat diskusi AI Co-Pilot"
               >
-                <option value="">Tanpa Folder (Root Workspace)</option>
-                {flatFolders.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {'\u00A0'.repeat(f.depth * 4)}
-                    {f.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                Target Subtask Area
-              </label>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {(
-                  [
-                    { id: 'web', label: 'Frontend (Web)' },
-                    { id: 'backend', label: 'Backend' },
-                    { id: 'mobile', label: 'Mobile' },
-                    { id: 'qa', label: 'QA Testing' },
-                  ] as const
-                ).map((item) => {
-                  const isSelected = targetPlatforms.includes(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => togglePlatform(item.id)}
-                      className={`px-2.5 py-1 text-xs rounded-lg font-medium border transition-colors ${
-                        isSelected
-                          ? 'bg-[#B1E743]/20 border-[#B1E743] text-stone-900 dark:text-stone-100'
-                          : 'bg-stone-50 dark:bg-stone-800/40 border-stone-200 dark:border-stone-800 text-stone-500'
+                {chatMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex items-start gap-2.5 ${
+                      msg.role === 'user' ? 'justify-end' : 'justify-start'
+                    }`}
+                  >
+                    {msg.role === 'assistant' && (
+                      <div className="w-6 h-6 rounded-full bg-[#B1E743] flex items-center justify-center shrink-0 mt-0.5 text-stone-950">
+                        <Bot className="h-3.5 w-3.5" />
+                      </div>
+                    )}
+                    <div
+                      className={`text-xs px-3.5 py-2.5 rounded-2xl max-w-[85%] whitespace-pre-wrap leading-relaxed ${
+                        msg.role === 'user'
+                          ? 'bg-[#B1E743] text-stone-950 font-medium rounded-tr-none'
+                          : 'bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-200/80 dark:border-stone-700/60 shadow-xs rounded-tl-none'
                       }`}
                     >
-                      {isSelected ? '✓ ' : '+ '}
-                      {item.label}
+                      {msg.content}
+                    </div>
+                    {msg.role === 'user' && (
+                      <div className="w-6 h-6 rounded-full bg-stone-300 dark:bg-stone-700 flex items-center justify-center shrink-0 mt-0.5 text-stone-700 dark:text-stone-200">
+                        <User className="h-3.5 w-3.5" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {isRefiningChat && (
+                  <div className="flex items-center gap-2 text-xs text-stone-500 italic pl-1">
+                    <div className="w-6 h-6 rounded-full bg-[#B1E743]/50 flex items-center justify-center shrink-0">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-900" />
+                    </div>
+                    <span>AI Co-Pilot sedang menganalisis & merumuskan...</span>
+                  </div>
+                )}
+                <div ref={chatMessagesEndRef} />
+              </div>
+
+              {/* Quick Replies */}
+              {quickReplies.length > 0 && !isRefiningChat && (
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[11px] text-stone-500 mr-1">Saran tanggapan:</span>
+                  {quickReplies.map((qr, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSendChatMessage(qr)}
+                      className="text-xs px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 hover:bg-[#B1E743]/20 hover:text-stone-900 dark:hover:text-stone-100 hover:border-[#B1E743] border border-stone-200 dark:border-stone-700 transition-colors"
+                    >
+                      {qr}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+              )}
+
+              {/* Chat Input Bar */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSendChatMessage();
+                    }
+                  }}
+                  placeholder="Ketik ide atau tanggapan Anda untuk AI Co-Pilot..."
+                  disabled={isRefiningChat || isSynthesizing}
+                  className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#B1E743]"
+                />
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleSendChatMessage()}
+                  disabled={!chatInput.trim() || isRefiningChat || isSynthesizing}
+                  title="Kirim pesan"
+                >
+                  <Send className="h-3.5 w-3.5 text-stone-950" />
+                </Button>
+              </div>
+
+              {/* Shared folder and platform targets in chat mode */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                    Lokasi Folder Target
+                  </label>
+                  <Select
+                    value={folderId || ''}
+                    onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
+                    aria-label="Lokasi folder target"
+                  >
+                    <option value="">Tanpa Folder (Root Workspace)</option>
+                    {flatFolders.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {'\u00A0'.repeat(f.depth * 4)}
+                        {f.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                    Target Subtask Area
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {(
+                      [
+                        { id: 'web', label: 'Frontend (Web)' },
+                        { id: 'backend', label: 'Backend' },
+                        { id: 'mobile', label: 'Mobile' },
+                        { id: 'qa', label: 'QA Testing' },
+                      ] as const
+                    ).map((item) => {
+                      const isSelected = targetPlatforms.includes(item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => togglePlatform(item.id)}
+                          className={`px-2.5 py-1 text-xs rounded-lg font-medium border transition-colors ${
+                            isSelected
+                              ? 'bg-[#B1E743]/20 border-[#B1E743] text-stone-900 dark:text-stone-100'
+                              : 'bg-stone-50 dark:bg-stone-800/40 border-stone-200 dark:border-stone-800 text-stone-500'
+                          }`}
+                        >
+                          {isSelected ? '✓ ' : '+ '}
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Governance Policy Notice */}
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-300">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <div>
+                  <span className="font-semibold">Tata Kelola AI (Policy AI-001):</span> Diskusi ini
+                  membantu merumuskan ide. Fitur baru akan dibuat dalam bentuk draf untuk Anda
+                  tinjau sebelum disimpan ke database.
+                </div>
+              </div>
+
+              {/* Footer Actions for Chat Mode */}
+              <div className="flex items-center justify-between border-t border-stone-100 dark:border-stone-800 pt-4 mt-4">
+                <div className="text-xs text-stone-500">
+                  {chatMessages.filter((m) => m.role === 'user').length === 0
+                    ? 'Kirimkan pesan untuk mulai berdiskusi dengan AI Co-Pilot'
+                    : isReadyToSynthesize
+                      ? '✨ Kebutuhan sudah cukup lengkap untuk dirakit!'
+                      : 'Anda dapat merakit draf kapan saja atau lanjut berdiskusi'}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={onClose}>
+                    Batal
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSynthesizeFromChat}
+                    isLoading={isSynthesizing}
+                    disabled={
+                      isSynthesizing ||
+                      isRefiningChat ||
+                      chatMessages.filter((m) => m.role === 'user').length === 0
+                    }
+                    className={
+                      isReadyToSynthesize
+                        ? 'ring-2 ring-[#B1E743] ring-offset-2 dark:ring-offset-stone-900 shadow-md font-bold'
+                        : ''
+                    }
+                  >
+                    <Sparkles className="h-4 w-4 mr-1.5 text-stone-950" />
+                    Rakit Draf Feature
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* AI Governance Policy Notice */}
-          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-300 mt-3">
-            <ShieldCheck className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
-            <div>
-              <span className="font-semibold">Tata Kelola AI (Policy AI-001):</span> AI Studio hanya
-              menghasilkan draf rancangan. Data tidak akan langsung diubah di database sebelum Anda
-              meninjau dan menekan tombol persetujuan pada langkah berikutnya.
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 border-t border-stone-100 dark:border-stone-800 pt-4 mt-6">
-            <Button type="button" variant="outline" size="sm" onClick={onClose}>
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              isLoading={isGenerating}
-              disabled={isGenerating || !prompt.trim()}
-            >
-              <Sparkles className="h-4 w-4 mr-1.5 text-stone-950" />
-              Generate Draf Feature
-            </Button>
-          </div>
-        </form>
+          )}
+        </div>
       ) : (
         /* STEP 2: INTERACTIVE PREVIEW & EDIT */
         draft && (
@@ -957,7 +1336,7 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
             <div className="flex items-center justify-between border-t border-stone-100 dark:border-stone-800 pt-4 mt-6">
               <Button type="button" variant="outline" size="sm" onClick={() => setStep('input')}>
                 <ArrowLeft className="h-3.5 w-3.5 mr-1" />
-                Ubah Prompt
+                {generatorMode === 'chat' ? 'Kembali ke Diskusi' : 'Ubah Prompt'}
               </Button>
 
               <div className="flex items-center gap-2">

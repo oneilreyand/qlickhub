@@ -65,7 +65,8 @@ function formatBug(bug: BugModel): Bug {
     workspaceId: bug.workspaceId,
     featureTaskId: bug.featureTaskId,
     requirementId: bug.requirementId,
-    testResultId: bug.testResultId,
+    testResultId: bug.testResultId || null,
+    environment: bug.environment || 'staging',
     assigneeId: bug.assigneeId,
     title: bug.title,
     severity: bug.severity,
@@ -218,52 +219,56 @@ function formatBugWithContext(bug: ContextualBugModel): BugWithContext {
       name: assignee?.name || 'Assigned Developer',
       email: assignee?.email || '',
     },
-    originatingTestResult: {
-      id: result?.id || bug.testResultId,
-      status: result?.status || 'failed',
-      actualResult: result?.actualResult || null,
-      executedAt: iso(result?.executedAt || bug.createdAt),
-      evidence: (result?.evidenceLinks || []).map((link) => ({
-        attachmentId: link.attachmentId,
-        taskId: link.attachment?.taskId || '00000000-0000-0000-0000-000000000000',
-        fileName: link.attachment?.fileName || 'Evidence',
-        mimeType: link.attachment?.mimeType || 'application/octet-stream',
-        linkedBy: link.linkedBy,
-        linkedAt: iso(link.linkedAt),
-      })),
-
-      evidenceLinks: (result?.externalEvidenceLinks || []).map((link) => ({
-        id: link.id,
-        workspaceId: link.workspaceId,
-        testResultId: link.testResultId,
-        url: link.url,
-        provider: link.provider,
-        mediaKind: link.mediaKind,
-        label: link.label || null,
-        addedBy: link.addedBy,
-        addedAt: iso(link.addedAt),
-        normalizedUrl: link.normalizedUrl,
-        previewStatus: link.previewStatus,
-      })),
-      testRun: {
-        id: testRun?.id || '00000000-0000-0000-0000-000000000000',
-        testCaseId: testRun?.testCaseId || '00000000-0000-0000-0000-000000000000',
-        build: testRun?.build || 'N/A',
-        environment: testRun?.environment || 'test',
-      },
-    },
-    originatingTestCase: {
-      availability: testCaseVersion ? 'available' : 'unavailable',
-      versionId: testCaseVersion?.id || null,
-      revision: testCaseVersion?.revision || null,
-      title: testCaseVersion ? snapshotText('title') : null,
-      preconditions: testCaseVersion ? snapshotText('preconditions') : null,
-      steps: testCaseVersion ? snapshotSteps : [],
-      expectedResult: testCaseVersion ? snapshotText('expectedResult') : null,
-      testData: testCaseVersion ? snapshotText('testData') : null,
-      requirementIds: testCaseVersion ? snapshotRequirementIds : [],
-      acceptanceCriteria: [],
-    },
+    originatingTestResult:
+      result || bug.testResultId
+        ? {
+            id: result?.id || bug.testResultId || '00000000-0000-0000-0000-000000000000',
+            status: result?.status || 'failed',
+            actualResult: result?.actualResult || null,
+            executedAt: iso(result?.executedAt || bug.createdAt),
+            evidence: (result?.evidenceLinks || []).map((link) => ({
+              attachmentId: link.attachmentId,
+              taskId: link.attachment?.taskId || '00000000-0000-0000-0000-000000000000',
+              fileName: link.attachment?.fileName || 'Evidence',
+              mimeType: link.attachment?.mimeType || 'application/octet-stream',
+              linkedBy: link.linkedBy,
+              linkedAt: iso(link.linkedAt),
+            })),
+            evidenceLinks: (result?.externalEvidenceLinks || []).map((link) => ({
+              id: link.id,
+              workspaceId: link.workspaceId,
+              testResultId: link.testResultId,
+              url: link.url,
+              provider: link.provider,
+              mediaKind: link.mediaKind,
+              label: link.label || null,
+              addedBy: link.addedBy,
+              addedAt: iso(link.addedAt),
+              normalizedUrl: link.normalizedUrl,
+              previewStatus: link.previewStatus,
+            })),
+            testRun: {
+              id: testRun?.id || '00000000-0000-0000-0000-000000000000',
+              testCaseId: testRun?.testCaseId || '00000000-0000-0000-0000-000000000000',
+              build: testRun?.build || 'N/A',
+              environment: testRun?.environment || bug.environment || 'staging',
+            },
+          }
+        : null,
+    originatingTestCase: testCaseVersion
+      ? {
+          availability: 'available',
+          versionId: testCaseVersion?.id || null,
+          revision: testCaseVersion?.revision || null,
+          title: testCaseVersion ? snapshotText('title') : null,
+          preconditions: testCaseVersion ? snapshotText('preconditions') : null,
+          steps: testCaseVersion ? snapshotSteps : [],
+          expectedResult: testCaseVersion ? snapshotText('expectedResult') : null,
+          testData: testCaseVersion ? snapshotText('testData') : null,
+          requirementIds: testCaseVersion ? snapshotRequirementIds : [],
+          acceptanceCriteria: [],
+        }
+      : null,
     bugEvidenceLinks: (bug.externalEvidenceLinks || []).map(formatBugEvidenceLink),
   };
 }
@@ -274,7 +279,7 @@ async function formatBugsWithContext(
 ): Promise<BugWithContext[]> {
   const formatted = bugs.map(formatBugWithContext);
   const versionIds = formatted
-    .map((bug) => bug.originatingTestCase.versionId)
+    .map((bug) => bug.originatingTestCase?.versionId)
     .filter((versionId): versionId is string => Boolean(versionId));
   if (versionIds.length === 0) return formatted;
 
@@ -292,7 +297,7 @@ async function formatBugsWithContext(
   });
   const criteriaByVersion = new Map<
     string,
-    BugWithContext['originatingTestCase']['acceptanceCriteria']
+    NonNullable<BugWithContext['originatingTestCase']>['acceptanceCriteria']
   >();
   for (const mapping of mappings as Array<
     TestCaseVersionAcceptanceCriterionModel & { acceptanceCriterion?: AcceptanceCriterionModel }
@@ -313,10 +318,12 @@ async function formatBugsWithContext(
   }
   return formatted.map((bug) => ({
     ...bug,
-    originatingTestCase: {
-      ...bug.originatingTestCase,
-      acceptanceCriteria: criteriaByVersion.get(bug.originatingTestCase.versionId || '') || [],
-    },
+    originatingTestCase: bug.originatingTestCase
+      ? {
+          ...bug.originatingTestCase,
+          acceptanceCriteria: criteriaByVersion.get(bug.originatingTestCase.versionId || '') || [],
+        }
+      : null,
   }));
 }
 
@@ -700,11 +707,13 @@ export class BugService {
           };
         }
 
-        const originatingResult = await TestResultModel.findOne({
-          where: { id: bug.testResultId, workspaceId: input.workspaceId },
-          transaction,
-          lock: transaction.LOCK.UPDATE,
-        });
+        const originatingResult = bug.testResultId
+          ? await TestResultModel.findOne({
+              where: { id: bug.testResultId, workspaceId: input.workspaceId },
+              transaction,
+              lock: transaction.LOCK.UPDATE,
+            })
+          : null;
         const originatingRun = originatingResult
           ? await TestRunModel.findOne({
               where: { id: originatingResult.testRunId, workspaceId: input.workspaceId },
@@ -1100,6 +1109,7 @@ export class BugService {
     if (query.testResultId) where.testResultId = query.testResultId;
     if (query.assigneeId) where.assigneeId = query.assigneeId;
     if (query.status) where.status = query.status;
+    if (query.environment) where.environment = query.environment;
 
     if (query.queue === 'assigned_work') {
       if (membership.role !== 'dev') {
@@ -1212,7 +1222,8 @@ export class BugService {
           workspaceId: input.workspaceId,
           featureTaskId: input.featureTaskId,
           requirementId: input.requirementId,
-          testResultId: input.testResultId,
+          testResultId: input.testResultId || null,
+          environment: input.environment || 'staging',
           assigneeId: input.assigneeId,
           title: input.title,
           severity: input.severity,
@@ -1600,36 +1611,40 @@ export class BugService {
       throw new Error('BAD_REQUEST: The specified Requirement is not scoped to this Feature.');
     }
 
-    const testResult = await TestResultModel.findOne({
-      where: { id: input.testResultId, workspaceId: input.workspaceId },
-      include: [
-        {
-          model: TestRunModel,
-          as: 'run',
-          attributes: ['id', 'testCaseId'],
-          required: true,
-        },
-      ],
-      transaction,
-    });
-    if (!testResult) throw new Error('NOT_FOUND: Test Result not found in this workspace.');
-    if (!['failed', 'blocked'].includes(testResult.status)) {
-      throw new Error('BAD_REQUEST: Bugs can only be opened from failed or blocked Test Results.');
-    }
+    if (input.testResultId) {
+      const testResult = await TestResultModel.findOne({
+        where: { id: input.testResultId, workspaceId: input.workspaceId },
+        include: [
+          {
+            model: TestRunModel,
+            as: 'run',
+            attributes: ['id', 'testCaseId'],
+            required: true,
+          },
+        ],
+        transaction,
+      });
+      if (!testResult) throw new Error('NOT_FOUND: Test Result not found in this workspace.');
+      if (!['failed', 'blocked'].includes(testResult.status)) {
+        throw new Error(
+          'BAD_REQUEST: Bugs can only be opened from failed or blocked Test Results.',
+        );
+      }
 
-    const testCaseId = (testResult as TestResultModel & { run: TestRunModel }).run.testCaseId;
-    const testCaseReqLink = await TestCaseRequirementModel.findOne({
-      where: {
-        workspaceId: input.workspaceId,
-        testCaseId,
-        requirementId: input.requirementId,
-      },
-      transaction,
-    });
-    if (!testCaseReqLink) {
-      throw new Error(
-        'BAD_REQUEST: The originating Test Result does not cover the selected Requirement.',
-      );
+      const testCaseId = (testResult as TestResultModel & { run: TestRunModel }).run.testCaseId;
+      const testCaseReqLink = await TestCaseRequirementModel.findOne({
+        where: {
+          workspaceId: input.workspaceId,
+          testCaseId,
+          requirementId: input.requirementId,
+        },
+        transaction,
+      });
+      if (!testCaseReqLink) {
+        throw new Error(
+          'BAD_REQUEST: The originating Test Result does not cover the selected Requirement.',
+        );
+      }
     }
   }
 

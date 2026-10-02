@@ -84,6 +84,24 @@ export const CapacityScopeSchema = z.enum(['workspace', 'all']);
 export type CapacityScope = z.infer<typeof CapacityScopeSchema>;
 
 /**
+ * Roles that contribute work to the delivery-capacity view.
+ * Governance roles remain authorized to read the Timeline, but do not form workload rows.
+ */
+export const DeliveryCapacityRoleSchema = z.enum(['dev', 'qa']);
+export type DeliveryCapacityRole = z.infer<typeof DeliveryCapacityRoleSchema>;
+
+/**
+ * Non-terminal task states that represent current delivery demand.
+ */
+export const ActiveCapacityTaskStatusSchema = z.enum([
+  'todo',
+  'in_progress',
+  'in_review',
+  'changes_requested',
+]);
+export type ActiveCapacityTaskStatus = z.infer<typeof ActiveCapacityTaskStatusSchema>;
+
+/**
  * Query schema for team capacity timeline.
  */
 export const TeamCapacityTimelineQuerySchema = z.object({
@@ -101,9 +119,9 @@ export const TeamCapacityTimelineQuerySchema = z.object({
       ),
     ])
     .optional(),
-  role: z.string().optional(),
+  role: DeliveryCapacityRoleSchema.optional(),
   deliveryArea: DeliveryAreaSchema.optional(),
-  status: TaskStatusSchema.optional(),
+  status: ActiveCapacityTaskStatusSchema.optional(),
   scope: CapacityScopeSchema.optional().default('workspace'),
 });
 
@@ -138,6 +156,7 @@ export const TeamCapacityMemberTimelineSchema = z.object({
   specialties: z.array(z.string()).optional(),
   scheduledSubtasks: z.array(TimelineSubtaskItemSchema),
   unscheduledSubtasks: z.array(TimelineSubtaskItemSchema),
+  outsideWindowSubtaskCount: z.number().int().min(0),
   conflictCount: z.number().int().min(0),
 });
 
@@ -155,6 +174,7 @@ export const TeamCapacityTimelineResponseSchema = z.object({
   totalMembers: z.number().int().min(0),
   totalScheduledSubtasks: z.number().int().min(0),
   totalUnscheduledSubtasks: z.number().int().min(0),
+  totalOutsideWindowSubtasks: z.number().int().min(0),
 });
 
 export type TeamCapacityTimelineResponse = z.infer<typeof TeamCapacityTimelineResponseSchema>;

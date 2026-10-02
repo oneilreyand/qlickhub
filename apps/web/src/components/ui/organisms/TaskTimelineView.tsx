@@ -11,8 +11,6 @@ import {
   Code2,
   Layers,
   Bug,
-  Maximize2,
-  Minimize2,
   ChevronsUpDown,
 } from 'lucide-react';
 import type { Task, FolderTreeNode, DeliveryArea } from '@qlick/contracts';
@@ -39,8 +37,6 @@ interface TaskTimelineViewProps {
   isLoading: boolean;
   selectedTaskId?: string | null;
   onSelect: (task: Task) => void;
-  isExpanded?: boolean;
-  onToggleExpand?: () => void;
 }
 
 function parseDate(dateStr?: string | null): Date | null {
@@ -140,8 +136,6 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
   isLoading,
   selectedTaskId,
   onSelect,
-  isExpanded = false,
-  onToggleExpand,
 }) => {
   const [scale, setScale] = useState<TimeScale>('week');
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -701,36 +695,6 @@ export const TaskTimelineView: React.FC<TaskTimelineViewProps> = ({
             </span>
             <span className="sm:hidden">{expandedTaskIds.size > 0 ? 'Tutup' : 'Buka'}</span>
           </Button>
-
-          {/* Full Width Mode Button */}
-          {onToggleExpand && (
-            <Button
-              variant={isExpanded ? 'primary' : 'outline'}
-              size="sm"
-              className="min-h-11"
-              onClick={onToggleExpand}
-              aria-label={
-                isExpanded ? 'Keluar dari timeline lebar penuh' : 'Buka timeline selebar layar'
-              }
-              leftIcon={
-                isExpanded ? (
-                  <Minimize2 className="h-3.5 w-3.5" />
-                ) : (
-                  <Maximize2 className="h-3.5 w-3.5" />
-                )
-              }
-              title={
-                isExpanded
-                  ? 'Kembalikan timeline ke lebar standar'
-                  : 'Buka timeline selebar layar dan sembunyikan sidebar folder'
-              }
-            >
-              <span className="hidden sm:inline">
-                {isExpanded ? 'Lebar Standar' : 'Lebar Penuh'}
-              </span>
-              <span className="sm:hidden">{isExpanded ? 'Standar' : 'Penuh'}</span>
-            </Button>
-          )}
         </div>
       </div>
 

@@ -187,3 +187,56 @@ export const ApplyTaskDraftResponseSchema = z.object({
 });
 
 export type ApplyTaskDraftResponse = z.infer<typeof ApplyTaskDraftResponseSchema>;
+
+/**
+ * Role in an interactive AI task refinement discussion.
+ */
+export const TaskChatRoleSchema = z.enum(['user', 'assistant']);
+export type TaskChatRole = z.infer<typeof TaskChatRoleSchema>;
+
+/**
+ * Single message in an interactive task refinement conversation.
+ */
+export const TaskChatMessageSchema = z.object({
+  id: z.string().min(1),
+  role: TaskChatRoleSchema,
+  content: z.string().trim().min(1, 'Pesan tidak boleh kosong').max(8000),
+  timestamp: z.string().optional(),
+});
+export type TaskChatMessage = z.infer<typeof TaskChatMessageSchema>;
+
+/**
+ * Input for continuing an interactive task refinement discussion with AI Co-Pilot.
+ */
+export const RefineTaskChatInputSchema = z.object({
+  workspaceId: z.string().uuid(),
+  messages: z.array(TaskChatMessageSchema).min(1, 'Minimal 1 pesan percakapan'),
+  targetPlatforms: z.array(TargetPlatformSchema).optional(),
+  folderId: z.string().uuid().nullable().optional(),
+});
+export type RefineTaskChatInput = z.infer<typeof RefineTaskChatInputSchema>;
+
+/**
+ * Response from AI Co-Pilot during interactive task refinement.
+ */
+export const RefineTaskChatResponseSchema = z.object({
+  reply: z.string().trim().min(1),
+  suggestedPrompt: z.string().optional(),
+  isReadyToSynthesize: z.boolean().default(false),
+  quickReplies: z.array(z.string().trim()).optional().default([]),
+  citations: z.array(GeneratedTaskDraftCitationSchema).min(1),
+});
+export type RefineTaskChatResponse = z.infer<typeof RefineTaskChatResponseSchema>;
+
+/**
+ * Input for synthesizing a complete 4-entity Feature draft directly from chat history.
+ */
+export const SynthesizeTaskDraftFromChatInputSchema = z.object({
+  workspaceId: z.string().uuid(),
+  messages: z.array(TaskChatMessageSchema).min(1, 'Minimal 1 pesan percakapan'),
+  targetPlatforms: z.array(TargetPlatformSchema).optional(),
+  folderId: z.string().uuid().nullable().optional(),
+});
+export type SynthesizeTaskDraftFromChatInput = z.infer<
+  typeof SynthesizeTaskDraftFromChatInputSchema
+>;

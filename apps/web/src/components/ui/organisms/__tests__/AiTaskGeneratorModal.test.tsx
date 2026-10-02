@@ -376,4 +376,243 @@ describe('AiTaskGeneratorModal Organism', () => {
     const applyBtn = screen.getByRole('button', { name: /Terapkan & Buat Feature/i });
     expect(applyBtn).toBeDisabled();
   });
+
+  it('switches to Mode Diskusi (AI Co-Pilot) and shows interactive chat interface', () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    // Click mode switch
+    const chatModeBtn = screen.getByRole('button', { name: /Mode Diskusi \(AI Co-Pilot\)/i });
+    fireEvent.click(chatModeBtn);
+
+    // Initial greeting is shown
+    expect(screen.getByText(/Halo! Saya AI Task Architect Co-Pilot/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Ketik ide atau tanggapan Anda untuk AI Co-Pilot/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rakit Draf Feature/i })).toBeDisabled();
+  });
+
+  it('sends message in chat mode, receives AI response, and synthesizes 4-entity draft', async () => {
+    const mockRefineChatResponse = {
+      reply:
+        'Ide yang bagus! Untuk fitur QRIS dinamis, apakah sistem perlu mendukung notifikasi webhook otomatis dan pembatalan otomatis setelah 15 menit?',
+      suggestedPrompt: 'Fitur pembayaran QRIS dinamis dengan webhook dan timeout',
+      isReadyToSynthesize: true,
+      quickReplies: ['Ya, butuh webhook dan timeout 15 menit', 'Hanya tampilan QRIS sederhana'],
+      citations: [
+        {
+          sourceType: 'user_prompt' as const,
+          label: 'Prompt Product Owner' as const,
+          excerpt: 'Saya ingin fitur pembayaran QRIS dinamis.',
+        },
+      ],
+    };
+
+    const refineSpy = vi
+      .spyOn(aiTaskGeneratorService, 'refineChat')
+      .mockResolvedValue(mockRefineChatResponse);
+    const synthSpy = vi
+      .spyOn(aiTaskGeneratorService, 'synthesizeFromChat')
+      .mockResolvedValue(mockDraftResponse);
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    // Switch to Chat mode
+    fireEvent.click(screen.getByRole('button', { name: /Mode Diskusi \(AI Co-Pilot\)/i }));
+
+    // Type and send user message
+    const chatInput = screen.getByPlaceholderText(
+      /Ketik ide atau tanggapan Anda untuk AI Co-Pilot/i,
+    );
+    fireEvent.change(chatInput, {
+      target: { value: 'Saya ingin membuat fitur pembayaran QRIS dinamis.' },
+    });
+
+    const sendBtn = screen.getByTitle('Kirim pesan');
+    fireEvent.click(sendBtn);
+
+    await waitFor(() => {
+      expect(refineSpy).toHaveBeenCalledWith(
+        '123e4567-e89b-12d3-a456-426614174000',
+        expect.objectContaining({
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              role: 'user',
+              content: 'Saya ingin membuat fitur pembayaran QRIS dinamis.',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    // Check assistant response and quick replies appear
+    expect(
+      await screen.findByText(/apakah sistem perlu mendukung notifikasi webhook otomatis/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Ya, butuh webhook dan timeout 15 menit')).toBeInTheDocument();
+
+    // Check ready indicator
+    expect(
+      screen.getByText(/✨ Kebutuhan sudah cukup lengkap untuk dirakit!/i),
+    ).toBeInTheDocument();
+
+    // Click "Rakit Draf Feature"
+    const synthesizeBtn = screen.getByRole('button', { name: /Rakit Draf Feature/i });
+    expect(synthesizeBtn).toBeEnabled();
+    fireEvent.click(synthesizeBtn);
+
+    await waitFor(() => {
+      expect(synthSpy).toHaveBeenCalledWith(
+        '123e4567-e89b-12d3-a456-426614174000',
+        expect.objectContaining({
+          messages: expect.arrayContaining([
+            expect.objectContaining({ role: 'user' }),
+            expect.objectContaining({ role: 'assistant' }),
+          ]),
+        }),
+      );
+      expect(screen.getByText('Pratinjau & Edit Draf Feature (AI)')).toBeInTheDocument();
+    });
+
+    // Verify preview tabs are loaded from the synthesized draft
+    expect(screen.getByDisplayValue('Integrasi Pembayaran QRIS Dinamis')).toBeInTheDocument();
+    expect(screen.getByText(/Detail Task/i)).toBeInTheDocument();
+    expect(screen.getByText(/Brief Produk/i)).toBeInTheDocument();
+    expect(screen.getByText(/Requirements \(1\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Subtasks \(2\/2\)/i)).toBeInTheDocument();
+  });
+
+  it('handles clarification response gracefully within chat mode during synthesis', async () => {
+    vi.spyOn(aiTaskGeneratorService, 'refineChat').mockResolvedValue({
+      reply: 'Bisa jelaskan lebih detail?',
+      isReadyToSynthesize: false,
+      quickReplies: [],
+      citations: [
+        {
+          sourceType: 'user_prompt' as const,
+          label: 'Prompt Product Owner' as const,
+          excerpt: 'xyz',
+        },
+      ],
+    });
+
+    vi.spyOn(aiTaskGeneratorService, 'synthesizeFromChat').mockResolvedValue({
+      outcome: 'clarification',
+      clarification: {
+        message: 'Informasi belum cukup untuk menentukan delivery area subtask.',
+        questions: ['Apakah fitur ini membutuhkan sisi backend API atau hanya UI mockup?'],
+        citations: [
+          {
+            sourceType: 'user_prompt' as const,
+            label: 'Prompt Product Owner' as const,
+            excerpt: 'xyz',
+          },
+        ],
+      },
+    });
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Mode Diskusi \(AI Co-Pilot\)/i }));
+
+    const chatInput = screen.getByPlaceholderText(
+      /Ketik ide atau tanggapan Anda untuk AI Co-Pilot/i,
+    );
+    fireEvent.change(chatInput, { target: { value: 'xyz' } });
+    fireEvent.click(screen.getByTitle('Kirim pesan'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Bisa jelaskan lebih detail?')).toBeInTheDocument();
+    });
+
+    // Click synthesize
+    const synthesizeBtn = screen.getByRole('button', { name: /Rakit Draf Feature/i });
+    fireEvent.click(synthesizeBtn);
+
+    // Clarification message is appended to the chat thread
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Informasi belum cukup untuk menentukan delivery area subtask/i),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(/Apakah fitur ini membutuhkan sisi backend API atau hanya UI mockup\?/i),
+    ).toBeInTheDocument();
+    // Modal stays in chat mode (does not jump to preview)
+    expect(screen.queryByText('Pratinjau & Edit Draf Feature (AI)')).not.toBeInTheDocument();
+  });
+
+  it('enforces compliance guard on synthesized chat draft when subtasks are disabled in preview (AC-1.2)', async () => {
+    const mockRefineChatResponse = {
+      reply: 'Kebutuhan sudah siap dirakit.',
+      suggestedPrompt: 'Fitur pembayaran QRIS',
+      isReadyToSynthesize: true,
+      quickReplies: ['Rakit sekarang'],
+      citations: [
+        {
+          sourceType: 'user_prompt' as const,
+          label: 'Prompt Product Owner' as const,
+          excerpt: 'QRIS',
+        },
+      ],
+    };
+
+    vi.spyOn(aiTaskGeneratorService, 'refineChat').mockResolvedValue(mockRefineChatResponse);
+    vi.spyOn(aiTaskGeneratorService, 'synthesizeFromChat').mockResolvedValue(mockDraftResponse);
+
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <AiTaskGeneratorModal isOpen={true} onClose={vi.fn()} folders={mockFolders} />
+      </Provider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Mode Diskusi \(AI Co-Pilot\)/i }));
+
+    const chatInput = screen.getByPlaceholderText(
+      /Ketik ide atau tanggapan Anda untuk AI Co-Pilot/i,
+    );
+    fireEvent.change(chatInput, { target: { value: 'Buat fitur QRIS' } });
+    fireEvent.click(screen.getByTitle('Kirim pesan'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Rakit Draf Feature/i })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Rakit Draf Feature/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Pratinjau & Edit Draf Feature (AI)')).toBeInTheDocument();
+    });
+
+    // Switch to Subtasks tab in preview
+    fireEvent.click(screen.getByText(/Subtasks \(2\/2\)/i));
+
+    // Disable both subtasks
+    fireEvent.click(screen.getByLabelText('Toggle subtask 1'));
+    fireEvent.click(screen.getByLabelText('Toggle subtask 2'));
+
+    // Compliance banner must be displayed
+    expect(
+      screen.getByText('Wajib mengaktifkan minimal 1 Subtask sebelum Feature dapat disimpan.'),
+    ).toBeInTheDocument();
+
+    // Apply button must be disabled
+    expect(screen.getByRole('button', { name: /Terapkan & Buat Feature/i })).toBeDisabled();
+  });
 });

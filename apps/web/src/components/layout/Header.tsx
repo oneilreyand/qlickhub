@@ -15,6 +15,7 @@ import {
   Sparkles,
   Laptop,
   BookOpen,
+  Crown,
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -101,6 +102,7 @@ export const Header: React.FC<HeaderProps> = ({
   ).toLowerCase();
   const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
   const canAccessUISystem = userRole === 'owner';
+  const canAccessLeaderHub = ['owner', 'admin'].includes(userRole);
 
   const handleOpenCreateModal = () => {
     setShowWorkspaceMenu(false);
@@ -134,6 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
     location.pathname === '/requirements' ||
     (location.pathname === '/work' && currentTab === 'requirements');
   const isReportsActive = location.pathname === '/reports';
+  const isLeaderHubActive = location.pathname === '/leader-hub';
   const isComponentsActive = location.pathname === '/components';
   const isSettingsActive = location.pathname === '/workspaces/settings';
 
@@ -141,315 +144,358 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-30 h-20 w-full border-b border-stone-200/60 bg-[#FBFCF7]/95 px-4 backdrop-blur-md transition-colors sm:px-8 dark:border-stone-800/80 dark:bg-[#141413]/95 dark:text-stone-100">
       <div className="mx-auto flex h-full w-full max-w-7xl 2xl:max-w-[1600px] items-center justify-between">
         {/* Left section: App Brand Logo & Workspace Switcher */}
-      <div className="flex items-center gap-3 lg:gap-4">
-        <IconButton
-          onClick={onToggleMobileSidebar}
-          label="Buka atau tutup menu seluler"
-          variant="ghost"
-          className="lg:hidden text-stone-700 hover:bg-stone-200/60 dark:text-stone-300 dark:hover:bg-stone-800"
-        >
-          <Menu className="h-5 w-5" />
-        </IconButton>
+        <div className="flex items-center gap-3 lg:gap-4">
+          <IconButton
+            onClick={onToggleMobileSidebar}
+            label="Buka atau tutup menu seluler"
+            variant="ghost"
+            className="lg:hidden text-stone-700 hover:bg-stone-200/60 dark:text-stone-300 dark:hover:bg-stone-800"
+          >
+            <Menu className="h-5 w-5" />
+          </IconButton>
 
-        {/* Brand Logo Pill */}
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#B1E743] text-[#141413] shadow-sm font-black text-lg">
-            Q
+          {/* Brand Logo Pill */}
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#B1E743] text-[#141413] shadow-sm font-black text-lg">
+              Q
+            </div>
+          </div>
+
+          {/* Workspace Switcher Dropdown */}
+          <div className="relative hidden md:block" ref={workspaceMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowWorkspaceMenu(!showWorkspaceMenu)}
+              aria-label="Ganti workspace"
+              className="flex items-center gap-2 rounded-2xl border border-stone-200/80 bg-white px-3 py-1.5 min-h-[38px] text-xs font-semibold text-stone-800 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-[#B1E743]/20 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
+            >
+              <Building2 className="h-3.5 w-3.5 text-stone-500" />
+              <span className="max-w-[120px] truncate">
+                {isLoading
+                  ? 'Memuat...'
+                  : activeWorkspace
+                    ? activeWorkspace.name
+                    : 'Pilih Workspace'}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 text-stone-400" />
+            </button>
+
+            {/* Workspace Menu Dropdown */}
+            {showWorkspaceMenu && (
+              <div className="absolute left-0 mt-2 w-64 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl ring-1 ring-stone-900/5 z-30 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100">
+                <div className="flex items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                  <span>Workspaces ({workspaces.length})</span>
+                  {isLoading && <Loader2 className="h-3 w-3 animate-spin text-[#B1E743]" />}
+                </div>
+
+                {canAccessLeaderHub && (
+                  <div className="border-b border-stone-100 pb-1 mb-1 dark:border-stone-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('/leader-hub');
+                        setShowWorkspaceMenu(false);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                        isLeaderHubActive
+                          ? 'bg-[#B1E743] text-[#141413]'
+                          : 'text-stone-800 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800'
+                      }`}
+                    >
+                      <Crown className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743] shrink-0" />
+                      <div className="flex flex-col text-left">
+                        <span className="font-bold">Executive Leader Hub</span>
+                        <span className="text-[10px] text-stone-400 font-normal">
+                          Lintas Semua Workspace
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+
+                {error ? (
+                  <div className="p-3 my-1 rounded-xl bg-rose-50 text-rose-700 text-xs flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-1">
+                      <p className="font-medium">{error}</p>
+                      <button
+                        type="button"
+                        onClick={() => dispatch(fetchWorkspaces())}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold underline"
+                      >
+                        <RefreshCw className="h-3 w-3" /> Coba lagi
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-h-56 overflow-y-auto space-y-1 py-1">
+                    {workspaces.map((ws) => {
+                      const isSelected = ws.id === activeWorkspace?.id;
+                      return (
+                        <button
+                          key={ws.id}
+                          type="button"
+                          onClick={() => {
+                            dispatch(setActiveWorkspaceId(ws.id));
+                            setShowWorkspaceMenu(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                            isSelected
+                              ? 'bg-[#B1E743] text-[#141413] font-semibold'
+                              : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'
+                          }`}
+                        >
+                          <span className="truncate">{ws.name}</span>
+                          {isSelected && <Check className="h-4 w-4 text-[#141413]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {mayCreateWorkspace && (
+                  <div className="border-t border-stone-100 pt-1 dark:border-stone-800">
+                    <button
+                      type="button"
+                      onClick={handleOpenCreateModal}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-800"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Buat Workspace</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Workspace Switcher Dropdown */}
-        <div className="relative hidden md:block" ref={workspaceMenuRef}>
+        {/* Center section: Content-aligned Top Navigation Pills Bar */}
+        <nav className="hidden lg:flex items-center gap-1 bg-white/80 dark:bg-stone-900/80 p-1.5 rounded-full border border-stone-200/80 dark:border-stone-800 shadow-xs">
           <button
-            type="button"
-            onClick={() => setShowWorkspaceMenu(!showWorkspaceMenu)}
-            aria-label="Ganti workspace"
-            className="flex items-center gap-2 rounded-2xl border border-stone-200/80 bg-white px-3 py-1.5 min-h-[38px] text-xs font-semibold text-stone-800 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-[#B1E743]/20 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
+            onClick={() => navigate('/work?tab=overview')}
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              isOverviewActive
+                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+            }`}
           >
-            <Building2 className="h-3.5 w-3.5 text-stone-500" />
-            <span className="max-w-[120px] truncate">
-              {isLoading ? 'Memuat...' : activeWorkspace ? activeWorkspace.name : 'Pilih Workspace'}
-            </span>
-            <ChevronDown className="h-3.5 w-3.5 text-stone-400" />
+            Ringkasan
           </button>
 
-          {/* Workspace Menu Dropdown */}
-          {showWorkspaceMenu && (
-            <div className="absolute left-0 mt-2 w-64 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl ring-1 ring-stone-900/5 z-30 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100">
-              <div className="flex items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                <span>Workspaces ({workspaces.length})</span>
-                {isLoading && <Loader2 className="h-3 w-3 animate-spin text-[#B1E743]" />}
-              </div>
+          <button
+            onClick={() => navigate('/work?tab=tasks')}
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              isTasksActive
+                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+            }`}
+          >
+            Task Hub
+          </button>
 
-              {error ? (
-                <div className="p-3 my-1 rounded-xl bg-rose-50 text-rose-700 text-xs flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <div className="flex-1 space-y-1">
-                    <p className="font-medium">{error}</p>
+          <button
+            onClick={() => navigate('/my-tasks')}
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              isMyTasksActive
+                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+            }`}
+          >
+            Tugas Saya
+          </button>
+
+          <button
+            onClick={() => navigate('/reports')}
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              isReportsActive
+                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+            }`}
+          >
+            Laporan
+          </button>
+
+          {canAccessLeaderHub && (
+            <button
+              onClick={() => navigate('/leader-hub')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                isLeaderHubActive
+                  ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+              }`}
+            >
+              <Crown className="h-3.5 w-3.5" />
+              <span>Leader Hub</span>
+            </button>
+          )}
+
+          {canAccessSettings && (
+            <button
+              onClick={() => navigate('/workspaces/settings')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                isSettingsActive
+                  ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+              }`}
+            >
+              Pengaturan Workspace
+            </button>
+          )}
+
+          {canAccessUISystem && (
+            <button
+              onClick={() => navigate('/components')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                isComponentsActive
+                  ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
+              }`}
+            >
+              Sistem UI
+            </button>
+          )}
+        </nav>
+
+        {/* Right section: Notifications & User profile */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {featureVisibility.userFlowGuide && (
+            <IconButton
+              onClick={() => navigate('/user-flows')}
+              label="Panduan alur kerja & Quality Gate"
+              size="sm"
+              className="rounded-full border border-stone-200/90 bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:text-white"
+            >
+              <BookOpen className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
+            </IconButton>
+          )}
+
+          {/* Quick Theme Toggle Button */}
+          <IconButton
+            onClick={toggleTheme}
+            label={`Ganti ke mode ${isDarkMode ? 'terang' : 'gelap'}`}
+            size="sm"
+            className="rounded-full border border-stone-200/90 bg-white dark:border-stone-800 dark:bg-stone-900"
+          >
+            {isDarkMode ? (
+              <Sun className="h-4.5 w-4.5 text-amber-400" />
+            ) : (
+              <Moon className="h-4.5 w-4.5 text-stone-500" />
+            )}
+          </IconButton>
+
+          {/* Notification Bell with indicator dot and dropdown */}
+          <NotificationBell />
+
+          {/* User Profile Avatar Pill */}
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              aria-label="Menu profil pengguna"
+              aria-expanded={isProfileOpen}
+              className="flex items-center gap-2 p-0.5 rounded-full border border-stone-200/90 bg-white hover:bg-stone-100 focus:outline-none transition-all dark:border-stone-800 dark:bg-stone-900"
+            >
+              <div className="relative">
+                <div className="grid h-9 w-9 place-items-center rounded-full bg-[#B1E743] text-xs font-bold text-[#141413] shadow-xs">
+                  {userInitial}
+                </div>
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#B1E743] ring-2 ring-white dark:ring-stone-900" />
+              </div>
+            </button>
+
+            {/* Profile Menu Dropdown */}
+            {isProfileOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl ring-1 ring-stone-900/5 z-30 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100">
+                <div className="border-b border-stone-100 px-3 py-2.5 dark:border-stone-800">
+                  <p className="text-xs font-semibold text-stone-900 capitalize dark:text-stone-100">
+                    {userName}
+                  </p>
+                  <p className="truncate text-xs text-stone-500 dark:text-stone-400">
+                    {effectiveEmail}
+                  </p>
+                </div>
+
+                <div className="py-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      setShowProfileModal(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                  >
+                    <UserIcon className="h-4 w-4 text-stone-400" />
+                    <span>Pengaturan Akun & Profil</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      setShowSessionsModal(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                  >
+                    <Laptop className="h-4 w-4 text-stone-400" />
+                    <span>Perangkat & Sesi Aktif</span>
+                  </button>
+
+                  {featureVisibility.userFlowGuide && (
                     <button
                       type="button"
-                      onClick={() => dispatch(fetchWorkspaces())}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold underline"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        navigate('/user-flows');
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
                     >
-                      <RefreshCw className="h-3 w-3" /> Coba lagi
+                      <BookOpen className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
+                      <span>Panduan Alur &amp; Peran</span>
                     </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="max-h-56 overflow-y-auto space-y-1 py-1">
-                  {workspaces.map((ws) => {
-                    const isSelected = ws.id === activeWorkspace?.id;
-                    return (
-                      <button
-                        key={ws.id}
-                        type="button"
-                        onClick={() => {
-                          dispatch(setActiveWorkspaceId(ws.id));
-                          setShowWorkspaceMenu(false);
-                        }}
-                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
-                          isSelected
-                            ? 'bg-[#B1E743] text-[#141413] font-semibold'
-                            : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'
-                        }`}
-                      >
-                        <span className="truncate">{ws.name}</span>
-                        {isSelected && <Check className="h-4 w-4 text-[#141413]" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                  )}
 
-              {mayCreateWorkspace && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      dispatch(setShowOnboardingModal(true));
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                  >
+                    <Sparkles className="h-4 w-4 text-amber-500" />
+                    <span>Mulai Ulang Onboarding</span>
+                  </button>
+
+                  {canAccessSettings && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        navigate('/workspaces/settings');
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                    >
+                      <Building2 className="h-4 w-4 text-stone-400" />
+                      <span>Pengaturan Workspace</span>
+                    </button>
+                  )}
+                </div>
+
                 <div className="border-t border-stone-100 pt-1 dark:border-stone-800">
                   <button
                     type="button"
-                    onClick={handleOpenCreateModal}
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-800"
+                    onClick={onLogout}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
                   >
-                    <Plus className="h-4 w-4" />
-                    <span>Buat Workspace</span>
+                    <LogOut className="h-4 w-4" />
+                    <span>Keluar</span>
                   </button>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Center section: Content-aligned Top Navigation Pills Bar */}
-      <nav className="hidden lg:flex items-center gap-1 bg-white/80 dark:bg-stone-900/80 p-1.5 rounded-full border border-stone-200/80 dark:border-stone-800 shadow-xs">
-        <button
-          onClick={() => navigate('/work?tab=overview')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-            isOverviewActive
-              ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-          }`}
-        >
-          Ringkasan
-        </button>
-
-        <button
-          onClick={() => navigate('/work?tab=tasks')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-            isTasksActive
-              ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-          }`}
-        >
-          Task Hub
-        </button>
-
-        <button
-          onClick={() => navigate('/my-tasks')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-            isMyTasksActive
-              ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-          }`}
-        >
-          Tugas Saya
-        </button>
-
-        <button
-          onClick={() => navigate('/reports')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-            isReportsActive
-              ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-          }`}
-        >
-          Laporan
-        </button>
-
-        {canAccessSettings && (
-          <button
-            onClick={() => navigate('/workspaces/settings')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-              isSettingsActive
-                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-            }`}
-          >
-            Pengaturan Workspace
-          </button>
-        )}
-
-        {canAccessUISystem && (
-          <button
-            onClick={() => navigate('/components')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-              isComponentsActive
-                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
-            }`}
-          >
-            Sistem UI
-          </button>
-        )}
-      </nav>
-
-      {/* Right section: Notifications & User profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {featureVisibility.userFlowGuide && (
-          <IconButton
-            onClick={() => navigate('/user-flows')}
-            label="Panduan alur kerja & Quality Gate"
-            size="sm"
-            className="rounded-full border border-stone-200/90 bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-all dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:text-white"
-          >
-            <BookOpen className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
-          </IconButton>
-        )}
-
-        {/* Quick Theme Toggle Button */}
-        <IconButton
-          onClick={toggleTheme}
-          label={`Ganti ke mode ${isDarkMode ? 'terang' : 'gelap'}`}
-          size="sm"
-          className="rounded-full border border-stone-200/90 bg-white dark:border-stone-800 dark:bg-stone-900"
-        >
-          {isDarkMode ? (
-            <Sun className="h-4.5 w-4.5 text-amber-400" />
-          ) : (
-            <Moon className="h-4.5 w-4.5 text-stone-500" />
-          )}
-        </IconButton>
-
-        {/* Notification Bell with indicator dot and dropdown */}
-        <NotificationBell />
-
-        {/* User Profile Avatar Pill */}
-        <div className="relative" ref={profileMenuRef}>
-          <button
-            type="button"
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            aria-label="Menu profil pengguna"
-            aria-expanded={isProfileOpen}
-            className="flex items-center gap-2 p-0.5 rounded-full border border-stone-200/90 bg-white hover:bg-stone-100 focus:outline-none transition-all dark:border-stone-800 dark:bg-stone-900"
-          >
-            <div className="relative">
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-[#B1E743] text-xs font-bold text-[#141413] shadow-xs">
-                {userInitial}
-              </div>
-              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#B1E743] ring-2 ring-white dark:ring-stone-900" />
-            </div>
-          </button>
-
-          {/* Profile Menu Dropdown */}
-          {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl ring-1 ring-stone-900/5 z-30 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100">
-              <div className="border-b border-stone-100 px-3 py-2.5 dark:border-stone-800">
-                <p className="text-xs font-semibold text-stone-900 capitalize dark:text-stone-100">
-                  {userName}
-                </p>
-                <p className="truncate text-xs text-stone-500 dark:text-stone-400">
-                  {effectiveEmail}
-                </p>
-              </div>
-
-              <div className="py-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileOpen(false);
-                    setShowProfileModal(true);
-                  }}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                >
-                  <UserIcon className="h-4 w-4 text-stone-400" />
-                  <span>Pengaturan Akun & Profil</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileOpen(false);
-                    setShowSessionsModal(true);
-                  }}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                >
-                  <Laptop className="h-4 w-4 text-stone-400" />
-                  <span>Perangkat & Sesi Aktif</span>
-                </button>
-
-                {featureVisibility.userFlowGuide && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      navigate('/user-flows');
-                    }}
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                  >
-                    <BookOpen className="h-4 w-4 text-[#B1E743] dark:text-[#B1E743]" />
-                    <span>Panduan Alur &amp; Peran</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileOpen(false);
-                    dispatch(setShowOnboardingModal(true));
-                  }}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                >
-                  <Sparkles className="h-4 w-4 text-amber-500" />
-                  <span>Mulai Ulang Onboarding</span>
-                </button>
-
-                {canAccessSettings && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      navigate('/workspaces/settings');
-                    }}
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800"
-                  >
-                    <Building2 className="h-4 w-4 text-stone-400" />
-                    <span>Pengaturan Workspace</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="border-t border-stone-100 pt-1 dark:border-stone-800">
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Keluar</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
       </div>
 
       {/* User Profile & Password Modal */}

@@ -102,7 +102,7 @@ graph TD
 | `/work`                              | `WorkHubPage.tsx`           | Halaman utama: navigasi pohon folder, tabel task, filter, timeline, dan drawer detail fitur.                                                                                              |
 | `/projects/:projectId/tasks/:taskId` | `TaskDeepLinkPage.tsx`      | Tautan langsung menuju task/fitur spesifik dengan mempertahankan konteks parent.                                                                                                          |
 | `/my-tasks`                          | `MyTasksPage.tsx`           | Tab antrean kerja berbasis peran serta root Task persisten yang dibuat pengguna terautentikasi di Workspace aktif.                                                                        |
-| `/reports`                           | `ReportPage.tsx`            | Analitik historis kesiapan rilis dan audit kualitas berdasarkan data persisten backend.                                                                                                   |
+| `/reports`                           | `ReportPage.tsx`            | Timeline kapasitas tim berbasis data persisten backend, termasuk filter anggota, rentang tanggal, skala, dan scope Workspace.                                                             |
 | `/user-flows`                        | `UserFlowPage.tsx`          | Panduan interaktif alur kerja kolaborasi lintas peran.                                                                                                                                    |
 | `/workspaces/settings`               | `WorkspaceSettingsPage.tsx` | Pengaturan anggota, role, spesialisasi developer, kebijakan pembuatan task, serta status rollout QA assurance; seluruh member aktif dapat membaca rollout, Owner/Admin dapat mengubahnya. |
 | `/components`                        | `ComponentGalleryPage.tsx`  | Galeri showcase interaktif untuk memverifikasi seluruh komponen atom, molekul, dan organisme secara terisolasi.                                                                           |
@@ -123,7 +123,7 @@ graph LR
     end
 
     subgraph Accessibility["Standar Aksesibilitas WCAG"]
-        WCAG["WCAG AAA Contrast Ratio >= 7:1"]
+        WCAG["WCAG 2.2 AA untuk teks normal >= 4.5:1\nAAA >= 7:1 hanya untuk pasangan yang diverifikasi"]
         Touch["Minimum Touch Target 44px × 44px"]
         Keyboard["Full Keyboard Focus Outline"]
     end
@@ -135,9 +135,9 @@ graph LR
 
     classDef limeToken fill:#B1E743,stroke:#84CC16,stroke-width:2px,color:#141413;
     classDef navyToken fill:#0B1C30,stroke:#1E293B,stroke-width:2px,color:#FFFFFF;
-    classDef emToken fill:#10B981,stroke:#059669,stroke-width:2px,color:#FFFFFF;
-    classDef amToken fill:#F59E0B,stroke:#D97706,stroke-width:2px,color:#FFFFFF;
-    classDef rdToken fill:#EF4444,stroke:#DC2626,stroke-width:2px,color:#FFFFFF;
+    classDef emToken fill:#10B981,stroke:#059669,stroke-width:2px,color:#141413;
+    classDef amToken fill:#F59E0B,stroke:#D97706,stroke-width:2px,color:#141413;
+    classDef rdToken fill:#EF4444,stroke:#DC2626,stroke-width:2px,color:#141413;
     classDef slToken fill:#64748B,stroke:#475569,stroke-width:2px,color:#FFFFFF;
     classDef a11y fill:#F1F5F9,stroke:#334155,stroke-width:2px,color:#0F172A;
 
@@ -149,6 +149,12 @@ graph LR
     class Slate slToken;
     class Accessibility,WCAG,Touch,Keyboard a11y;
 ```
+
+Baseline Qlick Hub adalah **WCAG 2.2 AA** untuk teks normal (`>= 4.5:1`) dan kontras non-teks
+yang relevan. AAA (`>= 7:1`) hanya boleh diklaim pada pasangan yang telah diverifikasi, misalnya
+lime `#B1E743` dengan charcoal `#141413`, navy `#0B1C30` dengan putih, emerald `#10B981` dengan
+charcoal, dan amber `#F59E0B` dengan charcoal. Warna bukan satu-satunya pembawa status: label,
+ikon, dan nama aksesibel tetap wajib tersedia.
 
 ---
 
@@ -176,25 +182,25 @@ graph LR
 
 ### 🟡 Molecules
 
-| Komponen                   | File Path                                | Penggunaan                                                                                                             |
-| :------------------------- | :--------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
-| `TaskStatusBadge`          | `molecules/TaskStatusBadge.tsx`          | Status task: `todo`, `in_progress`, `in_review`, `completed`.                                                          |
-| `BugStatusBadge`           | `molecules/BugStatusBadge.tsx`           | Status bug: `critical`, `high`, `medium`, `low`.                                                                       |
-| `DeliveryTraceSignal`      | `molecules/DeliveryTraceSignal.tsx`      | Indikator visual keterhubungan requirement dan delivery.                                                               |
-| `ReleaseReadinessSignal`   | `molecules/ReleaseReadinessSignal.tsx`   | Meteran kesiapan rilis dari snapshot backend.                                                                          |
-| `TaskScheduleHealthBadge`  | `molecules/TaskScheduleHealthBadge.tsx`  | Status kesehatan jadwal task (on-track / overdue).                                                                     |
-| `DateRangePicker`          | `molecules/DateRangePicker.tsx`          | Pemilih rentang tanggal target jadwal rilis.                                                                           |
-| `EvidenceCard`             | `molecules/EvidenceCard.tsx`             | Kartu ringkasan bukti pengujian (thumbnail & tautan).                                                                  |
-| `EmptyState`               | `molecules/EmptyState.tsx`               | State kosong dengan ilustrasi lintas tema atau fallback ikon.                                                          |
-| `SearchInput`              | `molecules/SearchInput.tsx`              | Input pencarian dengan ikon dan tombol reset instan.                                                                   |
-| `SubtaskRoleTimeline`      | `molecules/SubtaskRoleTimeline.tsx`      | Timeline visual perjalanan subtask dari Dev ke QA.                                                                     |
-| `TaskHierarchyBreadcrumb`  | `molecules/TaskHierarchyBreadcrumb.tsx`  | Remah roti hierarki navigasi `Workspace > Folder > Task`.                                                              |
-| `Drawer`                   | `molecules/Drawer.tsx`                   | Panel geser samping untuk detail tugas.                                                                                |
-| `Modal`                    | `molecules/Modal.tsx`                    | Kotak dialog modal dengan backdrop.                                                                                    |
-| `Snackbar`                 | `molecules/Snackbar.tsx`                 | Toast notifikasi aksi sukses / gagal.                                                                                  |
-| `Tabs`                     | `molecules/Tabs.tsx`                     | Navigasi tab untuk pengelompokan konten.                                                                               |
-| `QaWorkflowSummaryWidget`  | `molecules/QaWorkflowSummaryWidget.tsx`  | Widget 3-tile Traffic Light Quality Gate (Cakupan & Siklus Uji, Langkah Kerja Selanjutnya, Status Prasyarat Kesiapan). |
-| `QaExecutionFilterToolbar` | `molecules/QaExecutionFilterToolbar.tsx` | Toolbar filter eksekusi Test Case (Quick Progress Bar, Status Tabs Lulus/Gagal/Terblokir, Toggle Split/List View).     |
+| Komponen                   | File Path                                | Penggunaan                                                                                                              |
+| :------------------------- | :--------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| `TaskStatusBadge`          | `molecules/TaskStatusBadge.tsx`          | Status task: `todo`, `in_progress`, `in_review`, `changes_requested`, `done`, `canceled`; juga state QA presentasional. |
+| `BugStatusBadge`           | `molecules/BugStatusBadge.tsx`           | Status bug: `critical`, `high`, `medium`, `low`.                                                                        |
+| `DeliveryTraceSignal`      | `molecules/DeliveryTraceSignal.tsx`      | Indikator visual keterhubungan requirement dan delivery.                                                                |
+| `ReleaseReadinessSignal`   | `molecules/ReleaseReadinessSignal.tsx`   | Meteran kesiapan rilis dari snapshot backend.                                                                           |
+| `TaskScheduleHealthBadge`  | `molecules/TaskScheduleHealthBadge.tsx`  | Status kesehatan jadwal task (on-track / overdue).                                                                      |
+| `DateRangePicker`          | `molecules/DateRangePicker.tsx`          | Pemilih rentang tanggal target jadwal rilis.                                                                            |
+| `EvidenceCard`             | `molecules/EvidenceCard.tsx`             | Kartu ringkasan bukti pengujian (thumbnail & tautan).                                                                   |
+| `EmptyState`               | `molecules/EmptyState.tsx`               | State kosong dengan ilustrasi lintas tema atau fallback ikon.                                                           |
+| `SearchInput`              | `molecules/SearchInput.tsx`              | Input pencarian dengan ikon dan tombol reset instan.                                                                    |
+| `SubtaskRoleTimeline`      | `molecules/SubtaskRoleTimeline.tsx`      | Timeline visual perjalanan subtask dari Dev ke QA.                                                                      |
+| `TaskHierarchyBreadcrumb`  | `molecules/TaskHierarchyBreadcrumb.tsx`  | Remah roti hierarki navigasi `Workspace > Folder > Task`.                                                               |
+| `Drawer`                   | `molecules/Drawer.tsx`                   | Panel geser samping untuk detail tugas.                                                                                 |
+| `Modal`                    | `molecules/Modal.tsx`                    | Kotak dialog modal dengan backdrop.                                                                                     |
+| `Snackbar`                 | `molecules/Snackbar.tsx`                 | Toast notifikasi aksi sukses / gagal.                                                                                   |
+| `Tabs`                     | `molecules/Tabs.tsx`                     | Navigasi tab untuk pengelompokan konten.                                                                                |
+| `QaWorkflowSummaryWidget`  | `molecules/QaWorkflowSummaryWidget.tsx`  | Widget 3-tile Traffic Light Quality Gate (Cakupan & Siklus Uji, Langkah Kerja Selanjutnya, Status Prasyarat Kesiapan).  |
+| `QaExecutionFilterToolbar` | `molecules/QaExecutionFilterToolbar.tsx` | Toolbar filter eksekusi Test Case (Quick Progress Bar, Status Tabs Lulus/Gagal/Terblokir, Toggle Split/List View).      |
 
 ### 🟣 Organisms
 

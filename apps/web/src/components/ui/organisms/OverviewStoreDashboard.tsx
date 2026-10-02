@@ -36,7 +36,17 @@ export const OverviewStoreDashboard: React.FC = () => {
   // Fetch fresh workspace tasks and folders on workspace load
   useEffect(() => {
     if (activeWorkspaceId) {
-      void dispatch(fetchTasks({ workspaceId: activeWorkspaceId, query: { limit: 100 } }));
+      void dispatch(
+        fetchTasks({
+          workspaceId: activeWorkspaceId,
+          query: {
+            limit: 100,
+            rootOnly: true,
+            includeSubtasks: true,
+            includeSubtaskSummary: true,
+          },
+        }),
+      );
       if (folders.length === 0) {
         void dispatch(fetchFolderTree(activeWorkspaceId));
       }
@@ -67,9 +77,30 @@ export const OverviewStoreDashboard: React.FC = () => {
   })}`;
 
   // Filter tasks within current month range or active tasks in workspace
+  // Work Hub primary delivery items are root Feature / Story tasks
+  const rootWorkspaceTasks = useMemo(() => {
+    return (tasks || []).filter((t) => !t.parentTaskId);
+  }, [tasks]);
+
+  // Aggregate subtask counts across all root tasks
+  const subtasksCountSummary = useMemo(() => {
+    let total = 0;
+    let completed = 0;
+    rootWorkspaceTasks.forEach((t) => {
+      if (t.subtaskSummary) {
+        total += t.subtaskSummary.total;
+        completed += t.subtaskSummary.completed;
+      } else if (t.subtasks && t.subtasks.length > 0) {
+        total += t.subtasks.length;
+        completed += t.subtasks.filter((st) => st.status === 'done').length;
+      }
+    });
+    return { total, completed };
+  }, [rootWorkspaceTasks]);
+
   const monthlyTasks = useMemo(() => {
-    if (!tasks || tasks.length === 0) return [];
-    return tasks.filter((t) => {
+    if (!rootWorkspaceTasks || rootWorkspaceTasks.length === 0) return [];
+    return rootWorkspaceTasks.filter((t) => {
       const created = t.createdAt ? t.createdAt.slice(0, 10) : '';
       const due = t.dueDate || '';
       const isCreatedThisMonth = created >= startIso && created <= endIso;
@@ -77,9 +108,9 @@ export const OverviewStoreDashboard: React.FC = () => {
       const isActive = t.status !== 'done' && t.status !== 'canceled';
       return isCreatedThisMonth || isDueThisMonth || isActive;
     });
-  }, [tasks, startIso, endIso]);
+  }, [rootWorkspaceTasks, startIso, endIso]);
 
-  const activeTaskList = monthlyTasks.length > 0 ? monthlyTasks : tasks;
+  const activeTaskList = monthlyTasks.length > 0 ? monthlyTasks : rootWorkspaceTasks;
 
   // Real KPI Metrics computed from actual task data
   const totalTasks = activeTaskList.length;
@@ -247,12 +278,21 @@ export const OverviewStoreDashboard: React.FC = () => {
             <span className="text-3xl font-extrabold text-[#22201F] dark:text-white">
               <AnimatedCounter value={totalTasks} />
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
-              {todoTasks} To Do
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              {subtasksCountSummary.total > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743] border border-[#B1E743]/40">
+                  {subtasksCountSummary.total} Subtask
+                </span>
+              )}
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
+                {todoTasks} To Do
+              </span>
+            </div>
           </div>
           <p className="text-[11px] font-medium text-stone-400 truncate">
-            Tugas aktif pada rentang bulan ini
+            {subtasksCountSummary.total > 0
+              ? `${totalTasks} tugas utama (${subtasksCountSummary.total} subtask terhubung)`
+              : 'Tugas aktif pada rentang bulan ini'}
           </p>
         </div>
 
@@ -328,6 +368,9 @@ export const OverviewStoreDashboard: React.FC = () => {
           </div>
           <p className="text-[11px] font-medium text-stone-400 truncate">
             {completedTasks} dari {totalTasks} tugas selesai bulan ini
+            {subtasksCountSummary.total > 0
+              ? ` · ${subtasksCountSummary.completed}/${subtasksCountSummary.total} subtask`
+              : ''}
           </p>
         </div>
       </div>

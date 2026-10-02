@@ -20,6 +20,9 @@ export type BugSeverity = z.infer<typeof BugSeveritySchema>;
 export const BugStatusSchema = z.enum(['open', 'in_progress', 'resolved', 'verified', 'reopened']);
 export type BugStatus = z.infer<typeof BugStatusSchema>;
 
+export const BugEnvironmentSchema = z.enum(['staging', 'production']);
+export type BugEnvironment = z.infer<typeof BugEnvironmentSchema>;
+
 export const BugResolutionEventSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
@@ -124,7 +127,8 @@ export const BugSchema = z.object({
   workspaceId: z.string().uuid(),
   featureTaskId: z.string().uuid(),
   requirementId: z.string().uuid(),
-  testResultId: z.string().uuid(),
+  testResultId: z.string().uuid().nullable().optional(),
+  environment: BugEnvironmentSchema.default('staging'),
   assigneeId: z.string().uuid(),
   title: NonBlankTextSchema.max(255),
   severity: BugSeveritySchema,
@@ -154,44 +158,50 @@ export const BugWithContextSchema = BugSchema.extend({
     name: NonBlankTextSchema.max(255),
     email: z.string().email(),
   }),
-  originatingTestResult: z.object({
-    id: z.string().uuid(),
-    status: TestResultStatusSchema,
-    actualResult: z.string().nullable(),
-    executedAt: z.string().datetime(),
-    evidence: z.array(TestResultEvidenceSchema).default([]),
-    evidenceLinks: z.array(TestResultEvidenceLinkSchema).default([]),
-    testRun: z.object({
+  originatingTestResult: z
+    .object({
       id: z.string().uuid(),
-      testCaseId: z.string().uuid(),
-      build: NonBlankTextSchema.max(100),
-      environment: NonBlankTextSchema.max(100),
-    }),
-  }),
-  originatingTestCase: z.object({
-    availability: z.enum(['available', 'unavailable']),
-    versionId: z.string().uuid().nullable(),
-    revision: z.number().int().positive().nullable(),
-    title: z.string().nullable(),
-    preconditions: z.string().nullable(),
-    steps: z.array(z.string()).default([]),
-    expectedResult: z.string().nullable(),
-    testData: z.string().nullable(),
-    requirementIds: z.array(z.string().uuid()).default([]),
-    acceptanceCriteria: z
-      .array(
-        z.object({
-          id: z.string().uuid(),
-          requirementId: z.string().uuid(),
-          sequence: z.number().int().positive(),
-          text: NonBlankTextSchema,
-          status: z.enum(['active', 'deprecated']),
-          mappingStatus: z.enum(['mapped', 'excluded']),
-          exclusionReason: z.string().nullable(),
-        }),
-      )
-      .default([]),
-  }),
+      status: TestResultStatusSchema,
+      actualResult: z.string().nullable(),
+      executedAt: z.string().datetime(),
+      evidence: z.array(TestResultEvidenceSchema).default([]),
+      evidenceLinks: z.array(TestResultEvidenceLinkSchema).default([]),
+      testRun: z.object({
+        id: z.string().uuid(),
+        testCaseId: z.string().uuid(),
+        build: NonBlankTextSchema.max(100),
+        environment: NonBlankTextSchema.max(100),
+      }),
+    })
+    .nullable()
+    .optional(),
+  originatingTestCase: z
+    .object({
+      availability: z.enum(['available', 'unavailable']),
+      versionId: z.string().uuid().nullable(),
+      revision: z.number().int().positive().nullable(),
+      title: z.string().nullable(),
+      preconditions: z.string().nullable(),
+      steps: z.array(z.string()).default([]),
+      expectedResult: z.string().nullable(),
+      testData: z.string().nullable(),
+      requirementIds: z.array(z.string().uuid()).default([]),
+      acceptanceCriteria: z
+        .array(
+          z.object({
+            id: z.string().uuid(),
+            requirementId: z.string().uuid(),
+            sequence: z.number().int().positive(),
+            text: NonBlankTextSchema,
+            status: z.enum(['active', 'deprecated']),
+            mappingStatus: z.enum(['mapped', 'excluded']),
+            exclusionReason: z.string().nullable(),
+          }),
+        )
+        .default([]),
+    })
+    .nullable()
+    .optional(),
   bugEvidenceLinks: z.array(BugEvidenceLinkSchema).default([]),
 });
 export type BugWithContext = z.infer<typeof BugWithContextSchema>;
@@ -200,7 +210,8 @@ export const CreateBugSchema = z.object({
   workspaceId: z.string().uuid(),
   featureTaskId: z.string().uuid(),
   requirementId: z.string().uuid(),
-  testResultId: z.string().uuid(),
+  testResultId: z.string().uuid().nullable().optional(),
+  environment: BugEnvironmentSchema.optional().default('staging'),
   assigneeId: z.string().uuid(),
   title: NonBlankTextSchema.max(255),
   severity: BugSeveritySchema.default('high'),
@@ -215,6 +226,7 @@ export const UpdateBugSchema = z
     assigneeId: z.string().uuid().optional(),
     title: NonBlankTextSchema.max(255).optional(),
     severity: BugSeveritySchema.optional(),
+    environment: BugEnvironmentSchema.optional(),
     reproductionDetails: NonBlankTextSchema.max(20000).optional(),
     status: BugStatusSchema.optional(),
     resolutionNotes: z.string().trim().max(20000).nullable().optional(),
@@ -230,6 +242,7 @@ export const ListBugsQuerySchema = z.object({
   testResultId: z.string().uuid().optional(),
   assigneeId: z.string().uuid().optional(),
   status: BugStatusSchema.optional(),
+  environment: BugEnvironmentSchema.optional(),
   queue: z.enum(['assigned_work', 'retest']).optional(),
 });
 export type ListBugsQuery = z.infer<typeof ListBugsQuerySchema>;

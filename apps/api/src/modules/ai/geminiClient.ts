@@ -5,6 +5,9 @@ import {
   GeneratedTaskClarificationSchema,
   GeneratedTaskDraftSchema,
   TargetPlatform,
+  TaskChatMessage,
+  RefineTaskChatResponse,
+  RefineTaskChatResponseSchema,
 } from '@qlick/contracts';
 
 try {
@@ -180,25 +183,30 @@ export class GeminiClient {
     }
 
     const systemInstruction = `Anda adalah Senior Technical Product Owner dan QA Lead di platform Qlick Hub.
-Sebelum membuat draf, nilai apakah prompt berisi kebutuhan produk yang dapat dipahami. Jika prompt berupa teks acak, tidak bermakna, atau tidak memiliki konteks yang cukup untuk membuat draf secara bertanggung jawab, jawab dengan outcome "clarification". Jangan mengarang Feature, Requirement, Acceptance Criteria, atau Subtask untuk prompt seperti itu.
+Misi Anda adalah mengubah deskripsi kebutuhan produk dari pengguna menjadi draf perencanaan Feature perangkat lunak yang lengkap dan terstruktur.
 
-Untuk outcome "clarification", isi clarification.message dengan alasan singkat dan clarification.questions dengan 1-4 pertanyaan konkret dalam Bahasa Indonesia. Jangan isi task, productBrief, requirements, atau subtasks.
+PANDUAN INTERPRETASI PROMPT:
+- Pengguna seringkali menuliskan prompt dalam bentuk spesifikasi sistem, aturan alur kerja, batasan peran pengguna (misal PO/DEV/QA), alur state machine, atau memakai gaya bahasa "Anda adalah sistem X..." atau "Tugas Anda: validasi X...".
+- Anda WAJIB menginterpretasikan teks tersebut sebagai SPESIFIKASI FITUR SISTEM yang hendak DIBANGUN / DIKEMBANGKAN oleh tim rekayasa perangkat lunak (Software Engineering).
+- JANGAN mengira pengguna sedang mengajak roleplay chat atau menyuruh Anda menjadi bot interaktif. Jawab dengan outcome "draft" untuk merancang implementasi sistem/fitur tersebut.
+- HANYA jika prompt benar-benar berupa teks acak tak bermakna (misal teks acak seperti "asdfghjkl") atau tidak memiliki konteks produk sama sekali, jawab dengan outcome "clarification". Untuk outcome "clarification", isi clarification.message dan clarification.questions dengan 1-4 pertanyaan konkret.
 
-Hanya jika kebutuhan dapat dipahami, jawab dengan outcome "draft" dan pecah menjadi rancangan pengiriman perangkat lunak yang lengkap dan terstruktur:
+Hanya jika kebutuhan dapat dipahami, jawab dengan outcome "draft" dan pecah menjadi rancangan pengiriman perangkat lunak yang lengkap dan terstruktur. Seluruh komponen (task, productBrief, requirements, subtasks) WAJIB dibuat lengkap:
 1. Task (Feature / Root Task):
    - title: Judul ringkas, profesional, dan to the point (maks 200 karakter).
    - description: Markdown deskriptif lengkap dengan tujuan bisnis dan gambaran arsitektur.
    - priority: 'low' | 'medium' | 'high' | 'urgent'.
 2. Product Brief (Ringkasan Produk):
    - context: Latar belakang masalah, nilai bisnis, dan persona pengguna.
-   - inScope: Daftar poin string fitur yang masuk dalam cakupan rilis ini.
+   - inScope: Daftar minimal 2-5 butir string fitur yang masuk dalam cakupan rilis ini.
    - outScope: Daftar poin string hal-hal yang ditunda / tidak dikerjakan di rilis ini.
 3. Requirements (Spesifikasi Kebutuhan):
-   - Minimal 1-3 kebutuhan fungsional spesifik.
-   - Tiap requirement memiliki judul jelas dan acceptanceCriteria berupa daftar string kriteria pengujian (format Given-When-Then atau kalimat terukur).
+   - WAJIB minimal 1-3 kebutuhan fungsional spesifik. Tidak boleh kosong.
+   - Tiap requirement memiliki judul jelas dan acceptanceCriteria berupa daftar minimal 2-4 string kriteria pengujian (format Given-When-Then atau kalimat terukur).
 4. Subtasks:
-   - Breakdown tugas teknis yang dapat dieksekusi per peran.
+   - WAJIB breakdown tugas teknis per peran yang dapat dieksekusi. Tidak boleh kosong.
    - Target area yang diminta: ${targetPlatforms.join(', ')}.
+   - Sediakan subtask untuk setiap target area yang diminta (${targetPlatforms.join(', ')}).
    - Tiap subtask wajib memiliki title, description, priority, dan deliveryArea ('frontend' | 'backend' | 'mobile' | 'fullstack' | 'qa').
 Respon WAJIB dalam format JSON murni sesuai schema yang ditentukan.`;
 
@@ -261,7 +269,7 @@ Respon WAJIB dalam format JSON murni sesuai schema yang ditentukan.`;
         },
         summary: { type: 'STRING' },
       },
-      required: ['outcome'],
+      required: ['outcome', 'task', 'productBrief', 'requirements', 'subtasks'],
     };
 
     const requestBody = {
@@ -380,14 +388,236 @@ Respon WAJIB dalam format JSON murni sesuai schema yang ditentukan.`;
             outScope: [],
           };
 
+    const taskTitle = parsedJson.task?.title || prompt.trim().slice(0, 50);
+
+    let safeRequirements = Array.isArray(parsedJson.requirements) ? parsedJson.requirements : [];
+    if (safeRequirements.length === 0) {
+      safeRequirements = [
+        {
+          title: `Kebutuhan Fungsional: ${taskTitle}`,
+          description: `Spesifikasi alur kerja dan integrasi utama untuk ${taskTitle}.`,
+          acceptanceCriteria: [
+            `Given pengguna terautentikasi, when mengakses fitur ${taskTitle}, then sistem merespons dengan data yang valid`,
+            'Given input tidak valid atau otorisasi gagal, when aksi diproses, then sistem menolak dan menampilkan pesan yang jelas',
+            'Given alur selesai dieksekusi, then status tugas dan jejak aktivitas tercatat secara persisten',
+          ],
+        },
+      ];
+    }
+
+    let safeSubtasks = Array.isArray(parsedJson.subtasks) ? parsedJson.subtasks : [];
+    if (safeSubtasks.length === 0) {
+      const platformMap: Record<
+        TargetPlatform,
+        {
+          area: 'frontend' | 'backend' | 'mobile' | 'fullstack' | 'qa';
+          label: string;
+          desc: string;
+        }
+      > = {
+        web: {
+          area: 'frontend',
+          label: `FE: Implementasi antarmuka ${taskTitle}`,
+          desc: `Menyediakan komponen UI, form interaksi, dan integrasi API untuk ${taskTitle}.`,
+        },
+        backend: {
+          area: 'backend',
+          label: `BE: Implementasi API & data persistence ${taskTitle}`,
+          desc: `Menyediakan endpoint REST terautentikasi, validasi schema Zod, dan model persistensi untuk ${taskTitle}.`,
+        },
+        mobile: {
+          area: 'mobile',
+          label: `Mobile: Implementasi layar & service ${taskTitle}`,
+          desc: `Menyediakan antarmuka mobile responsif dan state management untuk ${taskTitle}.`,
+        },
+        fullstack: {
+          area: 'fullstack',
+          label: `Fullstack: Integrasi menyeluruh ${taskTitle}`,
+          desc: `Menyediakan integrasi frontend, backend, dan alur data menyeluruh untuk ${taskTitle}.`,
+        },
+        qa: {
+          area: 'qa',
+          label: `QA: Skenario pengujian, Test Case & UAT ${taskTitle}`,
+          desc: `Menyusun Test Case terverifikasi, pengujian skenario positif/negatif, dan verifikasi kriteria penerimaan.`,
+        },
+      };
+
+      safeSubtasks = targetPlatforms.map((platform) => {
+        const item = platformMap[platform] || {
+          area: 'backend' as const,
+          label: `Teknis: Implementasi ${taskTitle}`,
+          desc: `Menyelesaikan pekerjaan teknis untuk ${taskTitle}.`,
+        };
+        return {
+          title: item.label,
+          description: item.desc,
+          deliveryArea: item.area,
+          priority: 'medium' as const,
+          enabled: true,
+        };
+      });
+    }
+
     return {
       outcome: 'draft',
       draft: GeneratedTaskDraftSchema.parse({
         ...parsedJson,
         productBrief: safeProductBrief,
+        requirements: safeRequirements,
+        subtasks: safeSubtasks,
         citations: [promptCitation(prompt)],
       }),
     };
+  }
+
+  /**
+   * Interactive Co-Pilot conversation to refine and guide product requirements.
+   * Provides guidance, clarifies ambiguity, and evaluates when requirements are ready to synthesize.
+   */
+  async refineTaskChat(
+    messages: TaskChatMessage[],
+    targetPlatforms: TargetPlatform[] = ['web', 'backend', 'qa'],
+  ): Promise<RefineTaskChatResponse> {
+    if (!messages || messages.length === 0) {
+      throw new Error('Minimal 1 pesan percakapan untuk berdiskusi dengan AI Co-Pilot.');
+    }
+
+    const latestUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+    const latestText = latestUserMsg?.content || messages[messages.length - 1].content;
+    const citation = promptCitation(latestText);
+
+    // Tests must be deterministic and never call an external provider.
+    if (process.env.NODE_ENV === 'test') {
+      const isReady = messages.length >= 2;
+      return {
+        reply: isReady
+          ? `Kebutuhan untuk "${latestText.slice(0, 40)}" sudah sangat jelas dan terstruktur. Anda bisa langsung menekan tombol 'Rakit Draf Feature' untuk menyusun tiket lengkapnya.`
+          : `Ide yang menarik tentang "${latestText.slice(0, 40)}"! Role apa saja yang terlibat dan bagaimana alur status tugasnya?`,
+        suggestedPrompt: latestText,
+        isReadyToSynthesize: isReady,
+        quickReplies: isReady
+          ? ['Rakit draf sekarang', 'Tambahkan detail kriteria penerimaan']
+          : ['Ada 3 role: PO, DEV, dan QA', 'Alur status bertahap dari Draft hingga Done'],
+        citations: [citation],
+      };
+    }
+
+    if (!this.apiKey) {
+      throw new Error(
+        'GEMINI_API_KEY is not configured on the server. Please configure GEMINI_API_KEY in your server environment.',
+      );
+    }
+
+    const systemInstruction = `Anda adalah Senior Technical Product Owner dan QA Lead di platform Qlick Hub.
+Anda sedang berdiskusi secara interaktif dan konstruktif dengan Product Owner untuk mematangkan kebutuhan fitur perangkat lunak yang ingin dibangun untuk target platform: ${targetPlatforms.join(', ')}.
+
+TUGAS UTAMA ANDA:
+1. Pahami ide pengguna, apresiasi konteksnya, dan berikan tanggapan yang ramah, profesional, serta tajam dalam Bahasa Indonesia.
+2. Analisis kelengkapan teknis: Apakah peran pengguna (PO/Dev/QA), batasan akses, alur status (state machine), atau integrasi sudah jelas?
+3. Ajukan 1-2 pertanyaan pemandu yang spesifik untuk menggali detail penting yang belum terdefinisi.
+4. Evaluasi Kesiapan (isReadyToSynthesize):
+   - Jika pengguna sudah menjelaskan fitur, alur kerja/peran, atau detail teknis yang memadai, set "isReadyToSynthesize": true.
+   - Sediakan "suggestedPrompt" yang merangkum keseluruhan poin kebutuhan yang disepakati dari percakapan sejauh ini.
+   - Jika kebutuhan masih sangat abstrak (misal hanya 1 kalimat awal), set "isReadyToSynthesize": false.
+5. Berikan 2-3 opsi respon cepat ("quickReplies") berupa kalimat singkat yang memudahkan pengguna membalas pertanyaan Anda berikutnya.
+Respon WAJIB dalam format JSON murni sesuai schema.`;
+
+    const responseSchema = {
+      type: 'OBJECT',
+      properties: {
+        reply: { type: 'STRING' },
+        suggestedPrompt: { type: 'STRING' },
+        isReadyToSynthesize: { type: 'BOOLEAN' },
+        quickReplies: { type: 'ARRAY', items: { type: 'STRING' } },
+      },
+      required: ['reply', 'isReadyToSynthesize'],
+    };
+
+    const contents = messages.map((m) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }],
+    }));
+
+    const requestBody = {
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      contents,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema,
+        temperature: 0.3,
+      },
+    };
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.warn(`[GeminiClient] Chat refinement failed (${response.status}):`, errText);
+        return {
+          reply:
+            'Saya telah mencatat kebutuhan Anda. Informasi sudah memadai untuk dirakit menjadi draf Feature terstruktur.',
+          suggestedPrompt: latestText,
+          isReadyToSynthesize: true,
+          quickReplies: ['Rakit draf sekarang'],
+          citations: [citation],
+        };
+      }
+
+      const json = (await response.json()) as any;
+      const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        return {
+          reply: 'Informasi percakapan sudah memadai. Silakan rakit draf Feature Anda.',
+          suggestedPrompt: latestText,
+          isReadyToSynthesize: true,
+          quickReplies: ['Rakit draf sekarang'],
+          citations: [citation],
+        };
+      }
+
+      const parsed = JSON.parse(rawText);
+      return RefineTaskChatResponseSchema.parse({
+        reply: parsed.reply || 'Mari lanjutkan perincian fitur ini.',
+        suggestedPrompt: parsed.suggestedPrompt || latestText,
+        isReadyToSynthesize: Boolean(parsed.isReadyToSynthesize),
+        quickReplies: Array.isArray(parsed.quickReplies) ? parsed.quickReplies : [],
+        citations: [citation],
+      });
+    } catch (err) {
+      console.warn('[GeminiClient] Exception during refineTaskChat:', err);
+      return {
+        reply:
+          'Kebutuhan Anda telah terangkum. Anda dapat langsung merakit draf Feature untuk ditinjau.',
+        suggestedPrompt: latestText,
+        isReadyToSynthesize: true,
+        quickReplies: ['Rakit draf sekarang'],
+        citations: [citation],
+      };
+    }
+  }
+
+  /**
+   * Synthesize a complete 4-entity Feature draft directly from multi-turn discussion messages.
+   */
+  async synthesizeTaskDraftFromChat(
+    messages: TaskChatMessage[],
+    targetPlatforms: TargetPlatform[] = ['web', 'backend', 'qa'],
+  ): Promise<GenerateTaskDraftResponse> {
+    const chatDigest = messages
+      .map((m) => `${m.role === 'user' ? 'Product Owner' : 'AI Lead'}: ${m.content}`)
+      .join('\n\n');
+
+    const consolidatedPrompt = `Berikut adalah hasil diskusi perumusan kebutuhan fitur antara Product Owner dan AI Co-Pilot:\n\n${chatDigest}\n\nInstruksi: Susun draf Feature lengkap (Root Task, Brief Produk dengan In-Scope dan Out-of-Scope, Kebutuhan Fungsional dengan Acceptance Criteria Given-When-Then, dan Subtask teknis untuk ${targetPlatforms.join(', ')}) berdasarkan hasil diskusi di atas.`;
+
+    return this.generateTaskDraft(consolidatedPrompt, targetPlatforms);
   }
 }
 

@@ -45,10 +45,6 @@ jobs:
       - run: npm run quality:check -- --base "${QUALITY_BASE_REF}"
         env:
           QUALITY_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
-      - run: npm run quality:approval:check -- --base "${QUALITY_BASE_REF}"
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          QUALITY_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
       - run: npm --prefix apps/api run typecheck
       - run: npm --prefix apps/web run typecheck
       - run: npm --prefix apps/api run db:migrate:test

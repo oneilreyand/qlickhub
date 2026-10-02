@@ -1,9 +1,9 @@
-# ADR-016: Workload Conflict and Cross-Workspace Privacy Boundary
+# ADR-024: Workload Conflict and Cross-Workspace Privacy Boundary
 
 **Status:** Accepted  
 **Date:** 2026-09-25  
 **Decision owner:** Product and Engineering  
-**Implementation stakeholders:** Product Owner, Backend, Frontend, and QA  
+**Implementation stakeholders:** Product Owner, Backend, Frontend, and QA
 
 ## Context
 
@@ -19,7 +19,7 @@ Selain itu, perencanaan tugas di Qlick Hub menganut prinsip kendali manusia: sis
    - Deteksi irisan jadwal dihitung secara inklusif di backend PostgreSQL dengan rumus:
      `existing.startDate <= candidate.dueDate && existing.dueDate >= candidate.startDate`.
    - Hanya Subtask aktif yang dievaluasi (`todo`, `in_progress`, `in_review`, `changes_requested`). Status terminal (`done`, `canceled`) diabaikan.
-   - Subtask aktif tanpa jadwal (`startDate` atau `dueDate` bernilai null) tidak dihitung sebagai konflik irisan tanggal, melainkan dilaporkan sebagai status informatif: *"beban aktif tanpa jadwal; irisan waktu tidak dapat dinilai"*.
+   - Subtask aktif tanpa jadwal (`startDate` atau `dueDate` bernilai null) tidak dihitung sebagai konflik irisan tanggal, melainkan dilaporkan sebagai status informatif: _"beban aktif tanpa jadwal; irisan waktu tidak dapat dinilai"_.
    - Saat mengedit Subtask eksisting, jadwal Subtask itu sendiri dikecualikan dari perhitungan irisan (`excludeSubtaskId`).
    - Sifat peringatan adalah **murni advisory**: form dan API create/update Subtask tidak pernah memblokir penyimpanan, tidak melakukan reassign otomatis, dan tidak mengubah prioritas.
 

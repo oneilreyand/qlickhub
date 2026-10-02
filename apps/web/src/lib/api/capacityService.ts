@@ -4,9 +4,9 @@ import {
   TeamCapacityTimelineResponseSchema,
   type AssignmentConflictPreviewInput,
   type AssignmentConflictPreviewResponse,
+  type ActiveCapacityTaskStatus,
   type TeamCapacityTimelineResponse,
   type DeliveryArea,
-  type TaskStatus,
   type CapacityScope,
 } from '@qlick/contracts';
 import { apiClient } from './apiClient';
@@ -18,7 +18,7 @@ export interface GetTeamTimelineParams {
   scope?: CapacityScope;
   role?: string;
   deliveryArea?: DeliveryArea;
-  status?: TaskStatus;
+  status?: ActiveCapacityTaskStatus;
   memberId?: string;
 }
 
@@ -28,14 +28,14 @@ export const capacityService = {
     input: AssignmentConflictPreviewInput,
   ): Promise<AssignmentConflictPreviewResponse> {
     const validatedInput = AssignmentConflictPreviewInputSchema.parse(input);
-    const response = await apiClient<{ status: string; data: unknown }>(
+    const response = await apiClient<unknown>(
       `/workspaces/${workspaceId}/capacity/assignment-preview`,
       {
         method: 'POST',
         body: JSON.stringify(validatedInput),
       },
     );
-    return AssignmentConflictPreviewResponseSchema.parse(response.data);
+    return AssignmentConflictPreviewResponseSchema.parse(response);
   },
 
   async getTeamTimeline(
@@ -51,13 +51,10 @@ export const capacityService = {
     if (query.status) params.status = query.status;
     if (query.memberId) params.memberIds = query.memberId;
 
-    const response = await apiClient<{ status: string; data: unknown }>(
-      `/workspaces/${workspaceId}/capacity/timeline`,
-      {
-        method: 'GET',
-        params,
-      },
-    );
-    return TeamCapacityTimelineResponseSchema.parse(response.data);
+    const response = await apiClient<unknown>(`/workspaces/${workspaceId}/capacity/timeline`, {
+      method: 'GET',
+      params,
+    });
+    return TeamCapacityTimelineResponseSchema.parse(response);
   },
 };

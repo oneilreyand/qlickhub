@@ -9,6 +9,7 @@ import {
   validateFeatureCatalog,
   validateFeatureFolder,
   validateFeatureNavigation,
+  validateAdrIndex,
 } from './checkDocs.mjs';
 
 test('extractPolicyIds reads only registry table identifiers', () => {
@@ -121,6 +122,20 @@ test('validateFeatureCatalog requires every legacy Feature exactly once', () => 
     [
       'catalog.md repeats legacy Feature link: A.md',
       'catalog.md is missing legacy Feature link: B.md',
+    ],
+  );
+});
+
+test('validateAdrIndex rejects duplicate numbers and enforces one index link per ADR', () => {
+  assert.deepEqual(
+    validateAdrIndex(
+      ['ADR-016-ONE.md', 'ADR-016-TWO.md', 'ADR-017-THREE.md', 'README.md'],
+      '[One](ADR-016-ONE.md)\n[One again](ADR-016-ONE.md)\n[Three](ADR-017-THREE.md)',
+    ),
+    [
+      'Duplicate ADR number in docs/adr: ADR-016.',
+      'docs/adr/README.md repeats ADR link: ADR-016-ONE.md',
+      'docs/adr/README.md is missing ADR link: ADR-016-TWO.md',
     ],
   );
 });
