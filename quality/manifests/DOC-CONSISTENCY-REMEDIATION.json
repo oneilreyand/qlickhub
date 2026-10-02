@@ -1,0 +1,64 @@
+{
+  "version": 2,
+  "id": "DOC-CONSISTENCY-REMEDIATION",
+  "changedFiles": [
+    "README.md",
+    "TODO.md",
+    "apps/web/README.md",
+    "docs/1_ARCHITECTURE.md",
+    "docs/2_WORKFLOW_AND_ROLES.md",
+    "docs/POLICY_REGISTRY.md",
+    "docs/adr/ADR-023-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md",
+    "docs/adr/README.md",
+    "docs/archive/TODO_COMPLETED_2026-10-02.md",
+    "docs/plans/DOC_CONSISTENCY_REMEDIATION_PLAN.md",
+    "docs/reports/DOC_CONSISTENCY_REMEDIATION_2026-10-02.md",
+    "quality/manifests/DOC-CONSISTENCY-REMEDIATION.json",
+    "scripts/checkDocs.mjs",
+    "scripts/checkDocs.test.mjs"
+  ],
+  "scopes": [],
+  "evidence": {
+    "documentation": {
+      "status": "collected",
+      "artifacts": [
+        "npm run validate (local macOS): docs:check 12 passed, 0 failed, 0 skipped; lint 0 errors, 37 pre-existing warnings; typecheck passed",
+        "node scripts/checkDocs.mjs with the old ADR-016 Workload file present: failed with 2 expected ADR errors"
+      ],
+      "notes": "Approval recorded after implementation; the record covers the exact committed scope of PR #12."
+    }
+  },
+  "approval": {
+    "authority": "github",
+    "recordUrl": "REPLACE_WITH_COMMENT_URL",
+    "recordId": "REPLACE_WITH_COMMENT_ID",
+    "planDigest": "sha256:3881714d0370164e04b4cc32114b9544813a9e5c294f0c797f0e6fbb2fea3114",
+    "baselineCommit": "c67d532c4773f5bf9e11fbfebbbe30efce2fb268",
+    "approvedBy": "oneilreyand",
+    "approvedAt": "2026-10-02T13:50:00Z",
+    "expiresAt": "2026-10-09T13:50:00Z",
+    "allowedFiles": [
+      "README.md",
+      "TODO.md",
+      "apps/web/README.md",
+      "docs/1_ARCHITECTURE.md",
+      "docs/2_WORKFLOW_AND_ROLES.md",
+      "docs/POLICY_REGISTRY.md",
+      "docs/adr/ADR-023-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md",
+      "docs/adr/README.md",
+      "docs/archive/TODO_COMPLETED_2026-10-02.md",
+      "docs/plans/DOC_CONSISTENCY_REMEDIATION_PLAN.md",
+      "docs/reports/DOC_CONSISTENCY_REMEDIATION_2026-10-02.md",
+      "quality/manifests/DOC-CONSISTENCY-REMEDIATION.json",
+      "scripts/checkDocs.mjs",
+      "scripts/checkDocs.test.mjs"
+    ],
+    "roleScope": {
+      "targetRoles": [],
+      "preservedRoles": []
+    },
+    "allowedStateChanges": [
+      "renumber the Workload Conflict ADR from ADR-016 to ADR-023, sync root and web READMEs, archive completed TODO items, and enforce unique indexed ADRs in docs:check without changing application runtime, data, contracts, or roles"
+    ]
+  }
+}
