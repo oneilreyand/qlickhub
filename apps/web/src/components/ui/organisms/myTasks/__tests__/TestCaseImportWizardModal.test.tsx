@@ -50,7 +50,7 @@ const preview = (unmappedHeaders: string[] = []): TestCaseImportPreviewResponse 
       status: 'draft',
       isValid: unmappedHeaders.length === 0,
       validationErrors: unmappedHeaders.length
-        ? [`Column \"${unmappedHeaders[0]}\" is not recognized for row 2.`]
+        ? [`Column "${unmappedHeaders[0]}" is not recognized for row 2.`]
         : [],
       isDuplicate: false,
       existingTestCaseId: null,

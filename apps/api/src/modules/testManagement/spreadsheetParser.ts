@@ -193,12 +193,12 @@ export function getSpreadsheetSheets(buffer: Buffer, mimeType = ''): string[] {
 
 export function parseSharedStringsXml(sharedStringsXml: string): string[] {
   const sharedStrings: string[] = [];
-  const siRegex = new RegExp(`<${xmlTagPrefix}si>(.*?)<\/${xmlTagPrefix}si>`, 'gs');
+  const siRegex = new RegExp(`<${xmlTagPrefix}si>(.*?)</${xmlTagPrefix}si>`, 'gs');
   let siMatch: RegExpExecArray | null;
   while ((siMatch = siRegex.exec(sharedStringsXml)) !== null) {
     const textMatches =
       siMatch[1].match(
-        new RegExp(`<${xmlTagPrefix}t(?:\\s+[^>]*)?>(.*?)<\/${xmlTagPrefix}t>`, 'gs'),
+        new RegExp(`<${xmlTagPrefix}t(?:\\s+[^>]*)?>(.*?)</${xmlTagPrefix}t>`, 'gs'),
       ) || [];
     const text = textMatches.map((t) => t.replace(/<[^>]+>/g, '')).join('');
     sharedStrings.push(decodeXmlText(text));
@@ -264,7 +264,7 @@ export function parseXlsxContent(
     // Extract sheet rows
 
     const rowRegex = new RegExp(
-      `<${xmlTagPrefix}row\\s+r="(\\d+)"[^>]*>(.*?)<\/${xmlTagPrefix}row>`,
+      `<${xmlTagPrefix}row\\s+r="(\\d+)"[^>]*>(.*?)</${xmlTagPrefix}row>`,
       'gs',
     );
     const rawRows: { rowNum: number; cells: Record<string, string> }[] = [];
@@ -276,7 +276,7 @@ export function parseXlsxContent(
       const cells: Record<string, string> = {};
 
       const cellRegex = new RegExp(
-        `<${xmlTagPrefix}c\\s+r="([A-Z]+)\\d+"(?:[^>]*?t="([a-zA-Z]+)")?[^>]*>(?:<${xmlTagPrefix}v>(.*?)<\/${xmlTagPrefix}v>|<${xmlTagPrefix}is><${xmlTagPrefix}t>(.*?)<\/${xmlTagPrefix}t><\/${xmlTagPrefix}is>)?<\/${xmlTagPrefix}c>`,
+        `<${xmlTagPrefix}c\\s+r="([A-Z]+)\\d+"(?:[^>]*?t="([a-zA-Z]+)")?[^>]*>(?:<${xmlTagPrefix}v>(.*?)</${xmlTagPrefix}v>|<${xmlTagPrefix}is><${xmlTagPrefix}t>(.*?)</${xmlTagPrefix}t></${xmlTagPrefix}is>)?</${xmlTagPrefix}c>`,
         'gs',
       );
       let cellMatch: RegExpExecArray | null;
@@ -373,15 +373,12 @@ export function extractSpreadsheetHeaders(
           const xml = sheetXml.toString('utf8');
 
           const row1Match = xml.match(
-            new RegExp(
-              `<${xmlTagPrefix}row[^>]*r="1"[^>]*>([\\s\\S]*?)<\/${xmlTagPrefix}row>`,
-              'i',
-            ),
+            new RegExp(`<${xmlTagPrefix}row[^>]*r="1"[^>]*>([\\s\\S]*?)</${xmlTagPrefix}row>`, 'i'),
           );
           if (row1Match) {
             const cellsContent = row1Match[1];
             const cellRegex = new RegExp(
-              `<${xmlTagPrefix}c[^>]*r="([A-Z]+)1"[^>]*(?:t="([^"]*)")?[^>]*>(?:<${xmlTagPrefix}v>([^<]*)<\/${xmlTagPrefix}v>|<${xmlTagPrefix}is><${xmlTagPrefix}t>([^<]*)<\/${xmlTagPrefix}t><\/${xmlTagPrefix}is>)?<\/${xmlTagPrefix}c>`,
+              `<${xmlTagPrefix}c[^>]*r="([A-Z]+)1"[^>]*(?:t="([^"]*)")?[^>]*>(?:<${xmlTagPrefix}v>([^<]*)</${xmlTagPrefix}v>|<${xmlTagPrefix}is><${xmlTagPrefix}t>([^<]*)</${xmlTagPrefix}t></${xmlTagPrefix}is>)?</${xmlTagPrefix}c>`,
               'gi',
             );
             let cellMatch: RegExpExecArray | null;
@@ -400,7 +397,9 @@ export function extractSpreadsheetHeaders(
           }
         }
       }
-    } catch {}
+    } catch {
+      // Not a readable workbook; fall back to parsing the content as delimited text below.
+    }
     const cleanContent = content.toString('utf8').replace(/^\uFEFF/, '');
     const firstLine = cleanContent.split(/\r?\n/)[0] || '';
     return parseCsvRow(firstLine);

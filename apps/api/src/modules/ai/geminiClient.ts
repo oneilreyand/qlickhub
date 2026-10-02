@@ -12,7 +12,9 @@ import {
 
 try {
   dns.setDefaultResultOrder('ipv4first');
-} catch {}
+} catch {
+  // Older runtimes may not support this option; keep the platform default.
+}
 
 function promptCitation(prompt: string) {
   const normalized = prompt.trim().replace(/\s+/g, ' ');

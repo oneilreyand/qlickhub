@@ -10,8 +10,8 @@ export const TaskStatusBadge: React.FC<{ state: TaskStatusInput; size?: 'sm' | '
   state,
   size = 'sm',
 }) => {
-  let variant: BadgeProps['variant'] = 'neutral';
-  let label = String(state);
+  let variant: BadgeProps['variant'];
+  let label: string;
 
   switch (state) {
     case 'done':
