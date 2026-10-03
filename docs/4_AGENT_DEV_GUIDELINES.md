@@ -181,10 +181,13 @@ Criteria; daftar file atau path yang dibatasi; urutan state change yang diizinka
 bukti yang akan dijalankan; risiko/pemulihan; serta masa berlaku. Dengan satu approval, agent boleh
 claim atau memperbarui status Task, mengubah berkas dalam scope, menjalankan pemeriksaan, memperbaiki
 kegagalan yang masih berada dalam AC dan scope yang sama, membuat commit, mendorong branch non-
-protected, dan membuat atau memperbarui draft Pull Request. Agent melaporkan outcome evidence ketika
+protected, membuat atau memperbarui Pull Request, dan mengaktifkan auto-merge sesuai
+[ADR-028](adr/ADR-028-TIERED-AUTO-MERGE.md) (`AI-020`). Agent melaporkan outcome evidence ketika
 urutan berakhir, bukan setelah setiap edit kecil.
 
-Agent wajib berhenti dan meminta approval baru sebelum: merge atau push ke branch protected;
+Agent wajib berhenti dan meminta approval baru sebelum: push langsung ke branch protected, atau
+merge di luar auto-merge bertingkat ADR-028 (Pull Request Tier 2 baru boleh ter-merge setelah Owner
+memasang label `owner-approved`; agent tidak pernah memasang atau mencopot label itu);
 deployment atau mutasi data Production; migrasi destruktif/backfill; perubahan authorization, RBAC,
 secret, credential, atau dependency; force-push atau penulisan ulang riwayat; membuat artefak
 eksternal yang tidak disebutkan; memperluas scope/path atau mengubah baseline; approval kedaluwarsa;

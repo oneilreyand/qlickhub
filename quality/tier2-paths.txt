@@ -1,0 +1,44 @@
+# Tier 2 paths (ADR-028): a pull request touching any of these needs the `owner-approved` label.
+# One glob per line. `**` matches any number of directories, `*` matches within one path segment.
+
+# Agent rules and governance
+AGENTS.md
+AGENT_REPORT_TEMPLATE.md
+docs/0_PRODUCT_KNOWLEDGE_MAP.md
+docs/1_ARCHITECTURE.md
+docs/2_WORKFLOW_AND_ROLES.md
+docs/4_AGENT_DEV_GUIDELINES.md
+docs/5_AUTONOMOUS_AGENT_OPERATIONS.md
+docs/POLICY_REGISTRY.md
+docs/adr/**
+
+# Enforcement itself
+.github/**
+scripts/check*.mjs
+quality/**
+
+# Database
+apps/api/src/db/migrations/**
+database/migrations/**
+
+# Authorization and auth
+apps/api/src/policies/**
+apps/api/src/modules/auth/**
+apps/api/src/http/middleware/authenticate.ts
+apps/api/src/http/middleware/authorize.ts
+
+# Secrets, env, and deployment
+.env*.example
+apps/*/.env*.example
+vercel.json
+.vercelignore
+api/**
+docs/DEPLOYMENT_AND_ENVIRONMENTS.md
+
+# Dependencies
+package.json
+package-lock.json
+apps/*/package.json
+apps/*/package-lock.json
+packages/*/package.json
+packages/*/package-lock.json
