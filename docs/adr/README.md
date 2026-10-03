@@ -36,3 +36,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-025](ADR-025-APPROVAL-WINDOWS-FOR-AGENT-WORK.md)                         | Approval Windows for bounded agent work                            |
 | [ADR-026](ADR-026-CONCISE-AGENT-DELIVERY-FLOW.md)                             | Concise delivery flow with one bounded approval                    |
 | [ADR-027](ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md)                             | Policy-bound autonomous agent operations (Proposed — not in force) |
+| [ADR-028](ADR-028-TIERED-AUTO-MERGE.md)                                       | Tiered auto-merge for agent pull requests                          |
