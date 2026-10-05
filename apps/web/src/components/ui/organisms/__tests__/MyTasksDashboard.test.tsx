@@ -54,12 +54,10 @@ describe('MyTasksDashboard Organism', () => {
   it('shows backend-derived Developer priorities instead of generic task metrics', () => {
     renderDashboard();
 
-    expect(screen.getByRole('heading', { name: 'Yang perlu Anda perhatikan' })).toBeInTheDocument();
-    expect(
-      screen.getByText('Prioritas Developer ditentukan dari alur Workspace yang tersimpan.'),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tugas Saya' })).toBeInTheDocument();
+    expect(screen.getByText('Developer')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Pekerjaan yang Ditugaskan/ })).toHaveTextContent('1');
-    expect(screen.getByRole('tab', { name: /Masukan Review/ })).toHaveTextContent('0');
+    expect(screen.getByRole('tab', { name: /Perlu Perbaikan/ })).toHaveTextContent('0');
     expect(screen.getByRole('tab', { name: /Perbaikan Bug/ })).toHaveTextContent('1');
     expect(
       screen.getByText('Subtask frontend ini ditugaskan kepada Anda dan berstatus in progress.'),
@@ -109,18 +107,73 @@ describe('MyTasksDashboard Organism', () => {
     ).toBeInTheDocument();
   });
 
-  it('retains useful queue search and priority filters', async () => {
+  it('shows queue search and priority filters only when active bucket has more than 10 items', async () => {
     vi.useFakeTimers();
-    renderDashboard({
+    const plannerQueue = createRoleAwareWorkQueueFixture('planner');
+    const { rerender, props } = renderDashboard({
       userRole: 'po',
-      queueState: queueState('planner'),
+      queueState: {
+        queue: plannerQueue,
+        isLoading: false,
+        error: null,
+        permissionDenied: false,
+      },
     });
 
     expect(screen.getByText('Checkout release')).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Filter antrean kerja berdasarkan prioritas'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Cari antrean kerja')).not.toBeInTheDocument();
+
+    const manyItems = Array.from({ length: 12 }, (_, index) => ({
+      id: `po_requirement_work:feature:feat-${index}`,
+      bucketCode: 'po_requirement_work' as const,
+      subjectType: 'feature' as const,
+      subjectId: `feat-${index}`,
+      featureTaskId: `feat-${index}`,
+      title: index === 0 ? 'Checkout release' : `Feature Item ${index}`,
+      reason: 'No Requirement is linked to this Feature or its subtasks.',
+      nextAction: { code: 'add_requirement' as const, label: 'Add Requirement' },
+      status: 'todo' as const,
+      workState: 'actionable' as const,
+      priority: index === 0 ? ('urgent' as const) : ('low' as const),
+      dueDate: null,
+      sourceUpdatedAt: '2026-08-22T10:00:00.000Z',
+    }));
+
+    const queueWithManyItems = {
+      ...plannerQueue,
+      buckets: [
+        {
+          ...plannerQueue.buckets[0],
+          total: manyItems.length,
+          items: manyItems,
+        },
+        ...plannerQueue.buckets.slice(1),
+      ],
+    };
+
+    rerender(
+      <MyTasksDashboard
+        {...props}
+        queueState={{
+          queue: queueWithManyItems,
+          isLoading: false,
+          error: null,
+          permissionDenied: false,
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cari antrean kerja')).toBeInTheDocument();
+
     fireEvent.change(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas'), {
-      target: { value: 'low' },
+      target: { value: 'urgent' },
     });
-    expect(screen.getByText('Tidak ada tindakan yang cocok')).toBeInTheDocument();
+    expect(screen.getByText('Checkout release')).toBeInTheDocument();
+    expect(screen.queryByText('Feature Item 1')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas'), {
       target: { value: 'all' },
@@ -135,7 +188,7 @@ describe('MyTasksDashboard Organism', () => {
     vi.useRealTimers();
   });
 
-  it('shows the approved illustration for empty PO work buckets only', () => {
+  it('renders standard empty state without external illustration for empty PO work buckets', () => {
     const plannerQueue = createRoleAwareWorkQueueFixture('planner');
     const emptyPlannerQueue = {
       ...plannerQueue,
@@ -152,22 +205,23 @@ describe('MyTasksDashboard Organism', () => {
       },
     });
 
-    const assertIllustration = (name: string) => {
-      const illustration = screen.getByRole('img', { name });
-      expect(illustration).toHaveAttribute(
-        'src',
-        'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1788007862/ChatGPT_Image_Aug_18_2026_11_18_28_AM.png',
-      );
-    };
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda di kelompok ini.',
+      ),
+    ).toBeInTheDocument();
 
-    assertIllustration('Ilustrasi tidak ada pekerjaan Requirement');
     fireEvent.click(screen.getByRole('tab', { name: /Keputusan Rilis/ }));
-    assertIllustration('Ilustrasi tidak ada keputusan rilis');
-    fireEvent.click(screen.getByRole('tab', { name: /Pekerjaan Timeline/ }));
-    assertIllustration('Ilustrasi tidak ada pekerjaan timeline');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda di kelompok ini.',
+      ),
+    ).toBeInTheDocument();
   });
 
-  it('moves keyboard focus to the existing Bug action workspace', async () => {
+  it('opens bug detail drawer directly when clicking a bug queue item', async () => {
     const store = configureStore({ reducer: { ui: uiReducer } });
     render(
       <Provider store={store}>
@@ -190,11 +244,8 @@ describe('MyTasksDashboard Organism', () => {
         name: 'Buka pekerjaan: Checkout total mismatch. Tindakan berikutnya: Mulai Perbaikan Bug',
       }),
     );
-
-    const bugWorkspace = screen.getByLabelText('Pekerjaan Bug yang ditugaskan');
-    expect(bugWorkspace).toHaveFocus();
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
-    expect(await screen.findByText('Pekerjaan Bug yang Ditugaskan')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Detail Bug content' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: 'Detail Bug' }).length).toBeGreaterThan(0);
     expect(bugMocks.listBugs).toHaveBeenCalledWith(workQueueFixtureIds.workspace, {
       queue: 'assigned_work',
     });
@@ -230,18 +281,17 @@ describe('MyTasksDashboard Organism', () => {
     expect(props.onRefreshQueue).toHaveBeenCalledOnce();
   });
 
-  it('renders contextual guidance banner with Task Hub link without tab switcher', () => {
-    renderDashboard();
+  it('renders trimmed header with human-readable role badge and no breadcrumb or banner', () => {
+    renderDashboard({ userRole: 'dev' });
 
+    expect(screen.getByRole('heading', { name: 'Tugas Saya' })).toBeInTheDocument();
+    expect(screen.getByText('Developer')).toBeInTheDocument();
+    expect(screen.queryByText(/Work Hub Terintegrasi/i)).not.toBeInTheDocument();
     expect(
-      screen.getByText(
+      screen.queryByText(
         /Halaman ini memuat pekerjaan personal yang membutuhkan perhatian aktif Anda/i,
       ),
-    ).toBeInTheDocument();
-    const taskHubLink = screen.getByRole('link', { name: 'Task Hub' });
-    expect(taskHubLink).toHaveAttribute('href', '/work');
-
-    expect(screen.queryByRole('tab', { name: /Perlu Perhatian/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /Dibuat oleh Saya/ })).not.toBeInTheDocument();
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Task Hub' })).not.toBeInTheDocument();
   });
 });

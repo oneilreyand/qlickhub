@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { CheckSquare, Info, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { WorkQueueItem, WorkspaceRole } from '@qlick/contracts';
 import type { RoleAwareWorkQueueViewState } from '../../../lib/hooks/useRoleAwareWorkQueue';
+import { Badge } from '../atoms/Badge';
 import { Button } from '../atoms/Button';
-import { Card } from '../atoms/Card';
+import { Drawer } from '../molecules/Drawer';
 import { BugExperiencePanel } from './BugExperiencePanel';
 import { RoleAwareWorkQueuePanel } from './myTasks/RoleAwareWorkQueuePanel';
 
@@ -17,6 +18,22 @@ export interface MyTasksDashboardProps {
   onOpenTaskById: (taskId: string) => void | Promise<void>;
   onBugDataChanged?: () => void;
   onCreateTaskClick: () => void;
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  po: 'Product Owner',
+  product_owner: 'Product Owner',
+  dev: 'Developer',
+  developer: 'Developer',
+  qa: 'QA',
+  admin: 'Admin',
+  owner: 'Owner',
+};
+
+function formatRoleLabel(role?: string): string {
+  if (!role) return '';
+  const normalized = role.toLowerCase();
+  return ROLE_LABELS[normalized] || role;
 }
 
 export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
@@ -33,35 +50,27 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
   const [focusedBugId, setFocusedBugId] = useState<string | null>(null);
   const normalizedRole = userRole.toLowerCase();
   const canCreateTask = ['owner', 'admin', 'po'].includes(normalizedRole);
-  const showsBugWorkspace = ['dev', 'qa'].includes(normalizedRole);
 
   const handleOpenItem = async (item: WorkQueueItem) => {
     if (item.subjectType === 'bug') {
       setFocusedBugId(item.subjectId);
-      const bugWorkspace = document.getElementById('my-task-bug-queue');
-      bugWorkspace?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      bugWorkspace?.focus({ preventScroll: true });
       return;
     }
     await onOpenQueueItem(item);
   };
 
   return (
-    <div className="w-full space-y-8 pb-12 animate-fadeIn">
+    <div className="w-full space-y-6 pb-12 animate-fadeIn">
       <div className="flex flex-col gap-4 border-b border-stone-200/80 pb-6 dark:border-stone-800 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-[#B1E743]">
-            <CheckSquare className="h-4 w-4" aria-hidden="true" />
-            <span>Work Hub Terintegrasi</span>
-            <span className="text-stone-300 dark:text-stone-600">/</span>
-            <span className="capitalize text-stone-500 dark:text-stone-400">Peran: {userRole}</span>
-          </div>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100 sm:text-3xl">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100 sm:text-3xl">
             Tugas Saya
           </h1>
-          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400 sm:text-sm">
-            Mulai dari pekerjaan tersimpan yang membutuhkan perhatian Anda sekarang.
-          </p>
+          {userRole && (
+            <Badge variant="neutral" size="sm">
+              {formatRoleLabel(userRole)}
+            </Badge>
+          )}
         </div>
 
         {canCreateTask && (
@@ -75,27 +84,6 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
         )}
       </div>
 
-      {/* Contextual Guidance Banner */}
-      <div className="flex items-start sm:items-center gap-3 rounded-2xl bg-stone-100/90 dark:bg-stone-900/70 p-3.5 sm:px-4 text-xs text-stone-600 dark:text-stone-300 border border-stone-200/80 dark:border-stone-800">
-        <Info
-          className="h-4 w-4 text-[#7BB80E] dark:text-[#B1E743] shrink-0 mt-0.5 sm:mt-0"
-          aria-hidden="true"
-        />
-        <div className="flex-1 leading-relaxed">
-          <span>
-            Halaman ini memuat pekerjaan personal yang membutuhkan perhatian aktif Anda. Untuk
-            melihat seluruh Feature dan backlog proyek di Workspace, buka{' '}
-          </span>
-          <a
-            href="/work"
-            className="font-bold underline text-stone-900 hover:text-black dark:text-white dark:hover:text-[#B1E743]"
-          >
-            Task Hub
-          </a>
-          .
-        </div>
-      </div>
-
       <RoleAwareWorkQueuePanel
         state={queueState}
         selectedTaskId={selectedTaskId}
@@ -103,27 +91,32 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
         onOpenItem={handleOpenItem}
       />
 
-      {workspaceId && showsBugWorkspace && (
-        <section
-          id="my-task-bug-queue"
-          tabIndex={-1}
-          aria-label={
-            normalizedRole === 'dev' ? 'Pekerjaan Bug yang ditugaskan' : 'Pekerjaan retest Bug'
-          }
-          className="scroll-mt-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B1E743]/50"
-        >
-          <Card className="p-4 sm:p-5">
+      <Drawer
+        isOpen={Boolean(focusedBugId)}
+        onClose={() => setFocusedBugId(null)}
+        title="Detail Bug"
+        width="3xl"
+      >
+        {workspaceId && focusedBugId && (
+          <div className="p-4 sm:p-6">
             <BugExperiencePanel
               workspaceId={workspaceId}
               userRole={userRole}
               mode="role_queue"
-              onDataChanged={onBugDataChanged}
-              onRetestRunStarted={onOpenTaskById}
+              onDataChanged={() => {
+                onBugDataChanged?.();
+                onRefreshQueue();
+              }}
+              onRetestRunStarted={async (qaSubtaskId) => {
+                setFocusedBugId(null);
+                await onOpenTaskById(qaSubtaskId);
+              }}
               focusedBugId={focusedBugId}
+              singleBugId={focusedBugId}
             />
-          </Card>
-        </section>
-      )}
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 };

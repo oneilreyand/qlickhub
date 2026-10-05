@@ -51,21 +51,12 @@ const priorityVariants = {
   low: 'draft',
 } as const;
 
-const PO_EMPTY_WORK_ILLUSTRATION =
-  'https://res.cloudinary.com/dxgnzhn8l/image/upload/v1788007862/ChatGPT_Image_Aug_18_2026_11_18_28_AM.png';
-
-const poEmptyWorkIllustrationAlt: Partial<Record<WorkQueueBucketCode, string>> = {
-  po_requirement_work: 'Ilustrasi tidak ada pekerjaan Requirement',
-  po_release_decision: 'Ilustrasi tidak ada keputusan rilis',
-  po_timeline_work: 'Ilustrasi tidak ada pekerjaan timeline',
-};
-
 const bucketLabels: Record<WorkQueueBucketCode, string> = {
   po_requirement_work: 'Pekerjaan Requirement',
   po_release_decision: 'Keputusan Rilis',
   po_timeline_work: 'Pekerjaan Timeline',
   dev_assigned_work: 'Pekerjaan yang Ditugaskan',
-  dev_blocked_work: 'Masukan Review',
+  dev_blocked_work: 'Perlu Perbaikan',
   dev_bug_fix: 'Perbaikan Bug',
   qa_test_work: 'Pengujian dan Review',
   qa_retest_work: 'Pekerjaan Retest',
@@ -190,7 +181,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
   const debouncedSearchQuery = useDebounce(searchQuery, 250).trim().toLowerCase();
-  const buckets = state.queue?.buckets || [];
+  const buckets = useMemo(() => state.queue?.buckets || [], [state.queue?.buckets]);
 
   useEffect(() => {
     setActiveBucketCode((current) => firstActiveBucket(buckets, current));
@@ -275,45 +266,11 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
     );
   }
 
-  const totalItems = buckets.reduce((total, bucket) => total + bucket.total, 0);
-  const emptyBucketIllustrationAlt =
-    activeBucket.total === 0 ? poEmptyWorkIllustrationAlt[activeBucket.code] : undefined;
-  const roleLabel =
-    state.queue.queueRole === 'planner'
-      ? 'Perencana'
-      : state.queue.queueRole === 'developer'
-        ? 'Developer'
-        : 'QA';
-
   return (
-    <section className="space-y-5" aria-labelledby="role-aware-queue-title">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2
-              id="role-aware-queue-title"
-              className="text-lg font-extrabold text-stone-900 dark:text-stone-100"
-            >
-              Yang perlu Anda perhatikan
-            </h2>
-            <Badge variant={totalItems > 0 ? 'brand' : 'neutral'} size="sm">
-              {totalItems} tindakan
-            </Badge>
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-stone-600 dark:text-stone-300">
-            Prioritas {roleLabel} ditentukan dari alur Workspace yang tersimpan.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="md"
-          onClick={onRefresh}
-          leftIcon={<RefreshCw className="h-4 w-4" aria-hidden="true" />}
-          aria-label="Muat ulang antrean kerja"
-        >
-          Muat ulang
-        </Button>
-      </div>
+    <section className="space-y-4" aria-labelledby="role-aware-queue-title">
+      <h2 id="role-aware-queue-title" className="sr-only">
+        Yang perlu Anda perhatikan
+      </h2>
 
       <Tabs
         variant="pills"
@@ -328,42 +285,32 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         }))}
       />
 
-      <Card className="p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-              {bucketLabels[activeBucket.code]}
-            </h3>
-            <p className="mt-0.5 text-xs text-stone-600 dark:text-stone-300" aria-live="polite">
-              Menampilkan {visibleItems.length} dari {activeBucket.total} pekerjaan prioritas.
-            </p>
+      {activeBucket.total > 10 && (
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
+          <div className="w-full sm:w-64">
+            <SearchInput
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onClear={() => setSearchQuery('')}
+              placeholder="Cari judul, alasan, atau tindakan"
+              aria-label="Cari antrean kerja"
+            />
           </div>
-          <div className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
-            <div className="w-full sm:w-64">
-              <SearchInput
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                onClear={() => setSearchQuery('')}
-                placeholder="Cari judul, alasan, atau tindakan"
-                aria-label="Cari antrean kerja"
-              />
-            </div>
-            <div className="w-full sm:w-44">
-              <Select
-                value={priorityFilter}
-                onChange={(event) => setPriorityFilter(event.target.value)}
-                aria-label="Filter antrean kerja berdasarkan prioritas"
-              >
-                <option value="all">Semua prioritas</option>
-                <option value="urgent">Mendesak</option>
-                <option value="high">Tinggi</option>
-                <option value="medium">Sedang</option>
-                <option value="low">Rendah</option>
-              </Select>
-            </div>
+          <div className="w-full sm:w-44">
+            <Select
+              value={priorityFilter}
+              onChange={(event) => setPriorityFilter(event.target.value)}
+              aria-label="Filter antrean kerja berdasarkan prioritas"
+            >
+              <option value="all">Semua prioritas</option>
+              <option value="urgent">Mendesak</option>
+              <option value="high">Tinggi</option>
+              <option value="medium">Sedang</option>
+              <option value="low">Rendah</option>
+            </Select>
           </div>
         </div>
-      </Card>
+      )}
 
       {visibleItems.length === 0 ? (
         <EmptyState
@@ -378,8 +325,6 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
               ? 'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda di kelompok ini.'
               : 'Hapus pencarian atau filter prioritas untuk melihat semua pekerjaan.'
           }
-          illustrationSrc={emptyBucketIllustrationAlt ? PO_EMPTY_WORK_ILLUSTRATION : undefined}
-          illustrationAlt={emptyBucketIllustrationAlt}
         />
       ) : (
         <div className="space-y-3">
@@ -403,31 +348,34 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                         {localizeReason(item.reason)}
                       </p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="neutral" size="md" icon={bucketIcons[item.bucketCode]}>
-                        {localizeTerm(item.subjectType)}
-                      </Badge>
-                      {item.priority && (
-                        <Badge variant={priorityVariants[item.priority]} size="md">
-                          Prioritas {localizeTerm(item.priority)}
-                        </Badge>
-                      )}
-                      <Badge variant="info" size="sm">
-                        {localizeTerm(item.status)}
-                      </Badge>
-                      <Badge variant={workState.variant} size="sm">
-                        {workState.label}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600 dark:text-stone-300">
+                    {(item.priority || item.dueDate) && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {item.priority && (
+                          <Badge variant={priorityVariants[item.priority]} size="sm">
+                            Prioritas {localizeTerm(item.priority)}
+                          </Badge>
+                        )}
+                        {item.dueDate && (
+                          <Badge variant="neutral" size="sm">
+                            <Calendar className="mr-1 h-3 w-3 text-stone-400" aria-hidden="true" />
+                            Tenggat {item.dueDate}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
                       <span className="font-semibold text-stone-800 dark:text-stone-200">
                         Berikutnya: {actionLabels[item.nextAction.code] || item.nextAction.label}
                       </span>
-                      {item.dueDate && (
-                        <span className="inline-flex items-center gap-1 font-medium text-stone-600 dark:text-stone-300">
-                          <Calendar className="h-3.5 w-3.5 text-stone-400 dark:text-stone-400" aria-hidden="true" />
-                          Tenggat {item.dueDate}
-                        </span>
+                      <span className="text-stone-300 dark:text-stone-600">•</span>
+                      <span>{localizeTerm(item.status)}</span>
+                      {item.workState === 'blocked' && (
+                        <>
+                          <span className="text-stone-300 dark:text-stone-600">•</span>
+                          <span className="font-semibold text-amber-600 dark:text-amber-400">
+                            Ada prasyarat
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>
