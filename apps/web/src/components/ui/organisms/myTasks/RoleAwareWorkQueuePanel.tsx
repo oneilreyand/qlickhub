@@ -272,18 +272,38 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         Yang perlu Anda perhatikan
       </h2>
 
-      <Tabs
-        variant="pills"
-        activeTabId={activeBucket.code}
-        onChange={setActiveBucketCode}
-        ariaLabel="Filter antrean kerja"
-        tabs={buckets.map((bucket) => ({
-          id: bucket.code,
-          label: bucketLabels[bucket.code],
-          count: bucket.total,
-          icon: bucketIcons[bucket.code],
-        }))}
-      />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1 overflow-x-auto">
+          <Tabs
+            variant="pills"
+            activeTabId={activeBucket.code}
+            onChange={setActiveBucketCode}
+            ariaLabel="Filter antrean kerja"
+            tabs={buckets.map((bucket) => ({
+              id: bucket.code,
+              label: bucketLabels[bucket.code],
+              count: bucket.total,
+              icon: bucketIcons[bucket.code],
+            }))}
+          />
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRefresh}
+          disabled={state.isLoading}
+          leftIcon={
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${state.isLoading ? 'animate-spin' : ''}`}
+              aria-hidden="true"
+            />
+          }
+          aria-label="Muat ulang antrean kerja"
+          className="shrink-0 text-stone-600 dark:text-stone-300"
+        >
+          Muat ulang
+        </Button>
+      </div>
 
       {activeBucket.total > 10 && (
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">

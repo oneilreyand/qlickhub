@@ -271,7 +271,7 @@ test('QA assignee sees an authenticated persisted workspace', async ({ page }, t
 
   await expect(page.getByText('QA', { exact: true })).toBeVisible();
   await expect(page.getByText('Browser E2E QA Assignee Task')).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath('qa-assignee.png'), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('my-tasks-qa-after.png'), fullPage: true });
 });
 
 test('QA non-assignee cannot receive the assignee task', async ({ page }) => {
@@ -387,14 +387,22 @@ test('QA sees an execution loading error and can retry against the persisted bac
   ).toBeVisible();
 });
 
-test('Developer and PO each receive their persisted role view', async ({ browser }) => {
+test('Developer and PO each receive their persisted role view', async ({ browser }, testInfo) => {
   const developer = await browser.newPage();
   await login(developer, users.dev.email);
   await expect(developer.getByText('Developer', { exact: true })).toBeVisible();
+  await developer.screenshot({
+    path: testInfo.outputPath('my-tasks-dev-after.png'),
+    fullPage: true,
+  });
 
   const productOwner = await browser.newPage();
   await login(productOwner, users.po.email);
   await expect(productOwner.getByText('Product Owner', { exact: true })).toBeVisible();
+  await productOwner.screenshot({
+    path: testInfo.outputPath('my-tasks-po-after.png'),
+    fullPage: true,
+  });
 
   await developer.close();
   await productOwner.close();

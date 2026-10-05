@@ -360,38 +360,38 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Bug className="h-4 w-4 text-rose-600 dark:text-rose-400" aria-hidden="true" />
-            <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-              {copy.title}
-            </h3>
-            {!singleBugId && (
+      {!singleBugId && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Bug className="h-4 w-4 text-rose-600 dark:text-rose-400" aria-hidden="true" />
+              <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                {copy.title}
+              </h3>
               <Badge variant="neutral" size="sm">
                 {visibleBugs.length}
               </Badge>
-            )}
+            </div>
+            <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{copy.description}</p>
           </div>
-          <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{copy.description}</p>
-        </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void loadBugs()}
-          disabled={isLoading}
-          leftIcon={
-            <RefreshCw
-              className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`}
-              aria-hidden="true"
-            />
-          }
-          aria-label="Muat ulang daftar Bug"
-        >
-          Muat Ulang
-        </Button>
-      </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void loadBugs()}
+            disabled={isLoading}
+            leftIcon={
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`}
+                aria-hidden="true"
+              />
+            }
+            aria-label="Muat ulang daftar Bug"
+          >
+            Muat Ulang
+          </Button>
+        </div>
+      )}
 
       {retestError && (
         <Alert tone="error" title="Retest belum dapat dimulai">

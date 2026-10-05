@@ -245,7 +245,7 @@ describe('MyTasksDashboard Organism', () => {
       }),
     );
     expect(screen.getByRole('region', { name: 'Detail Bug content' })).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: 'Detail Bug' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('heading', { name: 'Detail Bug' }).length).toBe(1);
     expect(bugMocks.listBugs).toHaveBeenCalledWith(workQueueFixtureIds.workspace, {
       queue: 'assigned_work',
     });
@@ -286,6 +286,7 @@ describe('MyTasksDashboard Organism', () => {
 
     expect(screen.getByRole('heading', { name: 'Tugas Saya' })).toBeInTheDocument();
     expect(screen.getByText('Developer')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Muat ulang antrean kerja' })).toBeInTheDocument();
     expect(screen.queryByText(/Work Hub Terintegrasi/i)).not.toBeInTheDocument();
     expect(
       screen.queryByText(
