@@ -1,6 +1,6 @@
 # Timeline Capacity V2 Plan
 
-**Status:** Active — implementation approved
+**Status:** Implemented — merged via PR #9 (`e277a6d`) (see [report](../reports/TIMELINE_CAPACITY_V2_2026-09-30.md))
 **Task:** `TIMELINE-CAPACITY-V2`
 **Policy boundaries:** `AUTH-001`, `AUTH-002`, `AUTH-011`, `DATA-001`, `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-001`, `DOC-003`, `DOC-004`
 

@@ -1,0 +1,42 @@
+name: Owner gate
+
+# ADR-028: Tier 1 pull requests merge automatically after green checks. A pull request that
+# touches a Tier 2 path (quality/tier2-paths.txt) also needs the `owner-approved` label, and the
+# label is removed whenever new commits arrive so approval always covers the final diff.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: owner-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  owner-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Remove stale owner approval after new commits
+        if: github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'owner-approved')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --remove-label owner-approved
+
+      - name: Check tier
+        env:
+          OWNER_APPROVED: ${{ github.event.action != 'synchronize' && contains(github.event.pull_request.labels.*.name, 'owner-approved') }}
+        # The checkout is the pull request merge commit; its first parent is the base branch.
+        run: node scripts/checkTier.mjs --approved "$OWNER_APPROVED"

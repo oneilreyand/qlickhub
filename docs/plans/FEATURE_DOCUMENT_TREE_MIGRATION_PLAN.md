@@ -1,6 +1,6 @@
 # Feature Documentation Tree Migration Plan
 
-**Status:** Active — template and compatibility slice
+**Status:** Implemented (template and compatibility slice) — merged via PR #6 (`5421930`); individual card migrations remain separate tasks (see [report](../reports/FEATURE_DOCUMENT_TREE_MIGRATION_2026-09-30.md))
 **Task:** `FEATURE-DOCUMENT-TREE-MIGRATION`
 **Policy boundaries:** `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`, `DOC-005`
 **Decision record:** [ADR-022](../adr/ADR-022-FEATURE-KNOWLEDGE-TREE.md)

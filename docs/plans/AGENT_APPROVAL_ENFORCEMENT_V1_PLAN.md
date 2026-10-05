@@ -1,6 +1,6 @@
 # Agent Approval Enforcement V1 Plan
 
-**Status:** Proposed — implementation checkpoints pending
+**Status:** Implemented — present on `main` (`9575378`); V1 enforcement merged via PR #2 (`ff9b660`) and closed 2026-09-29 (see [closure report](../reports/AGENT_APPROVAL_ENFORCEMENT_V1_CLOSURE_2026-09-29.md))
 **Task:** `AGENT-APPROVAL-ENFORCEMENT-V1`
 **Policy boundaries:** `AI-007`, `AI-009`, `AI-010`, `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`
 **Decision record:** [ADR-020](../adr/ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md)

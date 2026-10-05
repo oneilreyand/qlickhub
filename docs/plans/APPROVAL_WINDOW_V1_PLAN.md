@@ -1,6 +1,6 @@
 # Approval Window V1 — Governance Plan
 
-**Status:** Approved for bounded documentation implementation
+**Status:** Implemented — published via PR #11 (`28d4990`); `APPROVAL-WINDOW-V1` archived as Done
 **Task:** `APPROVAL-WINDOW-V1`
 **Policy boundaries:** `AI-007`, `AI-008`, `AI-009`, `AI-010`, `AI-012`, `AI-013`, `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`
 **Decision record:** [ADR-025](../adr/ADR-025-APPROVAL-WINDOWS-FOR-AGENT-WORK.md)
