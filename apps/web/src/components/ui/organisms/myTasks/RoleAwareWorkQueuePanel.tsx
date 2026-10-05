@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -176,16 +176,19 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   onRefresh,
   onOpenItem,
 }) => {
-  const [activeBucketCode, setActiveBucketCode] = useState<string | null>(null);
+  const [selectedBucketCode, setSelectedBucketCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
   const debouncedSearchQuery = useDebounce(searchQuery, 250).trim().toLowerCase();
   const buckets = useMemo(() => state.queue?.buckets || [], [state.queue?.buckets]);
 
-  useEffect(() => {
-    setActiveBucketCode((current) => firstActiveBucket(buckets, current));
-  }, [state.queue?.workspaceId, state.queue?.queueRole, buckets]);
+  const activeBucketCode = useMemo(() => {
+    if (selectedBucketCode && buckets.some((bucket) => bucket.code === selectedBucketCode)) {
+      return selectedBucketCode;
+    }
+    return firstActiveBucket(buckets, null);
+  }, [buckets, selectedBucketCode]);
 
   const activeBucket = buckets.find((bucket) => bucket.code === activeBucketCode) || buckets[0];
   const visibleItems = useMemo(() => {
@@ -277,7 +280,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
           <Tabs
             variant="pills"
             activeTabId={activeBucket.code}
-            onChange={setActiveBucketCode}
+            onChange={setSelectedBucketCode}
             ariaLabel="Filter antrean kerja"
             tabs={buckets.map((bucket) => ({
               id: bucket.code,
