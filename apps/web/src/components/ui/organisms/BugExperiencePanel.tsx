@@ -43,6 +43,7 @@ export interface BugExperiencePanelProps {
   onDataChanged?: () => void;
   onRetestRunStarted?: (qaSubtaskId: string) => void | Promise<void>;
   focusedBugId?: string | null;
+  singleBugId?: string | null;
   initialState?: BugExperienceInitialState;
 }
 
@@ -75,7 +76,19 @@ const bugStatusCopy: Record<string, string> = {
   closed: 'Ditutup',
 };
 
-function panelCopy(mode: BugExperiencePanelProps['mode'], role: string) {
+function panelCopy(
+  mode: BugExperiencePanelProps['mode'],
+  role: string,
+  singleBugId?: string | null,
+) {
+  if (singleBugId) {
+    return {
+      title: 'Detail Bug',
+      description: 'Informasi lengkap dan tindakan untuk Bug terpilih.',
+      emptyTitle: 'Bug tidak ditemukan',
+      emptyDescription: 'Bug ini mungkin telah dipindahkan atau diselesaikan.',
+    };
+  }
   if (mode === 'feature') {
     return {
       title: 'Bug Tertaut',
@@ -112,11 +125,12 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
   onDataChanged,
   onRetestRunStarted,
   focusedBugId,
+  singleBugId,
   initialState,
 }) => {
   const dispatch = useAppDispatch();
   const role = userRole.toLowerCase();
-  const copy = panelCopy(mode, role);
+  const copy = panelCopy(mode, role, singleBugId);
   const [bugs, setBugs] = useState<BugWithContext[]>(initialState?.bugs || []);
   const [isLoading, setIsLoading] = useState(!initialState);
   const [error, setError] = useState<string | null>(initialState?.error || null);
@@ -342,38 +356,42 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
     }
   };
 
+  const visibleBugs = singleBugId ? bugs.filter((bug) => bug.id === singleBugId) : bugs;
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Bug className="h-4 w-4 text-rose-600 dark:text-rose-400" aria-hidden="true" />
-            <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
-              {copy.title}
-            </h3>
-            <Badge variant="neutral" size="sm">
-              {bugs.length}
-            </Badge>
+      {!singleBugId && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Bug className="h-4 w-4 text-rose-600 dark:text-rose-400" aria-hidden="true" />
+              <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                {copy.title}
+              </h3>
+              <Badge variant="neutral" size="sm">
+                {visibleBugs.length}
+              </Badge>
+            </div>
+            <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{copy.description}</p>
           </div>
-          <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{copy.description}</p>
-        </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void loadBugs()}
-          disabled={isLoading}
-          leftIcon={
-            <RefreshCw
-              className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`}
-              aria-hidden="true"
-            />
-          }
-          aria-label="Muat ulang daftar Bug"
-        >
-          Muat Ulang
-        </Button>
-      </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void loadBugs()}
+            disabled={isLoading}
+            leftIcon={
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`}
+                aria-hidden="true"
+              />
+            }
+            aria-label="Muat ulang daftar Bug"
+          >
+            Muat Ulang
+          </Button>
+        </div>
+      )}
 
       {retestError && (
         <Alert tone="error" title="Retest belum dapat dimulai">
@@ -404,7 +422,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
             </Button>
           </div>
         </Alert>
-      ) : bugs.length === 0 ? (
+      ) : visibleBugs.length === 0 ? (
         <EmptyState
           icon={<ClipboardCheck className="h-6 w-6" />}
           title={copy.emptyTitle}
@@ -412,7 +430,7 @@ export const BugExperiencePanel: React.FC<BugExperiencePanelProps> = ({
         />
       ) : (
         <div className="space-y-4">
-          {bugs.map((bug) => {
+          {visibleBugs.map((bug) => {
             const isUpdating = updatingBugId === bug.id;
             const canStart = role === 'dev' && ['open', 'reopened'].includes(bug.status);
             const canResolve = role === 'dev' && bug.status === 'in_progress';

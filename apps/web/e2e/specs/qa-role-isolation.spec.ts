@@ -269,15 +269,15 @@ test.afterAll(async () => {
 test('QA assignee sees an authenticated persisted workspace', async ({ page }, testInfo) => {
   await login(page, users.qa.email);
 
-  await expect(page.getByText('Peran: qa')).toBeVisible();
+  await expect(page.getByText('QA', { exact: true })).toBeVisible();
   await expect(page.getByText('Browser E2E QA Assignee Task')).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath('qa-assignee.png'), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('my-tasks-qa-after.png'), fullPage: true });
 });
 
 test('QA non-assignee cannot receive the assignee task', async ({ page }) => {
   await login(page, users.qaObserver.email);
 
-  await expect(page.getByText('Peran: qa')).toBeVisible();
+  await expect(page.getByText('QA', { exact: true })).toBeVisible();
   await expect(page.getByText('Browser E2E QA Assignee Task')).not.toBeVisible();
 });
 
@@ -324,7 +324,7 @@ test('QA reads both persisted Bug retest cycles from the task workspace', async 
     .click();
   await expect(
     page
-      .getByRole('toolbar', { name: 'Browser E2E QA Assignee Task' })
+      .getByRole('region', { name: 'Browser E2E QA Assignee Task content' })
       .getByText('Area Pengujian & Mutu QA'),
   ).toBeVisible();
   await page.getByRole('tab', { name: 'Bug & Retest' }).click();
@@ -346,14 +346,14 @@ test('QA direct task link remains authenticated and restores its QA workspace af
   await login(page, users.qa.email);
   await page.goto(`/projects/${workspaceId}/tasks/${qaSubtaskId}`);
 
-  const qaToolbar = page
-    .getByRole('toolbar', { name: 'Browser E2E QA Assignee Task' })
+  const qaWorkspace = page
+    .getByRole('region', { name: 'Browser E2E QA Assignee Task content' })
     .getByText('Area Pengujian & Mutu QA');
-  await expect(qaToolbar).toBeVisible();
+  await expect(qaWorkspace).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/projects/${workspaceId}/tasks/${qaSubtaskId}$`));
 
   await page.reload();
-  await expect(qaToolbar).toBeVisible();
+  await expect(qaWorkspace).toBeVisible();
   await expect(page.getByRole('tabpanel', { name: 'Persiapan dan eksekusi QA' })).toBeVisible();
 });
 
@@ -387,14 +387,22 @@ test('QA sees an execution loading error and can retry against the persisted bac
   ).toBeVisible();
 });
 
-test('Developer and PO each receive their persisted role view', async ({ browser }) => {
+test('Developer and PO each receive their persisted role view', async ({ browser }, testInfo) => {
   const developer = await browser.newPage();
   await login(developer, users.dev.email);
-  await expect(developer.getByText('Peran: dev')).toBeVisible();
+  await expect(developer.getByText('Developer', { exact: true })).toBeVisible();
+  await developer.screenshot({
+    path: testInfo.outputPath('my-tasks-dev-after.png'),
+    fullPage: true,
+  });
 
   const productOwner = await browser.newPage();
   await login(productOwner, users.po.email);
-  await expect(productOwner.getByText('Peran: po')).toBeVisible();
+  await expect(productOwner.getByText('Product Owner', { exact: true })).toBeVisible();
+  await productOwner.screenshot({
+    path: testInfo.outputPath('my-tasks-po-after.png'),
+    fullPage: true,
+  });
 
   await developer.close();
   await productOwner.close();

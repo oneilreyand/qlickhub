@@ -9,15 +9,15 @@ export interface RoleAwareWorkQueueViewState {
   permissionDenied: boolean;
 }
 
-const EMPTY_STATE: RoleAwareWorkQueueViewState = {
+const INITIAL_STATE: RoleAwareWorkQueueViewState = {
   queue: null,
-  isLoading: false,
+  isLoading: true,
   error: null,
   permissionDenied: false,
 };
 
 export function useRoleAwareWorkQueue(workspaceId: string | undefined) {
-  const [state, setState] = useState<RoleAwareWorkQueueViewState>(EMPTY_STATE);
+  const [state, setState] = useState<RoleAwareWorkQueueViewState>(INITIAL_STATE);
   const [reloadToken, setReloadToken] = useState(0);
   const requestIdRef = useRef(0);
 
@@ -26,7 +26,7 @@ export function useRoleAwareWorkQueue(workspaceId: string | undefined) {
   useEffect(() => {
     const requestId = ++requestIdRef.current;
     if (!workspaceId) {
-      setState(EMPTY_STATE);
+      setState({ queue: null, isLoading: false, error: null, permissionDenied: false });
       return;
     }
 
@@ -51,7 +51,7 @@ export function useRoleAwareWorkQueue(workspaceId: string | undefined) {
               ? null
               : error instanceof Error
                 ? error.message
-                : 'Unable to load your work queue.',
+                : 'Antrean kerja tidak dapat dimuat.',
           permissionDenied: status === 403,
         });
       });
