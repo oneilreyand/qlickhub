@@ -62,7 +62,7 @@ automatically once the Owner adds `owner-approved`.
 ## Risks or follow-up
 
 - Owner applies GitHub settings and creates the `owner-approved` label (steps in the plan).
-- Owner confirms whether Vercel deploys `main` to Production automatically (D3).
+- D3 confirmed 2026-10-05: GitHub deployment records show `vercel[bot]` deploying every `main` merge (`3b27715`, `9cb9f45`, `12506f2`, `a5e80c0`) to the Production environment about two minutes after merge. Behavior kept as decided in ADR-028.
 - Follow-up task: separate GitHub bot identity for agents so the gate can also verify who added the
   label.
 

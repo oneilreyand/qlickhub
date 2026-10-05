@@ -1,6 +1,6 @@
 # Fix Capacity Response Adapter Plan
 
-**Status:** Active — approved remediation
+**Status:** Implemented — merged via PR #8 (`52f12f3`) (see [report](../reports/FIX_CAPACITY_RESPONSE_ADAPTER_2026-09-30.md))
 **Task:** `FIX-CAPACITY-RESPONSE-ADAPTER`
 **Policy boundaries:** `CONTRACT-001`, `UI-001`, `UI-002`, `TEST-001`, `DOC-003`, `DOC-004`
 

@@ -1,6 +1,6 @@
 # Rencana Kepatuhan Alur Pembuatan Feature & Task (Mandatory Subtask, Requirement & Acceptance Criteria)
 
-**Status:** Approved by User  
+**Status:** Implemented — merged via PR #14 (`12506f2`); archived as Done
 **Tanggal:** 2026-09-30  
 **Penulis:** Antigravity  
 **Kebijakan Terkait (Policy IDs):** `DOMAIN-002`, `DOMAIN-003`, `DOMAIN-004`, `FLOW-001`, `FLOW-002`, `FLOW-003`, `AUTH-001`, `AUTH-002`, `CONTRACT-001`, `UI-001`, `UI-002`, `AI-001`, `AI-002`, `AI-003`, `AI-005`, `AI-006`, `AI-007`, `AI-008`, `TEST-001`, `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`

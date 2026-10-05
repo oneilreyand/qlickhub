@@ -1,6 +1,6 @@
 # Agent Approval Enforcement V1 Final Closeout Plan
 
-**Status:** Proposed — closeout checkpoints pending
+**Status:** Implemented — merged via PR #4 (`54643f7`); `AGENT-APPROVAL-ENFORCEMENT-V1` archived as Done
 **Task:** `AGENT-APPROVAL-ENFORCEMENT-V1-FINAL-CLOSEOUT`
 **Policy boundaries:** `AI-007`, `AI-009`, `AI-010`, `DOC-001`, `DOC-003`, `DOC-004`
 **Related decision:** [ADR-020](../adr/ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md)

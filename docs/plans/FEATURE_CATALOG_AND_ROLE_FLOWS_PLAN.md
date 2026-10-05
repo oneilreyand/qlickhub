@@ -1,6 +1,6 @@
 # Feature Catalog and Role Flows Plan
 
-**Status:** Active — documentation discovery slice
+**Status:** Implemented — catalogue and role flows on `main` (`e95b26a`, landed with PR #8); enforced by `docs:check` (see [report](../reports/FEATURE_CATALOG_AND_ROLE_FLOWS_2026-09-30.md))
 **Task:** `FEATURE-CATALOG-AND-ROLE-FLOWS`
 **Policy boundaries:** `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`, `DOC-005`
 **Related decision:** [ADR-022](../adr/ADR-022-FEATURE-KNOWLEDGE-TREE.md)

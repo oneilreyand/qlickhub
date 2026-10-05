@@ -1,6 +1,6 @@
 # Fix Task Date Preset Filter Plan
 
-**Status:** Proposed - awaiting scoped GitHub Owner approval
+**Status:** Implemented — fix `05acfbc` on `main`; API integration test "Filters tasks by date presets" passes (see [report](../reports/FIX_TASK_DATE_PRESET_FILTER_2026-10-01.md))
 **Task:** `FIX-TASK-DATE-PRESET-FILTER`
 **Policy boundaries:** `CONTRACT-001`, `DATA-001`, `TEST-001`, `DOC-003`, `DOC-004`
 

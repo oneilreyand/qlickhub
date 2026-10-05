@@ -1,6 +1,6 @@
 # Tiered Auto-Merge Plan
 
-**Status:** Approved by Owner 2026-10-03 (D1, D2, D4 as recommended; D3 pending Vercel confirmation) — implementation in review
+**Status:** Approved by Owner 2026-10-03 (D1, D2, D4 as recommended; D3 confirmed: Vercel deploys `main` to Production automatically; kept as-is) — implementation in review
 **Task:** `TIERED-AUTO-MERGE`
 **Policy boundaries:** `AI-013`, `AI-014`, `DOC-002`, `DOC-004`
 **Baseline:** `origin/main` `3b27715` (2026-10-03)

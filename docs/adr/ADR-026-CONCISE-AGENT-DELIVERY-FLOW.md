@@ -1,6 +1,6 @@
 # ADR-026: Concise Agent Delivery Flow
 
-**Status:** Accepted locally; independent review and publication pending
+**Status:** Accepted — published via PR #11 (merge `28d4990`)
 **Date:** 2026-10-01
 **Decision owner:** Product
 **Refines:** [ADR-017](ADR-017-AI-PLAN-APPROVAL-AND-EVIDENCE-OUTCOMES.md) and [ADR-025](ADR-025-APPROVAL-WINDOWS-FOR-AGENT-WORK.md)

@@ -1,6 +1,6 @@
 # Agent Approval Enforcement V1 Stale Manifest Matching Fix Plan
 
-**Status:** Proposed — implementation checkpoints pending
+**Status:** Implemented — present on `main` (`513df3a`); fix merged via PR #3 (`866755f`) (see [report](../reports/AGENT_APPROVAL_ENFORCEMENT_V1_STALE_MANIFEST_FIX_2026-09-29.md))
 **Task:** `AGENT-APPROVAL-ENFORCEMENT-V1-STALE-MANIFEST-FIX`
 **Policy boundaries:** `AI-007`, `AI-009`, `AI-010`, `DOC-001`, `DOC-003`, `DOC-004`
 **Related decision:** [ADR-020](../adr/ADR-020-VERIFIABLE-AGENT-CHANGE-APPROVAL-ENFORCEMENT.md)

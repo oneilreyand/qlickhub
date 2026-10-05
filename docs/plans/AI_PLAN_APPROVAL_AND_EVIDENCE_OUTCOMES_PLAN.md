@@ -1,6 +1,6 @@
 # AI Plan Approval and Evidence Outcomes Plan
 
-**Status:** Approved for documentation implementation
+**Status:** Implemented — `AI-PLAN-APPROVAL-AND-EVIDENCE-OUTCOMES` archived as Done (see [archive](../archive/TODO_COMPLETED_2026-10-02.md))
 **Date:** 2026-09-25
 **Owner:** Product and Engineering
 **Applicable Policy IDs:** `AI-001`, `AI-002`, `AI-003`, `AI-004`, `AI-005`, `AI-006`, `AI-007`, `AI-008`, `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`
