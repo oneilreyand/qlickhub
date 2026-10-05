@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button, type ButtonProps } from '../atoms/Button';
 import { IconButton } from '../atoms/IconButton';
+import { isTopOverlay, popOverlay, pushOverlay } from '../../../lib/utils/overlayStack';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -42,6 +43,8 @@ export const Modal: React.FC<ModalProps> = ({
   const onCloseRef = useRef(onClose);
   const titleId = useId();
 
+  const overlayId = useId();
+
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
@@ -49,6 +52,9 @@ export const Modal: React.FC<ModalProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (!isTopOverlay(overlayId)) return;
+        e.stopPropagation?.();
+        e.stopImmediatePropagation?.();
         onCloseRef.current();
         return;
       }
@@ -76,6 +82,7 @@ export const Modal: React.FC<ModalProps> = ({
       }
     };
     if (isOpen) {
+      pushOverlay(overlayId);
       previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
@@ -86,11 +93,14 @@ export const Modal: React.FC<ModalProps> = ({
         ?.focus();
     }
     return () => {
+      if (isOpen) {
+        popOverlay(overlayId);
+      }
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
       if (isOpen) previouslyFocusedRef.current?.focus();
     };
-  }, [isOpen]);
+  }, [isOpen, overlayId]);
 
   if (!isOpen) return null;
 

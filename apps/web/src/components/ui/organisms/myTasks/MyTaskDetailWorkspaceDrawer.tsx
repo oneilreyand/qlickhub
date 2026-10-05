@@ -3,15 +3,27 @@ import { ShieldCheck, Code2, Bug } from 'lucide-react';
 import type { ParentTaskDeliveryTrace, Task } from '@qlick/contracts';
 import { Drawer } from '../../molecules/Drawer';
 import { Tabs, type TabItem } from '../../molecules/Tabs';
+import { Card } from '../../atoms/Card';
+import { Button } from '../../atoms/Button';
+import { TaskStatusBadge } from '../../molecules/TaskStatusBadge';
 import { PoTeamICardGrid } from './PoTeamICardGrid';
 import { DevWorkingDesk } from './DevWorkingDesk';
 import { QaTestingDesk } from './QaTestingDesk';
 import { MyTaskFeatureContext } from './MyTaskFeatureContext';
 import { traceabilityService } from '../../../../lib/api/traceabilityService';
+import { taskService } from '../../../../lib/api/taskService';
 import { useAppSelector } from '../../../../store/hooks';
 import { RootState } from '../../../../store/store';
 import { selectCurrentUserId } from '../../../../store/authSlice';
 import type { ReleaseReadinessViewState } from '../../../../lib/hooks/useReleaseReadinessMap';
+
+const ROLE_HUMAN_LABELS: Record<string, string> = {
+  owner: 'Owner',
+  admin: 'Admin',
+  po: 'Product Owner',
+  dev: 'Developer',
+  qa: 'QA',
+};
 
 export interface MyTaskDetailWorkspaceDrawerProps {
   task: Task | null;
@@ -40,6 +52,8 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   const [parentTask, setParentTask] = useState<Task | null>(null);
   const [activeViewMode, setActiveViewMode] = useState<'po' | 'dev' | 'qa'>('po');
   const [activeSubtaskForExecution, setActiveSubtaskForExecution] = useState<Task | null>(null);
+  const [parentSubtasks, setParentSubtasks] = useState<Task[]>(task?.subtasks || []);
+  const [isLoadingParentSubtasks, setIsLoadingParentSubtasks] = useState(false);
   const [deliveryTrace, setDeliveryTrace] = useState<ParentTaskDeliveryTrace | null>(null);
   const [isLoadingFeatureContext, setIsLoadingFeatureContext] = useState(true);
   const [featureContextError, setFeatureContextError] = useState<string | null>(null);
@@ -49,6 +63,43 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   const isPlanner = useMemo(
     () => ['owner', 'admin', 'po'].includes(userRole.toLowerCase()),
     [userRole],
+  );
+
+  useEffect(() => {
+    if (!task || task.parentTaskId || !activeWorkspaceId) {
+      setParentSubtasks(task?.subtasks || []);
+      return;
+    }
+
+    let cancelled = false;
+    if (!task.subtasks || task.subtasks.length === 0) {
+      setIsLoadingParentSubtasks(true);
+    }
+    taskService
+      .listSubtasks(activeWorkspaceId, task.id)
+      .then((res) => {
+        if (!cancelled && res.tasks) setParentSubtasks(res.tasks);
+      })
+      .catch(() => {
+        if (!cancelled && task.subtasks) setParentSubtasks(task.subtasks);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingParentSubtasks(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [task, activeWorkspaceId]);
+
+  const devSubtasks = useMemo(
+    () => parentSubtasks.filter((st) => st.deliveryArea !== 'qa'),
+    [parentSubtasks],
+  );
+
+  const qaSubtasks = useMemo(
+    () => parentSubtasks.filter((st) => st.deliveryArea === 'qa'),
+    [parentSubtasks],
   );
 
   // Determine initial view mode based on task and user role
@@ -156,7 +207,17 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   const handleRoleTabChange = (viewMode: string) => {
     const nextViewMode = viewMode as 'po' | 'dev' | 'qa';
     setActiveViewMode(nextViewMode);
-    if (nextViewMode === 'po') setActiveSubtaskForExecution(null);
+    if (nextViewMode === 'po') {
+      setActiveSubtaskForExecution(null);
+    } else if (!isSubtask) {
+      if (
+        activeSubtaskForExecution &&
+        ((nextViewMode === 'qa' && activeSubtaskForExecution.deliveryArea !== 'qa') ||
+          (nextViewMode === 'dev' && activeSubtaskForExecution.deliveryArea === 'qa'))
+      ) {
+        setActiveSubtaskForExecution(null);
+      }
+    }
   };
 
   const roleToolbar =
@@ -172,7 +233,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
           />
         </div>
         <span className="hidden shrink-0 px-2 text-xs font-bold capitalize text-stone-700 dark:text-stone-300 sm:inline">
-          Peran: {userRole}
+          Peran: {ROLE_HUMAN_LABELS[userRole.toLowerCase()] || userRole}
         </span>
       </div>
     ) : activeViewMode === 'dev' ? (
@@ -246,30 +307,208 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
           />
         )}
 
-        {activeViewMode === 'dev' && activeWorkspaceId && (
-          <DevWorkingDesk
-            subtask={executionTask}
-            parentTask={parentTask || (isSubtask ? null : task)}
-            workspaceId={activeWorkspaceId}
-            currentUserId={currentUserId || undefined}
-            userRole={userRole}
-            onDataChanged={onDataChanged}
-            onBackToOverview={() => setActiveViewMode('po')}
-          />
-        )}
+        {/* Dev Subtask Picker when parent task is open without an active subtask */}
+        {activeViewMode === 'dev' &&
+          activeWorkspaceId &&
+          !isSubtask &&
+          !activeSubtaskForExecution && (
+            <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800 gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-[#B1E743]/20 text-[#141413] dark:text-[#B1E743]">
+                    <Code2 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                      Pilih Subtask Dev untuk Dikerjakan
+                    </h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                      Fitur &quot;{task.title}&quot; memiliki beberapa subtask implementasi. Pilih
+                      subtask di bawah untuk membuka ruang kerja Dev:
+                    </p>
+                  </div>
+                </div>
+                {isPlanner && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveViewMode('po')}
+                    className="shrink-0"
+                  >
+                    Lihat Ringkasan Fitur
+                  </Button>
+                )}
+              </div>
 
-        {activeViewMode === 'qa' && activeWorkspaceId && (
-          <QaTestingDesk
-            subtask={executionTask}
-            parentTask={parentTask || (isSubtask ? null : task)}
-            workspaceId={activeWorkspaceId}
-            currentUserId={currentUserId || undefined}
-            userRole={userRole}
-            onDataChanged={onDataChanged}
-            onBackToOverview={() => setActiveViewMode(isPlanner ? 'po' : 'dev')}
-            focusTarget={focusTarget}
-          />
-        )}
+              {isLoadingParentSubtasks ? (
+                <div className="py-8 text-center text-xs text-stone-400">
+                  Memuat daftar subtask...
+                </div>
+              ) : devSubtasks.length === 0 ? (
+                <div className="py-10 text-center space-y-3">
+                  <p className="text-sm font-bold text-stone-800 dark:text-stone-200">
+                    Belum Ada Subtask Dev
+                  </p>
+                  <p className="text-xs text-stone-500 dark:text-stone-400 max-w-md mx-auto">
+                    Fitur ini belum memiliki subtask teknis untuk tim Developer.{' '}
+                    {isPlanner
+                      ? 'Buat subtask baru melalui ringkasan fitur.'
+                      : 'Hubungi Product Owner untuk menambahkan subtask.'}
+                  </p>
+                  {isPlanner && (
+                    <Button variant="outline" size="sm" onClick={() => setActiveViewMode('po')}>
+                      Buka Ringkasan Fitur (PO)
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {devSubtasks.map((st) => (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setActiveSubtaskForExecution(st)}
+                      className="w-full text-left p-3.5 rounded-xl border border-stone-200/80 dark:border-stone-800 bg-stone-50/50 hover:bg-stone-100 dark:bg-stone-900/50 dark:hover:bg-stone-900 transition-all cursor-pointer group space-y-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-stone-400"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-bold text-stone-900 dark:text-stone-100 group-hover:text-stone-700 dark:group-hover:text-[#B1E743] line-clamp-2">
+                          {st.title}
+                        </span>
+                        <TaskStatusBadge state={st.status} />
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 pt-1">
+                        <span className="capitalize text-stone-600 dark:text-stone-300 font-medium">
+                          {st.deliveryArea || 'dev'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 font-bold text-stone-700 dark:text-[#B1E743] group-hover:translate-x-0.5 transition-transform">
+                          Buka Meja Kerja Dev &rarr;
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
+        {/* QA Subtask Picker when parent task is open without an active subtask */}
+        {activeViewMode === 'qa' &&
+          activeWorkspaceId &&
+          !isSubtask &&
+          !activeSubtaskForExecution && (
+            <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800 gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
+                    <Bug className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                      Pilih Subtask QA untuk Pengujian
+                    </h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                      Fitur &quot;{task.title}&quot; memiliki subtask pengujian. Pilih subtask di
+                      bawah untuk membuka ruang pengujian QA:
+                    </p>
+                  </div>
+                </div>
+                {isPlanner && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveViewMode('po')}
+                    className="shrink-0"
+                  >
+                    Lihat Ringkasan Fitur
+                  </Button>
+                )}
+              </div>
+
+              {isLoadingParentSubtasks ? (
+                <div className="py-8 text-center text-xs text-stone-400">
+                  Memuat daftar subtask...
+                </div>
+              ) : (qaSubtasks.length > 0 ? qaSubtasks : parentSubtasks).length === 0 ? (
+                <div className="py-10 text-center space-y-3">
+                  <p className="text-sm font-bold text-stone-800 dark:text-stone-200">
+                    Belum Ada Subtask QA
+                  </p>
+                  <p className="text-xs text-stone-500 dark:text-stone-400 max-w-md mx-auto">
+                    Fitur ini belum memiliki subtask pengujian untuk tim QA.{' '}
+                    {isPlanner
+                      ? 'Buat subtask QA melalui ringkasan fitur.'
+                      : 'Hubungi Product Owner untuk menambahkan subtask pengujian.'}
+                  </p>
+                  {isPlanner && (
+                    <Button variant="outline" size="sm" onClick={() => setActiveViewMode('po')}>
+                      Buka Ringkasan Fitur (PO)
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(qaSubtasks.length > 0 ? qaSubtasks : parentSubtasks).map((st) => (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setActiveSubtaskForExecution(st)}
+                      className="w-full text-left p-3.5 rounded-xl border border-stone-200/80 dark:border-stone-800 bg-stone-50/50 hover:bg-stone-100 dark:bg-stone-900/50 dark:hover:bg-stone-900 transition-all cursor-pointer group space-y-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-400"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-bold text-stone-900 dark:text-stone-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 line-clamp-2">
+                          {st.title}
+                        </span>
+                        <TaskStatusBadge state={st.status} />
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 pt-1">
+                        <span className="capitalize text-stone-600 dark:text-stone-300 font-medium">
+                          {st.deliveryArea || 'qa'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 transition-transform">
+                          Buka Pengujian QA &rarr;
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
+        {activeViewMode === 'dev' &&
+          activeWorkspaceId &&
+          (isSubtask || activeSubtaskForExecution) && (
+            <DevWorkingDesk
+              subtask={executionTask}
+              parentTask={parentTask || (isSubtask ? null : task)}
+              workspaceId={activeWorkspaceId}
+              currentUserId={currentUserId || undefined}
+              userRole={userRole}
+              onDataChanged={onDataChanged}
+              onBackToOverview={() => {
+                setActiveSubtaskForExecution(null);
+                if (isPlanner) setActiveViewMode('po');
+              }}
+            />
+          )}
+
+        {activeViewMode === 'qa' &&
+          activeWorkspaceId &&
+          (isSubtask || activeSubtaskForExecution) && (
+            <QaTestingDesk
+              subtask={executionTask}
+              parentTask={parentTask || (isSubtask ? null : task)}
+              workspaceId={activeWorkspaceId}
+              currentUserId={currentUserId || undefined}
+              userRole={userRole}
+              onDataChanged={onDataChanged}
+              onBackToOverview={() => {
+                setActiveSubtaskForExecution(null);
+                if (isPlanner) setActiveViewMode('po');
+              }}
+              focusTarget={focusTarget}
+            />
+          )}
       </div>
     </Drawer>
   );

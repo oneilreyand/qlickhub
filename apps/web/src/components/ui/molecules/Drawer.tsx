@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { X, Maximize2, Minimize2 } from 'lucide-react';
 import { IconButton } from '../atoms/IconButton';
+import { isTopOverlay, popOverlay, pushOverlay } from '../../../lib/utils/overlayStack';
 
 export interface DrawerProps {
   isOpen: boolean;
@@ -38,6 +39,10 @@ export const Drawer: React.FC<DrawerProps> = ({
   preserveAppHeader = false,
   closeOnEscape = true,
 }) => {
+  const titleId = useId();
+  const overlayId = useId();
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const [internalFullScreen, setInternalFullScreen] = useState(defaultFullScreen);
   const isFullScreen =
     controlledFullScreen !== undefined ? controlledFullScreen : internalFullScreen;
@@ -74,23 +79,63 @@ export const Drawer: React.FC<DrawerProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (!closeOnEscape) return;
+        if (!isTopOverlay(overlayId)) return;
+        e.stopPropagation?.();
+        e.stopImmediatePropagation?.();
         if (isFullScreen) {
           setInternalFullScreen(false);
           onToggleFullScreen?.(false);
         } else {
           handleInitiateClose();
         }
+        return;
+      }
+
+      if (e.key === 'Tab' && drawerRef.current) {
+        const focusable = Array.from(
+          drawerRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+          ),
+        );
+        if (focusable.length === 0) {
+          e.preventDefault();
+          drawerRef.current.focus();
+          return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     if (shouldRender) {
+      pushOverlay(overlayId);
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
+      if (shouldRender) {
+        popOverlay(overlayId);
+      }
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
+      if (shouldRender) previouslyFocusedRef.current?.focus();
     };
-  }, [shouldRender, isFullScreen, onToggleFullScreen, handleInitiateClose, closeOnEscape]);
+  }, [
+    shouldRender,
+    overlayId,
+    isFullScreen,
+    onToggleFullScreen,
+    handleInitiateClose,
+    closeOnEscape,
+  ]);
 
   if (!shouldRender) return null;
 
@@ -131,6 +176,11 @@ export const Drawer: React.FC<DrawerProps> = ({
         }`}
       >
         <div
+          ref={drawerRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          tabIndex={-1}
           className={`pointer-events-auto origin-right w-screen ${
             isFullScreen ? 'max-w-full' : widthStyles[width]
           } bg-white shadow-2xl flex flex-col justify-between z-10 ${
@@ -144,7 +194,10 @@ export const Drawer: React.FC<DrawerProps> = ({
             }`}
           >
             <div className="min-w-0 pr-4">
-              <h3 className="text-base font-bold text-stone-900 dark:text-stone-100 truncate">
+              <h3
+                id={titleId}
+                className="text-base font-bold text-stone-900 dark:text-stone-100 truncate"
+              >
                 {title}
               </h3>
               {subtitle && (

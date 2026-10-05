@@ -333,7 +333,7 @@ test('QA reads both persisted Bug retest cycles from the task workspace', async 
   await expect(page.getByText(bugTitle)).toBeVisible();
   await page.getByRole('button', { name: 'Riwayat Retest' }).click();
 
-  const history = page.getByRole('dialog');
+  const history = page.getByRole('dialog', { name: 'Riwayat Perbaikan dan Retest' });
   await expect(history.getByText('Siklus perbaikan #1')).toBeVisible();
   await expect(history.getByText('Siklus perbaikan #2')).toBeVisible();
   await expect(history.getByText('Confirmation still does not appear.')).toBeVisible();
