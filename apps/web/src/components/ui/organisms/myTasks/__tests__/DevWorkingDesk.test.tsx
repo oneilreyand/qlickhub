@@ -200,9 +200,7 @@ describe('DevWorkingDesk Organism', () => {
       screen.queryByText(/PRD: Must include header, sidebar, and theme toggle/i),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Hasil Kerja & Catatan Implementasi Teknis')).toBeInTheDocument();
-    expect(
-      screen.getByDisplayValue('https://github.com/org/repo/pull/123'),
-    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://github.com/org/repo/pull/123')).toBeInTheDocument();
   });
 
   it('opens Serahkan ke QA modal when clicking Serahkan ke QA button', async () => {
@@ -337,5 +335,56 @@ describe('DevWorkingDesk Organism', () => {
         status: 'in_progress',
       }),
     );
+  });
+
+  it('saves deliverables with canonical Indonesian labels and converts legacy English labels without duplicates', async () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <DevWorkingDesk
+          subtask={mockSubtask}
+          parentTask={mockParent}
+          workspaceId="ws-1"
+          currentUserId="u-2"
+          userRole="dev"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const saveBtn = screen.getByText('Simpan Catatan');
+    await act(async () => {
+      fireEvent.click(saveBtn);
+    });
+
+    expect(taskServiceMock.updateTask).toHaveBeenCalledTimes(1);
+    const firstSaveInput = taskServiceMock.updateTask.mock.calls[0][2];
+    const firstDesc = firstSaveInput.description as string;
+
+    // Must use Indonesian labels
+    expect(firstDesc).toContain('- **Tautan PR**: https://github.com/org/repo/pull/123');
+    expect(firstDesc).toContain('- **Branch**: `feature/nav-bar`');
+    expect(firstDesc).toContain('- **URL Staging**: https://staging.app.io/nav');
+    // Must strip legacy English labels
+    expect(firstDesc).not.toContain('PR Link');
+    expect(firstDesc).not.toContain('Staging URL');
+
+    // Click Save a second time without reloading
+    await act(async () => {
+      fireEvent.click(saveBtn);
+    });
+
+    expect(taskServiceMock.updateTask).toHaveBeenCalledTimes(2);
+    const secondSaveInput = taskServiceMock.updateTask.mock.calls[1][2];
+    const secondDesc = secondSaveInput.description as string;
+
+    // Repeated save should be completely identical and have zero duplicate lines
+    expect(secondDesc).toBe(firstDesc);
+    expect(secondDesc.match(/- \*\*Tautan PR\*\*:/g)).toHaveLength(1);
+    expect(secondDesc.match(/- \*\*Branch\*\*:/g)).toHaveLength(1);
+    expect(secondDesc.match(/- \*\*URL Staging\*\*:/g)).toHaveLength(1);
   });
 });

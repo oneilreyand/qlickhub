@@ -38,6 +38,7 @@ import { RootState } from '../../../../store/store';
 import { updateTask } from '../../../../store/taskSlice';
 import { enqueueSnackbar } from '../../../../store/uiSlice';
 import { taskService } from '../../../../lib/api/taskService';
+import { parseDeliverablesFromDescription, buildCombinedDescription } from './devDeliverables';
 
 export interface DevWorkingDeskProps {
   subtask: Task;
@@ -49,36 +50,6 @@ export interface DevWorkingDeskProps {
   onBackToOverview?: () => void;
 }
 
-/**
- * Parses embedded deliverables (PR URL, branch name, staging URL) from task description
- */
-const parseDeliverablesFromDescription = (desc?: string | null) => {
-  if (!desc) return { pr: '', branch: '', staging: '', notes: '' };
-
-  let pr = '';
-  let branch = '';
-  let staging = '';
-
-  const prMatch = desc.match(/- \*\*PR Link\*\*:\s*([^\n\r]+)/i);
-  if (prMatch) pr = prMatch[1].trim();
-
-  const branchMatch = desc.match(/- \*\*Branch\*\*:\s*`?([^`\n\r]+)`?/i);
-  if (branchMatch) branch = branchMatch[1].trim();
-
-  const stagingMatch = desc.match(/- \*\*Staging URL\*\*:\s*([^\n\r]+)/i);
-  if (stagingMatch) staging = stagingMatch[1].trim();
-
-  // Strip deliverable metadata to show pure developer notes
-  const cleanNotes = desc
-    .replace(/- \*\*PR Link\*\*:\s*[^\n\r]+/gi, '')
-    .replace(/- \*\*Branch\*\*:\s*[^\n\r]+/gi, '')
-    .replace(/- \*\*Staging URL\*\*:\s*[^\n\r]+/gi, '')
-    .replace(/- \*\*Handoff Instructions\*\*:\s*[^\n\r]+/gi, '')
-    .trim();
-
-  return { pr, branch, staging, notes: cleanNotes };
-};
-
 export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   subtask,
   parentTask,
@@ -87,8 +58,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   userRole = 'dev',
   onDataChanged,
 }) => {
-  const isDev =
-    userRole.toLowerCase() === 'dev' || userRole.toLowerCase() === 'developer';
+  const isDev = userRole.toLowerCase() === 'dev' || userRole.toLowerCase() === 'developer';
   const dispatch = useAppDispatch();
   const { members } = useAppSelector((state: RootState) => state.workspace);
 
@@ -114,6 +84,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
     setBranchName(parsed.branch);
     setStagingUrl(parsed.staging);
     setTechnicalNotes(parsed.notes);
+    setHandoffNotes(parsed.handoff || '');
     setComments([]);
 
     taskService
@@ -223,37 +194,16 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
     }
   };
 
-  const buildCombinedDescription = (
-    notes: string,
-    pr: string,
-    branch: string,
-    staging: string,
-    extraHandoff?: string,
-  ) => {
-    const parts: string[] = [];
-    if (notes.trim()) {
-      parts.push(notes.trim());
-    }
-    const deliverableItems: string[] = [];
-    if (pr.trim()) deliverableItems.push(`- **Tautan PR**: ${pr.trim()}`);
-    if (branch.trim()) deliverableItems.push(`- **Branch**: \`${branch.trim()}\``);
-    if (staging.trim()) deliverableItems.push(`- **URL Staging**: ${staging.trim()}`);
-    if (extraHandoff && extraHandoff.trim()) {
-      deliverableItems.push(`- **Petunjuk Handoff**: ${extraHandoff.trim()}`);
-    }
-
-    if (deliverableItems.length > 0) {
-      if (parts.length > 0) parts.push('');
-      parts.push(...deliverableItems);
-    }
-
-    return parts.join('\n');
-  };
-
   const handleSaveDeliverables = async () => {
     try {
       setIsSavingNotes(true);
-      const combined = buildCombinedDescription(technicalNotes, prUrl, branchName, stagingUrl);
+      const combined = buildCombinedDescription(
+        technicalNotes,
+        prUrl,
+        branchName,
+        stagingUrl,
+        handoffNotes,
+      );
 
       await dispatch(
         updateTask({
@@ -439,9 +389,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
             {parentTask && (
               <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 flex-wrap">
-                <span className="text-stone-400 font-bold uppercase text-xs">
-                  Feature Induk:
-                </span>
+                <span className="text-stone-400 font-bold uppercase text-xs">Feature Induk:</span>
                 <span className="font-semibold text-stone-800 dark:text-stone-200 truncate max-w-md">
                   {parentTask.title}
                 </span>
@@ -612,7 +560,8 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   </p>
                 )}
                 <p className="text-amber-700/90 dark:text-amber-300">
-                  Klik tombol &quot;Lanjutkan Perbaikan Bug&quot; di atas untuk melanjutkan pengerjaan.
+                  Klik tombol &quot;Lanjutkan Perbaikan Bug&quot; di atas untuk melanjutkan
+                  pengerjaan.
                 </p>
               </div>
             </div>
@@ -640,7 +589,9 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-stone-400" />
-                  <span className="text-stone-500 dark:text-stone-400">Developer yang Ditugaskan</span>
+                  <span className="text-stone-500 dark:text-stone-400">
+                    Developer yang Ditugaskan
+                  </span>
                   <span className="font-bold text-stone-900 dark:text-stone-100">
                     {getMemberName(subtask.assigneeId)}
                   </span>
@@ -683,7 +634,9 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           </Card>
 
           {/* Responsive Layout: Full Width for Dev, 2-Column for PO/Planner Review */}
-          <div className={isDev ? 'space-y-5' : 'grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch'}>
+          <div
+            className={isDev ? 'space-y-5' : 'grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch'}
+          >
             {!isDev && (
               <Card className="lg:col-span-6 p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] flex flex-col space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
@@ -713,7 +666,9 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             )}
 
             {/* Right: Dev Deliverables & Technical Implementation Notes */}
-            <Card className={`${isDev ? 'w-full' : 'lg:col-span-6'} p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] flex flex-col space-y-4`}>
+            <Card
+              className={`${isDev ? 'w-full' : 'lg:col-span-6'} p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19] flex flex-col space-y-4`}
+            >
               <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
                 <div className="flex items-center gap-2">
                   <GitPullRequest className="h-4 w-4 text-stone-700 dark:text-[#B1E743]" />
