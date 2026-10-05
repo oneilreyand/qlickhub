@@ -271,6 +271,8 @@ test('QA assignee sees an authenticated persisted workspace', async ({ page }, t
 
   await expect(page.getByText('QA', { exact: true })).toBeVisible();
   await expect(page.getByText('Browser E2E QA Assignee Task')).toBeVisible();
+  await expect(page.getByRole('tab', { selected: true })).toBeVisible();
+  await page.waitForTimeout(200);
   await page.screenshot({ path: testInfo.outputPath('my-tasks-qa-after.png'), fullPage: true });
 });
 
@@ -391,6 +393,8 @@ test('Developer and PO each receive their persisted role view', async ({ browser
   const developer = await browser.newPage();
   await login(developer, users.dev.email);
   await expect(developer.getByText('Developer', { exact: true })).toBeVisible();
+  await expect(developer.getByRole('tab', { selected: true })).toBeVisible();
+  await developer.waitForTimeout(200);
   await developer.screenshot({
     path: testInfo.outputPath('my-tasks-dev-after.png'),
     fullPage: true,
@@ -399,6 +403,9 @@ test('Developer and PO each receive their persisted role view', async ({ browser
   const productOwner = await browser.newPage();
   await login(productOwner, users.po.email);
   await expect(productOwner.getByText('Product Owner', { exact: true })).toBeVisible();
+  await expect(productOwner.getByRole('tab', { selected: true })).toBeVisible();
+  await expect(productOwner.getByText('Browser E2E QA Feature')).toBeVisible();
+  await productOwner.waitForTimeout(200);
   await productOwner.screenshot({
     path: testInfo.outputPath('my-tasks-po-after.png'),
     fullPage: true,

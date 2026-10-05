@@ -158,14 +158,26 @@ export const Tabs: React.FC<TabsProps> = ({
               tabIndex={isActive ? 0 : -1}
               onClick={() => onChange(tab.id)}
               onKeyDown={(event) => handleKeyDown(event, index)}
-              className={`flex min-h-[44px] shrink-0 items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              className={`flex min-h-[44px] shrink-0 items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors duration-150 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-stone-600 ${
                 isActive
                   ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800'
               }`}
             >
-              {tab.icon}
-              <span>{tab.label}</span>
+              {tab.icon && (
+                <span
+                  className={
+                    isActive
+                      ? 'text-[#141413] dark:text-[#141413]'
+                      : 'text-stone-500 dark:text-stone-400'
+                  }
+                >
+                  {tab.icon}
+                </span>
+              )}
+              <span className={isActive ? 'text-[#141413] dark:text-[#141413] font-bold' : ''}>
+                {tab.label}
+              </span>
               {tab.badge}
               {tab.count !== undefined && (
                 <span
