@@ -234,4 +234,81 @@ describe('PoTeamICardGrid Organism', () => {
     });
     expect(screen.queryByText('Build Login Form UI')).not.toBeInTheDocument();
   });
+
+  it('disables Tambah Subtask buttons and displays restriction reason for non-planner roles', async () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <PoTeamICardGrid
+          task={mockParentTask}
+          workspaceId="ws-1"
+          currentUserId="u-2"
+          userRole="dev"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    const addFeButton = screen.getByRole('button', { name: /Tambah Subtask Frontend/i });
+    expect(addFeButton).toBeDisabled();
+
+    const addBeButton = screen.getByRole('button', { name: /Tambah Subtask Backend/i });
+    expect(addBeButton).toBeDisabled();
+
+    const addQaButton = screen.getByRole('button', { name: /Tambah Subtask QA/i });
+    expect(addQaButton).toBeDisabled();
+
+    const reasons = screen.getAllByText(
+      'Hanya perencana (Product Owner/Admin/Owner) yang dapat menambahkan subtask.',
+    );
+    expect(reasons.length).toBe(3);
+  });
+
+  it('renders dynamic team titles based on delivery areas present', async () => {
+    const store = createTestStore();
+    const taskWithMobileAndFullstack: Task = {
+      ...mockParentTask,
+      subtasks: [
+        {
+          id: 'st-mob-1',
+          workspaceId: 'ws-1',
+          parentTaskId: 't-parent-1',
+          title: 'React Native Screen',
+          status: 'todo',
+          deliveryArea: 'mobile',
+          priority: 'medium',
+          reporterId: 'u-1',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'st-fs-1',
+          workspaceId: 'ws-1',
+          parentTaskId: 't-parent-1',
+          title: 'Fullstack GraphQL & View',
+          status: 'todo',
+          deliveryArea: 'fullstack',
+          priority: 'medium',
+          reporterId: 'u-1',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    };
+
+    render(
+      <Provider store={store}>
+        <PoTeamICardGrid
+          task={taskWithMobileAndFullstack}
+          workspaceId="ws-1"
+          currentUserId="u-1"
+          userRole="po"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    expect(screen.getByText('Tim Mobile')).toBeInTheDocument();
+    expect(screen.getByText('Tim Fullstack')).toBeInTheDocument();
+  });
 });

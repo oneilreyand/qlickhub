@@ -151,7 +151,7 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
     expect(screen.getByText('Ringkasan & Rilis (PO)')).toBeInTheDocument();
     expect(screen.getByText('Pengerjaan Dev')).toBeInTheDocument();
     expect(screen.getByText('Pengujian QA')).toBeInTheDocument();
-    expect(screen.getByText('Peran: po')).toBeInTheDocument();
+    expect(screen.getByText('Peran: Product Owner')).toBeInTheDocument();
     expect(screen.getByText('Ringkasan Fitur & Rilis')).toBeInTheDocument();
 
     const drawerToolbar = screen.getByRole('toolbar', {
@@ -171,12 +171,42 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
     expect(drawerContent.closest('.fixed.inset-0')).toHaveClass('z-20');
   });
 
-  it('switches views smoothly when clicking persona tabs', async () => {
+  it('switches views smoothly when clicking persona tabs and guards parent task from being rendered as a subtask', async () => {
     const store = createTestStore();
+    const taskWithSubtasks: Task = {
+      ...mockTask,
+      subtasks: [
+        {
+          id: 'sub-dev-1',
+          workspaceId: 'ws-1',
+          parentTaskId: 't-100',
+          title: 'Implement Payment Gateway',
+          status: 'in_progress',
+          deliveryArea: 'frontend',
+          priority: 'medium',
+          reporterId: 'u-1',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'sub-qa-1',
+          workspaceId: 'ws-1',
+          parentTaskId: 't-100',
+          title: 'QA Verify Stripe Flow',
+          status: 'in_progress',
+          deliveryArea: 'qa',
+          priority: 'medium',
+          reporterId: 'u-1',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    };
+
     render(
       <Provider store={store}>
         <MyTaskDetailWorkspaceDrawer
-          task={mockTask}
+          task={taskWithSubtasks}
           userRole="po"
           isOpen={true}
           onClose={vi.fn()}
@@ -185,13 +215,27 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
+    // Switch to Dev persona tab: shows subtask selection, not Dev desk with parent task
     const devTab = screen.getByText('Pengerjaan Dev');
     fireEvent.click(devTab);
-    expect(screen.getByText(/Hasil Kerja & Catatan Implementasi Teknis/i)).toBeInTheDocument();
+    expect(screen.getByText('Pilih Subtask Dev untuk Dikerjakan')).toBeInTheDocument();
+    expect(screen.getByText('Implement Payment Gateway')).toBeInTheDocument();
 
+    // Select subtask: opens Dev Working Desk
+    fireEvent.click(screen.getByText('Implement Payment Gateway'));
+    expect(
+      await screen.findByText(/Hasil Kerja & Catatan Implementasi Teknis/i),
+    ).toBeInTheDocument();
+
+    // Switch to QA persona tab: shows subtask selection, not QA desk with parent task
     const qaTab = screen.getByText('Pengujian QA');
     fireEvent.click(qaTab);
-    expect(screen.getByText(/Pengelolaan & Eksekusi Test Case/i)).toBeInTheDocument();
+    expect(screen.getByText('Pilih Subtask QA untuk Pengujian')).toBeInTheDocument();
+    expect(screen.getByText('QA Verify Stripe Flow')).toBeInTheDocument();
+
+    // Select QA subtask: opens QA Testing Desk
+    fireEvent.click(screen.getByText('QA Verify Stripe Flow'));
+    expect(await screen.findByText(/Pengelolaan & Eksekusi Test Case/i)).toBeInTheDocument();
   });
 
   it('loads persisted parent context for an assigned subtask and keeps it across persona navigation', async () => {

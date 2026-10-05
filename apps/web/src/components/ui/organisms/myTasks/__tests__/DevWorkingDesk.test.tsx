@@ -1,4 +1,4 @@
-import { act, render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -323,7 +323,7 @@ describe('DevWorkingDesk Organism', () => {
     expect(screen.getAllByText('Perlu Perbaikan')).toHaveLength(2);
 
     // Action button to resume fixing should be visible
-    const resumeBtn = screen.getByText('Lanjutkan Perbaikan Bug');
+    const resumeBtn = screen.getByText('Lanjutkan Perbaikan');
     expect(resumeBtn).toBeInTheDocument();
 
     // Clicking resume should dispatch status update
@@ -386,5 +386,112 @@ describe('DevWorkingDesk Organism', () => {
     expect(secondDesc.match(/- \*\*Tautan PR\*\*:/g)).toHaveLength(1);
     expect(secondDesc.match(/- \*\*Branch\*\*:/g)).toHaveLength(1);
     expect(secondDesc.match(/- \*\*URL Staging\*\*:/g)).toHaveLength(1);
+  });
+
+  it('renders Kembali ke ringkasan Feature button when onBackToOverview is provided', async () => {
+    const store = createTestStore();
+    const handleBack = vi.fn();
+    render(
+      <Provider store={store}>
+        <DevWorkingDesk
+          subtask={mockSubtask}
+          parentTask={mockParent}
+          workspaceId="ws-1"
+          currentUserId="u-2"
+          userRole="dev"
+          onDataChanged={vi.fn()}
+          onBackToOverview={handleBack}
+        />
+      </Provider>,
+    );
+
+    const backBtn = screen.getByRole('button', { name: /Kembali ke ringkasan Feature/i });
+    expect(backBtn).toBeInTheDocument();
+    fireEvent.click(backBtn);
+    expect(handleBack).toHaveBeenCalledOnce();
+  });
+
+  it('disables deliverables and status mutations for non-assignee developer with visible reason', async () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <DevWorkingDesk
+          subtask={mockSubtask}
+          parentTask={mockParent}
+          workspaceId="ws-1"
+          currentUserId="u-99" // different user
+          userRole="dev"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    // Save button should be disabled
+    const saveBtn = screen.getByRole('button', { name: /Simpan Catatan/i });
+    expect(saveBtn).toBeDisabled();
+
+    // Visible restriction reasons should be displayed
+    expect(
+      screen.getAllByText(
+        'Hanya developer yang ditugaskan atau perencana yang dapat mengubah hasil kerja.',
+      )[0],
+    ).toBeInTheDocument();
+  });
+
+  it('prefills handoff modal fields from desk deliverables', async () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <DevWorkingDesk
+          subtask={mockSubtask}
+          parentTask={mockParent}
+          workspaceId="ws-1"
+          currentUserId="u-2"
+          userRole="dev"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    // Click Serahkan ke QA to open handoff modal
+    const handoffBtn = screen.getByRole('button', { name: /Serahkan ke QA/i });
+    fireEvent.click(handoffBtn);
+
+    const dialog = screen.getByRole('dialog', { name: /Serahkan Handoff kepada Tim QA/i });
+    expect(dialog).toBeInTheDocument();
+    expect(
+      within(dialog).getByDisplayValue('https://github.com/org/repo/pull/123'),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByDisplayValue('feature/nav-bar')).toBeInTheDocument();
+    expect(within(dialog).getByDisplayValue('https://staging.app.io/nav')).toBeInTheDocument();
+  });
+
+  it('shows unsaved changes warning modal when navigating between tabs with modified inputs', async () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <DevWorkingDesk
+          subtask={mockSubtask}
+          parentTask={mockParent}
+          workspaceId="ws-1"
+          currentUserId="u-2"
+          userRole="dev"
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    // Modify a deliverable input
+    const prInput = screen.getAllByLabelText(/URL Pull Request \(PR\)/i)[0];
+    fireEvent.change(prInput, { target: { value: 'https://github.com/org/repo/pull/999' } });
+
+    // Click Discussion tab
+    const discussionTab = screen.getByText('Diskusi Tim');
+    fireEvent.click(discussionTab);
+
+    // Unsaved warning dialog should appear
+    expect(
+      await screen.findByRole('dialog', { name: /Perubahan Belum Disimpan/i }),
+    ).toBeInTheDocument();
   });
 });

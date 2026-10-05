@@ -37,7 +37,8 @@ describe('MyTaskFeatureContext', () => {
     expect(screen.getByText('Pengujian lulus')).toBeInTheDocument();
     expect(screen.getByText('Rilis terblokir · 1 gate perlu ditindaklanjuti')).toBeInTheDocument();
     expect(screen.getByText(/1\/2 Subtask pengembangan telah selesai/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Kembali ke Feature' }));
+    expect(screen.getByText('Aktif')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Buka Feature' }));
     expect(onOpenFeature).toHaveBeenCalledWith(trace.featureTask.id);
   });
 
@@ -67,7 +68,7 @@ describe('MyTaskFeatureContext', () => {
     expect(screen.queryByText(/Subtask pengembangan telah selesai/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Belum ada hasil pengujian/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/gate perlu ditindaklanjuti/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Kembali ke Feature' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Buka Feature' })).toBeInTheDocument();
   });
 
   it('shows an explicit empty link state without fabricating subtask coverage', () => {

@@ -90,7 +90,7 @@ test.beforeAll(async () => {
     parentTaskId: feature.id,
     deliveryArea: 'frontend',
     title: 'Browser E2E Development',
-    status: 'done',
+    status: 'in_progress',
     priority: 'high',
     assigneeId: dev.id,
     reporterId: po.id,
@@ -333,7 +333,7 @@ test('QA reads both persisted Bug retest cycles from the task workspace', async 
   await expect(page.getByText(bugTitle)).toBeVisible();
   await page.getByRole('button', { name: 'Riwayat Retest' }).click();
 
-  const history = page.getByRole('dialog');
+  const history = page.getByRole('dialog', { name: 'Riwayat Perbaikan dan Retest' });
   await expect(history.getByText('Siklus perbaikan #1')).toBeVisible();
   await expect(history.getByText('Siklus perbaikan #2')).toBeVisible();
   await expect(history.getByText('Confirmation still does not appear.')).toBeVisible();
@@ -400,6 +400,18 @@ test('Developer and PO each receive their persisted role view', async ({ browser
     fullPage: true,
   });
 
+  const devOpenButton = developer.getByRole('button', {
+    name: /Browser E2E Development/i,
+  });
+  if (await devOpenButton.isVisible()) {
+    await devOpenButton.click();
+    await developer.waitForTimeout(500);
+    await developer.screenshot({
+      path: 'docs/screenshots/workspace-drawer-dev-subtask-after.png',
+      fullPage: true,
+    });
+  }
+
   const productOwner = await browser.newPage();
   await login(productOwner, users.po.email);
   await expect(productOwner.getByText('Product Owner', { exact: true })).toBeVisible();
@@ -410,6 +422,18 @@ test('Developer and PO each receive their persisted role view', async ({ browser
     path: testInfo.outputPath('my-tasks-po-after.png'),
     fullPage: true,
   });
+
+  const poOpenButton = productOwner.getByRole('button', {
+    name: /Browser E2E QA Feature/i,
+  });
+  if (await poOpenButton.isVisible()) {
+    await poOpenButton.click();
+    await productOwner.waitForTimeout(500);
+    await productOwner.screenshot({
+      path: 'docs/screenshots/workspace-drawer-po-feature-after.png',
+      fullPage: true,
+    });
+  }
 
   await developer.close();
   await productOwner.close();

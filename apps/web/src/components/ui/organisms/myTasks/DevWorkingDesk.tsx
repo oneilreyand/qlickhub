@@ -16,6 +16,7 @@ import {
   TrendingUp,
   AlertTriangle,
   MessageSquare,
+  ArrowLeft,
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskComment } from '@qlick/contracts';
 import { Card } from '../../atoms/Card';
@@ -57,8 +58,24 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   currentUserId,
   userRole = 'dev',
   onDataChanged,
+  onBackToOverview,
 }) => {
   const isDev = userRole.toLowerCase() === 'dev' || userRole.toLowerCase() === 'developer';
+  const isPlanner = ['owner', 'admin', 'po'].includes(userRole.toLowerCase());
+  const isAssignedDev =
+    isDev && Boolean(subtask.assigneeId && currentUserId && subtask.assigneeId === currentUserId);
+  const canMutateDevStatus = isPlanner || isAssignedDev;
+  const canEditDeliverables = isPlanner || isAssignedDev;
+  const canReopenSubtask = isPlanner;
+  const devStatusRestrictionReason = !subtask.assigneeId
+    ? 'Subtask belum ditugaskan kepada anggota tim.'
+    : 'Hanya developer yang ditugaskan atau perencana yang dapat mengubah status subtask ini.';
+  const reopenRestrictionReason =
+    'Hanya perencana (Product Owner/Admin/Owner) yang dapat membuka kembali subtask yang telah selesai.';
+  const deliverableRestrictionReason = !subtask.assigneeId
+    ? 'Subtask belum ditugaskan kepada anggota tim.'
+    : 'Hanya developer yang ditugaskan atau perencana yang dapat mengubah hasil kerja.';
+
   const dispatch = useAppDispatch();
   const { members } = useAppSelector((state: RootState) => state.workspace);
 
@@ -76,6 +93,23 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   const [isHandoffModalOpen, setIsHandoffModalOpen] = useState(false);
   const [handoffNotes, setHandoffNotes] = useState('');
   const [isSubmittingHandoff, setIsSubmittingHandoff] = useState(false);
+
+  // Dirty state tracking & unsaved changes warning modal
+  const [isUnsavedWarningOpen, setIsUnsavedWarningOpen] = useState(false);
+  const [pendingTab, setPendingTab] = useState<'work' | 'discussion' | null>(null);
+
+  const initialDeliverables = useMemo(() => {
+    return parseDeliverablesFromDescription(subtask.description);
+  }, [subtask.description]);
+
+  const isDirty = useMemo(() => {
+    return (
+      prUrl !== initialDeliverables.pr ||
+      branchName !== initialDeliverables.branch ||
+      stagingUrl !== initialDeliverables.staging ||
+      technicalNotes !== initialDeliverables.notes
+    );
+  }, [initialDeliverables, prUrl, branchName, stagingUrl, technicalNotes]);
 
   useEffect(() => {
     let isCurrentRequest = true;
@@ -371,8 +405,33 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
     },
   ];
 
+  const handleTabChange = (nextTabId: string) => {
+    const next = nextTabId as 'work' | 'discussion';
+    if (next === activeTab) return;
+    if (isDirty) {
+      setPendingTab(next);
+      setIsUnsavedWarningOpen(true);
+    } else {
+      setActiveTab(next);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {onBackToOverview && (
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBackToOverview}
+            leftIcon={<ArrowLeft className="h-4 w-4" />}
+            className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 font-semibold"
+          >
+            Kembali ke ringkasan Feature
+          </Button>
+        </div>
+      )}
+
       {/* Dev Workstation Header Card */}
       <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19]">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -398,61 +457,79 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           </div>
 
           {/* Quick Stepper Actions */}
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {subtask.status === 'todo' && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => handleStatusChange('in_progress')}
-                isLoading={isUpdatingStatus}
-                leftIcon={<Play className="h-4 w-4" />}
-              >
-                Mulai Kerjakan
-              </Button>
-            )}
+          <div className="flex flex-col items-start sm:items-end gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {subtask.status === 'todo' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleStatusChange('in_progress')}
+                  isLoading={isUpdatingStatus}
+                  disabled={!canMutateDevStatus}
+                  leftIcon={<Play className="h-4 w-4" />}
+                >
+                  Mulai Kerjakan
+                </Button>
+              )}
 
-            {subtask.status === 'in_progress' && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setIsHandoffModalOpen(true)}
-                leftIcon={<Send className="h-4 w-4" />}
-                className="bg-[#B1E743] hover:bg-[#9ed434] text-[#141413] font-bold dark:bg-[#B1E743] dark:hover:bg-[#9ed434] dark:text-[#141413]"
-              >
-                Serahkan ke QA
-              </Button>
-            )}
+              {subtask.status === 'in_progress' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setIsHandoffModalOpen(true)}
+                  disabled={!canMutateDevStatus}
+                  leftIcon={<Send className="h-4 w-4" />}
+                  className="bg-[#B1E743] hover:bg-[#9ed434] text-[#141413] font-bold dark:bg-[#B1E743] dark:hover:bg-[#9ed434] dark:text-[#141413]"
+                >
+                  Serahkan ke QA
+                </Button>
+              )}
 
-            {subtask.status === 'changes_requested' && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => handleStatusChange('in_progress')}
-                isLoading={isUpdatingStatus}
-                leftIcon={<RotateCcw className="h-4 w-4" />}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                Lanjutkan Perbaikan Bug
-              </Button>
-            )}
+              {subtask.status === 'changes_requested' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleStatusChange('in_progress')}
+                  isLoading={isUpdatingStatus}
+                  disabled={!canMutateDevStatus}
+                  leftIcon={<RotateCcw className="h-4 w-4" />}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  Lanjutkan Perbaikan
+                </Button>
+              )}
 
-            {subtask.status === 'in_review' && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                <Clock className="h-3.5 w-3.5 animate-spin" />
-                Dalam Verifikasi QA
-              </span>
-            )}
+              {subtask.status === 'in_review' && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                  <Clock className="h-3.5 w-3.5" />
+                  Dalam Review QA
+                </span>
+              )}
 
-            {subtask.status === 'done' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleStatusChange('in_progress')}
-                isLoading={isUpdatingStatus}
-                leftIcon={<RotateCcw className="h-4 w-4" />}
-              >
-                Buka Kembali Subtask
-              </Button>
+              {subtask.status === 'done' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange('in_progress')}
+                  isLoading={isUpdatingStatus}
+                  disabled={!canReopenSubtask}
+                  leftIcon={<RotateCcw className="h-4 w-4" />}
+                >
+                  Buka Kembali Subtask
+                </Button>
+              )}
+            </div>
+
+            {/* Alasan pembatasan akses yang terlihat */}
+            {subtask.status === 'done' && !canReopenSubtask && (
+              <p className="text-2xs text-amber-600 dark:text-amber-400 font-medium">
+                {reopenRestrictionReason}
+              </p>
+            )}
+            {subtask.status !== 'done' && subtask.status !== 'in_review' && !canMutateDevStatus && (
+              <p className="text-2xs text-amber-600 dark:text-amber-400 font-medium">
+                {devStatusRestrictionReason}
+              </p>
             )}
           </div>
         </div>
@@ -560,8 +637,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                   </p>
                 )}
                 <p className="text-amber-700/90 dark:text-amber-300">
-                  Klik tombol &quot;Lanjutkan Perbaikan Bug&quot; di atas untuk melanjutkan
-                  pengerjaan.
+                  Klik tombol &quot;Lanjutkan Perbaikan&quot; di atas untuk melanjutkan pengerjaan.
                 </p>
               </div>
             </div>
@@ -574,7 +650,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
         <Tabs
           tabs={tabs}
           activeTabId={activeTab}
-          onChange={(id) => setActiveTab(id as 'work' | 'discussion')}
+          onChange={handleTabChange}
           variant="underline"
           ariaLabel="Bagian area kerja Developer"
         />
@@ -681,47 +757,76 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                     </p>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleSaveDeliverables}
-                  isLoading={isSavingNotes}
-                  leftIcon={<Save className="h-3.5 w-3.5" />}
-                >
-                  Simpan Catatan
-                </Button>
+                <div className="flex items-center gap-2">
+                  {!canEditDeliverables && (
+                    <span className="text-2xs text-amber-600 dark:text-amber-400 font-medium hidden sm:inline">
+                      {deliverableRestrictionReason}
+                    </span>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSaveDeliverables}
+                    disabled={!canEditDeliverables || isSavingNotes}
+                    isLoading={isSavingNotes}
+                    leftIcon={<Save className="h-3.5 w-3.5" />}
+                  >
+                    Simpan Catatan
+                  </Button>
+                </div>
               </div>
+
+              {!canEditDeliverables && (
+                <p className="text-2xs text-amber-600 dark:text-amber-400 font-medium sm:hidden">
+                  {deliverableRestrictionReason}
+                </p>
+              )}
 
               {/* Deliverable Link Inputs */}
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
-                    Pull Request (PR) URL
+                  <label
+                    htmlFor="dev-pr-url"
+                    className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1"
+                  >
+                    URL Pull Request (PR)
                   </label>
                   <Input
+                    id="dev-pr-url"
                     value={prUrl}
                     onChange={(e) => setPrUrl(e.target.value)}
+                    disabled={!canEditDeliverables}
                     placeholder="https://github.com/.../pull/123"
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
+                    <label
+                      htmlFor="dev-branch-name"
+                      className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1"
+                    >
                       Nama Branch Git
                     </label>
                     <Input
+                      id="dev-branch-name"
                       value={branchName}
                       onChange={(e) => setBranchName(e.target.value)}
+                      disabled={!canEditDeliverables}
                       placeholder="feature/payment-gateway"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
+                    <label
+                      htmlFor="dev-staging-url"
+                      className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1"
+                    >
                       Staging / Demo URL
                     </label>
                     <Input
+                      id="dev-staging-url"
                       value={stagingUrl}
                       onChange={(e) => setStagingUrl(e.target.value)}
+                      disabled={!canEditDeliverables}
                       placeholder="https://staging.app.io/..."
                     />
                   </div>
@@ -730,12 +835,17 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
               {/* Technical Implementation Markdown Notes */}
               <div className="space-y-1.5 flex-1 flex flex-col">
-                <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1">
+                <label
+                  htmlFor="dev-technical-notes"
+                  className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1"
+                >
                   Catatan Implementasi Teknis
                 </label>
                 <Textarea
+                  id="dev-technical-notes"
                   value={technicalNotes}
                   onChange={(e) => setTechnicalNotes(e.target.value)}
+                  disabled={!canEditDeliverables}
                   rows={6}
                   placeholder="Tulis ringkasan arsitektur teknis, migrasi database, bentuk endpoint, atau keputusan penting developer..."
                   className="w-full flex-1 min-h-[140px] text-sm font-sans leading-relaxed"
@@ -774,17 +884,20 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       >
         <div className="space-y-4 p-1">
           <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-            Anda akan memindahkan Subtask ini ke <strong>Siap untuk QA (Dalam Review)</strong>.
-            Sertakan petunjuk, tautan staging, dan akun uji agar QA dapat memverifikasi dengan
-            cepat.
+            Anda akan memindahkan Subtask ini ke <strong>Dalam Review QA</strong>. Sertakan
+            petunjuk, tautan staging, dan akun uji agar QA dapat memverifikasi dengan cepat.
           </p>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+              <label
+                htmlFor="handoff-staging-url"
+                className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+              >
                 URL Lingkungan Staging / Pratinjau
               </label>
               <Input
+                id="handoff-staging-url"
                 value={stagingUrl}
                 onChange={(e) => setStagingUrl(e.target.value)}
                 placeholder="https://staging.app.io/feature-test"
@@ -792,10 +905,29 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                Pull Request (PR) Link
+              <label
+                htmlFor="handoff-branch-name"
+                className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+              >
+                Nama Branch Git
               </label>
               <Input
+                id="handoff-branch-name"
+                value={branchName}
+                onChange={(e) => setBranchName(e.target.value)}
+                placeholder="feature/payment-gateway"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="handoff-pr-url"
+                className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+              >
+                URL Pull Request (PR)
+              </label>
+              <Input
+                id="handoff-pr-url"
                 value={prUrl}
                 onChange={(e) => setPrUrl(e.target.value)}
                 placeholder="https://github.com/org/repo/pull/42"
@@ -803,10 +935,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+              <label
+                htmlFor="handoff-notes"
+                className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+              >
                 Petunjuk Verifikasi QA &amp; Kredensial Pengujian
               </label>
               <textarea
+                id="handoff-notes"
                 value={handoffNotes}
                 onChange={(e) => setHandoffNotes(e.target.value)}
                 rows={3}
@@ -829,6 +965,64 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               Konfirmasi Handoff ke QA
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Unsaved Changes Confirmation Modal */}
+      <Modal
+        isOpen={isUnsavedWarningOpen}
+        onClose={() => {
+          setIsUnsavedWarningOpen(false);
+          setPendingTab(null);
+        }}
+        title="Perubahan Belum Disimpan"
+        size="sm"
+      >
+        <div className="space-y-4 p-1">
+          <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+            Terdapat perubahan hasil kerja atau catatan teknis yang belum disimpan. Pindah tab akan
+            membuang perubahan atau Anda dapat menyimpannya terlebih dahulu.
+          </p>
+
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-800">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsUnsavedWarningOpen(false);
+                setPendingTab(null);
+              }}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setPrUrl(initialDeliverables.pr);
+                setBranchName(initialDeliverables.branch);
+                setStagingUrl(initialDeliverables.staging);
+                setTechnicalNotes(initialDeliverables.notes);
+                if (pendingTab) setActiveTab(pendingTab);
+                setIsUnsavedWarningOpen(false);
+                setPendingTab(null);
+              }}
+            >
+              Pindah Tanpa Menyimpan
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={async () => {
+                await handleSaveDeliverables();
+                if (pendingTab) setActiveTab(pendingTab);
+                setIsUnsavedWarningOpen(false);
+                setPendingTab(null);
+              }}
+            >
+              Simpan &amp; Pindah
             </Button>
           </div>
         </div>

@@ -7,9 +7,9 @@ import type {
   Task,
 } from '@qlick/contracts';
 import {
-  ArrowLeft,
   AlertTriangle,
   ChevronRight,
+  ExternalLink,
   Layers3,
   Link2Off,
   ListChecks,
@@ -27,6 +27,12 @@ import { DeliveryTraceSignal } from '../../molecules/DeliveryTraceSignal';
 import { ReleaseReadinessSignal } from '../../molecules/ReleaseReadinessSignal';
 import { TaskStatusBadge } from '../../molecules/TaskStatusBadge';
 import type { ReleaseReadinessViewState } from '../../../../lib/hooks/useReleaseReadinessMap';
+
+const REQUIREMENT_STATUS_LABELS: Record<string, string> = {
+  active: 'Aktif',
+  draft: 'Draf',
+  deprecated: 'Usang',
+};
 
 interface MyTaskFeatureContextProps {
   task: Task;
@@ -76,7 +82,7 @@ function RequirementContext({ node }: { node: DeliveryTraceRequirementNode }) {
               {node.requirement.code}
             </Badge>
             <Badge variant={node.requirement.status === 'active' ? 'passed' : 'draft'} size="sm">
-              {node.requirement.status}
+              {REQUIREMENT_STATUS_LABELS[node.requirement.status] || node.requirement.status}
             </Badge>
           </div>
           <p className="mt-2 text-xs font-bold text-stone-900 dark:text-stone-100">
@@ -113,7 +119,7 @@ function RequirementContext({ node }: { node: DeliveryTraceRequirementNode }) {
                 <span>{criterion.text}</span>
                 {criterion.status !== 'active' && (
                   <Badge variant="draft" size="sm">
-                    {criterion.status}
+                    {REQUIREMENT_STATUS_LABELS[criterion.status] || criterion.status}
                   </Badge>
                 )}
               </li>
@@ -232,10 +238,10 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
                 variant="outline"
                 size="sm"
                 className="!min-h-[44px] w-full sm:w-auto"
-                leftIcon={<ArrowLeft className="h-3.5 w-3.5" />}
+                leftIcon={<ExternalLink className="h-3.5 w-3.5" />}
                 onClick={() => onOpenFeature(trace.featureTask.id)}
               >
-                Kembali ke Feature
+                Buka Feature
               </Button>
             )}
           </div>
