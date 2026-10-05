@@ -21,13 +21,13 @@ automatically once the Owner adds `owner-approved`.
   change GitHub settings, create labels, or observe Vercel settings.
 - **AC-to-evidence matrix:**
 
-| Acceptance Criterion                                                | Required / achieved | Primary evidence                                                                                                              | Status               |
-| ------------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| Path matching is correct for every Tier 2 area; Tier 1 ignored.     | E2 / E2             | `npm run tier:test`: 5 passed, 0 failed.                                                                                      | Accepted             |
-| Gate blocks Tier 2 without label, passes with label and for Tier 1. | E2 / E2             | Local simulation on real merge commits: `AGENTS.md` change exit 1 → exit 0 with `--approved true`; `README.md` change exit 0. | Accepted             |
-| Governance documents agree and pass checks.                         | E2 / E2             | `npm run validate` (below).                                                                                                   | Accepted             |
-| Tier 1 PR auto-merges with no Owner action.                         | E3 / —              | Requires merge of this change and GitHub settings.                                                                            | Pending (post-merge) |
-| Tier 2 PR blocked until label; new commit removes label.            | E3 / —              | Requires a live test pull request.                                                                                            | Pending (post-merge) |
+| Acceptance Criterion                                                | Required / achieved | Primary evidence                                                                                                                                                          | Status            |
+| ------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| Path matching is correct for every Tier 2 area; Tier 1 ignored.     | E2 / E2             | `npm run tier:test`: 5 passed, 0 failed.                                                                                                                                  | Accepted          |
+| Gate blocks Tier 2 without label, passes with label and for Tier 1. | E2 / E2             | Local simulation on real merge commits: `AGENTS.md` change exit 1 → exit 0 with `--approved true`; `README.md` change exit 0.                                             | Accepted          |
+| Governance documents agree and pass checks.                         | E2 / E2             | `npm run validate` (below).                                                                                                                                               | Accepted          |
+| Tier 1 PR auto-merges with no Owner action.                         | E3 / —              | This evidence PR (`docs/auto-merge-evidence`, Tier 1 files only) is the live test; result recorded when it merges.                                                        | Pending (this PR) |
+| Tier 2 PR blocked until label; new commit removes label.            | E3 / E3             | PR #17: `owner-gate` failed without label; label added 02:34 UTC, new commit at 02:46 removed it and the gate failed again; re-labeled, gate passed, merged as `850d2a2`. | Accepted          |
 
 - **Change Impact Map:** CI (new `owner-gate` workflow and required check), agent rules (`AGENTS.md`,
   Agent Guidelines §2A.A.1, `AI-013`, new `AI-020`), docs/5 §8 item 5. Application, data, contracts,
@@ -58,6 +58,15 @@ automatically once the Owner adds `owner-approved`.
 - `npm run tier:test` — 5 passed, 0 failed, 0 skipped.
 - `npm run validate` (clean clone, Node 22) — passed: `docs:check` 9/9 and governance passed;
   `agent:policy:test` 22/22; `tier:test` 5/5; lint 0 errors (17 pre-existing warnings); typecheck passed.
+
+## Post-merge evidence (2026-10-05)
+
+- PR #17 merged as `850d2a2`; CI `verify` passed on `main`.
+- Branch ruleset "Require approved agent changes on main" is active for `main`: restrict deletions, block force
+  pushes, and required status checks `verify` and `owner-gate` (not strict). Read from the public
+  `GET /repos/oneilreyand/qlickhub/rules/branches/main` endpoint.
+- Direct pushes to `main` are effectively blocked: the ruleset requires `owner-gate`, which runs only on pull
+  requests.
 
 ## Risks or follow-up
 
