@@ -260,6 +260,14 @@ test.beforeAll(async () => {
       resolutionEventId: secondResolution.id,
     },
   ]);
+  await TestRunModel.create({
+    workspaceId,
+    testCaseId: testCase.id,
+    build: 'browser-e2e-active',
+    environment: 'staging',
+    status: 'in_progress',
+    executorId: qa.id,
+  });
 });
 
 test.afterAll(async () => {
@@ -378,7 +386,7 @@ test('QA sees an execution loading error and can retry against the persisted bac
       name: 'Buka pekerjaan: Browser E2E QA Assignee Task. Tindakan berikutnya: Kerjakan Task QA',
     })
     .click();
-  await page.getByRole('tab', { name: 'Persiapan & Eksekusi' }).click();
+  await page.getByRole('tab', { name: 'Test Case & Eksekusi' }).click();
   const preparation = page.getByRole('tabpanel', { name: 'Persiapan dan eksekusi QA' });
   await expect(preparation.getByText('Eksekusi pengujian tidak dapat dimuat')).toBeVisible();
 
@@ -405,10 +413,20 @@ test('Developer and PO each receive their persisted role view', async ({ browser
   });
   if (await devOpenButton.isVisible()) {
     await devOpenButton.click();
+    await developer.setViewportSize({ width: 1280, height: 800 });
     await developer.waitForTimeout(500);
     await developer.screenshot({
       path: 'docs/screenshots/workspace-drawer-dev-subtask-after.png',
       fullPage: true,
+    });
+    await developer.setViewportSize({ width: 390, height: 844 });
+    await developer.evaluate(() => {
+      const drawer = document.querySelector('section[aria-label*="content"]');
+      if (drawer) drawer.scrollTop = 0;
+    });
+    await developer.waitForTimeout(500);
+    await developer.screenshot({
+      path: 'docs/screenshots/workspace-drawer-dev-subtask-mobile.png',
     });
   }
 
@@ -428,6 +446,7 @@ test('Developer and PO each receive their persisted role view', async ({ browser
   });
   if (await poOpenButton.isVisible()) {
     await poOpenButton.click();
+    await productOwner.setViewportSize({ width: 1280, height: 800 });
     await productOwner.waitForTimeout(500);
     await productOwner.screenshot({
       path: 'docs/screenshots/workspace-drawer-po-feature-after.png',
@@ -437,6 +456,117 @@ test('Developer and PO each receive their persisted role view', async ({ browser
 
   await developer.close();
   await productOwner.close();
+});
+
+test('QA Desk dialogs and mobile drawer screenshots', async ({ browser }, testInfo) => {
+  if (testInfo.project.name !== 'desktop-chromium') {
+    return;
+  }
+  const qaPage = await browser.newPage();
+  await login(qaPage, users.qa.email);
+  const qaOpenButton = qaPage.getByRole('button', {
+    name: 'Buka pekerjaan: Browser E2E QA Assignee Task. Tindakan berikutnya: Kerjakan Task QA',
+  });
+  await expect(qaOpenButton).toBeVisible();
+  await qaOpenButton.click();
+  await qaPage.waitForTimeout(500);
+
+  // 1. Mobile QA drawer screenshot
+  await qaPage.setViewportSize({ width: 390, height: 844 });
+  await qaPage.evaluate(() => {
+    const drawer = document.querySelector('section[aria-label*="content"]');
+    if (drawer) drawer.scrollTop = 0;
+  });
+  await qaPage.waitForTimeout(500);
+  await qaPage.screenshot({
+    path: 'docs/screenshots/workspace-drawer-qa-subtask-mobile.png',
+  });
+
+  // Reset to desktop viewport for modal screenshots
+  await qaPage.setViewportSize({ width: 1280, height: 800 });
+  await qaPage.waitForTimeout(400);
+
+  // Switch to Tab 2: Test Case & Eksekusi
+  await qaPage.getByRole('tab', { name: 'Test Case & Eksekusi' }).click();
+  await qaPage.waitForTimeout(400);
+
+  // 2. Import Wizard Modal screenshots (Light & Dark)
+  const importBtn = qaPage.getByRole('button', { name: 'Impor Spreadsheet' });
+  if (await importBtn.isVisible()) {
+    await importBtn.click();
+    await qaPage.waitForTimeout(500);
+
+    // Light mode screenshot
+    await qaPage.evaluate(() => {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.backgroundColor = '#FBFCF7';
+      document.documentElement.style.colorScheme = 'light';
+    });
+    await qaPage.waitForTimeout(400);
+    await qaPage.screenshot({
+      path: 'docs/screenshots/qa-import-wizard-light.png',
+    });
+
+    // Dark mode screenshot
+    await qaPage.evaluate(() => {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.backgroundColor = '#141413';
+      document.documentElement.style.colorScheme = 'dark';
+    });
+    await qaPage.waitForTimeout(400);
+    await qaPage.screenshot({
+      path: 'docs/screenshots/qa-import-wizard-dark.png',
+    });
+
+    // Revert dark mode and close modal
+    await qaPage.evaluate(() => {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.backgroundColor = '#FBFCF7';
+      document.documentElement.style.colorScheme = 'light';
+    });
+    await qaPage.keyboard.press('Escape');
+    await qaPage.waitForTimeout(400);
+  }
+
+  // 3. Catat Hasil Modal screenshots (Light & Dark)
+  const catatHasilBtn = qaPage.getByRole('button', { name: /Catat Hasil/i }).first();
+  if (await catatHasilBtn.isVisible()) {
+    await catatHasilBtn.click();
+    await qaPage.waitForTimeout(500);
+
+    // Light mode screenshot
+    await qaPage.evaluate(() => {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.backgroundColor = '#FBFCF7';
+      document.documentElement.style.colorScheme = 'light';
+    });
+    await qaPage.waitForTimeout(400);
+    await qaPage.screenshot({
+      path: 'docs/screenshots/qa-record-result-light.png',
+    });
+
+    // Dark mode screenshot
+    await qaPage.evaluate(() => {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.backgroundColor = '#141413';
+      document.documentElement.style.colorScheme = 'dark';
+    });
+    await qaPage.waitForTimeout(400);
+    await qaPage.screenshot({
+      path: 'docs/screenshots/qa-record-result-dark.png',
+    });
+
+    // Revert dark mode and close modal
+    await qaPage.evaluate(() => {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.backgroundColor = '#FBFCF7';
+      document.documentElement.style.colorScheme = 'light';
+    });
+    await qaPage.keyboard.press('Escape');
+    await qaPage.waitForTimeout(400);
+  }
+
+  await qaPage.close();
 });
 
 test('factory records are persisted and assigned to the intended QA actor', async () => {

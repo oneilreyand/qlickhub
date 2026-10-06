@@ -328,10 +328,10 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByRole('tab', { name: 'Bukti QA' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Pengujian QA' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Ringkasan & Rilis (PO)' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Bukti QA' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Pengujian QA' }));
     expect(await screen.findByText('Pengelolaan & Eksekusi Test Case')).toBeInTheDocument();
     expect(
       await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
