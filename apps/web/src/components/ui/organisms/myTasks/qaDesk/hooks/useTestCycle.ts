@@ -11,7 +11,7 @@ export interface UseTestCycleOptions {
   subtaskId: string;
   currentUserId?: string;
   loadWorkflowSummary: () => Promise<void>;
-  onCycleCreatedWithPendingRun?: (cycle?: QaTestCycle) => void;
+  onCycleCreatedWithPendingRun?: () => void;
 }
 
 export function useTestCycle({
@@ -101,7 +101,7 @@ export function useTestCycle({
       setIsTestCycleModalOpen(false);
 
       if (onCycleCreatedWithPendingRun) {
-        onCycleCreatedWithPendingRun(cycle);
+        onCycleCreatedWithPendingRun();
       }
 
       dispatch(

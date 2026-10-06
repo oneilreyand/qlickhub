@@ -139,7 +139,10 @@ export function useQaDeskData({
     [members, subtask.assigneeId],
   );
   const assignedQaDisplayName =
-    assignedQaMember?.user?.name || assignedQaMember?.user?.email || subtask.assigneeId || 'QA';
+    assignedQaMember?.user?.name ||
+    assignedQaMember?.user?.email ||
+    (subtask as { assigneeName?: string }).assigneeName ||
+    'anggota QA lain';
 
   const handlePostComment = async (body: string, parentCommentId?: string | null) => {
     try {

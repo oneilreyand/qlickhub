@@ -301,13 +301,9 @@ export function useTestExecution({
     setRunFormError(null);
   };
 
-  const handleCycleCreated = (cycle?: QaTestCycle) => {
+  const handleCycleCreated = () => {
     if (pendingRunTestCaseId) {
       setRunTestCaseId(pendingRunTestCaseId);
-      if (cycle) {
-        setRunBuild(cycle.build);
-        setRunEnvironment(cycle.environment);
-      }
       setPendingRunTestCaseId(null);
       setRunFormError(null);
     }

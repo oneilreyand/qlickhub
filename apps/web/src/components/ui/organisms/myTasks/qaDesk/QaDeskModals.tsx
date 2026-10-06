@@ -44,21 +44,6 @@ export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
   const dispatch = useAppDispatch();
   return (
     <>
-      {/* Modal Siklus Pengujian */}
-      <CreateTestCycleModal
-        isOpen={testCycleState.isTestCycleModalOpen}
-        onClose={() => testCycleState.setIsTestCycleModalOpen(false)}
-        testCycleError={testCycleState.testCycleError}
-        testCycleFingerprint={testCycleState.testCycleFingerprint}
-        setTestCycleFingerprint={testCycleState.setTestCycleFingerprint}
-        testCycleBuild={testCycleState.testCycleBuild}
-        setTestCycleBuild={testCycleState.setTestCycleBuild}
-        testCycleEnvironment={testCycleState.testCycleEnvironment}
-        setTestCycleEnvironment={testCycleState.setTestCycleEnvironment}
-        isCreatingTestCycle={testCycleState.isCreatingTestCycle}
-        onCreateTestCycle={testCycleState.handleCreateTestCycle}
-      />
-
       {/* Run Test Case Modal */}
       <RunTestCaseModal
         isOpen={Boolean(executionState.runTestCaseId)}
@@ -113,21 +98,6 @@ export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
         onAddSingleResultEvidence={() => void executionState.handleAddSingleResultEvidence()}
       />
 
-      {/* Modal Pemetaan Acceptance Criteria ke Revisi Draf */}
-      <AcMappingModal
-        isOpen={Boolean(acMappingState.acMappingTarget)}
-        onClose={() => acMappingState.setAcMappingTarget(null)}
-        acMappingTarget={acMappingState.acMappingTarget}
-        acMappingError={acMappingState.acMappingError}
-        isLoadingAcMapping={acMappingState.isLoadingAcMapping}
-        isSavingAcMapping={acMappingState.isSavingAcMapping}
-        acMappingItems={acMappingState.acMappingItems}
-        updateAcceptanceCriteriaMappingItem={acMappingState.updateAcceptanceCriteriaMappingItem}
-        onSaveAcceptanceCriteriaMapping={() =>
-          void acMappingState.handleSaveAcceptanceCriteriaMapping()
-        }
-      />
-
       {/* Modal Buat Bug Tertaut */}
       <CreateBugModal
         isOpen={bugReportState.isBugModalOpen}
@@ -151,6 +121,36 @@ export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
         setBugReproSteps={bugReportState.setBugReproSteps}
         isSubmittingBug={bugReportState.isSubmittingBug}
         onSubmitBugReport={() => void bugReportState.handleSubmitBugReport()}
+      />
+
+      {/* Modal Siklus Pengujian */}
+      <CreateTestCycleModal
+        isOpen={testCycleState.isTestCycleModalOpen}
+        onClose={() => testCycleState.setIsTestCycleModalOpen(false)}
+        testCycleError={testCycleState.testCycleError}
+        testCycleFingerprint={testCycleState.testCycleFingerprint}
+        setTestCycleFingerprint={testCycleState.setTestCycleFingerprint}
+        testCycleBuild={testCycleState.testCycleBuild}
+        setTestCycleBuild={testCycleState.setTestCycleBuild}
+        testCycleEnvironment={testCycleState.testCycleEnvironment}
+        setTestCycleEnvironment={testCycleState.setTestCycleEnvironment}
+        isCreatingTestCycle={testCycleState.isCreatingTestCycle}
+        onCreateTestCycle={testCycleState.handleCreateTestCycle}
+      />
+
+      {/* Modal Pemetaan Acceptance Criteria ke Revisi Draf */}
+      <AcMappingModal
+        isOpen={Boolean(acMappingState.acMappingTarget)}
+        onClose={() => acMappingState.setAcMappingTarget(null)}
+        acMappingTarget={acMappingState.acMappingTarget}
+        acMappingError={acMappingState.acMappingError}
+        isLoadingAcMapping={acMappingState.isLoadingAcMapping}
+        isSavingAcMapping={acMappingState.isSavingAcMapping}
+        acMappingItems={acMappingState.acMappingItems}
+        updateAcceptanceCriteriaMappingItem={acMappingState.updateAcceptanceCriteriaMappingItem}
+        onSaveAcceptanceCriteriaMapping={() =>
+          void acMappingState.handleSaveAcceptanceCriteriaMapping()
+        }
       />
 
       {/* Modal Catatan Revisi Developer Subtask */}

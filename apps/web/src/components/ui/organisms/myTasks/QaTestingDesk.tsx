@@ -82,7 +82,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     subtaskId: subtask.id,
     currentUserId,
     loadWorkflowSummary: deskData.loadWorkflowSummary,
-    onCycleCreatedWithPendingRun: (cycle) => executionState.handleCycleCreated(cycle),
+    onCycleCreatedWithPendingRun: () => executionState.handleCycleCreated(),
   });
 
   const executionState = useTestExecution({
@@ -519,7 +519,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       {activeWorkflowTab === 'sign_off' && (
         <QaSignOffTab
           workspaceId={workspaceId}
-          featureTaskId={deskData.featureTaskId}
+          featureTaskId={parentTask?.id || subtask.id}
           userRole={userRole}
           focusTarget={focusTarget}
           workflowSummary={deskData.workflowSummary}
