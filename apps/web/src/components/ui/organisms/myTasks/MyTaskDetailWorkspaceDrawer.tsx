@@ -201,7 +201,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   ];
   const developerReviewTabs: TabItem[] = [
     { id: 'dev', label: 'Pengerjaan Dev', icon: <Code2 className="h-3.5 w-3.5" /> },
-    { id: 'qa', label: 'Bukti QA', icon: <Bug className="h-3.5 w-3.5" /> },
+    { id: 'qa', label: 'Pengujian QA', icon: <Bug className="h-3.5 w-3.5" /> },
   ];
 
   const handleRoleTabChange = (viewMode: string) => {
@@ -223,7 +223,7 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   const roleToolbar =
     isPlanner || userRole.toLowerCase() === 'dev' || userRole.toLowerCase() === 'qa' ? (
       <div className="flex min-w-0 items-center gap-2">
-        <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none">
           <Tabs
             tabs={isPlanner ? roleTabs : developerReviewTabs}
             activeTabId={activeViewMode}

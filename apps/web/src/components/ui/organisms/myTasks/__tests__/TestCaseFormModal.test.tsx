@@ -94,7 +94,7 @@ describe('TestCaseFormModal', () => {
     // Guidance text is visible
     expect(
       screen.getByText(
-        /Simpan Draf untuk pengerjaan internal QA. Ajukan untuk Review agar Product Owner dapat mengaktifkannya/i,
+        /Simpan Draf untuk penyusunan awal\. Test Case dapat diaktifkan langsung oleh QA/i,
       ),
     ).toBeInTheDocument();
 

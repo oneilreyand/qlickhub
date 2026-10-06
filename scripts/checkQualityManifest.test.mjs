@@ -43,7 +43,7 @@ const validApprovalManifest = {
     baselineCommit: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     approvedBy: 'product-owner',
     approvedAt: '2026-09-29T01:00:00.000Z',
-    expiresAt: '2026-10-06T01:00:00.000Z',
+    expiresAt: '2099-01-01T00:00:00.000Z',
     allowedFiles: ['apps/web/src/pages/ExamplePage.tsx'],
     roleScope: { targetRoles: ['po'], preservedRoles: ['dev', 'qa'] },
     allowedStateChanges: ['edit approved UI file'],

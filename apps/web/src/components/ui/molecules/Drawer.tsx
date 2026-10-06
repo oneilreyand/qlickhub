@@ -162,7 +162,9 @@ export const Drawer: React.FC<DrawerProps> = ({
     <div className={`fixed inset-0 overflow-hidden ${preserveAppHeader ? 'z-20' : 'z-50'}`}>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-[#22201F]/40 backdrop-blur-xs transition-opacity duration-300 ease-in-out dark:bg-black/70 ${
+        className={`fixed ${
+          preserveAppHeader ? 'top-20' : 'top-0'
+        } inset-x-0 bottom-0 bg-[#22201F]/40 backdrop-blur-xs transition-opacity duration-300 ease-in-out dark:bg-black/70 ${
           isBackdropVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={handleInitiateClose}
@@ -171,8 +173,10 @@ export const Drawer: React.FC<DrawerProps> = ({
 
       {/* Container anchored to the right edge with justify-end so it extends strictly from right to left */}
       <div
-        className={`fixed inset-y-0 right-0 flex justify-end max-w-full pointer-events-none transition-[padding] duration-300 ease-in-out ${
-          isFullScreen ? 'pl-0' : 'pl-10'
+        className={`fixed ${
+          preserveAppHeader ? 'top-20' : 'inset-y-0'
+        } bottom-0 right-0 flex justify-end max-w-full pointer-events-none transition-[padding] duration-300 ease-in-out ${
+          isFullScreen ? 'pl-0' : 'sm:pl-10 pl-0'
         }`}
       >
         <div
@@ -196,7 +200,7 @@ export const Drawer: React.FC<DrawerProps> = ({
             <div className="min-w-0 pr-4">
               <h3
                 id={titleId}
-                className="text-base font-bold text-stone-900 dark:text-stone-100 truncate"
+                className="text-base font-bold text-stone-900 dark:text-stone-100 break-words"
               >
                 {title}
               </h3>
@@ -216,15 +220,21 @@ export const Drawer: React.FC<DrawerProps> = ({
           <section
             aria-label={`${title} content`}
             className={`flex-1 overflow-y-auto text-sm text-stone-600 dark:text-stone-300 transition-all duration-300 ${
-              isFullScreen ? 'w-full px-4 py-6 sm:px-8' : 'p-6'
+              isFullScreen ? 'w-full px-4 py-6 sm:px-8' : 'px-4 sm:px-6 py-6'
             }`}
           >
             <div
               role="toolbar"
               aria-label={`${title} navigation and controls`}
-              className="sticky top-0 z-20 -mt-2 mb-4 flex min-w-0 items-center gap-1.5 rounded-2xl border border-stone-200/80 bg-white/95 p-2 shadow-xs backdrop-blur-md dark:border-stone-800 dark:bg-[#1C1A19]/95"
+              className={`sticky top-0 z-20 ${
+                isFullScreen
+                  ? '-mt-6 -mx-4 sm:-mx-8 px-4 sm:px-8'
+                  : '-mt-6 -mx-4 sm:-mx-6 px-4 sm:px-6'
+              } mb-4 flex min-w-0 items-center gap-1.5 border-b border-stone-200/80 bg-white/95 py-2.5 shadow-2xs backdrop-blur-md dark:border-stone-800 dark:bg-[#1C1A19]/95`}
             >
-              {toolbar && <div className="min-w-0 flex-1 overflow-hidden">{toolbar}</div>}
+              {toolbar && (
+                <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none">{toolbar}</div>
+              )}
 
               <div className="ml-auto flex shrink-0 items-center gap-1.5">
                 {/* Fullscreen Expand / Restore Toggle Button */}

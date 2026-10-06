@@ -369,8 +369,8 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
       <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-stone-200 pt-5 dark:border-stone-800">
         <p className="text-xs text-stone-500 dark:text-stone-400">
           <span className="font-semibold text-stone-700 dark:text-stone-300">Panduan:</span> Simpan
-          Draf untuk pengerjaan internal QA. Ajukan untuk Review agar Product Owner dapat
-          mengaktifkannya untuk eksekusi.
+          Draf untuk penyusunan awal. Test Case dapat diaktifkan langsung oleh QA (ADR-015) atau
+          diajukan untuk Review Product Owner.
         </p>
 
         <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
@@ -384,7 +384,7 @@ export const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
             onClick={() => handleSubmit('draft')}
             disabled={loading}
             leftIcon={<FileCheck className="w-4 h-4" />}
-            title="Draf hanya dapat dilihat oleh Anda dan belum siap diuji"
+            title="Draf tersimpan di workspace dan dapat diedit sebelum diaktifkan untuk pengujian"
           >
             Simpan Draf
           </Button>

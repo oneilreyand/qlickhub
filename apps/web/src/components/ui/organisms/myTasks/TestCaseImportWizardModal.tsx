@@ -285,16 +285,16 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         {/* STEP 1: UPLOAD & TEMPLATE */}
         {step === 'upload' && (
           <div className="space-y-6 py-2">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-800/40 border border-slate-700/60">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-stone-50 border border-stone-200/80 dark:bg-stone-900/40 dark:border-stone-800">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 flex-shrink-0">
                   <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-200">
+                  <h4 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
                     Template Spreadsheet Standar
                   </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                     Berisi kolom ID Test Case, Judul, Kode Requirement, Langkah, dan Prioritas.
                   </p>
                 </div>
@@ -309,7 +309,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
             </div>
 
             {/* Dropzone */}
-            <div className="relative border-2 border-dashed border-slate-700 hover:border-primary/60 rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-colors bg-slate-900/40">
+            <div className="relative border-2 border-dashed border-stone-300 hover:border-stone-500 dark:border-stone-700 dark:hover:border-[#B1E743]/60 rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-colors bg-stone-50/50 dark:bg-stone-900/40">
               <input
                 type="file"
                 accept=".csv, .xlsx"
@@ -317,15 +317,15 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                 disabled={loading}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-              <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mb-3 border border-slate-700">
+              <div className="w-14 h-14 rounded-2xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-500 dark:text-stone-400 mb-3 border border-stone-200 dark:border-stone-700">
                 <Upload className="w-7 h-7" />
               </div>
-              <p className="text-sm font-medium text-slate-200">
+              <p className="text-sm font-medium text-stone-800 dark:text-stone-200">
                 {loading
                   ? 'Menganalisis spreadsheet...'
                   : 'Letakkan file CSV atau XLSX di sini, atau pilih file'}
               </p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
                 Mendukung format CSV dan XLSX hingga {MAX_IMPORT_ROWS} baris.
               </p>
             </div>
@@ -334,7 +334,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
               <button
                 type="button"
                 onClick={loadHistory}
-                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200 transition-colors"
               >
                 <History className="w-4 h-4" />
                 Lihat Riwayat Audit Impor
@@ -346,16 +346,19 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         {/* STEP 2: INTERACTIVE COLUMN MAPPING */}
         {step === 'mapping' && previewData && (
           <div className="space-y-4 max-h-[70vh] flex flex-col">
-            <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 text-xs text-slate-300">
-              <p className="font-semibold text-slate-200 mb-1">Pemetaan Kolom Interaktif</p>
+            <div className="p-3 rounded-xl bg-stone-50 border border-stone-200/80 text-xs text-stone-700 dark:bg-stone-900/40 dark:border-stone-800 dark:text-stone-300">
+              <p className="font-semibold text-stone-900 dark:text-stone-100 mb-1">
+                Pemetaan Kolom Interaktif
+              </p>
               <p>
                 Periksa atau sesuaikan pemetaan kolom dari{' '}
-                <strong className="text-primary">{activeFile?.name}</strong> ke field Test Case.
+                <strong className="text-stone-900 dark:text-[#B1E743]">{activeFile?.name}</strong>{' '}
+                ke field Test Case.
               </p>
             </div>
 
             {(previewData.unmappedHeaders || []).length > 0 && (
-              <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-100">
+              <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-900 dark:text-amber-100">
                 Kolom belum dikenali: {previewData.unmappedHeaders.join(', ')}. Pilih field tujuan
                 atau abaikan kolom tersebut sebelum melanjutkan.
               </div>
@@ -363,9 +366,9 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
 
             {/* Sheet selection bar (if multi-sheet XLSX) */}
             {previewData.availableSheets && previewData.availableSheets.length > 1 && (
-              <div className="flex items-center justify-between gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700 text-xs">
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Layers className="w-4 h-4 text-primary" />
+              <div className="flex items-center justify-between gap-3 p-3 bg-stone-50/80 rounded-xl border border-stone-200/80 text-xs dark:bg-stone-900/50 dark:border-stone-800">
+                <div className="flex items-center gap-2 text-stone-700 dark:text-stone-300">
+                  <Layers className="w-4 h-4 text-[#141413] dark:text-[#B1E743]" />
                   <span className="font-semibold">Pilih Sheet / Tab:</span>
                 </div>
                 <select
@@ -373,7 +376,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                   value={selectedSheet}
                   onChange={(e) => handleSheetChange(e.target.value)}
                   disabled={loading}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px]"
+                  className="bg-white border border-stone-300 rounded-lg px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#B1E743] min-h-[44px] dark:bg-stone-900 dark:border-stone-700 dark:text-stone-200"
                 >
                   {previewData.availableSheets.map((s) => (
                     <option key={s} value={s}>
@@ -385,8 +388,8 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
             )}
 
             {/* Mapping Grid */}
-            <div className="flex-1 overflow-auto border border-slate-700 rounded-xl bg-slate-900/60 p-3 space-y-2 max-h-[42vh]">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-semibold text-xs text-slate-400 border-b border-slate-800 pb-2 px-1">
+            <div className="flex-1 overflow-auto border border-stone-200/80 rounded-xl bg-stone-50/60 p-3 space-y-2 max-h-[42vh] dark:border-stone-800 dark:bg-stone-900/60">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-semibold text-xs text-stone-500 border-b border-stone-200 pb-2 px-1 dark:text-stone-400 dark:border-stone-800">
                 <span>Nama Kolom Spreadsheet</span>
                 <span>Field Tujuan</span>
               </div>
@@ -395,9 +398,12 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                 return (
                   <div
                     key={header}
-                    className="grid grid-cols-1 sm:grid-cols-2 items-center gap-3 p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/60 text-xs"
+                    className="grid grid-cols-1 sm:grid-cols-2 items-center gap-3 p-2.5 rounded-lg bg-white border border-stone-200/80 text-xs dark:bg-stone-800/40 dark:border-stone-700/60"
                   >
-                    <div className="font-mono text-slate-200 truncate" title={header}>
+                    <div
+                      className="font-mono text-stone-800 dark:text-stone-200 truncate"
+                      title={header}
+                    >
                       {header}
                     </div>
                     <div>
@@ -411,7 +417,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                             [header]: val,
                           }));
                         }}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px]"
+                        className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#B1E743] min-h-[44px] dark:bg-stone-900 dark:border-stone-700 dark:text-stone-200"
                       >
                         {TARGET_FIELDS.map((f) => (
                           <option key={f.key} value={f.key}>
@@ -450,29 +456,39 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
           <div className="space-y-4 max-h-[70vh] flex flex-col">
             {/* Stats bar */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700">
-                <span className="text-xs text-slate-400">Total Dibaca</span>
-                <p className="text-lg font-bold text-slate-100">{previewData.totalRows}</p>
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200/80 dark:bg-stone-900/60 dark:border-stone-800">
+                <span className="text-xs text-stone-500 dark:text-stone-400">Total Dibaca</span>
+                <p className="text-lg font-bold text-stone-900 dark:text-stone-100">
+                  {previewData.totalRows}
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <span className="text-xs text-emerald-400">Baris Valid</span>
-                <p className="text-lg font-bold text-emerald-400">{previewData.validRows}</p>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400">Baris Valid</span>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {previewData.validRows}
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                <span className="text-xs text-red-400">Baris Tidak Valid</span>
-                <p className="text-lg font-bold text-red-400">{previewData.invalidRows}</p>
+                <span className="text-xs text-rose-600 dark:text-rose-400">Baris Tidak Valid</span>
+                <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
+                  {previewData.invalidRows}
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <span className="text-xs text-amber-400">Duplikat Ditemukan</span>
-                <p className="text-lg font-bold text-amber-400">{previewData.duplicateRows}</p>
+                <span className="text-xs text-amber-600 dark:text-amber-400">
+                  Duplikat Ditemukan
+                </span>
+                <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                  {previewData.duplicateRows}
+                </p>
               </div>
             </div>
 
             {/* Sheet selection bar (if multi-sheet XLSX) */}
             {previewData.availableSheets && previewData.availableSheets.length > 1 && (
-              <div className="flex items-center justify-between gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700 text-xs">
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Layers className="w-4 h-4 text-primary" />
+              <div className="flex items-center justify-between gap-3 p-3 bg-stone-50/80 rounded-xl border border-stone-200/80 text-xs dark:bg-stone-900/50 dark:border-stone-800">
+                <div className="flex items-center gap-2 text-stone-700 dark:text-stone-300">
+                  <Layers className="w-4 h-4 text-[#141413] dark:text-[#B1E743]" />
                   <span className="font-semibold">Pilih Sheet / Tab:</span>
                 </div>
                 <select
@@ -480,7 +496,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                   value={selectedSheet}
                   onChange={(e) => handleSheetChange(e.target.value)}
                   disabled={loading}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px]"
+                  className="bg-white border border-stone-300 rounded-lg px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#B1E743] min-h-[44px] dark:bg-stone-900 dark:border-stone-700 dark:text-stone-200"
                 >
                   {previewData.availableSheets.map((s) => (
                     <option key={s} value={s}>
@@ -492,9 +508,9 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
             )}
 
             {/* Mode selection */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-slate-800/40 rounded-xl border border-slate-700/60 text-xs">
-              <div className="flex items-center gap-2 text-slate-300">
-                <Info className="w-4 h-4 text-primary flex-shrink-0" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-stone-50/80 rounded-xl border border-stone-200/80 text-xs dark:bg-stone-900/40 dark:border-stone-800">
+              <div className="flex items-center gap-2 text-stone-700 dark:text-stone-300">
+                <Info className="w-4 h-4 text-[#141413] dark:text-[#B1E743] flex-shrink-0" />
                 <span>Strategi impor untuk ID Test Case yang duplikat:</span>
               </div>
               <div className="flex items-center gap-2">
@@ -507,7 +523,9 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                     onChange={() => setImportMode('create_only')}
                     className="text-primary focus:ring-primary"
                   />
-                  <span className="text-slate-200">Lewati yang Sudah Ada (Hanya Buat Baru)</span>
+                  <span className="text-stone-800 dark:text-stone-200">
+                    Lewati yang Sudah Ada (Hanya Buat Baru)
+                  </span>
                 </label>
                 {canUpdateImportedCases ? (
                   <label className="flex items-center gap-1.5 cursor-pointer ml-3">
@@ -519,10 +537,12 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                       onChange={() => setImportMode('update')}
                       className="text-primary focus:ring-primary"
                     />
-                    <span className="text-slate-200">Perbarui Field yang Sudah Ada</span>
+                    <span className="text-stone-800 dark:text-stone-200">
+                      Perbarui Field yang Sudah Ada
+                    </span>
                   </label>
                 ) : (
-                  <span className="ml-3 text-slate-400">
+                  <span className="ml-3 text-stone-500 dark:text-stone-400">
                     QA hanya dapat mengimpor sebagai draf baru.
                   </span>
                 )}
@@ -530,9 +550,9 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
             </div>
 
             {/* Preview table */}
-            <div className="flex-1 overflow-auto border border-slate-700 rounded-xl bg-slate-900/60 max-h-[40vh]">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-800/80 text-slate-400 uppercase text-[10px] tracking-wider sticky top-0 border-b border-slate-700">
+            <div className="flex-1 overflow-auto border border-stone-200/80 rounded-xl bg-white max-h-[40vh] dark:border-stone-800 dark:bg-stone-900/60">
+              <table className="w-full text-left text-xs text-stone-700 dark:text-stone-300">
+                <thead className="bg-stone-100 text-stone-600 uppercase text-[10px] tracking-wider sticky top-0 border-b border-stone-200 dark:bg-stone-800/80 dark:text-stone-400 dark:border-stone-700">
                   <tr>
                     <th className="px-3 py-2">Baris</th>
                     <th className="px-3 py-2">ID</th>
@@ -542,7 +562,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                     <th className="px-3 py-2">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
                   {previewData.rows.map((row) => (
                     <tr
                       key={row.sourceRowNumber}
@@ -550,22 +570,28 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                         !row.isValid ? 'bg-red-500/5' : row.isDuplicate ? 'bg-amber-500/5' : ''
                       }
                     >
-                      <td className="px-3 py-2 font-mono text-slate-400">{row.sourceRowNumber}</td>
+                      <td className="px-3 py-2 font-mono text-stone-500 dark:text-stone-400">
+                        {row.sourceRowNumber}
+                      </td>
                       <td className="px-3 py-2 font-mono">{row.externalReference || '-'}</td>
-                      <td className="px-3 py-2 font-medium max-w-[200px] truncate text-slate-200">
+                      <td className="px-3 py-2 font-medium max-w-[200px] truncate text-stone-800 dark:text-stone-200">
                         {row.title || '(Tanpa judul)'}
                       </td>
                       <td className="px-3 py-2 font-mono">
                         {row.resolvedRequirementId ? (
-                          <span className="text-emerald-400">{row.requirementCode}</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            {row.requirementCode}
+                          </span>
                         ) : (
-                          <span className="text-red-400">{row.requirementCode || 'Tidak ada'}</span>
+                          <span className="text-rose-600 dark:text-rose-400">
+                            {row.requirementCode || 'Tidak ada'}
+                          </span>
                         )}
                       </td>
                       <td className="px-3 py-2 uppercase text-[10px]">{row.priority}</td>
                       <td className="px-3 py-2">
                         {row.isValid ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-400">
+                          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             {row.isDuplicate
                               ? importMode === 'update'
@@ -575,7 +601,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                           </span>
                         ) : (
                           <span
-                            className="inline-flex items-center gap-1 text-red-400 truncate max-w-[180px]"
+                            className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 truncate max-w-[180px]"
                             title={row.validationErrors.join('; ')}
                           >
                             <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
@@ -615,43 +641,53 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         {/* STEP 3: RESULT */}
         {step === 'result' && importResult && (
           <div className="space-y-5 py-4 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8" />
             </div>
 
             <div>
-              <h3 className="text-lg font-bold text-slate-100">Proses Impor Selesai</h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
+                Proses Impor Selesai
+              </h3>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
                 File Sumber: {importResult.sourceFileName} &bull; Mode: {importResult.mode}
               </p>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg mx-auto">
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <span className="text-xs text-emerald-400">Dibuat</span>
-                <p className="text-xl font-bold text-emerald-400">{importResult.createdRows}</p>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400">Dibuat</span>
+                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {importResult.createdRows}
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20">
-                <span className="text-xs text-sky-400">Diperbarui</span>
-                <p className="text-xl font-bold text-sky-400">{importResult.updatedRows}</p>
+                <span className="text-xs text-sky-600 dark:text-sky-400">Diperbarui</span>
+                <p className="text-xl font-bold text-sky-600 dark:text-sky-400">
+                  {importResult.updatedRows}
+                </p>
               </div>
-              <div className="p-3 rounded-xl bg-slate-800 border border-slate-700">
-                <span className="text-xs text-slate-400">Dilewati</span>
-                <p className="text-xl font-bold text-slate-200">{importResult.skippedRows}</p>
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200/80 dark:bg-stone-800 dark:border-stone-700">
+                <span className="text-xs text-stone-500 dark:text-stone-400">Dilewati</span>
+                <p className="text-xl font-bold text-stone-800 dark:text-stone-200">
+                  {importResult.skippedRows}
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                <span className="text-xs text-red-400">Gagal</span>
-                <p className="text-xl font-bold text-red-400">{importResult.failedRows}</p>
+                <span className="text-xs text-rose-600 dark:text-rose-400">Gagal</span>
+                <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
+                  {importResult.failedRows}
+                </p>
               </div>
             </div>
 
             {importResult.failedRows > 0 && (
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-left max-w-lg mx-auto space-y-2">
-                <div className="flex items-center gap-2 text-red-400 text-xs font-semibold">
+                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-semibold">
                   <AlertTriangle className="w-4 h-4" />
                   <span>Beberapa baris tidak dapat diimpor</span>
                 </div>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-stone-700 dark:text-stone-300">
                   Anda dapat mengunduh laporan CSV berisi nomor baris dan alasan kegagalannya.
                 </p>
                 <Button
@@ -694,14 +730,14 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
               </Button>
             </div>
 
-            <div className="flex-1 overflow-auto border border-slate-700 rounded-xl bg-slate-900/60 max-h-[50vh]">
+            <div className="flex-1 overflow-auto border border-stone-200/80 rounded-xl bg-white max-h-[50vh] dark:border-stone-800 dark:bg-stone-900/60">
               {audits.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-400">
+                <div className="p-8 text-center text-xs text-stone-500 dark:text-stone-400">
                   Belum ada riwayat impor untuk Workspace ini.
                 </div>
               ) : (
-                <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-wider sticky top-0 border-b border-slate-700">
+                <table className="w-full text-left text-xs text-stone-700 dark:text-stone-300">
+                  <thead className="bg-stone-100 text-stone-600 uppercase text-[10px] tracking-wider sticky top-0 border-b border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700">
                     <tr>
                       <th className="px-3 py-2">Tanggal</th>
                       <th className="px-3 py-2">File</th>
@@ -711,37 +747,52 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                       <th className="px-3 py-2">Laporan</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800">
+                  <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
                     {audits.map((a) => (
-                      <tr key={a.id} className="hover:bg-slate-800/40">
-                        <td className="px-3 py-2 text-slate-400 font-mono text-[11px]">
+                      <tr key={a.id} className="hover:bg-stone-50 dark:hover:bg-stone-800/40">
+                        <td className="px-3 py-2 text-stone-500 dark:text-stone-400 font-mono text-[11px]">
                           {new Date(a.createdAt).toLocaleDateString('id-ID')}{' '}
                           {new Date(a.createdAt).toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
                         </td>
-                        <td className="px-3 py-2 font-medium text-slate-200">{a.sourceFileName}</td>
-                        <td className="px-3 py-2 text-slate-300">{a.actorName || 'Anggota QA'}</td>
+                        <td className="px-3 py-2 font-medium text-stone-800 dark:text-stone-200">
+                          {a.sourceFileName}
+                        </td>
+                        <td className="px-3 py-2 text-stone-700 dark:text-stone-300">
+                          {a.actorName || 'Anggota QA'}
+                        </td>
                         <td className="px-3 py-2 uppercase text-[10px] font-mono">{a.mode}</td>
                         <td className="px-3 py-2">
-                          <span className="text-emerald-400 font-bold">{a.createdRows}c</span> /{' '}
-                          <span className="text-sky-400 font-bold">{a.updatedRows}u</span> /{' '}
-                          <span className="text-slate-400">{a.skippedRows}s</span> /{' '}
-                          <span className="text-red-400 font-bold">{a.failedRows}f</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            {a.createdRows}c
+                          </span>{' '}
+                          /{' '}
+                          <span className="text-sky-600 dark:text-sky-400 font-bold">
+                            {a.updatedRows}u
+                          </span>{' '}
+                          /{' '}
+                          <span className="text-stone-500 dark:text-stone-400">
+                            {a.skippedRows}s
+                          </span>{' '}
+                          /{' '}
+                          <span className="text-rose-600 dark:text-rose-400 font-bold">
+                            {a.failedRows}f
+                          </span>
                         </td>
                         <td className="px-3 py-2">
                           {a.failedRows > 0 ? (
                             <button
                               type="button"
                               onClick={() => handleDownloadErrorReport(a.id)}
-                              className="text-red-400 hover:text-red-300 inline-flex items-center gap-1 font-medium"
+                              className="text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 inline-flex items-center gap-1 font-medium"
                             >
                               <Download className="w-3.5 h-3.5" />
                               CSV Error
                             </button>
                           ) : (
-                            <span className="text-slate-500">-</span>
+                            <span className="text-stone-400 dark:text-stone-500">-</span>
                           )}
                         </td>
                       </tr>
