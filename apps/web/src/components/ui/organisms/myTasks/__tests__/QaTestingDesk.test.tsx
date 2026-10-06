@@ -243,7 +243,7 @@ const renderDesk = (
   userRole = 'qa',
   subtask: Task = mockQaSubtask,
   currentUserId = ids.qa,
-  parentTask: Task = mockFeatureTask,
+  parentTask: Task | null = mockFeatureTask,
 ) =>
   render(
     <Provider store={createTestStore()}>
@@ -1296,5 +1296,73 @@ describe('QaTestingDesk Organism', () => {
     await user.click(preparationTab);
     expect(preparationTab).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel', { name: 'Persiapan dan eksekusi QA' })).toBeInTheDocument();
+  });
+
+  it('falls back assignedQaDisplayName correctly when unassigned or assignee not in members', async () => {
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
+
+    // Case 1: unassigned or assignee not in members list -> fallback to 'anggota QA lain'
+    const subtaskUnknownAssignee: Task = {
+      ...mockQaSubtask,
+      assigneeId: 'unknown-qa-user-id',
+    };
+
+    const view1 = renderDesk('qa', subtaskUnknownAssignee, 'logged-in-qa-user-id');
+    expect(await screen.findByText(/Ditugaskan ke anggota QA lain/i)).toBeInTheDocument();
+    view1.unmount();
+
+    // Case 2: assigneeName on subtask -> fallback to subtask.assigneeName
+    const subtaskWithAssigneeName = {
+      ...mockQaSubtask,
+      assigneeId: 'unknown-qa-user-id',
+      assigneeName: 'Budi QA Specialist',
+    } as unknown as Task;
+
+    const view2 = renderDesk('qa', subtaskWithAssigneeName, 'logged-in-qa-user-id');
+    expect(await screen.findByText(/Ditugaskan ke Budi QA Specialist/i)).toBeInTheDocument();
+    view2.unmount();
+
+    // Case 3: assigned member found in workspace members -> displays member user name
+    const subtaskWithKnownMember: Task = {
+      ...mockQaSubtask,
+      assigneeId: ids.dev,
+    };
+
+    renderDesk('qa', subtaskWithKnownMember, 'logged-in-qa-user-id');
+    expect(await screen.findByText(/Ditugaskan ke Checkout Developer/i)).toBeInTheDocument();
+  });
+
+  it('passes parentTask?.id || subtask.id to QaSignOffTab and ReleaseAssurancePanel', async () => {
+    const user = userEvent.setup();
+
+    // Case 1: with parentTask provided -> passes parentTask.id
+    const view1 = renderDesk('qa', mockQaSubtask, ids.qa, mockFeatureTask);
+    const signOffTab1 = await screen.findByRole('tab', { name: 'Persetujuan & Riwayat' });
+    await user.click(signOffTab1);
+
+    await waitFor(() => {
+      expect(releaseServiceMocks.listFeatureReleaseRecords).toHaveBeenCalledWith(
+        ids.workspace,
+        ids.feature,
+      );
+    });
+    view1.unmount();
+
+    // Case 2: without parentTask (null) -> passes subtask.id (even if subtask.parentTaskId exists)
+    releaseServiceMocks.listFeatureReleaseRecords.mockClear();
+    const subtaskWithDifferentParentTaskId: Task = {
+      ...mockQaSubtask,
+      parentTaskId: '10000000-0000-4000-8000-000000000099',
+    };
+    renderDesk('qa', subtaskWithDifferentParentTaskId, ids.qa, null);
+    const signOffTab2 = await screen.findByRole('tab', { name: 'Persetujuan & Riwayat' });
+    await user.click(signOffTab2);
+
+    await waitFor(() => {
+      expect(releaseServiceMocks.listFeatureReleaseRecords).toHaveBeenCalledWith(
+        ids.workspace,
+        subtaskWithDifferentParentTaskId.id,
+      );
+    });
   });
 });
