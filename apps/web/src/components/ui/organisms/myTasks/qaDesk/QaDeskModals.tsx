@@ -15,12 +15,14 @@ import { CreateBugModal } from './dialogs/CreateBugModal';
 import { CreateTestCycleModal } from './dialogs/CreateTestCycleModal';
 import { AcMappingModal } from './dialogs/AcMappingModal';
 import { ChangesRequestedModal } from './dialogs/ChangesRequestedModal';
+import { StartQaTaskModal } from './dialogs/StartQaTaskModal';
 
 import type { useTestCycle } from './hooks/useTestCycle';
 import type { useTestExecution } from './hooks/useTestExecution';
 import type { useAcMapping } from './hooks/useAcMapping';
 import type { useBugReport } from './hooks/useBugReport';
 import type { useQaDeskData } from './hooks/useQaDeskData';
+import type { useQaTaskInitiation } from './hooks/useQaTaskInitiation';
 
 export interface QaDeskModalsProps {
   workspaceId: string;
@@ -30,6 +32,8 @@ export interface QaDeskModalsProps {
   acMappingState: ReturnType<typeof useAcMapping>;
   bugReportState: ReturnType<typeof useBugReport>;
   deskData: ReturnType<typeof useQaDeskData>;
+  initiationState?: ReturnType<typeof useQaTaskInitiation>;
+  resolvedBugVersions?: Array<{ build: string; environment: string }>;
 }
 
 export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
@@ -40,6 +44,8 @@ export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
   acMappingState,
   bugReportState,
   deskData,
+  initiationState,
+  resolvedBugVersions = [],
 }) => {
   const dispatch = useAppDispatch();
   return (
@@ -136,7 +142,17 @@ export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
         setTestCycleEnvironment={testCycleState.setTestCycleEnvironment}
         isCreatingTestCycle={testCycleState.isCreatingTestCycle}
         onCreateTestCycle={testCycleState.handleCreateTestCycle}
+        resolvedBugVersions={resolvedBugVersions}
       />
+
+      {/* Modal Mulai Tugas QA (Unified Initiation Chain) */}
+      {initiationState && (
+        <StartQaTaskModal
+          initiation={initiationState}
+          existingTestCycle={testCycleState.selectedTestCycle}
+          resolvedBugVersions={resolvedBugVersions}
+        />
+      )}
 
       {/* Modal Pemetaan Acceptance Criteria ke Revisi Draf */}
       <AcMappingModal

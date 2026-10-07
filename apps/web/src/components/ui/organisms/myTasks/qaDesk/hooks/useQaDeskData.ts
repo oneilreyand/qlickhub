@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { QaWorkflowSummary, Task, TaskComment, TaskStatus } from '@qlick/contracts';
+import type {
+  BugWithContext,
+  FeatureReleaseRecords,
+  QaWorkflowSummary,
+  Task,
+  TaskComment,
+  TaskStatus,
+} from '@qlick/contracts';
 
+import { bugService } from '../../../../../../lib/api/bugService';
+import { releaseDecisionService } from '../../../../../../lib/api/releaseDecisionService';
 import { taskService } from '../../../../../../lib/api/taskService';
 import { testManagementService } from '../../../../../../lib/api/testManagementService';
 import { calculateSubtaskScheduleHealth } from '../../../../../../lib/utils/scheduleHealth';
@@ -55,6 +64,53 @@ export function useQaDeskData({
 
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  const [releaseRecords, setReleaseRecords] = useState<FeatureReleaseRecords | null>(null);
+  const [bugs, setBugs] = useState<BugWithContext[]>([]);
+
+  const loadReleaseRecords = useCallback(async () => {
+    if (!workspaceId || !featureTaskId) return;
+    try {
+      const records = await releaseDecisionService.listFeatureReleaseRecords(
+        workspaceId,
+        featureTaskId,
+      );
+      setReleaseRecords(records);
+    } catch {
+      setReleaseRecords(null);
+    }
+  }, [featureTaskId, workspaceId]);
+
+  const loadBugs = useCallback(async () => {
+    if (!workspaceId || !featureTaskId) return;
+    try {
+      const result = await bugService.listBugs(workspaceId, { featureTaskId });
+      setBugs(result);
+    } catch {
+      setBugs([]);
+    }
+  }, [featureTaskId, workspaceId]);
+
+  useEffect(() => {
+    void loadReleaseRecords();
+    void loadBugs();
+  }, [loadReleaseRecords, loadBugs]);
+
+  const isSignOffRecorded = useMemo(() => {
+    if (!releaseRecords?.qaSignOffs) return false;
+    const activeSignOffs = releaseRecords.qaSignOffs.filter((s) => !s.cancellation);
+    return activeSignOffs.length > 0;
+  }, [releaseRecords]);
+
+  const resolvedBugVersions = useMemo(() => {
+    return bugs
+      .filter((b) => b.status === 'resolved' || b.status === 'verified' || Boolean(b.resolvedAt))
+      .map((b) => ({
+        build: b.originatingTestResult?.testRun?.build || '',
+        environment: b.originatingTestResult?.testRun?.environment || b.environment || 'staging',
+      }))
+      .filter((v) => Boolean(v.build) && v.build !== 'N/A');
+  }, [bugs]);
 
   const [isChangesRequestedModalOpen, setIsChangesRequestedModalOpen] = useState(false);
   const [changesRequestedNotes, setChangesRequestedNotes] = useState('');
@@ -266,5 +322,11 @@ export function useQaDeskData({
     assignedQaMember,
     assignedQaDisplayName,
     scheduleHealth,
+    releaseRecords,
+    loadReleaseRecords,
+    bugs,
+    loadBugs,
+    isSignOffRecorded,
+    resolvedBugVersions,
   };
 }

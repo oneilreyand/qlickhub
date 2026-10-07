@@ -15,6 +15,7 @@ export interface CreateTestCycleModalProps {
   setTestCycleEnvironment: (val: string) => void;
   isCreatingTestCycle: boolean;
   onCreateTestCycle: () => void;
+  resolvedBugVersions?: Array<{ build: string; environment: string }>;
 }
 
 export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
@@ -29,7 +30,17 @@ export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
   setTestCycleEnvironment,
   isCreatingTestCycle,
   onCreateTestCycle,
+  resolvedBugVersions = [],
 }) => {
+  const isDuplicateResolvedBugVersion = React.useMemo(() => {
+    const b = testCycleBuild.trim().toLowerCase();
+    const env = testCycleEnvironment.trim().toLowerCase();
+    if (!b || !env) return false;
+    return resolvedBugVersions.some(
+      (v) => v.build.trim().toLowerCase() === b && v.environment.trim().toLowerCase() === env,
+    );
+  }, [testCycleBuild, testCycleEnvironment, resolvedBugVersions]);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -45,6 +56,11 @@ export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
         {testCycleError && (
           <Alert tone="error" title="Versi yang diuji belum dapat disimpan">
             {testCycleError}
+          </Alert>
+        )}
+        {isDuplicateResolvedBugVersion && (
+          <Alert tone="warning" title="Peringatan Versi Perbaikan">
+            Gunakan nama build baru untuk versi hasil perbaikan
           </Alert>
         )}
         <div>

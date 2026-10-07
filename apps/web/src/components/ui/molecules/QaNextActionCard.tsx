@@ -28,6 +28,7 @@ export interface QaNextActionCardProps {
   isStartingRun?: boolean;
   isActivatingTestCase?: boolean;
   canMutateQaExecution?: boolean;
+  isSignOffRecorded?: boolean;
   onStartQaTask: () => void;
   onActivateTestCase: (testCaseId: string) => void;
   onRunTestCase: (testCaseId: string) => void;
@@ -47,7 +48,8 @@ export type QaActionStepState =
   | 'record_result'
   | 'resolve_bug'
   | 'complete_task'
-  | 'sign_off';
+  | 'sign_off'
+  | 'completed';
 
 export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
   workflowSummary,
@@ -63,6 +65,7 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
   isStartingRun = false,
   isActivatingTestCase = false,
   canMutateQaExecution = true,
+  isSignOffRecorded = false,
   onStartQaTask,
   onActivateTestCase,
   onRunTestCase,
@@ -76,7 +79,9 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
   // Determine the current step state
   let stepState: QaActionStepState;
 
-  if (subtaskStatus === 'todo') {
+  if (isSignOffRecorded) {
+    stepState = 'completed';
+  } else if (subtaskStatus === 'todo') {
     stepState = 'start_task';
   } else if (!testCycle && subtaskStatus === 'in_progress') {
     stepState = 'set_version';
@@ -235,6 +240,15 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
       buttonIcon = <ShieldCheck className="h-4 w-4" />;
       onPrimaryClick = onNavigateToSignOff;
       break;
+
+    case 'completed':
+      stepBadge = 'Selesai';
+      title = 'Pengujian & Persetujuan QA Selesai';
+      description =
+        'Persetujuan QA untuk versi yang diuji telah tercatat. Rilis siap ditinjau oleh Product Owner.';
+      buttonLabel = '';
+      buttonIcon = <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
+      break;
   }
 
   return (
@@ -274,26 +288,33 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
           )}
         </div>
 
-        <div className="shrink-0 flex flex-col items-start sm:items-end gap-1.5 pt-1 sm:pt-0">
-          <Button
-            variant="primary"
-            size="md"
-            onClick={onPrimaryClick}
-            isLoading={isButtonLoading}
-            disabled={isButtonDisabled}
-            leftIcon={buttonIcon}
-            aria-label={buttonLabel}
-            className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-bold bg-[#B1E743] hover:bg-[#9ed432] text-[#141413] border border-[#9ed432]/50 shadow-xs focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all dark:bg-[#B1E743] dark:text-[#141413] dark:hover:bg-[#9ed432] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {buttonLabel}
-          </Button>
+        {stepState === 'completed' ? (
+          <div className="shrink-0 flex items-center gap-2 rounded-xl bg-emerald-100/90 px-4 py-2.5 text-xs font-bold text-emerald-900 border border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>Persetujuan QA Tercatat</span>
+          </div>
+        ) : (
+          <div className="shrink-0 flex flex-col items-start sm:items-end gap-1.5 pt-1 sm:pt-0">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onPrimaryClick}
+              isLoading={isButtonLoading}
+              disabled={isButtonDisabled}
+              leftIcon={buttonIcon}
+              aria-label={buttonLabel}
+              className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-bold bg-[#B1E743] hover:bg-[#9ed432] text-[#141413] border border-[#9ed432]/50 shadow-xs focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all dark:bg-[#B1E743] dark:text-[#141413] dark:hover:bg-[#9ed432] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {buttonLabel}
+            </Button>
 
-          {!canMutateQaExecution && (
-            <span className="text-[11px] text-stone-500 italic">
-              Aksi dibatasi untuk QA yang ditugaskan.
-            </span>
-          )}
-        </div>
+            {!canMutateQaExecution && (
+              <span className="text-[11px] text-stone-500 italic">
+                Aksi dibatasi untuk QA yang ditugaskan.
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </Card>
   );

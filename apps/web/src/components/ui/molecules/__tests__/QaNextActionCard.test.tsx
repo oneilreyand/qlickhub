@@ -305,4 +305,34 @@ describe('QaNextActionCard Molecule', () => {
     expect(btn).toBeDisabled();
     expect(screen.getByText('Aksi dibatasi untuk QA yang ditugaskan.')).toBeInTheDocument();
   });
+
+  it('displays terminal state "Selesai" without primary button when QA sign-off is already recorded', () => {
+    render(
+      <QaNextActionCard
+        workflowSummary={{
+          ...baseSummary,
+          qaSubtaskStatus: 'done',
+          nextAction: { code: 'record_qa_sign_off', label: 'Catat Persetujuan QA' },
+        }}
+        subtaskStatus="done"
+        testCycle={mockCycle}
+        qaCompletionReady={true}
+        isSignOffRecorded={true}
+        onStartQaTask={vi.fn()}
+        onActivateTestCase={vi.fn()}
+        onRunTestCase={vi.fn()}
+        onRecordResult={vi.fn()}
+        onCompleteQaTask={vi.fn()}
+        onNavigateToSignOff={vi.fn()}
+      />,
+    );
+
+    // Terminal summary is displayed
+    expect(screen.getByText('Selesai')).toBeInTheDocument();
+    expect(screen.getByText('Pengujian & Persetujuan QA Selesai')).toBeInTheDocument();
+    expect(screen.getByText('Persetujuan QA Tercatat')).toBeInTheDocument();
+
+    // Primary action button is NOT rendered
+    expect(screen.queryByRole('button', { name: 'Beri Persetujuan QA' })).not.toBeInTheDocument();
+  });
 });

@@ -394,5 +394,66 @@ describe('Prompt 6 PR 1: Smart Next Action Card & Test Version Runner', () => {
         );
       });
     });
+
+    it('renders terminal state "Selesai" and suppresses primary button when QA sign-off is already recorded', async () => {
+      const mockCycle = createMockCycle();
+      serviceMocks.getTaskTestExecutions.mockResolvedValue(createMockWorkspace([]));
+      serviceMocks.listQaTestCycles.mockResolvedValue([mockCycle]);
+      serviceMocks.getQaWorkflowSummary.mockResolvedValue({
+        workspaceId: ids.workspace,
+        featureTaskId: ids.feature,
+        qaSubtaskId: ids.subtask,
+        featureTitle: 'Checkout Feature',
+        qaSubtaskTitle: 'QA Eksekusi Checkout',
+        qaSubtaskStatus: 'done',
+        testCycle: mockCycle,
+        blockers: [],
+        nextAction: { code: 'record_qa_sign_off', label: 'Catat Persetujuan QA' },
+      });
+      releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue({
+        workspaceId: ids.workspace,
+        featureTaskId: ids.feature,
+        qaSignOffs: [
+          {
+            id: 'signoff-1',
+            workspaceId: ids.workspace,
+            featureTaskId: ids.feature,
+            qaTestCycleId: mockCycle.id,
+            candidateFingerprint: mockCycle.candidateFingerprint,
+            decision: 'approved',
+            notes: 'Verified all passed',
+            signedBy: ids.qa,
+            signedAt: new Date().toISOString(),
+            cancellation: null,
+          },
+        ],
+        releaseDecisions: [],
+      });
+
+      renderDesk(createMockSubtask('done'));
+
+      await screen.findByText('Pengujian & Persetujuan QA Selesai');
+      expect(screen.getByText('Persetujuan QA Tercatat')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Beri Persetujuan QA' })).not.toBeInTheDocument();
+    });
+
+    it('opens unified Dialog 1 "Mulai Tugas QA & Aktifkan Pengujian" modal when clicking Mulai Tugas QA', async () => {
+      const user = userEvent.setup();
+      serviceMocks.getTaskTestExecutions.mockResolvedValue(createMockWorkspace([]));
+      serviceMocks.listQaTestCycles.mockResolvedValue([]);
+      serviceMocks.getQaWorkflowSummary.mockResolvedValue(null);
+
+      renderDesk(createMockSubtask('todo'));
+
+      const startButtons = await screen.findAllByRole('button', { name: 'Mulai Tugas QA' });
+      // Click the smart card's Mulai Tugas QA button
+      await user.click(startButtons[0]);
+
+      // Check unified modal dialog is opened
+      await waitFor(() => {
+        expect(screen.getByText('Mulai Tugas QA & Aktifkan Pengujian')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Simpan & Aktifkan' })).toBeInTheDocument();
+      });
+    });
   });
 });
