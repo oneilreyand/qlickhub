@@ -45,7 +45,7 @@ export const RunTestCaseModal: React.FC<RunTestCaseModalProps> = ({
         {runTestCase && (
           <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-900/60">
             <p className="text-xs font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-              Test Case dan Siklus Pengujian
+              Test Case dan Versi yang Diuji
             </p>
             <p className="mt-1 font-bold text-stone-900 dark:text-stone-100">{runTestCase.title}</p>
             <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">

@@ -109,7 +109,7 @@ export const QaTestCaseDetailView: React.FC<QaTestCaseDetailViewProps> = ({
               </span>
             )}
             <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
-              {testCase.requirementIds.length} Requirement
+              {(testCase.requirementIds || []).length} Requirement
             </span>
             {versionCoverageByTestCaseId[testCase.id] && (
               <Badge variant="neutral" size="sm">
@@ -207,7 +207,7 @@ export const QaTestCaseDetailView: React.FC<QaTestCaseDetailViewProps> = ({
       </div>
 
       {(testCase.preconditions ||
-        testCase.steps.length > 0 ||
+        (testCase.steps?.length ?? 0) > 0 ||
         testCase.expectedResult ||
         testCase.testData) && (
         <details

@@ -56,12 +56,12 @@ export const QaWorkflowSummaryWidget: React.FC<QaWorkflowSummaryWidgetProps> = (
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-xl border border-stone-200/80 bg-white/80 p-2.5 shadow-2xs dark:border-stone-800 dark:bg-stone-900/60">
               <p className="text-xs font-extrabold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-                Cakupan &amp; Siklus Uji
+                Cakupan &amp; Versi yang Diuji
               </p>
               <p className="mt-1 font-semibold text-stone-800 dark:text-stone-200 truncate">
                 Menguji: {workflowSummary.featureTitle} ·{' '}
                 <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                  {workflowSummary.testCycle?.build || 'Siklus belum dibuat'}
+                  {workflowSummary.testCycle?.build || 'Versi belum ditetapkan'}
                 </span>
               </p>
             </div>

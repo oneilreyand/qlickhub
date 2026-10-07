@@ -27,7 +27,8 @@ export function useQaDeskData({
   onDataChanged,
 }: UseQaDeskDataOptions) {
   const dispatch = useAppDispatch();
-  const { members } = useAppSelector((state: RootState) => state.workspace);
+  const workspaceMembers = useAppSelector((state: RootState) => state.workspace.members);
+  const members = useMemo(() => workspaceMembers || [], [workspaceMembers]);
 
   const normalizedUserRole = userRole.toLowerCase();
   const isPlanner = ['owner', 'admin', 'po'].includes(normalizedUserRole);

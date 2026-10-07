@@ -288,6 +288,44 @@ export function useTestExecution({
     [executionWorkspace, runTestCaseId],
   );
 
+  const inProgressRun = useMemo(() => {
+    const inProg = executionWorkspace?.executions.find(
+      (e) => e.latestRun?.status === 'in_progress',
+    );
+    if (!inProg?.latestRun) return null;
+    return {
+      testCaseId: inProg.testCase.id,
+      testRunId: inProg.latestRun.id,
+      testCaseTitle: inProg.testCase.title,
+    };
+  }, [executionWorkspace]);
+
+  const draftTestCase = useMemo(() => {
+    const draft = executionWorkspace?.executions.find((e) => {
+      const version = versionCoverageByTestCaseId[e.testCase.id];
+      return e.testCase.status === 'draft' || version?.lifecycleStatus === 'draft';
+    });
+    if (!draft) return null;
+    return { id: draft.testCase.id, title: draft.testCase.title };
+  }, [executionWorkspace, versionCoverageByTestCaseId]);
+
+  const hasDraftTestCase = Boolean(draftTestCase);
+
+  const unexecutedTestCase = useMemo(() => {
+    if (!executionWorkspace?.executions.length) return null;
+    const active = executionWorkspace.executions.find(
+      (e) => e.testCase.id === activeSelectedTestCaseId,
+    );
+    if (active && !active.latestRun?.result && active.latestRun?.status !== 'in_progress') {
+      return { id: active.testCase.id, title: active.testCase.title };
+    }
+    const unex = executionWorkspace.executions.find(
+      (e) => !e.latestRun?.result && e.latestRun?.status !== 'in_progress',
+    );
+    if (!unex) return null;
+    return { id: unex.testCase.id, title: unex.testCase.title };
+  }, [executionWorkspace, activeSelectedTestCaseId]);
+
   // Actions
   const openRunModal = (testCaseId: string) => {
     if (!selectedTestCycle) {
@@ -301,11 +339,55 @@ export function useTestExecution({
     setRunFormError(null);
   };
 
-  const handleCycleCreated = () => {
+  const handleCycleCreated = (newCycle?: QaTestCycle) => {
     if (pendingRunTestCaseId) {
-      setRunTestCaseId(pendingRunTestCaseId);
+      const targetCaseId = pendingRunTestCaseId;
       setPendingRunTestCaseId(null);
+      const activeCycle = newCycle || selectedTestCycle;
+      if (activeCycle) {
+        setRunBuild(activeCycle.build);
+        setRunEnvironment(activeCycle.environment);
+      }
+      setRunTestCaseId(targetCaseId);
       setRunFormError(null);
+    }
+  };
+
+  const handleQuickStartRun = async (testCaseId: string) => {
+    if (!selectedTestCycle) {
+      setPendingRunTestCaseId(testCaseId);
+      openTestCycleModal();
+      return;
+    }
+    const version = versionCoverageByTestCaseId[testCaseId];
+    if (!version || version.lifecycleStatus !== 'active') {
+      dispatch(enqueueSnackbar('Pengujian memerlukan revisi Test Case yang aktif.', 'warning'));
+      return;
+    }
+
+    try {
+      setIsStartingRun(true);
+      await testManagementService.createTestRun(workspaceId, testCaseId, {
+        featureTaskId,
+        qaSubtaskId: subtask.id,
+        testCycleId: selectedTestCycle.id,
+        testCaseVersionId: version.id,
+        candidateFingerprint: selectedTestCycle.candidateFingerprint,
+        build: selectedTestCycle.build,
+        environment: selectedTestCycle.environment,
+      });
+      dispatch(enqueueSnackbar('Pengujian dimulai dengan versi aktif.', 'success'));
+      await loadExecutions();
+      await loadWorkflowSummary();
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Pengujian gagal dimulai.',
+          'error',
+        ),
+      );
+    } finally {
+      setIsStartingRun(false);
     }
   };
 
@@ -461,7 +543,12 @@ export function useTestExecution({
     runTestCase,
     openRunModal,
     handleCycleCreated,
+    handleQuickStartRun,
     handleStartRun,
+    inProgressRun,
+    draftTestCase,
+    hasDraftTestCase,
+    unexecutedTestCase,
     addEvidenceResultTarget,
     setAddEvidenceResultTarget,
     singleEvidenceUrl,

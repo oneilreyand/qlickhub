@@ -703,7 +703,9 @@ describe('QaTestingDesk Organism', () => {
       }),
     );
 
-    const cycleDialog = screen.getByRole('dialog', { name: 'Buat Siklus Pengujian' });
+    const cycleDialog = screen.getByRole('dialog', {
+      name: /Tetapkan Versi yang Diuji|Buat Siklus Pengujian/,
+    });
     await user.type(
       within(cycleDialog).getByPlaceholderText('Contoh: commit:a1b2c3d atau deployment:stg-482'),
       'commit:checkout-1',
@@ -712,7 +714,11 @@ describe('QaTestingDesk Organism', () => {
       within(cycleDialog).getByPlaceholderText('checkout-web-2026.09.15.1'),
       'checkout-web-2026.08.22.1',
     );
-    await user.click(within(cycleDialog).getByRole('button', { name: 'Simpan Siklus Pengujian' }));
+    await user.click(
+      within(cycleDialog).getByRole('button', {
+        name: /Simpan Versi Uji|Simpan Siklus Pengujian/,
+      }),
+    );
 
     await waitFor(() =>
       expect(serviceMocks.createQaTestCycle).toHaveBeenCalledWith(ids.workspace, {
