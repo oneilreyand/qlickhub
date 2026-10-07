@@ -482,9 +482,21 @@ test('QA Desk dialogs and mobile drawer screenshots', async ({ browser }, testIn
     path: 'docs/screenshots/workspace-drawer-qa-subtask-mobile.png',
   });
 
-  // Reset to desktop viewport for modal screenshots
+  // Reset to desktop viewport and capture scrolled QA drawer
   await qaPage.setViewportSize({ width: 1280, height: 800 });
+  await qaPage.evaluate(() => {
+    const drawer = document.querySelector('section[aria-label*="content"]');
+    if (drawer) drawer.scrollTop = 200;
+  });
   await qaPage.waitForTimeout(400);
+  await qaPage.screenshot({
+    path: 'docs/screenshots/workspace-drawer-qa-subtask-after.png',
+  });
+  await qaPage.evaluate(() => {
+    const drawer = document.querySelector('section[aria-label*="content"]');
+    if (drawer) drawer.scrollTop = 0;
+  });
+  await qaPage.waitForTimeout(200);
 
   // Switch to Tab 2: Test Case & Eksekusi
   await qaPage.getByRole('tab', { name: 'Test Case & Eksekusi' }).click();

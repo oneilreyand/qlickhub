@@ -220,16 +220,14 @@ export const Drawer: React.FC<DrawerProps> = ({
           <section
             aria-label={`${title} content`}
             className={`flex-1 overflow-y-auto text-sm text-stone-600 dark:text-stone-300 transition-all duration-300 ${
-              isFullScreen ? 'w-full px-4 py-6 sm:px-8' : 'px-4 sm:px-6 py-6'
+              isFullScreen ? 'w-full px-4 pb-6 sm:px-8' : 'px-4 sm:px-6 pb-6'
             }`}
           >
             <div
               role="toolbar"
               aria-label={`${title} navigation and controls`}
               className={`sticky top-0 z-20 ${
-                isFullScreen
-                  ? '-mt-6 -mx-4 sm:-mx-8 px-4 sm:px-8'
-                  : '-mt-6 -mx-4 sm:-mx-6 px-4 sm:px-6'
+                isFullScreen ? '-mx-4 sm:-mx-8 px-4 sm:px-8' : '-mx-4 sm:-mx-6 px-4 sm:px-6'
               } mb-4 flex min-w-0 items-center gap-1.5 border-b border-stone-200/80 bg-white/95 py-2.5 shadow-2xs backdrop-blur-md dark:border-stone-800 dark:bg-[#1C1A19]/95`}
             >
               {toolbar && (
@@ -244,7 +242,7 @@ export const Drawer: React.FC<DrawerProps> = ({
                     label={isFullScreen ? 'Kembali ke tampilan normal' : 'Perluas ke halaman penuh'}
                     size="md"
                     variant="ghost"
-                    className="text-stone-500 hover:text-[#22201F] dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-[#B1E743]"
+                    className="hidden text-stone-500 hover:text-[#22201F] dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-[#B1E743] sm:inline-flex"
                   >
                     {isFullScreen ? (
                       <Minimize2 className="h-4 w-4" />
