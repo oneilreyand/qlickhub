@@ -171,7 +171,7 @@ export const RecordResultModal: React.FC<RecordResultModalProps> = ({
             <button
               type="button"
               onClick={onAddEvidenceLinkInput}
-              className="inline-flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-stone-800 dark:text-[#B1E743] hover:underline"
             >
               <Plus className="w-3.5 h-3.5" />
               Tambah Tautan
