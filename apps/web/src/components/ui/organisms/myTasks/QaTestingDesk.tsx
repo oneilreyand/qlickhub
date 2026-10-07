@@ -18,6 +18,7 @@ import { Card } from '../../atoms/Card';
 import { Tabs } from '../../molecules/Tabs';
 import { TaskScheduleHealthBadge } from '../../molecules/TaskScheduleHealthBadge';
 import { TaskStatusBadge } from '../../molecules/TaskStatusBadge';
+import { QaNextActionCard } from '../../molecules/QaNextActionCard';
 import { QaWorkflowSummaryWidget } from '../../molecules/QaWorkflowSummaryWidget';
 
 import { workflowBlockerCopy } from './qaDesk/types';
@@ -82,7 +83,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     subtaskId: subtask.id,
     currentUserId,
     loadWorkflowSummary: deskData.loadWorkflowSummary,
-    onCycleCreatedWithPendingRun: () => executionState.handleCycleCreated(),
+    onCycleCreatedWithPendingRun: (cycle) => executionState.handleCycleCreated(cycle),
   });
 
   const executionState = useTestExecution({
@@ -146,12 +147,48 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   return (
     <div className="space-y-6">
       {deskData.isAssignedQaExecutor && (
-        <QaWorkflowSummaryWidget
-          workflowSummary={deskData.workflowSummary}
-          isLoading={deskData.isLoadingWorkflowSummary}
-          error={deskData.workflowSummaryError}
-          workflowBlockerCopy={workflowBlockerCopy}
-        />
+        <>
+          <QaNextActionCard
+            workflowSummary={deskData.workflowSummary}
+            subtaskStatus={subtask.status}
+            testCycle={testCycleState.selectedTestCycle}
+            hasDraftTestCase={executionState.hasDraftTestCase}
+            draftTestCase={executionState.draftTestCase}
+            inProgressRun={executionState.inProgressRun}
+            unexecutedTestCase={executionState.unexecutedTestCase}
+            qaCompletionReady={deskData.qaCompletionReady}
+            qaCompletionUnavailableMessage={deskData.qaCompletionUnavailableMessage}
+            isUpdatingStatus={deskData.isUpdatingStatus}
+            isStartingRun={executionState.isStartingRun}
+            isActivatingTestCase={Boolean(executionState.activatingTestCaseId)}
+            canMutateQaExecution={deskData.canMutateQaExecution}
+            onStartQaTask={() => {
+              if (subtask.status === 'todo') {
+                void deskData.handleStatusChange('in_progress');
+              }
+              if (!testCycleState.selectedTestCycle) {
+                testCycleState.openTestCycleModal();
+              }
+            }}
+            onActivateTestCase={(testCaseId) =>
+              void executionState.handleActivateTestCase(testCaseId)
+            }
+            onRunTestCase={(testCaseId) => void executionState.handleQuickStartRun(testCaseId)}
+            onRecordResult={(testCaseId, testRunId) =>
+              executionState.openResultModal(testCaseId, testRunId)
+            }
+            onCompleteQaTask={() => void deskData.handleStatusChange('done')}
+            onNavigateToSignOff={() => setActiveWorkflowTab('sign_off')}
+            onNavigateToBugs={() => setActiveWorkflowTab('bugs')}
+            onOpenTestCycleModal={testCycleState.openTestCycleModal}
+          />
+          <QaWorkflowSummaryWidget
+            workflowSummary={deskData.workflowSummary}
+            isLoading={deskData.isLoadingWorkflowSummary}
+            error={deskData.workflowSummaryError}
+            workflowBlockerCopy={workflowBlockerCopy}
+          />
+        </>
       )}
 
       {/* QA Workstation Header Card */}

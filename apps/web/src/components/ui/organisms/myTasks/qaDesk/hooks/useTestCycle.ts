@@ -11,8 +11,14 @@ export interface UseTestCycleOptions {
   subtaskId: string;
   currentUserId?: string;
   loadWorkflowSummary: () => Promise<void>;
-  onCycleCreatedWithPendingRun?: () => void;
+  onCycleCreatedWithPendingRun?: (cycle?: QaTestCycle) => void;
 }
+
+export const deriveCandidateFingerprint = (build: string, environment: string): string => {
+  const b = build.trim();
+  const env = environment.trim();
+  return b && env ? `candidate:${b}-${env}` : '';
+};
 
 export function useTestCycle({
   workspaceId,
@@ -29,9 +35,10 @@ export function useTestCycle({
   const [testCycleError, setTestCycleError] = useState<string | null>(null);
 
   const [isTestCycleModalOpen, setIsTestCycleModalOpen] = useState(false);
-  const [testCycleBuild, setTestCycleBuild] = useState('');
-  const [testCycleEnvironment, setTestCycleEnvironment] = useState('staging');
-  const [testCycleFingerprint, setTestCycleFingerprint] = useState('');
+  const [testCycleBuild, setTestCycleBuildState] = useState('');
+  const [testCycleEnvironment, setTestCycleEnvironmentState] = useState('staging');
+  const [testCycleFingerprint, setTestCycleFingerprintState] = useState('');
+  const [isFingerprintManual, setIsFingerprintManual] = useState(false);
   const [isCreatingTestCycle, setIsCreatingTestCycle] = useState(false);
 
   const selectedTestCycle = useMemo(
@@ -62,7 +69,7 @@ export function useTestCycle({
       setTestCycleError(
         error instanceof Error
           ? error.message
-          : 'Siklus Pengujian untuk Feature ini tidak dapat dimuat.',
+          : 'Versi yang diuji untuk Feature ini tidak dapat dimuat.',
       );
     } finally {
       setIsLoadingTestCycles(false);
@@ -73,16 +80,45 @@ export function useTestCycle({
     void loadTestCycles();
   }, [loadTestCycles]);
 
-  const openTestCycleModal = () => {
-    setTestCycleBuild('');
-    setTestCycleEnvironment('staging');
-    setTestCycleFingerprint('');
+  const setTestCycleBuild = useCallback(
+    (val: string) => {
+      setTestCycleBuildState(val);
+      if (!isFingerprintManual) {
+        setTestCycleFingerprintState(deriveCandidateFingerprint(val, testCycleEnvironment));
+      }
+    },
+    [isFingerprintManual, testCycleEnvironment],
+  );
+
+  const setTestCycleEnvironment = useCallback(
+    (val: string) => {
+      setTestCycleEnvironmentState(val);
+      if (!isFingerprintManual) {
+        setTestCycleFingerprintState(deriveCandidateFingerprint(testCycleBuild, val));
+      }
+    },
+    [isFingerprintManual, testCycleBuild],
+  );
+
+  const setTestCycleFingerprint = useCallback((val: string) => {
+    setIsFingerprintManual(true);
+    setTestCycleFingerprintState(val);
+  }, []);
+
+  const openTestCycleModal = useCallback(() => {
+    setTestCycleBuildState('');
+    setTestCycleEnvironmentState('staging');
+    setIsFingerprintManual(false);
+    setTestCycleFingerprintState('');
     setTestCycleError(null);
     setIsTestCycleModalOpen(true);
-  };
+  }, []);
 
   const handleCreateTestCycle = async () => {
-    if (!testCycleBuild.trim() || !testCycleEnvironment.trim() || !testCycleFingerprint.trim()) {
+    const finalFingerprint =
+      testCycleFingerprint.trim() ||
+      deriveCandidateFingerprint(testCycleBuild, testCycleEnvironment);
+    if (!testCycleBuild.trim() || !testCycleEnvironment.trim() || !finalFingerprint) {
       setTestCycleError('Build, lingkungan, dan identitas kandidat wajib diisi.');
       return;
     }
@@ -92,7 +128,7 @@ export function useTestCycle({
       const cycle = await testManagementService.createQaTestCycle(workspaceId, {
         featureTaskId,
         qaSubtaskId: subtaskId,
-        candidateFingerprint: testCycleFingerprint.trim(),
+        candidateFingerprint: finalFingerprint,
         build: testCycleBuild.trim(),
         environment: testCycleEnvironment.trim(),
       });
@@ -101,19 +137,19 @@ export function useTestCycle({
       setIsTestCycleModalOpen(false);
 
       if (onCycleCreatedWithPendingRun) {
-        onCycleCreatedWithPendingRun();
+        onCycleCreatedWithPendingRun(cycle);
       }
 
       dispatch(
         enqueueSnackbar(
-          'Siklus Pengujian kandidat tersimpan dan siap menerima pengujian.',
+          'Versi yang diuji berhasil disimpan dan siap menerima pengujian.',
           'success',
         ),
       );
       await loadWorkflowSummary();
     } catch (error) {
       setTestCycleError(
-        error instanceof Error ? error.message : 'Siklus Pengujian tidak dapat dibuat.',
+        error instanceof Error ? error.message : 'Versi yang diuji tidak dapat dibuat.',
       );
     } finally {
       setIsCreatingTestCycle(false);

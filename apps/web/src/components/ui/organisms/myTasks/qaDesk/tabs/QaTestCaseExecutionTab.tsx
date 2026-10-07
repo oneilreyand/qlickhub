@@ -203,18 +203,18 @@ export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-wider text-stone-500">
-                Siklus Pengujian / Kandidat
+                Versi yang Diuji / Kandidat
               </p>
               {isLoadingTestCycles ? (
                 <Skeleton className="mt-1 h-4 w-56" />
               ) : selectedTestCycle ? (
                 <p className="mt-1 text-xs font-semibold text-stone-800 dark:text-stone-200">
-                  Siklus aktif · {selectedTestCycle.build} · {selectedTestCycle.environment}
+                  Versi aktif · {selectedTestCycle.build} · {selectedTestCycle.environment}
                 </p>
               ) : (
                 <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
-                  Belum ada Siklus Pengujian aktif. Pengujian baru tidak dapat memakai konteks
-                  kandidat yang ambigu.
+                  Belum ada Versi yang Diuji aktif. Pengujian baru memerlukan build dan lingkungan
+                  yang pasti.
                 </p>
               )}
             </div>
@@ -223,10 +223,10 @@ export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
                 <Select
                   value={selectedTestCycleId}
                   onChange={(event) => onSelectTestCycleId(event.target.value)}
-                  aria-label="Pilih Siklus Pengujian"
+                  aria-label="Pilih Versi yang Diuji"
                   className="min-w-52"
                 >
-                  <option value="">Pilih Siklus Pengujian</option>
+                  <option value="">Pilih Versi yang Diuji</option>
                   {testCycles.map((cycle) => (
                     <option key={cycle.id} value={cycle.id}>
                       {cycle.build} · {cycle.environment}
@@ -236,13 +236,13 @@ export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
               )}
               {canExecuteTests && (
                 <Button variant="outline" size="sm" onClick={onOpenTestCycleModal}>
-                  Buat Siklus Pengujian
+                  Tetapkan Versi Uji
                 </Button>
               )}
             </div>
           </div>
           {testCycleError && !isTestCycleModalOpen && (
-            <Alert tone="warning" title="Konteks Siklus Pengujian belum tersedia">
+            <Alert tone="warning" title="Konteks Versi yang Diuji belum tersedia">
               {testCycleError}
             </Alert>
           )}
