@@ -5,14 +5,66 @@ import { CreateTestCycleModal } from '../CreateTestCycleModal';
 import { StartQaTaskModal } from '../StartQaTaskModal';
 import type { useQaTaskInitiation } from '../../hooks/useQaTaskInitiation';
 
-describe('CreateTestCycleModal & StartQaTaskModal - Duplicate Resolved Bug Warning', () => {
-  const resolvedBugVersions = [
-    { build: 'checkout-2026.09.15', environment: 'staging' },
-    { build: 'v1.0.0-bugfix', environment: 'production' },
-  ];
+describe('CreateTestCycleModal & StartQaTaskModal - Dev Resolution Fingerprint & Mismatch Warning', () => {
+  const devResolutionFingerprint = 'commit:dev-fix-123';
 
   describe('CreateTestCycleModal', () => {
-    it('does not display warning when build and environment do not match any resolved bug version', () => {
+    it('displays visible banner and does not warn when fingerprint matches dev resolution', () => {
+      render(
+        <CreateTestCycleModal
+          isOpen={true}
+          onClose={vi.fn()}
+          testCycleError={null}
+          testCycleFingerprint={devResolutionFingerprint}
+          setTestCycleFingerprint={vi.fn()}
+          testCycleBuild="fix-build-1"
+          setTestCycleBuild={vi.fn()}
+          testCycleEnvironment="staging"
+          setTestCycleEnvironment={vi.fn()}
+          isCreatingTestCycle={false}
+          onCreateTestCycle={vi.fn()}
+          devResolutionFingerprint={devResolutionFingerprint}
+        />,
+      );
+
+      // Visible Dev resolution banner is displayed prominently
+      expect(screen.getByText('Versi perbaikan dari Dev:')).toBeInTheDocument();
+      expect(screen.getByText(devResolutionFingerprint)).toBeInTheDocument();
+
+      // No mismatch warning
+      expect(screen.queryByText('Peringatan Identitas Kandidat')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/Identitas kandidat berbeda dari versi perbaikan/),
+      ).not.toBeInTheDocument();
+    });
+
+    it('displays warning when candidate fingerprint does not match dev resolution fingerprint', () => {
+      render(
+        <CreateTestCycleModal
+          isOpen={true}
+          onClose={vi.fn()}
+          testCycleError={null}
+          testCycleFingerprint="candidate:different-build-staging"
+          setTestCycleFingerprint={vi.fn()}
+          testCycleBuild="different-build"
+          setTestCycleBuild={vi.fn()}
+          testCycleEnvironment="staging"
+          setTestCycleEnvironment={vi.fn()}
+          isCreatingTestCycle={false}
+          onCreateTestCycle={vi.fn()}
+          devResolutionFingerprint={devResolutionFingerprint}
+        />,
+      );
+
+      expect(screen.getByText('Peringatan Identitas Kandidat')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          `Identitas kandidat berbeda dari versi perbaikan yang diserahkan pengembang (${devResolutionFingerprint}). Retest akan gagal jika tidak cocok.`,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('does not display dev banner or warning when devResolutionFingerprint is null', () => {
       render(
         <CreateTestCycleModal
           isOpen={true}
@@ -20,61 +72,34 @@ describe('CreateTestCycleModal & StartQaTaskModal - Duplicate Resolved Bug Warni
           testCycleError={null}
           testCycleFingerprint="candidate:new-build-staging"
           setTestCycleFingerprint={vi.fn()}
-          testCycleBuild="new-build-2026.10.01"
+          testCycleBuild="new-build"
           setTestCycleBuild={vi.fn()}
           testCycleEnvironment="staging"
           setTestCycleEnvironment={vi.fn()}
           isCreatingTestCycle={false}
           onCreateTestCycle={vi.fn()}
-          resolvedBugVersions={resolvedBugVersions}
+          devResolutionFingerprint={null}
         />,
       );
 
-      expect(
-        screen.queryByText('Gunakan nama build baru untuk versi hasil perbaikan'),
-      ).not.toBeInTheDocument();
-      expect(screen.queryByText('Peringatan Versi Perbaikan')).not.toBeInTheDocument();
-    });
-
-    it('displays warning when build and environment match a resolved bug version', () => {
-      render(
-        <CreateTestCycleModal
-          isOpen={true}
-          onClose={vi.fn()}
-          testCycleError={null}
-          testCycleFingerprint="candidate:checkout-2026.09.15-staging"
-          setTestCycleFingerprint={vi.fn()}
-          testCycleBuild="checkout-2026.09.15"
-          setTestCycleBuild={vi.fn()}
-          testCycleEnvironment="staging"
-          setTestCycleEnvironment={vi.fn()}
-          isCreatingTestCycle={false}
-          onCreateTestCycle={vi.fn()}
-          resolvedBugVersions={resolvedBugVersions}
-        />,
-      );
-
-      expect(screen.getByText('Peringatan Versi Perbaikan')).toBeInTheDocument();
-      expect(
-        screen.getByText('Gunakan nama build baru untuk versi hasil perbaikan'),
-      ).toBeInTheDocument();
+      expect(screen.queryByText('Versi perbaikan dari Dev:')).not.toBeInTheDocument();
+      expect(screen.queryByText('Peringatan Identitas Kandidat')).not.toBeInTheDocument();
     });
   });
 
   describe('StartQaTaskModal', () => {
     const createMockInitiation = (
-      build: string,
-      environment: string,
+      candidateFingerprint: string,
     ): ReturnType<typeof useQaTaskInitiation> =>
       ({
         isModalOpen: true,
         openInitiationModal: vi.fn(),
         closeInitiationModal: vi.fn(),
-        build,
+        build: 'fix-build-1',
         setBuild: vi.fn(),
-        environment,
+        environment: 'staging',
         setEnvironment: vi.fn(),
-        candidateFingerprint: `candidate:${build}-${environment}`,
+        candidateFingerprint,
         setCandidateFingerprint: vi.fn(),
         testCaseTitle: 'Verifikasi Fitur Checkout',
         setTestCaseTitle: vi.fn(),
@@ -99,36 +124,38 @@ describe('CreateTestCycleModal & StartQaTaskModal - Duplicate Resolved Bug Warni
         isActivated: false,
       }) as any;
 
-    it('does not display warning when build and environment do not match any resolved bug version', () => {
-      const initiation = createMockInitiation('checkout-fresh-build', 'staging');
+    it('displays visible banner and does not warn when candidateFingerprint matches dev resolution', () => {
+      const initiation = createMockInitiation(devResolutionFingerprint);
 
       render(
         <StartQaTaskModal
           initiation={initiation}
           existingTestCycle={null}
-          resolvedBugVersions={resolvedBugVersions}
+          devResolutionFingerprint={devResolutionFingerprint}
         />,
       );
 
-      expect(
-        screen.queryByText('Gunakan nama build baru untuk versi hasil perbaikan'),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText('Versi perbaikan dari Dev:')).toBeInTheDocument();
+      expect(screen.getByText(devResolutionFingerprint)).toBeInTheDocument();
+      expect(screen.queryByText('Peringatan Identitas Kandidat')).not.toBeInTheDocument();
     });
 
-    it('displays warning when build and environment match a resolved bug version', () => {
-      const initiation = createMockInitiation('checkout-2026.09.15', 'staging');
+    it('displays warning when candidateFingerprint differs from dev resolution candidate', () => {
+      const initiation = createMockInitiation('candidate:mismatch-build-staging');
 
       render(
         <StartQaTaskModal
           initiation={initiation}
           existingTestCycle={null}
-          resolvedBugVersions={resolvedBugVersions}
+          devResolutionFingerprint={devResolutionFingerprint}
         />,
       );
 
-      expect(screen.getByText('Peringatan Versi Perbaikan')).toBeInTheDocument();
+      expect(screen.getByText('Peringatan Identitas Kandidat')).toBeInTheDocument();
       expect(
-        screen.getByText('Gunakan nama build baru untuk versi hasil perbaikan'),
+        screen.getByText(
+          `Identitas kandidat berbeda dari versi perbaikan yang diserahkan pengembang (${devResolutionFingerprint}). Retest akan gagal jika tidak cocok.`,
+        ),
       ).toBeInTheDocument();
     });
   });

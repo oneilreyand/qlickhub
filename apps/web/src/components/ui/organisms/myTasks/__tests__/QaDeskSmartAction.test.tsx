@@ -418,6 +418,8 @@ describe('Prompt 6 PR 1: Smart Next Action Card & Test Version Runner', () => {
             id: 'signoff-1',
             workspaceId: ids.workspace,
             featureTaskId: ids.feature,
+            qaSubtaskId: ids.subtask,
+            testCycleId: mockCycle.id,
             qaTestCycleId: mockCycle.id,
             candidateFingerprint: mockCycle.candidateFingerprint,
             decision: 'approved',

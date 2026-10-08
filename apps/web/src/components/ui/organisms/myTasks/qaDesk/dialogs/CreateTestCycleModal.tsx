@@ -15,7 +15,7 @@ export interface CreateTestCycleModalProps {
   setTestCycleEnvironment: (val: string) => void;
   isCreatingTestCycle: boolean;
   onCreateTestCycle: () => void;
-  resolvedBugVersions?: Array<{ build: string; environment: string }>;
+  devResolutionFingerprint?: string | null;
 }
 
 export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
@@ -30,16 +30,13 @@ export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
   setTestCycleEnvironment,
   isCreatingTestCycle,
   onCreateTestCycle,
-  resolvedBugVersions = [],
+  devResolutionFingerprint = null,
 }) => {
-  const isDuplicateResolvedBugVersion = React.useMemo(() => {
-    const b = testCycleBuild.trim().toLowerCase();
-    const env = testCycleEnvironment.trim().toLowerCase();
-    if (!b || !env) return false;
-    return resolvedBugVersions.some(
-      (v) => v.build.trim().toLowerCase() === b && v.environment.trim().toLowerCase() === env,
-    );
-  }, [testCycleBuild, testCycleEnvironment, resolvedBugVersions]);
+  const isDevFingerprintMismatch = Boolean(
+    devResolutionFingerprint &&
+    testCycleFingerprint.trim() &&
+    testCycleFingerprint.trim() !== devResolutionFingerprint.trim(),
+  );
 
   return (
     <Modal
@@ -58,9 +55,18 @@ export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
             {testCycleError}
           </Alert>
         )}
-        {isDuplicateResolvedBugVersion && (
-          <Alert tone="warning" title="Peringatan Versi Perbaikan">
-            Gunakan nama build baru untuk versi hasil perbaikan
+        {devResolutionFingerprint && (
+          <div className="flex items-center gap-2 rounded-xl bg-amber-50/90 border border-amber-200 p-3 text-xs text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200">
+            <span className="font-bold shrink-0">Versi perbaikan dari Dev:</span>
+            <code className="font-mono bg-white dark:bg-stone-900 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-700 font-semibold truncate">
+              {devResolutionFingerprint}
+            </code>
+          </div>
+        )}
+        {isDevFingerprintMismatch && (
+          <Alert tone="warning" title="Peringatan Identitas Kandidat">
+            Identitas kandidat berbeda dari versi perbaikan yang diserahkan pengembang (
+            {devResolutionFingerprint}). Retest akan gagal jika tidak cocok.
           </Alert>
         )}
         <div>
@@ -85,25 +91,39 @@ export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
             disabled={isCreatingTestCycle}
           />
         </div>
-        <details className="group rounded-xl border border-stone-200/80 bg-stone-50/50 p-3 text-xs dark:border-stone-800 dark:bg-stone-900/40">
-          <summary className="cursor-pointer font-semibold text-stone-700 dark:text-stone-300 select-none">
-            Detail teknis
-          </summary>
-          <div className="mt-2.5 space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+        {devResolutionFingerprint ? (
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
               Identitas Kandidat (Candidate Fingerprint) <span className="text-red-500">*</span>
             </label>
             <Input
               value={testCycleFingerprint}
               onChange={(event) => setTestCycleFingerprint(event.target.value)}
-              placeholder="Contoh: commit:a1b2c3d atau deployment:stg-482"
+              placeholder={devResolutionFingerprint}
               disabled={isCreatingTestCycle}
             />
-            <p className="text-[11px] text-stone-500 dark:text-stone-400">
-              Diturunkan otomatis dari build dan lingkungan. Dapat disesuaikan bila perlu.
-            </p>
           </div>
-        </details>
+        ) : (
+          <details className="group rounded-xl border border-stone-200/80 bg-stone-50/50 p-3 text-xs dark:border-stone-800 dark:bg-stone-900/40">
+            <summary className="cursor-pointer font-semibold text-stone-700 dark:text-stone-300 select-none">
+              Detail teknis
+            </summary>
+            <div className="mt-2.5 space-y-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+                Identitas Kandidat (Candidate Fingerprint) <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={testCycleFingerprint}
+                onChange={(event) => setTestCycleFingerprint(event.target.value)}
+                placeholder="Contoh: commit:a1b2c3d atau deployment:stg-482"
+                disabled={isCreatingTestCycle}
+              />
+              <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                Diturunkan otomatis dari build dan lingkungan. Dapat disesuaikan bila perlu.
+              </p>
+            </div>
+          </details>
+        )}
       </div>
     </Modal>
   );

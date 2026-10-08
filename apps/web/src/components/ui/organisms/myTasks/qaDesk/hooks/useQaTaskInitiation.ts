@@ -43,6 +43,7 @@ export interface UseQaTaskInitiationOptions {
   ) => void;
   loadWorkflowSummary?: () => Promise<void>;
   loadExecutions?: () => Promise<void>;
+  devResolutionFingerprint?: string | null;
 }
 
 export function useQaTaskInitiation({
@@ -54,6 +55,7 @@ export function useQaTaskInitiation({
   onInitiationCompleted,
   loadWorkflowSummary,
   loadExecutions,
+  devResolutionFingerprint,
 }: UseQaTaskInitiationOptions) {
   const dispatch = useAppDispatch();
 
@@ -91,21 +93,21 @@ export function useQaTaskInitiation({
   const setBuild = useCallback(
     (val: string) => {
       setBuildState(val);
-      if (!isFingerprintManual) {
+      if (!isFingerprintManual && !devResolutionFingerprint) {
         setCandidateFingerprintState(deriveCandidateFingerprint(val, environment));
       }
     },
-    [environment, isFingerprintManual],
+    [devResolutionFingerprint, environment, isFingerprintManual],
   );
 
   const setEnvironment = useCallback(
     (val: string) => {
       setEnvironmentState(val);
-      if (!isFingerprintManual) {
+      if (!isFingerprintManual && !devResolutionFingerprint) {
         setCandidateFingerprintState(deriveCandidateFingerprint(build, val));
       }
     },
-    [build, isFingerprintManual],
+    [build, devResolutionFingerprint, isFingerprintManual],
   );
 
   const setCandidateFingerprint = useCallback((val: string) => {
@@ -117,7 +119,12 @@ export function useQaTaskInitiation({
     // Initialize defaults if not already set
     if (!build) setBuildState('');
     if (!environment) setEnvironmentState('staging');
-    if (!isFingerprintManual) setCandidateFingerprintState('');
+    if (devResolutionFingerprint) {
+      setCandidateFingerprintState(devResolutionFingerprint);
+      setIsFingerprintManual(true);
+    } else if (!isFingerprintManual) {
+      setCandidateFingerprintState('');
+    }
     if (!testCaseTitle) setTestCaseTitle(`Verifikasi ${subtask.title}`);
     if (defaultRequirementId && !selectedRequirementId) {
       setSelectedRequirementId(defaultRequirementId);
@@ -127,6 +134,7 @@ export function useQaTaskInitiation({
   }, [
     build,
     defaultRequirementId,
+    devResolutionFingerprint,
     environment,
     isFingerprintManual,
     selectedRequirementId,

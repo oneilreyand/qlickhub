@@ -33,7 +33,6 @@ export interface QaDeskModalsProps {
   bugReportState: ReturnType<typeof useBugReport>;
   deskData: ReturnType<typeof useQaDeskData>;
   initiationState?: ReturnType<typeof useQaTaskInitiation>;
-  resolvedBugVersions?: Array<{ build: string; environment: string }>;
 }
 
 export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
@@ -45,7 +44,6 @@ export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
   bugReportState,
   deskData,
   initiationState,
-  resolvedBugVersions = [],
 }) => {
   const dispatch = useAppDispatch();
   return (
@@ -142,7 +140,7 @@ export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
         setTestCycleEnvironment={testCycleState.setTestCycleEnvironment}
         isCreatingTestCycle={testCycleState.isCreatingTestCycle}
         onCreateTestCycle={testCycleState.handleCreateTestCycle}
-        resolvedBugVersions={resolvedBugVersions}
+        devResolutionFingerprint={deskData.devResolutionFingerprint}
       />
 
       {/* Modal Mulai Tugas QA (Unified Initiation Chain) */}
@@ -150,7 +148,7 @@ export const QaDeskModals: React.FC<QaDeskModalsProps> = ({
         <StartQaTaskModal
           initiation={initiationState}
           existingTestCycle={testCycleState.selectedTestCycle}
-          resolvedBugVersions={resolvedBugVersions}
+          devResolutionFingerprint={deskData.devResolutionFingerprint}
         />
       )}
 

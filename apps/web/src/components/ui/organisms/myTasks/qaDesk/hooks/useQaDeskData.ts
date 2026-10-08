@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   BugWithContext,
   FeatureReleaseRecords,
+  QaTestCycle,
   QaWorkflowSummary,
   Task,
   TaskComment,
@@ -24,6 +25,7 @@ export interface UseQaDeskDataOptions {
   workspaceId: string;
   currentUserId?: string;
   userRole?: string;
+  selectedTestCycle?: QaTestCycle | null;
   onDataChanged: () => void;
 }
 
@@ -33,11 +35,22 @@ export function useQaDeskData({
   workspaceId,
   currentUserId,
   userRole = 'qa',
+  selectedTestCycle: initialSelectedTestCycle = null,
   onDataChanged,
 }: UseQaDeskDataOptions) {
   const dispatch = useAppDispatch();
   const workspaceMembers = useAppSelector((state: RootState) => state.workspace.members);
   const members = useMemo(() => workspaceMembers || [], [workspaceMembers]);
+
+  const [selectedTestCycle, setSelectedTestCycle] = useState<QaTestCycle | null>(
+    initialSelectedTestCycle,
+  );
+
+  useEffect(() => {
+    if (initialSelectedTestCycle !== undefined) {
+      setSelectedTestCycle(initialSelectedTestCycle);
+    }
+  }, [initialSelectedTestCycle]);
 
   const normalizedUserRole = userRole.toLowerCase();
   const isPlanner = ['owner', 'admin', 'po'].includes(normalizedUserRole);
@@ -67,6 +80,7 @@ export function useQaDeskData({
 
   const [releaseRecords, setReleaseRecords] = useState<FeatureReleaseRecords | null>(null);
   const [bugs, setBugs] = useState<BugWithContext[]>([]);
+  const [devResolutionFingerprint, setDevResolutionFingerprint] = useState<string | null>(null);
 
   const loadReleaseRecords = useCallback(async () => {
     if (!workspaceId || !featureTaskId) return;
@@ -81,26 +95,79 @@ export function useQaDeskData({
     }
   }, [featureTaskId, workspaceId]);
 
+  const loadDevResolutionFingerprint = useCallback(
+    async (currentBugs: BugWithContext[]) => {
+      const resolvedBugs = currentBugs.filter((b) => b.status === 'resolved');
+      if (resolvedBugs.length === 0) {
+        setDevResolutionFingerprint(null);
+        return;
+      }
+      const sorted = [...resolvedBugs].sort(
+        (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime(),
+      );
+      for (const b of sorted) {
+        try {
+          const history = await bugService.getRetestHistory(workspaceId, b.id);
+          const events = history?.resolutionEvents || [];
+          if (events.length > 0) {
+            const latestEvent = [...events].sort(
+              (x, y) => (y.sequence || 0) - (x.sequence || 0),
+            )[0];
+            if (latestEvent?.candidateFingerprint) {
+              setDevResolutionFingerprint(latestEvent.candidateFingerprint);
+              return;
+            }
+          }
+        } catch {
+          // ignore error and check next bug
+        }
+      }
+      setDevResolutionFingerprint(null);
+    },
+    [workspaceId],
+  );
+
   const loadBugs = useCallback(async () => {
     if (!workspaceId || !featureTaskId) return;
     try {
       const result = await bugService.listBugs(workspaceId, { featureTaskId });
       setBugs(result);
+      await loadDevResolutionFingerprint(result);
     } catch {
       setBugs([]);
+      setDevResolutionFingerprint(null);
     }
-  }, [featureTaskId, workspaceId]);
+  }, [featureTaskId, loadDevResolutionFingerprint, workspaceId]);
 
   useEffect(() => {
     void loadReleaseRecords();
     void loadBugs();
   }, [loadReleaseRecords, loadBugs]);
 
+  const activeCycleSignOffs = useMemo(() => {
+    if (!releaseRecords?.qaSignOffs || !selectedTestCycle?.id) return [];
+    return releaseRecords.qaSignOffs
+      .filter(
+        (s) =>
+          !s.cancellation &&
+          (s.testCycleId === selectedTestCycle.id ||
+            (s as { qaTestCycleId?: string }).qaTestCycleId === selectedTestCycle.id) &&
+          s.qaSubtaskId === subtask.id,
+      )
+      .sort((a, b) => new Date(b.signedAt || 0).getTime() - new Date(a.signedAt || 0).getTime());
+  }, [releaseRecords?.qaSignOffs, selectedTestCycle?.id, subtask.id]);
+
+  const latestActiveCycleSignOff = activeCycleSignOffs[0] || null;
+
   const isSignOffRecorded = useMemo(() => {
-    if (!releaseRecords?.qaSignOffs) return false;
-    const activeSignOffs = releaseRecords.qaSignOffs.filter((s) => !s.cancellation);
-    return activeSignOffs.length > 0;
-  }, [releaseRecords]);
+    if (!latestActiveCycleSignOff) return false;
+    return ['approved', 'approve'].includes(latestActiveCycleSignOff.decision);
+  }, [latestActiveCycleSignOff]);
+
+  const isSignOffRejected = useMemo(() => {
+    if (!latestActiveCycleSignOff) return false;
+    return ['rejected', 'reject'].includes(latestActiveCycleSignOff.decision);
+  }, [latestActiveCycleSignOff]);
 
   const resolvedBugVersions = useMemo(() => {
     return bugs
@@ -327,6 +394,10 @@ export function useQaDeskData({
     bugs,
     loadBugs,
     isSignOffRecorded,
+    isSignOffRejected,
+    selectedTestCycle,
+    setSelectedTestCycle,
+    devResolutionFingerprint,
     resolvedBugVersions,
   };
 }

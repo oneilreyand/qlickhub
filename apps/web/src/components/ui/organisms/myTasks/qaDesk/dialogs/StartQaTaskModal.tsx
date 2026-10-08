@@ -10,13 +10,13 @@ import type { useQaTaskInitiation } from '../hooks/useQaTaskInitiation';
 export interface StartQaTaskModalProps {
   initiation: ReturnType<typeof useQaTaskInitiation>;
   existingTestCycle?: QaTestCycle | null;
-  resolvedBugVersions?: Array<{ build: string; environment: string }>;
+  devResolutionFingerprint?: string | null;
 }
 
 export const StartQaTaskModal: React.FC<StartQaTaskModalProps> = ({
   initiation,
   existingTestCycle = null,
-  resolvedBugVersions = [],
+  devResolutionFingerprint = null,
 }) => {
   const {
     isModalOpen,
@@ -44,15 +44,12 @@ export const StartQaTaskModal: React.FC<StartQaTaskModalProps> = ({
 
   const hasActiveCycle = Boolean(createdCycle || existingTestCycle);
 
-  // Check if build + environment matches a resolved bug version
-  const isDuplicateResolvedBugVersion = React.useMemo(() => {
-    const b = build.trim().toLowerCase();
-    const env = environment.trim().toLowerCase();
-    if (!b || !env) return false;
-    return resolvedBugVersions.some(
-      (v) => v.build.trim().toLowerCase() === b && v.environment.trim().toLowerCase() === env,
-    );
-  }, [build, environment, resolvedBugVersions]);
+  // Check if candidate fingerprint differs from Dev's resolution fingerprint
+  const isDevFingerprintMismatch = Boolean(
+    devResolutionFingerprint &&
+    candidateFingerprint.trim() &&
+    candidateFingerprint.trim() !== devResolutionFingerprint.trim(),
+  );
 
   const isLoading = currentStep !== 'idle' && currentStep !== 'completed';
 
@@ -109,9 +106,19 @@ export const StartQaTaskModal: React.FC<StartQaTaskModalProps> = ({
               <span className="text-[11px] text-stone-500">Wajib diisi</span>
             </div>
 
-            {isDuplicateResolvedBugVersion && (
-              <Alert tone="warning" title="Peringatan Versi Perbaikan">
-                Gunakan nama build baru untuk versi hasil perbaikan
+            {devResolutionFingerprint && (
+              <div className="flex items-center gap-2 rounded-xl bg-amber-50/90 border border-amber-200 p-3 text-xs text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200">
+                <span className="font-bold shrink-0">Versi perbaikan dari Dev:</span>
+                <code className="font-mono bg-white dark:bg-stone-900 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-700 font-semibold truncate">
+                  {devResolutionFingerprint}
+                </code>
+              </div>
+            )}
+
+            {isDevFingerprintMismatch && (
+              <Alert tone="warning" title="Peringatan Identitas Kandidat">
+                Identitas kandidat berbeda dari versi perbaikan yang diserahkan pengembang (
+                {devResolutionFingerprint}). Retest akan gagal jika tidak cocok.
               </Alert>
             )}
 
@@ -141,22 +148,36 @@ export const StartQaTaskModal: React.FC<StartQaTaskModalProps> = ({
               </div>
             </div>
 
-            <details className="group rounded-lg border border-stone-200 bg-white p-2.5 text-xs dark:border-stone-800 dark:bg-stone-950">
-              <summary className="cursor-pointer font-semibold text-stone-600 dark:text-stone-400 select-none">
-                Detail teknis
-              </summary>
-              <div className="mt-2 space-y-1">
-                <label className="block text-[11px] font-semibold text-stone-700 dark:text-stone-300">
-                  Identitas Kandidat (Candidate Fingerprint)
+            {devResolutionFingerprint ? (
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                  Identitas Kandidat (Candidate Fingerprint) <span className="text-red-500">*</span>
                 </label>
                 <Input
                   value={candidateFingerprint}
                   onChange={(e) => setCandidateFingerprint(e.target.value)}
-                  placeholder="Diturunkan otomatis dari build dan lingkungan"
+                  placeholder={devResolutionFingerprint}
                   disabled={isLoading}
                 />
               </div>
-            </details>
+            ) : (
+              <details className="group rounded-lg border border-stone-200 bg-white p-2.5 text-xs dark:border-stone-800 dark:bg-stone-950">
+                <summary className="cursor-pointer font-semibold text-stone-600 dark:text-stone-400 select-none">
+                  Detail teknis
+                </summary>
+                <div className="mt-2 space-y-1">
+                  <label className="block text-[11px] font-semibold text-stone-700 dark:text-stone-300">
+                    Identitas Kandidat (Candidate Fingerprint)
+                  </label>
+                  <Input
+                    value={candidateFingerprint}
+                    onChange={(e) => setCandidateFingerprint(e.target.value)}
+                    placeholder="Diturunkan otomatis dari build dan lingkungan"
+                    disabled={isLoading}
+                  />
+                </div>
+              </details>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/50 p-3.5 text-xs dark:border-emerald-900 dark:bg-emerald-950/20">

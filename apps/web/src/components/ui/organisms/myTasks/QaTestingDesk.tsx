@@ -59,12 +59,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [activeWorkflowTab, setActiveWorkflowTab] = useState<QaWorkflowTab>('preparation');
 
   useEffect(() => {
-    if (focusTarget === 'test_cases') {
-      setActiveWorkflowTab('preparation');
-    }
-    if (focusTarget === 'qa_sign_off') {
-      setActiveWorkflowTab('sign_off');
-    }
+    if (focusTarget === 'test_cases') setActiveWorkflowTab('preparation');
+    if (focusTarget === 'qa_sign_off') setActiveWorkflowTab('sign_off');
   }, [focusTarget]);
 
   const deskData = useQaDeskData({
@@ -84,8 +80,14 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     subtaskId: subtask.id,
     currentUserId,
     loadWorkflowSummary: deskData.loadWorkflowSummary,
+    devResolutionFingerprint: deskData.devResolutionFingerprint,
     onCycleCreatedWithPendingRun: (cycle) => executionState.handleCycleCreated(cycle),
   });
+
+  const { setSelectedTestCycle } = deskData;
+  useEffect(() => {
+    setSelectedTestCycle(testCycleState.selectedTestCycle);
+  }, [testCycleState.selectedTestCycle, setSelectedTestCycle]);
 
   const executionState = useTestExecution({
     workspaceId,
@@ -127,6 +129,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     featureTaskId: deskData.featureTaskId,
     existingTestCycle: testCycleState.selectedTestCycle,
     defaultRequirementId: executionState.requirementOptions[0]?.id || '',
+    devResolutionFingerprint: deskData.devResolutionFingerprint,
     onInitiationCompleted: async (cycle, tcId) => {
       if (cycle) {
         testCycleState.setSelectedTestCycleId(cycle.id);
@@ -186,6 +189,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             isActivatingTestCase={Boolean(executionState.activatingTestCaseId)}
             canMutateQaExecution={deskData.canMutateQaExecution}
             isSignOffRecorded={deskData.isSignOffRecorded}
+            isSignOffRejected={deskData.isSignOffRejected}
             onStartQaTask={() => initiationState.openInitiationModal()}
             onActivateTestCase={(id) => void executionState.handleActivateTestCase(id)}
             onRunTestCase={(id) => void executionState.handleQuickStartRun(id)}
@@ -588,7 +592,6 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         bugReportState={bugReportState}
         deskData={deskData}
         initiationState={initiationState}
-        resolvedBugVersions={deskData.resolvedBugVersions}
       />
     </div>
   );

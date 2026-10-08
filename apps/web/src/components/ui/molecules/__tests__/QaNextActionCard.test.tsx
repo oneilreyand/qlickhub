@@ -335,4 +335,39 @@ describe('QaNextActionCard Molecule', () => {
     // Primary action button is NOT rendered
     expect(screen.queryByRole('button', { name: 'Beri Persetujuan QA' })).not.toBeInTheDocument();
   });
+
+  it('displays state "Ditolak QA" when active version QA sign-off is rejected', () => {
+    const onNavigateToSignOff = vi.fn();
+    render(
+      <QaNextActionCard
+        workflowSummary={{
+          ...baseSummary,
+          qaSubtaskStatus: 'done',
+        }}
+        subtaskStatus="done"
+        testCycle={mockCycle}
+        qaCompletionReady={true}
+        isSignOffRecorded={false}
+        isSignOffRejected={true}
+        onStartQaTask={vi.fn()}
+        onActivateTestCase={vi.fn()}
+        onRunTestCase={vi.fn()}
+        onRecordResult={vi.fn()}
+        onCompleteQaTask={vi.fn()}
+        onNavigateToSignOff={onNavigateToSignOff}
+      />,
+    );
+
+    // Displays Ditolak QA instead of Selesai
+    expect(screen.getByText('Ditolak QA')).toBeInTheDocument();
+    expect(screen.getByText('Persetujuan QA Ditolak')).toBeInTheDocument();
+    expect(screen.queryByText('Selesai')).not.toBeInTheDocument();
+    expect(screen.queryByText('Persetujuan QA Tercatat')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Beri Persetujuan QA' })).not.toBeInTheDocument();
+
+    const rejectBtn = screen.getByRole('button', { name: 'Lihat Catatan Penolakan' });
+    expect(rejectBtn).toBeInTheDocument();
+    fireEvent.click(rejectBtn);
+    expect(onNavigateToSignOff).toHaveBeenCalledTimes(1);
+  });
 });
