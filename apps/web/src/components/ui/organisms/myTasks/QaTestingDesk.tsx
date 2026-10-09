@@ -28,6 +28,7 @@ import { useTestCycle } from './qaDesk/hooks/useTestCycle';
 import { useAcMapping } from './qaDesk/hooks/useAcMapping';
 import { useBugReport } from './qaDesk/hooks/useBugReport';
 import { useTestExecution } from './qaDesk/hooks/useTestExecution';
+import { useQaTaskInitiation } from './qaDesk/hooks/useQaTaskInitiation';
 
 import { QaContextTab } from './qaDesk/tabs/QaContextTab';
 import { QaTestCaseExecutionTab } from './qaDesk/tabs/QaTestCaseExecutionTab';
@@ -58,12 +59,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const [activeWorkflowTab, setActiveWorkflowTab] = useState<QaWorkflowTab>('preparation');
 
   useEffect(() => {
-    if (focusTarget === 'test_cases') {
-      setActiveWorkflowTab('preparation');
-    }
-    if (focusTarget === 'qa_sign_off') {
-      setActiveWorkflowTab('sign_off');
-    }
+    if (focusTarget === 'test_cases') setActiveWorkflowTab('preparation');
+    if (focusTarget === 'qa_sign_off') setActiveWorkflowTab('sign_off');
   }, [focusTarget]);
 
   const deskData = useQaDeskData({
@@ -83,8 +80,14 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     subtaskId: subtask.id,
     currentUserId,
     loadWorkflowSummary: deskData.loadWorkflowSummary,
+    devResolutionFingerprint: deskData.devResolutionFingerprint,
     onCycleCreatedWithPendingRun: (cycle) => executionState.handleCycleCreated(cycle),
   });
+
+  const { setSelectedTestCycle } = deskData;
+  useEffect(() => {
+    setSelectedTestCycle(testCycleState.selectedTestCycle);
+  }, [testCycleState.selectedTestCycle, setSelectedTestCycle]);
 
   const executionState = useTestExecution({
     workspaceId,
@@ -118,6 +121,29 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     runEnvironment: executionState.runEnvironment,
     loadWorkflowSummary: deskData.loadWorkflowSummary,
     onDataChanged,
+  });
+
+  const initiationState = useQaTaskInitiation({
+    workspaceId,
+    subtask,
+    featureTaskId: deskData.featureTaskId,
+    existingTestCycle: testCycleState.selectedTestCycle,
+    defaultRequirementId: executionState.requirementOptions[0]?.id || '',
+    devResolutionFingerprint: deskData.devResolutionFingerprint,
+    onInitiationCompleted: async (cycle, tcId) => {
+      if (cycle) {
+        testCycleState.setSelectedTestCycleId(cycle.id);
+        await testCycleState.loadTestCycles();
+      }
+      if (tcId) {
+        executionState.setSelectedTestCaseId(tcId);
+      }
+      await executionState.loadExecutions();
+      await deskData.loadWorkflowSummary();
+      onDataChanged();
+    },
+    loadWorkflowSummary: deskData.loadWorkflowSummary,
+    loadExecutions: executionState.loadExecutions,
   });
 
   const detailViewProps = {
@@ -162,21 +188,12 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             isStartingRun={executionState.isStartingRun}
             isActivatingTestCase={Boolean(executionState.activatingTestCaseId)}
             canMutateQaExecution={deskData.canMutateQaExecution}
-            onStartQaTask={() => {
-              if (subtask.status === 'todo') {
-                void deskData.handleStatusChange('in_progress');
-              }
-              if (!testCycleState.selectedTestCycle) {
-                testCycleState.openTestCycleModal();
-              }
-            }}
-            onActivateTestCase={(testCaseId) =>
-              void executionState.handleActivateTestCase(testCaseId)
-            }
-            onRunTestCase={(testCaseId) => void executionState.handleQuickStartRun(testCaseId)}
-            onRecordResult={(testCaseId, testRunId) =>
-              executionState.openResultModal(testCaseId, testRunId)
-            }
+            isSignOffRecorded={deskData.isSignOffRecorded}
+            isSignOffRejected={deskData.isSignOffRejected}
+            onStartQaTask={() => initiationState.openInitiationModal()}
+            onActivateTestCase={(id) => void executionState.handleActivateTestCase(id)}
+            onRunTestCase={(id) => void executionState.handleQuickStartRun(id)}
+            onRecordResult={(tcId, runId) => executionState.openResultModal(tcId, runId)}
             onCompleteQaTask={() => void deskData.handleStatusChange('done')}
             onNavigateToSignOff={() => setActiveWorkflowTab('sign_off')}
             onNavigateToBugs={() => setActiveWorkflowTab('bugs')}
@@ -233,34 +250,28 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               </Button>
             )}
 
-            {subtask.status === 'in_progress' && (
-              <>
-                {deskData.canMutateQaExecution && (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => deskData.handleStatusChange('done')}
-                      isLoading={deskData.isUpdatingStatus}
-                      disabled={!deskData.qaCompletionReady}
-                      title={
-                        deskData.qaCompletionReady
-                          ? undefined
-                          : deskData.qaCompletionUnavailableMessage
-                      }
-                      leftIcon={<CheckCircle2 className="h-4 w-4" />}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      Selesaikan Tugas QA
-                    </Button>
-                    {!deskData.qaCompletionReady && deskData.qaCompletionUnavailableMessage && (
-                      <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-                        {deskData.qaCompletionUnavailableMessage}
-                      </span>
-                    )}
-                  </div>
+            {subtask.status === 'in_progress' && deskData.canMutateQaExecution && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => deskData.handleStatusChange('done')}
+                  isLoading={deskData.isUpdatingStatus}
+                  disabled={!deskData.qaCompletionReady}
+                  title={
+                    deskData.qaCompletionReady ? undefined : deskData.qaCompletionUnavailableMessage
+                  }
+                  leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  Selesaikan Tugas QA
+                </Button>
+                {!deskData.qaCompletionReady && deskData.qaCompletionUnavailableMessage && (
+                  <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                    {deskData.qaCompletionUnavailableMessage}
+                  </span>
                 )}
-              </>
+              </div>
             )}
 
             {/* Developer Subtask Review: Authorized QA / Planner can request changes or mark as done */}
@@ -580,6 +591,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         acMappingState={acMappingState}
         bugReportState={bugReportState}
         deskData={deskData}
+        initiationState={initiationState}
       />
     </div>
   );

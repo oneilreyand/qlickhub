@@ -12,6 +12,7 @@ export interface UseTestCycleOptions {
   currentUserId?: string;
   loadWorkflowSummary: () => Promise<void>;
   onCycleCreatedWithPendingRun?: (cycle?: QaTestCycle) => void;
+  devResolutionFingerprint?: string | null;
 }
 
 export const deriveCandidateFingerprint = (build: string, environment: string): string => {
@@ -27,6 +28,7 @@ export function useTestCycle({
   currentUserId,
   loadWorkflowSummary,
   onCycleCreatedWithPendingRun,
+  devResolutionFingerprint,
 }: UseTestCycleOptions) {
   const dispatch = useAppDispatch();
   const [testCycles, setTestCycles] = useState<QaTestCycle[]>([]);
@@ -83,21 +85,21 @@ export function useTestCycle({
   const setTestCycleBuild = useCallback(
     (val: string) => {
       setTestCycleBuildState(val);
-      if (!isFingerprintManual) {
+      if (!isFingerprintManual && !devResolutionFingerprint) {
         setTestCycleFingerprintState(deriveCandidateFingerprint(val, testCycleEnvironment));
       }
     },
-    [isFingerprintManual, testCycleEnvironment],
+    [devResolutionFingerprint, isFingerprintManual, testCycleEnvironment],
   );
 
   const setTestCycleEnvironment = useCallback(
     (val: string) => {
       setTestCycleEnvironmentState(val);
-      if (!isFingerprintManual) {
+      if (!isFingerprintManual && !devResolutionFingerprint) {
         setTestCycleFingerprintState(deriveCandidateFingerprint(testCycleBuild, val));
       }
     },
-    [isFingerprintManual, testCycleBuild],
+    [devResolutionFingerprint, isFingerprintManual, testCycleBuild],
   );
 
   const setTestCycleFingerprint = useCallback((val: string) => {
@@ -108,11 +110,16 @@ export function useTestCycle({
   const openTestCycleModal = useCallback(() => {
     setTestCycleBuildState('');
     setTestCycleEnvironmentState('staging');
-    setIsFingerprintManual(false);
-    setTestCycleFingerprintState('');
+    if (devResolutionFingerprint) {
+      setTestCycleFingerprintState(devResolutionFingerprint);
+      setIsFingerprintManual(true);
+    } else {
+      setIsFingerprintManual(false);
+      setTestCycleFingerprintState('');
+    }
     setTestCycleError(null);
     setIsTestCycleModalOpen(true);
-  }, []);
+  }, [devResolutionFingerprint]);
 
   const handleCreateTestCycle = async () => {
     const finalFingerprint =

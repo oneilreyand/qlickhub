@@ -28,6 +28,8 @@ export interface QaNextActionCardProps {
   isStartingRun?: boolean;
   isActivatingTestCase?: boolean;
   canMutateQaExecution?: boolean;
+  isSignOffRecorded?: boolean;
+  isSignOffRejected?: boolean;
   onStartQaTask: () => void;
   onActivateTestCase: (testCaseId: string) => void;
   onRunTestCase: (testCaseId: string) => void;
@@ -47,7 +49,9 @@ export type QaActionStepState =
   | 'record_result'
   | 'resolve_bug'
   | 'complete_task'
-  | 'sign_off';
+  | 'sign_off'
+  | 'sign_off_rejected'
+  | 'completed';
 
 export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
   workflowSummary,
@@ -63,6 +67,8 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
   isStartingRun = false,
   isActivatingTestCase = false,
   canMutateQaExecution = true,
+  isSignOffRecorded = false,
+  isSignOffRejected = false,
   onStartQaTask,
   onActivateTestCase,
   onRunTestCase,
@@ -76,7 +82,11 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
   // Determine the current step state
   let stepState: QaActionStepState;
 
-  if (subtaskStatus === 'todo') {
+  if (isSignOffRecorded) {
+    stepState = 'completed';
+  } else if (isSignOffRejected) {
+    stepState = 'sign_off_rejected';
+  } else if (subtaskStatus === 'todo') {
     stepState = 'start_task';
   } else if (!testCycle && subtaskStatus === 'in_progress') {
     stepState = 'set_version';
@@ -235,17 +245,52 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
       buttonIcon = <ShieldCheck className="h-4 w-4" />;
       onPrimaryClick = onNavigateToSignOff;
       break;
+
+    case 'sign_off_rejected':
+      stepBadge = 'Ditolak QA';
+      title = 'Persetujuan QA Ditolak';
+      description =
+        'Persetujuan QA untuk versi aktif ini ditolak. Periksa catatan penolakan pada tab Jaminan Rilis sebelum melanjutkan pengujian atau perbaikan.';
+      buttonLabel = 'Lihat Catatan Penolakan';
+      buttonIcon = <ShieldCheck className="h-4 w-4" />;
+      onPrimaryClick = onNavigateToSignOff;
+      break;
+
+    case 'completed':
+      stepBadge = 'Selesai';
+      title = 'Pengujian & Persetujuan QA Selesai';
+      description =
+        'Persetujuan QA untuk versi yang diuji telah tercatat. Rilis siap ditinjau oleh Product Owner.';
+      buttonLabel = '';
+      buttonIcon = <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
+      break;
   }
+
+  const isRejected = stepState === 'sign_off_rejected';
 
   return (
     <Card
-      className={`relative overflow-hidden border-2 border-emerald-300/90 bg-linear-to-r from-emerald-50/90 via-white to-stone-50 p-4 sm:p-5 shadow-xs dark:border-emerald-700/60 dark:from-emerald-950/40 dark:via-stone-900 dark:to-stone-950 ${className}`.trim()}
+      className={`relative overflow-hidden border-2 p-4 sm:p-5 shadow-xs ${
+        isRejected
+          ? 'border-rose-300/90 bg-linear-to-r from-rose-50/90 via-white to-stone-50 dark:border-rose-800 dark:from-rose-950/30 dark:via-stone-900 dark:to-stone-950'
+          : 'border-emerald-300/90 bg-linear-to-r from-emerald-50/90 via-white to-stone-50 dark:border-emerald-700/60 dark:from-emerald-950/40 dark:via-stone-900 dark:to-stone-950'
+      } ${className}`.trim()}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1.5 flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-              <Sparkles className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wider ${
+                isRejected
+                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+              }`}
+            >
+              {isRejected ? (
+                <AlertTriangle className="h-3 w-3 text-rose-600 dark:text-rose-400" />
+              ) : (
+                <Sparkles className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+              )}
               {stepBadge}
             </span>
             {testCycle && (
@@ -274,26 +319,37 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
           )}
         </div>
 
-        <div className="shrink-0 flex flex-col items-start sm:items-end gap-1.5 pt-1 sm:pt-0">
-          <Button
-            variant="primary"
-            size="md"
-            onClick={onPrimaryClick}
-            isLoading={isButtonLoading}
-            disabled={isButtonDisabled}
-            leftIcon={buttonIcon}
-            aria-label={buttonLabel}
-            className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-bold bg-[#B1E743] hover:bg-[#9ed432] text-[#141413] border border-[#9ed432]/50 shadow-xs focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all dark:bg-[#B1E743] dark:text-[#141413] dark:hover:bg-[#9ed432] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {buttonLabel}
-          </Button>
+        {stepState === 'completed' ? (
+          <div className="shrink-0 flex items-center gap-2 rounded-xl bg-emerald-100/90 px-4 py-2.5 text-xs font-bold text-emerald-900 border border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>Persetujuan QA Tercatat</span>
+          </div>
+        ) : (
+          <div className="shrink-0 flex flex-col items-start sm:items-end gap-1.5 pt-1 sm:pt-0">
+            <Button
+              variant={isRejected ? 'secondary' : 'primary'}
+              size="md"
+              onClick={onPrimaryClick}
+              isLoading={isButtonLoading}
+              disabled={isButtonDisabled}
+              leftIcon={buttonIcon}
+              aria-label={buttonLabel}
+              className={
+                isRejected
+                  ? 'w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-bold border border-rose-300 text-rose-900 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:text-rose-200 dark:border-rose-800 shadow-xs focus:ring-2 focus:ring-rose-500'
+                  : 'w-full sm:w-auto min-h-[44px] px-5 py-2.5 text-sm font-bold bg-[#B1E743] hover:bg-[#9ed432] text-[#141413] border border-[#9ed432]/50 shadow-xs focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all dark:bg-[#B1E743] dark:text-[#141413] dark:hover:bg-[#9ed432] disabled:opacity-50 disabled:cursor-not-allowed'
+              }
+            >
+              {buttonLabel}
+            </Button>
 
-          {!canMutateQaExecution && (
-            <span className="text-[11px] text-stone-500 italic">
-              Aksi dibatasi untuk QA yang ditugaskan.
-            </span>
-          )}
-        </div>
+            {!canMutateQaExecution && (
+              <span className="text-[11px] text-stone-500 italic">
+                Aksi dibatasi untuk QA yang ditugaskan.
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </Card>
   );
