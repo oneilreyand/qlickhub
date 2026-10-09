@@ -41,6 +41,54 @@ import { enqueueSnackbar } from '../../../../store/uiSlice';
 import { taskService } from '../../../../lib/api/taskService';
 import { parseDeliverablesFromDescription, buildCombinedDescription } from './devDeliverables';
 
+const DEV_STATUS_STEPS: { key: TaskStatus; label: string }[] = [
+  { key: 'todo', label: 'Belum Dikerjakan' },
+  { key: 'in_progress', label: 'Sedang Dikerjakan' },
+  { key: 'in_review', label: 'Dalam Review QA' },
+  { key: 'done', label: 'Selesai' },
+];
+
+/** Compact 4-step progress that fits a 390px screen: one label plus four segments. */
+const DevStatusProgress: React.FC<{ status: TaskStatus }> = ({ status }) => {
+  const stepIndex =
+    status === 'changes_requested'
+      ? 1
+      : Math.max(
+          0,
+          DEV_STATUS_STEPS.findIndex((step) => step.key === status),
+        );
+  const label =
+    status === 'changes_requested' ? 'Perlu Perbaikan' : DEV_STATUS_STEPS[stepIndex].label;
+  const activeColor =
+    status === 'changes_requested' || status === 'in_review' ? 'bg-amber-500' : 'bg-[#B1E743]';
+  return (
+    <div
+      className="space-y-2"
+      role="group"
+      aria-label={`Langkah ${stepIndex + 1} dari 4: ${label}`}
+    >
+      <p className="text-xs font-semibold text-stone-500 dark:text-stone-400">
+        Langkah {stepIndex + 1} dari 4 ·{' '}
+        <span className="font-bold text-stone-900 dark:text-stone-100">{label}</span>
+      </p>
+      <div className="grid grid-cols-4 gap-1.5" aria-hidden="true">
+        {DEV_STATUS_STEPS.map((step, index) => (
+          <span
+            key={step.key}
+            className={`h-1.5 rounded-full ${
+              index < stepIndex
+                ? 'bg-stone-400 dark:bg-stone-500'
+                : index === stepIndex
+                  ? activeColor
+                  : 'bg-stone-200 dark:bg-stone-800'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export interface DevWorkingDeskProps {
   subtask: Task;
   parentTask?: Task | null;
@@ -92,6 +140,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
   // Handoff modal state
   const [isHandoffModalOpen, setIsHandoffModalOpen] = useState(false);
   const [handoffNotes, setHandoffNotes] = useState('');
+  const [isEditingHandoffLinks, setIsEditingHandoffLinks] = useState(false);
   const [isSubmittingHandoff, setIsSubmittingHandoff] = useState(false);
 
   // Dirty state tracking & unsaved changes warning modal
@@ -433,27 +482,14 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
       )}
 
       {/* Dev Workstation Header Card */}
-      <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19]">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <Card className="p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="space-y-2 flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               {getAreaBadge()}
               <TaskStatusBadge state={subtask.status} />
               <TaskScheduleHealthBadge status={scheduleHealth.status} />
             </div>
-
-            <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 dark:text-stone-100 break-words">
-              {subtask.title}
-            </h2>
-
-            {parentTask && (
-              <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 flex-wrap">
-                <span className="text-stone-400 font-bold uppercase text-xs">Feature Induk:</span>
-                <span className="font-semibold text-stone-800 dark:text-stone-200 truncate max-w-md">
-                  {parentTask.title}
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Quick Stepper Actions */}
@@ -476,7 +512,11 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => setIsHandoffModalOpen(true)}
+                  onClick={() => {
+                    // Links already saved on the desk are shown as a summary, not asked again.
+                    setIsEditingHandoffLinks(!prUrl.trim() || !stagingUrl.trim());
+                    setIsHandoffModalOpen(true);
+                  }}
                   disabled={!canMutateDevStatus}
                   leftIcon={<Send className="h-4 w-4" />}
                   className="bg-[#B1E743] hover:bg-[#9ed434] text-[#141413] font-bold dark:bg-[#B1E743] dark:hover:bg-[#9ed434] dark:text-[#141413]"
@@ -536,95 +576,7 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
 
         {/* Workflow Progression Stepper Bar */}
         <div className="mt-4 pt-4 border-t border-stone-200 dark:border-stone-800">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <div
-              className={`flex items-center gap-2 ${
-                subtask.status === 'todo'
-                  ? 'text-stone-900 dark:text-[#B1E743] font-extrabold'
-                  : 'text-stone-500 dark:text-stone-400 font-semibold'
-              }`}
-            >
-              <div
-                className={`grid h-6 w-6 place-items-center rounded-full text-xs font-extrabold ${
-                  subtask.status === 'todo'
-                    ? 'bg-[#B1E743] text-[#141413] dark:bg-[#B1E743] dark:text-[#141413]'
-                    : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-                }`}
-              >
-                1
-              </div>
-              <span>Belum Dikerjakan</span>
-            </div>
-
-            <div className="h-0.5 flex-1 mx-2 bg-stone-200 dark:border-stone-800" />
-
-            <div
-              className={`flex items-center gap-2 ${
-                subtask.status === 'in_progress' || subtask.status === 'changes_requested'
-                  ? subtask.status === 'changes_requested'
-                    ? 'text-amber-600 dark:text-amber-400 font-extrabold'
-                    : 'text-stone-900 dark:text-[#B1E743] font-extrabold'
-                  : 'text-stone-500 dark:text-stone-400 font-semibold'
-              }`}
-            >
-              <div
-                className={`grid h-6 w-6 place-items-center rounded-full text-xs font-extrabold ${
-                  subtask.status === 'in_progress'
-                    ? 'bg-[#B1E743] text-[#141413] dark:bg-[#B1E743] dark:text-[#141413]'
-                    : subtask.status === 'changes_requested'
-                      ? 'bg-amber-500 text-white dark:bg-amber-400 dark:text-stone-950'
-                      : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-                }`}
-              >
-                2
-              </div>
-              <span>
-                {subtask.status === 'changes_requested' ? 'Perlu Perbaikan' : 'Sedang Dikerjakan'}
-              </span>
-            </div>
-
-            <div className="h-0.5 flex-1 mx-2 bg-stone-200 dark:border-stone-800" />
-
-            <div
-              className={`flex items-center gap-2 ${
-                subtask.status === 'in_review'
-                  ? 'text-amber-600 dark:text-amber-400 font-extrabold'
-                  : 'text-stone-500 dark:text-stone-400 font-semibold'
-              }`}
-            >
-              <div
-                className={`grid h-6 w-6 place-items-center rounded-full text-xs font-extrabold ${
-                  subtask.status === 'in_review'
-                    ? 'bg-amber-500 text-white dark:bg-amber-400 dark:text-stone-950'
-                    : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-                }`}
-              >
-                3
-              </div>
-              <span>{subtask.status === 'in_review' ? 'Dalam Review QA' : 'Siap untuk QA'}</span>
-            </div>
-
-            <div className="h-0.5 flex-1 mx-2 bg-stone-200 dark:border-stone-800" />
-
-            <div
-              className={`flex items-center gap-2 ${
-                subtask.status === 'done'
-                  ? 'text-stone-900 dark:text-[#B1E743] font-extrabold'
-                  : 'text-stone-500 dark:text-stone-400 font-semibold'
-              }`}
-            >
-              <div
-                className={`grid h-6 w-6 place-items-center rounded-full text-xs font-extrabold ${
-                  subtask.status === 'done'
-                    ? 'bg-[#B1E743] text-[#141413] dark:bg-[#B1E743] dark:text-[#141413]'
-                    : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-                }`}
-              >
-                4
-              </div>
-              <span>Selesai</span>
-            </div>
-          </div>
+          <DevStatusProgress status={subtask.status} />
 
           {subtask.status === 'changes_requested' && (
             <div className="mt-3 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
@@ -889,50 +841,87 @@ export const DevWorkingDesk: React.FC<DevWorkingDeskProps> = ({
           </p>
 
           <div className="space-y-3">
-            <div>
-              <label
-                htmlFor="handoff-staging-url"
-                className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
-              >
-                URL Lingkungan Staging / Pratinjau
-              </label>
-              <Input
-                id="handoff-staging-url"
-                value={stagingUrl}
-                onChange={(e) => setStagingUrl(e.target.value)}
-                placeholder="https://staging.app.io/feature-test"
-              />
-            </div>
+            {isEditingHandoffLinks ? (
+              <>
+                <div>
+                  <label
+                    htmlFor="handoff-staging-url"
+                    className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+                  >
+                    URL Lingkungan Staging / Pratinjau
+                  </label>
+                  <Input
+                    id="handoff-staging-url"
+                    value={stagingUrl}
+                    onChange={(e) => setStagingUrl(e.target.value)}
+                    placeholder="https://staging.app.io/feature-test"
+                  />
+                </div>
 
-            <div>
-              <label
-                htmlFor="handoff-branch-name"
-                className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
-              >
-                Nama Branch Git
-              </label>
-              <Input
-                id="handoff-branch-name"
-                value={branchName}
-                onChange={(e) => setBranchName(e.target.value)}
-                placeholder="feature/payment-gateway"
-              />
-            </div>
+                <div>
+                  <label
+                    htmlFor="handoff-branch-name"
+                    className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+                  >
+                    Nama Branch Git
+                  </label>
+                  <Input
+                    id="handoff-branch-name"
+                    value={branchName}
+                    onChange={(e) => setBranchName(e.target.value)}
+                    placeholder="feature/payment-gateway"
+                  />
+                </div>
 
-            <div>
-              <label
-                htmlFor="handoff-pr-url"
-                className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
-              >
-                URL Pull Request (PR)
-              </label>
-              <Input
-                id="handoff-pr-url"
-                value={prUrl}
-                onChange={(e) => setPrUrl(e.target.value)}
-                placeholder="https://github.com/org/repo/pull/42"
-              />
-            </div>
+                <div>
+                  <label
+                    htmlFor="handoff-pr-url"
+                    className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1"
+                  >
+                    URL Pull Request (PR)
+                  </label>
+                  <Input
+                    id="handoff-pr-url"
+                    value={prUrl}
+                    onChange={(e) => setPrUrl(e.target.value)}
+                    placeholder="https://github.com/org/repo/pull/42"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs dark:border-stone-800 dark:bg-stone-900/60">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-bold text-stone-800 dark:text-stone-200">
+                    Tautan yang diserahkan
+                  </p>
+                  <Button variant="ghost" size="sm" onClick={() => setIsEditingHandoffLinks(true)}>
+                    Ubah tautan
+                  </Button>
+                </div>
+                <dl className="mt-2 space-y-1 text-stone-600 dark:text-stone-400">
+                  <div className="flex gap-2">
+                    <dt className="w-24 shrink-0">Pull Request</dt>
+                    <dd className="min-w-0 truncate font-medium text-stone-900 dark:text-stone-100">
+                      {prUrl}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-24 shrink-0">Staging</dt>
+                    <dd className="min-w-0 truncate font-medium text-stone-900 dark:text-stone-100">
+                      {stagingUrl}
+                    </dd>
+                  </div>
+                  {branchName.trim() && (
+                    <div className="flex gap-2">
+                      <dt className="w-24 shrink-0">Branch</dt>
+                      <dd className="min-w-0 truncate font-medium text-stone-900 dark:text-stone-100">
+                        {branchName}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
 
             <div>
               <label
