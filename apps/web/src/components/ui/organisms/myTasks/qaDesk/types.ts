@@ -1,6 +1,6 @@
 import type { TestResultStatus } from '@qlick/contracts';
 
-export type QaWorkflowTab = 'context' | 'preparation' | 'bugs' | 'sign_off';
+export type QaWorkflowTab = 'context' | 'preparation' | 'bugs' | 'sign_off' | 'discussion';
 
 export interface BugTraceOption {
   key: string;

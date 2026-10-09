@@ -376,11 +376,10 @@ describe('QaTestingDesk Organism', () => {
   it('shows the backend-derived workflow scope, blocker, and next action', async () => {
     renderDesk();
 
-    expect(await screen.findByText('Ringkasan Workflow QA')).toBeInTheDocument();
-    expect(screen.getByText('Berikutnya: Buat Siklus Pengujian')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Buat Siklus Pengujian untuk kandidat yang akan diuji/),
-    ).toBeInTheDocument();
+    // The "Langkah berikutnya" card is the single place that states the next step; the old
+    // workflow summary block repeated it and was removed.
+    expect(await screen.findByText('Tetapkan Versi yang Diuji')).toBeInTheDocument();
+    expect(screen.queryByText('Ringkasan Workflow QA')).not.toBeInTheDocument();
     expect(serviceMocks.getQaWorkflowSummary).toHaveBeenCalledWith(ids.workspace, ids.subtask);
   });
 
@@ -430,7 +429,7 @@ describe('QaTestingDesk Organism', () => {
         /Menyelesaikan Subtask QA hanya mencatat eksekusi pengujian yang ditugaskan/i,
       ),
     ).not.toBeInTheDocument();
-    const completeButton = screen.getByRole('button', { name: 'Selesaikan Tugas QA' });
+    const completeButton = await screen.findByRole('button', { name: 'Selesaikan Tugas QA' });
     await waitFor(() => expect(completeButton).toBeEnabled());
     await user.click(completeButton);
 
@@ -446,12 +445,9 @@ describe('QaTestingDesk Organism', () => {
     const user = userEvent.setup();
     renderDesk();
 
-    const completeButton = screen.getByRole('button', { name: 'Selesaikan Tugas QA' });
-    await waitFor(() => expect(completeButton).toBeDisabled());
-    expect(completeButton).toHaveAttribute(
-      'title',
-      'Selesaikan langkah berikutnya terlebih dahulu: Buat Siklus Pengujian.',
-    );
+    // With blockers the next-action card points at the blocking step and never offers completion.
+    expect(await screen.findByText('Tetapkan Versi yang Diuji')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Selesaikan Tugas QA' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Persetujuan & Riwayat' }));
     expect(await screen.findByText('Persetujuan QA masih memiliki prasyarat')).toBeInTheDocument();
@@ -1261,7 +1257,7 @@ describe('QaTestingDesk Organism', () => {
     expect(splitBtn).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('renders rich 4-stage workflow tabs with dynamic metrics', async () => {
+  it('renders compact QA step tabs including Diskusi', async () => {
     serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
     renderDesk();
 
@@ -1270,20 +1266,20 @@ describe('QaTestingDesk Organism', () => {
     // Verify 4 Stage Tabs
     const contextTab = screen.getByRole('tab', { name: 'Konteks & Spesifikasi' });
     expect(contextTab).toBeInTheDocument();
-    expect(contextTab).toHaveTextContent('1. Konteks & Spesifikasi');
+    expect(contextTab).toHaveTextContent('Konteks & Spesifikasi');
 
     const preparationTab = screen.getByRole('tab', { name: 'Test Case & Eksekusi' });
     expect(preparationTab).toBeInTheDocument();
-    expect(preparationTab).toHaveTextContent('2. Test Case & Eksekusi');
-    expect(preparationTab).toHaveTextContent('1 Kasus');
+    expect(preparationTab).toHaveTextContent('Test Case & Eksekusi');
+    expect(preparationTab).toHaveTextContent('1');
 
     const bugsTab = screen.getByRole('tab', { name: 'Bug & Retest' });
     expect(bugsTab).toBeInTheDocument();
-    expect(bugsTab).toHaveTextContent('3. Bug & Retest');
+    expect(bugsTab).toHaveTextContent('Bug & Retest');
 
     const signOffTab = screen.getByRole('tab', { name: 'Persetujuan & Riwayat' });
     expect(signOffTab).toBeInTheDocument();
-    expect(signOffTab).toHaveTextContent('4. Persetujuan QA');
+    expect(signOffTab).toHaveTextContent('Persetujuan & Riwayat');
   });
 
   it('switches between Workflow Tabs smoothly', async () => {

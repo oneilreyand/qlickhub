@@ -88,7 +88,9 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
     stepState = 'sign_off_rejected';
   } else if (subtaskStatus === 'todo') {
     stepState = 'start_task';
-  } else if (!testCycle && subtaskStatus === 'in_progress') {
+  } else if (!testCycle && !workflowSummary?.testCycle && subtaskStatus === 'in_progress') {
+    // The persisted workflow summary also knows the active version; trust it while the
+    // version list is still loading so the card does not ask to set a version again.
     stepState = 'set_version';
   } else if (
     subtaskStatus === 'done' ||
