@@ -56,6 +56,7 @@ try {
     cwd: apiDirectory,
     env: environment,
   });
+  run('npm', ['--prefix', 'apps/api', 'run', 'build'], { env: environment });
   run(
     'npx',
     [
