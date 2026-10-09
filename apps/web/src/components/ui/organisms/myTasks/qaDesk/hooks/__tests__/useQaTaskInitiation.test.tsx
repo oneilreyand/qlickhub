@@ -19,6 +19,13 @@ const taskServiceMocks = vi.hoisted(() => ({
   updateTask: vi.fn(),
 }));
 
+const requirementServiceMocks = vi.hoisted(() => ({
+  getRequirement: vi.fn().mockResolvedValue({
+    requirement: { id: '10000000-0000-4000-8000-000000000004', code: 'REQ-1', title: 'Test Req' },
+    acceptanceCriteria: [],
+  }),
+}));
+
 const createWrapper = () => {
   const store = configureStore({
     reducer: {
@@ -36,6 +43,10 @@ vi.mock('../../../../../../../lib/api/testManagementService', () => ({
 
 vi.mock('../../../../../../../lib/api/taskService', () => ({
   taskService: taskServiceMocks,
+}));
+
+vi.mock('../../../../../../../lib/api/requirementService', () => ({
+  requirementService: requirementServiceMocks,
 }));
 
 const ids = {

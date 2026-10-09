@@ -370,4 +370,37 @@ describe('QaNextActionCard Molecule', () => {
     fireEvent.click(rejectBtn);
     expect(onNavigateToSignOff).toHaveBeenCalledTimes(1);
   });
+
+  it('prioritizes "Catat Hasil Pengujian" over "resolve_bug" when inProgressRun exists during retest', () => {
+    const onRecordResult = vi.fn();
+    render(
+      <QaNextActionCard
+        workflowSummary={{
+          ...baseSummary,
+          blockers: ['unverified_bug', 'scoped_run_in_progress'],
+          nextAction: { code: 'record_test_result', label: 'Catat Hasil Pengujian' },
+        }}
+        subtaskStatus="in_progress"
+        testCycle={mockCycle}
+        inProgressRun={{
+          testCaseId: 'tc-1',
+          testRunId: 'run-retest-1',
+          testCaseTitle: 'Payment timeout handling workflow',
+        }}
+        qaCompletionReady={false}
+        onStartQaTask={vi.fn()}
+        onActivateTestCase={vi.fn()}
+        onRunTestCase={vi.fn()}
+        onRecordResult={onRecordResult}
+        onCompleteQaTask={vi.fn()}
+        onNavigateToSignOff={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Catat Hasil Pengujian' })).toBeInTheDocument();
+    const btn = screen.getByRole('button', { name: 'Catat Hasil Pengujian' });
+    expect(btn).toBeInTheDocument();
+    fireEvent.click(btn);
+    expect(onRecordResult).toHaveBeenCalledWith('tc-1', 'run-retest-1');
+  });
 });

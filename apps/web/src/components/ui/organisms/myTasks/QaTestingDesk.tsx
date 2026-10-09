@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle,
   Bug,
@@ -72,6 +72,16 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     onDataChanged,
   });
 
+  const [dataRefreshKey, setDataRefreshKey] = useState(0);
+
+  const { loadBugs, loadReleaseRecords } = deskData;
+  const handleDataChanged = useCallback(() => {
+    setDataRefreshKey((prev) => prev + 1);
+    void loadBugs();
+    void loadReleaseRecords();
+    onDataChanged();
+  }, [loadBugs, loadReleaseRecords, onDataChanged]);
+
   const requirementScopeTaskId = parentTask?.id || subtask.parentTaskId || subtask.id;
 
   const testCycleState = useTestCycle({
@@ -81,6 +91,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     currentUserId,
     loadWorkflowSummary: deskData.loadWorkflowSummary,
     devResolutionFingerprint: deskData.devResolutionFingerprint,
+    onRefreshDevFingerprint: deskData.loadBugs,
     onCycleCreatedWithPendingRun: (cycle) => executionState.handleCycleCreated(cycle),
   });
 
@@ -97,7 +108,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     selectedTestCycle: testCycleState.selectedTestCycle,
     openTestCycleModal: testCycleState.openTestCycleModal,
     loadWorkflowSummary: deskData.loadWorkflowSummary,
-    onDataChanged,
+    onDataChanged: handleDataChanged,
     onDirectBugTrace: (trace) => {
       bugReportState.setPendingBugTrace(trace);
       bugReportState.openBugModal(trace);
@@ -120,7 +131,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     workflowSummaryTestCycleEnvironment: deskData.workflowSummary?.testCycle?.environment,
     runEnvironment: executionState.runEnvironment,
     loadWorkflowSummary: deskData.loadWorkflowSummary,
-    onDataChanged,
+    onDataChanged: handleDataChanged,
   });
 
   const initiationState = useQaTaskInitiation({
@@ -140,7 +151,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       }
       await executionState.loadExecutions();
       await deskData.loadWorkflowSummary();
-      onDataChanged();
+      handleDataChanged();
     },
     loadWorkflowSummary: deskData.loadWorkflowSummary,
     loadExecutions: executionState.loadExecutions,
@@ -190,10 +201,10 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
             canMutateQaExecution={deskData.canMutateQaExecution}
             isSignOffRecorded={deskData.isSignOffRecorded}
             isSignOffRejected={deskData.isSignOffRejected}
-            onStartQaTask={() => initiationState.openInitiationModal()}
+            onStartQaTask={initiationState.openInitiationModal}
             onActivateTestCase={(id) => void executionState.handleActivateTestCase(id)}
             onRunTestCase={(id) => void executionState.handleQuickStartRun(id)}
-            onRecordResult={(tcId, runId) => executionState.openResultModal(tcId, runId)}
+            onRecordResult={executionState.openResultModal}
             onCompleteQaTask={() => void deskData.handleStatusChange('done')}
             onNavigateToSignOff={() => setActiveWorkflowTab('sign_off')}
             onNavigateToBugs={() => setActiveWorkflowTab('bugs')}
@@ -500,6 +511,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           onOpenTestCaseForm={() => executionState.setIsTestCaseFormOpen(true)}
           isLoadingRequirementOptions={executionState.isLoadingRequirementOptions}
           requirementOptions={executionState.requirementOptions}
+          requirementOptionsError={executionState.requirementOptionsError}
           isLoadingTestCycles={testCycleState.isLoadingTestCycles}
           selectedTestCycle={testCycleState.selectedTestCycle}
           testCycles={testCycleState.testCycles}
@@ -514,7 +526,6 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           executionError={executionState.executionError}
           onReloadExecutions={() => void executionState.loadExecutions()}
           executionWorkspace={executionState.executionWorkspace}
-          requirementOptionsError={executionState.requirementOptionsError}
           isPlanner={deskData.isPlanner}
           normalizedUserRole={deskData.normalizedUserRole}
           assignedQaDisplayName={deskData.assignedQaDisplayName}
@@ -550,15 +561,17 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           workflowSummary={deskData.workflowSummary}
           workspaceId={workspaceId}
           userRole={userRole}
-          featureTaskId={parentTask?.id || subtask.id}
+          featureTaskId={deskData.featureTaskId}
           subtaskId={subtask.id}
           onReloadWorkflowSummary={() => void deskData.loadWorkflowSummary()}
-          onDataChanged={onDataChanged}
+          onDataChanged={handleDataChanged}
+          dataRefreshKey={dataRefreshKey}
           onRetestRunStarted={(qaSubtaskId) => {
             if (qaSubtaskId !== subtask.id) return;
             setActiveWorkflowTab('preparation');
             void executionState.loadExecutions();
             void deskData.loadWorkflowSummary();
+            handleDataChanged();
           }}
         />
       )}
@@ -574,7 +587,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           isLoadingWorkflowSummary={deskData.isLoadingWorkflowSummary}
           workflowSummaryError={deskData.workflowSummaryError}
           onReloadWorkflowSummary={() => void deskData.loadWorkflowSummary()}
-          onDataChanged={onDataChanged}
+          onDataChanged={handleDataChanged}
           comments={deskData.comments}
           currentUserId={currentUserId}
           members={deskData.members}

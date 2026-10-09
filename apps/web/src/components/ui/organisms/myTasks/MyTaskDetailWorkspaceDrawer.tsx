@@ -12,9 +12,10 @@ import { QaTestingDesk } from './QaTestingDesk';
 import { MyTaskFeatureContext } from './MyTaskFeatureContext';
 import { traceabilityService } from '../../../../lib/api/traceabilityService';
 import { taskService } from '../../../../lib/api/taskService';
-import { useAppSelector } from '../../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { RootState } from '../../../../store/store';
 import { selectCurrentUserId } from '../../../../store/authSlice';
+import { fetchMembers } from '../../../../store/workspaceSlice';
 import type { ReleaseReadinessViewState } from '../../../../lib/hooks/useReleaseReadinessMap';
 
 const ROLE_HUMAN_LABELS: Record<string, string> = {
@@ -46,8 +47,17 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   onOpenFeature,
   focusTarget = null,
 }) => {
-  const { activeWorkspaceId } = useAppSelector((state: RootState) => state.workspace);
+  const dispatch = useAppDispatch();
+  const { activeWorkspaceId, members: workspaceMembers } = useAppSelector(
+    (state: RootState) => state.workspace,
+  );
   const currentUserId = useAppSelector(selectCurrentUserId);
+
+  useEffect(() => {
+    if (isOpen && activeWorkspaceId && (!workspaceMembers || workspaceMembers.length === 0)) {
+      void dispatch(fetchMembers(activeWorkspaceId));
+    }
+  }, [dispatch, isOpen, activeWorkspaceId, workspaceMembers]);
 
   const [parentTask, setParentTask] = useState<Task | null>(null);
   const [activeViewMode, setActiveViewMode] = useState<'po' | 'dev' | 'qa'>('po');

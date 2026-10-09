@@ -57,9 +57,19 @@ try {
     env: environment,
   });
   run('npm', ['--prefix', 'apps/api', 'run', 'build'], { env: environment });
-  run('npx', ['playwright', 'test', '--config', 'apps/web/e2e/playwright.config.ts'], {
-    env: environment,
-  });
+  run(
+    'npx',
+    [
+      'playwright',
+      'test',
+      '--config',
+      'apps/web/e2e/playwright.config.ts',
+      ...process.argv.slice(2),
+    ],
+    {
+      env: environment,
+    },
+  );
 } finally {
   if (adminConnected && databaseCreated) {
     try {

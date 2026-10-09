@@ -13,6 +13,7 @@ export interface UseTestCycleOptions {
   loadWorkflowSummary: () => Promise<void>;
   onCycleCreatedWithPendingRun?: (cycle?: QaTestCycle) => void;
   devResolutionFingerprint?: string | null;
+  onRefreshDevFingerprint?: () => Promise<string | null>;
 }
 
 export const deriveCandidateFingerprint = (build: string, environment: string): string => {
@@ -29,6 +30,7 @@ export function useTestCycle({
   loadWorkflowSummary,
   onCycleCreatedWithPendingRun,
   devResolutionFingerprint,
+  onRefreshDevFingerprint,
 }: UseTestCycleOptions) {
   const dispatch = useAppDispatch();
   const [testCycles, setTestCycles] = useState<QaTestCycle[]>([]);
@@ -107,11 +109,15 @@ export function useTestCycle({
     setTestCycleFingerprintState(val);
   }, []);
 
-  const openTestCycleModal = useCallback(() => {
+  const openTestCycleModal = useCallback(async () => {
+    let currentFingerprint = devResolutionFingerprint;
+    if (onRefreshDevFingerprint) {
+      currentFingerprint = await onRefreshDevFingerprint();
+    }
     setTestCycleBuildState('');
     setTestCycleEnvironmentState('staging');
-    if (devResolutionFingerprint) {
-      setTestCycleFingerprintState(devResolutionFingerprint);
+    if (currentFingerprint) {
+      setTestCycleFingerprintState(currentFingerprint);
       setIsFingerprintManual(true);
     } else {
       setIsFingerprintManual(false);
@@ -119,7 +125,7 @@ export function useTestCycle({
     }
     setTestCycleError(null);
     setIsTestCycleModalOpen(true);
-  }, [devResolutionFingerprint]);
+  }, [devResolutionFingerprint, onRefreshDevFingerprint]);
 
   const handleCreateTestCycle = async () => {
     const finalFingerprint =

@@ -124,10 +124,14 @@ export const StartQaTaskModal: React.FC<StartQaTaskModalProps> = ({
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                <label
+                  htmlFor="qa-init-build"
+                  className="mb-1 block text-xs font-semibold text-stone-700 dark:text-stone-300"
+                >
                   Build <span className="text-red-500">*</span>
                 </label>
                 <Input
+                  id="qa-init-build"
                   value={build}
                   onChange={(e) => setBuild(e.target.value)}
                   placeholder="checkout-web-2026.10.01"
@@ -136,10 +140,14 @@ export const StartQaTaskModal: React.FC<StartQaTaskModalProps> = ({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                <label
+                  htmlFor="qa-init-env"
+                  className="mb-1 block text-xs font-semibold text-stone-700 dark:text-stone-300"
+                >
                   Lingkungan <span className="text-red-500">*</span>
                 </label>
                 <Input
+                  id="qa-init-env"
                   value={environment}
                   onChange={(e) => setEnvironment(e.target.value)}
                   placeholder="staging"
@@ -150,10 +158,14 @@ export const StartQaTaskModal: React.FC<StartQaTaskModalProps> = ({
 
             {devResolutionFingerprint ? (
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                <label
+                  htmlFor="qa-init-fingerprint"
+                  className="block text-xs font-semibold text-stone-700 dark:text-stone-300"
+                >
                   Identitas Kandidat (Candidate Fingerprint) <span className="text-red-500">*</span>
                 </label>
                 <Input
+                  id="qa-init-fingerprint"
                   value={candidateFingerprint}
                   onChange={(e) => setCandidateFingerprint(e.target.value)}
                   placeholder={devResolutionFingerprint}
@@ -166,10 +178,14 @@ export const StartQaTaskModal: React.FC<StartQaTaskModalProps> = ({
                   Detail teknis
                 </summary>
                 <div className="mt-2 space-y-1">
-                  <label className="block text-[11px] font-semibold text-stone-700 dark:text-stone-300">
+                  <label
+                    htmlFor="qa-init-fingerprint-tech"
+                    className="block text-[11px] font-semibold text-stone-700 dark:text-stone-300"
+                  >
                     Identitas Kandidat (Candidate Fingerprint)
                   </label>
                   <Input
+                    id="qa-init-fingerprint-tech"
                     value={candidateFingerprint}
                     onChange={(e) => setCandidateFingerprint(e.target.value)}
                     placeholder="Diturunkan otomatis dari build dan lingkungan"

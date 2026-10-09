@@ -420,7 +420,6 @@ describe('Prompt 6 PR 1: Smart Next Action Card & Test Version Runner', () => {
             featureTaskId: ids.feature,
             qaSubtaskId: ids.subtask,
             testCycleId: mockCycle.id,
-            qaTestCycleId: mockCycle.id,
             candidateFingerprint: mockCycle.candidateFingerprint,
             decision: 'approved',
             notes: 'Verified all passed',
@@ -455,6 +454,75 @@ describe('Prompt 6 PR 1: Smart Next Action Card & Test Version Runner', () => {
       await waitFor(() => {
         expect(screen.getByText('Mulai Tugas QA & Aktifkan Pengujian')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Simpan & Aktifkan' })).toBeInTheDocument();
+      });
+    });
+
+    it('reloads releaseRecords and bugs when onDataChanged is fired without closing the drawer', async () => {
+      const user = userEvent.setup();
+      const mockCycle = createMockCycle();
+      serviceMocks.getTaskTestExecutions.mockResolvedValue(createMockWorkspace([]));
+      serviceMocks.listQaTestCycles.mockResolvedValue([mockCycle]);
+      serviceMocks.getQaWorkflowSummary.mockResolvedValue({
+        workspaceId: ids.workspace,
+        featureTaskId: ids.feature,
+        qaSubtaskId: ids.subtask,
+        featureTitle: 'Checkout Feature',
+        qaSubtaskTitle: 'QA Eksekusi Checkout',
+        qaSubtaskStatus: 'done',
+        testCycle: mockCycle,
+        blockers: [],
+        nextAction: { code: 'record_qa_sign_off', label: 'Catat Persetujuan QA' },
+      });
+      releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue({
+        workspaceId: ids.workspace,
+        featureTaskId: ids.feature,
+        qaSignOffs: [],
+        releaseDecisions: [],
+      });
+
+      renderDesk(createMockSubtask('done'));
+
+      const signOffBtn = await screen.findByRole('button', { name: 'Beri Persetujuan QA' });
+      expect(signOffBtn).toBeInTheDocument();
+      expect(screen.queryByText('Pengujian & Persetujuan QA Selesai')).not.toBeInTheDocument();
+
+      const initialCalls = releaseServiceMocks.listFeatureReleaseRecords.mock.calls.length;
+
+      // Update mock to return active approved sign-off
+      releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue({
+        workspaceId: ids.workspace,
+        featureTaskId: ids.feature,
+        qaSignOffs: [
+          {
+            id: 'signoff-1',
+            workspaceId: ids.workspace,
+            featureTaskId: ids.feature,
+            qaSubtaskId: ids.subtask,
+            testCycleId: mockCycle.id,
+            candidateFingerprint: mockCycle.candidateFingerprint,
+            decision: 'approved',
+            notes: 'Verified all passed',
+            signedBy: ids.qa,
+            signedAt: new Date().toISOString(),
+            cancellation: null,
+          },
+        ],
+        releaseDecisions: [],
+      });
+
+      // Switch to sign-off tab
+      await user.click(signOffBtn);
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Persetujuan & Riwayat' })).toHaveAttribute(
+          'aria-selected',
+          'true',
+        );
+      });
+
+      await waitFor(() => {
+        expect(releaseServiceMocks.listFeatureReleaseRecords.mock.calls.length).toBeGreaterThan(
+          initialCalls,
+        );
       });
     });
   });
