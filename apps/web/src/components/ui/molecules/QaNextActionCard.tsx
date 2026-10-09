@@ -101,16 +101,16 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
   ) {
     stepState = 'complete_task';
   } else if (
-    workflowSummary?.nextAction.code === 'resolve_bug_retest' ||
-    workflowSummary?.blockers.includes('unverified_bug')
-  ) {
-    stepState = 'resolve_bug';
-  } else if (
     inProgressRun ||
     workflowSummary?.nextAction.code === 'record_test_result' ||
     workflowSummary?.blockers.includes('scoped_run_in_progress')
   ) {
     stepState = 'record_result';
+  } else if (
+    workflowSummary?.nextAction.code === 'resolve_bug_retest' ||
+    workflowSummary?.blockers.includes('unverified_bug')
+  ) {
+    stepState = 'resolve_bug';
   } else if (hasDraftTestCase && draftTestCase) {
     stepState = 'activate_test_case';
   } else {

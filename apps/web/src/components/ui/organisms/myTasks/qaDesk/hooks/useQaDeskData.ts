@@ -96,11 +96,11 @@ export function useQaDeskData({
   }, [featureTaskId, workspaceId]);
 
   const loadDevResolutionFingerprint = useCallback(
-    async (currentBugs: BugWithContext[]) => {
+    async (currentBugs: BugWithContext[]): Promise<string | null> => {
       const resolvedBugs = currentBugs.filter((b) => b.status === 'resolved');
       if (resolvedBugs.length === 0) {
         setDevResolutionFingerprint(null);
-        return;
+        return null;
       }
       const sorted = [...resolvedBugs].sort(
         (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime(),
@@ -115,7 +115,7 @@ export function useQaDeskData({
             )[0];
             if (latestEvent?.candidateFingerprint) {
               setDevResolutionFingerprint(latestEvent.candidateFingerprint);
-              return;
+              return latestEvent.candidateFingerprint;
             }
           }
         } catch {
@@ -123,19 +123,21 @@ export function useQaDeskData({
         }
       }
       setDevResolutionFingerprint(null);
+      return null;
     },
     [workspaceId],
   );
 
-  const loadBugs = useCallback(async () => {
-    if (!workspaceId || !featureTaskId) return;
+  const loadBugs = useCallback(async (): Promise<string | null> => {
+    if (!workspaceId || !featureTaskId) return null;
     try {
       const result = await bugService.listBugs(workspaceId, { featureTaskId });
       setBugs(result);
-      await loadDevResolutionFingerprint(result);
+      return await loadDevResolutionFingerprint(result);
     } catch {
       setBugs([]);
       setDevResolutionFingerprint(null);
+      return null;
     }
   }, [featureTaskId, loadDevResolutionFingerprint, workspaceId]);
 
@@ -149,10 +151,7 @@ export function useQaDeskData({
     return releaseRecords.qaSignOffs
       .filter(
         (s) =>
-          !s.cancellation &&
-          (s.testCycleId === selectedTestCycle.id ||
-            (s as { qaTestCycleId?: string }).qaTestCycleId === selectedTestCycle.id) &&
-          s.qaSubtaskId === subtask.id,
+          !s.cancellation && s.testCycleId === selectedTestCycle.id && s.qaSubtaskId === subtask.id,
       )
       .sort((a, b) => new Date(b.signedAt || 0).getTime() - new Date(a.signedAt || 0).getTime());
   }, [releaseRecords?.qaSignOffs, selectedTestCycle?.id, subtask.id]);
@@ -161,23 +160,13 @@ export function useQaDeskData({
 
   const isSignOffRecorded = useMemo(() => {
     if (!latestActiveCycleSignOff) return false;
-    return ['approved', 'approve'].includes(latestActiveCycleSignOff.decision);
+    return latestActiveCycleSignOff.decision === 'approved';
   }, [latestActiveCycleSignOff]);
 
   const isSignOffRejected = useMemo(() => {
     if (!latestActiveCycleSignOff) return false;
-    return ['rejected', 'reject'].includes(latestActiveCycleSignOff.decision);
+    return latestActiveCycleSignOff.decision === 'rejected';
   }, [latestActiveCycleSignOff]);
-
-  const resolvedBugVersions = useMemo(() => {
-    return bugs
-      .filter((b) => b.status === 'resolved' || b.status === 'verified' || Boolean(b.resolvedAt))
-      .map((b) => ({
-        build: b.originatingTestResult?.testRun?.build || '',
-        environment: b.originatingTestResult?.testRun?.environment || b.environment || 'staging',
-      }))
-      .filter((v) => Boolean(v.build) && v.build !== 'N/A');
-  }, [bugs]);
 
   const [isChangesRequestedModalOpen, setIsChangesRequestedModalOpen] = useState(false);
   const [changesRequestedNotes, setChangesRequestedNotes] = useState('');
@@ -398,6 +387,5 @@ export function useQaDeskData({
     selectedTestCycle,
     setSelectedTestCycle,
     devResolutionFingerprint,
-    resolvedBugVersions,
   };
 }

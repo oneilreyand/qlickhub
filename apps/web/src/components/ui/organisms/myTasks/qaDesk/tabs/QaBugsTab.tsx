@@ -20,6 +20,7 @@ export interface QaBugsTabProps {
   onReloadWorkflowSummary: () => void;
   onDataChanged: () => void;
   onRetestRunStarted: (qaSubtaskId: string) => void;
+  dataRefreshKey?: number;
 }
 
 export const QaBugsTab: React.FC<QaBugsTabProps> = ({
@@ -34,6 +35,7 @@ export const QaBugsTab: React.FC<QaBugsTabProps> = ({
   onReloadWorkflowSummary,
   onDataChanged,
   onRetestRunStarted,
+  dataRefreshKey,
 }) => {
   return (
     <section
@@ -93,6 +95,7 @@ export const QaBugsTab: React.FC<QaBugsTabProps> = ({
         )}
       </Card>
       <BugExperiencePanel
+        key={dataRefreshKey}
         workspaceId={workspaceId}
         userRole={userRole}
         mode="feature"

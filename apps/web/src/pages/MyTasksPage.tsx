@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { RootState } from '../store/store';
 import { selectCurrentUserId } from '../store/authSlice';
 import { fetchTasks, fetchTaskById, setSelectedTaskId } from '../store/taskSlice';
+import { fetchMembers } from '../store/workspaceSlice';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { MyTaskDetailWorkspaceDrawer, MyTasksDashboard } from '../features/myTasks';
 import { CreateTaskModal } from '../features/tasks';
@@ -55,6 +56,12 @@ export const MyTasksPage: React.FC = () => {
   useEffect(() => {
     reloadTasks();
   }, [currentUserId, reloadTasks]);
+
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      dispatch(fetchMembers(activeWorkspaceId));
+    }
+  }, [activeWorkspaceId, dispatch]);
 
   useEffect(() => {
     return () => {

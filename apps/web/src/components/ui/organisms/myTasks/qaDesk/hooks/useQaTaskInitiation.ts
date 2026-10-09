@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   QaTestCycle,
   Task,
   TestCaseVersionAcceptanceCriterionMapping,
 } from '@qlick/contracts';
 
+import { requirementService } from '../../../../../../lib/api/requirementService';
 import { taskService } from '../../../../../../lib/api/taskService';
 import { testManagementService } from '../../../../../../lib/api/testManagementService';
 import { useAppDispatch } from '../../../../../../store/hooks';
@@ -142,6 +143,37 @@ export function useQaTaskInitiation({
     testCaseTitle,
   ]);
 
+  useEffect(() => {
+    if (defaultRequirementId && !selectedRequirementId) {
+      setSelectedRequirementId(defaultRequirementId);
+    }
+  }, [defaultRequirementId, selectedRequirementId]);
+
+  useEffect(() => {
+    const targetReqId = selectedRequirementId || defaultRequirementId;
+    if (isModalOpen && targetReqId && acMappings.length === 0) {
+      requirementService
+        .getRequirement(workspaceId, targetReqId)
+        .then((detail) => {
+          const activeCriteria = (detail.acceptanceCriteria || []).filter(
+            (c) => c.status === 'active',
+          );
+          setAcMappings(
+            activeCriteria.map((c) => ({
+              criterionId: c.id,
+              code: c.code,
+              title: c.text,
+              mappingStatus: 'mapped',
+              exclusionReason: '',
+            })),
+          );
+        })
+        .catch(() => {
+          // Ignore background fetch error
+        });
+    }
+  }, [acMappings.length, defaultRequirementId, isModalOpen, selectedRequirementId, workspaceId]);
+
   const closeInitiationModal = useCallback(() => {
     if (currentStep !== 'idle' && currentStep !== 'completed') return;
     setIsModalOpen(false);
@@ -230,7 +262,8 @@ export function useQaTaskInitiation({
       setCurrentStep('creating_test_case');
       try {
         const cleanSteps = testCaseSteps.filter((s) => s.trim().length > 0);
-        const effectiveReqIds = selectedRequirementId ? [selectedRequirementId] : [];
+        const targetReqId = selectedRequirementId || defaultRequirementId;
+        const effectiveReqIds = targetReqId ? [targetReqId] : [];
         const createdTc = await testManagementService.createTestCase(workspaceId, {
           title: testCaseTitle.trim(),
           steps: cleanSteps.length > 0 ? cleanSteps : ['Verifikasi alur utama'],

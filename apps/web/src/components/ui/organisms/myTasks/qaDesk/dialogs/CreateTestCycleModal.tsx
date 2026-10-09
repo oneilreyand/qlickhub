@@ -70,10 +70,14 @@ export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
           </Alert>
         )}
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+          <label
+            htmlFor="cycle-build"
+            className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300"
+          >
             Build <span className="text-red-500">*</span>
           </label>
           <Input
+            id="cycle-build"
             value={testCycleBuild}
             onChange={(event) => setTestCycleBuild(event.target.value)}
             placeholder="checkout-web-2026.09.15.1"
@@ -81,10 +85,14 @@ export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+          <label
+            htmlFor="cycle-env"
+            className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300"
+          >
             Lingkungan <span className="text-red-500">*</span>
           </label>
           <Input
+            id="cycle-env"
             value={testCycleEnvironment}
             onChange={(event) => setTestCycleEnvironment(event.target.value)}
             placeholder="Contoh: staging"
@@ -93,10 +101,14 @@ export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
         </div>
         {devResolutionFingerprint ? (
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+            <label
+              htmlFor="cycle-fingerprint"
+              className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300"
+            >
               Identitas Kandidat (Candidate Fingerprint) <span className="text-red-500">*</span>
             </label>
             <Input
+              id="cycle-fingerprint"
               value={testCycleFingerprint}
               onChange={(event) => setTestCycleFingerprint(event.target.value)}
               placeholder={devResolutionFingerprint}
@@ -109,10 +121,14 @@ export const CreateTestCycleModal: React.FC<CreateTestCycleModalProps> = ({
               Detail teknis
             </summary>
             <div className="mt-2.5 space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300">
+              <label
+                htmlFor="cycle-fingerprint-tech"
+                className="block text-xs font-semibold uppercase tracking-wider text-stone-700 dark:text-stone-300"
+              >
                 Identitas Kandidat (Candidate Fingerprint) <span className="text-red-500">*</span>
               </label>
               <Input
+                id="cycle-fingerprint-tech"
                 value={testCycleFingerprint}
                 onChange={(event) => setTestCycleFingerprint(event.target.value)}
                 placeholder="Contoh: commit:a1b2c3d atau deployment:stg-482"
