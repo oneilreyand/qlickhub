@@ -24,9 +24,12 @@ describe('MyTaskFeatureContext', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Jejak navigasi konteks Feature')).toHaveTextContent(
-      'Feature / StorySubtask frontendImplement checkout summary',
-    );
+    const detailsToggle = screen.getByRole('button', {
+      name: /Lihat detail Feature & Requirement/,
+    });
+    expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(detailsToggle);
+    expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('heading', { name: 'Checkout Feature' })).toBeInTheDocument();
     expect(screen.getByText('Cakupan 1/1 Requirement')).toBeInTheDocument();
     expect(screen.getByText('Review checkout before confirmation')).toBeInTheDocument();

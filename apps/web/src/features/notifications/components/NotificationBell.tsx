@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { InAppNotification } from '@qlick/contracts';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -8,7 +8,6 @@ import {
   markAllNotificationsAsReadThunk,
   clearInAppNotificationsThunk,
 } from '../../../store/uiSlice';
-import { setSelectedTaskId } from '../../../store/taskSlice';
 import { useDismissableLayer } from '../../../hooks/useDismissableLayer';
 import { useFcmNotifications } from '../../../hooks/useFcmNotifications';
 import { NotificationDropdown } from './NotificationDropdown';
@@ -20,6 +19,7 @@ interface NotificationBellProps {
 export const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -42,8 +42,11 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className = 
   const handleNotificationClick = (notif: InAppNotification) => {
     dispatch(markNotificationAsReadThunk(notif.id));
     if (notif.taskId) {
-      dispatch(setSelectedTaskId(notif.taskId));
-      navigate('/my-tasks');
+      // Open the task through its deep link so it works even when the task is not in the
+      // current My Tasks list; closing the drawer returns to where the user was.
+      navigate(`/projects/${notif.workspaceId}/tasks/${notif.taskId}`, {
+        state: { returnTo: `${location.pathname}${location.search}` },
+      });
     }
     setShowNotifications(false);
   };

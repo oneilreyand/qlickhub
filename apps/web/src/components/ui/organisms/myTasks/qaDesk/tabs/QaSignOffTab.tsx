@@ -1,8 +1,6 @@
 import React from 'react';
-import type { QaWorkflowSummary, TaskComment } from '@qlick/contracts';
-import type { WorkspaceMemberItem } from '../../../../../../lib/api/workspaceService';
+import type { QaWorkflowSummary } from '@qlick/contracts';
 
-import { SubtaskCommentBox } from '../../../../molecules/SubtaskCommentBox';
 import { ReleaseAssurancePanel } from '../../../ReleaseAssurancePanel';
 
 export interface QaSignOffTabProps {
@@ -15,10 +13,6 @@ export interface QaSignOffTabProps {
   workflowSummaryError: string | null;
   onReloadWorkflowSummary: () => void;
   onDataChanged: () => void;
-  comments: TaskComment[];
-  currentUserId?: string;
-  members: WorkspaceMemberItem[];
-  onPostComment: (body: string, parentCommentId?: string | null) => Promise<void>;
 }
 
 export const QaSignOffTab: React.FC<QaSignOffTabProps> = ({
@@ -31,10 +25,6 @@ export const QaSignOffTab: React.FC<QaSignOffTabProps> = ({
   workflowSummaryError,
   onReloadWorkflowSummary,
   onDataChanged,
-  comments,
-  currentUserId,
-  members,
-  onPostComment,
 }) => {
   return (
     <section
@@ -56,14 +46,6 @@ export const QaSignOffTab: React.FC<QaSignOffTabProps> = ({
           onReloadWorkflowSummary();
           onDataChanged();
         }}
-      />
-      <SubtaskCommentBox
-        comments={comments}
-        currentUserId={currentUserId}
-        members={members}
-        onPostComment={onPostComment}
-        title="Diskusi Kolaborasi & Masukan QA"
-        maxHeight="max-h-[500px]"
       />
     </section>
   );

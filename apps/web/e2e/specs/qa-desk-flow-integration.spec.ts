@@ -111,7 +111,24 @@ test('Alur Pass Lengkap: Inisiasi modal rantai 5 langkah, eksekusi versi aktif, 
   // 13. Verifikasi kartu Langkah Berikutnya ter-update langsung ke terminal state tanpa tutup drawer
   await expect(page.getByText('Pengujian & Persetujuan QA Selesai')).toBeVisible();
   await expect(page.getByText('Persetujuan QA Tercatat')).toBeVisible();
+
+  // Konteks Feature membaca test case berversi: setelah dibuka ulang, hasil lulus tampil
+  // (sebelumnya selalu "Belum ada hasil pengujian").
+  await page.goto(`/projects/${flowContext.workspaceId}/tasks/${flowContext.passQaSubtaskId}`);
+  const featureContext = page.getByTestId('my-task-feature-context');
+  await expect(featureContext.getByText('Lulus 100%')).toBeVisible({ timeout: 10000 });
+  await expect(featureContext.getByText('Belum ada hasil pengujian')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: /Lihat detail Feature & Requirement/ }),
+  ).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('button', { name: 'Beri Persetujuan QA' })).not.toBeVisible();
+
+  // "Buka Feature" membuka Feature lewat deep link dan Tutup kembali ke Subtask asal.
+  await featureContext.getByRole('button', { name: 'Buka Feature' }).click();
+  await expect(page).toHaveURL(new RegExp(`/tasks/${flowContext.featureTaskId}$`));
+  await page.getByRole('button', { name: 'Tutup panel' }).first().click();
+  await expect(page).toHaveURL(new RegExp(`/tasks/${flowContext.passQaSubtaskId}$`));
+  await expect(page.getByTestId('my-task-feature-context')).toBeVisible();
 
   // Verifikasi hitungan klik aktual: Target Prompt 6 adalah <= 12 klik (realistis 10-11 klik)
   expect(actualClickCount).toBeLessThanOrEqual(12);

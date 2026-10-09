@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  AlertTriangle,
   Bug,
   CheckCircle2,
   CheckSquare,
   Compass,
-  Lock,
+  MessageSquare,
   Play,
   RotateCcw,
   ShieldCheck,
@@ -19,7 +18,7 @@ import { Tabs } from '../../molecules/Tabs';
 import { TaskScheduleHealthBadge } from '../../molecules/TaskScheduleHealthBadge';
 import { TaskStatusBadge } from '../../molecules/TaskStatusBadge';
 import { QaNextActionCard } from '../../molecules/QaNextActionCard';
-import { QaWorkflowSummaryWidget } from '../../molecules/QaWorkflowSummaryWidget';
+import { SubtaskCommentBox } from '../../molecules/SubtaskCommentBox';
 
 import { workflowBlockerCopy } from './qaDesk/types';
 import type { QaWorkflowTab } from './qaDesk/types';
@@ -184,45 +183,37 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   return (
     <div className="space-y-6">
       {deskData.isAssignedQaExecutor && (
-        <>
-          <QaNextActionCard
-            workflowSummary={deskData.workflowSummary}
-            subtaskStatus={subtask.status}
-            testCycle={testCycleState.selectedTestCycle}
-            hasDraftTestCase={executionState.hasDraftTestCase}
-            draftTestCase={executionState.draftTestCase}
-            inProgressRun={executionState.inProgressRun}
-            unexecutedTestCase={executionState.unexecutedTestCase}
-            qaCompletionReady={deskData.qaCompletionReady}
-            qaCompletionUnavailableMessage={deskData.qaCompletionUnavailableMessage}
-            isUpdatingStatus={deskData.isUpdatingStatus}
-            isStartingRun={executionState.isStartingRun}
-            isActivatingTestCase={Boolean(executionState.activatingTestCaseId)}
-            canMutateQaExecution={deskData.canMutateQaExecution}
-            isSignOffRecorded={deskData.isSignOffRecorded}
-            isSignOffRejected={deskData.isSignOffRejected}
-            onStartQaTask={initiationState.openInitiationModal}
-            onActivateTestCase={(id) => void executionState.handleActivateTestCase(id)}
-            onRunTestCase={(id) => void executionState.handleQuickStartRun(id)}
-            onRecordResult={executionState.openResultModal}
-            onCompleteQaTask={() => void deskData.handleStatusChange('done')}
-            onNavigateToSignOff={() => setActiveWorkflowTab('sign_off')}
-            onNavigateToBugs={() => setActiveWorkflowTab('bugs')}
-            onOpenTestCycleModal={testCycleState.openTestCycleModal}
-          />
-          <QaWorkflowSummaryWidget
-            workflowSummary={deskData.workflowSummary}
-            isLoading={deskData.isLoadingWorkflowSummary}
-            error={deskData.workflowSummaryError}
-            workflowBlockerCopy={workflowBlockerCopy}
-          />
-        </>
+        <QaNextActionCard
+          workflowSummary={deskData.workflowSummary}
+          subtaskStatus={subtask.status}
+          testCycle={testCycleState.selectedTestCycle}
+          hasDraftTestCase={executionState.hasDraftTestCase}
+          draftTestCase={executionState.draftTestCase}
+          inProgressRun={executionState.inProgressRun}
+          unexecutedTestCase={executionState.unexecutedTestCase}
+          qaCompletionReady={deskData.qaCompletionReady}
+          qaCompletionUnavailableMessage={deskData.qaCompletionUnavailableMessage}
+          isUpdatingStatus={deskData.isUpdatingStatus}
+          isStartingRun={executionState.isStartingRun}
+          isActivatingTestCase={Boolean(executionState.activatingTestCaseId)}
+          canMutateQaExecution={deskData.canMutateQaExecution}
+          isSignOffRecorded={deskData.isSignOffRecorded}
+          isSignOffRejected={deskData.isSignOffRejected}
+          onStartQaTask={initiationState.openInitiationModal}
+          onActivateTestCase={(id) => void executionState.handleActivateTestCase(id)}
+          onRunTestCase={(id) => void executionState.handleQuickStartRun(id)}
+          onRecordResult={executionState.openResultModal}
+          onCompleteQaTask={() => void deskData.handleStatusChange('done')}
+          onNavigateToSignOff={() => setActiveWorkflowTab('sign_off')}
+          onNavigateToBugs={() => setActiveWorkflowTab('bugs')}
+          onOpenTestCycleModal={testCycleState.openTestCycleModal}
+        />
       )}
 
       {/* QA Workstation Header Card */}
-      <Card className="p-5 border-stone-200/80 dark:border-stone-800 bg-linear-to-br from-emerald-50/40 via-white to-emerald-50/20 dark:from-emerald-950/30 dark:via-stone-900 dark:to-stone-950">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-2 flex-1 min-w-0">
+      <Card className="p-3 sm:p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                 <Bug className="h-3.5 w-3.5" />
@@ -231,59 +222,53 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
               <TaskStatusBadge state={subtask.status} />
               <TaskScheduleHealthBadge status={deskData.scheduleHealth.status} />
             </div>
-
-            <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 dark:text-stone-100 break-words">
-              {subtask.title}
-            </h2>
-
-            {parentTask && (
-              <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400">
-                <span className="text-stone-400 font-bold uppercase text-xs">Feature Induk:</span>
-                <span className="font-semibold text-stone-800 dark:text-stone-200 truncate">
-                  {parentTask.title}
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Quick Workflow Action Buttons */}
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {deskData.canMutateQaExecution && subtask.status === 'todo' && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => deskData.handleStatusChange('in_progress')}
-                isLoading={deskData.isUpdatingStatus}
-                leftIcon={<Play className="h-4 w-4" />}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                Mulai Tugas QA
-              </Button>
-            )}
-
-            {subtask.status === 'in_progress' && deskData.canMutateQaExecution && (
-              <div className="flex items-center gap-1.5 flex-wrap">
+            {/* For the assigned QA, start/complete live on the "Langkah berikutnya" card above. */}
+            {!deskData.isAssignedQaExecutor &&
+              deskData.canMutateQaExecution &&
+              subtask.status === 'todo' && (
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => deskData.handleStatusChange('done')}
+                  onClick={() => deskData.handleStatusChange('in_progress')}
                   isLoading={deskData.isUpdatingStatus}
-                  disabled={!deskData.qaCompletionReady}
-                  title={
-                    deskData.qaCompletionReady ? undefined : deskData.qaCompletionUnavailableMessage
-                  }
-                  leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                  leftIcon={<Play className="h-4 w-4" />}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
-                  Selesaikan Tugas QA
+                  Mulai Tugas QA
                 </Button>
-                {!deskData.qaCompletionReady && deskData.qaCompletionUnavailableMessage && (
-                  <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-                    {deskData.qaCompletionUnavailableMessage}
-                  </span>
-                )}
-              </div>
-            )}
+              )}
+
+            {!deskData.isAssignedQaExecutor &&
+              subtask.status === 'in_progress' &&
+              deskData.canMutateQaExecution && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => deskData.handleStatusChange('done')}
+                    isLoading={deskData.isUpdatingStatus}
+                    disabled={!deskData.qaCompletionReady}
+                    title={
+                      deskData.qaCompletionReady
+                        ? undefined
+                        : deskData.qaCompletionUnavailableMessage
+                    }
+                    leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    Selesaikan Tugas QA
+                  </Button>
+                  {!deskData.qaCompletionReady && deskData.qaCompletionUnavailableMessage && (
+                    <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                      {deskData.qaCompletionUnavailableMessage}
+                    </span>
+                  )}
+                </div>
+              )}
 
             {/* Developer Subtask Review: Authorized QA / Planner can request changes or mark as done */}
             {subtask.deliveryArea !== 'qa' && subtask.status === 'in_review' && (
@@ -385,103 +370,44 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
         tabs={[
           {
             id: 'context',
-            label: '1. Konteks & Spesifikasi',
-            ariaLabel: 'Konteks & Spesifikasi',
+            label: 'Konteks & Spesifikasi',
             icon: <Compass className="h-4 w-4" />,
-            badge: deskData.workflowSummary ? (
-              deskData.workflowSummary.blockers.length === 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
-                  <CheckCircle2 className="h-2.5 w-2.5" /> Siap
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">
-                  <AlertTriangle className="h-2.5 w-2.5" />{' '}
-                  {deskData.workflowSummary.blockers.length} Blocker
-                </span>
-              )
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-400">
-                Memeriksa
-              </span>
-            ),
-            sublabel: (
-              <div className="text-xs text-stone-600 dark:text-stone-400 truncate">
-                <span className="font-semibold text-stone-800 dark:text-stone-200">
-                  {deskData.workflowSummary?.featureTitle || parentTask?.title || 'Feature'}
-                </span>{' '}
-                · Catatan Build &amp; Prasyarat
-              </div>
-            ),
+            count: deskData.workflowSummary?.blockers.length || undefined,
           },
           {
             id: 'preparation',
-            label: '2. Test Case & Eksekusi',
-            ariaLabel: 'Test Case & Eksekusi',
+            label: 'Test Case & Eksekusi',
             icon: <CheckSquare className="h-4 w-4" />,
-            badge: (
-              <div className="flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                  {executionState.executionStats
-                    ? `${executionState.executionStats.total} Kasus`
-                    : `${executionState.executionWorkspace?.executions?.length || 0} Kasus`}
-                </span>
-                {deskData.workflowSummary?.blockers.includes('unverified_bug') && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-xs font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
-                    <AlertTriangle className="h-2.5 w-2.5" /> Retest
-                  </span>
-                )}
-              </div>
-            ),
-            sublabel: (
-              <div className="flex items-center gap-1.5 text-xs font-medium text-stone-600 dark:text-stone-400">
-                <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                  {executionState.executionStats?.passed || 0} Lulus
-                </span>
-                <span>·</span>
-                <span className="text-rose-700 dark:text-rose-400 font-bold">
-                  {executionState.executionStats?.failed || 0} Gagal
-                </span>
-                <span>·</span>
-                <span className="text-stone-500 dark:text-stone-400 font-medium">
-                  {executionState.executionStats?.unexecuted || 0} Belum
-                </span>
-              </div>
-            ),
+            count:
+              executionState.executionStats?.total ??
+              executionState.executionWorkspace?.executions?.length ??
+              undefined,
           },
           {
             id: 'bugs',
-            label: '3. Bug & Retest',
-            ariaLabel: 'Bug & Retest',
+            label: 'Bug & Retest',
             icon: <Bug className="h-4 w-4" />,
             badge: deskData.workflowSummary?.blockers.includes('unverified_bug') ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
-                <AlertTriangle className="h-2.5 w-2.5" /> Perlu Retest
+              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
+                Perlu retest
               </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                Nihil Bug
-              </span>
-            ),
+            ) : undefined,
           },
           {
             id: 'sign_off',
-            label: '4. Persetujuan QA',
-            ariaLabel: 'Persetujuan & Riwayat',
+            label: 'Persetujuan & Riwayat',
             icon: <ShieldCheck className="h-4 w-4" />,
-            badge: deskData.qaCompletionReady ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#B1E743]/30 px-2 py-0.5 text-xs font-bold text-stone-900 dark:text-[#B1E743]">
-                <CheckCircle2 className="h-2.5 w-2.5" /> Siap Sign-Off
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-stone-200/80 px-2 py-0.5 text-xs font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                <Lock className="h-2.5 w-2.5" /> Terkunci
-              </span>
-            ),
+          },
+          {
+            id: 'discussion',
+            label: 'Diskusi',
+            icon: <MessageSquare className="h-4 w-4" />,
+            count: deskData.comments.length || undefined,
           },
         ]}
         activeTabId={activeWorkflowTab}
         onChange={(tabId) => setActiveWorkflowTab(tabId as QaWorkflowTab)}
-        variant="cards"
+        variant="pills"
         ariaLabel="Tahap workflow QA"
       />
 
@@ -588,11 +514,21 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           workflowSummaryError={deskData.workflowSummaryError}
           onReloadWorkflowSummary={() => void deskData.loadWorkflowSummary()}
           onDataChanged={handleDataChanged}
-          comments={deskData.comments}
-          currentUserId={currentUserId}
-          members={deskData.members}
-          onPostComment={deskData.handlePostComment}
         />
+      )}
+
+      {/* Diskusi: one place for QA conversation, reachable from every step */}
+      {activeWorkflowTab === 'discussion' && (
+        <section role="tabpanel" aria-label="Diskusi QA">
+          <SubtaskCommentBox
+            comments={deskData.comments}
+            currentUserId={currentUserId}
+            members={deskData.members}
+            onPostComment={deskData.handlePostComment}
+            title="Diskusi QA"
+            maxHeight="max-h-[560px]"
+          />
+        </section>
       )}
 
       {/* Modals & Dialogs container */}

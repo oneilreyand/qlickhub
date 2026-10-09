@@ -61,7 +61,7 @@ export const RecordResultModal: React.FC<RecordResultModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Catat Hasil Pengujian"
-      description="Setelah dikirim, hasil dan manifest bukti tidak dapat ditimpa. Lulus, gagal, atau terblokir wajib memiliki gambar/video yang dapat dibuka; mulai pengujian baru untuk retest."
+      description="Hasil yang sudah dikirim tidak dapat diubah. Lulus, gagal, atau terblokir wajib disertai gambar atau video bukti. Untuk menguji ulang, mulai pengujian baru."
       primaryActionLabel="Catat Hasil"
       onPrimaryAction={() => void onRecordResult()}
       secondaryActionLabel="Batal"

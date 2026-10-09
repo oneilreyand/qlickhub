@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import type { InAppNotification } from '@qlick/contracts';
 import authReducer from '../../../store/authSlice';
@@ -124,5 +124,60 @@ describe('NotificationBell Feature Component', () => {
 
     expect(screen.getByText('Notifikasi Tim')).toBeInTheDocument();
     expect(screen.getByText('Task Ditugaskan')).toBeInTheDocument();
+  });
+
+  it('opens a task notification through its deep link and keeps a way back', async () => {
+    const user = userEvent.setup();
+    const store = configureStore({
+      reducer: {
+        auth: authReducer,
+        ui: uiReducer,
+        workspace: workspaceReducer,
+        folder: folderReducer,
+        task: taskReducer,
+      },
+      preloadedState: {
+        ui: {
+          error: null,
+          notifications: [],
+          inAppNotifications: [
+            { ...sampleNotification, taskId: '00000000-0000-4000-8000-000000000042' },
+          ],
+          unreadNotificationCount: 1,
+          isNotificationsLoading: false,
+          pendingOperations: [],
+          mobileSidebarOpen: false,
+        },
+      },
+    });
+    const DeepLinkProbe = () => {
+      const location = useLocation();
+      return (
+        <p data-testid="deep-link">
+          {location.pathname}|{(location.state as { returnTo?: string } | null)?.returnTo}
+        </p>
+      );
+    };
+
+    render(
+      <Provider store={store}>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/reports?range=week']}>
+            <NotificationBell />
+            <Routes>
+              <Route path="/projects/:projectId/tasks/:taskId" element={<DeepLinkProbe />} />
+              <Route path="*" element={null} />
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </Provider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Notifikasi' }));
+    await user.click(screen.getByText('Task Ditugaskan'));
+
+    expect(screen.getByTestId('deep-link')).toHaveTextContent(
+      '/projects/ws-1/tasks/00000000-0000-4000-8000-000000000042|/reports?range=week',
+    );
   });
 });

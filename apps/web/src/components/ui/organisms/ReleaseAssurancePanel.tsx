@@ -51,7 +51,7 @@ export interface ReleaseAssurancePanelProps {
 }
 
 const qaWorkflowBlockerCopy: Record<string, string> = {
-  qa_test_cycle_missing: 'Buat Siklus Pengujian untuk kandidat yang akan diuji.',
+  qa_test_cycle_missing: 'Tetapkan versi yang diuji terlebih dahulu.',
   scoped_run_in_progress: 'Catat hasil untuk pengujian yang masih aktif.',
   scoped_result_missing: 'Jalankan dan catat hasil untuk seluruh Test Case aktif.',
   scoped_result_not_passed: 'Selesaikan hasil pengujian yang belum lulus.',
@@ -299,7 +299,9 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
         if (!active) return;
         setTestCycles([]);
         setFormError(
-          cycleError instanceof Error ? cycleError.message : 'Siklus Pengujian tidak dapat dimuat.',
+          cycleError instanceof Error
+            ? cycleError.message
+            : 'Daftar versi yang diuji tidak dapat dimuat.',
         );
       })
       .finally(() => {
@@ -347,7 +349,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       return;
     }
     if (mode === 'qa' && !selectedTestCycleId) {
-      setFormError('Pilih Siklus Pengujian yang bukti pengujiannya akan disertifikasi.');
+      setFormError('Pilih versi yang diuji untuk persetujuan ini.');
       return;
     }
     if (requiresOverrideReason && !overrideReason.trim()) {
@@ -425,7 +427,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     }
   };
 
-  const title = mode === 'qa' ? 'Sertifikasi QA' : 'Keputusan Rilis';
+  const title = mode === 'qa' ? 'Persetujuan QA' : 'Keputusan Rilis';
   const snapshot =
     latestRecord?.readinessSnapshot || latestActiveQaSignOff?.readinessSnapshot || null;
   const canMutate = mode === 'qa' ? canSignOff : canDecideRelease;
@@ -469,8 +471,8 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">{title}</h3>
           </div>
           <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-            Riwayat keputusan bersifat append-only. Pencatatan keputusan tidak mengubah status atau
-            catatan review Task.
+            Setiap keputusan disimpan permanen di riwayat. Mencatat keputusan tidak mengubah status
+            Task.
           </p>
         </div>
         {!isLoading && !permissionDenied && !error && (
@@ -482,11 +484,11 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             disabled={buttonDisabled}
             title={
               isSelfApproval
-                ? 'Pemberi persetujuan QA tidak dapat membuat Keputusan Rilis untuk sertifikasi yang sama'
+                ? 'Pemberi persetujuan QA tidak dapat membuat Keputusan Rilis untuk persetujuan yang sama'
                 : mode === 'qa' && isQaWorkflowSummaryLoading
-                  ? 'Memeriksa capability Persetujuan QA dari data tersimpan'
+                  ? 'Memeriksa kesiapan Persetujuan QA…'
                   : mode === 'qa' && qaWorkflowSummaryError
-                    ? 'Capability Persetujuan QA belum dapat dipastikan. Coba muat ulang workflow QA.'
+                    ? 'Kesiapan Persetujuan QA belum dapat dipastikan. Coba muat ulang.'
                     : mode === 'qa' && qaWorkflowSummary
                       ? `Selesaikan langkah berikutnya terlebih dahulu: ${qaWorkflowSummary.nextAction.label}.`
                       : mode === 'release' && !latestActiveQaSignOff
@@ -532,11 +534,11 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           title={mode === 'qa' ? 'Belum ada Persetujuan QA' : 'Belum ada Keputusan Rilis'}
           description={
             mode === 'qa'
-              ? 'Catat sertifikasi QA setelah meninjau evidence eksekusi yang tersimpan.'
+              ? 'Catat Persetujuan QA setelah meninjau hasil dan bukti pengujian.'
               : latestActiveQaSignOff
                 ? currentReadinessSnapshot?.evaluation.ready
-                  ? 'Sertifikasi QA terbaru dan quality gate yang tersimpan siap untuk keputusan produk yang independen.'
-                  : 'Tinjau quality gate yang gagal sebelum menolak rilis atau mencatat override beserta alasannya.'
+                  ? 'Persetujuan QA terbaru dan syarat rilis sudah siap untuk keputusan Product Owner.'
+                  : 'Tinjau syarat rilis yang belum terpenuhi sebelum menolak rilis, atau catat pengecualian beserta alasannya.'
                 : 'Persetujuan QA harus dicatat sebelum keputusan rilis produk dibuat.'
           }
         />
@@ -628,8 +630,8 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             <p className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-950/40 dark:text-stone-400">
               Cakupan bukti:{' '}
               {snapshot.evidenceScope.candidateFingerprint
-                ? `Siklus Pengujian ${snapshot.evidenceScope.testCycleId?.slice(0, 8)} · kandidat tersimpan`
-                : 'Belum ada Siklus Pengujian untuk kesiapan saat ini.'}
+                ? 'Versi yang diuji tercatat.'
+                : 'Belum ada versi yang diuji untuk kesiapan saat ini.'}
             </p>
           )}
         </div>
@@ -644,14 +646,14 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           {isQaWorkflowSummaryLoading ? (
             <Skeleton className="h-16 w-full" />
           ) : qaWorkflowSummaryError ? (
-            <Alert tone="warning" title="Capability Persetujuan QA belum dapat dipastikan">
+            <Alert tone="warning" title="Kesiapan Persetujuan QA belum dapat dipastikan">
               {qaWorkflowSummaryError}
             </Alert>
           ) : qaWorkflowSummary ? (
             qaWorkflowAllowsSignOff ? (
               <Alert tone="info" title="Persetujuan QA siap dicatat">
-                Siklus Pengujian {qaWorkflowSummary.testCycle!.build} telah memenuhi cakupan bukti
-                yang tersimpan. Hanya siklus ini yang dapat disertifikasi.
+                Versi {qaWorkflowSummary.testCycle!.build} sudah memenuhi cakupan bukti. Persetujuan
+                dicatat untuk versi ini.
               </Alert>
             ) : (
               <Alert tone="warning" title="Persetujuan QA masih memiliki prasyarat">
@@ -824,7 +826,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
           )}
           {mode === 'qa' && (
             <Select
-              label="Siklus Pengujian yang Disertifikasi"
+              label="Versi yang Diuji"
               value={selectedTestCycleId}
               onChange={(event) => {
                 setSelectedTestCycleId(event.target.value);
@@ -834,7 +836,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               required
             >
               <option value="">
-                {isLoadingTestCycles ? 'Memuat Siklus Pengujian…' : 'Pilih Siklus Pengujian'}
+                {isLoadingTestCycles ? 'Memuat versi yang diuji…' : 'Pilih versi yang diuji'}
               </option>
               {testCycles.map((cycle) => (
                 <option key={cycle.id} value={cycle.id}>
@@ -920,12 +922,12 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       >
         <div className="space-y-4">
           <Alert tone="warning" title="Pembatalan permanen">
-            Tindakan ini membuat event pembatalan append-only. Pembatalan bersifat permanen dan
-            tidak dapat dibatalkan. Catatan yang dibatalkan tetap disimpan untuk riwayat audit.
+            Pembatalan bersifat permanen dan tidak dapat diurungkan. Catatan yang dibatalkan tetap
+            tersimpan di riwayat.
           </Alert>
 
           {recordToCancel?.type === 'qa' && hasActiveReleaseDecision && (
-            <Alert tone="error" title="Urutan wajib (D5)">
+            <Alert tone="error" title="Batalkan Keputusan Rilis terlebih dahulu">
               Keputusan Rilis aktif merujuk Feature / Story ini. Batalkan Keputusan Rilis terlebih
               dahulu sebelum membatalkan Persetujuan QA ini.
             </Alert>

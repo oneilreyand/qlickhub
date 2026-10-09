@@ -160,8 +160,8 @@ export const MyTasksPage: React.FC = () => {
         onClose={handleCloseDrawer}
         onOpenFeature={(featureTaskId) => {
           if (!activeWorkspaceId) return;
-          dispatch(setSelectedTaskId(featureTaskId));
-          navigate(`/work?tab=tasks&taskId=${featureTaskId}`, {
+          // The deep link honours returnTo, so closing the Feature brings the user back here.
+          navigate(`/projects/${activeWorkspaceId}/tasks/${featureTaskId}`, {
             state: { returnTo: `${location.pathname}${location.search}` },
           });
         }}

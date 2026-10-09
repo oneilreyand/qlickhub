@@ -37,6 +37,7 @@ let workspaceId = '';
 let featureTaskId = '';
 let bugFeatureTaskId = '';
 let devUserId = '';
+let passQaSubtaskId = '';
 
 /** Ids created by {@link seedQaDeskFlow}; read them inside tests, after beforeAll ran. */
 export const flowContext = {
@@ -51,6 +52,9 @@ export const flowContext = {
   },
   get devUserId() {
     return devUserId;
+  },
+  get passQaSubtaskId() {
+    return passQaSubtaskId;
   },
 };
 
@@ -132,7 +136,7 @@ export async function seedQaDeskFlow() {
     linkedBy: po.id,
   });
 
-  await TaskModel.create({
+  const passSubtask = await TaskModel.create({
     workspaceId,
     parentTaskId: passFeature.id,
     deliveryArea: 'qa',
@@ -142,6 +146,7 @@ export async function seedQaDeskFlow() {
     assigneeId: qa.id,
     reporterId: po.id,
   });
+  passQaSubtaskId = passSubtask.id;
 
   const brief1 = await QaDocumentModel.create({
     workspaceId,

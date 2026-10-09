@@ -1,9 +1,13 @@
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { render as baseRender, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { TeamCapacityTimeline } from '../TeamCapacityTimeline';
 import { capacityService } from '../../../../lib/api/capacityService';
 import { taskService } from '../../../../lib/api/taskService';
 import type { Task, TeamCapacityTimelineResponse } from '@qlick/contracts';
+
+// The task detail links are router links, so the component needs a router context.
+const render = (ui: React.ReactElement) => baseRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 vi.mock('../../../../lib/api/capacityService', () => ({
   capacityService: {

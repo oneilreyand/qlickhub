@@ -291,7 +291,7 @@ describe('ReleaseAssurancePanel', () => {
 
   it('renders persisted loading/empty states and an explicit QA decision action', async () => {
     renderPanel('qa');
-    expect(screen.getByLabelText('Memuat Sertifikasi QA')).toBeInTheDocument();
+    expect(screen.getByLabelText('Memuat Persetujuan QA')).toBeInTheDocument();
     expect(await screen.findByText('Belum ada Persetujuan QA')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Catat Persetujuan QA' })).toBeEnabled();
   });
@@ -313,10 +313,7 @@ describe('ReleaseAssurancePanel', () => {
     renderPanel('qa');
     await user.click(await screen.findByRole('button', { name: 'Catat Persetujuan QA' }));
     const dialog = screen.getByRole('dialog');
-    await user.selectOptions(
-      within(dialog).getByLabelText('Siklus Pengujian yang Disertifikasi'),
-      ids.cycle,
-    );
+    await user.selectOptions(within(dialog).getByLabelText('Versi yang Diuji'), ids.cycle);
     await user.type(
       within(dialog).getByLabelText('Catatan sertifikasi QA (opsional)'),
       'Regression passed on staging.',
@@ -358,7 +355,7 @@ describe('ReleaseAssurancePanel', () => {
     await user.click(readySignOffButton);
     const dialogs = screen.getAllByRole('dialog');
     const dialog = dialogs[dialogs.length - 1];
-    const cycleSelect = within(dialog).getByLabelText('Siklus Pengujian yang Disertifikasi');
+    const cycleSelect = within(dialog).getByLabelText('Versi yang Diuji');
     expect(cycleSelect).toHaveValue(ids.cycle);
     expect(within(cycleSelect).getAllByRole('option')).toHaveLength(2);
     expect(testManagementServiceMocks.listQaTestCycles).not.toHaveBeenCalled();
@@ -441,7 +438,7 @@ describe('ReleaseAssurancePanel', () => {
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute(
       'title',
-      'Pemberi persetujuan QA tidak dapat membuat Keputusan Rilis untuk sertifikasi yang sama',
+      'Pemberi persetujuan QA tidak dapat membuat Keputusan Rilis untuk persetujuan yang sama',
     );
   });
 

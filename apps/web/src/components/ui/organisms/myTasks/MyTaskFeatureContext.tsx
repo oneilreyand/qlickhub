@@ -8,7 +8,7 @@ import type {
 } from '@qlick/contracts';
 import {
   AlertTriangle,
-  ChevronRight,
+  ChevronDown,
   ExternalLink,
   Layers3,
   Link2Off,
@@ -44,6 +44,8 @@ interface MyTaskFeatureContextProps {
   onOpenFeature?: (featureTaskId: string) => void;
   onRetry: () => void;
   userRole?: string;
+  /** Requirement details start collapsed so the work area stays visible, especially on mobile. */
+  defaultExpanded?: boolean;
 }
 
 const structuralLabels: Record<
@@ -141,7 +143,10 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
   onOpenFeature,
   onRetry,
   userRole,
+  defaultExpanded = false,
 }) => {
+  const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
+  const detailsId = React.useId();
   const isDev =
     (userRole || '').toLowerCase() === 'dev' || (userRole || '').toLowerCase() === 'developer';
 
@@ -198,17 +203,6 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
 
   return (
     <Card className="space-y-4 p-4 sm:p-5" data-testid="my-task-feature-context">
-      <nav
-        aria-label="Jejak navigasi konteks Feature"
-        className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-stone-500"
-      >
-        <span>Feature / Story</span>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="capitalize">Subtask {task.deliveryArea || 'eksekusi'}</span>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="max-w-full truncate text-stone-700 dark:text-stone-300">{task.title}</span>
-      </nav>
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -221,11 +215,6 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
           <h3 className="mt-2 text-base font-extrabold text-stone-900 dark:text-stone-100">
             {trace.featureTask.title}
           </h3>
-          {trace.featureTask.description && (
-            <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-              {stripMarkdown(trace.featureTask.description)}
-            </p>
-          )}
         </div>
         {(!isDev || onOpenFeature) && (
           <div className="space-y-2 sm:text-right">
@@ -248,7 +237,29 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
         )}
       </div>
 
-      <div className="border-t border-stone-200 pt-4 dark:border-stone-800">
+      <button
+        type="button"
+        onClick={() => setIsExpanded((value) => !value)}
+        aria-expanded={isExpanded}
+        aria-controls={detailsId}
+        className="flex w-full items-center justify-between gap-2 rounded-xl border-t border-stone-200 pt-3 text-left text-xs font-bold text-stone-700 hover:text-stone-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B1E743]/60 dark:border-stone-800 dark:text-stone-300 dark:hover:text-stone-100"
+      >
+        <span>
+          {isExpanded ? 'Sembunyikan' : 'Lihat'} detail Feature &amp; Requirement (
+          {linkedRequirements.length} tertaut)
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        />
+      </button>
+
+      <div id={detailsId} hidden={!isExpanded} className="space-y-3">
+        {trace.featureTask.description && (
+          <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+            {stripMarkdown(trace.featureTask.description)}
+          </p>
+        )}
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h4 className="text-xs font-bold text-stone-900 dark:text-stone-100">
             Requirement &amp; Kriteria Penerimaan Tertaut ({linkedRequirements.length})

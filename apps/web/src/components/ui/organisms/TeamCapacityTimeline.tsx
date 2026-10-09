@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Calendar,
   Clock,
@@ -76,6 +77,7 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
   initialScale = 'day',
   initialScope = 'workspace',
 }) => {
+  const location = useLocation();
   const [scale, setScale] = useState<'day' | 'week' | 'month'>(initialScale);
   const [scope, setScope] = useState<CapacityScope>(initialScope);
   const [memberId, setMemberId] = useState<string>(initialMemberId);
@@ -855,12 +857,13 @@ export const TeamCapacityTimeline: React.FC<TeamCapacityTimelineProps> = ({
                       <span className="text-[10px] text-stone-500">
                         Prioritas: <strong>{selectedTaskDetail.priority.toUpperCase()}</strong>
                       </span>
-                      <a
-                        href={`/projects/${selectedTaskDetail.workspaceId}/tasks/${selectedTaskDetail.id}`}
+                      <Link
+                        to={`/projects/${selectedTaskDetail.workspaceId}/tasks/${selectedTaskDetail.id}`}
+                        state={{ returnTo: `${location.pathname}${location.search}` }}
                         className="font-bold text-emerald-700 underline underline-offset-2 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
                       >
                         Buka di Task Hub
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 )}

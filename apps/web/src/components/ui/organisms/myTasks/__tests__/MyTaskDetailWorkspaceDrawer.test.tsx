@@ -270,9 +270,9 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Payment Selection Feature' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Jejak navigasi konteks Feature')).toHaveTextContent(
-      'Implement payment selector',
-    );
+    expect(
+      screen.getByRole('button', { name: /Lihat detail Feature & Requirement/ }),
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('reloads the backend-supplied Feature context after the drawer is mounted again', async () => {

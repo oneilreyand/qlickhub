@@ -60,6 +60,14 @@ export const TaskDeepLinkPage: React.FC = () => {
       ? candidate
       : '/work?tab=tasks';
   }, [location.state]);
+  // Router state to restore on the page we return to, so a chain such as
+  // My Tasks -> Subtask -> Feature closes back step by step instead of jumping to Task Hub.
+  const returnState = (location.state as { returnState?: unknown } | null)?.returnState;
+  const closeDrawer = () => navigate(returnTo, { state: returnState });
+  const openRelatedTask = (nextTaskId: string) =>
+    navigate(`/projects/${projectId}/tasks/${nextTaskId}`, {
+      state: { returnTo: `${location.pathname}${location.search}`, returnState: location.state },
+    });
 
   useEffect(() => {
     if (!isInitialized || isWorkspaceLoading) return;
@@ -136,7 +144,7 @@ export const TaskDeepLinkPage: React.FC = () => {
         task={null}
         folders={folders}
         pendingTaskId={taskId}
-        onClose={() => navigate(returnTo)}
+        onClose={closeDrawer}
       />
     );
   }
@@ -185,12 +193,8 @@ export const TaskDeepLinkPage: React.FC = () => {
           userRole={userRole}
           isOpen
           releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
-          onClose={() => navigate(returnTo)}
-          onOpenFeature={(nextTaskId) =>
-            navigate(`/projects/${projectId}/tasks/${nextTaskId}`, {
-              state: { returnTo },
-            })
-          }
+          onClose={closeDrawer}
+          onOpenFeature={openRelatedTask}
           onDataChanged={reload}
         />
       ) : (
@@ -200,12 +204,8 @@ export const TaskDeepLinkPage: React.FC = () => {
           parentTask={parentTask}
           isParentTaskLoading={isParentTaskLoading}
           releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
-          onClose={() => navigate(returnTo)}
-          onNavigateToTask={(nextTaskId) =>
-            navigate(`/projects/${projectId}/tasks/${nextTaskId}`, {
-              state: { returnTo },
-            })
-          }
+          onClose={closeDrawer}
+          onNavigateToTask={openRelatedTask}
           onDataChanged={reload}
         />
       )}

@@ -7,6 +7,10 @@ import {
   TaskRequirementModel,
   QaDocumentModel,
   TaskDocumentModel,
+  TestCaseModel,
+  TestCaseRequirementModel,
+  TestRunModel,
+  TestResultModel,
 } from '../../db/models/index.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import {
@@ -38,6 +42,86 @@ function formatTestCase(tc: RequirementTestCaseModel | Record<string, any>): Req
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: json.updatedAt ? new Date(json.updatedAt).toISOString() : new Date().toISOString(),
   };
+}
+
+/**
+ * Versioned QA Desk test cases (test_case_requirements) linked to the given Requirements, mapped to the
+ * delivery-trace test-case shape. Status comes from the latest completed run for this Feature:
+ * passed / failed (blocked counts as failed) / skipped, or pending when no result exists yet.
+ * Draft and archived test cases are excluded: only active cases count as coverage.
+ */
+async function loadVersionedRequirementTestCases(
+  workspaceId: string,
+  featureTaskId: string,
+  requirementIds: string[],
+): Promise<RequirementTestCase[]> {
+  if (requirementIds.length === 0) return [];
+  const links = await TestCaseRequirementModel.findAll({
+    where: { workspaceId, requirementId: { [Op.in]: requirementIds } },
+  });
+  if (links.length === 0) return [];
+
+  const testCaseIds = [...new Set(links.map((link) => link.testCaseId))];
+  const [cases, runs] = await Promise.all([
+    TestCaseModel.findAll({
+      where: { workspaceId, id: { [Op.in]: testCaseIds }, status: 'active' },
+    }),
+    TestRunModel.findAll({
+      where: {
+        workspaceId,
+        featureTaskId,
+        testCaseId: { [Op.in]: testCaseIds },
+        status: 'completed',
+      },
+      order: [
+        ['completedAt', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
+    }),
+  ]);
+  const caseById = new Map(cases.map((testCase) => [testCase.id, testCase]));
+
+  const latestRunByCase = new Map<string, TestRunModel>();
+  for (const run of runs) {
+    if (!latestRunByCase.has(run.testCaseId)) latestRunByCase.set(run.testCaseId, run);
+  }
+  const latestRunIds = [...latestRunByCase.values()].map((run) => run.id);
+  const results =
+    latestRunIds.length > 0
+      ? await TestResultModel.findAll({
+          where: { workspaceId, testRunId: { [Op.in]: latestRunIds } },
+        })
+      : [];
+  const resultByRun = new Map(results.map((result) => [result.testRunId, result]));
+
+  const statusFor = (testCaseId: string): RequirementTestCase['status'] => {
+    const run = latestRunByCase.get(testCaseId);
+    const result = run ? resultByRun.get(run.id) : undefined;
+    if (!result) return 'pending';
+    if (result.status === 'blocked') return 'failed';
+    return result.status;
+  };
+
+  const mapped: RequirementTestCase[] = [];
+  for (const link of links) {
+    const testCase = caseById.get(link.testCaseId);
+    if (!testCase) continue;
+    mapped.push(
+      formatTestCase({
+        id: testCase.id,
+        workspaceId,
+        requirementId: link.requirementId,
+        title: testCase.title,
+        testType: testCase.testType,
+        status: statusFor(testCase.id),
+        executionDetails: null,
+        createdBy: testCase.createdBy,
+        createdAt: testCase.createdAt,
+        updatedAt: testCase.updatedAt,
+      }),
+    );
+  }
+  return mapped;
 }
 
 function formatRequirement(r: RequirementModel | Record<string, any>): Requirement {
@@ -202,6 +286,13 @@ export class TraceabilityService {
             }),
           ])
         : [[], [], []];
+    // Legacy requirement test cases plus the versioned QA Desk test cases. Without the versioned
+    // source the trace reported "no test results" for Features tested through the QA Desk.
+    const versionedTestCases = await loadVersionedRequirementTestCases(
+      workspaceId,
+      featureTask.id,
+      requirementIds,
+    );
 
     const featureSubtaskById = new Map(featureSubtasks.map((task) => [task.id, task]));
     const linkedFeatureSubtaskIds = new Set<string>();
@@ -222,8 +313,12 @@ export class TraceabilityService {
       criteriaByRequirement.set(criterion.requirementId, criteria);
     }
 
-    const testCasesByRequirement = new Map<string, RequirementTestCaseModel[]>();
-    for (const testCase of testCases) {
+    const allTestCases: RequirementTestCase[] = [
+      ...testCases.map(formatTestCase),
+      ...versionedTestCases,
+    ];
+    const testCasesByRequirement = new Map<string, RequirementTestCase[]>();
+    for (const testCase of allTestCases) {
       const linkedTestCases = testCasesByRequirement.get(testCase.requirementId) || [];
       linkedTestCases.push(testCase);
       testCasesByRequirement.set(testCase.requirementId, linkedTestCases);
@@ -260,7 +355,7 @@ export class TraceabilityService {
         requirement: formatRequirement(requirement),
         acceptanceCriteria: criteria.map(formatAcceptanceCriterion),
         implementingSubtasks: implementingSubtasks.map(formatTask),
-        testCases: linkedTestCases.map(formatTestCase),
+        testCases: linkedTestCases,
         testCaseLinkBasis: 'legacy_requirement' as const,
         acceptanceCriterionCoverageAvailable: false as const,
         structuralStatus: structuralStatus(implementingSubtasks.length, linkedTestCases.length),
@@ -303,7 +398,7 @@ export class TraceabilityService {
         coveragePercent: percentage(fullyCoveredRequirements, totalRequirements),
       },
       execution: {
-        totalTestCases: testCases.length,
+        totalTestCases: allTestCases.length,
         executedTestCases,
         passedTestCases,
         failedTestCases,
