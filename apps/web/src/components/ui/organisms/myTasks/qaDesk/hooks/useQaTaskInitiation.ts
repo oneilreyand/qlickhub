@@ -377,6 +377,7 @@ export function useQaTaskInitiation({
     createdCycle,
     createdTestCaseId,
     createdTestCaseVersionId,
+    defaultRequirementId,
     dispatch,
     environment,
     existingTestCycle,
