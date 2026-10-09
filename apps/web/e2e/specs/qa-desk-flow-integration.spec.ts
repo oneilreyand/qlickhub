@@ -123,6 +123,13 @@ test('Alur Pass Lengkap: Inisiasi modal rantai 5 langkah, eksekusi versi aktif, 
   ).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('button', { name: 'Beri Persetujuan QA' })).not.toBeVisible();
 
+  // "Buka Feature" membuka Feature lewat deep link dan Tutup kembali ke Subtask asal.
+  await featureContext.getByRole('button', { name: 'Buka Feature' }).click();
+  await expect(page).toHaveURL(new RegExp(`/tasks/${flowContext.featureTaskId}$`));
+  await page.getByRole('button', { name: 'Tutup panel' }).first().click();
+  await expect(page).toHaveURL(new RegExp(`/tasks/${flowContext.passQaSubtaskId}$`));
+  await expect(page.getByTestId('my-task-feature-context')).toBeVisible();
+
   // Verifikasi hitungan klik aktual: Target Prompt 6 adalah <= 12 klik (realistis 10-11 klik)
   expect(actualClickCount).toBeLessThanOrEqual(12);
 
