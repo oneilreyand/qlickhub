@@ -495,10 +495,16 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
               currentUserId={currentUserId || undefined}
               userRole={userRole}
               onDataChanged={onDataChanged}
-              onBackToOverview={() => {
-                setActiveSubtaskForExecution(null);
-                if (isPlanner) setActiveViewMode('po');
-              }}
+              // Only a planner who opened this subtask from the Feature team grid has an overview
+              // to go back to; for everyone else "Buka Feature" in the Feature context is the way.
+              onBackToOverview={
+                isPlanner && activeSubtaskForExecution
+                  ? () => {
+                      setActiveSubtaskForExecution(null);
+                      setActiveViewMode('po');
+                    }
+                  : undefined
+              }
             />
           )}
 
@@ -512,10 +518,16 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
               currentUserId={currentUserId || undefined}
               userRole={userRole}
               onDataChanged={onDataChanged}
-              onBackToOverview={() => {
-                setActiveSubtaskForExecution(null);
-                if (isPlanner) setActiveViewMode('po');
-              }}
+              // Only a planner who opened this subtask from the Feature team grid has an overview
+              // to go back to; for everyone else "Buka Feature" in the Feature context is the way.
+              onBackToOverview={
+                isPlanner && activeSubtaskForExecution
+                  ? () => {
+                      setActiveSubtaskForExecution(null);
+                      setActiveViewMode('po');
+                    }
+                  : undefined
+              }
               focusTarget={focusTarget}
             />
           )}

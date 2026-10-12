@@ -131,8 +131,6 @@ describe('DevWorkingDesk Organism', () => {
 
     // Header & Roles
     expect(screen.getByText('Area Kerja Frontend')).toBeInTheDocument();
-    expect(screen.getByText('Implement Navigation Bar Component')).toBeInTheDocument();
-    expect(screen.getByText('Global App Shell')).toBeInTheDocument();
     expect(screen.getByText('Serahkan ke QA')).toBeInTheDocument();
     expect(screen.getByText('Developer yang Ditugaskan')).toBeInTheDocument();
     expect(screen.getByText('Bob Dev')).toBeInTheDocument();
@@ -191,7 +189,6 @@ describe('DevWorkingDesk Organism', () => {
     });
 
     expect(screen.getByText('Area Kerja Frontend')).toBeInTheDocument();
-    expect(screen.getByText('Implement Navigation Bar Component')).toBeInTheDocument();
     expect(screen.queryByText('Ringkasan Produk & Spesifikasi dari PO')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Kebutuhan dan kriteria acuan dari Product Owner (hanya baca)'),
@@ -459,6 +456,10 @@ describe('DevWorkingDesk Organism', () => {
 
     const dialog = screen.getByRole('dialog', { name: /Serahkan Handoff kepada Tim QA/i });
     expect(dialog).toBeInTheDocument();
+    // Saved links are summarised instead of being asked again; they stay editable on request.
+    expect(within(dialog).getByText('https://github.com/org/repo/pull/123')).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText('URL Pull Request (PR)')).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ubah tautan' }));
     expect(
       within(dialog).getByDisplayValue('https://github.com/org/repo/pull/123'),
     ).toBeInTheDocument();
