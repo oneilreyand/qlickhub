@@ -526,7 +526,7 @@ describe('QaTestingDesk Organism', () => {
     expect(
       await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Area Pengujian & Mutu QA')).toBeInTheDocument();
+    expect(screen.queryByText('Area Pengujian & Mutu QA')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Test Case Baru/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Impor Spreadsheet/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Jalankan Test Case/i })).not.toBeInTheDocument();
@@ -1334,7 +1334,7 @@ describe('QaTestingDesk Organism', () => {
     expect(await screen.findByText(/Ditugaskan ke Checkout Developer/i)).toBeInTheDocument();
   });
 
-  it('passes parentTask?.id || subtask.id to QaSignOffTab and ReleaseAssurancePanel', async () => {
+  it('passes deskData.featureTaskId to QaSignOffTab and never passes subtask.id as featureTaskId', async () => {
     const user = userEvent.setup();
 
     // Case 1: with parentTask provided -> passes parentTask.id
@@ -1350,21 +1350,40 @@ describe('QaTestingDesk Organism', () => {
     });
     view1.unmount();
 
-    // Case 2: without parentTask (null) -> passes subtask.id (even if subtask.parentTaskId exists)
+    // Case 2: without parentTask (null) -> passes parentTaskId (not subtask.id)
     releaseServiceMocks.listFeatureReleaseRecords.mockClear();
+    const parentFeatureId = '10000000-0000-4000-8000-000000000099';
     const subtaskWithDifferentParentTaskId: Task = {
       ...mockQaSubtask,
-      parentTaskId: '10000000-0000-4000-8000-000000000099',
+      parentTaskId: parentFeatureId,
     };
-    renderDesk('qa', subtaskWithDifferentParentTaskId, ids.qa, null);
+    const view2 = renderDesk('qa', subtaskWithDifferentParentTaskId, ids.qa, null);
     const signOffTab2 = await screen.findByRole('tab', { name: 'Persetujuan & Riwayat' });
     await user.click(signOffTab2);
 
     await waitFor(() => {
       expect(releaseServiceMocks.listFeatureReleaseRecords).toHaveBeenCalledWith(
         ids.workspace,
-        subtaskWithDifferentParentTaskId.id,
+        parentFeatureId,
       );
     });
+    expect(releaseServiceMocks.listFeatureReleaseRecords).not.toHaveBeenCalledWith(
+      ids.workspace,
+      subtaskWithDifferentParentTaskId.id,
+    );
+    view2.unmount();
+
+    // Case 3: subtask with neither parentTask nor parentTaskId -> does not call API with subtask.id
+    releaseServiceMocks.listFeatureReleaseRecords.mockClear();
+    const subtaskWithoutParent: Task = {
+      ...mockQaSubtask,
+      parentTaskId: undefined,
+    };
+    renderDesk('qa', subtaskWithoutParent, ids.qa, null);
+    const signOffTab3 = await screen.findByRole('tab', { name: 'Persetujuan & Riwayat' });
+    await user.click(signOffTab3);
+
+    expect(screen.getByText('Memuat konteks Feature untuk persetujuan...')).toBeInTheDocument();
+    expect(releaseServiceMocks.listFeatureReleaseRecords).not.toHaveBeenCalled();
   });
 });

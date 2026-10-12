@@ -67,7 +67,9 @@ export function useQaDeskData({
   const canActivateTestCases =
     isAssignedQaExecutor || ['owner', 'admin', 'po'].includes(normalizedUserRole);
   const canSubmitTestCasesForReview = normalizedUserRole === 'qa';
-  const featureTaskId = parentTask?.id || subtask.parentTaskId || subtask.id;
+  const isSubtask = Boolean(subtask.parentTaskId || subtask.deliveryArea);
+  const featureTaskId =
+    parentTask?.id || subtask.parentTaskId || (!isSubtask ? subtask.id : undefined);
 
   const [parentSubtasks, setParentSubtasks] = useState<Task[]>(parentTask?.subtasks || []);
   const [workflowSummary, setWorkflowSummary] = useState<QaWorkflowSummary | null>(null);

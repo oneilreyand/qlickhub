@@ -314,9 +314,9 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
     await waitFor(() => expect(getParentTaskDeliveryTraceMock).toHaveBeenCalledTimes(2));
   });
 
-  it('lets an assigned Developer open read-only QA evidence without PO controls', async () => {
+  it('does not render role tabs for dev or qa role, showing dedicated desk and role label instead', () => {
     const store = createTestStore();
-    render(
+    const { rerender } = render(
       <Provider store={store}>
         <MyTaskDetailWorkspaceDrawer
           task={mockSubtask}
@@ -328,14 +328,29 @@ describe('MyTaskDetailWorkspaceDrawer Organism', () => {
       </Provider>,
     );
 
-    expect(screen.getByRole('tab', { name: 'Pengujian QA' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Ringkasan & Rilis (PO)' })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Pengujian QA' }));
-    expect(await screen.findByText('Pengelolaan & Eksekusi Test Case')).toBeInTheDocument();
     expect(
-      await screen.findByText('Belum ada Test Case yang tertaut ke Feature ini'),
-    ).toBeInTheDocument();
+      screen.queryByRole('tablist', { name: 'Tampilan kerja berdasarkan peran' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('toolbar')).toHaveTextContent('Pengerjaan Dev');
+    expect(screen.getByRole('toolbar')).toHaveTextContent('Pelaksana');
+
+    rerender(
+      <Provider store={store}>
+        <MyTaskDetailWorkspaceDrawer
+          task={mockSubtask}
+          userRole="qa"
+          isOpen
+          onClose={vi.fn()}
+          onDataChanged={vi.fn()}
+        />
+      </Provider>,
+    );
+
+    expect(
+      screen.queryByRole('tablist', { name: 'Tampilan kerja berdasarkan peran' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('toolbar')).toHaveTextContent('Pengujian QA');
+    expect(screen.getByRole('toolbar')).toHaveTextContent('Verifikasi QA');
   });
 
   it('maps recoverable and forbidden context failures to explicit drawer states', async () => {

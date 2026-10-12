@@ -45,12 +45,12 @@ describe('MyTaskFeatureContext', () => {
     expect(onOpenFeature).toHaveBeenCalledWith(trace.featureTask.id);
   });
 
-  it('hides delivery trace and release readiness signals on dev role', () => {
+  it('renders 1-line compact header and hides delivery trace and release readiness signals on dev and qa roles', () => {
     const trace = createDeliveryTraceFixture();
     const task = trace.featureSubtasks[0];
     const onOpenFeature = vi.fn();
 
-    render(
+    const { rerender } = render(
       <MyTaskFeatureContext
         task={task}
         trace={trace}
@@ -64,8 +64,31 @@ describe('MyTaskFeatureContext', () => {
       />,
     );
 
+    expect(screen.getByText('Feature:')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Checkout Feature' })).toBeInTheDocument();
-    expect(screen.getByText('Review checkout before confirmation')).toBeInTheDocument();
+    expect(screen.queryByText(/Cakupan/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Rilis terblokir/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Subtask pengembangan telah selesai/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Belum ada hasil pengujian/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/gate perlu ditindaklanjuti/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Buka Feature' })).toBeInTheDocument();
+
+    rerender(
+      <MyTaskFeatureContext
+        task={task}
+        trace={trace}
+        isLoading={false}
+        error={null}
+        permissionDenied={false}
+        releaseReadinessState={createReleaseReadinessViewState()}
+        onOpenFeature={onOpenFeature}
+        onRetry={vi.fn()}
+        userRole="qa"
+      />,
+    );
+
+    expect(screen.getByText('Feature:')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Checkout Feature' })).toBeInTheDocument();
     expect(screen.queryByText(/Cakupan/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Rilis terblokir/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Subtask pengembangan telah selesai/i)).not.toBeInTheDocument();

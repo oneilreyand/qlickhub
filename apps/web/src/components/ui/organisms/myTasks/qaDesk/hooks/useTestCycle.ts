@@ -7,7 +7,7 @@ import { enqueueSnackbar } from '../../../../../../store/uiSlice';
 
 export interface UseTestCycleOptions {
   workspaceId: string;
-  featureTaskId: string;
+  featureTaskId?: string;
   subtaskId: string;
   currentUserId?: string;
   loadWorkflowSummary: () => Promise<void>;
@@ -51,6 +51,11 @@ export function useTestCycle({
   );
 
   const loadTestCycles = useCallback(async () => {
+    if (!workspaceId || !featureTaskId) {
+      setTestCycles([]);
+      setIsLoadingTestCycles(false);
+      return;
+    }
     setIsLoadingTestCycles(true);
     setTestCycleError(null);
     try {
@@ -128,6 +133,10 @@ export function useTestCycle({
   }, [devResolutionFingerprint, onRefreshDevFingerprint]);
 
   const handleCreateTestCycle = async () => {
+    if (!featureTaskId) {
+      setTestCycleError('Feature ID belum tersedia.');
+      return;
+    }
     const finalFingerprint =
       testCycleFingerprint.trim() ||
       deriveCandidateFingerprint(testCycleBuild, testCycleEnvironment);
