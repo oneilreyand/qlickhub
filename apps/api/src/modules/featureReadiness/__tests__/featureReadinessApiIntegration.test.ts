@@ -372,7 +372,9 @@ describe('Feature readiness baseline HTTP/PostgreSQL integration (P1A)', () => {
     const state = (await stateResponse.json()) as any;
     assert.strictEqual(state.readiness.currentBaseline.isCurrent, false);
     assert.ok(state.readiness.currentBaseline.staleReasons.includes('dev_review_changed'));
-    assert.strictEqual(state.readiness.readyToBaseline, false);
+    // Under Owner K1 policy (PR B0), Dev/QA readiness reviews are optional/informational;
+    // content checks (Brief, Requirements, AC) remain passed so readyToBaseline is true.
+    assert.strictEqual(state.readiness.readyToBaseline, true);
 
     const forbiddenOverride = await request(
       poCookie,

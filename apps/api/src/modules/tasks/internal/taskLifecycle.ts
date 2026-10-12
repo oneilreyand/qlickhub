@@ -29,6 +29,7 @@ import {
   RequirementModel,
   TaskRequirementModel,
 } from '../../../db/models/index.js';
+import { ensureAutoBaseline } from '../../featureReadiness/featureReadinessService.js';
 import {
   assertCanCreateTask,
   assertCanMutateTask,
@@ -422,6 +423,9 @@ export async function createTaskImpl(actorId: string, input: CreateTaskInput): P
           ),
         ),
       );
+
+      const featureTaskId = task.parentTaskId || task.id;
+      await ensureAutoBaseline(workspaceId, featureTaskId, actorId, { transaction });
     }
 
     // If parent task is already done, adding an incomplete subtask reopens the parent task

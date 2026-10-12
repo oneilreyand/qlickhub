@@ -254,6 +254,7 @@ export const QaTestCycleSchema = z.object({
 export type QaTestCycle = z.infer<typeof QaTestCycleSchema>;
 
 export const QaWorkflowBlockerCodeSchema = z.enum([
+  'feature_baseline_missing',
   'qa_test_cycle_missing',
   'scoped_run_in_progress',
   'scoped_result_missing',
@@ -283,6 +284,8 @@ export const QaWorkflowSummarySchema = z.object({
   qaSubtaskStatus: z.string().min(1).max(50),
   testCycle: QaTestCycleSchema.nullable(),
   blockers: z.array(QaWorkflowBlockerCodeSchema),
+  blockerReason: z.string().nullable().optional(),
+  isBaselineSuperseded: z.boolean().default(false).optional(),
   nextAction: z.object({
     code: QaWorkflowNextActionCodeSchema,
     label: NonBlankTextSchema.max(120),
