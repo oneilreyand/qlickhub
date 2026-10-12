@@ -79,3 +79,15 @@ export function assertCanAddTestResultEvidence(role: WorkspaceRole): void {
   if (role === 'qa') return;
   throw new Error('FORBIDDEN: Only QA Engineer members can add Test Result evidence.');
 }
+
+export function assertCanDeleteTestCase(
+  role: WorkspaceRole,
+  actorId: string,
+  createdBy: string,
+): void {
+  if (role === 'owner' || role === 'admin' || role === 'po') return;
+  if (role === 'qa' && actorId === createdBy) return;
+  throw new Error(
+    'FORBIDDEN: Only the creator QA or Product Owner/Admin/Owner may delete this Test Case.',
+  );
+}
