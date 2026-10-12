@@ -35,7 +35,7 @@ export interface InitiationAcMappingItem {
 export interface UseQaTaskInitiationOptions {
   workspaceId: string;
   subtask: Task;
-  featureTaskId: string;
+  featureTaskId?: string;
   existingTestCycle?: QaTestCycle | null;
   defaultRequirementId?: string;
   onInitiationCompleted?: (
@@ -237,6 +237,11 @@ export function useQaTaskInitiation({
     // Step (b): Create test cycle if not exists
     let cycleToUse = createdCycle || existingTestCycle;
     if (!cycleToUse) {
+      if (!featureTaskId) {
+        setFailedStep('create_cycle');
+        setErrorMessage('Memuat konteks Feature…');
+        return;
+      }
       setCurrentStep('creating_cycle');
       try {
         cycleToUse = await testManagementService.createQaTestCycle(workspaceId, {

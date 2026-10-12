@@ -40,6 +40,7 @@ export interface QaTestCaseDetailViewProps {
   workspaceId: string;
   subtaskId: string;
   onPreviewEvidence: (previewItem: EvidencePreviewItem) => void;
+  featureTaskId?: string;
 }
 
 export const QaTestCaseDetailView: React.FC<QaTestCaseDetailViewProps> = ({
@@ -65,6 +66,7 @@ export const QaTestCaseDetailView: React.FC<QaTestCaseDetailViewProps> = ({
   workspaceId,
   subtaskId,
   onPreviewEvidence,
+  featureTaskId,
 }) => {
   const { testCase, latestRun, testRuns } = execution;
 
@@ -179,13 +181,18 @@ export const QaTestCaseDetailView: React.FC<QaTestCaseDetailViewProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={testCase.status !== 'active'}
+                  disabled={!featureTaskId || testCase.status !== 'active'}
                   onClick={() => onOpenRunModal(testCase.id)}
-                  aria-label={`Jalankan Test Case untuk ${testCase.title}`}
+                  aria-label={
+                    !featureTaskId
+                      ? 'Memuat konteks Feature…'
+                      : `Jalankan Test Case untuk ${testCase.title}`
+                  }
+                  title={!featureTaskId ? 'Memuat konteks Feature…' : undefined}
                 >
-                  Jalankan Test Case
+                  {!featureTaskId ? 'Memuat konteks Feature…' : 'Jalankan Test Case'}
                 </Button>
-                {testCase.status !== 'active' && (
+                {featureTaskId && testCase.status !== 'active' && (
                   <span className="text-[11px] text-stone-500 dark:text-stone-400">
                     Aktifkan untuk menjalankan
                   </span>

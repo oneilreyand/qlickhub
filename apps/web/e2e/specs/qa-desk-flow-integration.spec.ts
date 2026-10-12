@@ -116,8 +116,9 @@ test('Alur Pass Lengkap: Inisiasi modal rantai 5 langkah, eksekusi versi aktif, 
   // (sebelumnya selalu "Belum ada hasil pengujian").
   await page.goto(`/projects/${flowContext.workspaceId}/tasks/${flowContext.passQaSubtaskId}`);
   const featureContext = page.getByTestId('my-task-feature-context');
-  await expect(featureContext.getByText('Lulus 100%')).toBeVisible({ timeout: 10000 });
-  await expect(featureContext.getByText('Belum ada hasil pengujian')).toHaveCount(0);
+  await expect(featureContext.getByRole('button', { name: 'Buka Feature' })).toBeVisible({
+    timeout: 10000,
+  });
   await expect(
     page.getByRole('button', { name: /Lihat detail Feature & Requirement/ }),
   ).toHaveAttribute('aria-expanded', 'false');

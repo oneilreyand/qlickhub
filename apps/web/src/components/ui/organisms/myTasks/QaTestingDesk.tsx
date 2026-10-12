@@ -81,7 +81,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     onDataChanged();
   }, [loadBugs, loadReleaseRecords, onDataChanged]);
 
-  const requirementScopeTaskId = parentTask?.id || subtask.parentTaskId || subtask.id;
+  const requirementScopeTaskId =
+    deskData.featureTaskId || subtask.parentTaskId || parentTask?.id || subtask.id;
 
   const testCycleState = useTestCycle({
     workspaceId,
@@ -178,73 +179,117 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     workspaceId,
     subtaskId: subtask.id,
     onPreviewEvidence: (previewItem: any) => executionState.setPreviewEvidence(previewItem),
+    featureTaskId: deskData.featureTaskId,
   };
 
   return (
     <div className="space-y-6">
-      {deskData.isAssignedQaExecutor && (
-        <QaNextActionCard
-          workflowSummary={deskData.workflowSummary}
-          subtaskStatus={subtask.status}
-          testCycle={testCycleState.selectedTestCycle}
-          hasDraftTestCase={executionState.hasDraftTestCase}
-          draftTestCase={executionState.draftTestCase}
-          inProgressRun={executionState.inProgressRun}
-          unexecutedTestCase={executionState.unexecutedTestCase}
-          qaCompletionReady={deskData.qaCompletionReady}
-          qaCompletionUnavailableMessage={deskData.qaCompletionUnavailableMessage}
-          isUpdatingStatus={deskData.isUpdatingStatus}
-          isStartingRun={executionState.isStartingRun}
-          isActivatingTestCase={Boolean(executionState.activatingTestCaseId)}
-          canMutateQaExecution={deskData.canMutateQaExecution}
-          isSignOffRecorded={deskData.isSignOffRecorded}
-          isSignOffRejected={deskData.isSignOffRejected}
-          onStartQaTask={initiationState.openInitiationModal}
-          onActivateTestCase={(id) => void executionState.handleActivateTestCase(id)}
-          onRunTestCase={(id) => void executionState.handleQuickStartRun(id)}
-          onRecordResult={executionState.openResultModal}
-          onCompleteQaTask={() => void deskData.handleStatusChange('done')}
-          onNavigateToSignOff={() => setActiveWorkflowTab('sign_off')}
-          onNavigateToBugs={() => setActiveWorkflowTab('bugs')}
-          onOpenTestCycleModal={testCycleState.openTestCycleModal}
-        />
-      )}
+      {/* Header row: status, schedule health, and quick workflow actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <TaskStatusBadge state={subtask.status} />
+          <TaskScheduleHealthBadge status={deskData.scheduleHealth.status} />
+        </div>
 
-      {/* QA Workstation Header Card */}
-      <Card className="p-3 sm:p-4 border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#1C1A19]">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                <Bug className="h-3.5 w-3.5" />
-                Area Pengujian &amp; Mutu QA
-              </span>
-              <TaskStatusBadge state={subtask.status} />
-              <TaskScheduleHealthBadge status={deskData.scheduleHealth.status} />
-            </div>
-          </div>
+        {/* Quick Workflow Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {/* For the assigned QA, start/complete live on the "Langkah berikutnya" card below. */}
+          {!deskData.isAssignedQaExecutor &&
+            deskData.canMutateQaExecution &&
+            subtask.status === 'todo' && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => deskData.handleStatusChange('in_progress')}
+                isLoading={deskData.isUpdatingStatus}
+                disabled={!deskData.featureTaskId}
+                title={!deskData.featureTaskId ? 'Memuat konteks Feature…' : undefined}
+                leftIcon={<Play className="h-4 w-4" />}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {!deskData.featureTaskId ? 'Memuat konteks Feature…' : 'Mulai Tugas QA'}
+              </Button>
+            )}
 
-          {/* Quick Workflow Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {/* For the assigned QA, start/complete live on the "Langkah berikutnya" card above. */}
-            {!deskData.isAssignedQaExecutor &&
-              deskData.canMutateQaExecution &&
-              subtask.status === 'todo' && (
+          {!deskData.isAssignedQaExecutor &&
+            subtask.status === 'in_progress' &&
+            deskData.canMutateQaExecution && (
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => deskData.handleStatusChange('in_progress')}
+                  onClick={() => deskData.handleStatusChange('done')}
                   isLoading={deskData.isUpdatingStatus}
-                  leftIcon={<Play className="h-4 w-4" />}
+                  disabled={!deskData.qaCompletionReady}
+                  title={
+                    deskData.qaCompletionReady ? undefined : deskData.qaCompletionUnavailableMessage
+                  }
+                  leftIcon={<CheckCircle2 className="h-4 w-4" />}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
-                  Mulai Tugas QA
+                  Selesaikan Tugas QA
                 </Button>
-              )}
+                {!deskData.qaCompletionReady && deskData.qaCompletionUnavailableMessage && (
+                  <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                    {deskData.qaCompletionUnavailableMessage}
+                  </span>
+                )}
+              </div>
+            )}
 
-            {!deskData.isAssignedQaExecutor &&
-              subtask.status === 'in_progress' &&
-              deskData.canMutateQaExecution && (
+          {/* Developer Subtask Review: Authorized QA / Planner can request changes or mark as done */}
+          {subtask.deliveryArea !== 'qa' && subtask.status === 'in_review' && (
+            <>
+              {deskData.canReviewDevSubtask ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={deskData.openChangesRequestedModal}
+                    disabled={deskData.isUpdatingStatus}
+                    leftIcon={<XCircle className="h-4 w-4 text-amber-500" />}
+                    className="border-amber-500/40 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                  >
+                    Minta Revisi
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => deskData.handleStatusChange('done')}
+                    isLoading={deskData.isUpdatingStatus}
+                    leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    Lolos Review &amp; Selesaikan
+                  </Button>
+                </>
+              ) : subtask.assigneeId === currentUserId ? (
+                <span className="text-xs text-stone-500 italic">
+                  Menunggu review dari reviewer QA atau Planner (anti-self-approval).
+                </span>
+              ) : null}
+            </>
+          )}
+
+          {/* QA Subtask In Review */}
+          {subtask.deliveryArea === 'qa' &&
+            deskData.canMutateQaExecution &&
+            subtask.status === 'in_review' && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    deskData.handleStatusChange(
+                      'in_progress',
+                      'Dikembalikan ke Sedang Dikerjakan untuk pengujian QA tambahan.',
+                    )
+                  }
+                  isLoading={deskData.isUpdatingStatus}
+                  leftIcon={<RotateCcw className="h-4 w-4" />}
+                >
+                  Lanjutkan Pengujian
+                </Button>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <Button
                     variant="primary"
@@ -268,103 +313,53 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                     </span>
                   )}
                 </div>
-              )}
-
-            {/* Developer Subtask Review: Authorized QA / Planner can request changes or mark as done */}
-            {subtask.deliveryArea !== 'qa' && subtask.status === 'in_review' && (
-              <>
-                {deskData.canReviewDevSubtask ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={deskData.openChangesRequestedModal}
-                      disabled={deskData.isUpdatingStatus}
-                      leftIcon={<XCircle className="h-4 w-4 text-amber-500" />}
-                      className="border-amber-500/40 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
-                    >
-                      Minta Revisi
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => deskData.handleStatusChange('done')}
-                      isLoading={deskData.isUpdatingStatus}
-                      leftIcon={<CheckCircle2 className="h-4 w-4" />}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      Lolos Review &amp; Selesaikan
-                    </Button>
-                  </>
-                ) : subtask.assigneeId === currentUserId ? (
-                  <span className="text-xs text-stone-500 italic">
-                    Menunggu review dari reviewer QA atau Planner (anti-self-approval).
-                  </span>
-                ) : null}
               </>
             )}
 
-            {/* QA Subtask In Review */}
-            {subtask.deliveryArea === 'qa' &&
-              deskData.canMutateQaExecution &&
-              subtask.status === 'in_review' && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      deskData.handleStatusChange(
-                        'in_progress',
-                        'Dikembalikan ke Sedang Dikerjakan untuk pengujian QA tambahan.',
-                      )
-                    }
-                    isLoading={deskData.isUpdatingStatus}
-                    leftIcon={<RotateCcw className="h-4 w-4" />}
-                  >
-                    Lanjutkan Pengujian
-                  </Button>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => deskData.handleStatusChange('done')}
-                      isLoading={deskData.isUpdatingStatus}
-                      disabled={!deskData.qaCompletionReady}
-                      title={
-                        deskData.qaCompletionReady
-                          ? undefined
-                          : deskData.qaCompletionUnavailableMessage
-                      }
-                      leftIcon={<CheckCircle2 className="h-4 w-4" />}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      Selesaikan Tugas QA
-                    </Button>
-                    {!deskData.qaCompletionReady && deskData.qaCompletionUnavailableMessage && (
-                      <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-                        {deskData.qaCompletionUnavailableMessage}
-                      </span>
-                    )}
-                  </div>
-                </>
-              )}
-
-            {deskData.canMutateQaExecution && subtask.status === 'done' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  deskData.handleStatusChange('in_progress', 'Dibuka kembali untuk retest.')
-                }
-                isLoading={deskData.isUpdatingStatus}
-                leftIcon={<RotateCcw className="h-4 w-4" />}
-              >
-                Buka Kembali Eksekusi QA
-              </Button>
-            )}
-          </div>
+          {deskData.canMutateQaExecution && subtask.status === 'done' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                deskData.handleStatusChange('in_progress', 'Dibuka kembali untuk retest.')
+              }
+              isLoading={deskData.isUpdatingStatus}
+              leftIcon={<RotateCcw className="h-4 w-4" />}
+            >
+              Buka Kembali Eksekusi QA
+            </Button>
+          )}
         </div>
-      </Card>
+      </div>
+
+      {deskData.isAssignedQaExecutor && (
+        <QaNextActionCard
+          workflowSummary={deskData.workflowSummary}
+          subtaskStatus={subtask.status}
+          testCycle={testCycleState.selectedTestCycle}
+          hasDraftTestCase={executionState.hasDraftTestCase}
+          draftTestCase={executionState.draftTestCase}
+          inProgressRun={executionState.inProgressRun}
+          unexecutedTestCase={executionState.unexecutedTestCase}
+          qaCompletionReady={deskData.qaCompletionReady}
+          qaCompletionUnavailableMessage={deskData.qaCompletionUnavailableMessage}
+          isUpdatingStatus={deskData.isUpdatingStatus}
+          isStartingRun={executionState.isStartingRun}
+          isActivatingTestCase={Boolean(executionState.activatingTestCaseId)}
+          canMutateQaExecution={deskData.canMutateQaExecution}
+          isSignOffRecorded={deskData.isSignOffRecorded}
+          isSignOffRejected={deskData.isSignOffRejected}
+          featureTaskId={deskData.featureTaskId}
+          onStartQaTask={initiationState.openInitiationModal}
+          onActivateTestCase={(id) => void executionState.handleActivateTestCase(id)}
+          onRunTestCase={(id) => void executionState.handleQuickStartRun(id)}
+          onRecordResult={executionState.openResultModal}
+          onCompleteQaTask={() => void deskData.handleStatusChange('done')}
+          onNavigateToSignOff={() => setActiveWorkflowTab('sign_off')}
+          onNavigateToBugs={() => setActiveWorkflowTab('bugs')}
+          onOpenTestCycleModal={testCycleState.openTestCycleModal}
+        />
+      )}
 
       <Tabs
         tabs={[
@@ -479,43 +474,53 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
       )}
 
       {/* Tab 3: Bug Experience & Retest Panel */}
-      {activeWorkflowTab === 'bugs' && (
-        <QaBugsTab
-          canOpenBugReport={deskData.canOpenBugReport}
-          onOpenBugModal={() => bugReportState.openBugModal()}
-          bugTraceOptions={bugReportState.bugTraceOptions}
-          workflowSummary={deskData.workflowSummary}
-          workspaceId={workspaceId}
-          userRole={userRole}
-          featureTaskId={deskData.featureTaskId}
-          subtaskId={subtask.id}
-          onReloadWorkflowSummary={() => void deskData.loadWorkflowSummary()}
-          onDataChanged={handleDataChanged}
-          dataRefreshKey={dataRefreshKey}
-          onRetestRunStarted={(qaSubtaskId) => {
-            if (qaSubtaskId !== subtask.id) return;
-            setActiveWorkflowTab('preparation');
-            void executionState.loadExecutions();
-            void deskData.loadWorkflowSummary();
-            handleDataChanged();
-          }}
-        />
-      )}
+      {activeWorkflowTab === 'bugs' &&
+        (deskData.featureTaskId ? (
+          <QaBugsTab
+            canOpenBugReport={deskData.canOpenBugReport}
+            onOpenBugModal={() => bugReportState.openBugModal()}
+            bugTraceOptions={bugReportState.bugTraceOptions}
+            workflowSummary={deskData.workflowSummary}
+            workspaceId={workspaceId}
+            userRole={userRole}
+            featureTaskId={deskData.featureTaskId}
+            subtaskId={subtask.id}
+            onReloadWorkflowSummary={() => void deskData.loadWorkflowSummary()}
+            onDataChanged={handleDataChanged}
+            dataRefreshKey={dataRefreshKey}
+            onRetestRunStarted={(qaSubtaskId) => {
+              if (qaSubtaskId !== subtask.id) return;
+              setActiveWorkflowTab('preparation');
+              void executionState.loadExecutions();
+              void deskData.loadWorkflowSummary();
+              handleDataChanged();
+            }}
+          />
+        ) : (
+          <Card className="p-8 text-center text-xs text-stone-500">
+            Memuat konteks Feature untuk daftar bug...
+          </Card>
+        ))}
 
       {/* Tab 4: Persetujuan QA & Riwayat */}
-      {activeWorkflowTab === 'sign_off' && (
-        <QaSignOffTab
-          workspaceId={workspaceId}
-          featureTaskId={parentTask?.id || subtask.id}
-          userRole={userRole}
-          focusTarget={focusTarget}
-          workflowSummary={deskData.workflowSummary}
-          isLoadingWorkflowSummary={deskData.isLoadingWorkflowSummary}
-          workflowSummaryError={deskData.workflowSummaryError}
-          onReloadWorkflowSummary={() => void deskData.loadWorkflowSummary()}
-          onDataChanged={handleDataChanged}
-        />
-      )}
+      {activeWorkflowTab === 'sign_off' &&
+        (deskData.featureTaskId ? (
+          <QaSignOffTab
+            workspaceId={workspaceId}
+            featureTaskId={deskData.featureTaskId}
+            userRole={userRole}
+            focusTarget={focusTarget}
+            workflowSummary={deskData.workflowSummary}
+            isLoadingWorkflowSummary={deskData.isLoadingWorkflowSummary}
+            workflowSummaryError={deskData.workflowSummaryError}
+            onReloadWorkflowSummary={() => void deskData.loadWorkflowSummary()}
+            onDataChanged={handleDataChanged}
+          />
+        ) : (
+          <Card className="p-8 text-center text-xs text-stone-500">
+            Memuat konteks Feature untuk persetujuan...
+          </Card>
+        ))}
 
       {/* Diskusi: one place for QA conversation, reachable from every step */}
       {activeWorkflowTab === 'discussion' && (

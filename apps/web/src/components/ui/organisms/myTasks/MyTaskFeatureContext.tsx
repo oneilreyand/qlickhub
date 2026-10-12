@@ -147,8 +147,8 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const detailsId = React.useId();
-  const isDev =
-    (userRole || '').toLowerCase() === 'dev' || (userRole || '').toLowerCase() === 'developer';
+  const normalizedRole = (userRole || '').toLowerCase();
+  const isPlanner = ['owner', 'admin', 'po'].includes(normalizedRole);
 
   if (isLoading && !trace) {
     return (
@@ -203,23 +203,23 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
 
   return (
     <Card className="space-y-4 p-4 sm:p-5" data-testid="my-task-feature-context">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Layers3 className="h-5 w-5 text-stone-700 dark:text-[#B1E743]" />
-            <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-              Feature / Story Induk
-            </p>
-            <TaskStatusBadge state={trace.featureTask.status} />
+      {isPlanner ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Layers3 className="h-5 w-5 text-stone-700 dark:text-[#B1E743]" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                Feature / Story Induk
+              </p>
+              <TaskStatusBadge state={trace.featureTask.status} />
+            </div>
+            <h3 className="mt-2 text-base font-extrabold text-stone-900 dark:text-stone-100">
+              {trace.featureTask.title}
+            </h3>
           </div>
-          <h3 className="mt-2 text-base font-extrabold text-stone-900 dark:text-stone-100">
-            {trace.featureTask.title}
-          </h3>
-        </div>
-        {(!isDev || onOpenFeature) && (
           <div className="space-y-2 sm:text-right">
-            {!isDev && <DeliveryTraceSignal trace={trace} className="shrink-0" />}
-            {!isDev && releaseReadinessState && (
+            <DeliveryTraceSignal trace={trace} className="shrink-0" />
+            {releaseReadinessState && (
               <ReleaseReadinessSignal state={releaseReadinessState} showReason />
             )}
             {onOpenFeature && (
@@ -234,8 +234,36 @@ export const MyTaskFeatureContext: React.FC<MyTaskFeatureContextProps> = ({
               </Button>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Layers3 className="h-4 w-4 shrink-0 text-stone-700 dark:text-[#B1E743]" />
+            <span className="shrink-0 text-xs font-semibold text-stone-500 dark:text-stone-400">
+              Feature:
+            </span>
+            <span
+              role="heading"
+              aria-level={3}
+              className="truncate text-xs font-bold text-stone-900 dark:text-stone-100"
+              title={trace.featureTask.title}
+            >
+              {trace.featureTask.title}
+            </span>
+          </div>
+          {onOpenFeature && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 text-xs"
+              rightIcon={<ExternalLink className="h-3.5 w-3.5" />}
+              onClick={() => onOpenFeature(trace.featureTask.id)}
+            >
+              Buka Feature
+            </Button>
+          )}
+        </div>
+      )}
 
       <button
         type="button"

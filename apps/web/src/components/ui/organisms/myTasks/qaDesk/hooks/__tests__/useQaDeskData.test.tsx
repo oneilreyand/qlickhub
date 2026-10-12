@@ -428,4 +428,34 @@ describe('useQaDeskData Hook', () => {
       });
     });
   });
+
+  describe('featureTaskId resolution', () => {
+    it('resolves featureTaskId to root feature id when task has deliveryArea but no parentTaskId (root feature)', async () => {
+      releaseServiceMocks.listFeatureReleaseRecords.mockResolvedValue(null);
+      bugServiceMocks.listBugs.mockResolvedValue([]);
+
+      const rootFeatureWithDeliveryArea = {
+        ...baseSubtask,
+        id: '10000000-0000-4000-8000-000000000099',
+        parentTaskId: undefined,
+        deliveryArea: 'qa',
+      } as unknown as Task;
+
+      const { result } = renderHook(
+        () =>
+          useQaDeskData({
+            subtask: rootFeatureWithDeliveryArea,
+            workspaceId: ids.workspace,
+            currentUserId: ids.userQa,
+            userRole: 'qa',
+            onDataChanged: vi.fn(),
+          }),
+        { wrapper: createWrapper() },
+      );
+
+      await waitFor(() => {
+        expect(result.current.featureTaskId).toBe('10000000-0000-4000-8000-000000000099');
+      });
+    });
+  });
 });

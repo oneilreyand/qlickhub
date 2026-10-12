@@ -1,5 +1,4 @@
-import React from 'react';
-import { CheckSquare, ChevronRight, FileCheck, Plus, Upload } from 'lucide-react';
+import { CheckSquare, Plus, Upload } from 'lucide-react';
 import type {
   QaTestCycle,
   QaWorkflowSummary,
@@ -73,12 +72,12 @@ export interface QaTestCaseExecutionTabProps {
 }
 
 export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
-  subtask,
-  parentTask,
-  workflowSummary,
+  subtask: _subtask,
+  parentTask: _parentTask,
+  workflowSummary: _workflowSummary,
   focusTarget,
   testCasesRef,
-  onOpenContextTab,
+  onOpenContextTab: _onOpenContextTab,
   canAuthorTests,
   onOpenImportWizard,
   onOpenTestCaseForm,
@@ -122,29 +121,6 @@ export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
       aria-label="Persiapan dan eksekusi QA"
       className="space-y-4"
     >
-      {/* Quick Context Summary Banner for QA */}
-      {(subtask.description || parentTask?.description) && (
-        <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-stone-200 bg-stone-50/70 dark:border-stone-800 dark:bg-stone-900/40 text-xs">
-          <div className="flex items-center gap-2 min-w-0">
-            <FileCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="text-stone-600 dark:text-stone-400 truncate">
-              <strong className="text-stone-900 dark:text-stone-100">
-                {workflowSummary?.featureTitle || parentTask?.title || 'Feature'}:
-              </strong>{' '}
-              {subtask.title}
-            </span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onOpenContextTab}
-            className="text-xs shrink-0 font-bold"
-            rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
-          >
-            Lihat Spesifikasi &amp; Prasyarat
-          </Button>
-        </div>
-      )}
       <Card
         ref={testCasesRef}
         id="qa-test-cases"

@@ -59,8 +59,25 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
     }
   }, [dispatch, isOpen, activeWorkspaceId, workspaceMembers]);
 
+  const isPlanner = useMemo(
+    () => ['owner', 'admin', 'po'].includes(userRole.toLowerCase()),
+    [userRole],
+  );
+
+  const getInitialViewMode = useCallback((): 'po' | 'dev' | 'qa' => {
+    if (focusTarget) return 'qa';
+    if (!isPlanner) {
+      return userRole.toLowerCase() === 'qa' ? 'qa' : 'dev';
+    }
+    const isSub = Boolean(task?.parentTaskId);
+    if (isSub) {
+      return task?.deliveryArea === 'qa' ? 'qa' : 'dev';
+    }
+    return 'po';
+  }, [focusTarget, isPlanner, task?.deliveryArea, task?.parentTaskId, userRole]);
+
   const [parentTask, setParentTask] = useState<Task | null>(null);
-  const [activeViewMode, setActiveViewMode] = useState<'po' | 'dev' | 'qa'>('po');
+  const [activeViewMode, setActiveViewMode] = useState<'po' | 'dev' | 'qa'>(getInitialViewMode);
   const [activeSubtaskForExecution, setActiveSubtaskForExecution] = useState<Task | null>(null);
   const [parentSubtasks, setParentSubtasks] = useState<Task[]>(task?.subtasks || []);
   const [isLoadingParentSubtasks, setIsLoadingParentSubtasks] = useState(false);
@@ -69,11 +86,6 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   const [featureContextError, setFeatureContextError] = useState<string | null>(null);
   const [featureContextPermissionDenied, setFeatureContextPermissionDenied] = useState(false);
   const featureContextRequestIdRef = useRef(0);
-
-  const isPlanner = useMemo(
-    () => ['owner', 'admin', 'po'].includes(userRole.toLowerCase()),
-    [userRole],
-  );
 
   useEffect(() => {
     if (!task || task.parentTaskId || !activeWorkspaceId) {
@@ -118,30 +130,8 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
 
     // Reset subtask execution view
     setActiveSubtaskForExecution(null);
-
-    const isSubtask = Boolean(task.parentTaskId);
-
-    if (isSubtask) {
-      if (task.deliveryArea === 'qa' || userRole.toLowerCase() === 'qa') {
-        setActiveViewMode('qa');
-      } else {
-        setActiveViewMode('dev');
-      }
-    } else {
-      if (isPlanner) {
-        setActiveViewMode('po');
-      } else {
-        // Dev/QA looking at a parent task
-        setActiveViewMode(userRole.toLowerCase() === 'qa' ? 'qa' : 'dev');
-      }
-    }
-  }, [task, userRole, isPlanner]);
-
-  useEffect(() => {
-    if (!task || !focusTarget) return;
-    setActiveSubtaskForExecution(null);
-    setActiveViewMode('qa');
-  }, [focusTarget, task]);
+    setActiveViewMode(getInitialViewMode());
+  }, [task, getInitialViewMode]);
 
   const contextTask =
     activeSubtaskForExecution && task && activeSubtaskForExecution.parentTaskId === task.id
@@ -209,10 +199,6 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
     { id: 'dev', label: 'Pengerjaan Dev', icon: <Code2 className="h-3.5 w-3.5" /> },
     { id: 'qa', label: 'Pengujian QA', icon: <Bug className="h-3.5 w-3.5" /> },
   ];
-  const developerReviewTabs: TabItem[] = [
-    { id: 'dev', label: 'Pengerjaan Dev', icon: <Code2 className="h-3.5 w-3.5" /> },
-    { id: 'qa', label: 'Pengujian QA', icon: <Bug className="h-3.5 w-3.5" /> },
-  ];
 
   const handleRoleTabChange = (viewMode: string) => {
     const nextViewMode = viewMode as 'po' | 'dev' | 'qa';
@@ -230,43 +216,42 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
     }
   };
 
-  const roleToolbar =
-    isPlanner || userRole.toLowerCase() === 'dev' || userRole.toLowerCase() === 'qa' ? (
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none">
-          <Tabs
-            tabs={isPlanner ? roleTabs : developerReviewTabs}
-            activeTabId={activeViewMode}
-            onChange={handleRoleTabChange}
-            variant="pills"
-            ariaLabel="Tampilan kerja berdasarkan peran"
-          />
-        </div>
-        <span className="hidden shrink-0 px-2 text-xs font-bold capitalize text-stone-700 dark:text-stone-300 sm:inline">
-          Peran: {ROLE_HUMAN_LABELS[userRole.toLowerCase()] || userRole}
-        </span>
+  const roleToolbar = isPlanner ? (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none">
+        <Tabs
+          tabs={roleTabs}
+          activeTabId={activeViewMode}
+          onChange={handleRoleTabChange}
+          variant="pills"
+          ariaLabel="Tampilan kerja berdasarkan peran"
+        />
       </div>
-    ) : activeViewMode === 'dev' ? (
-      <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
-        <Code2 className="h-4 w-4 shrink-0 text-stone-700 dark:text-[#B1E743]" />
-        <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
-          Pengerjaan Dev
-        </span>
-        <span className="hidden shrink-0 rounded-full border border-stone-200 bg-stone-100 px-2 py-0.5 text-xs font-extrabold text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 sm:inline-flex">
-          Pelaksana
-        </span>
-      </div>
-    ) : (
-      <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
-        <Bug className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-        <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
-          Pengujian QA
-        </span>
-        <span className="hidden shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-extrabold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 sm:inline-flex">
-          Verifikasi QA
-        </span>
-      </div>
-    );
+      <span className="hidden shrink-0 px-2 text-xs font-bold capitalize text-stone-700 dark:text-stone-300 sm:inline">
+        Peran: {ROLE_HUMAN_LABELS[userRole.toLowerCase()] || userRole}
+      </span>
+    </div>
+  ) : activeViewMode === 'dev' ? (
+    <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
+      <Code2 className="h-4 w-4 shrink-0 text-stone-700 dark:text-[#B1E743]" />
+      <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
+        Pengerjaan Dev
+      </span>
+      <span className="hidden shrink-0 rounded-full border border-stone-200 bg-stone-100 px-2 py-0.5 text-xs font-extrabold text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 sm:inline-flex">
+        Pelaksana
+      </span>
+    </div>
+  ) : (
+    <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1">
+      <Bug className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+      <span className="truncate text-xs font-bold text-stone-800 dark:text-stone-200">
+        Pengujian QA
+      </span>
+      <span className="hidden shrink-0 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-extrabold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 sm:inline-flex">
+        Verifikasi QA
+      </span>
+    </div>
+  );
 
   return (
     <Drawer
