@@ -38,6 +38,7 @@ export interface QaNextActionCardProps {
   onNavigateToSignOff: () => void;
   onNavigateToBugs?: () => void;
   onOpenTestCycleModal?: () => void;
+  featureTaskId?: string;
   className?: string;
 }
 
@@ -77,6 +78,7 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
   onNavigateToSignOff,
   onNavigateToBugs,
   onOpenTestCycleModal,
+  featureTaskId,
   className = '',
 }) => {
   // Determine the current step state
@@ -130,16 +132,21 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
   let isButtonDisabled = !canMutateQaExecution;
   let validationWarning: string | null = null;
 
+  const isFeatureAvailable = Boolean(featureTaskId ?? workflowSummary?.featureTaskId);
+
   switch (stepState) {
     case 'start_task':
       stepBadge = 'Tahap 1: Inisiasi';
       title = 'Mulai Pengerjaan Tugas QA';
       description =
         'Ubah status subtask menjadi sedang dikerjakan dan tetapkan versi build yang akan diuji.';
-      buttonLabel = 'Mulai Tugas QA';
+      buttonLabel = !isFeatureAvailable ? 'Memuat konteks Feature…' : 'Mulai Tugas QA';
       buttonIcon = <Play className="h-4 w-4 fill-current" />;
       onPrimaryClick = onStartQaTask;
       isButtonLoading = isUpdatingStatus;
+      if (!isFeatureAvailable) {
+        isButtonDisabled = true;
+      }
       break;
 
     case 'set_version':
@@ -180,7 +187,7 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
       description = unexecutedTestCase
         ? `Siap menguji "${unexecutedTestCase.title}" pada versi ${testCycle?.build || 'aktif'} (${testCycle?.environment || 'staging'}).`
         : `Jalankan pengujian menggunakan versi yang diuji ${testCycle?.build || 'aktif'}.`;
-      buttonLabel = 'Jalankan Test Case';
+      buttonLabel = !isFeatureAvailable ? 'Memuat konteks Feature…' : 'Jalankan Test Case';
       buttonIcon = <Play className="h-4 w-4 fill-current" />;
       onPrimaryClick = () => {
         if (unexecutedTestCase) {
@@ -190,7 +197,7 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
         }
       };
       isButtonLoading = isStartingRun;
-      if (!unexecutedTestCase && !testCycle) {
+      if (!isFeatureAvailable || (!unexecutedTestCase && !testCycle)) {
         isButtonDisabled = true;
       }
       break;

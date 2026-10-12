@@ -17,7 +17,7 @@ import { useRecordResult } from './useRecordResult';
 export interface UseTestExecutionOptions {
   workspaceId: string;
   subtask: Task;
-  featureTaskId: string;
+  featureTaskId?: string;
   requirementScopeTaskId: string;
   selectedTestCycle: QaTestCycle | null;
   openTestCycleModal: () => void;
@@ -365,6 +365,11 @@ export function useTestExecution({
       return;
     }
 
+    if (!featureTaskId) {
+      dispatch(enqueueSnackbar('Memuat konteks Feature…', 'warning'));
+      return;
+    }
+
     try {
       setIsStartingRun(true);
       await testManagementService.createTestRun(workspaceId, testCaseId, {
@@ -393,6 +398,10 @@ export function useTestExecution({
 
   const handleStartRun = async () => {
     if (!runTestCaseId) return;
+    if (!featureTaskId) {
+      setRunFormError('Memuat konteks Feature…');
+      return;
+    }
     const version = versionCoverageByTestCaseId[runTestCaseId];
     if (!selectedTestCycle || !version || version.lifecycleStatus !== 'active') {
       setRunFormError('Pengujian memerlukan Siklus Pengujian dan revisi Test Case aktif.');

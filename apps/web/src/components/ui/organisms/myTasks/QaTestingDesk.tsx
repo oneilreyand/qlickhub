@@ -103,7 +103,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const executionState = useTestExecution({
     workspaceId,
     subtask,
-    featureTaskId: deskData.featureTaskId || '',
+    featureTaskId: deskData.featureTaskId,
     requirementScopeTaskId,
     selectedTestCycle: testCycleState.selectedTestCycle,
     openTestCycleModal: testCycleState.openTestCycleModal,
@@ -137,7 +137,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
   const initiationState = useQaTaskInitiation({
     workspaceId,
     subtask,
-    featureTaskId: deskData.featureTaskId || '',
+    featureTaskId: deskData.featureTaskId,
     existingTestCycle: testCycleState.selectedTestCycle,
     defaultRequirementId: executionState.requirementOptions[0]?.id || '',
     devResolutionFingerprint: deskData.devResolutionFingerprint,
@@ -179,6 +179,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     workspaceId,
     subtaskId: subtask.id,
     onPreviewEvidence: (previewItem: any) => executionState.setPreviewEvidence(previewItem),
+    featureTaskId: deskData.featureTaskId,
   };
 
   return (
@@ -201,10 +202,12 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
                 size="sm"
                 onClick={() => deskData.handleStatusChange('in_progress')}
                 isLoading={deskData.isUpdatingStatus}
+                disabled={!deskData.featureTaskId}
+                title={!deskData.featureTaskId ? 'Memuat konteks Feature…' : undefined}
                 leftIcon={<Play className="h-4 w-4" />}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
-                Mulai Tugas QA
+                {!deskData.featureTaskId ? 'Memuat konteks Feature…' : 'Mulai Tugas QA'}
               </Button>
             )}
 
@@ -346,6 +349,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           canMutateQaExecution={deskData.canMutateQaExecution}
           isSignOffRecorded={deskData.isSignOffRecorded}
           isSignOffRejected={deskData.isSignOffRejected}
+          featureTaskId={deskData.featureTaskId}
           onStartQaTask={initiationState.openInitiationModal}
           onActivateTestCase={(id) => void executionState.handleActivateTestCase(id)}
           onRunTestCase={(id) => void executionState.handleQuickStartRun(id)}

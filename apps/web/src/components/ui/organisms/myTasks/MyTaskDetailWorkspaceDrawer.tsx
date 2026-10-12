@@ -59,8 +59,25 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
     }
   }, [dispatch, isOpen, activeWorkspaceId, workspaceMembers]);
 
+  const isPlanner = useMemo(
+    () => ['owner', 'admin', 'po'].includes(userRole.toLowerCase()),
+    [userRole],
+  );
+
+  const getInitialViewMode = useCallback((): 'po' | 'dev' | 'qa' => {
+    if (focusTarget) return 'qa';
+    if (!isPlanner) {
+      return userRole.toLowerCase() === 'qa' ? 'qa' : 'dev';
+    }
+    const isSub = Boolean(task?.parentTaskId);
+    if (isSub) {
+      return task?.deliveryArea === 'qa' ? 'qa' : 'dev';
+    }
+    return 'po';
+  }, [focusTarget, isPlanner, task?.deliveryArea, task?.parentTaskId, userRole]);
+
   const [parentTask, setParentTask] = useState<Task | null>(null);
-  const [activeViewMode, setActiveViewMode] = useState<'po' | 'dev' | 'qa'>('po');
+  const [activeViewMode, setActiveViewMode] = useState<'po' | 'dev' | 'qa'>(getInitialViewMode);
   const [activeSubtaskForExecution, setActiveSubtaskForExecution] = useState<Task | null>(null);
   const [parentSubtasks, setParentSubtasks] = useState<Task[]>(task?.subtasks || []);
   const [isLoadingParentSubtasks, setIsLoadingParentSubtasks] = useState(false);
@@ -69,11 +86,6 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
   const [featureContextError, setFeatureContextError] = useState<string | null>(null);
   const [featureContextPermissionDenied, setFeatureContextPermissionDenied] = useState(false);
   const featureContextRequestIdRef = useRef(0);
-
-  const isPlanner = useMemo(
-    () => ['owner', 'admin', 'po'].includes(userRole.toLowerCase()),
-    [userRole],
-  );
 
   useEffect(() => {
     if (!task || task.parentTaskId || !activeWorkspaceId) {
@@ -118,23 +130,8 @@ export const MyTaskDetailWorkspaceDrawer: React.FC<MyTaskDetailWorkspaceDrawerPr
 
     // Reset subtask execution view
     setActiveSubtaskForExecution(null);
-
-    const isSubtask = Boolean(task.parentTaskId);
-
-    if (!isPlanner) {
-      setActiveViewMode(userRole.toLowerCase() === 'qa' ? 'qa' : 'dev');
-    } else if (isSubtask) {
-      setActiveViewMode(task.deliveryArea === 'qa' ? 'qa' : 'dev');
-    } else {
-      setActiveViewMode('po');
-    }
-  }, [task, userRole, isPlanner]);
-
-  useEffect(() => {
-    if (!task || !focusTarget) return;
-    setActiveSubtaskForExecution(null);
-    setActiveViewMode('qa');
-  }, [focusTarget, task]);
+    setActiveViewMode(getInitialViewMode());
+  }, [task, getInitialViewMode]);
 
   const contextTask =
     activeSubtaskForExecution && task && activeSubtaskForExecution.parentTaskId === task.id

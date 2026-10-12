@@ -10,6 +10,7 @@ import {
   TaskRequirementModel,
   TestCaseModel,
   TestCaseRequirementModel,
+  TestCaseVersionModel,
   TestResultModel,
   TestRunModel,
   UserModel,
@@ -129,6 +130,22 @@ test.beforeAll(async () => {
     steps: ['Submit the payment'],
     expectedResult: 'Confirmation is shown',
     createdBy: qa.id,
+  });
+  await TestCaseVersionModel.create({
+    workspaceId,
+    testCaseId: testCase.id,
+    revision: 1,
+    lifecycleStatus: 'active',
+    definitionSnapshot: {
+      title: testCase.title,
+      steps: testCase.steps,
+      expectedResult: testCase.expectedResult,
+      requirementIds: [requirement.id],
+    },
+    authoredBy: qa.id,
+    publishedBy: qa.id,
+    publishedAt: new Date(),
+    origin: 'native_revision',
   });
   await TestCaseRequirementModel.create({
     workspaceId,
@@ -335,7 +352,7 @@ test('QA reads both persisted Bug retest cycles from the task workspace', async 
   await expect(
     page
       .getByRole('region', { name: 'Browser E2E QA Assignee Task content' })
-      .getByText('Area Pengujian & Mutu QA'),
+      .getByText(/Tetapkan Versi yang Diuji|Mulai Tugas QA/),
   ).toBeVisible();
   await page.getByRole('tab', { name: 'Bug & Retest' }).click();
   await expect(page.getByText(bugTitle)).toBeVisible();
@@ -356,9 +373,9 @@ test('QA direct task link remains authenticated and restores its QA workspace af
   await login(page, users.qa.email);
   await page.goto(`/projects/${workspaceId}/tasks/${qaSubtaskId}`);
 
-  const qaWorkspace = page
-    .getByRole('region', { name: 'Browser E2E QA Assignee Task content' })
-    .getByText('Area Pengujian & Mutu QA');
+  const qaWorkspace = page.getByRole('region', {
+    name: 'Browser E2E QA Assignee Task content',
+  });
   await expect(qaWorkspace).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/projects/${workspaceId}/tasks/${qaSubtaskId}$`));
 
@@ -463,6 +480,13 @@ test('QA Desk dialogs and mobile drawer screenshots', async ({ browser }, testIn
     return;
   }
   const qaPage = await browser.newPage();
+  const errorResponses: string[] = [];
+  qaPage.on('response', (response) => {
+    if (response.status() >= 400 && response.url().includes('/workspaces/')) {
+      errorResponses.push(`${response.status()} ${response.url()}`);
+    }
+  });
+
   await login(qaPage, users.qa.email);
   const qaOpenButton = qaPage.getByRole('button', {
     name: 'Buka pekerjaan: Browser E2E QA Assignee Task. Tindakan berikutnya: Kerjakan Task QA',
@@ -471,7 +495,13 @@ test('QA Desk dialogs and mobile drawer screenshots', async ({ browser }, testIn
   await qaOpenButton.click();
   await qaPage.waitForTimeout(500);
 
-  // 1. Mobile QA drawer screenshot
+  // Assert no 4xx network errors when opening QA drawer
+  expect(errorResponses).toEqual([]);
+
+  // Assert QA does not see the "Pengerjaan Dev" tab
+  await expect(qaPage.getByRole('tab', { name: 'Pengerjaan Dev' })).toHaveCount(0);
+
+  // 1. Mobile QA drawer screenshot (390px)
   await qaPage.setViewportSize({ width: 390, height: 844 });
   await qaPage.evaluate(() => {
     const drawer = document.querySelector('section[aria-label*="content"]');
@@ -481,20 +511,45 @@ test('QA Desk dialogs and mobile drawer screenshots', async ({ browser }, testIn
   await qaPage.screenshot({
     path: 'docs/screenshots/workspace-drawer-qa-subtask-mobile.png',
   });
+  await qaPage.screenshot({
+    path: 'docs/screenshots/qa-drawer-mobile-390px.png',
+  });
 
-  // Reset to desktop viewport and capture scrolled QA drawer
-  await qaPage.setViewportSize({ width: 1280, height: 800 });
+  // 2. Desktop QA drawer screenshot (1100px) - Light mode
+  await qaPage.setViewportSize({ width: 1100, height: 800 });
   await qaPage.evaluate(() => {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.style.backgroundColor = '#FBFCF7';
+    document.documentElement.style.colorScheme = 'light';
     const drawer = document.querySelector('section[aria-label*="content"]');
-    if (drawer) drawer.scrollTop = 200;
+    if (drawer) drawer.scrollTop = 0;
   });
   await qaPage.waitForTimeout(400);
   await qaPage.screenshot({
     path: 'docs/screenshots/workspace-drawer-qa-subtask-after.png',
   });
+  await qaPage.screenshot({
+    path: 'docs/screenshots/qa-drawer-desktop-light-1100px.png',
+  });
+
+  // 3. Desktop QA drawer screenshot (1100px) - Dark mode
   await qaPage.evaluate(() => {
+    document.documentElement.classList.add('dark');
+    document.documentElement.style.backgroundColor = '#141413';
+    document.documentElement.style.colorScheme = 'dark';
     const drawer = document.querySelector('section[aria-label*="content"]');
     if (drawer) drawer.scrollTop = 0;
+  });
+  await qaPage.waitForTimeout(400);
+  await qaPage.screenshot({
+    path: 'docs/screenshots/qa-drawer-desktop-dark-1100px.png',
+  });
+
+  // Revert dark mode
+  await qaPage.evaluate(() => {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.style.backgroundColor = '#FBFCF7';
+    document.documentElement.style.colorScheme = 'light';
   });
   await qaPage.waitForTimeout(200);
 

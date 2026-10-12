@@ -1373,15 +1373,35 @@ describe('QaTestingDesk Organism', () => {
     );
     view2.unmount();
 
-    // Case 3: subtask with neither parentTask nor parentTaskId -> does not call API with subtask.id
+    // Case 3: root feature task (without parentTaskId) -> passes subtask.id (as root feature)
     releaseServiceMocks.listFeatureReleaseRecords.mockClear();
-    const subtaskWithoutParent: Task = {
+    const rootFeatureTask: Task = {
       ...mockQaSubtask,
+      id: '10000000-0000-4000-8000-000000000077',
       parentTaskId: undefined,
     };
-    renderDesk('qa', subtaskWithoutParent, ids.qa, null);
+    const view3 = renderDesk('qa', rootFeatureTask, ids.qa, null);
     const signOffTab3 = await screen.findByRole('tab', { name: 'Persetujuan & Riwayat' });
     await user.click(signOffTab3);
+
+    await waitFor(() => {
+      expect(releaseServiceMocks.listFeatureReleaseRecords).toHaveBeenCalledWith(
+        ids.workspace,
+        rootFeatureTask.id,
+      );
+    });
+    view3.unmount();
+
+    // Case 4: when featureTaskId is undefined -> renders loading placeholder and does not call API
+    releaseServiceMocks.listFeatureReleaseRecords.mockClear();
+    const subtaskWithoutIdOrParent: Task = {
+      ...mockQaSubtask,
+      id: '',
+      parentTaskId: undefined,
+    };
+    renderDesk('qa', subtaskWithoutIdOrParent, ids.qa, null);
+    const signOffTab4 = await screen.findByRole('tab', { name: 'Persetujuan & Riwayat' });
+    await user.click(signOffTab4);
 
     expect(screen.getByText('Memuat konteks Feature untuk persetujuan...')).toBeInTheDocument();
     expect(releaseServiceMocks.listFeatureReleaseRecords).not.toHaveBeenCalled();
