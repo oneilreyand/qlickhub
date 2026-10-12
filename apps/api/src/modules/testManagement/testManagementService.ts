@@ -63,6 +63,7 @@ import { requireActiveMember } from '../../db/repositories/workspaceMemberReposi
 import { evaluateQaCompletionGate } from '../releaseDecisions/qaEvidenceCompletionGate.js';
 import { iso } from '../../utils/dateUtils.js';
 import { reliableNotificationOutboxService } from '../notifications/reliableNotificationOutboxService.js';
+import { featureReadinessService } from '../featureReadiness/featureReadinessService.js';
 
 type TestCaseWithLinks = TestCaseModel & { requirementLinks?: TestCaseRequirementModel[] };
 type EvidenceLinkWithAttachment = TestResultEvidenceModel & { attachment?: TaskAttachmentModel };
@@ -465,7 +466,38 @@ export class TestManagementService {
         transaction,
         lock: transaction.LOCK.UPDATE,
       });
+
+      const latestBaseline = await FeatureReadinessBaselineModel.findOne({
+        where: { workspaceId, featureTaskId: feature.id },
+        order: [
+          ['sequence', 'DESC'],
+          ['establishedAt', 'DESC'],
+        ],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
       if (!cycle) {
+        if (!latestBaseline) {
+          const blockerReason = await featureReadinessService.getBaselineMissingReason(
+            workspaceId,
+            feature.id,
+            { transaction },
+          );
+          return {
+            workspaceId,
+            featureTaskId: feature.id,
+            qaSubtaskId: qaSubtask.id,
+            featureTitle: feature.title,
+            qaSubtaskTitle: qaSubtask.title,
+            qaSubtaskStatus: qaSubtask.status,
+            testCycle: null,
+            blockers: ['feature_baseline_missing'],
+            blockerReason: blockerReason || 'Menunggu PO menyetujui Brief Feature',
+            isBaselineSuperseded: false,
+            nextAction: { code: 'create_test_cycle', label: 'Tetapkan Versi Uji' },
+          };
+        }
         return {
           workspaceId,
           featureTaskId: feature.id,
@@ -475,9 +507,18 @@ export class TestManagementService {
           qaSubtaskStatus: qaSubtask.status,
           testCycle: null,
           blockers: ['qa_test_cycle_missing'],
-          nextAction: { code: 'create_test_cycle', label: 'Buat Siklus Pengujian' },
+          blockerReason: null,
+          isBaselineSuperseded: false,
+          nextAction: { code: 'create_test_cycle', label: 'Tetapkan Versi Uji' },
         };
       }
+
+      const isBaselineSuperseded = Boolean(
+        latestBaseline &&
+        cycle.readinessBaselineId &&
+        latestBaseline.id !== cycle.readinessBaselineId,
+      );
+
       const gate = await evaluateQaCompletionGate(
         workspaceId,
         feature.id,
@@ -507,6 +548,8 @@ export class TestManagementService {
         qaSubtaskStatus: qaSubtask.status,
         testCycle: formatQaTestCycle(cycle),
         blockers,
+        blockerReason: null,
+        isBaselineSuperseded,
         nextAction,
       };
     });
@@ -516,7 +559,7 @@ export class TestManagementService {
     return sequelize.transaction(async (transaction) => {
       const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanExecuteTestRun(membership.role);
-      const [featureTask, qaSubtask, baseline] = await Promise.all([
+      const [featureTask, qaSubtask, initialBaseline] = await Promise.all([
         TaskModel.findOne({
           where: { id: input.featureTaskId, workspaceId: input.workspaceId, parentTaskId: null },
           transaction,
@@ -540,11 +583,26 @@ export class TestManagementService {
           lock: transaction.LOCK.UPDATE,
         }),
       ]);
+      let baseline = initialBaseline;
       if (!featureTask) throw new Error('NOT_FOUND: Root Feature not found in this workspace.');
       if (!qaSubtask) {
         throw new Error(
           'FORBIDDEN: Only the assigned QA member may create this Feature Test Cycle.',
         );
+      }
+      if (!baseline) {
+        await featureReadinessService.ensureAutoBaseline(
+          input.workspaceId,
+          input.featureTaskId,
+          actorId,
+          { transaction },
+        );
+        baseline = await FeatureReadinessBaselineModel.findOne({
+          where: { workspaceId: input.workspaceId, featureTaskId: input.featureTaskId },
+          order: [['sequence', 'DESC']],
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
       }
       if (!baseline) {
         throw new Error(

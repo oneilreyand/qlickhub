@@ -15,6 +15,7 @@ import {
   assertCanManageProductBrief,
 } from '../../policies/qaDocumentPolicy.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { ensureAutoBaseline } from '../featureReadiness/featureReadinessService.js';
 import {
   QaDocument,
   QaDocumentVersion,
@@ -432,6 +433,10 @@ export class QaDocumentService {
         },
         { transaction },
       );
+
+      if (document.status === 'approved') {
+        await ensureAutoBaseline(workspaceId, taskId, actorId, { transaction });
+      }
 
       return {
         document: formatDocument(document),
