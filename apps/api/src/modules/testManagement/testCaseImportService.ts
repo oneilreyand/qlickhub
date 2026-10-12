@@ -10,9 +10,12 @@ import type {
 } from '@qlick/contracts';
 
 import { MAX_IMPORT_ROWS } from '@qlick/contracts';
+import { Op } from 'sequelize';
 import { sequelize } from '../../db/sequelize.js';
 import {
   RequirementModel,
+  TaskModel,
+  TaskRequirementModel,
   TestCaseActivityModel,
   TestCaseImportModel,
   TestCaseImportRowModel,
@@ -454,6 +457,45 @@ export class TestCaseImportService {
           }
         }
 
+        let qaTargetFeatureId: string | null = null;
+        let scopedReqIds: Set<string> | null = null;
+        if (input.qaSubtaskId) {
+          const qaSubtask = await TaskModel.findOne({
+            where: { workspaceId, id: input.qaSubtaskId },
+            transaction,
+          });
+          if (!qaSubtask) {
+            throw new Error('NOT_FOUND: QA Subtask tidak ditemukan di workspace ini.');
+          }
+          if (qaSubtask.deliveryArea !== 'qa' || qaSubtask.assigneeId !== actorId) {
+            throw new Error(
+              'FORBIDDEN: Hanya QA yang ditugaskan pada subtask ini yang dapat mengimpor Test Case dalam scope QA.',
+            );
+          }
+          if (!qaSubtask.parentTaskId) {
+            throw new Error('CONFLICT: Subtask QA harus memiliki parent Feature.');
+          }
+          qaTargetFeatureId = qaSubtask.parentTaskId;
+
+          const featureTasks = await TaskModel.findAll({
+            where: {
+              workspaceId,
+              [Op.or]: [{ id: qaTargetFeatureId }, { parentTaskId: qaTargetFeatureId }],
+            },
+            attributes: ['id'],
+            transaction,
+          });
+          const taskLinks = await TaskRequirementModel.findAll({
+            where: {
+              workspaceId,
+              taskId: featureTasks.map((t) => t.id),
+            },
+            attributes: ['requirementId'],
+            transaction,
+          });
+          scopedReqIds = new Set(taskLinks.map((l) => l.requirementId));
+        }
+
         const stagedRows = await TestCaseImportRowModel.findAll({
           where: { importId: importSessionId },
           order: [['sourceRowNumber', 'ASC']],
@@ -513,6 +555,11 @@ export class TestCaseImportService {
               );
             } else {
               resolvedReqId = req.id;
+              if (scopedReqIds && !scopedReqIds.has(resolvedReqId)) {
+                rowValidationErrors.push(
+                  `Requirement "${reqCode}" belum ditautkan ke subtask di Feature ini.`,
+                );
+              }
             }
           }
 
@@ -689,7 +736,8 @@ export class TestCaseImportService {
               );
             }
           } else {
-            // Create new Test Case (active canonical state for Planner import under ADR-001)
+            // Create new Test Case (active canonical state within QA scope, or draft otherwise)
+            const effectiveStatus = qaTargetFeatureId ? 'active' : 'draft';
             const createdCase = await TestCaseModel.create(
               {
                 workspaceId,
@@ -698,7 +746,7 @@ export class TestCaseImportService {
                 description: null,
                 testType,
                 priority,
-                status: 'draft',
+                status: effectiveStatus,
                 preconditions: payload.preconditions || null,
                 steps: payload.steps || [],
                 expectedResult: payload.expectedResult || null,
@@ -729,9 +777,11 @@ export class TestCaseImportService {
                 workspaceId,
                 testCaseId: createdCase.id,
                 revision: 1,
-                lifecycleStatus: 'draft',
+                lifecycleStatus: effectiveStatus,
                 definitionSnapshot: snapshotTestCase(createdCase, [resolvedReqId]),
                 authoredBy: actorId,
+                publishedBy: effectiveStatus === 'active' ? actorId : null,
+                publishedAt: effectiveStatus === 'active' ? new Date() : null,
                 origin: 'native_revision',
               },
               { transaction },

@@ -121,6 +121,28 @@ export function toProblemDetail(err: unknown, options?: ProblemDetailsOptions): 
       };
       return ProblemDetailSchema.parse(problem);
     }
+
+    if (msg.startsWith('UNPROCESSABLE_ENTITY:') || msg.startsWith('UNPROCESSABLE_ENTITY: ')) {
+      const problem: ProblemDetail = {
+        type: typeUri,
+        title: 'Unprocessable Entity',
+        status: 422,
+        detail: msg.replace(/^UNPROCESSABLE_ENTITY:\s*/, '').trim(),
+        code: 'UNPROCESSABLE_ENTITY',
+      };
+      return ProblemDetailSchema.parse(problem);
+    }
+
+    if (msg.startsWith('TOO_MANY_REQUESTS:') || msg.startsWith('TOO_MANY_REQUESTS: ')) {
+      const problem: ProblemDetail = {
+        type: typeUri,
+        title: 'Too Many Requests',
+        status: 429,
+        detail: msg.replace(/^TOO_MANY_REQUESTS:\s*/, '').trim(),
+        code: 'TOO_MANY_REQUESTS',
+      };
+      return ProblemDetailSchema.parse(problem);
+    }
   }
 
   const problem: ProblemDetail = {

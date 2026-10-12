@@ -117,6 +117,8 @@ describe('Feature Auto-Baseline & QA Test Cycle Integration (B0)', () => {
     );
     assert.strictEqual(summary.blockers.includes('feature_baseline_missing'), true);
     assert.strictEqual(summary.blockerReason, 'Menunggu PO menyetujui Brief Feature');
+    assert.strictEqual(summary.nextAction.code, 'await_baseline');
+    assert.strictEqual(summary.nextAction.label, 'Menunggu Kesiapan Feature');
   });
 
   test('reports missing requirements after Brief approved when no requirements exist', async () => {
@@ -136,6 +138,8 @@ describe('Feature Auto-Baseline & QA Test Cycle Integration (B0)', () => {
     );
     assert.strictEqual(summary.blockers.includes('feature_baseline_missing'), true);
     assert.strictEqual(summary.blockerReason, 'Belum ada Requirement aktif yang tertaut');
+    assert.strictEqual(summary.nextAction.code, 'await_baseline');
+    assert.strictEqual(summary.nextAction.label, 'Menunggu Kesiapan Feature');
   });
 
   test('reports missing AC when requirement is linked but has no active criteria', async () => {
@@ -156,6 +160,8 @@ describe('Feature Auto-Baseline & QA Test Cycle Integration (B0)', () => {
       summary.blockerReason,
       'Requirement REQ-AUTO-1 belum memiliki Acceptance Criteria aktif',
     );
+    assert.strictEqual(summary.nextAction.code, 'await_baseline');
+    assert.strictEqual(summary.nextAction.label, 'Menunggu Kesiapan Feature');
   });
 
   test('automatically creates baseline when AC is added to requirement, unblocking QA test cycle', async () => {

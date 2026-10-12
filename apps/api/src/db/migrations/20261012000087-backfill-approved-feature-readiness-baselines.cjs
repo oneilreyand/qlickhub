@@ -204,20 +204,70 @@ module.exports = {
   async down(queryInterface) {
     const { sequelize } = queryInterface;
     await sequelize.transaction(async (transaction) => {
-      // Safely delete only baselines and activities created by this backfill
+      // 1. Check if any backfilled baselines are already referenced by qa_test_cycles.
+      // SSoT / Rule: Never break persisted test cycles or violate foreign key constraints.
+      // If a backfilled baseline is used by a test cycle, skip deleting it and log a clear warning.
+      const [referencedBaselines] = await sequelize.query(
+        `
+        SELECT b.id, b.feature_task_id, COUNT(c.id) AS cycle_count
+        FROM feature_readiness_baselines b
+        JOIN qa_test_cycles c ON c.readiness_baseline_id = b.id
+        WHERE b.snapshot_json->>'backfilled' = 'true'
+        GROUP BY b.id, b.feature_task_id;
+      `,
+        { transaction },
+      );
+
+      if (referencedBaselines.length > 0) {
+        console.warn(
+          `[Rollback Warning] Skipped deleting ${referencedBaselines.length} backfilled baseline(s) because they are actively referenced by qa_test_cycles:`,
+          referencedBaselines.map((r) => ({
+            baselineId: r.id,
+            featureId: r.feature_task_id,
+            cycles: r.cycle_count,
+          })),
+        );
+      }
+
+      // 2. Delete task_activity entries only for unreferenced backfilled baselines being rolled back
       await sequelize.query(
         `
         DELETE FROM task_activity
-        WHERE metadata_json->>'origin' = 'migration_backfill';
+        WHERE action = 'feature.readiness.baseline_established'
+          AND metadata_json->>'origin' = 'migration_backfill'
+          AND (
+            metadata_json->>'baselineId' IS NULL
+            OR (metadata_json->>'baselineId')::uuid NOT IN (
+              SELECT c.readiness_baseline_id FROM qa_test_cycles c
+            )
+          );
+      `,
+        { transaction },
+      );
 
+      // 3. Delete baseline requirement links only for unreferenced backfilled baselines
+      await sequelize.query(
+        `
         DELETE FROM feature_readiness_baseline_requirements
         WHERE baseline_id IN (
-          SELECT id FROM feature_readiness_baselines
-          WHERE snapshot_json->>'backfilled' = 'true'
+          SELECT b.id FROM feature_readiness_baselines b
+          WHERE b.snapshot_json->>'backfilled' = 'true'
+            AND NOT EXISTS (
+              SELECT 1 FROM qa_test_cycles c WHERE c.readiness_baseline_id = b.id
+            )
         );
+      `,
+        { transaction },
+      );
 
-        DELETE FROM feature_readiness_baselines
-        WHERE snapshot_json->>'backfilled' = 'true';
+      // 4. Delete unreferenced backfilled baselines
+      await sequelize.query(
+        `
+        DELETE FROM feature_readiness_baselines b
+        WHERE b.snapshot_json->>'backfilled' = 'true'
+          AND NOT EXISTS (
+            SELECT 1 FROM qa_test_cycles c WHERE c.readiness_baseline_id = b.id
+          );
       `,
         { transaction },
       );
