@@ -1,12 +1,11 @@
 # RELEASE-DEADLOCK-A1-A2 — Authorization Matrix
 
-**Applicable Policy IDs:** DOC-005, TBD
+**Applicable Policy IDs:** DOC-005, RELEASE-002, RELEASE-004
 
-| Action           | Owner / Admin | PO  | Developer | QA  | Backend enforcement and evidence |
-| ---------------- | ------------- | --- | --------- | --- | -------------------------------- |
-| Read             | TBD           | TBD | TBD       | TBD | Policy/service/test TBD          |
-| Create or apply  | TBD           | TBD | TBD       | TBD | Policy/service/test TBD          |
-| Update or reject | TBD           | TBD | TBD       | TBD | Policy/service/test TBD          |
+| Action                                            | Owner / Admin | PO          | Developer | QA                                   | Backend enforcement and evidence                                               |
+| ------------------------------------------------- | ------------- | ----------- | --------- | ------------------------------------ | ------------------------------------------------------------------------------ |
+| Sign-off `rejected`                               | Tidak         | Tidak       | Tidak     | Hanya QA assignee pemilik Test Cycle | `assertCanCreateQaSignOff` + `ownerQaId`; test 403 untuk QA lain dan Developer |
+| Release Decision `rejected`                       | Ya            | Ya          | Tidak     | Tidak                                | `assertCanCreateReleaseDecision` (tidak berubah); test 201 PO                  |
+| Release Decision `approved` saat gate bukti gagal | Ditolak 409   | Ditolak 409 | —         | —                                    | `assertQaCompletionGate`; test 409                                             |
 
-UI visibility is not authorization. Link the canonical Architecture and policy service; record both
-allowed and denied integration-test evidence.
+UI visibility is not authorization.

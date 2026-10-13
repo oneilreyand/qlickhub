@@ -388,6 +388,12 @@ graph TD
     class RelRejected,QABlock fail;
 ```
 
+QA assignee pemilik Test Cycle aktif boleh mencatat Sign-off `rejected` selama QA Subtask
+`in_progress` atau `done`, dengan catatan wajib, tanpa menunggu gate bukti lulus; status Subtask
+tidak berubah. Sign-off `approved` tetap mensyaratkan Subtask `done` dan gate bukti lulus. Release
+Decision `rejected` tidak menjalankan gate bukti, sedangkan `approved` (termasuk override) wajib
+lulus gate bukti ([ADR-031](adr/ADR-031-QA-REJECTION-AND-UNVERIFIED-BUG-GATE.md)).
+
 Kontrak aktif hanya memiliki outcome `approved` dan `rejected`. Persetujuan ketika readiness gate
 gagal tetap disimpan sebagai `approved` dengan `overrideReason`; snapshot gate yang gagal tidak
 dihapus. `Conditional` bukan enum API aktif. Setelah S5, QA completion, Sign-off, dan Release

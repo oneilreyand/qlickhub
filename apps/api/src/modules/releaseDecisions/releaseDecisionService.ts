@@ -221,6 +221,14 @@ export class ReleaseDecisionService {
       if (!input.testCycleId) {
         throw new Error('BAD_REQUEST: QA Sign-off requires a scoped Test Cycle.');
       }
+      // RELEASE-DEADLOCK-A1 (Workflow §7): QA may reject while evidence gates still fail.
+      // Only an approval must satisfy the completed QA Subtask and the evidence gate.
+      const isRejection = input.decision === 'rejected';
+      if (isRejection && !input.notes?.trim()) {
+        throw new Error(
+          'BAD_REQUEST: A rejected QA Sign-off requires notes explaining the blocker.',
+        );
+      }
 
       const cycle = await QaTestCycleModel.findOne({
         where: {
@@ -245,24 +253,28 @@ export class ReleaseDecisionService {
           parentTaskId: input.featureTaskId,
           deliveryArea: 'qa',
           assigneeId: actorId,
-          status: 'done',
+          status: isRejection ? { [Op.in]: ['in_progress', 'done'] } : 'done',
         },
         transaction,
         lock: transaction.LOCK.UPDATE,
       });
       if (!qaSubtask) {
         throw new Error(
-          'CONFLICT: QA Sign-off requires the assigned QA Subtask to be completed first.',
+          isRejection
+            ? 'CONFLICT: A rejected QA Sign-off requires the assigned QA Subtask to be in progress or completed.'
+            : 'CONFLICT: QA Sign-off requires the assigned QA Subtask to be completed first.',
         );
       }
-      await assertQaCompletionGate(
-        input.workspaceId,
-        input.featureTaskId,
-        cycle.qaSubtaskId,
-        actorId,
-        transaction,
-        cycle.id,
-      );
+      if (!isRejection) {
+        await assertQaCompletionGate(
+          input.workspaceId,
+          input.featureTaskId,
+          cycle.qaSubtaskId,
+          actorId,
+          transaction,
+          cycle.id,
+        );
+      }
 
       const id = randomUUID();
       const signedAt = new Date();
@@ -556,18 +568,22 @@ export class ReleaseDecisionService {
           'CONFLICT: Release Decision requires a scoped QA Sign-off created after the evidence-gate cutover.',
         );
       }
-      const completionGate = await assertQaCompletionGate(
-        input.workspaceId,
-        input.featureTaskId,
-        signOff.qaSubtaskId,
-        signOff.signedBy,
-        transaction,
-        signOff.testCycleId,
-      );
-      if (completionGate.candidateFingerprint !== signOff.candidateFingerprint) {
-        throw new Error(
-          'CONFLICT: QA Sign-off candidate does not match the current scoped evidence.',
+      // RELEASE-DEADLOCK-A1 / RELEASE-003: a rejection closes the cycle without evidence checks;
+      // an approval, including an override of a rejected sign-off, must pass the evidence gate.
+      if (input.decision === 'approved') {
+        const completionGate = await assertQaCompletionGate(
+          input.workspaceId,
+          input.featureTaskId,
+          signOff.qaSubtaskId,
+          signOff.signedBy,
+          transaction,
+          signOff.testCycleId,
         );
+        if (completionGate.candidateFingerprint !== signOff.candidateFingerprint) {
+          throw new Error(
+            'CONFLICT: QA Sign-off candidate does not match the current scoped evidence.',
+          );
+        }
       }
 
       const decidedAt = new Date();

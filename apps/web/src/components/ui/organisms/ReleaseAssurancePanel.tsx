@@ -316,14 +316,23 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     qaWorkflowSummary?.nextAction.code === 'record_qa_sign_off' &&
     qaWorkflowSummary.blockers.length === 0 &&
     Boolean(qaWorkflowSummary.testCycle);
+  // RELEASE-DEADLOCK-A1: with an active Test Cycle, QA may still reject while gates fail.
+  const qaRejectOnly =
+    mode === 'qa' &&
+    Boolean(qaWorkflowSummary?.testCycle) &&
+    !isQaWorkflowSummaryLoading &&
+    !qaWorkflowSummaryError &&
+    !qaWorkflowAllowsSignOff;
   const qaWorkflowBlocksSignOff =
     mode === 'qa' &&
     qaWorkflowSummary !== undefined &&
-    (isQaWorkflowSummaryLoading || Boolean(qaWorkflowSummaryError) || !qaWorkflowAllowsSignOff);
+    (isQaWorkflowSummaryLoading ||
+      Boolean(qaWorkflowSummaryError) ||
+      (!qaWorkflowAllowsSignOff && !qaRejectOnly));
 
   const openDecisionModal = () => {
     if (qaWorkflowBlocksSignOff) return;
-    setDecision('approved');
+    setDecision(qaRejectOnly ? 'rejected' : 'approved');
     setNotes('');
     setOverrideReason('');
     setSelectedTestCycleId('');
@@ -350,6 +359,10 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     }
     if (mode === 'qa' && !selectedTestCycleId) {
       setFormError('Pilih versi yang diuji untuk persetujuan ini.');
+      return;
+    }
+    if (mode === 'qa' && decision === 'rejected' && !notes.trim()) {
+      setFormError('Alasan penolakan wajib diisi.');
       return;
     }
     if (requiresOverrideReason && !overrideReason.trim()) {
@@ -489,11 +502,13 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                   ? 'Memeriksa kesiapan Persetujuan QA…'
                   : mode === 'qa' && qaWorkflowSummaryError
                     ? 'Kesiapan Persetujuan QA belum dapat dipastikan. Coba muat ulang.'
-                    : mode === 'qa' && qaWorkflowSummary
-                      ? `Selesaikan langkah berikutnya terlebih dahulu: ${qaWorkflowSummary.nextAction.label}.`
-                      : mode === 'release' && !latestActiveQaSignOff
-                        ? 'Catat persetujuan QA sebelum membuat Keputusan Rilis'
-                        : undefined
+                    : qaRejectOnly
+                      ? 'Persetujuan belum memenuhi syarat; Anda tetap dapat mencatat penolakan.'
+                      : mode === 'qa' && qaWorkflowSummary
+                        ? `Selesaikan langkah berikutnya terlebih dahulu: ${qaWorkflowSummary.nextAction.label}.`
+                        : mode === 'release' && !latestActiveQaSignOff
+                          ? 'Catat persetujuan QA sebelum membuat Keputusan Rilis'
+                          : undefined
             }
             leftIcon={
               mode === 'qa' ? (
@@ -821,6 +836,15 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             Tindakan ini membuat snapshot bertanda waktu dan entri Aktivitas. Status Task tidak akan
             diselesaikan atau dibuka kembali.
           </Alert>
+          {qaRejectOnly && qaWorkflowSummary && (
+            <Alert tone="warning" title="Hanya penolakan yang dapat dicatat">
+              <ul className="list-disc space-y-1 pl-4">
+                {qaWorkflowSummary.blockers.map((code) => (
+                  <li key={code}>{qaWorkflowBlockerCopy[code] ?? code}</li>
+                ))}
+              </ul>
+            </Alert>
+          )}
           {mode === 'release' && currentReadinessSnapshot && (
             <SnapshotGates snapshot={currentReadinessSnapshot} />
           )}
@@ -854,11 +878,20 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             }}
             disabled={isSubmitting}
           >
-            <option value="approved">Setujui</option>
+            <option value="approved" disabled={qaRejectOnly}>
+              Setujui
+            </option>
             <option value="rejected">Tolak</option>
           </Select>
           <Textarea
-            label={mode === 'qa' ? 'Catatan sertifikasi QA (opsional)' : 'Catatan rilis (opsional)'}
+            label={
+              mode === 'qa'
+                ? decision === 'rejected'
+                  ? 'Alasan penolakan (wajib)'
+                  : 'Catatan sertifikasi QA (opsional)'
+                : 'Catatan rilis (opsional)'
+            }
+            required={mode === 'qa' && decision === 'rejected'}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={3}

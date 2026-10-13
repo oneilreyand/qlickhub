@@ -1,16 +1,16 @@
 # RELEASE-DEADLOCK-A1-A2 — Tahap 3: Breakdown
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G3 — disetujui oleh Owner; persetujuan ini sekaligus Approval Window Phase 1
 **PRD:** [product.md](product.md)
 **Applicable Policy IDs:** AI-002, AI-009, AI-014, SDLC-001, SDLC-002
 
 ## 1. Peta phase
 
-| Phase | Tujuan                                                 | AC                     | WRA  | Bergantung pada | Status      |
-| ----- | ------------------------------------------------------ | ---------------------- | ---- | --------------- | ----------- |
-| P1    | Sign-off Tolak dan Release Decision Tolak bisa dicatat | AC-1.1–1.4, AC-2.1–2.2 | 5/16 | —               | Belum mulai |
-| P2    | Gate PO menghitung semua severity + ADR                | AC-3.1–3.3             | 6/16 | P1              | Belum mulai |
+| Phase | Tujuan                                                 | AC                     | WRA  | Bergantung pada | Status                    |
+| ----- | ------------------------------------------------------ | ---------------------- | ---- | --------------- | ------------------------- |
+| P1    | Sign-off Tolak dan Release Decision Tolak bisa dicatat | AC-1.1–1.4, AC-2.1–2.2 | 5/16 | —               | Selesai (kandidat teruji) |
+| P2    | Gate PO menghitung semua severity + ADR                | AC-3.1–3.3             | 6/16 | P1              | Belum mulai               |
 
 ## 2. Task per phase
 
@@ -27,11 +27,11 @@ WRA P1: requirement 1 · lapisan 1 · data 0 · authorization 0 · contract 0 ·
 
 ### Phase 2 — Gate bug semua severity
 
-| Task ID  | Layer         | Pekerjaan                            | File/path perkiraan                                                      | AC         | Bukti selesai                               |
-| -------- | ------------- | ------------------------------------ | ------------------------------------------------------------------------ | ---------- | ------------------------------------------- |
-| P2-DOC-1 | Docs          | ADR baru + Workflow §7 + RELEASE-001 | `docs/adr/`, `docs/2_WORKFLOW_AND_ROLES.md`, `docs/POLICY_REGISTRY.md`   | —          | `docs:check`                                |
-| P2-BE-1  | BE + contract | Kode gate `unverified_bugs`          | `packages/contracts/src/releaseDecision.ts`, `readinessGateEvaluator.ts` | AC-3.1–3.2 | Unit + contract test (E2), integration (E3) |
-| P2-FE-1  | FE            | Label Indonesia untuk kode baru      | `apps/web/src/lib/i18n/indonesianCopy.ts`                                | AC-3.3     | Component test (E2)                         |
+| Task ID  | Layer         | Pekerjaan                                              | File/path perkiraan                                                      | AC         | Bukti selesai                               |
+| -------- | ------------- | ------------------------------------------------------ | ------------------------------------------------------------------------ | ---------- | ------------------------------------------- |
+| P2-DOC-1 | Docs          | ADR-031 sudah dibuat di P1; P2 memperbarui RELEASE-001 | `docs/adr/`, `docs/2_WORKFLOW_AND_ROLES.md`, `docs/POLICY_REGISTRY.md`   | —          | `docs:check`                                |
+| P2-BE-1  | BE + contract | Kode gate `unverified_bugs`                            | `packages/contracts/src/releaseDecision.ts`, `readinessGateEvaluator.ts` | AC-3.1–3.2 | Unit + contract test (E2), integration (E3) |
+| P2-FE-1  | FE            | Label Indonesia untuk kode baru                        | `apps/web/src/lib/i18n/indonesianCopy.ts`                                | AC-3.3     | Component test (E2)                         |
 
 WRA P2: requirement 0 · lapisan 2 · data 0 · authorization 0 · contract 1 · ketersinggungan 1 · validasi 2 · eksternal 0 = **6/16**
 
