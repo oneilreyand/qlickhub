@@ -1,8 +1,8 @@
 # RELEASE-DEADLOCK-A1-A2 — Tahap 2: PRD
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G2 — disetujui oleh PO
-**Solusi terpilih:** [solution.md](solution.md) (A1 Opsi A, A2 Opsi A — menunggu G1)
+**Solusi terpilih:** [solution.md](solution.md) (A1 Opsi A, A2 Opsi A; D1–D3 disetujui Owner 2026-10-13)
 **Applicable Policy IDs:** DOC-005, RELEASE-001, RELEASE-002, RELEASE-003, UI-001, UI-002, SDLC-001
 
 ## 1. Tujuan dan pengguna
@@ -62,7 +62,7 @@ Penggabungan QA selesai + sign-off (K4), perubahan gate bukti QA, baseline otoma
 
 ## 7. Unknown yang tersisa
 
-| Pertanyaan                                                                                                                        | Memengaruhi AC         | Status             |
-| --------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------ |
-| Form sign-off nonaktif selama `blockers` QA tidak kosong — terjawab (E1, `ReleaseAssurancePanel.tsx` 315–322); diatasi di P1-FE-1 | AC-1.1                 | Terjawab           |
-| D1, D2, D3 di solution.md                                                                                                         | AC-1.1, AC-2.2, AC-3.1 | Open — menunggu G1 |
+| Pertanyaan                                                                                                                        | Memengaruhi AC         | Status                      |
+| --------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | --------------------------- |
+| Form sign-off nonaktif selama `blockers` QA tidak kosong — terjawab (E1, `ReleaseAssurancePanel.tsx` 315–322); diatasi di P1-FE-1 | AC-1.1                 | Terjawab                    |
+| D1, D2, D3 di solution.md                                                                                                         | AC-1.1, AC-2.2, AC-3.1 | Terjawab (Owner 2026-10-13) |

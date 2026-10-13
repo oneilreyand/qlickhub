@@ -1,6 +1,6 @@
 # RELEASE-DEADLOCK-A1-A2 — Tahap 3: Breakdown
 
-**Status:** Draft
+**Status:** Menunggu persetujuan
 **Gerbang:** G3 — disetujui oleh Owner; persetujuan ini sekaligus Approval Window Phase 1
 **PRD:** [product.md](product.md)
 **Applicable Policy IDs:** AI-002, AI-009, AI-014, SDLC-001, SDLC-002

@@ -1,6 +1,6 @@
 # RELEASE-DEADLOCK-A1-A2 — Tahap 1: Opsi Solusi (Decision Snapshot)
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G1 — disetujui oleh Owner
 **Problem:** [problem.md](problem.md)
 **ADR:** A1 tidak perlu ADR (memulihkan perilaku yang sudah tertulis di Workflow §7). A2 mengubah RELEASE-001 → ADR baru dengan nomor berikutnya yang kosong di `main` saat PR dibuat.
@@ -41,12 +41,14 @@ tidak menjalankan gate bukti.
 A1 Opsi A + A2 Opsi A, dikerjakan sebagai dua phase. A1 duluan karena membuka kebuntuan tanpa
 perubahan policy.
 
-## 5. Keputusan yang dibutuhkan
+## 5. Keputusan Owner
 
-- **D1:** Sign-off `rejected` boleh dicatat saat QA Subtask `in_progress` dan Subtask tetap `in_progress` (rekomendasi: ya).
-- **D2:** PO tidak dapat `approved` (override) bila gate bukti gagal; boleh `rejected` (rekomendasi: ya, sesuai RELEASE-003).
-- **D3:** A2 memakai kode gate baru `unverified_bugs` (rekomendasi: ya).
+- **D1 (disetujui):** Sign-off `rejected` boleh dicatat saat QA Subtask `in_progress` dan Subtask tetap `in_progress` (rekomendasi: ya).
+- **D2 (disetujui):** PO tidak dapat `approved` (override) bila gate bukti gagal; boleh `rejected` (rekomendasi: ya, sesuai RELEASE-003).
+- **D3 (disetujui):** A2 memakai kode gate baru `unverified_bugs` (rekomendasi: ya).
 
 ## 6. Keputusan
 
-**Dipilih:** menunggu G1.
+**Dipilih:** A1 Opsi A dan A2 Opsi A, dengan D1, D2, D3 sesuai rekomendasi — oleh reyand (Owner), 2026-10-13, pesan chat "setuju G0–G2, D1–D3 sesuai rekomendasi".
+
+**Ditolak:** Opsi B A1 (endpoint terpisah, terlalu besar), Opsi B A2 (mengubah makna kode gate lama), Opsi 0 (kebuntuan tetap).

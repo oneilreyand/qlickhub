@@ -1,6 +1,6 @@
 # RELEASE-DEADLOCK-A1-A2 — Tahap 0: Problem Statement
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G0 — disetujui oleh PO/Owner
 **Applicable Policy IDs:** SDLC-001, RELEASE-001, RELEASE-002, RELEASE-003, QA-004
 
@@ -56,7 +56,7 @@ chat di luar aplikasi sehingga jejak audit hilang. Tampilan gate PO juga tidak s
 
 ## 7. Unknown
 
-| Pertanyaan                                                                           | Mengapa penting                                         | Siapa bisa menjawab                 |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------- | ----------------------------------- |
-| Apakah QA Subtask harus tetap `in_progress` setelah sign-off Tolak?                  | Menentukan antrean QA berikutnya                        | Owner (keputusan D1 di solution.md) |
-| Apakah PO boleh menyetujui (override) sign-off yang ditolak ketika gate bukti gagal? | RELEASE-003 melarang override melewati integritas bukti | Owner (keputusan D2)                |
+| Pertanyaan                                                                           | Mengapa penting                                         | Siapa bisa menjawab                          |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------- | -------------------------------------------- |
+| Apakah QA Subtask harus tetap `in_progress` setelah sign-off Tolak?                  | Menentukan antrean QA berikutnya                        | Terjawab: ya (D1, Owner 2026-10-13)          |
+| Apakah PO boleh menyetujui (override) sign-off yang ditolak ketika gate bukti gagal? | RELEASE-003 melarang override melewati integritas bukti | Terjawab: tidak boleh (D2, Owner 2026-10-13) |
