@@ -1,6 +1,6 @@
 # QA-DESK-SIMPLIFY — Tahap 3: Breakdown (Phase → Task BE · FE · QA)
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G3 — disetujui oleh Owner; persetujuan ini sekaligus Approval Window untuk phase pertama
 **PRD:** [product.md](product.md)
 **Applicable Policy IDs:** AI-002, AI-009, AI-013, AI-014, SDLC-001
