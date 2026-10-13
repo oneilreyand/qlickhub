@@ -130,6 +130,7 @@ export const UpdateTestCaseSchema = z
   .object({
     workspaceId: z.string().uuid(),
     testCaseId: z.string().uuid(),
+    qaSubtaskId: z.string().uuid().optional(),
     externalReference: z.string().trim().max(100).nullable().optional(),
     title: NonBlankTextSchema.max(255).optional(),
     description: z.string().trim().max(10000).nullable().optional(),
@@ -144,7 +145,8 @@ export const UpdateTestCaseSchema = z
     requirementIds: z.array(z.string().uuid()).min(1).max(100).optional(),
   })
   .refine(
-    (value) => Object.keys(value).some((key) => !['workspaceId', 'testCaseId'].includes(key)),
+    (value) =>
+      Object.keys(value).some((key) => !['workspaceId', 'testCaseId', 'qaSubtaskId'].includes(key)),
     { message: 'At least one Test Case field must be provided for update.' },
   );
 export type UpdateTestCaseInput = z.infer<typeof UpdateTestCaseSchema>;

@@ -46,16 +46,26 @@ export function assertCanUpdateTestCase(
       `BAD_REQUEST: Invalid Test Case lifecycle transition from ${currentStatus} to ${requestedStatus}.`,
     );
   }
-  if (
-    role === 'qa' &&
-    currentStatus === 'draft' &&
-    (!requestedStatus ||
-      ['draft', 'in_review'].includes(requestedStatus) ||
-      (requestedStatus === 'active' && hasQaActivationScope))
-  )
-    return;
+  if (role === 'qa') {
+    if (
+      currentStatus === 'draft' &&
+      (!requestedStatus ||
+        ['draft', 'in_review'].includes(requestedStatus) ||
+        (requestedStatus === 'active' && hasQaActivationScope))
+    ) {
+      return;
+    }
+    if (
+      currentStatus === 'active' &&
+      (!requestedStatus || requestedStatus === 'active') &&
+      hasDefinitionChanges &&
+      hasQaActivationScope
+    ) {
+      return;
+    }
+  }
   throw new Error(
-    'FORBIDDEN: QA can edit draft Test Cases and may activate them only within the proven scope of their assigned QA Subtask; only Product Owner, Admin, or Owner can request revision or archive.',
+    'FORBIDDEN: QA can edit draft Test Cases, edit active Test Cases within their assigned QA Subtask scope, and activate them only within the proven scope of their assigned QA Subtask; only Product Owner, Admin, or Owner can request revision or archive.',
   );
 }
 

@@ -46,7 +46,6 @@ describe('QA Desk Backend B1 Integration Tests (D1, D2, D5, Remind-PO)', () => {
   let ac1: AcceptanceCriterionModel;
   let baseline: FeatureReadinessBaselineModel;
 
-  let poCookie: string;
   let qa1Cookie: string;
   let qa2Cookie: string;
   let devCookie: string;
@@ -106,7 +105,6 @@ describe('QA Desk Backend B1 Integration Tests (D1, D2, D5, Remind-PO)', () => {
       role: 'dev',
     });
 
-    poCookie = await authCookie(po);
     qa1Cookie = await authCookie(qa1);
     qa2Cookie = await authCookie(qa2);
     devCookie = await authCookie(dev);
@@ -318,17 +316,16 @@ describe('QA Desk Backend B1 Integration Tests (D1, D2, D5, Remind-PO)', () => {
     assert.strictEqual(version.lifecycleStatus, 'active');
     assert.strictEqual(version.publishedBy, qa1.id);
 
-    // Verify outbox notification enqueued for PO
-    const outbox = await NotificationOutboxModel.findOne({
+    // Verify activity logged (no PO outbox notification on auto-active per plan)
+    const activity = await TestCaseActivityModel.findOne({
       where: {
         workspaceId: workspace.id,
-        recipientUserId: po.id,
-        taskId: featureTask.id,
+        testCaseId: json.testCase.id,
+        action: 'test_case_revision_status_changed',
       },
-      order: [['createdAt', 'DESC']],
     });
-    assert.ok(outbox);
-    assert.strictEqual(outbox.title, 'Test Case siap dijalankan');
+    assert.ok(activity);
+    assert.strictEqual((activity.metadata as any)?.autoActivated, true);
   });
 
   test('D1: QA creating test case with invalid scope returns 422 with specific Indonesian error', async () => {
@@ -653,11 +650,29 @@ describe('QA Desk Backend B1 Integration Tests (D1, D2, D5, Remind-PO)', () => {
     const created = (await createRes.json()) as { testCase: { id: string } };
     const tcId = created.testCase.id;
 
-    // Map AC to initial version
-    const version1 = await TestCaseVersionModel.findOne({
-      where: { workspaceId: workspace.id, testCaseId: tcId, revision: 1 },
+    // In-place edit before execution (runCount === 0)
+    const inPlaceRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Cookie: qa1Cookie },
+      body: JSON.stringify({
+        qaSubtaskId: d5QaSubtask.id,
+        title: 'Gate Invalidation Test Case (In-Place Edit)',
+        steps: ['Initial step 1 updated in-place'],
+      }),
     });
-    assert.ok(version1);
+    assert.strictEqual(inPlaceRes.status, 200);
+
+    const versionsAfterInPlace = await TestCaseVersionModel.findAll({
+      where: { workspaceId: workspace.id, testCaseId: tcId },
+    });
+    assert.strictEqual(versionsAfterInPlace.length, 1);
+    assert.strictEqual(versionsAfterInPlace[0].revision, 1);
+    assert.strictEqual(
+      (versionsAfterInPlace[0].definitionSnapshot as any).title,
+      'Gate Invalidation Test Case (In-Place Edit)',
+    );
+
+    const version1 = versionsAfterInPlace[0];
     await TestCaseVersionAcceptanceCriterionModel.create({
       workspaceId: workspace.id,
       testCaseVersionId: version1.id,
@@ -738,37 +753,43 @@ describe('QA Desk Backend B1 Integration Tests (D1, D2, D5, Remind-PO)', () => {
     assert.ok(execItem1);
     assert.strictEqual(execItem1.needsRetest, false);
 
-    // 4. PO requests revision (active -> draft), then QA updates definition
-    const draftRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Cookie: poCookie },
-      body: JSON.stringify({ status: 'draft' }),
-    });
-    assert.strictEqual(draftRes.status, 200);
-
+    // 4. QA directly updates active test case definition after execution (runCount > 0 -> creates revision 2, active)
     const updateRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Cookie: qa1Cookie },
       body: JSON.stringify({
-        title: 'Gate Invalidation Test Case (Updated)',
+        qaSubtaskId: d5QaSubtask.id,
+        title: 'Gate Invalidation Test Case (Revision 2)',
         steps: ['Updated step 1', 'New step 2'],
       }),
     });
     assert.strictEqual(updateRes.status, 200);
 
-    // Activate revision 2
-    const actRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Cookie: poCookie },
-      body: JSON.stringify({ status: 'active' }),
-    });
-    assert.strictEqual(actRes.status, 200);
     const version2 = await TestCaseVersionModel.findOne({
-      where: { workspaceId: workspace.id, testCaseId: tcId, lifecycleStatus: 'active' },
-      order: [['revision', 'DESC']],
+      where: { workspaceId: workspace.id, testCaseId: tcId, revision: 2 },
     });
     assert.ok(version2);
-    assert.ok(version2.revision > 1);
+    assert.strictEqual(version2.lifecycleStatus, 'active');
+    assert.strictEqual(version2.publishedBy, qa1.id);
+    assert.strictEqual(
+      (version2.definitionSnapshot as any).title,
+      'Gate Invalidation Test Case (Revision 2)',
+    );
+
+    // Verify AC mappings were copied to revision 2
+    const v2Mappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
+      where: { workspaceId: workspace.id, testCaseVersionId: version2.id },
+    });
+    assert.strictEqual(v2Mappings.length, 1);
+    assert.strictEqual(v2Mappings[0].acceptanceCriterionId, d5Ac.id);
+
+    // Verify revision 1 definition remains unchanged
+    const v1Reloaded = await TestCaseVersionModel.findByPk(version1.id);
+    assert.ok(v1Reloaded);
+    assert.strictEqual(
+      (v1Reloaded.definitionSnapshot as any).title,
+      'Gate Invalidation Test Case (In-Place Edit)',
+    );
 
     // 5. Evaluate gate: now revision 1 result is OUTDATED -> gate MUST fail with scoped_result_missing
     const gate2 = await sequelize.transaction(async (t) =>
@@ -845,6 +866,69 @@ describe('QA Desk Backend B1 Integration Tests (D1, D2, D5, Remind-PO)', () => {
     assert.strictEqual(execItem3.needsRetest, false);
   });
 
+  test('D5: QA editing active test case outside scope returns 422, Dev returns 403', async () => {
+    // Create an active test case in scope
+    const createRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qa1Cookie },
+      body: JSON.stringify({
+        title: 'Scope Authorization Test Case',
+        qaSubtaskId: qaSubtask.id,
+        requirementIds: [requirement1.id],
+        steps: ['Step 1'],
+      }),
+    });
+    assert.strictEqual(createRes.status, 201);
+    const created = (await createRes.json()) as { testCase: { id: string } };
+    const tcId = created.testCase.id;
+
+    // 1. Dev attempts to edit active test case definition -> 403 FORBIDDEN
+    const devRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Cookie: devCookie },
+      body: JSON.stringify({
+        title: 'Dev unauthorized edit',
+      }),
+    });
+    assert.strictEqual(devRes.status, 403);
+    const devBody = (await devRes.json()) as { code?: string; detail?: string; message?: string };
+    assert.strictEqual(devBody.code, 'FORBIDDEN');
+
+    // 2. QA2 (assigned to no subtask in this Feature) attempts to edit -> 422 UNPROCESSABLE_ENTITY
+    const qaOutsideRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Cookie: qa2Cookie },
+      body: JSON.stringify({
+        qaSubtaskId: qaSubtask.id,
+        title: 'QA2 outside scope edit',
+      }),
+    });
+    assert.strictEqual(qaOutsideRes.status, 422);
+    const qaOutsideBody = (await qaOutsideRes.json()) as { detail?: string; message?: string };
+    assert.ok((qaOutsideBody.detail || qaOutsideBody.message || '').includes('tidak ditugaskan'));
+
+    // 3. QA1 attempts to edit with non-existent qaSubtaskId -> 422 UNPROCESSABLE_ENTITY
+    const nonExistentSubtaskRes = await fetch(
+      `${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: qa1Cookie },
+        body: JSON.stringify({
+          qaSubtaskId: '00000000-0000-4000-a000-000000000000',
+          title: 'QA1 invalid subtaskId edit',
+        }),
+      },
+    );
+    assert.strictEqual(nonExistentSubtaskRes.status, 422);
+    const nonExistentBody = (await nonExistentSubtaskRes.json()) as {
+      detail?: string;
+      message?: string;
+    };
+    assert.ok(
+      (nonExistentBody.detail || nonExistentBody.message || '').includes('tidak ditemukan'),
+    );
+  });
+
   // =========================================================================
   // "Ingatkan PO": POST /workspaces/:ws/features/:id/remind-po
   // =========================================================================
@@ -873,7 +957,15 @@ describe('QA Desk Backend B1 Integration Tests (D1, D2, D5, Remind-PO)', () => {
       order: [['createdAt', 'DESC']],
     });
     assert.ok(outbox);
+    assert.ok(outbox.id);
+    assert.strictEqual(outbox.workspaceId, workspace.id);
+    assert.strictEqual(outbox.recipientUserId, po.id);
+    assert.strictEqual(outbox.taskId, featureTask.id);
+    assert.strictEqual(outbox.notificationType, 'status_change');
     assert.strictEqual(outbox.title, 'Pengingat: Kesiapan Feature Dibutuhkan');
+    assert.ok(outbox.message.includes('mengingatkan bahwa Feature'));
+    assert.ok(['pending', 'processing', 'delivered'].includes(outbox.deliveryStatus));
+    assert.strictEqual((outbox.payloadJson as any)?.action, 'remind_po_feature_readiness');
 
     // Verify task_activity entry
     const activity = await TaskActivityModel.findOne({

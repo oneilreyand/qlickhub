@@ -1073,7 +1073,6 @@ export class TestManagementService {
       assertCanCreateTestCase(membership.role);
 
       let effectiveStatus: 'draft' | 'active' = 'draft';
-      let autoActivatedFeatureId: string | null = null;
 
       if (input.qaSubtaskId) {
         const scopeResult = await validateQaDirectScope({
@@ -1087,7 +1086,6 @@ export class TestManagementService {
           throw new Error(`UNPROCESSABLE_ENTITY: ${scopeResult.errors.join('; ')}`);
         }
         effectiveStatus = 'active';
-        autoActivatedFeatureId = scopeResult.featureTaskId;
       } else if (membership.role === 'qa' && input.status && input.status !== 'draft') {
         throw new Error(
           'FORBIDDEN: QA can create only draft Test Cases and may submit them for review; only Product Owner, Admin, or Owner can publish or archive.',
@@ -1184,44 +1182,10 @@ export class TestManagementService {
         { transaction },
       );
 
-      let outboxIds: string[] = [];
-      if (effectiveStatus === 'active' && autoActivatedFeatureId) {
-        const poMembers = await WorkspaceMemberModel.findAll({
-          where: { workspaceId: input.workspaceId, role: 'po' },
-          attributes: ['userId'],
-          transaction,
-        });
-        outboxIds = await reliableNotificationOutboxService.enqueue(
-          `test-case-auto-activated:${created.id}:${version.id}`,
-          poMembers
-            .map((member) => member.userId)
-            .filter((userId) => userId !== actorId)
-            .map((userId) => ({
-              userId,
-              workspaceId: input.workspaceId,
-              taskId: autoActivatedFeatureId!,
-              actorId,
-              type: 'status_change' as const,
-              title: 'Test Case siap dijalankan',
-              message: `QA membuat dan mengaktifkan Test Case "${created.title}" untuk pengujian Feature ini.`,
-              payload: {
-                testCaseId: created.id,
-                featureTaskId: autoActivatedFeatureId!,
-                action: 'test_case_activated',
-              },
-            })),
-          transaction,
-        );
-      }
-
-      return { created, outboxIds };
+      return created;
     });
 
-    if (result.outboxIds.length > 0) {
-      void reliableNotificationOutboxService.dispatch(result.outboxIds);
-    }
-
-    return this.getTestCase(input.workspaceId, result.created.id, actorId);
+    return this.getTestCase(input.workspaceId, result.id, actorId);
   }
 
   async updateTestCase(actorId: string, input: UpdateTestCaseInput): Promise<TestCase> {
@@ -1334,11 +1298,17 @@ export class TestManagementService {
       }
 
       let qaActivationSubtask: TaskModel | null = null;
-      if (membership.role === 'qa' && previousStatus === 'draft' && input.status === 'active') {
+      const requiresQaScopeValidation =
+        membership.role === 'qa' &&
+        ((previousStatus === 'draft' && input.status === 'active') ||
+          (previousStatus === 'active' && definitionChanges));
+
+      if (requiresQaScopeValidation) {
         const scopeResult = await validateQaDirectScope({
           workspaceId: input.workspaceId,
           actorId,
           requirementIds,
+          qaSubtaskId: input.qaSubtaskId,
           transaction,
         });
         if (!scopeResult.valid) {
@@ -1356,43 +1326,80 @@ export class TestManagementService {
 
       await testCase.update(updates, { transaction });
 
-      let activityAction: 'test_case_revision_created' | 'test_case_revision_status_changed';
+      let activityAction:
+        'test_case_updated' | 'test_case_revision_created' | 'test_case_revision_status_changed';
       let activityVersionId: string;
 
       if (definitionChanges) {
-        const revision = await TestCaseVersionModel.create(
-          {
-            workspaceId: input.workspaceId,
-            testCaseId: input.testCaseId,
-            revision: latestVersion.revision + 1,
-            lifecycleStatus: 'draft',
-            definitionSnapshot: snapshotTestCase(testCase, requirementIds),
-            authoredBy: actorId,
-            supersedesVersionId: latestVersion.id,
-            origin: 'native_revision',
-          },
-          { transaction },
-        );
+        if (previousStatus === 'active') {
+          const runCount = await TestRunModel.count({
+            where: { workspaceId: input.workspaceId, testCaseId: input.testCaseId },
+            transaction,
+          });
 
-        const priorMappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
-          where: { workspaceId: input.workspaceId, testCaseVersionId: latestVersion.id },
-          transaction,
-        });
-        if (priorMappings.length > 0) {
-          await TestCaseVersionAcceptanceCriterionModel.bulkCreate(
-            priorMappings.map((mapping) => ({
-              workspaceId: mapping.workspaceId,
-              testCaseVersionId: revision.id,
-              acceptanceCriterionId: mapping.acceptanceCriterionId,
-              mappingStatus: mapping.mappingStatus,
-              exclusionReason: mapping.exclusionReason,
-              mappedBy: actorId,
-            })),
+          if (runCount === 0) {
+            // Belum pernah dijalankan → ubah langsung revisi aktif
+            await latestVersion.update(
+              {
+                definitionSnapshot: snapshotTestCase(testCase, requirementIds),
+                authoredBy: actorId,
+                publishedBy: actorId,
+                publishedAt: new Date(),
+              },
+              { transaction },
+            );
+            activityAction = 'test_case_updated';
+            activityVersionId = latestVersion.id;
+          } else {
+            // Sudah pernah dijalankan → buat revisi baru (revision+1, active, publishedBy=QA), salin mapping AC, revisi lama tidak diubah
+            const revision = await TestCaseVersionModel.create(
+              {
+                workspaceId: input.workspaceId,
+                testCaseId: input.testCaseId,
+                revision: latestVersion.revision + 1,
+                lifecycleStatus: 'active',
+                definitionSnapshot: snapshotTestCase(testCase, requirementIds),
+                authoredBy: actorId,
+                publishedBy: actorId,
+                publishedAt: new Date(),
+                supersedesVersionId: latestVersion.id,
+                origin: 'native_revision',
+              },
+              { transaction },
+            );
+
+            const priorMappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
+              where: { workspaceId: input.workspaceId, testCaseVersionId: latestVersion.id },
+              transaction,
+            });
+            if (priorMappings.length > 0) {
+              await TestCaseVersionAcceptanceCriterionModel.bulkCreate(
+                priorMappings.map((mapping) => ({
+                  workspaceId: mapping.workspaceId,
+                  testCaseVersionId: revision.id,
+                  acceptanceCriterionId: mapping.acceptanceCriterionId,
+                  mappingStatus: mapping.mappingStatus,
+                  exclusionReason: mapping.exclusionReason,
+                  mappedBy: actorId,
+                })),
+                { transaction },
+              );
+            }
+            activityAction = 'test_case_revision_created';
+            activityVersionId = revision.id;
+          }
+        } else {
+          // previousStatus === 'draft'
+          await latestVersion.update(
+            {
+              definitionSnapshot: snapshotTestCase(testCase, requirementIds),
+              authoredBy: actorId,
+            },
             { transaction },
           );
+          activityAction = 'test_case_updated';
+          activityVersionId = latestVersion.id;
         }
-        activityAction = 'test_case_revision_created';
-        activityVersionId = revision.id;
       } else {
         const requestedStatus = input.status || previousStatus;
         if (requestedStatus === previousStatus) {
@@ -1467,7 +1474,9 @@ export class TestManagementService {
         { transaction },
       );
 
-      if (!qaActivationSubtask) return { outboxIds: [] as string[] };
+      if (!qaActivationSubtask || previousStatus !== 'draft' || input.status !== 'active') {
+        return { outboxIds: [] as string[] };
+      }
       if (!qaActivationSubtask.parentTaskId) {
         throw new Error('CONFLICT: Assigned QA Subtask must belong to a root Feature.');
       }
@@ -2260,7 +2269,7 @@ export class TestManagementService {
     featureTaskId: string,
     actorId: string,
   ): Promise<RemindPoResponse> {
-    return sequelize.transaction(async (transaction) => {
+    const result = await sequelize.transaction(async (transaction) => {
       await requireActiveMember(workspaceId, actorId, transaction);
       const featureTask = await TaskModel.findOne({
         where: { id: featureTaskId, workspaceId, parentTaskId: null },
@@ -2340,14 +2349,21 @@ export class TestManagementService {
         { transaction },
       );
 
-      void reliableNotificationOutboxService.dispatch(outboxIds);
-
       return {
-        success: true,
-        message: 'Pengingat berhasil dikirim ke Product Owner',
-        remindedAt: now.toISOString(),
+        outboxIds,
+        response: {
+          success: true,
+          message: 'Pengingat berhasil dikirim ke Product Owner',
+          remindedAt: now.toISOString(),
+        },
       };
     });
+
+    if (result.outboxIds.length > 0) {
+      void reliableNotificationOutboxService.dispatch(result.outboxIds);
+    }
+
+    return result.response;
   }
 
   private async findRun(

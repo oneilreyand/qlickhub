@@ -59,6 +59,7 @@ describe('Test Management Policy Unit Tests', () => {
       () => assertCanUpdateTestCase('qa', 'draft', 'active'),
       /proven scope of their assigned QA Subtask/,
     );
+    assert.doesNotThrow(() => assertCanUpdateTestCase('qa', 'active', 'active', true, true));
     assert.throws(
       () => assertCanUpdateTestCase('qa', 'active', 'active'),
       /QA can edit draft Test Cases/,
