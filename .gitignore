@@ -20,3 +20,6 @@ drive-production.json
 data/evidence_storage/
 apps/api/data/
 outputs/
+
+.DS_Store
+Claude outputs/
