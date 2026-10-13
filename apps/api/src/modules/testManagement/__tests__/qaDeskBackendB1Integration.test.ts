@@ -991,4 +991,179 @@ describe('QA Desk Backend B1 Integration Tests (D1, D2, D5, Remind-PO)', () => {
     assert.strictEqual(json2.status, 429);
     assert.ok(json2.detail.includes('24 jam'));
   });
+  test('D5: QA edits active Test Case authored by another QA (0 run in-place keeps author; after run creates new revision)', async () => {
+    const poCookie = await authCookie(po);
+    const feature = await TaskModel.create({
+      workspaceId: workspace.id,
+      title: 'D5 Author Feature',
+      status: 'in_progress',
+      reporterId: po.id,
+      assigneeId: po.id,
+    });
+    const subtask = await TaskModel.create({
+      workspaceId: workspace.id,
+      parentTaskId: feature.id,
+      title: 'D5 Author QA Subtask',
+      deliveryArea: 'qa',
+      status: 'in_progress',
+      reporterId: po.id,
+      assigneeId: qa1.id,
+    });
+    const req = await RequirementModel.create({
+      workspaceId: workspace.id,
+      code: `REQ-D5A-${Date.now()}`,
+      title: 'D5 Author Requirement',
+      status: 'active',
+      createdBy: po.id,
+    });
+    await TaskRequirementModel.create({
+      workspaceId: workspace.id,
+      taskId: feature.id,
+      requirementId: req.id,
+      linkedBy: po.id,
+    });
+
+    // Another QA creates a draft Test Case and the PO publishes it (authored_by = qa2).
+    const createRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qa2Cookie },
+      body: JSON.stringify({
+        title: 'QA2 authored Test Case',
+        requirementIds: [req.id],
+        steps: ['QA2 step'],
+      }),
+    });
+    assert.strictEqual(createRes.status, 201);
+    const tcId = ((await createRes.json()) as { testCase: { id: string } }).testCase.id;
+    const activateRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Cookie: poCookie },
+      body: JSON.stringify({ status: 'active' }),
+    });
+    assert.strictEqual(activateRes.status, 200);
+    // PO activation publishes an immutable revision authored by the PO.
+    const published = await TestCaseVersionModel.findOne({
+      where: { workspaceId: workspace.id, testCaseId: tcId },
+      order: [['revision', 'DESC']],
+    });
+    assert.ok(published);
+    assert.strictEqual(published.lifecycleStatus, 'active');
+    assert.strictEqual(published.authoredBy, po.id);
+    const versionCountBefore = await TestCaseVersionModel.count({
+      where: { workspaceId: workspace.id, testCaseId: tcId },
+    });
+    const originalPublishedBy = published.publishedBy;
+    const originalPublishedAt = published.publishedAt?.toISOString();
+
+    // Assigned QA (qa1, not the author) edits the definition before any run:
+    // same revision, author and publication metadata preserved.
+    const inPlaceRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Cookie: qa1Cookie },
+      body: JSON.stringify({
+        qaSubtaskId: subtask.id,
+        title: 'QA2 authored Test Case (QA1 edit)',
+        steps: ['QA refined step'],
+      }),
+    });
+    assert.strictEqual(inPlaceRes.status, 200, await inPlaceRes.clone().text());
+    assert.strictEqual(
+      await TestCaseVersionModel.count({ where: { workspaceId: workspace.id, testCaseId: tcId } }),
+      versionCountBefore,
+    );
+    const afterInPlace = await TestCaseVersionModel.findByPk(published.id);
+    assert.ok(afterInPlace);
+    assert.strictEqual(afterInPlace.revision, published.revision);
+    assert.strictEqual(afterInPlace.lifecycleStatus, 'active');
+    assert.strictEqual(afterInPlace.authoredBy, po.id);
+    assert.strictEqual(afterInPlace.publishedBy, originalPublishedBy);
+    assert.strictEqual(afterInPlace.publishedAt?.toISOString(), originalPublishedAt);
+    assert.strictEqual(
+      (afterInPlace.definitionSnapshot as { title?: string }).title,
+      'QA2 authored Test Case (QA1 edit)',
+    );
+    const editActivity = await TestCaseActivityModel.findOne({
+      where: { workspaceId: workspace.id, testCaseId: tcId, actorId: qa1.id },
+      order: [['createdAt', 'DESC']],
+    });
+    assert.ok(editActivity, 'QA edit must be recorded in Test Case activity');
+    assert.strictEqual(editActivity.testCaseVersionId, published.id);
+
+    // After a scoped run exists, the same edit creates a new active revision authored by the editing QA.
+    const brief = await QaDocumentModel.create({
+      workspaceId: workspace.id,
+      title: 'D5 Author Brief',
+      docType: 'product_brief',
+      status: 'approved',
+      createdBy: po.id,
+      ownerId: po.id,
+      currentVersion: 1,
+    });
+    const briefVersion = await QaDocumentVersionModel.create({
+      workspaceId: workspace.id,
+      documentId: brief.id,
+      version: 1,
+      title: brief.title,
+      contentMarkdown: 'Brief content',
+      createdBy: po.id,
+    });
+    const authorBaseline = await FeatureReadinessBaselineModel.create({
+      workspaceId: workspace.id,
+      featureTaskId: feature.id,
+      sequence: 1,
+      productBriefVersionId: briefVersion.id,
+      snapshot: { schemaVersion: 1, integrationFixture: true } as any,
+      establishedBy: po.id,
+    });
+    await FeatureReadinessBaselineRequirementModel.create({
+      workspaceId: workspace.id,
+      baselineId: authorBaseline.id,
+      requirementId: req.id,
+    });
+    const cycleRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/qa-test-cycles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qa1Cookie },
+      body: JSON.stringify({
+        featureTaskId: feature.id,
+        qaSubtaskId: subtask.id,
+        candidateFingerprint: 'sha-d5-author',
+        build: 'build-d5a-1',
+        environment: 'staging',
+      }),
+    });
+    assert.strictEqual(cycleRes.status, 201, await cycleRes.clone().text());
+    const cycleId = ((await cycleRes.json()) as { testCycle: { id: string } }).testCycle.id;
+    await TestRunModel.create({
+      workspaceId: workspace.id,
+      testCaseId: tcId,
+      testCaseVersionId: published.id,
+      testCycleId: cycleId,
+      readinessBaselineId: authorBaseline.id,
+      featureTaskId: feature.id,
+      qaSubtaskId: subtask.id,
+      candidateFingerprint: 'sha-d5-author',
+      build: 'build-d5a-1',
+      environment: 'staging',
+      status: 'completed',
+      completedAt: new Date(),
+      executorId: qa1.id,
+    });
+    const revisionRes = await fetch(`${baseUrl}/workspaces/${workspace.id}/test-cases/${tcId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Cookie: qa1Cookie },
+      body: JSON.stringify({ qaSubtaskId: subtask.id, steps: ['QA step after run'] }),
+    });
+    assert.strictEqual(revisionRes.status, 200, await revisionRes.clone().text());
+    const latest = await TestCaseVersionModel.findOne({
+      where: { workspaceId: workspace.id, testCaseId: tcId },
+      order: [['revision', 'DESC']],
+    });
+    assert.ok(latest);
+    assert.strictEqual(latest.revision, published.revision + 1);
+    assert.strictEqual(latest.lifecycleStatus, 'active');
+    assert.strictEqual(latest.authoredBy, qa1.id);
+    assert.strictEqual(latest.supersedesVersionId, published.id);
+    const untouched = await TestCaseVersionModel.findByPk(published.id);
+    assert.strictEqual(untouched?.authoredBy, po.id);
+  });
 });
