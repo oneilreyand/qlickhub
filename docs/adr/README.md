@@ -38,3 +38,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-027](ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md)                             | Policy-bound autonomous agent operations (Proposed — not in force) |
 | [ADR-028](ADR-028-TIERED-AUTO-MERGE.md)                                       | Tiered auto-merge for agent pull requests                          |
 | [ADR-029](ADR-029-STAGED-FEATURE-SDLC.md)                                     | Staged feature SDLC with visible stage gates                       |
+| [ADR-030](ADR-030-SDLC-GATE-ENFORCEMENT.md)                                   | SDLC gate enforcement in CI                                        |

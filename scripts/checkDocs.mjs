@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateQuickCard, validateStageTracker } from './checkSdlc.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, '..');
@@ -278,14 +279,41 @@ function validateFeatureCards(policyIds, errors) {
 
     const readmePath = path.join(absoluteDirectory, 'README.md');
     if (fs.existsSync(readmePath)) {
+      const readme = fs.readFileSync(readmePath, 'utf8');
       errors.push(
-        ...validateFeatureCard(
-          fs.readFileSync(readmePath, 'utf8'),
-          policyIds,
-          path.relative(repositoryRoot, readmePath),
+        ...validateFeatureCard(readme, policyIds, path.relative(repositoryRoot, readmePath)),
+      );
+      errors.push(
+        ...validateStageTracker(
+          readme,
+          (relative) => {
+            const target = path.join(absoluteDirectory, relative);
+            return fs.existsSync(target) && fs.statSync(target).isFile()
+              ? fs.readFileSync(target, 'utf8')
+              : null;
+          },
+          (relativeDir) => {
+            const target = path.join(absoluteDirectory, relativeDir);
+            return fs.existsSync(target)
+              ? fs.readdirSync(target).filter((name) => name.endsWith('.md'))
+              : [];
+          },
+          relativeDirectory,
         ),
       );
     }
+  }
+}
+
+function validateQuickCards(errors) {
+  const quickDirectory = path.join(repositoryRoot, 'docs/plans/quick');
+  if (!fs.existsSync(quickDirectory)) return;
+  for (const name of fs.readdirSync(quickDirectory)) {
+    if (!name.endsWith('.md') || name === 'README.md') continue;
+    const relativeFile = `docs/plans/quick/${name}`;
+    errors.push(
+      ...validateQuickCard(fs.readFileSync(path.join(quickDirectory, name), 'utf8'), relativeFile),
+    );
   }
 }
 
@@ -356,6 +384,7 @@ export function runDocumentationChecks() {
   validateKnowledgeEntryPoint(errors);
   const policyIds = validatePolicyRegistry(errors);
   validateFeatureCards(policyIds, errors);
+  validateQuickCards(errors);
   validateFeatureNavigationDocuments(errors);
   validateAdrDocuments(errors);
   validateLocalLinks(errors);

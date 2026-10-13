@@ -461,6 +461,22 @@ tier, PR, dan apakah merge memicu deploy Production.
 Template tahap ada di [Feature folder template](features/_template/README.md). Kartu Feature legacy
 satu-file tetap sah dan tidak wajib dimigrasi kecuali Feature tersebut dikerjakan ulang.
 
+**Penegakan otomatis (`SDLC-002`, [ADR-030](adr/ADR-030-SDLC-GATE-ENFORCEMENT.md)).**
+
+- Buat record dengan `npm run sdlc:new -- feature <FEATURE-ID>` atau
+  `npm run sdlc:new -- quick <TASK-ID>`; jangan menyalin template secara manual.
+- `npm run docs:check` memvalidasi setiap folder Feature: Stage Tracker berisi tahap 0–6 dengan
+  status yang diizinkan; tahap `Disetujui`/`Selesai` wajib mencatat penyetuju dan tanggal, semua
+  tahap sebelumnya juga sudah disetujui, dan dokumennya memiliki satu Status tanpa placeholder
+  (`TBD`, `YYYY-MM-DD`, `[FEATURE-ID]`, `<…>`). Quick Card di `docs/plans/quick/` divalidasi dengan
+  aturan yang sama serta WRA ≤ 4/16.
+- CI menjalankan `npm run sdlc:check` terhadap base PR dan menolak (a) perubahan kode aplikasi
+  (`apps/`, `packages/`, `api/`, `database/`) tanpa folder Feature yang ikut berubah dan tahap 3
+  Breakdown-nya disetujui, atau Quick Card yang disetujui; serta (b) penambahan Feature Card
+  satu-file baru.
+- Pemeriksaan ini membuktikan bahwa gerbang **tercatat**; kebenaran isi dan persetujuan di chat tetap
+  diverifikasi manusia atau verifikator sesuai §2A.F.
+
 ---
 
 ## 3. Kebijakan Basis Data & Bukti Pengujian (_Database & Test Evidence_)
