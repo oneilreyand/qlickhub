@@ -28,4 +28,5 @@ include `.env` values, credentials, tokens, or other secrets.
 
 - [ ] Policy changes have an ADR and corresponding SSoT update.
 - [ ] The relevant Feature Knowledge Card is updated or the change does not require one.
+- [ ] Runtime code changes include an approved Feature folder Breakdown (stage 3) or Quick Card (`SDLC-002`): <!-- path -->
 - [ ] TODO status and `docs/reports/` evidence match what was actually verified.
