@@ -1352,14 +1352,12 @@ export class TestManagementService {
           });
 
           if (runCount === 0) {
-            // Belum pernah dijalankan → ubah langsung revisi aktif
+            // Belum pernah dijalankan → ubah langsung revisi aktif.
+            // Hanya definitionSnapshot yang berubah: authoredBy/publishedBy/publishedAt tetap
+            // milik revisi asli (dijaga trigger validate_test_case_version_update). Editor
+            // dicatat lewat TestCaseActivity (actorId) di bawah.
             await latestVersion.update(
-              {
-                definitionSnapshot: snapshotTestCase(testCase, requirementIds),
-                authoredBy: actorId,
-                publishedBy: actorId,
-                publishedAt: new Date(),
-              },
+              { definitionSnapshot: snapshotTestCase(testCase, requirementIds) },
               { transaction },
             );
             activityAction = 'test_case_updated';

@@ -27,6 +27,34 @@ describe('HTTP Problem Details Canonical Adapter (RFC 9457)', () => {
     }
   });
 
+  it('maps PostgreSQL immutability trigger errors (P0001) to 409 Conflict in Indonesian', () => {
+    const error = Object.assign(
+      new Error('Test Case version definition is immutable; create a new revision instead.'),
+      {
+        name: 'SequelizeDatabaseError',
+        parent: {
+          code: 'P0001',
+          message: 'Test Case version definition is immutable; create a new revision instead.',
+        },
+      },
+    );
+    const validated = ProblemDetailSchema.parse(toProblemDetail(error));
+
+    assert.strictEqual(validated.status, 409);
+    assert.strictEqual(validated.code, 'CONFLICT');
+    assert.match(validated.detail ?? '', /terkunci/);
+  });
+
+  it('does not map unrelated database errors to 409', () => {
+    const error = Object.assign(new Error('connection terminated'), {
+      name: 'SequelizeDatabaseError',
+      parent: { code: '57P01', message: 'connection terminated' },
+    });
+    const validated = ProblemDetailSchema.parse(toProblemDetail(error));
+
+    assert.notStrictEqual(validated.status, 409);
+  });
+
   it('formats BAD_REQUEST error into 400 Bad Request', () => {
     const error = new Error('BAD_REQUEST: Invalid filter parameters provided.');
     const problem = toProblemDetail(error);
