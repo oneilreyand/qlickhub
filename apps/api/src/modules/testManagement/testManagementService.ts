@@ -1304,17 +1304,31 @@ export class TestManagementService {
           (previousStatus === 'active' && definitionChanges));
 
       if (requiresQaScopeValidation) {
-        const scopeResult = await validateQaDirectScope({
-          workspaceId: input.workspaceId,
-          actorId,
-          requirementIds,
-          qaSubtaskId: input.qaSubtaskId,
-          transaction,
-        });
-        if (!scopeResult.valid) {
-          throw new Error(`UNPROCESSABLE_ENTITY: ${scopeResult.errors.join('; ')}`);
+        if (input.qaSubtaskId) {
+          const scopeResult = await validateQaDirectScope({
+            workspaceId: input.workspaceId,
+            actorId,
+            requirementIds,
+            qaSubtaskId: input.qaSubtaskId,
+            transaction,
+          });
+          if (!scopeResult.valid) {
+            throw new Error(`UNPROCESSABLE_ENTITY: ${scopeResult.errors.join('; ')}`);
+          }
+          qaActivationSubtask = scopeResult.qaSubtask;
+        } else if (previousStatus === 'draft' && input.status === 'active') {
+          // Direct activation without explicit qaSubtaskId attempts single-feature scope discovery
+          const scopeResult = await validateQaDirectScope({
+            workspaceId: input.workspaceId,
+            actorId,
+            requirementIds,
+            transaction,
+          });
+          if (!scopeResult.valid) {
+            throw new Error(`UNPROCESSABLE_ENTITY: ${scopeResult.errors.join('; ')}`);
+          }
+          qaActivationSubtask = scopeResult.qaSubtask;
         }
-        qaActivationSubtask = scopeResult.qaSubtask;
       }
       assertCanUpdateTestCase(
         membership.role,
@@ -1389,16 +1403,40 @@ export class TestManagementService {
             activityVersionId = revision.id;
           }
         } else {
-          // previousStatus === 'draft'
-          await latestVersion.update(
+          // previousStatus === 'draft' -> creates new draft revision
+          const revision = await TestCaseVersionModel.create(
             {
+              workspaceId: input.workspaceId,
+              testCaseId: input.testCaseId,
+              revision: latestVersion.revision + 1,
+              lifecycleStatus: 'draft',
               definitionSnapshot: snapshotTestCase(testCase, requirementIds),
               authoredBy: actorId,
+              supersedesVersionId: latestVersion.id,
+              origin: 'native_revision',
             },
             { transaction },
           );
-          activityAction = 'test_case_updated';
-          activityVersionId = latestVersion.id;
+
+          const priorMappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
+            where: { workspaceId: input.workspaceId, testCaseVersionId: latestVersion.id },
+            transaction,
+          });
+          if (priorMappings.length > 0) {
+            await TestCaseVersionAcceptanceCriterionModel.bulkCreate(
+              priorMappings.map((mapping) => ({
+                workspaceId: mapping.workspaceId,
+                testCaseVersionId: revision.id,
+                acceptanceCriterionId: mapping.acceptanceCriterionId,
+                mappingStatus: mapping.mappingStatus,
+                exclusionReason: mapping.exclusionReason,
+                mappedBy: actorId,
+              })),
+              { transaction },
+            );
+          }
+          activityAction = 'test_case_revision_created';
+          activityVersionId = revision.id;
         }
       } else {
         const requestedStatus = input.status || previousStatus;
