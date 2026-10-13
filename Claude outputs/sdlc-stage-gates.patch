@@ -1,0 +1,966 @@
+From b028335da40d7142044b78daee1e88450107ba26 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 13 Oct 2026 12:07:28 +0700
+Subject: [PATCH] docs(sdlc): staged feature SDLC gates, stage templates, and
+ Stage Card (ADR-029, SDLC-001)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Eddx9ZA7rBmjrJrb2JThRx
+---
+ AGENTS.md                                  |  4 +
+ AGENT_REPORT_TEMPLATE.md                   |  1 +
+ docs/0_PRODUCT_KNOWLEDGE_MAP.md            |  1 +
+ docs/4_AGENT_DEV_GUIDELINES.md             | 75 +++++++++++++++++
+ docs/POLICY_REGISTRY.md                    | 19 +++--
+ docs/adr/ADR-029-STAGED-FEATURE-SDLC.md    | 63 ++++++++++++++
+ docs/adr/README.md                         |  1 +
+ docs/features/README.md                    | 15 ++--
+ docs/features/_template/README.md          | 68 ++++++++-------
+ docs/features/_template/breakdown.md       | 63 ++++++++++++++
+ docs/features/_template/phases/PHASE-01.md | 42 ++++++++++
+ docs/features/_template/problem.md         | 44 ++++++++++
+ docs/features/_template/product.md         | 97 +++++++++++++++++++---
+ docs/features/_template/release.md         | 44 ++++++++++
+ docs/features/_template/solution.md        | 44 ++++++++++
+ docs/features/_template/testing.md         | 50 +++++++++--
+ docs/plans/QUICK_CARD_TEMPLATE.md          | 44 ++++++++++
+ docs/plans/README.md                       |  4 +
+ scripts/checkDocs.mjs                      |  4 +
+ scripts/checkDocs.test.mjs                 | 18 +++-
+ 20 files changed, 635 insertions(+), 66 deletions(-)
+ create mode 100644 docs/adr/ADR-029-STAGED-FEATURE-SDLC.md
+ create mode 100644 docs/features/_template/breakdown.md
+ create mode 100644 docs/features/_template/phases/PHASE-01.md
+ create mode 100644 docs/features/_template/problem.md
+ create mode 100644 docs/features/_template/release.md
+ create mode 100644 docs/features/_template/solution.md
+ create mode 100644 docs/plans/QUICK_CARD_TEMPLATE.md
+
+diff --git a/AGENTS.md b/AGENTS.md
+index b756f47..f857eac 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -77,6 +77,10 @@ approval, keep one task identity through handoffs, and record applicable verific
+ updating `TODO.md`. Use [the report template](AGENT_REPORT_TEMPLATE.md) for detailed evidence and
+ give the user a concise result with links. Pause at the canonical stop conditions.
+ 
++For Feature work, follow the staged SDLC gates in
++[`docs/4_AGENT_DEV_GUIDELINES.md` §2B](docs/4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc)
++(`SDLC-001`) and show its Stage Card at every gate.
++
+ ## Definition of done
+ 
+ A TODO item is done only when all applicable items are true:
+diff --git a/AGENT_REPORT_TEMPLATE.md b/AGENT_REPORT_TEMPLATE.md
+index d228918..8cf7d97 100644
+--- a/AGENT_REPORT_TEMPLATE.md
++++ b/AGENT_REPORT_TEMPLATE.md
+@@ -13,6 +13,7 @@ Use this format at the end of every task.
+ 
+ ## Work assurance
+ 
++- **SDLC stage and path (`SDLC-001`):** <stage 0–6 / gate reached, Quick | Standard | Full path, Feature folder or Quick Card link; or N/A with reason>
+ - **Work Readiness Assessment:** <score /16, `Ready` | `Ready after split` | `Blocked`, and reason>
+ - **User plan approval:** <approved scope/approach, decision date or message reference; or N/A for read-only work>
+ - **Approval Window / high-risk decisions:** <one approval reference for the plan and bounded sequence, task, baseline, scope, allowed actions, expiry and outcome; record new approval only at a stop condition; or N/A for read-only work>
+diff --git a/docs/0_PRODUCT_KNOWLEDGE_MAP.md b/docs/0_PRODUCT_KNOWLEDGE_MAP.md
+index 5069371..ae89984 100644
+--- a/docs/0_PRODUCT_KNOWLEDGE_MAP.md
++++ b/docs/0_PRODUCT_KNOWLEDGE_MAP.md
+@@ -116,6 +116,7 @@ graph TD
+ | Role workflow, state machines, QA, release gates                                   | [Workflow and Roles](2_WORKFLOW_AND_ROLES.md)                                                     |
+ | Routes, components, design tokens, UI states                                       | [UI Atomic Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                           |
+ | Engineering lifecycle, test evidence, Definition of Done                           | [Agent and Developer Guidelines](4_AGENT_DEV_GUIDELINES.md)                                       |
++| Feature stages, gates, and Stage Card (Problem → Release)                          | [Agent Guidelines §2B](4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc)       |
+ | Autonomous agent execution, policy gates, recovery (proposed target, not in force) | [Autonomous Agent Operations](5_AUTONOMOUS_AGENT_OPERATIONS.md)                                   |
+ | Stable identifiers pointing to approved rules                                      | [Policy Registry](POLICY_REGISTRY.md)                                                             |
+ | Runtime request/response types and shared interfaces                               | [Shared contracts](../packages/contracts/src)                                                     |
+diff --git a/docs/4_AGENT_DEV_GUIDELINES.md b/docs/4_AGENT_DEV_GUIDELINES.md
+index 7f558fb..46c1968 100644
+--- a/docs/4_AGENT_DEV_GUIDELINES.md
++++ b/docs/4_AGENT_DEV_GUIDELINES.md
+@@ -388,6 +388,81 @@ otoritas manusia yang eksplisit.
+ 
+ ---
+ 
++### 2B. Tahap SDLC Feature (_Staged Feature SDLC_)
++
++Keputusan: [ADR-029](adr/ADR-029-STAGED-FEATURE-SDLC.md) (`SDLC-001`). Bagian ini menambahkan tahap
++produk **sebelum** implementasi. Flow enam tahap di §2 dan protokol §2A tetap mengatur setiap phase;
++tidak ada approval per-edit yang ditambahkan.
++
++```mermaid
++flowchart TD
++    S0["0. Problem — problem.md"] --> G0{"G0"}
++    G0 --> S1["1. Opsi Solusi — solution.md"]
++    S1 --> P{"Policy berubah?"}
++    P -->|ya| ADR["ADR + SSoT"] --> G1{"G1"}
++    P -->|tidak| G1
++    G1 --> S2["2. PRD — product.md, roles/, contracts.md, authorization.md"]
++    S2 --> G2{"G2"}
++    G2 --> S3["3. Breakdown — breakdown.md"]
++    S3 --> G3{"G3 = Approval Window phase"}
++    G3 --> S4["4. Build phase — phases/PHASE-NN.md"]
++    S4 --> S5["5. Test & Review — testing.md"]
++    S5 -->|gagal dalam scope| S4
++    S5 -->|Accepted, masih ada phase| G3
++    S5 -->|Accepted, phase terakhir| S6["6. Release & Close — release.md"]
++```
++
++| Tahap             | Dokumen di folder Feature                                  | Isi wajib                                                                                                  | Gerbang                                              |
++| ----------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
++| 0 Problem         | `problem.md`                                               | Masalah, bukti, pihak terdampak, dampak bila tidak dikerjakan, metrik sukses, unknown                      | G0 — PO/Owner                                        |
++| 1 Opsi Solusi     | `solution.md`                                              | Minimal dua opsi plus "tidak dikerjakan", pro/kontra, rekomendasi, dampak policy (Decision Snapshot §2A.E) | G1 — Owner                                           |
++| 2 PRD             | `product.md`, `roles/`, `contracts.md`, `authorization.md` | Requirement dan AC ber-ID dengan bukti minimum, user flow, wireframe per state UI, phone/tablet/desktop    | G2 — PO                                              |
++| 3 Breakdown       | `breakdown.md`                                             | Phase sebagai vertical slice (WRA ≤ 8), task BE · FE · QA per phase, dependensi, stop condition            | G3 — Owner; menjadi Approval Window phase berikutnya |
++| 4 Build           | `phases/PHASE-NN.md`                                       | Approval Window, log perubahan, pemeriksaan, deviasi                                                       | Dalam window G3                                      |
++| 5 Test & Review   | `testing.md`                                               | AC → bukti E0–E4, outcome sukses/gagal, quality review §2A.H, hasil verifier                               | G5 — verifier/CI                                     |
++| 6 Release & Close | `release.md`                                               | Tier merge, deploy, verifikasi target, QA sign-off, keputusan rilis, checklist penutupan                   | G6 — PO; Owner untuk Tier 2                          |
++
++**Jalur proporsional.** Agent memilih jalur dari WRA dan menuliskannya:
++
++- **Cepat** — WRA 0–4, satu layer, tanpa perubahan contract, data/migrasi, authorization, atau
++  release gate: satu [Quick Card](plans/QUICK_CARD_TEMPLATE.md), lalu Build → Test → Close.
++- **Standar** — WRA 5–8: tahap 0–6; `solution.md` boleh ringkas bila tidak ada alternatif material.
++- **Penuh** — WRA ≥ 9, atau lintas role, data/migrasi, authorization, maupun release gate: semua
++  tahap, beberapa phase, dan verifikator independen.
++
++**Gerbang.** G0–G2 adalah keputusan produk, bukan izin mutasi repository. Draft tahap 0–2 disiapkan
++baca-saja dan ditampilkan di chat; dokumen yang disetujui di-commit di dalam Approval Window G3. Pada
++jalur Cepat dan Standar, G0–G2 boleh disetujui dalam satu jawaban. Diam, permintaan analisis, atau
++jawaban ambigu bukan persetujuan gerbang.
++
++**Stage Card.** Pada setiap gerbang, agent menampilkan kartu berikut dan mencatat barisnya di Stage
++Tracker `README.md` Feature:
++
++```md
++### Tahap <N>/6 — <nama tahap>
++
++**Feature:** <FEATURE-ID> · **Jalur:** <Cepat|Standar|Penuh> (WRA <n>/16) · **Status:** <Draft|Menunggu persetujuan|Disetujui|Blocked>
++**Dokumen:** <link>
++**Ringkasan:** <≤5 poin>
++**Fakta terkonfirmasi:** <fakta — sumber primer>
++**Unknown / unverified:** <hal — cara membuktikan, atau "Tidak ada">
++**Keputusan yang diperlukan:** <pertanyaan, opsi, rekomendasi>
++**Balas:** `setuju G<N>` · `revisi tahap <N>: <catatan>` · `stop`
++```
++
++Hal yang memengaruhi AC tetapi masih `unknown` membuat tahap `Blocked` atau menjadi pertanyaan; tidak
++diisi tebakan. Tahap 4–5 menambahkan `perintah — exit code — pass/fail/skip`; tahap 6 menambahkan
++tier, PR, dan apakah merge memicu deploy Production.
++
++**Contoh permintaan ke agent:** `Tahap 0: <masalah>` · `Tahap 1 untuk <FEATURE-ID>` ·
++`Tahap 2, pakai opsi B` · `Tahap 3 untuk <FEATURE-ID>` · `Setuju G3, jalankan Phase 1` ·
++`Status <FEATURE-ID>` · `Revisi tahap 2: <catatan>` · `Quick fix: <masalah>`.
++
++Template tahap ada di [Feature folder template](features/_template/README.md). Kartu Feature legacy
++satu-file tetap sah dan tidak wajib dimigrasi kecuali Feature tersebut dikerjakan ulang.
++
++---
++
+ ## 3. Kebijakan Basis Data & Bukti Pengujian (_Database & Test Evidence_)
+ 
+ > [!CAUTION]
+diff --git a/docs/POLICY_REGISTRY.md b/docs/POLICY_REGISTRY.md
+index 6761959..e1549d7 100644
+--- a/docs/POLICY_REGISTRY.md
++++ b/docs/POLICY_REGISTRY.md
+@@ -43,15 +43,16 @@ then update this index.
+ 
+ ## Delivery Workflow
+ 
+-| Policy ID | Rule summary                                                                                                                                                                                                                                                    | Canonical source                                                                                                                                                     |
+-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+-| FLOW-001  | Developers execute assigned Subtasks through the approved transition sequence.                                                                                                                                                                                  | [Workflow §4](2_WORKFLOW_AND_ROLES.md#4-siklus-hidup-subtask-subtask-state-machine)                                                                                  |
+-| FLOW-002  | Planning fields remain controlled by owner, admin, or PO.                                                                                                                                                                                                       | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                                                                                                       |
+-| FLOW-003  | Developer assignment must match Workspace specialty and Subtask delivery area.                                                                                                                                                                                  | [Workflow §3](2_WORKFLOW_AND_ROLES.md#3-spesialisasi-developer--penugasan-subtask)                                                                                   |
+-| FLOW-004  | Task/Subtask timelines are either blank or contain an ordered Start/Due pair.                                                                                                                                                                                   | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                                                                                                       |
+-| FLOW-005  | A Planner sets Feature readiness after recorded Dev/QA input; critical findings block new work unless an Owner/Admin records an audited emergency exception.                                                                                                    | [Workflow §2](2_WORKFLOW_AND_ROLES.md#kesiapan-requirement-dan-triage-temuan)                                                                                        |
+-| FLOW-006  | Review rounds are counted per Development Subtask and review type; a material baseline change supersedes rather than fails the old round.                                                                                                                       | [Workflow §4](2_WORKFLOW_AND_ROLES.md#definisi-putaran-review-dan-pengembalian)                                                                                      |
+-| FLOW-007  | Subtask assignment conflict detection is advisory, inclusive (`existing.startDate <= candidate.dueDate && existing.dueDate >= candidate.startDate`), evaluates active non-terminal subtasks only, and never blocks mutation or triggers automated reallocation. | [Workflow §4](2_WORKFLOW_AND_ROLES.md#deteksi-konflik-penugasan-dan-kapasitas-tim), [ADR-024](adr/ADR-024-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md) |
++| Policy ID | Rule summary                                                                                                                                                                                                                                                                                                        | Canonical source                                                                                                                                                     |
++| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++| FLOW-001  | Developers execute assigned Subtasks through the approved transition sequence.                                                                                                                                                                                                                                      | [Workflow §4](2_WORKFLOW_AND_ROLES.md#4-siklus-hidup-subtask-subtask-state-machine)                                                                                  |
++| FLOW-002  | Planning fields remain controlled by owner, admin, or PO.                                                                                                                                                                                                                                                           | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                                                                                                       |
++| FLOW-003  | Developer assignment must match Workspace specialty and Subtask delivery area.                                                                                                                                                                                                                                      | [Workflow §3](2_WORKFLOW_AND_ROLES.md#3-spesialisasi-developer--penugasan-subtask)                                                                                   |
++| FLOW-004  | Task/Subtask timelines are either blank or contain an ordered Start/Due pair.                                                                                                                                                                                                                                       | [Workflow §4](2_WORKFLOW_AND_ROLES.md#aturan-transisi-subtask)                                                                                                       |
++| FLOW-005  | A Planner sets Feature readiness after recorded Dev/QA input; critical findings block new work unless an Owner/Admin records an audited emergency exception.                                                                                                                                                        | [Workflow §2](2_WORKFLOW_AND_ROLES.md#kesiapan-requirement-dan-triage-temuan)                                                                                        |
++| FLOW-006  | Review rounds are counted per Development Subtask and review type; a material baseline change supersedes rather than fails the old round.                                                                                                                                                                           | [Workflow §4](2_WORKFLOW_AND_ROLES.md#definisi-putaran-review-dan-pengembalian)                                                                                      |
++| FLOW-007  | Subtask assignment conflict detection is advisory, inclusive (`existing.startDate <= candidate.dueDate && existing.dueDate >= candidate.startDate`), evaluates active non-terminal subtasks only, and never blocks mutation or triggers automated reallocation.                                                     | [Workflow §4](2_WORKFLOW_AND_ROLES.md#deteksi-konflik-penugasan-dan-kapasitas-tim), [ADR-024](adr/ADR-024-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md) |
++| SDLC-001  | Feature work follows staged gates — Problem, Solution, PRD (user flow, wireframe per UI state, AC), Breakdown into vertical-slice phases with BE/FE/QA tasks, Build, Test & Review, Release — with one document per stage, a Stage Tracker, a Stage Card at each gate, and a proportional Quick/Standard/Full path. | [Agent Guidelines §2B](4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc)                                                                          |
+ 
+ ## QA and Release
+ 
+diff --git a/docs/adr/ADR-029-STAGED-FEATURE-SDLC.md b/docs/adr/ADR-029-STAGED-FEATURE-SDLC.md
+new file mode 100644
+index 0000000..0800c3c
+--- /dev/null
++++ b/docs/adr/ADR-029-STAGED-FEATURE-SDLC.md
+@@ -0,0 +1,63 @@
++# ADR-029: Staged Feature SDLC with Visible Stage Gates
++
++**Status:** Accepted — effective when merged with the Owner's `owner-approved` label (Tier 2)
++**Date:** 2026-10-13
++**Decision owner:** Product (repository Owner)
++**Refines:** [ADR-017](ADR-017-AI-PLAN-APPROVAL-AND-EVIDENCE-OUTCOMES.md), [ADR-022](ADR-022-FEATURE-KNOWLEDGE-TREE.md), [ADR-026](ADR-026-CONCISE-AGENT-DELIVERY-FLOW.md)
++**Policy boundary:** `SDLC-001` (new), `DOC-005`, `AI-002`, `AI-009`, `AI-014`
++
++## Context
++
++The current six-stage flow (ADR-026) governs how an agent obtains approval and proves its work, but it
++does not require a problem statement, a solution comparison, a PRD with user flows and wireframes, or
++a standard breakdown into phases and BE/FE/QA tasks before implementation. Plans have no template and
++use inconsistent status values. A 2026-10-01 delivery (Leader Hub) added a migration, cross-Workspace
++endpoints, and an authorization boundary without a plan, Feature Card, or ADR, and its report claimed
++"no regression risk" without supporting evidence. The Owner cannot see, per step, where a feature
++stands or what is being decided.
++
++## Decision
++
++1. Feature work follows seven stages with one gate each: 0 Problem (G0), 1 Solution options (G1),
++   2 PRD (G2), 3 Breakdown (G3), 4 Build per phase, 5 Test & Review (G5), 6 Release & Close (G6).
++2. Each stage produces one file in the Feature folder (`problem.md`, `solution.md`, `product.md`,
++   `breakdown.md`, `phases/PHASE-NN.md`, `testing.md`, `release.md`). `README.md` holds a Stage Tracker.
++   The canonical rule is [Agent Guidelines §2B](../4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc).
++3. The agent shows a Stage Card in chat at every gate, separating sourced facts from `unknown` items
++   and stating the decision needed. A gate is never approved implicitly.
++4. A phase is a vertical slice (ADR-017 retained) with WRA ≤ 8 and BE, FE, and QA tasks where the slice
++   touches those layers. Approval of G3 is the Approval Window for the next phase; each later phase
++   receives its own window.
++5. The release record states whether a merge to `main` also deploys Production. The open conflict
++   between ADR-028 Tier 1 auto-merge and the Production-deployment stop condition in `AI-013` is a
++   separate Owner decision; this ADR changes neither rule.
++6. Proportional paths: Quick (WRA 0–4, single layer, no contract/data/authorization/release change)
++   uses the [Quick Card](../plans/QUICK_CARD_TEMPLATE.md); Standard (WRA 5–8) may abbreviate `solution.md`; Full (WRA ≥ 9 or any
++   cross-role, data, authorization, or release boundary) uses every stage.
++7. Relationship to ADR-026: G0–G2 are product decisions, not repository-mutation approvals. Stages
++   0–2 are drafted read-only and shown as Stage Cards; the approved documents are committed inside the
++   G3 Approval Window. The ADR-026 six-stage flow continues to govern each phase (stages 3–6), so no
++   per-edit approval is reintroduced. On the Quick and Standard paths G0–G2 may be approved in one
++   consent.
++8. Existing documents are unchanged in meaning: the 33 legacy single-file cards, the folder-card
++   required files and ten headings validated by `scripts/checkDocs.mjs`, historical plans and reports,
++   and ADR-017's vertical-slice rule all remain valid.
++9. `npm run docs:check` validates the folder structure and Stage Tracker; semantic review of gates
++   remains a human or verifier responsibility.
++
++## Consequences
++
++- Every feature shows its current stage and links to the decision and evidence of each step.
++- More documents for large features; small fixes stay light through the Quick path.
++- Existing legacy cards stay valid; migration happens only when a feature is next touched.
++
++## Alternatives considered
++
++- **Keep the current six-stage flow only:** rejected; it does not capture problem, PRD, or breakdown.
++- **Mandatory BE-then-FE phases:** rejected again for the ADR-017 reason; BE/FE split happens inside
++  each vertical slice instead.
++- **External PRD tool only:** rejected for now; repository files keep traceability with code and CI.
++
++## Rollback
++
++Revert this ADR and the corresponding SSoT/template changes; existing Feature folders remain readable.
+diff --git a/docs/adr/README.md b/docs/adr/README.md
+index aa9cf86..7e0f199 100644
+--- a/docs/adr/README.md
++++ b/docs/adr/README.md
+@@ -37,3 +37,4 @@ the decision history, then follow its links to the canonical rule and implementa
+ | [ADR-026](ADR-026-CONCISE-AGENT-DELIVERY-FLOW.md)                             | Concise delivery flow with one bounded approval                    |
+ | [ADR-027](ADR-027-AUTONOMOUS-AGENT-OPERATIONS.md)                             | Policy-bound autonomous agent operations (Proposed — not in force) |
+ | [ADR-028](ADR-028-TIERED-AUTO-MERGE.md)                                       | Tiered auto-merge for agent pull requests                          |
++| [ADR-029](ADR-029-STAGED-FEATURE-SDLC.md)                                     | Staged feature SDLC with visible stage gates                       |
+diff --git a/docs/features/README.md b/docs/features/README.md
+index 776ce75..d9a009a 100644
+--- a/docs/features/README.md
++++ b/docs/features/README.md
+@@ -16,13 +16,14 @@ flowchart LR
+ 
+ ## Pilih Jalur Anda
+ 
+-| Jika ingin…                          | Buka                                        | Hasilnya                                                                    |
+-| ------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------- |
+-| Melihat seluruh Feature saat ini     | [Feature Catalog](FEATURE_CATALOG.md)       | Daftar 33 Feature, kelompok produk, status, tujuan, dan pembaca utama.      |
+-| Memahami alur kerja berdasarkan role | [Role Flows](ROLE_FLOWS.md)                 | Diagram handoff Owner/Admin, PO, Developer, dan QA beserta Feature terkait. |
+-| Membaca detail satu Feature          | Tautan pada katalog                         | Kartu Feature lama yang menjadi sumber detail saat ini.                     |
+-| Membuat Feature lintas-role baru     | [Folder template](_template/README.md)      | Overview, diagram, dokumen shared, dan dokumen per role.                    |
+-| Membuat kartu kecil/kompatibel       | [Legacy card template](FEATURE_TEMPLATE.md) | Satu kartu Feature; bukan pilihan untuk Feature lintas-role baru.           |
++| Jika ingin…                          | Buka                                                                                           | Hasilnya                                                                          |
++| ------------------------------------ | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
++| Melihat seluruh Feature saat ini     | [Feature Catalog](FEATURE_CATALOG.md)                                                          | Daftar 33 Feature, kelompok produk, status, tujuan, dan pembaca utama.            |
++| Memahami alur kerja berdasarkan role | [Role Flows](ROLE_FLOWS.md)                                                                    | Diagram handoff Owner/Admin, PO, Developer, dan QA beserta Feature terkait.       |
++| Membaca detail satu Feature          | Tautan pada katalog                                                                            | Kartu Feature lama yang menjadi sumber detail saat ini.                           |
++| Membuat Feature lintas-role baru     | [Folder template](_template/README.md)                                                         | Overview, diagram, dokumen shared, dan dokumen per role.                          |
++| Membuat kartu kecil/kompatibel       | [Legacy card template](FEATURE_TEMPLATE.md)                                                    | Satu kartu Feature; bukan pilihan untuk Feature lintas-role baru.                 |
++| Mengikuti tahap SDLC Feature         | [Agent Guidelines §2B](../4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc) | Problem → Solusi → PRD → Breakdown → Build → Test → Release dengan Stage Tracker. |
+ 
+ ## Struktur Saat Ini
+ 
+diff --git a/docs/features/_template/README.md b/docs/features/_template/README.md
+index eac8ce1..9cd1b65 100644
+--- a/docs/features/_template/README.md
++++ b/docs/features/_template/README.md
+@@ -3,20 +3,37 @@
+ **Status:** Draft
+ **Owner:** TBD
+ **Last reviewed:** YYYY-MM-DD
+-**Applicable Policy IDs:** DOC-005, TBD
++**Applicable Policy IDs:** DOC-005, SDLC-001, TBD
+ 
+-> Copy this whole `_template` directory to `docs/features/<FEATURE-ID>/`. An Active Feature must
+-> replace placeholders and cite every applicable Policy ID. Keep this file as the canonical entry
+-> point; detailed material belongs in the linked documents.
++> Salin seluruh folder ke `docs/features/<FEATURE-ID>/`. File ini adalah pintu masuk kanonis.
++> Sepuluh heading bernomor di bawah **wajib dipertahankan** karena divalidasi `npm run docs:check`.
++> Alur tahap dan Stage Card: [Agent Guidelines §2B](../../4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc).
++> Feature `Active` tidak boleh berisi placeholder.
++
++## Stage Tracker
++
++| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal | Catatan                            |
++| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------ | ---------------------------------- |
++| 0 Problem         | [problem.md](problem.md)                                                               | Draft       | G0              | —                        |                                    |
++| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Belum mulai | G1              | —                        | ADR: —                             |
++| 2 PRD             | [product.md](product.md)                                                               | Belum mulai | G2              | —                        |                                    |
++| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Belum mulai | G3              | —                        | Jalur: Standar / Penuh             |
++| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Belum mulai | bagian G2       | —                        | file yang sudah ada di `_template` |
++| 4 Build           | [phases/](phases/)                                                                     | Belum mulai | dalam window G3 | —                        |                                    |
++| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                        | Verifier: —                        |
++| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                        |                                    |
++
++Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
++(Ini terpisah dari **Status** kartu di atas, yang tetap `Draft` / `Active` / `Superseded` / `Archived`.)
+ 
+ ## 1. Tujuan dan Pengguna
+ 
+-State the problem, intended outcome, users, and out-of-scope behavior. See [product.md](product.md).
++Ringkasan masalah dan hasil yang diharapkan. Detail: [problem.md](problem.md) dan
++[solution.md](solution.md).
+ 
+ ## 2. Requirement dan Acceptance Criteria
+ 
+-Link stable Requirement and Acceptance Criterion IDs, their source decision, and scope in
+-[product.md](product.md).
++Link Requirement dan AC ber-ID di [product.md](product.md).
+ 
+ ## 3. Alur Lintas Peran
+ 
+@@ -30,47 +47,40 @@ flowchart LR
+   PO --> REL[Release decision]
+ ```
+ 
+-| Reader        | Read next                                    | Output / handoff                      |
+-| ------------- | -------------------------------------------- | ------------------------------------- |
+-| Owner / Admin | [roles/owner-admin.md](roles/owner-admin.md) | Workspace and access boundary         |
+-| PO            | [roles/po.md](roles/po.md)                   | Approved scope and release decision   |
+-| Developer     | [roles/developer.md](roles/developer.md)     | Candidate and implementation evidence |
+-| QA            | [roles/qa.md](roles/qa.md)                   | Test result, Bug/retest, and sign-off |
++| Pembaca       | Baca berikutnya                              | Output / handoff                    |
++| ------------- | -------------------------------------------- | ----------------------------------- |
++| Owner / Admin | [roles/owner-admin.md](roles/owner-admin.md) | Batas workspace dan akses           |
++| PO            | [roles/po.md](roles/po.md)                   | Scope disetujui dan keputusan rilis |
++| Developer     | [roles/developer.md](roles/developer.md)     | Kandidat dan bukti implementasi     |
++| QA            | [roles/qa.md](roles/qa.md)                   | Test result, Bug/retest, sign-off   |
++
++User flow per layar ada di [product.md](product.md) §3.
+ 
+ ## 4. Data dan Relasi
+ 
+-Link persisted entities, Workspace ownership, audit, and migration risk in
+-[contracts.md](contracts.md).
++Lihat [contracts.md](contracts.md).
+ 
+ ## 5. API dan Shared Contract
+ 
+-Link endpoints and executable contract source in [contracts.md](contracts.md); do not duplicate
+-field shapes here.
++Lihat [contracts.md](contracts.md); jangan menyalin field kontrak.
+ 
+ ## 6. Authorization
+ 
+-State the applicable Policy IDs and link the backend-enforced outcome matrix in
+-[authorization.md](authorization.md).
++Lihat [authorization.md](authorization.md).
+ 
+ ## 7. UI dan Interaction States
+ 
+-Link routes, Atomic components, responsive behavior, and all required interaction states from
+-[product.md](product.md) and the relevant role document.
++User flow dan wireframe per state di [product.md](product.md) §3–§4.
+ 
+ ## 8. Pengujian dan Evidence
+ 
+-Link the AC-to-evidence mapping, PostgreSQL/API/UI coverage, UAT, and reports in
+-[testing.md](testing.md).
++Lihat [testing.md](testing.md); pembagian phase di [breakdown.md](breakdown.md).
+ 
+ ## 9. Release dan Readiness
+ 
+-State readiness, QA sign-off, release decision, rollback, and known gaps in
+-[testing.md](testing.md) and the relevant SSoT.
++Lihat [release.md](release.md).
+ 
+ ## 10. Traceability
+ 
+-`Requirement → Acceptance Criterion → Task/Subtask → contract/code → Test Case/Test Result →
++`Problem → Solution/ADR → Requirement → AC → Phase → Task BE/FE/QA → contract/code → Test Result →
+ Bug/retest → report → release decision`
+-
+-Link the specific artifacts in [product.md](product.md), [contracts.md](contracts.md), and
+-[testing.md](testing.md).
+diff --git a/docs/features/_template/breakdown.md b/docs/features/_template/breakdown.md
+new file mode 100644
+index 0000000..107e1ba
+--- /dev/null
++++ b/docs/features/_template/breakdown.md
+@@ -0,0 +1,63 @@
++# [FEATURE-ID] — Tahap 3: Breakdown (Phase → Task BE · FE · QA)
++
++**Status:** Draft | Menunggu persetujuan | Disetujui
++**Gerbang:** G3 — disetujui oleh Owner; persetujuan ini sekaligus Approval Window untuk phase pertama
++**PRD:** [product.md](product.md)
++**Applicable Policy IDs:** AI-002, AI-009, AI-014, SDLC-001, TBD
++
++## Aturan pemecahan
++
++1. **Phase = vertical slice** yang bisa diuji sendiri terhadap AC (ADR-017). Bukan "semua BE dulu,
++   lalu semua FE".
++2. Setiap phase punya WRA ≤ 8. Bila > 8, pecah lagi.
++3. Setiap phase berisi task **BE**, **FE**, dan **QA** bila slice itu menyentuh lapisan tersebut;
++   lapisan yang tidak tersentuh ditulis `N/A — alasan`.
++4. Setiap AC dari PRD harus masuk ke tepat satu phase (boleh diuji ulang di phase berikutnya).
++5. Phase berikutnya dimulai hanya setelah phase sebelumnya `Accepted` di tahap 5, kecuali
++   dependensinya dinyatakan bebas.
++
++## 1. Peta phase
++
++```mermaid
++flowchart LR
++    P1["Phase 1: <nama><br/>AC-1.1, AC-1.2"] --> P2["Phase 2: <nama><br/>AC-2.1"]
++    P2 --> P3["Phase 3: <nama><br/>AC-3.1"]
++```
++
++| Phase | Tujuan (hasil yang bisa dilihat user) | AC             | WRA | Bergantung pada | Status      |
++| ----- | ------------------------------------- | -------------- | --- | --------------- | ----------- |
++| P1    |                                       | AC-1.1, AC-1.2 | /16 | —               | Belum mulai |
++| P2    |                                       |                | /16 | P1              | Belum mulai |
++
++## 2. Task per phase
++
++### Phase 1 — <nama>
++
++| Task ID | Layer | Pekerjaan                 | File/path perkiraan              | AC             | Bukti selesai                                 | Assignee |
++| ------- | ----- | ------------------------- | -------------------------------- | -------------- | --------------------------------------------- | -------- |
++| P1-BE-1 | BE    | Endpoint + policy service | `apps/api/src/modules/...`       | AC-1.2         | Integration test 403/200 (E3)                 |          |
++| P1-BE-2 | BE    | Migrasi (bila ada)        | `apps/api/src/db/migrations/...` | AC-1.1         | Clean migrate + read-back (E3)                |          |
++| P1-FE-1 | FE    | Halaman + semua state     | `apps/web/src/...`               | AC-1.1         | Component test + phone/tablet/desktop (E2/E4) |          |
++| P1-QA-1 | QA    | Test Case + UAT           | —                                | AC-1.1, AC-1.2 | Test Result tersegel (E4)                     |          |
++
++WRA Phase 1 (8 dimensi, 0–2): requirement _ · lapisan _ · data _ · authorization _ · contract _ ·
++ketersinggungan _ · validasi _ · eksternal _ = **\_/16**
++
++### Phase 2 — <nama>
++
++<ulangi tabel di atas>
++
++## 3. Risiko lintas phase
++
++| Risiko | Phase | Mitigasi / rollback |
++| ------ | ----- | ------------------- |
++|        |       |                     |
++
++## 4. Stop condition yang sudah terlihat
++
++Aksi yang tetap butuh persetujuan baru meski G3 disetujui (`AI-013`): migrasi destruktif/backfill,
++perubahan authorization/secret/dependency, mutasi data Production, merge Tier 2, perluasan scope.
++
++| Phase | Stop condition | Kapan akan diminta |
++| ----- | -------------- | ------------------ |
++|       |                |                    |
+diff --git a/docs/features/_template/phases/PHASE-01.md b/docs/features/_template/phases/PHASE-01.md
+new file mode 100644
+index 0000000..f331b28
+--- /dev/null
++++ b/docs/features/_template/phases/PHASE-01.md
+@@ -0,0 +1,42 @@
++# [FEATURE-ID] — Tahap 4: Build Phase 01 — <nama phase>
++
++**Status:** Menunggu persetujuan | Berjalan | Kandidat teruji | Blocked
++**Breakdown:** [../breakdown.md](../breakdown.md)
++**AC phase ini:** AC-…
++**Applicable Policy IDs:** AI-009, AI-013, AI-014, TBD
++
++## 1. Approval Window
++
++| Item                             | Isi                                                           |
++| -------------------------------- | ------------------------------------------------------------- |
++| Task ID                          |                                                               |
++| Branch / baseline commit         | `feat/...` @ `<sha>`                                          |
++| File/path yang diizinkan         |                                                               |
++| Urutan aksi yang diizinkan       | edit → test → commit → push branch → PR → auto-merge (tier …) |
++| Pemeriksaan yang akan dijalankan |                                                               |
++| Risiko & recovery                |                                                               |
++| Masa berlaku                     | sampai <tanggal/jam> atau sampai PR dibuat                    |
++| Disetujui                        | <siapa, kapan, referensi pesan>                               |
++
++## 2. Log perubahan
++
++| Task    | File berubah | Ringkasan | Commit |
++| ------- | ------------ | --------- | ------ |
++| P1-BE-1 |              |           |        |
++
++## 3. Pemeriksaan yang dijalankan
++
++| Perintah           | Environment | Exit code | Pass / fail / skip | AC  |
++| ------------------ | ----------- | --------- | ------------------ | --- |
++| `npm run validate` | local       |           |                    | —   |
++
++## 4. Deviasi dari rencana
++
++| Deviasi   | Alasan | Masih dalam scope? | Persetujuan baru? |
++| --------- | ------ | ------------------ | ----------------- |
++| Tidak ada |        |                    |                   |
++
++## 5. Hasil
++
++- PR: <link> — Tier <1 | 2> — file Tier 2 yang cocok: <...>
++- Lanjut ke [testing.md](../testing.md) untuk tahap 5.
+diff --git a/docs/features/_template/problem.md b/docs/features/_template/problem.md
+new file mode 100644
+index 0000000..cc29296
+--- /dev/null
++++ b/docs/features/_template/problem.md
+@@ -0,0 +1,44 @@
++# [FEATURE-ID] — Tahap 0: Problem Statement
++
++**Status:** Draft | Menunggu persetujuan | Disetujui
++**Gerbang:** G0 — disetujui oleh PO/Owner
++**Applicable Policy IDs:** SDLC-001, TBD
++
++## 1. Masalah
++
++<Satu-dua kalimat: apa yang tidak berjalan atau tidak tersedia hari ini. Tulis dari sudut pengguna,
++bukan solusi.>
++
++## 2. Bukti masalah
++
++| Bukti                                               | Sumber                                          | Level        |
++| --------------------------------------------------- | ----------------------------------------------- | ------------ |
++| <contoh: QA butuh 4 klik untuk melihat bug terkait> | <screenshot / data / laporan user / file:baris> | E1 / E3 / E4 |
++
++Tidak ada bukti → tulis `unverified` dan cara mengumpulkannya. Jangan lanjut ke G0 hanya dengan asumsi.
++
++## 3. Siapa yang terdampak
++
++| Role                        | Situasi | Seberapa sering | Dampak |
++| --------------------------- | ------- | --------------- | ------ |
++| PO / Developer / QA / Owner | <...>   | <...>           | <...>  |
++
++## 4. Bila tidak dikerjakan
++
++<Konsekuensi nyata bila dibiarkan: risiko, biaya, kehilangan waktu.>
++
++## 5. Metrik sukses
++
++| Metrik | Baseline saat ini      | Target | Cara mengukur              |
++| ------ | ---------------------- | ------ | -------------------------- |
++| <...>  | <angka atau `unknown`> | <...>  | <query / observasi / test> |
++
++## 6. Batasan dan di luar scope
++
++- <yang pasti tidak termasuk>
++
++## 7. Unknown
++
++| Pertanyaan | Mengapa penting | Siapa bisa menjawab |
++| ---------- | --------------- | ------------------- |
++| <...>      | <...>           | <PO / Owner / data> |
+diff --git a/docs/features/_template/product.md b/docs/features/_template/product.md
+index 42fea4d..e7b2eb0 100644
+--- a/docs/features/_template/product.md
++++ b/docs/features/_template/product.md
+@@ -1,22 +1,93 @@
+-# [FEATURE-ID] — Product, Scope, and Acceptance Criteria
++# [FEATURE-ID] — Tahap 2: PRD (Product Requirements)
+ 
+-**Applicable Policy IDs:** DOC-005, TBD
++**Status:** Draft | Menunggu persetujuan | Disetujui
++**Gerbang:** G2 — disetujui oleh PO
++**Solusi terpilih:** [solution.md](solution.md)
++**Applicable Policy IDs:** DOC-005, UI-001, UI-002, SDLC-001, TBD
+ 
+-## Purpose and users
++> Menggantikan `product.md` lama di `_template`. Aturan global (token warna, state UI wajib, RBAC)
++> ditautkan ke SSoT, bukan disalin.
+ 
+-Describe the user problem, measurable outcome, stakeholders, in-scope, and out-of-scope behavior.
++## 1. Tujuan dan pengguna
+ 
+-## Requirements and Acceptance Criteria
++<Ringkas dari problem.md: siapa, untuk apa, metrik sukses.>
+ 
+-| Requirement | Acceptance Criterion | Decision source | Evidence path |
+-| ----------- | -------------------- | --------------- | ------------- |
+-| TBD         | TBD                  | TBD             | TBD           |
++## 2. Requirement dan Acceptance Criteria
+ 
+-## UI and interaction states
++| Req ID | Requirement | AC ID  | Acceptance Criterion (Given / When / Then) | Role | Bukti minimum (E-level)               |
++| ------ | ----------- | ------ | ------------------------------------------ | ---- | ------------------------------------- |
++| REQ-1  |             | AC-1.1 | Given … When … Then …                      | QA   | E3 — integration test write/read-back |
++|        |             | AC-1.2 | Given role tanpa akses … Then 403          | Dev  | E2/E3 — integration test 403          |
+ 
+-Link routes, Atomic components, responsive behavior, accessible names, loading, empty, error,
+-disabled, and permission-denied states. Link to the UI SSoT instead of repeating its tokens.
++Setiap AC wajib punya bukti minimum. AC tanpa jalur bukti = G2 tidak boleh disetujui.
+ 
+-## Traceability
++## 3. User flow
+ 
+-Link the parent Task, relevant plan, ADR, and reports. Reports are evidence only, never policy.
++Satu diagram per perjalanan utama, termasuk jalur gagal.
++
++```mermaid
++flowchart TD
++    A["Layar: <nama>"] -->|aksi user| B{"Validasi backend"}
++    B -->|ok| C["Layar: <hasil>"]
++    B -->|403| D["State: permission-denied"]
++    B -->|error| E["State: error + retry"]
++```
++
++| Langkah | Layar / route | Aksi user | Respons sistem | AC terkait |
++| ------- | ------------- | --------- | -------------- | ---------- |
++| 1       | `/route`      |           |                | AC-1.1     |
++
++## 4. Wireframe per state
++
++Gambar boleh berupa ASCII, link Design artifact, atau screenshot mockup. **Wajib** untuk setiap layar
++baru/berubah. State yang berlaku mengikuti `docs/3_UI_ATOMIC_DESIGN_SYSTEM.md` §6–§7.
++
++### Layar: <nama> — route `<...>`
++
++| State                 | Wireframe / link | Catatan                  |
++| --------------------- | ---------------- | ------------------------ |
++| Default (berisi data) |                  |                          |
++| Loading               |                  | skeleton / spinner       |
++| Empty                 |                  | teks + aksi berikutnya   |
++| Error                 |                  | pesan + retry            |
++| Disabled              |                  | alasan disabled terlihat |
++| Permission-denied     |                  |                          |
++
++```text
++Contoh ASCII (default, desktop):
++┌──────────────────────────────────────────────┐
++│ Header                         [Aksi utama]  │
++├────────────┬─────────────────────────────────┤
++│ Filter     │ Daftar item                     │
++│            │  • Item A          status chip  │
++│            │  • Item B          status chip  │
++└────────────┴─────────────────────────────────┘
++```
++
++| Breakpoint | Perbedaan layout |
++| ---------- | ---------------- |
++| Phone      |                  |
++| Tablet     |                  |
++| Desktop    |                  |
++
++### Komponen Atomic
++
++| Kebutuhan | Komponen yang dipakai ulang (`apps/web/src/components/ui`) | Komponen baru? alasan |
++| --------- | ---------------------------------------------------------- | --------------------- |
++|           |                                                            |                       |
++
++## 5. Data, contract, authorization
++
++- Data & API: [contracts.md](contracts.md)
++- Authorization matrix: [authorization.md](authorization.md)
++- Langkah per role: [roles/](roles/)
++
++## 6. Di luar scope
++
++- <...>
++
++## 7. Unknown yang tersisa
++
++| Pertanyaan | Memengaruhi AC | Status            |
++| ---------- | -------------- | ----------------- |
++|            |                | Open / Diputuskan |
+diff --git a/docs/features/_template/release.md b/docs/features/_template/release.md
+new file mode 100644
+index 0000000..16886d7
+--- /dev/null
++++ b/docs/features/_template/release.md
+@@ -0,0 +1,44 @@
++# [FEATURE-ID] — Tahap 6: Release & Close
++
++**Status:** Belum mulai | Menunggu keputusan | Released | Ditolak | Closed
++**Gerbang:** G6 — keputusan rilis oleh PO; label `owner-approved` oleh Owner untuk Tier 2
++**Applicable Policy IDs:** AI-013, AI-020, RELEASE-001, RELEASE-002, DOC-003, TBD
++
++## 1. Merge dan deploy
++
++| Phase | PR  | Tier  | File Tier 2 | Merge commit | Memicu deploy Production? | Deployment ID / waktu |
++| ----- | --- | ----- | ----------- | ------------ | ------------------------- | --------------------- |
++| P1    |     | 1 / 2 |             |              | ya / tidak                |                       |
++
++Bila merge ke `main` otomatis men-deploy Production, catat di sini dan pastikan persetujuan deploy
++tercakup (lihat ADR-029 butir 5).
++
++## 2. Verifikasi di environment target
++
++| AC     | Environment          | Observasi / perintah | Level | Hasil |
++| ------ | -------------------- | -------------------- | ----- | ----- |
++| AC-1.1 | Production / Preview |                      | E4    |       |
++
++## 3. QA sign-off dan keputusan rilis
++
++| Item               | Isi                          |
++| ------------------ | ---------------------------- |
++| QA sign-off        | <link record / tanggal>      |
++| Keputusan rilis PO | approved / rejected — alasan |
++| Gap yang diterima  | <daftar + siapa menyetujui>  |
++| Rollback plan      | <cara + siapa>               |
++
++## 4. Metrik sukses (dari problem.md)
++
++| Metrik | Baseline | Target | Hasil setelah rilis | Kapan diukur ulang |
++| ------ | -------- | ------ | ------------------- | ------------------ |
++|        |          |        |                     |                    |
++
++## 5. Checklist penutupan
++
++- [ ] Report di `docs/reports/<FEATURE-ID>_<YYYY-MM-DD>.md` memakai `AGENT_REPORT_TEMPLATE.md`
++- [ ] Stage Tracker di [README.md](README.md) diperbarui
++- [ ] `docs/features/FEATURE_CATALOG.md` diperbarui
++- [ ] SSoT/ADR terdampak sudah sesuai implementasi
++- [ ] `TODO.md` → Done dan dipindah ke arsip
++- [ ] Follow-up/Bug tertaut, tidak dibiarkan di catatan bebas
+diff --git a/docs/features/_template/solution.md b/docs/features/_template/solution.md
+new file mode 100644
+index 0000000..0417a79
+--- /dev/null
++++ b/docs/features/_template/solution.md
+@@ -0,0 +1,44 @@
++# [FEATURE-ID] — Tahap 1: Opsi Solusi (Decision Snapshot)
++
++**Status:** Draft | Menunggu persetujuan | Disetujui
++**Gerbang:** G1 — disetujui oleh Owner
++**Problem:** [problem.md](problem.md)
++**ADR:** <link bila policy berubah, atau "Tidak perlu — alasan">
++**Applicable Policy IDs:** AI-006, SDLC-001, TBD
++
++Format mengikuti Decision Snapshot di `docs/4_AGENT_DEV_GUIDELINES.md` §2A.E; dokumen ini tidak
++mengubah aturan tersebut.
++
++## 1. Kondisi sekarang
++
++<Bagaimana sistem bekerja saat ini — dengan link ke kode/route/kontrak yang benar-benar dibaca.>
++
++## 2. Opsi
++
++Minimal dua opsi nyata ditambah opsi "tidak dikerjakan".
++
++|                              | Opsi A | Opsi B | Opsi 0: tidak dikerjakan |
++| ---------------------------- | ------ | ------ | ------------------------ |
++| Ringkasan                    |        |        | Biarkan seperti sekarang |
++| Pro                          |        |        |                          |
++| Kontra                       |        |        |                          |
++| Lapisan terdampak (FE/BE/DB) |        |        | —                        |
++| Data / migrasi               |        |        | —                        |
++| Authorization                |        |        | —                        |
++| Shared contract              |        |        | —                        |
++| Estimasi WRA                 | /16    | /16    | —                        |
++| Risiko & rollback            |        |        |                          |
++
++## 3. Rekomendasi
++
++<Opsi yang direkomendasikan dan alasannya, dikaitkan ke metrik sukses di problem.md.>
++
++## 4. Dampak policy
++
++- [ ] Tidak mengubah policy → tidak perlu ADR
++- [ ] Mengubah policy → ADR-<NNN> dibuat **sebelum** tahap 2, lalu SSoT terdampak diperbarui (`DOC-002`)
++
++## 5. Keputusan
++
++**Dipilih:** <Opsi …> — oleh <nama/role>, <tanggal>, referensi pesan/PR
++**Ditolak:** <opsi lain + alasan singkat>
+diff --git a/docs/features/_template/testing.md b/docs/features/_template/testing.md
+index c356153..70fb006 100644
+--- a/docs/features/_template/testing.md
++++ b/docs/features/_template/testing.md
+@@ -1,10 +1,46 @@
+-# [FEATURE-ID] — Testing, Evidence, and Readiness
++# [FEATURE-ID] — Tahap 5: Test & Review
+ 
+-**Applicable Policy IDs:** DOC-005, TBD
++**Status:** Belum mulai | Berjalan | Accepted | Accepted with gaps | Rejected | Blocked
++**Gerbang:** G5 — verifier independen atau CI yang mencakup seluruh AC
++**Applicable Policy IDs:** AI-003, AI-004, AI-008, AI-010, TEST-001, DOC-005, TBD
+ 
+-| Acceptance Criterion | Unit/UI evidence | API/PostgreSQL evidence | UAT / release evidence | Status  |
+-| -------------------- | ---------------- | ----------------------- | ---------------------- | ------- |
+-| TBD                  | TBD              | TBD                     | TBD                    | Planned |
++Level bukti mengikuti `docs/4_AGENT_DEV_GUIDELINES.md` §2A.C: E0 klaim · E1 inspeksi · E2 dieksekusi ·
++E3 persisten (PostgreSQL) · E4 runtime/UAT.
+ 
+-Record commands, environment, pass/fail/skip counts, known gaps, and report links. Do not label a
+-fixture or mocked adapter as persisted or Production evidence.
++## 1. Matriks AC → bukti
++
++| AC     | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI | API/PostgreSQL | UAT/runtime | Status  |
++| ------ | ----- | ---------------- | -------------- | ------- | -------------- | ----------- | ------- |
++| AC-1.1 | P1    | E3               |                |         |                |             | Planned |
++
++## 2. Outcome pemeriksaan
++
++| Perintah / observasi | Environment | Exit code | Pass / fail / skip / warn | AC  | Outcome                  | Tindak lanjut |
++| -------------------- | ----------- | --------- | ------------------------- | --- | ------------------------ | ------------- |
++|                      |             |           |                           |     | sukses / gagal / blocked |               |
++
++Kegagalan tidak dihapus dari tabel. Tindak lanjut: perbaiki & ulang, Bug, re-plan, atau Blocked.
++
++## 3. Bukti UI (bila UI berubah)
++
++| Layar / state | Phone | Tablet | Desktop | Keyboard & a11y | Link screenshot        |
++| ------------- | ----- | ------ | ------- | --------------- | ---------------------- |
++|               |       |        |         |                 | `docs/screenshots/...` |
++
++## 4. Quality review (AI-010)
++
++| Dimensi                     | Metode & scope | Temuan | Status                            |
++| --------------------------- | -------------- | ------ | --------------------------------- |
++| Reuse / DRY                 |                |        | resolved / follow-up / none found |
++| Duplikasi / tumpang tindih  |                |        |                                   |
++| Kode usang / tidak terpakai |                |        |                                   |
++| Boundary & best practice    |                |        |                                   |
++| Bukti regresi               |                |        |                                   |
++
++## 5. Hasil verifier
++
++| Phase | Verifier (bukan pelaksana) | Bukti primer yang dicek ulang | Hasil                                              | AC terdampak / gap |
++| ----- | -------------------------- | ----------------------------- | -------------------------------------------------- | ------------------ |
++| P1    |                            |                               | Accepted / Accepted with gaps / Rejected / Blocked |                    |
++
++Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).
+diff --git a/docs/plans/QUICK_CARD_TEMPLATE.md b/docs/plans/QUICK_CARD_TEMPLATE.md
+new file mode 100644
+index 0000000..dadf96f
+--- /dev/null
++++ b/docs/plans/QUICK_CARD_TEMPLATE.md
+@@ -0,0 +1,44 @@
++# Quick Card Template — jalur Cepat
++
++**Status:** Active template
++**Policy:** `SDLC-001` — [Agent Guidelines §2B](../4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc)
++
++Dipakai hanya bila **semua** benar: WRA 0–4, satu layer, tidak mengubah shared contract,
++data/migrasi, authorization, atau release gate. Jika salah satu tidak terpenuhi, gunakan jalur
++Standar dengan [Feature folder template](../features/_template/README.md).
++
++Salin blok di bawah ke plan atau report task.
++
++```md
++# QUICK — <TASK-ID> <judul>
++
++**Status:** Draft | Menunggu persetujuan | Selesai | Blocked
++**WRA:** <skor>/16 — alasan singkat per dimensi yang bernilai > 0
++
++## Problem
++
++- Gejala: <apa yang salah>
++- Bukti: <screenshot / langkah reproduksi / file:baris / log>
++- Penyebab (bila sudah terbukti): <...> atau `unknown`
++
++## Perubahan
++
++- File/path: <daftar>
++- Bukan scope: <yang sengaja tidak disentuh>
++
++## Acceptance Criteria → bukti
++
++| AC         | Bukti yang dibutuhkan (E-level) | Perintah / observasi |
++| ---------- | ------------------------------- | -------------------- |
++| AC-1 <...> | E2                              | `npm test -- <file>` |
++
++## Approval Window
++
++Task · baseline commit · path · urutan aksi (edit → test → commit → PR) · masa berlaku · stop condition
++
++## Hasil (diisi setelah build)
++
++- Perintah — exit code — pass/fail/skip
++- Tier merge & PR
++- Gap: <atau "Tidak ada">
++```
+diff --git a/docs/plans/README.md b/docs/plans/README.md
+index 42bee89..ac3b17a 100644
+--- a/docs/plans/README.md
++++ b/docs/plans/README.md
+@@ -15,3 +15,7 @@ or workflows.
+ 
+ The attachment recovery plan is retained as a historical recovery runbook because its migrations
+ and verification commands remain in the repository. It does not create new attachment policy.
++
++New Feature work records its plan in the Feature folder stages (`problem.md` to `breakdown.md`)
++under [Agent Guidelines §2B](../4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc).
++Small changes on the Quick path use the [Quick Card template](QUICK_CARD_TEMPLATE.md).
+diff --git a/scripts/checkDocs.mjs b/scripts/checkDocs.mjs
+index 10857ac..b4c2de5 100644
+--- a/scripts/checkDocs.mjs
++++ b/scripts/checkDocs.mjs
+@@ -41,10 +41,14 @@ const featureMetadata = ['Status', 'Owner', 'Last reviewed', 'Applicable Policy
+ const allowedFeatureStatuses = new Set(['Draft', 'Active', 'Superseded', 'Archived']);
+ const featureFolderRequiredFiles = [
+   'README.md',
++  'problem.md',
++  'solution.md',
+   'product.md',
++  'breakdown.md',
+   'contracts.md',
+   'authorization.md',
+   'testing.md',
++  'release.md',
+   'roles/owner-admin.md',
+   'roles/po.md',
+   'roles/developer.md',
+diff --git a/scripts/checkDocs.test.mjs b/scripts/checkDocs.test.mjs
+index 72911c7..4576994 100644
+--- a/scripts/checkDocs.test.mjs
++++ b/scripts/checkDocs.test.mjs
+@@ -93,11 +93,15 @@ ${[
+   );
+ });
+ 
+-test('validateFeatureFolder requires the role and shared-contract documents', () => {
++test('validateFeatureFolder requires the stage, role, and shared-contract documents', () => {
+   assert.deepEqual(validateFeatureFolder(['README.md', 'product.md'], 'docs/features/EXAMPLE'), [
++    'docs/features/EXAMPLE is missing required file: problem.md',
++    'docs/features/EXAMPLE is missing required file: solution.md',
++    'docs/features/EXAMPLE is missing required file: breakdown.md',
+     'docs/features/EXAMPLE is missing required file: contracts.md',
+     'docs/features/EXAMPLE is missing required file: authorization.md',
+     'docs/features/EXAMPLE is missing required file: testing.md',
++    'docs/features/EXAMPLE is missing required file: release.md',
+     'docs/features/EXAMPLE is missing required file: roles/owner-admin.md',
+     'docs/features/EXAMPLE is missing required file: roles/po.md',
+     'docs/features/EXAMPLE is missing required file: roles/developer.md',
+@@ -139,3 +143,15 @@ test('validateAdrIndex rejects duplicate numbers and enforces one index link per
+     ],
+   );
+ });
++
++test('feature folder template satisfies the required stage structure', async () => {
++  const { readdirSync, statSync } = await import('node:fs');
++  const { join, relative } = await import('node:path');
++  const root = new URL('../docs/features/_template/', import.meta.url).pathname;
++  const walk = (dir) =>
++    readdirSync(dir).flatMap((name) => {
++      const full = join(dir, name);
++      return statSync(full).isDirectory() ? walk(full) : [relative(root, full)];
++    });
++  assert.deepEqual(validateFeatureFolder(walk(root), 'docs/features/_template'), []);
++});
+-- 
+2.43.0
+
