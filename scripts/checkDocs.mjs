@@ -41,10 +41,14 @@ const featureMetadata = ['Status', 'Owner', 'Last reviewed', 'Applicable Policy 
 const allowedFeatureStatuses = new Set(['Draft', 'Active', 'Superseded', 'Archived']);
 const featureFolderRequiredFiles = [
   'README.md',
+  'problem.md',
+  'solution.md',
   'product.md',
+  'breakdown.md',
   'contracts.md',
   'authorization.md',
   'testing.md',
+  'release.md',
   'roles/owner-admin.md',
   'roles/po.md',
   'roles/developer.md',

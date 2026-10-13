@@ -77,6 +77,10 @@ approval, keep one task identity through handoffs, and record applicable verific
 updating `TODO.md`. Use [the report template](AGENT_REPORT_TEMPLATE.md) for detailed evidence and
 give the user a concise result with links. Pause at the canonical stop conditions.
 
+For Feature work, follow the staged SDLC gates in
+[`docs/4_AGENT_DEV_GUIDELINES.md` §2B](docs/4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc)
+(`SDLC-001`) and show its Stage Card at every gate.
+
 ## Definition of done
 
 A TODO item is done only when all applicable items are true:
