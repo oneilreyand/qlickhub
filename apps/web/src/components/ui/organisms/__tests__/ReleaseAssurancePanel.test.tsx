@@ -333,19 +333,20 @@ describe('ReleaseAssurancePanel', () => {
 
   it('fails closed for a blocked QA workflow and restricts sign-off to its backend-selected cycle', async () => {
     const user = userEvent.setup();
+    // Without an active Test Cycle nothing can be recorded, not even a rejection
+    // (RELEASE-DEADLOCK-A1 only opens rejection for an existing cycle).
     const blockedPanel = renderPanel('qa', {
-      qaWorkflowSummary: qaWorkflowSummary(
-        { code: 'execute_test_cases', label: 'Lengkapi Bukti Pengujian' },
-        ['evidence_manifest_missing'],
-      ),
+      qaWorkflowSummary: {
+        ...qaWorkflowSummary({ code: 'create_test_cycle', label: 'Tetapkan Versi yang Diuji' }, [
+          'qa_test_cycle_missing',
+        ]),
+        testCycle: null,
+      },
     });
 
     const signOffButton = await screen.findByRole('button', { name: 'Catat Persetujuan QA' });
     expect(signOffButton).toBeDisabled();
     expect(await screen.findByText('Persetujuan QA masih memiliki prasyarat')).toBeInTheDocument();
-    expect(
-      screen.getByText('Lengkapi bukti gambar atau video pada hasil yang lulus.'),
-    ).toBeInTheDocument();
 
     blockedPanel.unmount();
     renderPanel('qa', { qaWorkflowSummary: qaWorkflowSummary() });
@@ -359,6 +360,44 @@ describe('ReleaseAssurancePanel', () => {
     expect(cycleSelect).toHaveValue(ids.cycle);
     expect(within(cycleSelect).getAllByRole('option')).toHaveLength(2);
     expect(testManagementServiceMocks.listQaTestCycles).not.toHaveBeenCalled();
+  });
+
+  it('lets QA record only a rejection with a mandatory reason while gates still fail (RELEASE-DEADLOCK-A1)', async () => {
+    releaseServiceMocks.createQaSignOff.mockResolvedValue(qaSignOff('rejected'));
+    const user = userEvent.setup();
+    renderPanel('qa', {
+      qaWorkflowSummary: qaWorkflowSummary(
+        { code: 'resolve_bug_retest', label: 'Selesaikan Retest Bug' },
+        ['unverified_bug'],
+      ),
+    });
+
+    const signOffButton = await screen.findByRole('button', { name: 'Catat Persetujuan QA' });
+    expect(signOffButton).toBeEnabled();
+    await user.click(signOffButton);
+    const dialogs = screen.getAllByRole('dialog');
+    const dialog = dialogs[dialogs.length - 1];
+    expect(within(dialog).getByText('Hanya penolakan yang dapat dicatat')).toBeInTheDocument();
+    expect(
+      within(dialog).getByText('Selesaikan retest formal untuk Bug yang masih terbuka.'),
+    ).toBeInTheDocument();
+    const decisionSelect = within(dialog).getByLabelText('Keputusan sertifikasi QA');
+    expect(decisionSelect).toHaveValue('rejected');
+    expect(within(decisionSelect).getByRole('option', { name: 'Setujui' })).toBeDisabled();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Catat Keputusan' }));
+    expect(await within(dialog).findByText('Alasan penolakan wajib diisi.')).toBeInTheDocument();
+    expect(releaseServiceMocks.createQaSignOff).not.toHaveBeenCalled();
+
+    await user.type(within(dialog).getByLabelText(/Alasan penolakan/), 'Bug ekspor masih terbuka.');
+    await user.click(within(dialog).getByRole('button', { name: 'Catat Keputusan' }));
+    await waitFor(() =>
+      expect(releaseServiceMocks.createQaSignOff).toHaveBeenCalledWith(ids.workspace, ids.feature, {
+        testCycleId: ids.cycle,
+        decision: 'rejected',
+        notes: 'Bug ekspor masih terbuka.',
+      }),
+    );
   });
 
   it('records an independent Product Owner Keputusan Rilis against the latest QA Sign-off', async () => {

@@ -39,3 +39,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-028](ADR-028-TIERED-AUTO-MERGE.md)                                       | Tiered auto-merge for agent pull requests                          |
 | [ADR-029](ADR-029-STAGED-FEATURE-SDLC.md)                                     | Staged feature SDLC with visible stage gates                       |
 | [ADR-030](ADR-030-SDLC-GATE-ENFORCEMENT.md)                                   | SDLC gate enforcement in CI                                        |
+| [ADR-031](ADR-031-QA-REJECTION-AND-UNVERIFIED-BUG-GATE.md)                    | QA rejection while gates fail; all-severity Bug gate               |
