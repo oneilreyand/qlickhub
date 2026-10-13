@@ -13,6 +13,7 @@ Use this format at the end of every task.
 
 ## Work assurance
 
+- **SDLC stage and path (`SDLC-001`):** <stage 0–6 / gate reached, Quick | Standard | Full path, Feature folder or Quick Card link; or N/A with reason>
 - **Work Readiness Assessment:** <score /16, `Ready` | `Ready after split` | `Blocked`, and reason>
 - **User plan approval:** <approved scope/approach, decision date or message reference; or N/A for read-only work>
 - **Approval Window / high-risk decisions:** <one approval reference for the plan and bounded sequence, task, baseline, scope, allowed actions, expiry and outcome; record new approval only at a stop condition; or N/A for read-only work>

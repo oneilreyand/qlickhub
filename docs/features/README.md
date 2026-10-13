@@ -16,13 +16,14 @@ flowchart LR
 
 ## Pilih Jalur Anda
 
-| Jika ingin…                          | Buka                                        | Hasilnya                                                                    |
-| ------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------- |
-| Melihat seluruh Feature saat ini     | [Feature Catalog](FEATURE_CATALOG.md)       | Daftar 33 Feature, kelompok produk, status, tujuan, dan pembaca utama.      |
-| Memahami alur kerja berdasarkan role | [Role Flows](ROLE_FLOWS.md)                 | Diagram handoff Owner/Admin, PO, Developer, dan QA beserta Feature terkait. |
-| Membaca detail satu Feature          | Tautan pada katalog                         | Kartu Feature lama yang menjadi sumber detail saat ini.                     |
-| Membuat Feature lintas-role baru     | [Folder template](_template/README.md)      | Overview, diagram, dokumen shared, dan dokumen per role.                    |
-| Membuat kartu kecil/kompatibel       | [Legacy card template](FEATURE_TEMPLATE.md) | Satu kartu Feature; bukan pilihan untuk Feature lintas-role baru.           |
+| Jika ingin…                          | Buka                                                                                           | Hasilnya                                                                          |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Melihat seluruh Feature saat ini     | [Feature Catalog](FEATURE_CATALOG.md)                                                          | Daftar 33 Feature, kelompok produk, status, tujuan, dan pembaca utama.            |
+| Memahami alur kerja berdasarkan role | [Role Flows](ROLE_FLOWS.md)                                                                    | Diagram handoff Owner/Admin, PO, Developer, dan QA beserta Feature terkait.       |
+| Membaca detail satu Feature          | Tautan pada katalog                                                                            | Kartu Feature lama yang menjadi sumber detail saat ini.                           |
+| Membuat Feature lintas-role baru     | [Folder template](_template/README.md)                                                         | Overview, diagram, dokumen shared, dan dokumen per role.                          |
+| Membuat kartu kecil/kompatibel       | [Legacy card template](FEATURE_TEMPLATE.md)                                                    | Satu kartu Feature; bukan pilihan untuk Feature lintas-role baru.                 |
+| Mengikuti tahap SDLC Feature         | [Agent Guidelines §2B](../4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc) | Problem → Solusi → PRD → Breakdown → Build → Test → Release dengan Stage Tracker. |
 
 ## Struktur Saat Ini
 

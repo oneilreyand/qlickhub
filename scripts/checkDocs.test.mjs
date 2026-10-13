@@ -93,11 +93,15 @@ ${[
   );
 });
 
-test('validateFeatureFolder requires the role and shared-contract documents', () => {
+test('validateFeatureFolder requires the stage, role, and shared-contract documents', () => {
   assert.deepEqual(validateFeatureFolder(['README.md', 'product.md'], 'docs/features/EXAMPLE'), [
+    'docs/features/EXAMPLE is missing required file: problem.md',
+    'docs/features/EXAMPLE is missing required file: solution.md',
+    'docs/features/EXAMPLE is missing required file: breakdown.md',
     'docs/features/EXAMPLE is missing required file: contracts.md',
     'docs/features/EXAMPLE is missing required file: authorization.md',
     'docs/features/EXAMPLE is missing required file: testing.md',
+    'docs/features/EXAMPLE is missing required file: release.md',
     'docs/features/EXAMPLE is missing required file: roles/owner-admin.md',
     'docs/features/EXAMPLE is missing required file: roles/po.md',
     'docs/features/EXAMPLE is missing required file: roles/developer.md',
@@ -138,4 +142,16 @@ test('validateAdrIndex rejects duplicate numbers and enforces one index link per
       'docs/adr/README.md is missing ADR link: ADR-016-TWO.md',
     ],
   );
+});
+
+test('feature folder template satisfies the required stage structure', async () => {
+  const { readdirSync, statSync } = await import('node:fs');
+  const { join, relative } = await import('node:path');
+  const root = new URL('../docs/features/_template/', import.meta.url).pathname;
+  const walk = (dir) =>
+    readdirSync(dir).flatMap((name) => {
+      const full = join(dir, name);
+      return statSync(full).isDirectory() ? walk(full) : [relative(root, full)];
+    });
+  assert.deepEqual(validateFeatureFolder(walk(root), 'docs/features/_template'), []);
 });

@@ -388,6 +388,81 @@ otoritas manusia yang eksplisit.
 
 ---
 
+### 2B. Tahap SDLC Feature (_Staged Feature SDLC_)
+
+Keputusan: [ADR-029](adr/ADR-029-STAGED-FEATURE-SDLC.md) (`SDLC-001`). Bagian ini menambahkan tahap
+produk **sebelum** implementasi. Flow enam tahap di §2 dan protokol §2A tetap mengatur setiap phase;
+tidak ada approval per-edit yang ditambahkan.
+
+```mermaid
+flowchart TD
+    S0["0. Problem — problem.md"] --> G0{"G0"}
+    G0 --> S1["1. Opsi Solusi — solution.md"]
+    S1 --> P{"Policy berubah?"}
+    P -->|ya| ADR["ADR + SSoT"] --> G1{"G1"}
+    P -->|tidak| G1
+    G1 --> S2["2. PRD — product.md, roles/, contracts.md, authorization.md"]
+    S2 --> G2{"G2"}
+    G2 --> S3["3. Breakdown — breakdown.md"]
+    S3 --> G3{"G3 = Approval Window phase"}
+    G3 --> S4["4. Build phase — phases/PHASE-NN.md"]
+    S4 --> S5["5. Test & Review — testing.md"]
+    S5 -->|gagal dalam scope| S4
+    S5 -->|Accepted, masih ada phase| G3
+    S5 -->|Accepted, phase terakhir| S6["6. Release & Close — release.md"]
+```
+
+| Tahap             | Dokumen di folder Feature                                  | Isi wajib                                                                                                  | Gerbang                                              |
+| ----------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 0 Problem         | `problem.md`                                               | Masalah, bukti, pihak terdampak, dampak bila tidak dikerjakan, metrik sukses, unknown                      | G0 — PO/Owner                                        |
+| 1 Opsi Solusi     | `solution.md`                                              | Minimal dua opsi plus "tidak dikerjakan", pro/kontra, rekomendasi, dampak policy (Decision Snapshot §2A.E) | G1 — Owner                                           |
+| 2 PRD             | `product.md`, `roles/`, `contracts.md`, `authorization.md` | Requirement dan AC ber-ID dengan bukti minimum, user flow, wireframe per state UI, phone/tablet/desktop    | G2 — PO                                              |
+| 3 Breakdown       | `breakdown.md`                                             | Phase sebagai vertical slice (WRA ≤ 8), task BE · FE · QA per phase, dependensi, stop condition            | G3 — Owner; menjadi Approval Window phase berikutnya |
+| 4 Build           | `phases/PHASE-NN.md`                                       | Approval Window, log perubahan, pemeriksaan, deviasi                                                       | Dalam window G3                                      |
+| 5 Test & Review   | `testing.md`                                               | AC → bukti E0–E4, outcome sukses/gagal, quality review §2A.H, hasil verifier                               | G5 — verifier/CI                                     |
+| 6 Release & Close | `release.md`                                               | Tier merge, deploy, verifikasi target, QA sign-off, keputusan rilis, checklist penutupan                   | G6 — PO; Owner untuk Tier 2                          |
+
+**Jalur proporsional.** Agent memilih jalur dari WRA dan menuliskannya:
+
+- **Cepat** — WRA 0–4, satu layer, tanpa perubahan contract, data/migrasi, authorization, atau
+  release gate: satu [Quick Card](plans/QUICK_CARD_TEMPLATE.md), lalu Build → Test → Close.
+- **Standar** — WRA 5–8: tahap 0–6; `solution.md` boleh ringkas bila tidak ada alternatif material.
+- **Penuh** — WRA ≥ 9, atau lintas role, data/migrasi, authorization, maupun release gate: semua
+  tahap, beberapa phase, dan verifikator independen.
+
+**Gerbang.** G0–G2 adalah keputusan produk, bukan izin mutasi repository. Draft tahap 0–2 disiapkan
+baca-saja dan ditampilkan di chat; dokumen yang disetujui di-commit di dalam Approval Window G3. Pada
+jalur Cepat dan Standar, G0–G2 boleh disetujui dalam satu jawaban. Diam, permintaan analisis, atau
+jawaban ambigu bukan persetujuan gerbang.
+
+**Stage Card.** Pada setiap gerbang, agent menampilkan kartu berikut dan mencatat barisnya di Stage
+Tracker `README.md` Feature:
+
+```md
+### Tahap <N>/6 — <nama tahap>
+
+**Feature:** <FEATURE-ID> · **Jalur:** <Cepat|Standar|Penuh> (WRA <n>/16) · **Status:** <Draft|Menunggu persetujuan|Disetujui|Blocked>
+**Dokumen:** <link>
+**Ringkasan:** <≤5 poin>
+**Fakta terkonfirmasi:** <fakta — sumber primer>
+**Unknown / unverified:** <hal — cara membuktikan, atau "Tidak ada">
+**Keputusan yang diperlukan:** <pertanyaan, opsi, rekomendasi>
+**Balas:** `setuju G<N>` · `revisi tahap <N>: <catatan>` · `stop`
+```
+
+Hal yang memengaruhi AC tetapi masih `unknown` membuat tahap `Blocked` atau menjadi pertanyaan; tidak
+diisi tebakan. Tahap 4–5 menambahkan `perintah — exit code — pass/fail/skip`; tahap 6 menambahkan
+tier, PR, dan apakah merge memicu deploy Production.
+
+**Contoh permintaan ke agent:** `Tahap 0: <masalah>` · `Tahap 1 untuk <FEATURE-ID>` ·
+`Tahap 2, pakai opsi B` · `Tahap 3 untuk <FEATURE-ID>` · `Setuju G3, jalankan Phase 1` ·
+`Status <FEATURE-ID>` · `Revisi tahap 2: <catatan>` · `Quick fix: <masalah>`.
+
+Template tahap ada di [Feature folder template](features/_template/README.md). Kartu Feature legacy
+satu-file tetap sah dan tidak wajib dimigrasi kecuali Feature tersebut dikerjakan ulang.
+
+---
+
 ## 3. Kebijakan Basis Data & Bukti Pengujian (_Database & Test Evidence_)
 
 > [!CAUTION]

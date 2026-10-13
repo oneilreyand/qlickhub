@@ -116,6 +116,7 @@ graph TD
 | Role workflow, state machines, QA, release gates                                   | [Workflow and Roles](2_WORKFLOW_AND_ROLES.md)                                                     |
 | Routes, components, design tokens, UI states                                       | [UI Atomic Design System](3_UI_ATOMIC_DESIGN_SYSTEM.md)                                           |
 | Engineering lifecycle, test evidence, Definition of Done                           | [Agent and Developer Guidelines](4_AGENT_DEV_GUIDELINES.md)                                       |
+| Feature stages, gates, and Stage Card (Problem → Release)                          | [Agent Guidelines §2B](4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc)       |
 | Autonomous agent execution, policy gates, recovery (proposed target, not in force) | [Autonomous Agent Operations](5_AUTONOMOUS_AGENT_OPERATIONS.md)                                   |
 | Stable identifiers pointing to approved rules                                      | [Policy Registry](POLICY_REGISTRY.md)                                                             |
 | Runtime request/response types and shared interfaces                               | [Shared contracts](../packages/contracts/src)                                                     |
