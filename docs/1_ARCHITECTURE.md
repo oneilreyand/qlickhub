@@ -144,12 +144,17 @@ erDiagram
 - Baseline kesiapan mengikat root Feature pada versi Product Brief, Requirement, dan Acceptance
   Criteria yang telah ditinjau. Requirement tetap satu entitas Workspace dan tidak diduplikasi per
   Feature; perubahan definisi bersama tidak diam-diam mengganti baseline Feature lain.
-- Planner pemilik Feature menetapkan baseline setelah masukan Development dan QA tercatat. Temuan
-  kritis yang belum selesai menghalangi pekerjaan baru terhadap baseline tersebut.
+- Baseline terbentuk otomatis ketika Product Brief Feature disetujui, minimal satu Requirement
+  `active` tertaut ke Feature atau Subtask-nya, tidak ada Requirement tertaut yang non-aktif, dan
+  setiap Requirement aktif memiliki Acceptance Criterion aktif ([ADR-032](adr/ADR-032-AUTO-READINESS-BASELINE-AND-QA-TEST-CASE-LIFECYCLE.md)). Masukan Development dan QA
+  tetap dicatat dan ditautkan bila ada, tetapi tidak lagi menghalangi baseline. Planner tetap dapat
+  menetapkan baseline manual dengan syarat isi yang sama. Temuan kritis yang belum selesai
+  menghalangi pekerjaan baru terhadap baseline tersebut.
 - Pengecualian darurat hanya dapat ditetapkan Owner/Admin aktif dengan scope, alasan, masa berlaku,
   dan event audit append-only. Pengecualian tidak menghapus temuan atau menyatakan data lengkap.
 - Data lama tanpa bukti deterministik tetap berstatus belum terverifikasi/tidak tersedia dan tidak
-  boleh direkayasa dari keadaan terbaru atau catatan bebas.
+  boleh direkayasa dari keadaan terbaru atau catatan bebas. Backfill baseline hanya dicatat atas
+  nama penyetuju Product Brief yang tersimpan; Feature tanpa penyetuju tercatat dilewati.
 - P1A menyediakan record review dan baseline append-only, snapshot Product Brief/Requirement/AC,
   deteksi perubahan, RBAC, audit, dan guard penghapusan dalam **mode observasi**. Baseline belum
   menghalangi pembuatan atau dimulainya Subtask; enforcement penuh baru boleh diaktifkan setelah

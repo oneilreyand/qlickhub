@@ -1,6 +1,6 @@
 # QA-DESK-SIMPLIFY — Tahap 2: PRD (Product Requirements)
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G2 — disetujui oleh PO
 **Solusi terpilih:** [solution.md](solution.md)
 **Applicable Policy IDs:** DOC-005, SDLC-001, FLOW-005, QA-001
@@ -71,7 +71,7 @@ Tidak ada layar baru atau berubah di Feature ini. Wireframe ada di Feature UI la
 
 ## 7. Unknown yang tersisa
 
-| Pertanyaan                                       | Memengaruhi AC | Status |
-| ------------------------------------------------ | -------------- | ------ |
-| Atribusi `established_by` backfill (D6)          | AC-2.1, AC-2.2 | Open   |
-| Atribusi `established_by` baseline otomatis (D7) | AC-1.1         | Open   |
+| Pertanyaan                                       | Memengaruhi AC | Status                                       |
+| ------------------------------------------------ | -------------- | -------------------------------------------- |
+| Atribusi `established_by` backfill (D6)          | AC-2.1, AC-2.2 | Diputuskan: hanya penyetuju tercatat         |
+| Atribusi `established_by` baseline otomatis (D7) | AC-1.1         | Diputuskan: aktor pemicu + `autoEstablished` |

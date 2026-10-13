@@ -49,6 +49,7 @@ describe('Feature Readiness Backfill Migration Integration Tests (B1 item 2 & 3)
   let featureEligible: TaskModel;
   let featureIneligibleNoAc: TaskModel;
   let featureWithExistingBaseline: TaskModel;
+  let featureWithoutApprover: TaskModel;
 
   let reqEligible: RequirementModel;
   let reqIneligible: RequirementModel;
@@ -131,6 +132,15 @@ describe('Feature Readiness Backfill Migration Integration Tests (B1 item 2 & 3)
       documentId: briefEligible.id,
       linkType: 'primary_prd',
       linkedBy: po.id,
+    });
+
+    // ADR-032 #2: the backfill attributes the baseline only to the persisted Brief approver.
+    await TaskActivityModel.create({
+      workspaceId: workspace.id,
+      taskId: featureEligible.id,
+      actorId: po.id,
+      action: 'product_brief_approved',
+      metadataJson: { documentId: briefEligible.id, version: 1, status: 'approved' },
     });
 
     reqEligible = await RequirementModel.create({
@@ -261,6 +271,62 @@ describe('Feature Readiness Backfill Migration Integration Tests (B1 item 2 & 3)
       workspaceId: workspace.id,
       taskId: featureWithExistingBaseline.id,
       requirementId: reqExisting.id,
+      linkedBy: po.id,
+    });
+
+    // 4. Feature eligible by content but without any persisted Brief approval event (ADR-032 #2).
+    featureWithoutApprover = await TaskModel.create({
+      workspaceId: workspace.id,
+      title: 'Eligible content without recorded approver',
+      status: 'in_progress',
+      reporterId: po.id,
+    });
+    const briefWithoutApprover = await QaDocumentModel.create({
+      workspaceId: workspace.id,
+      title: 'Brief without approver event',
+      docType: 'product_brief',
+      status: 'approved',
+      currentVersion: 1,
+      ownerId: po.id,
+      createdBy: po.id,
+    });
+    await QaDocumentVersionModel.create({
+      workspaceId: workspace.id,
+      documentId: briefWithoutApprover.id,
+      version: 1,
+      title: 'Brief without approver event',
+      contentMarkdown: '# Scope',
+      inScope: [],
+      outScope: [],
+      acceptanceCriteria: [],
+      createdBy: po.id,
+    });
+    await TaskDocumentModel.create({
+      workspaceId: workspace.id,
+      taskId: featureWithoutApprover.id,
+      documentId: briefWithoutApprover.id,
+      linkType: 'primary_prd',
+      linkedBy: po.id,
+    });
+    const reqWithoutApprover = await RequirementModel.create({
+      workspaceId: workspace.id,
+      code: `REQ-BF-NOAPPR-${stamp}`,
+      title: 'Requirement on Feature without approver',
+      status: 'active',
+      createdBy: po.id,
+    });
+    await AcceptanceCriterionModel.create({
+      workspaceId: workspace.id,
+      requirementId: reqWithoutApprover.id,
+      sequence: 1,
+      text: 'Complete AC',
+      status: 'active',
+      createdBy: po.id,
+    });
+    await TaskRequirementModel.create({
+      workspaceId: workspace.id,
+      taskId: featureWithoutApprover.id,
+      requirementId: reqWithoutApprover.id,
       linkedBy: po.id,
     });
 
@@ -399,6 +465,21 @@ describe('Feature Readiness Backfill Migration Integration Tests (B1 item 2 & 3)
       'Feature C must retain its original baseline without duplication',
     );
 
+    // 4b. Attribution is the persisted approver, never a fallback identity.
+    const backfilled = await FeatureReadinessBaselineModel.findOne({
+      where: { featureTaskId: featureEligible.id },
+    });
+    assert.strictEqual(backfilled?.establishedBy, po.id, 'Backfill must credit the Brief approver');
+
+    // 4c. Content-eligible Feature without a persisted approver is skipped (ADR-032 #2).
+    assert.strictEqual(
+      await FeatureReadinessBaselineModel.count({
+        where: { featureTaskId: featureWithoutApprover.id },
+      }),
+      0,
+      'Feature without a recorded Brief approver must not receive an inferred baseline',
+    );
+
     // 5. Run migration UP a second time (assert idempotency)
     await migration.up(queryInterface);
 
@@ -496,6 +577,14 @@ describe('Feature Readiness Backfill Migration Integration Tests (B1 item 2 & 3)
       documentId: briefD.id,
       linkType: 'primary_prd',
       linkedBy: po.id,
+    });
+    // A Brief created directly as approved records its approver on 'product_brief_created'.
+    await TaskActivityModel.create({
+      workspaceId: workspace.id,
+      taskId: featureD.id,
+      actorId: po.id,
+      action: 'product_brief_created',
+      metadataJson: { documentId: briefD.id, version: 1, status: 'approved' },
     });
     const reqD = await RequirementModel.create({
       workspaceId: workspace.id,

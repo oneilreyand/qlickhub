@@ -15,16 +15,16 @@
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status               | Gerbang         | Disetujui oleh / tanggal | Catatan                                |
-| ----------------- | -------------------------------------------------------------------------------------- | -------------------- | --------------- | ------------------------ | -------------------------------------- |
-| 0 Problem         | [problem.md](problem.md)                                                               | Menunggu persetujuan | G0              | —                        |                                        |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Menunggu persetujuan | G1              | —                        | ADR baru (Proposed): lihat solution.md |
-| 2 PRD             | [product.md](product.md)                                                               | Menunggu persetujuan | G2              | —                        |                                        |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Draft                | G3              | —                        | Jalur: Penuh                           |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Draft                | bagian G2       | —                        |                                        |
-| 4 Build           | [phases/](phases/)                                                                     | Belum mulai          | dalam window G3 | —                        |                                        |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai          | G5              | —                        | Verifier: —                            |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai          | G6              | —                        |                                        |
+| Tahap             | Dokumen                                                                                | Status               | Gerbang         | Disetujui oleh / tanggal  | Catatan                             |
+| ----------------- | -------------------------------------------------------------------------------------- | -------------------- | --------------- | ------------------------- | ----------------------------------- |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui            | G0              | reyand (Owner) 2026-10-13 |                                     |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui            | G1              | reyand (Owner) 2026-10-13 | Opsi A; ADR baru: lihat solution.md |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui            | G2              | reyand (Owner) 2026-10-13 | D6, D7 diputuskan                   |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Menunggu persetujuan | G3              | —                         | Jalur: Penuh                        |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui            | bagian G2       | reyand (Owner) 2026-10-13 | bagian G2                           |
+| 4 Build           | [phases/](phases/)                                                                     | Belum mulai          | dalam window G3 | —                         |                                     |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai          | G5              | —                         | Verifier: —                         |
+| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai          | G6              | —                         |                                     |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 (Ini terpisah dari **Status** kartu di atas, yang tetap `Draft` / `Active` / `Superseded` / `Archived`.)

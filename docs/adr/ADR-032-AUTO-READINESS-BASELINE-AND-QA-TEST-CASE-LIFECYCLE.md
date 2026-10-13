@@ -1,6 +1,6 @@
 # ADR-032: Automatic Readiness Baseline and Simplified QA Test Case Lifecycle
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-10-13
 **Decision owner:** Product (Owner)
 **Implementation stakeholders:** Product, Engineering, and QA
@@ -15,7 +15,8 @@ a definition only while it was `draft`.
 
 On 2026-10-12 the Owner decided K1 (readiness baseline becomes automatic) and D1–D5 (QA Test Case
 lifecycle). The code was implemented on branch `feat/qa-desk-backend-b1` without ADR or SSoT updates.
-This ADR records those decisions. Evidence and options: `docs/features/QA-DESK-SIMPLIFY/`.
+This ADR records those decisions, accepted by the Owner on 2026-10-13 together with D6 (backfill
+attribution) and D7 (automatic baseline attribution). Evidence and options: `docs/features/QA-DESK-SIMPLIFY/`.
 
 ## Decision
 
@@ -29,7 +30,8 @@ This ADR records those decisions. Evidence and options: `docs/features/QA-DESK-S
    carries `autoEstablished: true`.
 2. **Backfill (ADR-013 #6 still applies).** Existing Features that meet the conditions in #1 may be
    backfilled once, in `observation` mode, marked `backfilled: true`. `established_by` must be the
-   user recorded by a persisted `product_brief_approved` event. A Feature without that event is not
+   user recorded by a persisted `product_brief_approved` event (or `product_brief_created` with status
+   `approved`) for that Brief who is still a workspace member row. A Feature without that event is not
    backfilled; no fallback identity is inferred.
 3. **Auto-active Test Case (D1, D4; supersedes the "activate silently" rejection in ADR-015).** A
    Test Case created by the QA assignee from their own QA Subtask (proven scope per ADR-015 #1) is

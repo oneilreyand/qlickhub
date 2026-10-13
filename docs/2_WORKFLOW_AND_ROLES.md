@@ -71,8 +71,10 @@ pada [ADR-010](adr/ADR-010-PRODUCT-BRIEF-REQUIREMENT-CONTEXT-OWNERSHIP.md).
 
 ### Kesiapan Requirement dan Triage Temuan
 
-1. Planner pemilik root Feature menetapkan baseline **Siap Dikerjakan** hanya setelah masukan
-   Development dan QA tercatat. Requirement `active` tidak otomatis berarti Feature siap dimulai.
+1. Baseline **Siap Dikerjakan** terbentuk otomatis ketika Product Brief disetujui dan seluruh
+   Requirement tertaut aktif serta memiliki Acceptance Criterion aktif; Planner juga dapat
+   menetapkannya manual dengan syarat yang sama ([ADR-032](adr/ADR-032-AUTO-READINESS-BASELINE-AND-QA-TEST-CASE-LIFECYCLE.md)). Masukan Development dan QA bersifat
+   informatif dan ditautkan bila ada. Requirement `active` saja tidak berarti Feature siap dimulai.
 2. Development dan QA dapat memberi masukan atau mencatat temuan, tetapi tidak dapat memutasi
    planning maupun menetapkan readiness. Authorization aksi final tetap ditegakkan backend.
 3. Temuan kritis terbuka menghalangi pekerjaan baru. Owner/Admin aktif dapat membuat pengecualian
@@ -239,6 +241,7 @@ legacy tetap transitional dan tidak boleh diklaim telah memenuhi kebijakan ini.
 
 ```mermaid
 stateDiagram-v2
+    [*] --> active: QA assignee membuat dari QA Subtask-nya (scope terbukti)
     [*] --> draft: QA menyusun Test Case & memetakan Requirement
     draft --> active: QA assignee mengaktifkan dalam scope QA Subtask
     draft --> in_review: QA meminta konsultasi PO (opsional)
@@ -247,6 +250,8 @@ stateDiagram-v2
     active --> draft: PO / Admin / Owner meminta revisi
     active --> archived: Test Case usang / tidak lagi relevan
     archived --> [*]
+    draft --> [*]: dihapus (belum pernah dijalankan)
+    active --> [*]: dihapus (belum pernah dijalankan)
 ```
 
 - QA tidak perlu mengetik nomor saat membuat Test Case native. Backend mengalokasikan nomor
@@ -258,6 +263,13 @@ stateDiagram-v2
   QA assignee mengaktifkan draf hanya bila seluruh Requirement Test Case berada pada root Feature
   QA Subtask yang ditugaskan kepadanya. Aktivasi mencatat audit dan mengirim notifikasi persisten ke
   PO; backend menolak scope legacy atau scope yang tidak dapat dibuktikan.
+- Test Case yang dibuat QA assignee dari QA Subtask miliknya langsung `active` bila scope terbukti;
+  bila tidak, pembuatan ditolak dengan syarat yang kurang ([ADR-032](adr/ADR-032-AUTO-READINESS-BASELINE-AND-QA-TEST-CASE-LIFECYCLE.md)).
+- Pembuat QA atau PO/Admin/Owner dapat menghapus Test Case yang belum pernah memiliki Test Run;
+  penghapusan dicatat di activity Feature. Test Case yang pernah dijalankan hanya dapat diarsipkan.
+- QA assignee dapat mengedit Test Case `active` dalam scope QA Subtask-nya. Versi yang belum pernah
+  dijalankan diubah di tempat (penulis dan penerbit tetap); versi yang sudah dijalankan menghasilkan
+  revisi baru, dan Result lama tidak lagi memenuhi gate penyelesaian QA sampai diuji ulang.
 - Test Case baru akan memiliki revisi immutable. QA assignee mengubah draf; aktivasi membekukan
   versi yang dipakai Run. Revisi berikutnya tidak mengubah langkah, expected result, data uji, atau
   mapping Acceptance Criterion pada Run historis.

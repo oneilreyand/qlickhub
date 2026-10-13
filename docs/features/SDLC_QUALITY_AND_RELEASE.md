@@ -14,7 +14,10 @@ dicatat dalam [kebijakan tata kelola SDLC](../2_WORKFLOW_AND_ROLES.md#kesiapan-r
 P1A telah mengaktifkan review readiness dan baseline append-only. P1B menambahkan Temuan
 Requirement, klarifikasi, posisi lintas peran, keputusan triage berversi, dan riwayat penyelesaian;
 review round, analitik, paket rilis, deployment evidence, serta enforcement masih mengikuti slice
-berikutnya.
+berikutnya. Sejak keputusan Owner 2026-10-13,
+baseline terbentuk otomatis saat Product Brief disetujui dan Requirement/AC lengkap, sedangkan Test
+Case QA dalam scope langsung aktif, dapat diedit, dan dapat dihapus bila belum pernah dijalankan
+(detail: [QA-DESK-SIMPLIFY](QA-DESK-SIMPLIFY/README.md)).
 
 Atas keputusan pengguna 14 September 2026, target pilot empat minggu dipindahkan dari Workspace
 development `essensial` ke `kerjaa`; migrasi additive 67–69 tetap sudah tersedia. Audit read-only
@@ -128,7 +131,8 @@ Retest Attempt, Result, dan Evidence Manifest. Kontraknya berada pada
 ## 6. Authorization
 
 Semua anggota Workspace dapat membaca kesiapan. Review hanya dapat dibuat Dev/QA yang menjadi
-assignee Subtask sesuai area. Owner/Admin/PO dapat membuat baseline normal; hanya Owner/Admin dapat
+assignee Subtask sesuai area dan tidak lagi menjadi syarat baseline. Baseline juga terbentuk otomatis
+oleh sistem saat syarat isi terpenuhi. Owner/Admin/PO dapat membuat baseline normal; hanya Owner/Admin dapat
 membuat pengecualian dengan alasan dan batas waktu. Authorization selalu di backend; analitik
 individu belum dibuka dan fitur ini tidak memberikan hak deploy.
 

@@ -20,9 +20,20 @@ module.exports = {
           dv.id AS version_id,
           dv.version AS version_number,
           (
-            SELECT a.actor_id 
-            FROM task_activity a 
-            WHERE a.task_id = t.id AND a.action = 'product_brief_approved'
+            -- ADR-032 #2 / ADR-013 #6: only the persisted approver of this Product Brief.
+            -- A Brief created directly as approved records 'product_brief_created' with status approved.
+            SELECT a.actor_id
+            FROM task_activity a
+            WHERE a.task_id = t.id
+              AND a.metadata_json->>'documentId' = d.id::text
+              AND (
+                a.action = 'product_brief_approved'
+                OR (a.action = 'product_brief_created' AND a.metadata_json->>'status' = 'approved')
+              )
+              AND EXISTS (
+                SELECT 1 FROM workspace_members m
+                WHERE m.workspace_id = t.workspace_id AND m.user_id = a.actor_id
+              )
             ORDER BY a.created_at DESC LIMIT 1
           ) AS approver_actor_id
         FROM tasks t
@@ -41,6 +52,7 @@ module.exports = {
         `[Backfill Baseline] Found ${eligibleFeatures.length} candidate features with approved Product Brief and no baseline.`,
       );
 
+      let skippedWithoutApprover = 0;
       for (const feat of eligibleFeatures) {
         // Check requirement criteria for this feature (including subtasks)
         const [linkedReqs] = await sequelize.query(
@@ -100,8 +112,13 @@ module.exports = {
 
         if (!allCriteriaComplete) continue;
 
-        // Meets all 3 conditions!
-        const establishedBy = feat.approver_actor_id || feat.document_owner_id || feat.reporter_id;
+        // ADR-032 #2: never infer an establisher. Without a persisted approver the Feature is skipped
+        // and receives its baseline later through the automatic path.
+        if (!feat.approver_actor_id) {
+          skippedWithoutApprover += 1;
+          continue;
+        }
+        const establishedBy = feat.approver_actor_id;
         const capturedAt = new Date().toISOString();
         const snapshot = {
           schemaVersion: 1,
@@ -198,6 +215,9 @@ module.exports = {
           `[Backfill Baseline] Created baseline ${baselineId} for feature ${feat.feature_task_id}`,
         );
       }
+      console.log(
+        `[Backfill Baseline] Skipped ${skippedWithoutApprover} feature(s) without a persisted Product Brief approver.`,
+      );
     });
   },
 

@@ -1,6 +1,6 @@
 # QA-DESK-SIMPLIFY — Tahap 0: Problem Statement
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G0 — disetujui oleh PO/Owner
 **Applicable Policy IDs:** SDLC-001, FLOW-005, QA-001, RELEASE-002
 
@@ -57,8 +57,8 @@ menolaknya dan policy di SSoT bertentangan dengan kodenya.
 
 ## 7. Unknown
 
-| Pertanyaan                                                                                   | Mengapa penting                                  | Siapa bisa menjawab               |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------- |
-| Siapa yang dicatat sebagai `established_by` baseline hasil backfill 087?                     | ADR-013 butir 6 melarang identitas hasil tebakan | Owner (D6)                        |
-| Apakah baseline otomatis boleh dipicu oleh aksi role non-Planner (mis. Dev membuat subtask)? | ADR-013 butir 1 menyebut Planner yang menetapkan | Owner (D7)                        |
-| Berapa Feature di Production yang akan mendapat baseline dari backfill 087?                  | Ukuran dampak migrasi                            | Data Production (read-only query) |
+| Pertanyaan                                                                                   | Mengapa penting                                  | Siapa bisa menjawab                                               |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| Siapa yang dicatat sebagai `established_by` baseline hasil backfill 087?                     | ADR-013 butir 6 melarang identitas hasil tebakan | Terjawab: hanya penyetuju tercatat (D6, Owner 2026-10-13)         |
+| Apakah baseline otomatis boleh dipicu oleh aksi role non-Planner (mis. Dev membuat subtask)? | ADR-013 butir 1 menyebut Planner yang menetapkan | Terjawab: aktor pemicu + `autoEstablished` (D7, Owner 2026-10-13) |
+| Berapa Feature di Production yang akan mendapat baseline dari backfill 087?                  | Ukuran dampak migrasi                            | Data Production (read-only query)                                 |
