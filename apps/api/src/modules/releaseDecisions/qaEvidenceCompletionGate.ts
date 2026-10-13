@@ -7,6 +7,7 @@ import {
   QaTestCycleModel,
   TestCaseModel,
   TestCaseRequirementModel,
+  TestCaseVersionModel,
   TestCaseVersionAcceptanceCriterionModel,
   TestResultEvidenceManifestModel,
   TestResultModel,
@@ -126,6 +127,26 @@ export async function evaluateQaCompletionGate(
     : [];
   const expectedTestCaseIds = new Set(activeCases.map((testCase) => testCase.id));
 
+  const latestActiveVersions = expectedTestCaseIds.size
+    ? await TestCaseVersionModel.findAll({
+        where: {
+          workspaceId,
+          testCaseId: { [Op.in]: [...expectedTestCaseIds] },
+          lifecycleStatus: 'active',
+        },
+        attributes: ['id', 'testCaseId', 'revision'],
+        order: [['revision', 'DESC']],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      })
+    : [];
+  const latestActiveVersionByTestCase = new Map<string, TestCaseVersionModel>();
+  for (const version of latestActiveVersions) {
+    if (!latestActiveVersionByTestCase.has(version.testCaseId)) {
+      latestActiveVersionByTestCase.set(version.testCaseId, version);
+    }
+  }
+
   if (runsWithResults.some((run) => run.status === 'in_progress')) {
     failedGateCodes.add('scoped_run_in_progress');
   }
@@ -136,7 +157,17 @@ export async function evaluateQaCompletionGate(
   const latestRuns = [...expectedTestCaseIds].map((testCaseId) =>
     latestRunByTestCase.get(testCaseId),
   );
-  if (expectedTestCaseIds.size === 0 || latestRuns.some((run) => !run?.result)) {
+
+  // D5: The gate requires that each test case's run is executed against its latest active revision.
+  // A newer revision invalidates prior run results for QA gate approval.
+  const hasOutdatedRun = [...expectedTestCaseIds].some((testCaseId) => {
+    const run = latestRunByTestCase.get(testCaseId);
+    const latestVersion = latestActiveVersionByTestCase.get(testCaseId);
+    if (!run || !latestVersion) return false;
+    return run.testCaseVersionId !== latestVersion.id;
+  });
+
+  if (expectedTestCaseIds.size === 0 || latestRuns.some((run) => !run?.result) || hasOutdatedRun) {
     failedGateCodes.add('scoped_result_missing');
   }
   if (latestRuns.some((run) => run?.result && run.result.status !== 'passed')) {

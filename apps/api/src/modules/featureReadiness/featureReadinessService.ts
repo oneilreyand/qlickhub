@@ -171,10 +171,6 @@ export class FeatureReadinessService {
       const usesOverride = Boolean(input.overrideReason || input.overrideExpiresAt);
       if (usesOverride) {
         assertCanOverrideFeatureReadiness(membership.role);
-      } else if (!checks.every((check) => check.status === 'passed')) {
-        throw new Error(
-          'CONFLICT: Latest Development and QA readiness inputs must both be ready, or an Owner/Admin must record a bounded emergency exception.',
-        );
       }
 
       const nextSequence =
@@ -257,12 +253,13 @@ export class FeatureReadinessService {
     });
     const baselineHistory = baselines.map((baseline) => this.formatBaseline(baseline, context));
     const checks = this.evaluateChecks(context);
+    const contentChecksPass = checks.slice(0, 3).every((check) => check.status === 'passed');
 
     return FeatureReadinessStateSchema.parse({
       workspaceId,
       featureTaskId,
       mode: 'observation',
-      readyToBaseline: checks.every((check) => check.status === 'passed'),
+      readyToBaseline: contentChecksPass,
       checks,
       latestReviews: {
         dev: context.latestReviews.dev ? formatReview(context.latestReviews.dev) : null,
@@ -611,6 +608,193 @@ export class FeatureReadinessService {
     }
     return featureTask;
   }
+
+  async getBaselineMissingReason(
+    workspaceId: string,
+    featureTaskId: string,
+    options: { transaction?: Transaction } = {},
+  ): Promise<string | null> {
+    const execute = async (tx: Transaction) => {
+      const featureTask = await TaskModel.findOne({
+        where: { id: featureTaskId, workspaceId, parentTaskId: null },
+        transaction: tx,
+      });
+      if (!featureTask) return 'Root Feature tidak ditemukan';
+
+      const context = await this.loadContext(
+        workspaceId,
+        featureTaskId,
+        featureTask.reporterId || '00000000-0000-0000-0000-000000000000',
+        tx,
+        featureTask,
+      );
+
+      if (!context.productBrief || context.productBrief.document.status !== 'approved') {
+        return 'Menunggu PO menyetujui Brief Feature';
+      }
+      if (context.requirements.length === 0) {
+        return 'Belum ada Requirement aktif yang tertaut';
+      }
+      const inactiveReqs = context.allRequirements.filter((r) => r.status !== 'active');
+      if (inactiveReqs.length > 0) {
+        return `Terdapat ${inactiveReqs.length} Requirement tertaut yang masih berstatus draft atau deprecated`;
+      }
+      for (const req of context.requirements) {
+        const acList = context.acceptanceCriteriaByRequirementId.get(req.id) || [];
+        if (acList.length === 0) {
+          return `Requirement ${req.code} belum memiliki Acceptance Criteria aktif`;
+        }
+      }
+      return null;
+    };
+
+    return options.transaction ? execute(options.transaction) : sequelize.transaction(execute);
+  }
+
+  async ensureAutoBaseline(
+    workspaceId: string,
+    featureTaskId: string,
+    actorId: string,
+    options: { transaction?: Transaction } = {},
+  ): Promise<FeatureReadinessBaseline | null> {
+    const execute = async (transaction: Transaction) => {
+      const featureTask = await TaskModel.findOne({
+        where: { id: featureTaskId, workspaceId, parentTaskId: null },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!featureTask) return null;
+
+      const context = await this.loadContext(
+        workspaceId,
+        featureTaskId,
+        actorId,
+        transaction,
+        featureTask,
+      );
+      const checks = this.evaluateChecks(context);
+      const contentChecksPass = checks.slice(0, 3).every((check) => check.status === 'passed');
+      if (!contentChecksPass) {
+        return null;
+      }
+
+      const latestBaseline = await FeatureReadinessBaselineModel.findOne({
+        where: { workspaceId, featureTaskId },
+        order: [
+          ['sequence', 'DESC'],
+          ['establishedAt', 'DESC'],
+        ],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (latestBaseline && this.formatBaseline(latestBaseline, context).isCurrent) {
+        return this.formatBaseline(latestBaseline, context);
+      }
+
+      const nextSequence =
+        Number(
+          (await FeatureReadinessBaselineModel.max('sequence', {
+            where: { workspaceId, featureTaskId },
+            transaction,
+          })) || 0,
+        ) + 1;
+      const capturedAt = new Date();
+      const snapshot = this.buildSnapshot(context, capturedAt);
+      const baseline = await FeatureReadinessBaselineModel.create(
+        {
+          workspaceId,
+          featureTaskId,
+          sequence: nextSequence,
+          mode: 'observation',
+          productBriefVersionId: context.productBrief!.version.id,
+          devReviewId: context.latestReviews.dev?.id || null,
+          qaReviewId: context.latestReviews.qa?.id || null,
+          snapshot,
+          establishedBy: actorId,
+          establishedAt: capturedAt,
+          overrideReason: null,
+          overrideExpiresAt: null,
+        },
+        { transaction },
+      );
+
+      await FeatureReadinessBaselineRequirementModel.bulkCreate(
+        context.requirements.map((requirement) => ({
+          workspaceId,
+          baselineId: baseline.id,
+          requirementId: requirement.id,
+        })),
+        { transaction },
+      );
+
+      await TaskActivityModel.create(
+        {
+          workspaceId,
+          taskId: featureTaskId,
+          actorId,
+          action: 'feature.readiness.baseline_established',
+          metadataJson: {
+            baselineId: baseline.id,
+            sequence: baseline.sequence,
+            mode: baseline.mode,
+            requirementCount: snapshot.requirements.length,
+            productBriefVersion: snapshot.productBrief.version,
+            devReviewId: baseline.devReviewId,
+            qaReviewId: baseline.qaReviewId,
+            isEmergencyOverride: false,
+            overrideExpiresAt: null,
+            autoEstablished: true,
+          },
+        },
+        { transaction },
+      );
+
+      return this.formatBaseline(baseline, context);
+    };
+
+    return options.transaction ? execute(options.transaction) : sequelize.transaction(execute);
+  }
 }
 
 export const featureReadinessService = new FeatureReadinessService();
+
+export async function ensureAutoBaseline(
+  workspaceId: string,
+  featureTaskId: string,
+  actorId: string,
+  options: { transaction?: Transaction } = {},
+): Promise<FeatureReadinessBaseline | null> {
+  return featureReadinessService.ensureAutoBaseline(workspaceId, featureTaskId, actorId, options);
+}
+
+export async function triggerAutoBaselineForRequirement(
+  workspaceId: string,
+  requirementId: string,
+  actorId: string,
+  options: { transaction?: Transaction } = {},
+): Promise<void> {
+  const execute = async (tx: Transaction) => {
+    const links = await TaskRequirementModel.findAll({
+      where: { workspaceId, requirementId },
+      attributes: ['taskId'],
+      transaction: tx,
+    });
+    if (links.length === 0) return;
+
+    const taskIds = [...new Set(links.map((link) => link.taskId))];
+    const tasks = await TaskModel.findAll({
+      where: { workspaceId, id: taskIds },
+      attributes: ['id', 'parentTaskId'],
+      transaction: tx,
+    });
+    const rootFeatureIds = [...new Set(tasks.map((task) => task.parentTaskId || task.id))];
+    for (const featureTaskId of rootFeatureIds) {
+      await featureReadinessService.ensureAutoBaseline(workspaceId, featureTaskId, actorId, {
+        transaction: tx,
+      });
+    }
+  };
+
+  return options.transaction ? execute(options.transaction) : sequelize.transaction(execute);
+}

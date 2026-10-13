@@ -11,6 +11,7 @@ import {
   ListQaTestCyclesQuerySchema,
   UpdateTestCaseSchema,
   ReplaceTestCaseVersionAcceptanceCriteriaSchema,
+  ValidateTestCaseScopeSchema,
 } from '@qlick/contracts';
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { testManagementService } from './testManagementService.js';
@@ -323,6 +324,49 @@ export async function getTestCaseImportErrorsCsv(req: AuthenticatedRequest, res:
       `attachment; filename="import_errors_${req.params.importId}.csv"`,
     );
     return res.status(200).send(csv);
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function validateTestCaseScope(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = ValidateTestCaseScopeSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+    });
+    const result = await testManagementService.validateTestCaseScope(
+      req.params.workspaceId,
+      req.user!.userId,
+      input,
+    );
+    return res.status(200).json(result);
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function deleteTestCase(req: AuthenticatedRequest, res: Response) {
+  try {
+    const workspaceId = z.string().uuid().parse(req.params.workspaceId);
+    const testCaseId = z.string().uuid().parse(req.params.testCaseId);
+    await testManagementService.deleteTestCase(workspaceId, testCaseId, req.user!.userId);
+    return res.status(204).send();
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function remindPo(req: AuthenticatedRequest, res: Response) {
+  try {
+    const workspaceId = z.string().uuid().parse(req.params.workspaceId);
+    const featureTaskId = z.string().uuid().parse(req.params.featureTaskId);
+    const result = await testManagementService.remindPo(
+      workspaceId,
+      featureTaskId,
+      req.user!.userId,
+    );
+    return res.status(200).json(result);
   } catch (error) {
     return sendProblemDetails(res, error);
   }

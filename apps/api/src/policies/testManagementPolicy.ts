@@ -46,16 +46,26 @@ export function assertCanUpdateTestCase(
       `BAD_REQUEST: Invalid Test Case lifecycle transition from ${currentStatus} to ${requestedStatus}.`,
     );
   }
-  if (
-    role === 'qa' &&
-    currentStatus === 'draft' &&
-    (!requestedStatus ||
-      ['draft', 'in_review'].includes(requestedStatus) ||
-      (requestedStatus === 'active' && hasQaActivationScope))
-  )
-    return;
+  if (role === 'qa') {
+    if (
+      currentStatus === 'draft' &&
+      (!requestedStatus ||
+        ['draft', 'in_review'].includes(requestedStatus) ||
+        (requestedStatus === 'active' && hasQaActivationScope))
+    ) {
+      return;
+    }
+    if (
+      currentStatus === 'active' &&
+      (!requestedStatus || requestedStatus === 'active') &&
+      hasDefinitionChanges &&
+      hasQaActivationScope
+    ) {
+      return;
+    }
+  }
   throw new Error(
-    'FORBIDDEN: QA can edit draft Test Cases and may activate them only within the proven scope of their assigned QA Subtask; only Product Owner, Admin, or Owner can request revision or archive.',
+    'FORBIDDEN: QA can edit draft Test Cases, edit active Test Cases within their assigned QA Subtask scope, and activate them only within the proven scope of their assigned QA Subtask; only Product Owner, Admin, or Owner can request revision or archive.',
   );
 }
 
@@ -78,4 +88,16 @@ export function assertCanExecuteTestRun(role: WorkspaceRole): void {
 export function assertCanAddTestResultEvidence(role: WorkspaceRole): void {
   if (role === 'qa') return;
   throw new Error('FORBIDDEN: Only QA Engineer members can add Test Result evidence.');
+}
+
+export function assertCanDeleteTestCase(
+  role: WorkspaceRole,
+  actorId: string,
+  createdBy: string,
+): void {
+  if (role === 'owner' || role === 'admin' || role === 'po') return;
+  if (role === 'qa' && actorId === createdBy) return;
+  throw new Error(
+    'FORBIDDEN: Only the creator QA or Product Owner/Admin/Owner may delete this Test Case.',
+  );
 }

@@ -19,11 +19,14 @@ import {
   TestRun,
   QaTestCycle,
   QaWorkflowSummary,
+  RemindPoResponse,
   ReplaceTestCaseVersionAcceptanceCriteriaInput,
   TestCaseVersionAcceptanceCriteriaResponse,
   TestCaseVersionCoverageSummary,
+  TestCaseScopeValidationResult,
   TaskTestExecutionWorkspace,
   UpdateTestCaseInput,
+  ValidateTestCaseScopeInput,
 } from '@qlick/contracts';
 
 import { sequelize } from '../../db/sequelize.js';
@@ -33,10 +36,13 @@ import {
   FeatureReadinessBaselineModel,
   FeatureReadinessBaselineRequirementModel,
   QaTestCycleModel,
+  QrisSandboxTransactionModel,
+  TaskActivityModel,
   TaskModel,
   TaskRequirementModel,
   TaskAttachmentModel,
   TestCaseActivityModel,
+  TestCaseImportRowModel,
   TestCaseModel,
   TestCaseVersionModel,
   TestCaseVersionAcceptanceCriterionModel,
@@ -53,6 +59,7 @@ import { assertCanAccessTask } from '../../policies/taskPolicy.js';
 import {
   assertCanAddTestResultEvidence,
   assertCanCreateTestCase,
+  assertCanDeleteTestCase,
   assertCanExecuteTestRun,
   assertCanReadTestManagement,
   assertCanUpdateTestCase,
@@ -63,6 +70,7 @@ import { requireActiveMember } from '../../db/repositories/workspaceMemberReposi
 import { evaluateQaCompletionGate } from '../releaseDecisions/qaEvidenceCompletionGate.js';
 import { iso } from '../../utils/dateUtils.js';
 import { reliableNotificationOutboxService } from '../notifications/reliableNotificationOutboxService.js';
+import { featureReadinessService } from '../featureReadiness/featureReadinessService.js';
 
 type TestCaseWithLinks = TestCaseModel & { requirementLinks?: TestCaseRequirementModel[] };
 type EvidenceLinkWithAttachment = TestResultEvidenceModel & { attachment?: TaskAttachmentModel };
@@ -109,45 +117,160 @@ function hasDefinitionChanges(input: UpdateTestCaseInput): boolean {
   ].some((value) => value !== undefined);
 }
 
-async function findQaDirectActivationScope(params: {
+export interface QaScopeValidationResult {
+  valid: boolean;
+  errors: string[];
+  missingRequirementIds: string[];
+  featureTaskId: string | null;
+  qaSubtask: TaskModel | null;
+}
+
+export async function validateQaDirectScope(params: {
   workspaceId: string;
   actorId: string;
   requirementIds: string[];
-  transaction: Transaction;
-}): Promise<TaskModel | null> {
-  if (params.requirementIds.length === 0) return null;
+  qaSubtaskId?: string;
+  transaction?: Transaction;
+}): Promise<QaScopeValidationResult> {
+  const errors: string[] = [];
+  const missingRequirementIds: string[] = [];
+
+  if (params.requirementIds.length === 0) {
+    return {
+      valid: false,
+      errors: ['Minimal satu Requirement harus dipilih.'],
+      missingRequirementIds: [],
+      featureTaskId: null,
+      qaSubtask: null,
+    };
+  }
+
+  const requirements = await RequirementModel.findAll({
+    where: { workspaceId: params.workspaceId, id: params.requirementIds },
+    attributes: ['id', 'code', 'title', 'status'],
+    transaction: params.transaction,
+  });
+  const reqById = new Map(requirements.map((r) => [r.id, r]));
+
+  for (const id of params.requirementIds) {
+    if (!reqById.has(id)) {
+      missingRequirementIds.push(id);
+      errors.push(`Requirement dengan ID ${id} tidak ditemukan di workspace ini.`);
+    }
+  }
+
+  let qaSubtask: TaskModel | null = null;
+  let targetFeatureId: string | null = null;
+
+  if (params.qaSubtaskId) {
+    qaSubtask = await TaskModel.findOne({
+      where: {
+        workspaceId: params.workspaceId,
+        id: params.qaSubtaskId,
+      },
+      transaction: params.transaction,
+      lock: params.transaction ? params.transaction.LOCK.UPDATE : undefined,
+    });
+
+    if (!qaSubtask) {
+      errors.push('Subtask QA tidak ditemukan di workspace ini.');
+    } else {
+      if (qaSubtask.deliveryArea !== 'qa') {
+        errors.push('Subtask bukan bertipe area delivery QA.');
+      }
+      if (qaSubtask.assigneeId !== params.actorId) {
+        errors.push('Subtask QA ini tidak ditugaskan kepada Anda.');
+      }
+      if (qaSubtask.status === 'done' || qaSubtask.status === 'canceled') {
+        errors.push('Subtask QA sudah selesai atau dibatalkan.');
+      }
+      if (!qaSubtask.parentTaskId) {
+        errors.push('Subtask QA harus memiliki parent Feature.');
+      } else {
+        targetFeatureId = qaSubtask.parentTaskId;
+      }
+    }
+  }
 
   const requirementLinks = await TaskRequirementModel.findAll({
     where: { workspaceId: params.workspaceId, requirementId: params.requirementIds },
     attributes: ['taskId', 'requirementId'],
     transaction: params.transaction,
   });
-  const linkedRequirementIds = new Set(requirementLinks.map((link) => link.requirementId));
-  if (linkedRequirementIds.size !== params.requirementIds.length) return null;
 
-  const linkedTasks = await TaskModel.findAll({
-    where: {
-      workspaceId: params.workspaceId,
-      id: [...new Set(requirementLinks.map((link) => link.taskId))],
-    },
-    attributes: ['id', 'parentTaskId'],
-    transaction: params.transaction,
-  });
-  const rootFeatureIds = new Set(linkedTasks.map((task) => task.parentTaskId || task.id));
-  if (rootFeatureIds.size !== 1) return null;
+  const linkedTaskIds = [...new Set(requirementLinks.map((link) => link.taskId))];
+  const linkedTasks = linkedTaskIds.length
+    ? await TaskModel.findAll({
+        where: {
+          workspaceId: params.workspaceId,
+          id: linkedTaskIds,
+        },
+        attributes: ['id', 'parentTaskId'],
+        transaction: params.transaction,
+      })
+    : [];
 
-  const [featureTaskId] = rootFeatureIds;
-  return TaskModel.findOne({
-    where: {
-      workspaceId: params.workspaceId,
-      parentTaskId: featureTaskId,
-      deliveryArea: 'qa',
-      assigneeId: params.actorId,
-      status: { [Op.notIn]: ['done', 'canceled'] },
-    },
-    transaction: params.transaction,
-    lock: params.transaction.LOCK.UPDATE,
-  });
+  const taskById = new Map(linkedTasks.map((t) => [t.id, t]));
+  const featureIdByReqId = new Map<string, Set<string>>();
+  for (const link of requirementLinks) {
+    const task = taskById.get(link.taskId);
+    if (!task) continue;
+    const rootId = task.parentTaskId || task.id;
+    let set = featureIdByReqId.get(link.requirementId);
+    if (!set) {
+      set = new Set();
+      featureIdByReqId.set(link.requirementId, set);
+    }
+    set.add(rootId);
+  }
+
+  if (!params.qaSubtaskId) {
+    const allRootFeatureIds = new Set(linkedTasks.map((task) => task.parentTaskId || task.id));
+    if (allRootFeatureIds.size === 1) {
+      targetFeatureId = [...allRootFeatureIds][0];
+      qaSubtask = await TaskModel.findOne({
+        where: {
+          workspaceId: params.workspaceId,
+          parentTaskId: targetFeatureId,
+          deliveryArea: 'qa',
+          assigneeId: params.actorId,
+          status: { [Op.notIn]: ['done', 'canceled'] },
+        },
+        transaction: params.transaction,
+        lock: params.transaction ? params.transaction.LOCK.UPDATE : undefined,
+      });
+      if (!qaSubtask) {
+        errors.push(
+          'Tidak ditemukan subtask QA aktif yang ditugaskan kepada Anda pada Feature ini.',
+        );
+      }
+    } else if (allRootFeatureIds.size > 1) {
+      errors.push('Requirement tertaut ke Feature yang berbeda-beda.');
+    } else {
+      errors.push('Requirement belum ditautkan ke subtask di Feature ini.');
+    }
+  }
+
+  for (const reqId of params.requirementIds) {
+    const req = reqById.get(reqId);
+    const label = req?.code || req?.title || reqId;
+    if (targetFeatureId) {
+      const features = featureIdByReqId.get(reqId);
+      if (!features || !features.has(targetFeatureId)) {
+        missingRequirementIds.push(reqId);
+        errors.push(`Requirement "${label}" belum ditautkan ke subtask di Feature ini.`);
+      }
+    }
+  }
+
+  const valid = errors.length === 0 && Boolean(qaSubtask) && Boolean(targetFeatureId);
+  return {
+    valid,
+    errors,
+    missingRequirementIds: [...new Set(missingRequirementIds)],
+    featureTaskId: targetFeatureId,
+    qaSubtask,
+  };
 }
 
 function formatTestCase(testCase: TestCaseWithLinks): TestCase {
@@ -465,7 +588,38 @@ export class TestManagementService {
         transaction,
         lock: transaction.LOCK.UPDATE,
       });
+
+      const latestBaseline = await FeatureReadinessBaselineModel.findOne({
+        where: { workspaceId, featureTaskId: feature.id },
+        order: [
+          ['sequence', 'DESC'],
+          ['establishedAt', 'DESC'],
+        ],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
       if (!cycle) {
+        if (!latestBaseline) {
+          const blockerReason = await featureReadinessService.getBaselineMissingReason(
+            workspaceId,
+            feature.id,
+            { transaction },
+          );
+          return {
+            workspaceId,
+            featureTaskId: feature.id,
+            qaSubtaskId: qaSubtask.id,
+            featureTitle: feature.title,
+            qaSubtaskTitle: qaSubtask.title,
+            qaSubtaskStatus: qaSubtask.status,
+            testCycle: null,
+            blockers: ['feature_baseline_missing'],
+            blockerReason: blockerReason || 'Menunggu PO menyetujui Brief Feature',
+            isBaselineSuperseded: false,
+            nextAction: { code: 'await_baseline', label: 'Menunggu Kesiapan Feature' },
+          };
+        }
         return {
           workspaceId,
           featureTaskId: feature.id,
@@ -475,9 +629,18 @@ export class TestManagementService {
           qaSubtaskStatus: qaSubtask.status,
           testCycle: null,
           blockers: ['qa_test_cycle_missing'],
-          nextAction: { code: 'create_test_cycle', label: 'Buat Siklus Pengujian' },
+          blockerReason: null,
+          isBaselineSuperseded: false,
+          nextAction: { code: 'create_test_cycle', label: 'Tetapkan Versi Uji' },
         };
       }
+
+      const isBaselineSuperseded = Boolean(
+        latestBaseline &&
+        cycle.readinessBaselineId &&
+        latestBaseline.id !== cycle.readinessBaselineId,
+      );
+
       const gate = await evaluateQaCompletionGate(
         workspaceId,
         feature.id,
@@ -507,6 +670,8 @@ export class TestManagementService {
         qaSubtaskStatus: qaSubtask.status,
         testCycle: formatQaTestCycle(cycle),
         blockers,
+        blockerReason: null,
+        isBaselineSuperseded,
         nextAction,
       };
     });
@@ -516,7 +681,7 @@ export class TestManagementService {
     return sequelize.transaction(async (transaction) => {
       const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanExecuteTestRun(membership.role);
-      const [featureTask, qaSubtask, baseline] = await Promise.all([
+      const [featureTask, qaSubtask, initialBaseline] = await Promise.all([
         TaskModel.findOne({
           where: { id: input.featureTaskId, workspaceId: input.workspaceId, parentTaskId: null },
           transaction,
@@ -540,11 +705,26 @@ export class TestManagementService {
           lock: transaction.LOCK.UPDATE,
         }),
       ]);
+      let baseline = initialBaseline;
       if (!featureTask) throw new Error('NOT_FOUND: Root Feature not found in this workspace.');
       if (!qaSubtask) {
         throw new Error(
           'FORBIDDEN: Only the assigned QA member may create this Feature Test Cycle.',
         );
+      }
+      if (!baseline) {
+        await featureReadinessService.ensureAutoBaseline(
+          input.workspaceId,
+          input.featureTaskId,
+          actorId,
+          { transaction },
+        );
+        baseline = await FeatureReadinessBaselineModel.findOne({
+          where: { workspaceId: input.workspaceId, featureTaskId: input.featureTaskId },
+          order: [['sequence', 'DESC']],
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
       }
       if (!baseline) {
         throw new Error(
@@ -778,7 +958,7 @@ export class TestManagementService {
       };
     }
 
-    const [testCases, testRuns] = await Promise.all([
+    const [testCases, testRuns, latestVersions] = await Promise.all([
       TestCaseModel.findAll({
         where: { workspaceId, id: testCaseIds },
         include: testCaseIncludes,
@@ -789,7 +969,18 @@ export class TestManagementService {
         include: testRunIncludes,
         order: [['startedAt', 'DESC']],
       }),
+      TestCaseVersionModel.findAll({
+        where: { workspaceId, testCaseId: testCaseIds, lifecycleStatus: 'active' },
+        order: [['revision', 'DESC']],
+      }),
     ]);
+
+    const latestActiveVersionByTestCase = new Map<string, TestCaseVersionModel>();
+    for (const version of latestVersions) {
+      if (!latestActiveVersionByTestCase.has(version.testCaseId)) {
+        latestActiveVersionByTestCase.set(version.testCaseId, version);
+      }
+    }
 
     const runsByTestCase = new Map<string, TestRun[]>();
     for (const run of testRuns) {
@@ -805,10 +996,17 @@ export class TestManagementService {
       featureTaskId: featureTask.id,
       executions: testCases.map((testCase) => {
         const runs = runsByTestCase.get(testCase.id) || [];
+        const latestRun = runs[0] || null;
+        const latestVersion = latestActiveVersionByTestCase.get(testCase.id);
+        const needsRetest = Boolean(
+          latestRun && latestVersion && latestRun.testCaseVersionId !== latestVersion.id,
+        );
         return {
           testCase: formatTestCase(testCase as TestCaseWithLinks),
-          latestRun: runs[0] || null,
+          latestRun,
           testRuns: runs,
+          latestVersionId: latestVersion?.id,
+          needsRetest,
         };
       }),
     };
@@ -870,20 +1068,33 @@ export class TestManagementService {
       throw new Error('BAD_REQUEST: Requirement links must not contain duplicates.');
     }
 
-    const testCase = await sequelize.transaction(async (transaction) => {
+    const result = await sequelize.transaction(async (transaction) => {
       const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
       assertCanCreateTestCase(membership.role);
-      if (membership.role === 'qa' && input.status && input.status !== 'draft') {
+
+      let effectiveStatus: 'draft' | 'active' = 'draft';
+
+      if (input.qaSubtaskId) {
+        const scopeResult = await validateQaDirectScope({
+          workspaceId: input.workspaceId,
+          actorId,
+          requirementIds,
+          qaSubtaskId: input.qaSubtaskId,
+          transaction,
+        });
+        if (!scopeResult.valid) {
+          throw new Error(`UNPROCESSABLE_ENTITY: ${scopeResult.errors.join('; ')}`);
+        }
+        effectiveStatus = 'active';
+      } else if (membership.role === 'qa' && input.status && input.status !== 'draft') {
         throw new Error(
           'FORBIDDEN: QA can create only draft Test Cases and may submit them for review; only Product Owner, Admin, or Owner can publish or archive.',
         );
-      }
-      if (input.status && input.status !== 'draft') {
+      } else if (input.status && input.status !== 'draft') {
         throw new Error(
           'BAD_REQUEST: New Test Cases must start as draft and follow the review lifecycle.',
         );
       }
-      const effectiveStatus = 'draft';
 
       const requirements = await RequirementModel.findAll({
         where: { workspaceId: input.workspaceId, id: requirementIds },
@@ -940,9 +1151,11 @@ export class TestManagementService {
           workspaceId: input.workspaceId,
           testCaseId: created.id,
           revision: 1,
-          lifecycleStatus: 'draft',
+          lifecycleStatus: effectiveStatus,
           definitionSnapshot: snapshotTestCase(created, requirementIds),
           authoredBy: actorId,
+          publishedBy: effectiveStatus === 'active' ? actorId : null,
+          publishedAt: effectiveStatus === 'active' ? new Date() : null,
           origin: 'native_revision',
         },
         { transaction },
@@ -954,12 +1167,16 @@ export class TestManagementService {
           testCaseId: created.id,
           testCaseVersionId: version.id,
           actorId,
-          action: 'test_case_revision_created',
+          action:
+            effectiveStatus === 'active'
+              ? 'test_case_revision_status_changed'
+              : 'test_case_revision_created',
           metadata: {
             requirementIds,
             status: created.status,
             priority: created.priority,
             externalReference: created.externalReference,
+            autoActivated: effectiveStatus === 'active',
           },
         },
         { transaction },
@@ -968,7 +1185,7 @@ export class TestManagementService {
       return created;
     });
 
-    return this.getTestCase(input.workspaceId, testCase.id, actorId);
+    return this.getTestCase(input.workspaceId, result.id, actorId);
   }
 
   async updateTestCase(actorId: string, input: UpdateTestCaseInput): Promise<TestCase> {
@@ -1080,15 +1297,39 @@ export class TestManagementService {
         requirementIds = uniqueReqIds;
       }
 
-      const qaActivationSubtask =
-        membership.role === 'qa' && previousStatus === 'draft' && input.status === 'active'
-          ? await findQaDirectActivationScope({
-              workspaceId: input.workspaceId,
-              actorId,
-              requirementIds,
-              transaction,
-            })
-          : null;
+      let qaActivationSubtask: TaskModel | null = null;
+      const requiresQaScopeValidation =
+        membership.role === 'qa' &&
+        ((previousStatus === 'draft' && input.status === 'active') ||
+          (previousStatus === 'active' && definitionChanges));
+
+      if (requiresQaScopeValidation) {
+        if (input.qaSubtaskId) {
+          const scopeResult = await validateQaDirectScope({
+            workspaceId: input.workspaceId,
+            actorId,
+            requirementIds,
+            qaSubtaskId: input.qaSubtaskId,
+            transaction,
+          });
+          if (!scopeResult.valid) {
+            throw new Error(`UNPROCESSABLE_ENTITY: ${scopeResult.errors.join('; ')}`);
+          }
+          qaActivationSubtask = scopeResult.qaSubtask;
+        } else if (previousStatus === 'draft' && input.status === 'active') {
+          // Direct activation without explicit qaSubtaskId attempts single-feature scope discovery
+          const scopeResult = await validateQaDirectScope({
+            workspaceId: input.workspaceId,
+            actorId,
+            requirementIds,
+            transaction,
+          });
+          if (!scopeResult.valid) {
+            throw new Error(`UNPROCESSABLE_ENTITY: ${scopeResult.errors.join('; ')}`);
+          }
+          qaActivationSubtask = scopeResult.qaSubtask;
+        }
+      }
       assertCanUpdateTestCase(
         membership.role,
         previousStatus,
@@ -1099,43 +1340,102 @@ export class TestManagementService {
 
       await testCase.update(updates, { transaction });
 
-      let activityAction: 'test_case_revision_created' | 'test_case_revision_status_changed';
+      let activityAction:
+        'test_case_updated' | 'test_case_revision_created' | 'test_case_revision_status_changed';
       let activityVersionId: string;
 
       if (definitionChanges) {
-        const revision = await TestCaseVersionModel.create(
-          {
-            workspaceId: input.workspaceId,
-            testCaseId: input.testCaseId,
-            revision: latestVersion.revision + 1,
-            lifecycleStatus: 'draft',
-            definitionSnapshot: snapshotTestCase(testCase, requirementIds),
-            authoredBy: actorId,
-            supersedesVersionId: latestVersion.id,
-            origin: 'native_revision',
-          },
-          { transaction },
-        );
+        if (previousStatus === 'active') {
+          const runCount = await TestRunModel.count({
+            where: { workspaceId: input.workspaceId, testCaseId: input.testCaseId },
+            transaction,
+          });
 
-        const priorMappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
-          where: { workspaceId: input.workspaceId, testCaseVersionId: latestVersion.id },
-          transaction,
-        });
-        if (priorMappings.length > 0) {
-          await TestCaseVersionAcceptanceCriterionModel.bulkCreate(
-            priorMappings.map((mapping) => ({
-              workspaceId: mapping.workspaceId,
-              testCaseVersionId: revision.id,
-              acceptanceCriterionId: mapping.acceptanceCriterionId,
-              mappingStatus: mapping.mappingStatus,
-              exclusionReason: mapping.exclusionReason,
-              mappedBy: actorId,
-            })),
+          if (runCount === 0) {
+            // Belum pernah dijalankan → ubah langsung revisi aktif.
+            // Hanya definitionSnapshot yang berubah: authoredBy/publishedBy/publishedAt tetap
+            // milik revisi asli (dijaga trigger validate_test_case_version_update). Editor
+            // dicatat lewat TestCaseActivity (actorId) di bawah.
+            await latestVersion.update(
+              { definitionSnapshot: snapshotTestCase(testCase, requirementIds) },
+              { transaction },
+            );
+            activityAction = 'test_case_updated';
+            activityVersionId = latestVersion.id;
+          } else {
+            // Sudah pernah dijalankan → buat revisi baru (revision+1, active, publishedBy=QA), salin mapping AC, revisi lama tidak diubah
+            const revision = await TestCaseVersionModel.create(
+              {
+                workspaceId: input.workspaceId,
+                testCaseId: input.testCaseId,
+                revision: latestVersion.revision + 1,
+                lifecycleStatus: 'active',
+                definitionSnapshot: snapshotTestCase(testCase, requirementIds),
+                authoredBy: actorId,
+                publishedBy: actorId,
+                publishedAt: new Date(),
+                supersedesVersionId: latestVersion.id,
+                origin: 'native_revision',
+              },
+              { transaction },
+            );
+
+            const priorMappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
+              where: { workspaceId: input.workspaceId, testCaseVersionId: latestVersion.id },
+              transaction,
+            });
+            if (priorMappings.length > 0) {
+              await TestCaseVersionAcceptanceCriterionModel.bulkCreate(
+                priorMappings.map((mapping) => ({
+                  workspaceId: mapping.workspaceId,
+                  testCaseVersionId: revision.id,
+                  acceptanceCriterionId: mapping.acceptanceCriterionId,
+                  mappingStatus: mapping.mappingStatus,
+                  exclusionReason: mapping.exclusionReason,
+                  mappedBy: actorId,
+                })),
+                { transaction },
+              );
+            }
+            activityAction = 'test_case_revision_created';
+            activityVersionId = revision.id;
+          }
+        } else {
+          // previousStatus === 'draft' -> creates new draft revision
+          const revision = await TestCaseVersionModel.create(
+            {
+              workspaceId: input.workspaceId,
+              testCaseId: input.testCaseId,
+              revision: latestVersion.revision + 1,
+              lifecycleStatus: 'draft',
+              definitionSnapshot: snapshotTestCase(testCase, requirementIds),
+              authoredBy: actorId,
+              supersedesVersionId: latestVersion.id,
+              origin: 'native_revision',
+            },
             { transaction },
           );
+
+          const priorMappings = await TestCaseVersionAcceptanceCriterionModel.findAll({
+            where: { workspaceId: input.workspaceId, testCaseVersionId: latestVersion.id },
+            transaction,
+          });
+          if (priorMappings.length > 0) {
+            await TestCaseVersionAcceptanceCriterionModel.bulkCreate(
+              priorMappings.map((mapping) => ({
+                workspaceId: mapping.workspaceId,
+                testCaseVersionId: revision.id,
+                acceptanceCriterionId: mapping.acceptanceCriterionId,
+                mappingStatus: mapping.mappingStatus,
+                exclusionReason: mapping.exclusionReason,
+                mappedBy: actorId,
+              })),
+              { transaction },
+            );
+          }
+          activityAction = 'test_case_revision_created';
+          activityVersionId = revision.id;
         }
-        activityAction = 'test_case_revision_created';
-        activityVersionId = revision.id;
       } else {
         const requestedStatus = input.status || previousStatus;
         if (requestedStatus === previousStatus) {
@@ -1210,7 +1510,9 @@ export class TestManagementService {
         { transaction },
       );
 
-      if (!qaActivationSubtask) return { outboxIds: [] as string[] };
+      if (!qaActivationSubtask || previousStatus !== 'draft' || input.status !== 'active') {
+        return { outboxIds: [] as string[] };
+      }
       if (!qaActivationSubtask.parentTaskId) {
         throw new Error('CONFLICT: Assigned QA Subtask must belong to a root Feature.');
       }
@@ -1862,6 +2164,242 @@ export class TestManagementService {
       order: [['createdAt', 'ASC']],
     });
     return activity.map(formatActivity);
+  }
+
+  async validateTestCaseScope(
+    workspaceId: string,
+    actorId: string,
+    input: ValidateTestCaseScopeInput,
+  ): Promise<TestCaseScopeValidationResult> {
+    const membership = await requireActiveMember(workspaceId, actorId);
+    assertCanCreateTestCase(membership.role);
+    const result = await validateQaDirectScope({
+      workspaceId,
+      actorId,
+      requirementIds: input.requirementIds,
+      qaSubtaskId: input.qaSubtaskId,
+    });
+    return {
+      valid: result.valid,
+      errors: result.errors,
+      missingRequirementIds: result.missingRequirementIds,
+      featureTaskId: result.featureTaskId,
+    };
+  }
+
+  async deleteTestCase(workspaceId: string, testCaseId: string, actorId: string): Promise<void> {
+    return sequelize.transaction(async (transaction) => {
+      const membership = await requireActiveMember(workspaceId, actorId, transaction);
+      const testCase = await TestCaseModel.findOne({
+        where: { id: testCaseId, workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!testCase) {
+        throw new Error('NOT_FOUND: Test Case not found in this workspace.');
+      }
+
+      assertCanDeleteTestCase(membership.role, actorId, testCase.createdBy);
+
+      const [testRunCount, qrisCount] = await Promise.all([
+        TestRunModel.count({ where: { workspaceId, testCaseId }, transaction }),
+        QrisSandboxTransactionModel.count({ where: { workspaceId, testCaseId }, transaction }),
+      ]);
+
+      if (testRunCount > 0 || qrisCount > 0) {
+        throw new Error(
+          'CONFLICT: Test Case tidak dapat dihapus karena sudah memiliki riwayat eksekusi pengujian.',
+        );
+      }
+
+      const versions = await TestCaseVersionModel.findAll({
+        where: { workspaceId, testCaseId },
+        attributes: ['id'],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      const versionIds = versions.map((v) => v.id);
+
+      const reqLinks = await TestCaseRequirementModel.findAll({
+        where: { workspaceId, testCaseId },
+        attributes: ['requirementId'],
+        transaction,
+      });
+      const requirementIds = reqLinks.map((l) => l.requirementId);
+
+      let featureTaskIds: string[] = [];
+      if (requirementIds.length > 0) {
+        const taskReqs = await TaskRequirementModel.findAll({
+          where: { workspaceId, requirementId: requirementIds },
+          attributes: ['taskId'],
+          transaction,
+        });
+        const taskIds = [...new Set(taskReqs.map((r) => r.taskId))];
+        if (taskIds.length > 0) {
+          const tasks = await TaskModel.findAll({
+            where: { workspaceId, id: taskIds },
+            attributes: ['id', 'parentTaskId'],
+            transaction,
+          });
+          featureTaskIds = [...new Set(tasks.map((t) => t.parentTaskId || t.id))];
+        }
+      }
+
+      if (versionIds.length > 0) {
+        await TestCaseVersionAcceptanceCriterionModel.destroy({
+          where: { workspaceId, testCaseVersionId: versionIds },
+          transaction,
+        });
+      }
+
+      await TestCaseActivityModel.destroy({
+        where: { workspaceId, testCaseId },
+        transaction,
+      });
+
+      await TestCaseVersionModel.destroy({
+        where: { workspaceId, testCaseId },
+        transaction,
+      });
+
+      await TestCaseRequirementModel.destroy({
+        where: { workspaceId, testCaseId },
+        transaction,
+      });
+
+      await TestCaseImportRowModel.update(
+        { testCaseId: null },
+        { where: { testCaseId }, transaction },
+      );
+
+      await sequelize.query(
+        `DELETE FROM legacy_requirement_test_case_migrations WHERE workspace_id = :workspaceId AND test_case_id = :testCaseId`,
+        { replacements: { workspaceId, testCaseId }, transaction },
+      );
+
+      for (const featureTaskId of featureTaskIds) {
+        await TaskActivityModel.create(
+          {
+            workspaceId,
+            taskId: featureTaskId,
+            actorId,
+            action: 'test_case_deleted',
+            metadataJson: {
+              testCaseId: testCase.id,
+              title: testCase.title,
+              externalReference: testCase.externalReference || null,
+              revisionCount: versions.length,
+              deletedBy: actorId,
+            },
+          },
+          { transaction },
+        );
+      }
+
+      await testCase.destroy({ transaction });
+    });
+  }
+
+  async remindPo(
+    workspaceId: string,
+    featureTaskId: string,
+    actorId: string,
+  ): Promise<RemindPoResponse> {
+    const result = await sequelize.transaction(async (transaction) => {
+      await requireActiveMember(workspaceId, actorId, transaction);
+      const featureTask = await TaskModel.findOne({
+        where: { id: featureTaskId, workspaceId, parentTaskId: null },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!featureTask) {
+        throw new Error('NOT_FOUND: Root Feature task not found in this workspace.');
+      }
+
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const lastReminder = await TaskActivityModel.findOne({
+        where: {
+          workspaceId,
+          taskId: featureTaskId,
+          action: 'feature_po_reminded',
+          createdAt: { [Op.gte]: twentyFourHoursAgo },
+        },
+        order: [['createdAt', 'DESC']],
+        transaction,
+      });
+
+      if (lastReminder) {
+        throw new Error(
+          'TOO_MANY_REQUESTS: Pengingat sudah dikirim dalam 24 jam terakhir. Silakan tunggu sebelum mengingatkan kembali.',
+        );
+      }
+
+      let poMembers = await WorkspaceMemberModel.findAll({
+        where: { workspaceId, role: 'po' },
+        attributes: ['userId'],
+        transaction,
+      });
+      if (poMembers.length === 0) {
+        poMembers = await WorkspaceMemberModel.findAll({
+          where: { workspaceId, role: { [Op.in]: ['owner', 'admin'] } },
+          attributes: ['userId'],
+          transaction,
+        });
+      }
+
+      const recipientUserIds = poMembers
+        .map((m) => m.userId)
+        .filter((userId) => userId !== actorId);
+
+      const now = new Date();
+      const outboxIds = await reliableNotificationOutboxService.enqueue(
+        `remind-po:${featureTaskId}:${now.getTime()}`,
+        recipientUserIds.map((userId) => ({
+          userId,
+          workspaceId,
+          taskId: featureTaskId,
+          actorId,
+          type: 'status_change' as const,
+          title: 'Pengingat: Kesiapan Feature Dibutuhkan',
+          message: `QA mengingatkan bahwa Feature "${featureTask.title}" membutuhkan persetujuan Product Brief dan kelengkapan Requirement agar pengujian dapat dimulai.`,
+          payload: {
+            featureTaskId,
+            action: 'remind_po_feature_readiness',
+          },
+        })),
+        transaction,
+      );
+
+      await TaskActivityModel.create(
+        {
+          workspaceId,
+          taskId: featureTaskId,
+          actorId,
+          action: 'feature_po_reminded',
+          metadataJson: {
+            remindedAt: now.toISOString(),
+            remindedBy: actorId,
+            recipientCount: recipientUserIds.length,
+          },
+        },
+        { transaction },
+      );
+
+      return {
+        outboxIds,
+        response: {
+          success: true,
+          message: 'Pengingat berhasil dikirim ke Product Owner',
+          remindedAt: now.toISOString(),
+        },
+      };
+    });
+
+    if (result.outboxIds.length > 0) {
+      void reliableNotificationOutboxService.dispatch(result.outboxIds);
+    }
+
+    return result.response;
   }
 
   private async findRun(

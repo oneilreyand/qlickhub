@@ -17,6 +17,19 @@ export interface ProblemDetailsOptions {
 
 const RFC9457_TYPE = 'https://tools.ietf.org/html/rfc9457';
 
+const IMMUTABLE_TRIGGER_MESSAGE = /\bimmutable\b/i;
+
+/**
+ * PostgreSQL immutability triggers (RAISE EXCEPTION, SQLSTATE P0001) protect versioned audit
+ * records. When one fires, the request conflicts with stored history; it is not a server fault.
+ */
+function isImmutableRecordTriggerError(err: unknown): boolean {
+  if (!(err instanceof Error) || err.name !== 'SequelizeDatabaseError') return false;
+  const parent = (err as Error & { parent?: { code?: string; message?: string } }).parent;
+  if (parent?.code !== 'P0001') return false;
+  return IMMUTABLE_TRIGGER_MESSAGE.test(parent.message || err.message);
+}
+
 /**
  * Transforms any caught error or unknown value into a strictly validated
  * RFC 9457 ProblemDetail object according to @qlick/contracts.
@@ -60,6 +73,18 @@ export function toProblemDetail(err: unknown, options?: ProblemDetailsOptions): 
           ? err.message
           : 'A unique Requirement or Acceptance Criterion value already exists in this workspace.'),
       code: options?.uniqueCode || 'BAD_REQUEST',
+    };
+    return ProblemDetailSchema.parse(problem);
+  }
+
+  if (isImmutableRecordTriggerError(err)) {
+    const problem: ProblemDetail = {
+      type: typeUri,
+      title: 'Conflict',
+      status: 409,
+      detail:
+        'Data ini sudah terkunci untuk menjaga riwayat pengujian dan tidak dapat diubah langsung. Muat ulang halaman lalu coba lagi; bila perlu, buat revisi baru.',
+      code: options?.conflictCode || 'CONFLICT',
     };
     return ProblemDetailSchema.parse(problem);
   }
@@ -118,6 +143,28 @@ export function toProblemDetail(err: unknown, options?: ProblemDetailsOptions): 
         status: 401,
         detail: msg.replace(/^UNAUTHORIZED:\s*/, '').trim(),
         code: 'UNAUTHORIZED',
+      };
+      return ProblemDetailSchema.parse(problem);
+    }
+
+    if (msg.startsWith('UNPROCESSABLE_ENTITY:') || msg.startsWith('UNPROCESSABLE_ENTITY: ')) {
+      const problem: ProblemDetail = {
+        type: typeUri,
+        title: 'Unprocessable Entity',
+        status: 422,
+        detail: msg.replace(/^UNPROCESSABLE_ENTITY:\s*/, '').trim(),
+        code: 'UNPROCESSABLE_ENTITY',
+      };
+      return ProblemDetailSchema.parse(problem);
+    }
+
+    if (msg.startsWith('TOO_MANY_REQUESTS:') || msg.startsWith('TOO_MANY_REQUESTS: ')) {
+      const problem: ProblemDetail = {
+        type: typeUri,
+        title: 'Too Many Requests',
+        status: 429,
+        detail: msg.replace(/^TOO_MANY_REQUESTS:\s*/, '').trim(),
+        code: 'TOO_MANY_REQUESTS',
       };
       return ProblemDetailSchema.parse(problem);
     }

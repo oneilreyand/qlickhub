@@ -18,6 +18,7 @@ import {
   assertCanLinkRequirement,
 } from '../../policies/requirementPolicy.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { triggerAutoBaselineForRequirement } from '../featureReadiness/featureReadinessService.js';
 import {
   Requirement,
   CreateRequirementInput,
@@ -258,6 +259,8 @@ export class RequirementService {
         );
       }
 
+      await triggerAutoBaselineForRequirement(workspaceId, requirementId, actorId, { transaction });
+
       return formatAcceptanceCriterion(criterion);
     });
   }
@@ -322,6 +325,8 @@ export class RequirementService {
           { transaction },
         );
       }
+
+      await triggerAutoBaselineForRequirement(workspaceId, requirementId, actorId, { transaction });
 
       return formatAcceptanceCriterion(criterion);
     });
@@ -426,6 +431,9 @@ export class RequirementService {
     }
 
     await requirement.save();
+    if (requirement.status === 'active') {
+      await triggerAutoBaselineForRequirement(workspaceId, requirement.id, actorId);
+    }
     return formatRequirement(requirement);
   }
 
@@ -516,6 +524,8 @@ export class RequirementService {
         include: [{ model: RequirementModel, as: 'requirement' }],
         transaction,
       });
+
+      await triggerAutoBaselineForRequirement(workspaceId, requirementId, actorId, { transaction });
 
       return formatLink(loaded!);
     });

@@ -23,6 +23,9 @@ import {
   listTestCaseVersionAcceptanceCriteria,
   listQaTestCycles,
   createQaTestCycle,
+  validateTestCaseScope,
+  deleteTestCase,
+  remindPo,
 } from './testManagementController.js';
 
 export const testManagementRoutes = Router({ mergeParams: true });
@@ -38,6 +41,11 @@ testManagementRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/qa-workflow-summary',
   requireWorkspaceMember(['qa']),
   getQaWorkflowSummary,
+);
+testManagementRoutes.post(
+  '/workspaces/:workspaceId/features/:featureTaskId/remind-po',
+  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  remindPo,
 );
 
 testManagementRoutes.get(
@@ -77,6 +85,11 @@ testManagementRoutes.get(
   requireWorkspaceMember(),
   getTestCaseImportErrorsCsv,
 );
+testManagementRoutes.post(
+  '/workspaces/:workspaceId/test-cases/validate-scope',
+  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  validateTestCaseScope,
+);
 
 // Test Case CRUD routes
 testManagementRoutes.get(
@@ -93,6 +106,11 @@ testManagementRoutes.get(
   '/workspaces/:workspaceId/test-cases/:testCaseId',
   requireWorkspaceMember(),
   getTestCase,
+);
+testManagementRoutes.delete(
+  '/workspaces/:workspaceId/test-cases/:testCaseId',
+  requireWorkspaceMember(['owner', 'admin', 'po', 'qa']),
+  deleteTestCase,
 );
 testManagementRoutes.get(
   '/workspaces/:workspaceId/test-cases/:testCaseId/versions',

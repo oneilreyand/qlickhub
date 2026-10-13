@@ -122,6 +122,7 @@ export const CreateTestCaseSchema = z.object({
   scenarioKind: TestCaseScenarioKindSchema.default('positive'),
   source: TestCaseSourceSchema.default('native'),
   requirementIds: z.array(z.string().uuid()).min(1).max(100),
+  qaSubtaskId: z.string().uuid().optional(),
 });
 export type CreateTestCaseInput = z.infer<typeof CreateTestCaseSchema>;
 
@@ -129,6 +130,7 @@ export const UpdateTestCaseSchema = z
   .object({
     workspaceId: z.string().uuid(),
     testCaseId: z.string().uuid(),
+    qaSubtaskId: z.string().uuid().optional(),
     externalReference: z.string().trim().max(100).nullable().optional(),
     title: NonBlankTextSchema.max(255).optional(),
     description: z.string().trim().max(10000).nullable().optional(),
@@ -143,7 +145,8 @@ export const UpdateTestCaseSchema = z
     requirementIds: z.array(z.string().uuid()).min(1).max(100).optional(),
   })
   .refine(
-    (value) => Object.keys(value).some((key) => !['workspaceId', 'testCaseId'].includes(key)),
+    (value) =>
+      Object.keys(value).some((key) => !['workspaceId', 'testCaseId', 'qaSubtaskId'].includes(key)),
     { message: 'At least one Test Case field must be provided for update.' },
   );
 export type UpdateTestCaseInput = z.infer<typeof UpdateTestCaseSchema>;
@@ -254,6 +257,7 @@ export const QaTestCycleSchema = z.object({
 export type QaTestCycle = z.infer<typeof QaTestCycleSchema>;
 
 export const QaWorkflowBlockerCodeSchema = z.enum([
+  'feature_baseline_missing',
   'qa_test_cycle_missing',
   'scoped_run_in_progress',
   'scoped_result_missing',
@@ -265,6 +269,7 @@ export const QaWorkflowBlockerCodeSchema = z.enum([
 export type QaWorkflowBlockerCode = z.infer<typeof QaWorkflowBlockerCodeSchema>;
 
 export const QaWorkflowNextActionCodeSchema = z.enum([
+  'await_baseline',
   'create_test_cycle',
   'execute_test_cases',
   'record_test_result',
@@ -283,6 +288,8 @@ export const QaWorkflowSummarySchema = z.object({
   qaSubtaskStatus: z.string().min(1).max(50),
   testCycle: QaTestCycleSchema.nullable(),
   blockers: z.array(QaWorkflowBlockerCodeSchema),
+  blockerReason: z.string().nullable().optional(),
+  isBaselineSuperseded: z.boolean().default(false).optional(),
   nextAction: z.object({
     code: QaWorkflowNextActionCodeSchema,
     label: NonBlankTextSchema.max(120),
@@ -294,8 +301,25 @@ export const TaskTestCaseExecutionSchema = z.object({
   testCase: TestCaseSchema,
   latestRun: TestRunSchema.nullable(),
   testRuns: z.array(TestRunSchema),
+  latestVersionId: z.string().uuid().optional(),
+  needsRetest: z.boolean().optional(),
 });
 export type TaskTestCaseExecution = z.infer<typeof TaskTestCaseExecutionSchema>;
+
+export const ValidateTestCaseScopeSchema = z.object({
+  workspaceId: z.string().uuid(),
+  qaSubtaskId: z.string().uuid().optional(),
+  requirementIds: z.array(z.string().uuid()).min(1).max(100),
+});
+export type ValidateTestCaseScopeInput = z.infer<typeof ValidateTestCaseScopeSchema>;
+
+export const TestCaseScopeValidationResultSchema = z.object({
+  valid: z.boolean(),
+  errors: z.array(z.string()),
+  missingRequirementIds: z.array(z.string().uuid()),
+  featureTaskId: z.string().uuid().nullable(),
+});
+export type TestCaseScopeValidationResult = z.infer<typeof TestCaseScopeValidationResultSchema>;
 
 export const TaskTestExecutionWorkspaceSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -512,6 +536,7 @@ export const CommitTestCaseImportSchema = z.object({
   mode: TestCaseImportModeSchema.default('create_only'),
   sheetName: z.string().trim().optional(),
   columnMapping: z.record(z.string()).optional(),
+  qaSubtaskId: z.string().uuid().optional(),
 });
 export type CommitTestCaseImportInput = z.infer<typeof CommitTestCaseImportSchema>;
 
@@ -558,3 +583,16 @@ export const TestCaseImportAuditSchema = z.object({
   completedAt: z.string().datetime().nullable(),
 });
 export type TestCaseImportAudit = z.infer<typeof TestCaseImportAuditSchema>;
+
+export const RemindPoSchema = z.object({
+  workspaceId: z.string().uuid(),
+  featureTaskId: z.string().uuid(),
+});
+export type RemindPoInput = z.infer<typeof RemindPoSchema>;
+
+export const RemindPoResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  remindedAt: z.string(),
+});
+export type RemindPoResponse = z.infer<typeof RemindPoResponseSchema>;
