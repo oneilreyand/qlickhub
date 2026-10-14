@@ -1,6 +1,6 @@
 # RELEASE-DEADLOCK-A1-A2 — Tahap 5: Test & Review
 
-**Status:** Menunggu persetujuan
+**Status:** Accepted
 **Gerbang:** G5 — CI `verify` (mencakup seluruh AC Phase 1) dan review Owner
 **Applicable Policy IDs:** AI-003, AI-004, AI-008, AI-010, TEST-001, DOC-005
 
