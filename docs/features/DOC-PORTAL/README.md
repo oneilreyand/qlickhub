@@ -15,16 +15,16 @@
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal  | Catatan                         |
-| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------- | ------------------------------- |
-| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | reyand (Owner) 2026-10-14 | Portal lokal; ratchet baseline  |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | reyand (Owner) 2026-10-14 | Opsi A; ADR baru di Phase 2     |
-| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | reyand (Owner) 2026-10-14 | Format Layer + lokasi UX matrix |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | reyand (Owner) 2026-10-14 | Jalur: Penuh; 3 phase           |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | reyand (Owner) 2026-10-14 | bagian G2                       |
-| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                         | Phase 1 kandidat teruji         |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Draft       | G5              | —                         | Verifier: —                     |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                         |                                 |
+| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal  | Catatan                          |
+| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------- | -------------------------------- |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | reyand (Owner) 2026-10-14 | Portal lokal; ratchet baseline   |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | reyand (Owner) 2026-10-14 | Opsi A; ADR baru di Phase 2      |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | reyand (Owner) 2026-10-14 | Format Layer + lokasi UX matrix  |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | reyand (Owner) 2026-10-14 | Jalur: Penuh; 3 phase            |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | reyand (Owner) 2026-10-14 | bagian G2                        |
+| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                         | P1 merge #43; P2 kandidat teruji |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Draft       | G5              | —                         | Verifier: —                      |
+| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                         |                                  |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 (Ini terpisah dari **Status** kartu di atas, yang tetap `Draft` / `Active` / `Superseded` / `Archived`.)

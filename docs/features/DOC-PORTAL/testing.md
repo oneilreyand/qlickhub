@@ -9,28 +9,30 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT. Feature ini tidak menyimpan data, s
 
 ## 1. Matriks AC → bukti
 
-| AC                             | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI                                      | API/PostgreSQL | UAT/runtime                  | Status      |
-| ------------------------------ | ----- | ---------------- | -------------- | -------------------------------------------- | -------------- | ---------------------------- | ----------- |
-| AC-1.1                         | P1    | E2               | E2             | `extract.test.mjs` AC-1.1                    | —              | `docs:extract` pada repo ini | Lulus lokal |
-| AC-1.2                         | P1    | E2 + E1          | E2 + E1        | fixture + `project.test.mjs` (24 endpoint)   | —              | —                            | Lulus lokal |
-| AC-1.3                         | P1    | E2               | E2             | fixture + 58 model = 58 file                 | —              | —                            | Lulus lokal |
-| AC-1.4                         | P1    | E2               | E2             | fixture + versi = `package.json`             | —              | —                            | Lulus lokal |
-| AC-1.5                         | P1    | E2               | E2             | determinisme + tanpa jaringan/DB             | —              | —                            | Lulus lokal |
-| AC-4.1                         | P1    | E4               | E2 + E4        | `portal.test.mjs` (Beranda, Fitur, filter)   | —              | Screenshot desktop repo ini  | Lulus lokal |
-| AC-4.3                         | P1    | E2               | E2             | `portal.test.mjs` state empty                | —              | —                            | Lulus lokal |
-| AC-4.4                         | P1    | E2               | E2             | `portal.test.mjs` file rusak + schemaVersion | —              | —                            | Lulus lokal |
-| AC-2.x                         | P2    | E2               | —              | —                                            | —              | —                            | Planned     |
-| AC-3.x                         | P2    | E2               | —              | —                                            | —              | —                            | Planned     |
-| AC-4.2, AC-4.5, AC-5.x, AC-6.1 | P3    | E2/E4            | —              | —                                            | —              | —                            | Planned     |
+| AC                             | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI                                             | API/PostgreSQL | UAT/runtime                       | Status      |
+| ------------------------------ | ----- | ---------------- | -------------- | --------------------------------------------------- | -------------- | --------------------------------- | ----------- |
+| AC-1.1                         | P1    | E2               | E2             | `extract.test.mjs` AC-1.1                           | —              | `docs:extract` pada repo ini      | Lulus lokal |
+| AC-1.2                         | P1    | E2 + E1          | E2 + E1        | fixture + `project.test.mjs` (24 endpoint)          | —              | —                                 | Lulus lokal |
+| AC-1.3                         | P1    | E2               | E2             | fixture + 58 model = 58 file                        | —              | —                                 | Lulus lokal |
+| AC-1.4                         | P1    | E2               | E2             | fixture + versi = `package.json`                    | —              | —                                 | Lulus lokal |
+| AC-1.5                         | P1    | E2               | E2             | determinisme + tanpa jaringan/DB                    | —              | —                                 | Lulus lokal |
+| AC-4.1                         | P1    | E4               | E2 + E4        | `portal.test.mjs` (Beranda, Fitur, filter)          | —              | Screenshot desktop repo ini       | Lulus lokal |
+| AC-4.3                         | P1    | E2               | E2             | `portal.test.mjs` state empty                       | —              | —                                 | Lulus lokal |
+| AC-4.4                         | P1    | E2               | E2             | `portal.test.mjs` file rusak + schemaVersion        | —              | —                                 | Lulus lokal |
+| AC-2.1–2.5                     | P2    | E2               | E2             | `completeness.test.mjs` (fixture per rule)          | —              | `docs:completeness` pada repo ini | Lulus lokal |
+| AC-3.1–3.4                     | P2    | E2               | E2             | `completeness.test.mjs` (ratchet, CLI, mode report) | —              | simulasi gap baru → exit 1        | Lulus lokal |
+| AC-3.5                         | P2    | E2               | E2 (lokal)     | `validate` memuat `docs:completeness`               | —              | CI `verify` PR Phase 2            | Menunggu CI |
+| AC-4.2, AC-4.5, AC-5.x, AC-6.1 | P3    | E2/E4            | —              | —                                                   | —              | —                                 | Planned     |
 
 ## 2. Outcome pemeriksaan
 
-| Perintah / observasi                                                     | Environment              | Exit code | Pass / fail / skip / warn   | AC                     | Outcome | Tindak lanjut                   |
-| ------------------------------------------------------------------------ | ------------------------ | --------- | --------------------------- | ---------------------- | ------- | ------------------------------- |
-| `npm run docsys:test`                                                    | workspace cloud, Node 22 | 0         | 14 / 0 / 3 (browser)        | AC-1.1–1.5             | sukses  | —                               |
-| `node --test tools/docsys/__tests__/portal.test.mjs` + `DOCSYS_CHROMIUM` | workspace cloud          | 0         | 3 / 0 / 0                   | AC-4.1, AC-4.3, AC-4.4 | sukses  | —                               |
-| `npm run validate`                                                       | workspace cloud          | 0         | lulus, 15 warning lint lama | —                      | sukses  | —                               |
-| CI `verify` pada PR Phase 1                                              | GitHub Actions           | —         | —                           | semua P1               | belum   | Hasil dicatat setelah PR dibuat |
+| Perintah / observasi                                                     | Environment              | Exit code | Pass / fail / skip / warn                               | AC                     | Outcome | Tindak lanjut                   |
+| ------------------------------------------------------------------------ | ------------------------ | --------- | ------------------------------------------------------- | ---------------------- | ------- | ------------------------------- |
+| `npm run docsys:test`                                                    | workspace cloud, Node 22 | 0         | 14 / 0 / 3 (browser)                                    | AC-1.1–1.5             | sukses  | —                               |
+| `node --test tools/docsys/__tests__/portal.test.mjs` + `DOCSYS_CHROMIUM` | workspace cloud          | 0         | 3 / 0 / 0                                               | AC-4.1, AC-4.3, AC-4.4 | sukses  | —                               |
+| `npm run validate`                                                       | workspace cloud          | 0         | lulus, 15 warning lint lama                             | —                      | sukses  | —                               |
+| CI `verify` + `owner-gate` pada PR #43 (Phase 1)                         | GitHub Actions           | 0         | lulus (syarat merge ruleset `main`); di-merge `1d9d437` | semua P1               | sukses  | —                               |
+| CI `verify` pada PR Phase 2                                              | GitHub Actions           | —         | —                                                       | semua P2               | belum   | Hasil dicatat setelah PR dibuat |
 
 Kegagalan tidak dihapus dari tabel. Tindak lanjut: perbaiki & ulang, Bug, re-plan, atau Blocked.
 
@@ -54,8 +56,9 @@ Kegagalan tidak dihapus dari tabel. Tindak lanjut: perbaiki & ulang, Bug, re-pla
 
 ## 5. Hasil verifier
 
-| Phase | Verifier (bukan pelaksana)            | Bukti primer yang dicek ulang | Hasil       | AC terdampak / gap |
-| ----- | ------------------------------------- | ----------------------------- | ----------- | ------------------ |
-| P1    | CI `verify` + review Owner pada PR P1 | Diff, log CI, portal lokal    | Menunggu PR | —                  |
+| Phase | Verifier (bukan pelaksana)                      | Bukti primer yang dicek ulang      | Hasil                                  | AC terdampak / gap |
+| ----- | ----------------------------------------------- | ---------------------------------- | -------------------------------------- | ------------------ |
+| P1    | CI `verify` + `owner-gate` PR #43, review Owner | Diff, log CI, portal lokal         | Accepted (merge `1d9d437`, 2026-10-14) | —                  |
+| P2    | CI `verify` + review Owner pada PR P2           | Diff, log CI, laporan completeness | Menunggu PR                            | —                  |
 
 Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).

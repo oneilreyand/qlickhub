@@ -11,6 +11,10 @@ Completed work is preserved in:
 
 This file intentionally contains only unfinished work. New implementation tasks must be added here and claimed one at a time under `AGENTS.md`.
 
+Every open item carries one `Layer:` line (`DOC-006`, ratchet-checked by `npm run docs:completeness`):
+`Layer: PRD=Status, BE=Status, FE=Status` with `Todo`, `In progress`, `Done`, or `N/A` per layer.
+Items opened before 2026-10-14 are listed in `quality/doc-baseline.json` until their line is added.
+
 ## Product direction
 
 Use the existing root Task as the **Feature / Story** container. Do not add a separate Feature table unless a later verified use case requires it.
@@ -30,6 +34,8 @@ Workspace → Folder → Feature / Story (root Task)
 
 ## Active work
 
+- [ ] **In progress** (Claude — 2026-10-14) — **DOC-PORTAL: Portal dokumentasi lokal dan completeness check (ratchet) untuk qlickhub, disusun core + adapter agar bisa dipakai ulang.** Phase 1 (extractor + portal awal) di-merge lewat PR #43; Phase 2 (rule DS-R01–DS-R05, baseline, gate di `validate`, ADR-033/`DOC-006`) sedang berjalan. Folder: [DOC-PORTAL](docs/features/DOC-PORTAL/README.md). Policies: `DOC-004`, `DOC-005`, `DOC-006`, `SDLC-001`.
+      Layer: PRD=Done, BE=In progress, FE=In progress.
 - [ ] **In progress** (Claude — 2026-10-14) — **QA-DESK-SIMPLIFY: Baseline kesiapan otomatis dan siklus Test Case QA (auto-active, hapus 0 run, edit aktif).** PR #37 di-merge (`de50b69`), migrasi 085–088 dijalankan Owner di Production 2026-10-14. Sisa sebelum Done: smoke test Production sebagai QA. Folder: [QA-DESK-SIMPLIFY](docs/features/QA-DESK-SIMPLIFY/README.md); report: [rilis](docs/reports/QA_DESK_SIMPLIFY_RELEASE_2026-10-14.md). Policies: `FLOW-005`, `QA-001`, `AI-013`.
 - [ ] **In progress** (Claude — 2026-10-03) — **TIERED-AUTO-MERGE: Hapus merge manual untuk pull request agent yang rutin; Tier 1 ter-merge otomatis setelah CI hijau, Tier 2 menunggu label `owner-approved` dari Owner.** Implementasi (ADR-028, `AI-020`, workflow `owner-gate`, `scripts/checkTier.mjs`) siap di-review. Di-merge lewat PR #17 (`850d2a2`); ruleset `main` aktif dengan check `verify` + `owner-gate`; perilaku Tier 2 (blokir tanpa label, label dicopot saat commit baru) terbukti di PR #17. Sisa sebelum Done: satu PR Tier 1 ter-merge otomatis tanpa klik Owner. D3 terkonfirmasi 2026-10-05: Vercel otomatis deploy `main` ke Production. Plan: [TIERED_AUTO_MERGE_PLAN](docs/plans/TIERED_AUTO_MERGE_PLAN.md); report: [TIERED_AUTO_MERGE_2026-10-03](docs/reports/TIERED_AUTO_MERGE_2026-10-03.md). Policies: `AI-013`, `AI-020`, `DOC-002`, `DOC-004`.
 
