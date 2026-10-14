@@ -39,7 +39,7 @@ describe('readiness gate evaluator (AGY-5.2)', () => {
       [
         'requirement_coverage',
         'latest_test_results',
-        'critical_high_bugs',
+        'unverified_bugs',
         'development_completion',
         'qa_sign_off',
       ],
@@ -75,7 +75,7 @@ describe('readiness gate evaluator (AGY-5.2)', () => {
     assert.deepStrictEqual(result.failedGateCodes, [
       'requirement_coverage',
       'latest_test_results',
-      'critical_high_bugs',
+      'unverified_bugs',
       'development_completion',
       'qa_sign_off',
     ]);
@@ -84,11 +84,26 @@ describe('readiness gate evaluator (AGY-5.2)', () => {
       [
         '1/2 linked requirements are covered by active test cases.',
         'Latest results: 1/3 passed, 1 failed, 0 blocked, 1 skipped, 0 unexecuted.',
-        '2 unverified Critical or High bugs remain.',
+        '2 unverified bugs remain.',
         '1/2 development subtasks are complete.',
         'The latest QA Sign-off is rejected.',
       ],
     );
+  });
+
+  test('fails the bug gate for an unverified low-severity bug (ADR-031 D3, AC-3.1)', () => {
+    const result = evaluateReadinessGates({
+      ...readyFacts,
+      bugs: { ...readyFacts.bugs, total: 2, open: 1, criticalOrHighUnverified: 0 },
+    });
+
+    assert.strictEqual(result.ready, false);
+    assert.deepStrictEqual(result.failedGateCodes, ['unverified_bugs']);
+    assert.strictEqual(
+      result.gates.find((item) => item.code === 'unverified_bugs')?.reason,
+      '1 unverified bug remains.',
+    );
+    assert.ok(!result.gates.some((item) => item.code === 'critical_high_bugs'));
   });
 
   test('treats missing requirements, tests, development work, and QA Sign-off as failed readiness signals', () => {

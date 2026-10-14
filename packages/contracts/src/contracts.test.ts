@@ -1859,6 +1859,23 @@ describe('Contracts Validation Suite', () => {
           'qa_sign_off',
         ],
       );
+      // ADR-031 D3 (AC-3.2): stored `critical_high_bugs` stays valid; new `unverified_bugs` parses too.
+      const withUnverifiedBugsGate = {
+        ...readinessSnapshotV3,
+        evaluation: {
+          ...readinessSnapshotV3.evaluation,
+          gates: readinessSnapshotV3.evaluation.gates.map((gate) =>
+            gate.code === 'critical_high_bugs'
+              ? { ...gate, code: 'unverified_bugs' as const, label: 'Unverified bugs' }
+              : gate,
+          ),
+        },
+      };
+      assert.ok(
+        ReadinessSnapshotV3Schema.parse(withUnverifiedBugsGate).evaluation.gates.some(
+          (gate) => gate.code === 'unverified_bugs',
+        ),
+      );
       const parsedV3 = ReadinessSnapshotV3Schema.parse(readinessSnapshotV3);
       assert.strictEqual(parsedV3.evidenceScope.candidateFingerprint, 'commit:checkout-release-1');
 

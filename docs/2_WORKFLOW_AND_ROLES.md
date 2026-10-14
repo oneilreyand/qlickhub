@@ -367,7 +367,7 @@ graph TD
     subgraph DataDerivation["1. Backend Readiness Derivation"]
         ReqCoverage["Acceptance-Criterion Coverage (% teruji)"]
         TestPassRate["Test Pass Rate (% sukses)"]
-        OpenBugs["Zero Unresolved Critical/High Bugs + Retest Evidence"]
+        OpenBugs["Zero Unverified Bugs (all severities) + Retest Evidence"]
         Evidence["Sealed, previewable Evidence Manifest"]
         ReqCoverage --> Calc["Backend Derived Readiness Snapshot"]
         TestPassRate --> Calc

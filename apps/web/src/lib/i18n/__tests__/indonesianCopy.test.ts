@@ -14,6 +14,7 @@ describe('getIndonesianReleaseGateCopy', () => {
     ['requirement_coverage', 'Cakupan Requirement'],
     ['latest_test_results', 'Hasil Pengujian terbaru'],
     ['critical_high_bugs', 'Bug kritis/tinggi'],
+    ['unverified_bugs', 'Bug belum terverifikasi'],
     ['development_completion', 'Penyelesaian pengembangan'],
     ['qa_sign_off', 'Persetujuan QA'],
   ] as const)('menerjemahkan label gate %s', (code, label) => {
@@ -63,6 +64,13 @@ describe('getIndonesianReleaseGateCopy', () => {
       '2 unverified Critical or High bugs remain.',
       'Masih ada 2 Bug kritis atau tinggi yang belum diverifikasi.',
     ],
+    [
+      'unverified_bugs',
+      'No unverified bugs are linked to this Feature / Story.',
+      'Tidak ada Bug yang belum diverifikasi pada Feature / Story ini.',
+    ],
+    ['unverified_bugs', '1 unverified bug remains.', 'Masih ada 1 Bug yang belum diverifikasi.'],
+    ['unverified_bugs', '3 unverified bugs remain.', 'Masih ada 3 Bug yang belum diverifikasi.'],
     [
       'development_completion',
       'No development subtasks are linked to this Feature / Story.',

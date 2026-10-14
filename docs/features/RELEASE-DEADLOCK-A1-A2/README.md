@@ -14,16 +14,16 @@
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status               | Gerbang         | Disetujui oleh / tanggal  | Catatan                            |
-| ----------------- | -------------------------------------------------------------------------------------- | -------------------- | --------------- | ------------------------- | ---------------------------------- |
-| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui            | G0              | reyand (Owner) 2026-10-13 |                                    |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui            | G1              | reyand (Owner) 2026-10-13 | ADR untuk A2 dibuat di Phase 2     |
-| 2 PRD             | [product.md](product.md)                                                               | Disetujui            | G2              | reyand (Owner) 2026-10-13 |                                    |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui            | G3              | reyand (Owner) 2026-10-13 | Jalur: Standar (P1 5/16, P2 6/16)  |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui            | bagian G2       | reyand (Owner) 2026-10-13 | file yang sudah ada di `_template` |
-| 4 Build           | [phases/](phases/)                                                                     | Selesai              | dalam window G3 | reyand (Owner) 2026-10-13 | Phase 1 selesai; Phase 2 belum     |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Menunggu persetujuan | G5              | —                         | Verifier: CI verify                |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai          | G6              | —                         |                                    |
+| Tahap             | Dokumen                                                                                | Status               | Gerbang         | Disetujui oleh / tanggal  | Catatan                                                   |
+| ----------------- | -------------------------------------------------------------------------------------- | -------------------- | --------------- | ------------------------- | --------------------------------------------------------- |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui            | G0              | reyand (Owner) 2026-10-13 |                                                           |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui            | G1              | reyand (Owner) 2026-10-13 | ADR untuk A2 dibuat di Phase 2                            |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui            | G2              | reyand (Owner) 2026-10-13 |                                                           |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui            | G3              | reyand (Owner) 2026-10-13 | Jalur: Standar (P1 5/16, P2 6/16)                         |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui            | bagian G2       | reyand (Owner) 2026-10-13 | file yang sudah ada di `_template`                        |
+| 4 Build           | [phases/](phases/)                                                                     | Selesai              | dalam window G3 | reyand (Owner) 2026-10-13 | Phase 1 selesai; Phase 2 kandidat teruji, menunggu window |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Menunggu persetujuan | G5              | —                         | Verifier: CI verify                                       |
+| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai          | G6              | —                         |                                                           |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 (Ini terpisah dari **Status** kartu di atas, yang tetap `Draft` / `Active` / `Superseded` / `Archived`.)

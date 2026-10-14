@@ -22,6 +22,7 @@ const releaseGateLabels: Record<ReadinessGate['code'], string> = {
   requirement_coverage: 'Cakupan Requirement',
   latest_test_results: 'Hasil Pengujian terbaru',
   critical_high_bugs: 'Bug kritis/tinggi',
+  unverified_bugs: 'Bug belum terverifikasi',
   development_completion: 'Penyelesaian pengembangan',
   qa_sign_off: 'Persetujuan QA',
 };
@@ -86,6 +87,21 @@ export function getIndonesianReleaseGateCopy(gate: ReadinessGate): {
       gate.reason,
       /^(\d+) unverified Critical or High bugs remain\.$/,
       'Masih ada $1 Bug kritis atau tinggi yang belum diverifikasi.',
+    ),
+    replaceReason(
+      gate.reason,
+      /^No unverified bugs are linked to this Feature \/ Story\.$/,
+      'Tidak ada Bug yang belum diverifikasi pada Feature / Story ini.',
+    ),
+    replaceReason(
+      gate.reason,
+      /^1 unverified bug remains\.$/,
+      'Masih ada 1 Bug yang belum diverifikasi.',
+    ),
+    replaceReason(
+      gate.reason,
+      /^(\d+) unverified bugs remain\.$/,
+      'Masih ada $1 Bug yang belum diverifikasi.',
     ),
     replaceReason(
       gate.reason,
