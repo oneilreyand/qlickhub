@@ -5,6 +5,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extract } from './core/extract.mjs';
+import { RULES } from './core/rules.mjs';
 import {
   emptyBaseline,
   evaluate,
@@ -13,7 +14,7 @@ import {
   summarize,
 } from './core/completeness.mjs';
 
-// docsys CLI (DOC-PORTAL, ADR-033)
+// docsys CLI
 //   node tools/docsys/cli.mjs extract [--root <dir>] [--config <file>]
 //   node tools/docsys/cli.mjs portal  [--root <dir>] [--port 4310] [--build]
 //   node tools/docsys/cli.mjs completeness [--root <dir>]        (DOCSYS_MODE=report: never blocks)
@@ -57,6 +58,17 @@ function runExtract(opts) {
   const config = loadConfig(opts.root, opts.config);
   const started = Date.now();
   const data = extract({ root: opts.root, config });
+  // The portal shows documentation gaps, so the latest completeness result travels with the data.
+  const result = evaluate(data, config, readBaseline(baselinePath(opts.root, config)));
+  const added = new Set(result.added.map((item) => `${item.rule} ${item.key}`));
+  data.completeness = {
+    rules: RULES.map((rule) => ({ id: rule.id, title: rule.title })),
+    summary: summarize(result),
+    gaps: result.gaps.map((item) => ({
+      ...item,
+      status: added.has(`${item.rule} ${item.key}`) ? 'new' : 'known',
+    })),
+  };
   const directory = outputDir(opts.root, config);
   fs.mkdirSync(directory, { recursive: true });
   const target = path.join(directory, 'docs-data.json');
@@ -115,6 +127,8 @@ function runCompleteness(opts) {
   const result = evaluate(data, config, readBaseline(file));
   const summary = summarize(result);
   const reportMode = process.env.DOCSYS_MODE === 'report';
+  const policy = config.completeness?.policyLabel ?? '';
+  const exception = config.completeness?.exceptionHint ?? '';
   writeJson(path.join(outputDir(opts.root, config), 'report.json'), {
     meta: { commit: data.meta.commit, generatedAt: data.meta.generatedAt, reportMode },
     summary,
@@ -128,16 +142,14 @@ function runCompleteness(opts) {
   console.log(
     `docsys completeness: ${summary.total} gap (${rules || 'tidak ada'}); ${summary.known} sudah di baseline, ${summary.added} baru, ${summary.resolved} sudah beres.`,
   );
-  printGaps('Gap BARU (tidak ada di baseline, DOC-006):', result.added);
+  printGaps(`Gap BARU (tidak ada di baseline${policy ? `, ${policy}` : ''}):`, result.added);
   if (summary.resolved) {
     console.log(
       `docsys: ${summary.resolved} entri baseline sudah beres — jalankan \`npm run docs:baseline -- --shrink\`.`,
     );
   }
   if (summary.added && !reportMode) {
-    console.error(
-      'docsys: gagal — lengkapi dokumen di atas. Pengecualian hanya lewat entri baseline (PR Tier 2, owner-approved).',
-    );
+    console.error(`docsys: gagal — lengkapi dokumen di atas.${exception ? ` ${exception}` : ''}`);
     process.exitCode = 1;
   } else if (summary.added) {
     console.log('docsys: DOCSYS_MODE=report — gap baru tidak memblokir. Catat alasannya di PR.');

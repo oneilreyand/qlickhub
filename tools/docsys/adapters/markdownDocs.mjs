@@ -236,7 +236,7 @@ function uxMatrix(root, file, criteria) {
       role: stripMarkdown(row.cells[0]),
       flow: stripMarkdown(row.cells[1]),
       scores: Object.fromEntries(
-        row.header.slice(2).map((name, index) => [name, row.cells[index + 2] ?? '']),
+        row.header.slice(2).map((name, index) => [name, stripMarkdown(row.cells[index + 2] ?? '')]),
       ),
     }));
   return { source: file, criteria, rows };

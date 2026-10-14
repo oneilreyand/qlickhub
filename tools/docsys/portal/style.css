@@ -496,3 +496,115 @@ pre.code {
     padding: 18px 16px;
   }
 }
+
+/* Phase 3 */
+.badge {
+  display: inline-flex;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+.nav-links a[aria-current='page'] .badge {
+  background: #fff;
+  color: var(--ink);
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #d4d1c8;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 13px;
+}
+.pill[aria-current='page'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.ent {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #d4d1c8;
+  background: var(--rail);
+  color: var(--ink);
+  text-decoration: none;
+}
+.ent:hover {
+  border-color: var(--accent);
+}
+.ent[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.bar-row > span:first-child {
+  flex: 0 0 45%;
+}
+.bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line-2);
+  overflow: hidden;
+  display: flex;
+}
+.bar > span {
+  background: var(--accent);
+  border-radius: 4px;
+}
+.bar-row .mono {
+  flex: 0 0 28px;
+  text-align: right;
+  font-size: 13px;
+}
+.hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hits a {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.hits a:hover {
+  border-color: var(--accent);
+}
+.ent {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.stack-card .chips {
+  min-width: 0;
+}

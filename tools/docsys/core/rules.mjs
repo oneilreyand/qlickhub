@@ -1,5 +1,5 @@
 /**
- * Completeness rules (DOC-006, ADR-033). Each rule turns docs data into gaps:
+ * Completeness rules. Each rule turns docs data into gaps:
  * { rule, key, file, message, fix }. `key` is stable so a gap can be stored in the baseline.
  * Rules are enabled per project with `config.completeness.rules` (default: all).
  */
