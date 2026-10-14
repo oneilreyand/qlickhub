@@ -1,0 +1,109 @@
+{
+  "project": {
+    "name": "Qlick Hub",
+    "tagline": "QA-Native Work Hub"
+  },
+  "output": ".docsys",
+  "adapters": ["package-json", "express-routes", "zod-contracts", "sequelize-models", "markdown"],
+  "stack": {
+    "manifests": ["package.json", "apps/*/package.json", "packages/*/package.json"],
+    "nodeVersionFile": ".nvmrc",
+    "workflows": ".github/workflows/*.yml",
+    "groups": [
+      {
+        "id": "frontend",
+        "name": "Frontend",
+        "manifest": "apps/web/package.json",
+        "packages": [
+          "react",
+          "vite",
+          "tailwindcss",
+          { "name": "@reduxjs/toolkit", "label": "Redux Toolkit" },
+          { "name": "react-router-dom", "label": "React Router" },
+          { "name": "firebase", "label": "Firebase (push)" }
+        ]
+      },
+      {
+        "id": "backend",
+        "name": "Backend",
+        "manifest": "apps/api/package.json",
+        "packages": [
+          "express",
+          { "name": "sequelize", "label": "Sequelize ORM" },
+          { "name": "pg", "label": "PostgreSQL (pg)" },
+          "zod",
+          { "name": "firebase-admin", "label": "Firebase Admin" },
+          { "name": "googleapis", "label": "Google Drive API" },
+          { "name": "@upstash/redis", "label": "Upstash Redis" }
+        ]
+      },
+      {
+        "id": "contracts",
+        "name": "Kontrak bersama",
+        "manifest": "packages/contracts/package.json",
+        "packages": ["zod", "typescript"]
+      },
+      {
+        "id": "qa",
+        "name": "QA & testing",
+        "manifest": "apps/web/package.json",
+        "packages": [
+          "vitest",
+          { "name": "@testing-library/react", "label": "Testing Library" },
+          { "name": "@playwright/test", "label": "Playwright (e2e)" }
+        ]
+      },
+      {
+        "id": "tooling",
+        "name": "Tooling repo",
+        "manifest": "package.json",
+        "packages": ["typescript", "eslint", "prettier", "husky", "lint-staged"]
+      }
+    ]
+  },
+  "routes": {
+    "app": "apps/api/src/app.ts",
+    "include": ["apps/api/src/modules/**/*.ts"],
+    "exclude": ["**/__tests__/**", "**/*.test.ts"]
+  },
+  "contracts": {
+    "include": ["packages/contracts/src/*.ts"],
+    "exclude": ["**/*.test.ts"]
+  },
+  "models": {
+    "include": ["apps/api/src/db/models/*.ts"],
+    "exclude": ["**/__tests__/**", "**/index.ts", "**/associations.ts"],
+    "associations": ["apps/api/src/db/models/associations/*Associations.ts"]
+  },
+  "markdown": {
+    "features": {
+      "dir": "docs/features",
+      "catalog": "docs/features/FEATURE_CATALOG.md",
+      "navigationFiles": [
+        "README.md",
+        "FEATURE_TEMPLATE.md",
+        "FEATURE_CATALOG.md",
+        "ROLE_FLOWS.md"
+      ],
+      "ignoreFolders": ["_template"]
+    },
+    "policies": "docs/POLICY_REGISTRY.md",
+    "adrs": "docs/adr/ADR-*.md",
+    "todo": { "file": "TODO.md", "section": "Active work" },
+    "roleFlows": "docs/features/ROLE_FLOWS.md",
+    "uxMatrix": {
+      "file": "docs/ux/UX_MATRIX.md",
+      "criteria": [
+        "Jumlah langkah",
+        "Aksi berikutnya",
+        "Empty / error",
+        "Mobile 390px",
+        "Bahasa",
+        "Bukti e2e"
+      ]
+    }
+  },
+  "links": {
+    "stripPrefixes": ["/v1"]
+  }
+}

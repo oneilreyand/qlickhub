@@ -23,3 +23,6 @@ outputs/
 
 .DS_Store
 Claude outputs/
+
+# docsys generated data and portal build (DOC-PORTAL)
+.docsys/
