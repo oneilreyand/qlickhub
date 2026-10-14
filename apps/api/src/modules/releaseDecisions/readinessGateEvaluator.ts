@@ -39,12 +39,14 @@ export function evaluateReadinessGates(facts: ReadinessGateFacts): ReadinessEval
         ? `Latest results passed for all ${facts.testExecution.totalTestCases} active mapped test cases.`
         : `Latest results: ${facts.testExecution.passed}/${facts.testExecution.totalTestCases} passed, ${facts.testExecution.failed} failed, ${facts.testExecution.blocked} blocked, ${facts.testExecution.skipped} skipped, ${facts.testExecution.unexecuted} unexecuted.`;
 
-  const criticalHighClear = facts.bugs.criticalOrHighUnverified === 0;
-  const criticalHighReason = criticalHighClear
-    ? 'No unverified Critical or High bugs are linked to this Feature / Story.'
-    : facts.bugs.criticalOrHighUnverified === 1
-      ? '1 unverified Critical or High bug remains.'
-      : `${facts.bugs.criticalOrHighUnverified} unverified Critical or High bugs remain.`;
+  // ADR-031 D3: every linked Bug that is not `verified` blocks readiness, whatever its severity.
+  const unverifiedBugs = facts.bugs.total - facts.bugs.verified;
+  const bugsClear = unverifiedBugs === 0;
+  const bugsReason = bugsClear
+    ? 'No unverified bugs are linked to this Feature / Story.'
+    : unverifiedBugs === 1
+      ? '1 unverified bug remains.'
+      : `${unverifiedBugs} unverified bugs remain.`;
 
   const developmentComplete =
     facts.development.total > 0 && facts.development.completed === facts.development.total;
@@ -65,7 +67,7 @@ export function evaluateReadinessGates(facts: ReadinessGateFacts): ReadinessEval
   const gates: ReadinessGate[] = [
     gate('requirement_coverage', 'Requirement coverage', requirementsCovered, requirementReason),
     gate('latest_test_results', 'Latest Test Run results', latestTestsPassed, latestTestReason),
-    gate('critical_high_bugs', 'Critical/High bugs', criticalHighClear, criticalHighReason),
+    gate('unverified_bugs', 'Unverified bugs', bugsClear, bugsReason),
     gate(
       'development_completion',
       'Development completion',

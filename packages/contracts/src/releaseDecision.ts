@@ -12,7 +12,9 @@ export type ReleaseDecisionOutcome = z.infer<typeof ReleaseDecisionOutcomeSchema
 export const ReadinessGateCodeSchema = z.enum([
   'requirement_coverage',
   'latest_test_results',
+  // Kept so stored snapshots stay readable; new evaluations emit `unverified_bugs` (ADR-031 D3).
   'critical_high_bugs',
+  'unverified_bugs',
   'development_completion',
   'qa_sign_off',
 ]);

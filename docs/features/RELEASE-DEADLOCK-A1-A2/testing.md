@@ -45,3 +45,21 @@ Belum ada screenshot phone/tablet/desktop: perubahan hanya pada isi modal yang s
 ## 5. Hasil verifier
 
 Belum: menunggu CI `verify` pada PR.
+
+## 6. Phase 2 — Gate bug semua severity
+
+| AC     | Bukti dibutuhkan | Bukti tercapai | Sumber                                                                                                                                                                                                   |
+| ------ | ---------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-3.1 | E2 + E3          | E3             | `readinessGateEvaluator.test.ts` (bug `low` terbuka → hanya `unverified_bugs` gagal); `releaseRejectionApiIntegration.test.ts` (snapshot tersimpan memuat `unverified_bugs`, tanpa `critical_high_bugs`) |
+| AC-3.2 | E2               | E2             | `contracts.test.ts`: snapshot v2/v3 dengan `critical_high_bugs` tetap valid; v3 dengan `unverified_bugs` juga valid                                                                                      |
+| AC-3.3 | E2               | E2             | `indonesianCopy.test.ts`: label "Bug belum terverifikasi" dan tiga terjemahan alasan                                                                                                                     |
+
+| Perintah                                     | Environment                            | Exit | Hasil                    |
+| -------------------------------------------- | -------------------------------------- | ---- | ------------------------ |
+| `npm --prefix packages/contracts test`       | lokal                                  | 0    | 84 pass, 0 fail          |
+| `npm --prefix apps/api run test:integration` | PostgreSQL 16 disposable, migrasi 1–88 | 0    | 501 pass, 0 fail, 0 skip |
+| `npx vitest run` (apps/web)                  | jsdom                                  | 0    | 664 pass dalam 114 file  |
+
+Quality review Phase 2: kode `critical_high_bugs` tidak lagi dihasilkan tetapi tetap di kontrak dan label UI demi snapshot
+lama (disengaja, ADR-031 D3); field `criticalOrHighUnverified` tetap diisi di snapshot baru dan tidak dipakai gate
+(follow-up: putuskan apakah dipertahankan sebagai informasi).

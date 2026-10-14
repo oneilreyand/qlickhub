@@ -111,9 +111,9 @@ const SnapshotFacts: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) 
       </dd>
     </div>
     <div className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950/40">
-      <dt className="text-stone-500 dark:text-stone-400">Bug Tinggi/Kritis belum diverifikasi</dt>
+      <dt className="text-stone-500 dark:text-stone-400">Bug belum diverifikasi</dt>
       <dd className="mt-1 font-extrabold text-stone-900 dark:text-stone-100">
-        {snapshot.bugs.criticalOrHighUnverified}
+        {snapshot.bugs.total - snapshot.bugs.verified}
       </dd>
     </div>
   </dl>

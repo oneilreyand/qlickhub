@@ -533,6 +533,10 @@ describe('RELEASE-DEADLOCK-A1: QA rejection and PO rejection with failing eviden
     assert.ok(
       rejected.readinessSnapshot.evaluation.failedGateCodes.includes('latest_test_results'),
     );
+    // AC-3.1 (ADR-031 D3): the open low-severity Bug fails `unverified_bugs` in the persisted snapshot.
+    const persistedFailedCodes = rejected.readinessSnapshot.evaluation.failedGateCodes as string[];
+    assert.ok(persistedFailedCodes.includes('unverified_bugs'));
+    assert.ok(!persistedFailedCodes.includes('critical_high_bugs'));
     const persistedSignOff = await QaSignOffModel.findByPk(rejected.id);
     assert.strictEqual(persistedSignOff?.decision, 'rejected');
     assert.strictEqual((await TaskModel.findByPk(qaTask.id))?.status, 'in_progress');
