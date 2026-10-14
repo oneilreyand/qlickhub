@@ -48,6 +48,22 @@ jobs:
       - run: npm run sdlc:check -- --base "${SDLC_BASE_REF}"
         env:
           SDLC_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+      - name: Production migration notice
+        env:
+          MIGRATION_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "${MIGRATION_BASE_REF}" ] || [ -z "${MIGRATION_BASE_REF//0/}" ]; then exit 0; fi
+          added=$(git diff --name-only --diff-filter=A "${MIGRATION_BASE_REF}..HEAD" -- apps/api/src/db/migrations database/migrations)
+          if [ -n "$added" ]; then
+            echo "::warning title=Migrasi Production wajib sebelum merge::Merge ke main langsung deploy Production. Jalankan migrasi berikut di Production lebih dulu: $(echo $added | tr '\n' ' ')"
+            {
+              echo "### Migrasi baru — jalankan di Production sebelum merge"
+              echo
+              echo "$added" | sed 's/^/- /'
+              echo
+              echo "Langkah: docs/DEPLOYMENT_AND_ENVIRONMENTS.md §6. Merge ke \`main\` otomatis deploy Production."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
       - run: npm --prefix apps/api run typecheck
       - run: npm --prefix apps/web run typecheck
       - run: npm --prefix apps/api run db:migrate:test
