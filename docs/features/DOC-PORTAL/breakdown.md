@@ -18,8 +18,8 @@ flowchart LR
 
 | Phase | Tujuan (hasil yang bisa dilihat user)                                                                               | AC                                                    | WRA  | Bergantung pada | Tier PR    | Status      |
 | ----- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---- | --------------- | ---------- | ----------- |
-| P1    | `npm run docs:extract` + `npm run docs:portal` menampilkan Beranda & Stack serta Fitur & Kontrak API dari data asli | AC-1.1–1.5, AC-4.1 (2 halaman), AC-4.3, AC-4.4        | 5/16 | —               | Tier 1     | Berjalan    |
-| P2    | PR yang menambah gap baru jadi merah di CI; gap lama tercatat di baseline                                           | AC-2.1–2.5, AC-3.1–3.5                                | 7/16 | P1              | **Tier 2** | Belum mulai |
+| P1    | `npm run docs:extract` + `npm run docs:portal` menampilkan Beranda & Stack serta Fitur & Kontrak API dari data asli | AC-1.1–1.5, AC-4.1 (2 halaman), AC-4.3, AC-4.4        | 5/16 | —               | Tier 2     | Selesai     |
+| P2    | PR yang menambah gap baru jadi merah di CI; gap lama tercatat di baseline                                           | AC-2.1–2.5, AC-3.1–3.5                                | 7/16 | P1              | **Tier 2** | Berjalan    |
 | P3    | Enam halaman portal lengkap dengan badge gap, responsif, dan siap dibawa ke proyek lain                             | AC-4.1 (sisa), AC-4.2, AC-4.5, AC-5.1, AC-5.2, AC-6.1 | 3/16 | P2              | Tier 1     | Belum mulai |
 
 ## 2. Task per phase

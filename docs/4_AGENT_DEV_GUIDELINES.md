@@ -476,6 +476,13 @@ satu-file tetap sah dan tidak wajib dimigrasi kecuali Feature tersebut dikerjaka
   satu-file baru.
 - Pemeriksaan ini membuktikan bahwa gerbang **tercatat**; kebenaran isi dan persetujuan di chat tetap
   diverifikasi manusia atau verifikator sesuai §2A.F.
+- **Kelengkapan dokumen (`DOC-006`, [ADR-033](adr/ADR-033-DOCUMENTATION-COMPLETENESS-RATCHET.md)).**
+  `npm run docs:completeness` (bagian dari `validate`) menolak gap baru: endpoint yang tidak disebut di
+  dokumen fitur (`DS-R01`), model tanpa domain ERD (`DS-R02`), item TODO tanpa baris `Layer:`
+  (`DS-R03`), role tanpa baris UX matrix (`DS-R04`), dan fitur di luar katalog (`DS-R05`). Gap lama
+  tercatat di `quality/doc-baseline.json`; setelah membereskannya jalankan
+  `npm run docs:baseline -- --shrink`. Menambah entri baseline adalah pengecualian Tier 2. Portal
+  lokal: `npm run docs:extract && npm run docs:portal`.
 
 ---
 

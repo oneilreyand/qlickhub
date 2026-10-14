@@ -2,7 +2,7 @@
 
 **Status:** Active navigation index
 **Last reviewed:** 2026-09-30
-**Scope:** seluruh 33 Feature Card saat ini; bukan backlog, roadmap, atau source of truth policy.
+**Scope:** seluruh 33 Feature Card legacy dan Feature folder SDLC; bukan backlog, roadmap, atau source of truth policy.
 
 Gunakan katalog ini untuk menemukan Feature, lalu buka kartu sumbernya. Label area dan pembaca
 utama membantu navigasi saja; hak akses dan urutan kerja tetap mengikuti
@@ -79,6 +79,14 @@ utama membantu navigasi saja; hak akses dan urutan kerja tetap mengikuti
 | Feature                                               | Pembaca utama | Tujuan singkat                                | Status |
 | ----------------------------------------------------- | ------------- | --------------------------------------------- | ------ |
 | [AI Task Generator Modal](AI_TASK_GENERATOR_MODAL.md) | PO, Developer | Membantu membuat Feature dan Task melalui AI. | Active |
+
+## 6. Feature folder (SDLC)
+
+| Feature                                                    | Pembaca utama     | Tujuan singkat                                           | Status                    |
+| ---------------------------------------------------------- | ----------------- | -------------------------------------------------------- | ------------------------- |
+| [DOC-PORTAL](DOC-PORTAL/README.md)                         | Semua role        | Portal dokumentasi lokal dan completeness check dokumen. | Draft — Phase 2 berjalan  |
+| [QA-DESK-SIMPLIFY](QA-DESK-SIMPLIFY/README.md)             | QA, PO, Developer | Baseline kesiapan otomatis dan siklus Test Case QA.      | Draft — rilis, smoke test |
+| [RELEASE-DEADLOCK-A1-A2](RELEASE-DEADLOCK-A1-A2/README.md) | QA, PO            | Penolakan QA/PO saat gate evidence gagal dan gate Bug.   | Draft                     |
 
 ## Format Feature ke depan
 

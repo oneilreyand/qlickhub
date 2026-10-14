@@ -1,0 +1,655 @@
+{
+  "version": 1,
+  "gaps": [
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/auth/sessions-other",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:488"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/auth/sessions/:sessionId",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:500"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/notifications",
+      "file": "apps/api/src/modules/notifications/notificationRoutes.ts:39"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/notifications/:id",
+      "file": "apps/api/src/modules/notifications/notificationRoutes.ts:49"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/projects/:projectId/folders/:folderId",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:29"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/workspaces/:workspaceId/folders/:folderId",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:29"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/workspaces/:workspaceId/members/:memberUserId",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:67"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/workspaces/:workspaceId/task-creation-permissions/:targetUserId",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:84"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/workspaces/:workspaceId/tasks/:taskId",
+      "file": "apps/api/src/modules/tasks/taskRoutes.ts:17"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/workspaces/:workspaceId/tasks/:taskId/attachments/:attachmentId",
+      "file": "apps/api/src/modules/attachments/attachmentRoutes.ts:32"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/workspaces/:workspaceId/tasks/:taskId/documents/:documentId",
+      "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:70"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:DELETE /v1/workspaces/:workspaceId/tasks/:taskId/requirements/:requirementId",
+      "file": "apps/api/src/modules/requirements/requirementRoutes.ts:84"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /health",
+      "file": "apps/api/src/app.ts:42"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1",
+      "file": "apps/api/src/app.ts:58"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/auth/session",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:400"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/auth/sessions",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:482"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/health",
+      "file": "apps/api/src/app.ts:42"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/leader/digest",
+      "file": "apps/api/src/modules/leader/leaderRoutes.ts:17"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/leader/quality",
+      "file": "apps/api/src/modules/leader/leaderRoutes.ts:16"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/leader/timeline",
+      "file": "apps/api/src/modules/leader/leaderRoutes.ts:15"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/leader/workspaces",
+      "file": "apps/api/src/modules/leader/leaderRoutes.ts:14"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/notifications",
+      "file": "apps/api/src/modules/notifications/notificationRoutes.ts:34"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/projects/:projectId/folders",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:18"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/projects/:projectId/folders/tree",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:19"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:32"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/activities",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:43"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/bugs",
+      "file": "apps/api/src/modules/bugs/bugRoutes.ts:21"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/bugs/:bugId",
+      "file": "apps/api/src/modules/bugs/bugRoutes.ts:27"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/bugs/:bugId/activity",
+      "file": "apps/api/src/modules/bugs/bugRoutes.ts:58"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/documents",
+      "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:21"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/documents/:documentId",
+      "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:27"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings",
+      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:36"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/features/:featureTaskId/release-records",
+      "file": "apps/api/src/modules/releaseDecisions/releaseDecisionRoutes.ts:23"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/folders",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:18"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/folders/tree",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:19"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/qa-sandbox/qris/transactions/:transactionId",
+      "file": "apps/api/src/modules/qrisSandbox/qrisSandboxRoutes.ts:18"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/realtime-stream",
+      "file": "apps/api/src/modules/realtime/realtimeRoutes.ts:12"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/release-readiness",
+      "file": "apps/api/src/modules/releaseDecisions/releaseDecisionRoutes.ts:17"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/requirements",
+      "file": "apps/api/src/modules/requirements/requirementRoutes.ts:23"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/requirements/:requirementId/test-cases",
+      "file": "apps/api/src/modules/traceability/traceabilityRoutes.ts:30"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/task-creation-permissions",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:74"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId",
+      "file": "apps/api/src/modules/tasks/taskRoutes.ts:16"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/activity",
+      "file": "apps/api/src/modules/tasks/taskRoutes.ts:22"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/attachments",
+      "file": "apps/api/src/modules/attachments/attachmentRoutes.ts:16"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/attachments/:attachmentId/download",
+      "file": "apps/api/src/modules/attachments/attachmentRoutes.ts:27"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/comments",
+      "file": "apps/api/src/modules/tasks/taskRoutes.ts:24"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/delivery-trace",
+      "file": "apps/api/src/modules/traceability/traceabilityRoutes.ts:23"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/documents",
+      "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:58"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/requirements",
+      "file": "apps/api/src/modules/requirements/requirementRoutes.ts:66"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/test-executions",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:35"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/:testCaseId/activity",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:157"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/:testCaseId/runs",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:137"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/:testCaseId/versions",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:115"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/:testCaseId/versions/:testCaseVersionId/acceptance-criteria",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:125"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/import/audits",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:78"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/import/audits/:importId/errors",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:83"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/template",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:63"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:GET /v1/workspaces/:workspaceId/traceability",
+      "file": "apps/api/src/modules/traceability/traceabilityRoutes.ts:17"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/auth/profile",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:254"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/notifications/:id/read",
+      "file": "apps/api/src/modules/notifications/notificationRoutes.ts:44"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/projects/:projectId/folders/:folderId",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:25"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/projects/:projectId/folders/:folderId/move",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:27"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/bugs/:bugId",
+      "file": "apps/api/src/modules/bugs/bugRoutes.ts:28"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/folders/:folderId",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:25"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/folders/:folderId/move",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:27"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/members/:memberUserId",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:62"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/requirement-test-cases/:testCaseId",
+      "file": "apps/api/src/modules/traceability/traceabilityRoutes.ts:48"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/requirements/:requirementId/test-cases/:testCaseId",
+      "file": "apps/api/src/modules/traceability/traceabilityRoutes.ts:42"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/tasks/:taskId",
+      "file": "apps/api/src/modules/tasks/taskRoutes.ts:29"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/tasks/:taskId/status",
+      "file": "apps/api/src/modules/tasks/taskRoutes.ts:30"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/auth/forgot-password",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:105"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/auth/login",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:59"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/auth/logout",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:514"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/auth/onboarding/complete",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:411"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/auth/onboarding/reset",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:435"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/auth/refresh",
+      "file": "apps/api/src/modules/auth/auth.routes.ts:458"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/notifications/check-deadlines",
+      "file": "apps/api/src/modules/notifications/notificationRoutes.ts:20"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/notifications/read-all",
+      "file": "apps/api/src/modules/notifications/notificationRoutes.ts:29"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/projects/:projectId/folders",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:24"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/projects/:projectId/folders/:folderId/archive",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:28"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:33"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/ai/chat-refinement",
+      "file": "apps/api/src/modules/ai/aiTaskGeneratorRoutes.ts:18"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/ai/synthesize-from-chat",
+      "file": "apps/api/src/modules/ai/aiTaskGeneratorRoutes.ts:24"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/archive",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:38"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/bugs",
+      "file": "apps/api/src/modules/bugs/bugRoutes.ts:22"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/bugs/:bugId/evidence-links",
+      "file": "apps/api/src/modules/bugs/bugRoutes.ts:53"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/documents",
+      "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:33"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/documents/:documentId/versions",
+      "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:39"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/qa-sign-offs/:qaSignOffId/cancellation",
+      "file": "apps/api/src/modules/releaseDecisions/releaseDecisionRoutes.ts:33"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/baselines",
+      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:30"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings",
+      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:41"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/clarifications",
+      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:46"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/governance-decisions",
+      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:56"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/status-events",
+      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:61"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/triage-positions",
+      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:51"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/reviews",
+      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:25"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/release-decisions",
+      "file": "apps/api/src/modules/releaseDecisions/releaseDecisionRoutes.ts:38"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/release-decisions/:releaseDecisionId/cancellation",
+      "file": "apps/api/src/modules/releaseDecisions/releaseDecisionRoutes.ts:43"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/folders",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:24"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/folders/:folderId/archive",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:28"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/qa-sandbox/qris/transactions",
+      "file": "apps/api/src/modules/qrisSandbox/qrisSandboxRoutes.ts:13"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/qa-sandbox/qris/transactions/:transactionId/simulate-status",
+      "file": "apps/api/src/modules/qrisSandbox/qrisSandboxRoutes.ts:23"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/requirements",
+      "file": "apps/api/src/modules/requirements/requirementRoutes.ts:35"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/requirements/:requirementId/test-cases",
+      "file": "apps/api/src/modules/traceability/traceabilityRoutes.ts:36"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/restore",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:39"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/task-creation-permissions",
+      "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:79"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/tasks/:taskId/attachments",
+      "file": "apps/api/src/modules/attachments/attachmentRoutes.ts:21"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/tasks/:taskId/comments",
+      "file": "apps/api/src/modules/tasks/taskRoutes.ts:25"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/tasks/:taskId/complete",
+      "file": "apps/api/src/modules/tasks/taskRoutes.ts:32"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/tasks/:taskId/documents",
+      "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:64"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/tasks/:taskId/requirements",
+      "file": "apps/api/src/modules/requirements/requirementRoutes.ts:72"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/test-cases/:testCaseId/runs",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:142"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/test-cases/:testCaseId/runs/:testRunId/evidence-links",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:152"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:POST /v1/workspaces/:workspaceId/test-cases/:testCaseId/runs/:testRunId/results",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:147"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PUT /v1/projects/:projectId/folders/:folderId/move",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:26"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PUT /v1/workspaces/:workspaceId/folders/:folderId/move",
+      "file": "apps/api/src/modules/folders/folderRoutes.ts:26"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PUT /v1/workspaces/:workspaceId/tasks/:taskId/move",
+      "file": "apps/api/src/modules/tasks/taskRoutes.ts:31"
+    },
+    {
+      "rule": "DS-R01",
+      "key": "endpoint:PUT /v1/workspaces/:workspaceId/test-cases/:testCaseId/versions/:testCaseVersionId/acceptance-criteria",
+      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:130"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:AGENT-APPROVAL-ENFORCEMENT-V2",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:AI-TASK-GENERATOR-MODAL",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:AUTONOMOUS-AGENT-OPERATIONS",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:AUTONOMOUS-CONTROL-PLANE-DRY-RUN",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:FIX-MOBILE-WEB-PUSH-RELIABILITY",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:PRODUCTION-DATA-RESET-AND-RELEASE-ACCESS",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:QA-ASSURANCE-S6-RELIABLE-CROSS-ROLE-NOTIFICATION",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:QA-ASSURANCE-S7B-WORKSPACE-ROLLOUT-UI",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:QA-DESK-SIMPLIFY",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:SDLC-P1C-KERJAA-OBSERVATION-PILOT",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:SEC-07-PRODUCTION-RELEASE",
+      "file": "TODO.md"
+    },
+    {
+      "rule": "DS-R03",
+      "key": "todo:TIERED-AUTO-MERGE",
+      "file": "TODO.md"
+    }
+  ]
+}

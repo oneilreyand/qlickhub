@@ -22,7 +22,7 @@
     "format": "prettier --write .",
     "typecheck": "npm --prefix packages/contracts run typecheck && npm --prefix apps/api run typecheck && npm --prefix apps/web run typecheck",
     "test": "npm --prefix packages/contracts run test && npm --prefix apps/web run test && npm --prefix apps/api run test:integration",
-    "validate": "npm run docs:check && npm run sdlc:test && npm run agent:policy:test && npm run tier:test && npm run lint && npm run typecheck",
+    "validate": "npm run docs:check && npm run docsys:test && npm run docs:completeness && npm run sdlc:test && npm run agent:policy:test && npm run tier:test && npm run lint && npm run typecheck",
     "docs:check": "node --test scripts/checkDocs.test.mjs && node scripts/checkDocs.mjs",
     "quality:check": "node scripts/checkQualityManifest.mjs --mode report",
     "quality:approval:check": "node scripts/checkQualityManifest.mjs --mode report --approval-mode report",
@@ -49,6 +49,8 @@
     "sdlc:new": "node scripts/sdlcNew.mjs",
     "docs:extract": "node tools/docsys/cli.mjs extract",
     "docs:portal": "node tools/docsys/cli.mjs portal",
+    "docs:completeness": "node tools/docsys/cli.mjs completeness",
+    "docs:baseline": "node tools/docsys/cli.mjs baseline",
     "docsys:test": "node --test tools/docsys/__tests__/*.test.mjs"
   },
   "dependencies": {

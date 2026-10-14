@@ -18,9 +18,18 @@
           "react",
           "vite",
           "tailwindcss",
-          { "name": "@reduxjs/toolkit", "label": "Redux Toolkit" },
-          { "name": "react-router-dom", "label": "React Router" },
-          { "name": "firebase", "label": "Firebase (push)" }
+          {
+            "name": "@reduxjs/toolkit",
+            "label": "Redux Toolkit"
+          },
+          {
+            "name": "react-router-dom",
+            "label": "React Router"
+          },
+          {
+            "name": "firebase",
+            "label": "Firebase (push)"
+          }
         ]
       },
       {
@@ -29,12 +38,27 @@
         "manifest": "apps/api/package.json",
         "packages": [
           "express",
-          { "name": "sequelize", "label": "Sequelize ORM" },
-          { "name": "pg", "label": "PostgreSQL (pg)" },
+          {
+            "name": "sequelize",
+            "label": "Sequelize ORM"
+          },
+          {
+            "name": "pg",
+            "label": "PostgreSQL (pg)"
+          },
           "zod",
-          { "name": "firebase-admin", "label": "Firebase Admin" },
-          { "name": "googleapis", "label": "Google Drive API" },
-          { "name": "@upstash/redis", "label": "Upstash Redis" }
+          {
+            "name": "firebase-admin",
+            "label": "Firebase Admin"
+          },
+          {
+            "name": "googleapis",
+            "label": "Google Drive API"
+          },
+          {
+            "name": "@upstash/redis",
+            "label": "Upstash Redis"
+          }
         ]
       },
       {
@@ -49,8 +73,14 @@
         "manifest": "apps/web/package.json",
         "packages": [
           "vitest",
-          { "name": "@testing-library/react", "label": "Testing Library" },
-          { "name": "@playwright/test", "label": "Playwright (e2e)" }
+          {
+            "name": "@testing-library/react",
+            "label": "Testing Library"
+          },
+          {
+            "name": "@playwright/test",
+            "label": "Playwright (e2e)"
+          }
         ]
       },
       {
@@ -89,7 +119,10 @@
     },
     "policies": "docs/POLICY_REGISTRY.md",
     "adrs": "docs/adr/ADR-*.md",
-    "todo": { "file": "TODO.md", "section": "Active work" },
+    "todo": {
+      "file": "TODO.md",
+      "section": "Active work"
+    },
     "roleFlows": "docs/features/ROLE_FLOWS.md",
     "uxMatrix": {
       "file": "docs/ux/UX_MATRIX.md",
@@ -105,5 +138,82 @@
   },
   "links": {
     "stripPrefixes": ["/v1"]
+  },
+  "erd": {
+    "domains": {
+      "Workspace & akses": [
+        "AuthSecurityEventModel",
+        "AuthSessionModel",
+        "TaskCreationPermissionModel",
+        "UserFcmTokenModel",
+        "UserModel",
+        "WorkspaceMemberModel",
+        "WorkspaceMemberSpecialtyModel",
+        "WorkspaceMembershipActivityModel",
+        "WorkspaceModel"
+      ],
+      "Task & kolaborasi": [
+        "FolderActivityModel",
+        "TaskActivityModel",
+        "TaskAttachmentModel",
+        "TaskCommentMentionModel",
+        "TaskCommentModel",
+        "TaskDocumentModel",
+        "TaskModel",
+        "WorkFolderModel"
+      ],
+      "Requirement & kesiapan": [
+        "AcceptanceCriterionModel",
+        "FeatureReadinessBaselineModel",
+        "FeatureReadinessBaselineRequirementModel",
+        "FeatureReadinessReviewModel",
+        "RequirementFindingClarificationModel",
+        "RequirementFindingModel",
+        "RequirementFindingStatusEventModel",
+        "RequirementFindingTriageDecisionModel",
+        "RequirementFindingTriagePositionModel",
+        "RequirementModel",
+        "TaskRequirementModel"
+      ],
+      "Bug & retest": [
+        "BugActivityModel",
+        "BugEvidenceLinkModel",
+        "BugModel",
+        "BugResolutionEventModel",
+        "BugRetestAttemptModel"
+      ],
+      "Rilis": [
+        "QaSignOffCancellationModel",
+        "QaSignOffModel",
+        "ReleaseDecisionCancellationModel",
+        "ReleaseDecisionModel"
+      ],
+      "Notifikasi": ["NotificationModel", "NotificationOutboxModel"],
+      "Eksekusi QA": [
+        "QaAssuranceRolloutEventModel",
+        "QaAssuranceRolloutSettingsModel",
+        "QaDocumentModel",
+        "QaDocumentVersionModel",
+        "QaTestCycleModel",
+        "QrisSandboxTransactionModel",
+        "RequirementTestCaseModel",
+        "TestCaseActivityModel",
+        "TestCaseImportModel",
+        "TestCaseImportRowModel",
+        "TestCaseModel",
+        "TestCaseRequirementModel",
+        "TestCaseVersionAcceptanceCriterionModel",
+        "TestCaseVersionModel",
+        "TestResultEvidenceLinkModel",
+        "TestResultEvidenceManifestModel",
+        "TestResultEvidenceModel",
+        "TestResultModel",
+        "TestRunModel"
+      ]
+    }
+  },
+  "completeness": {
+    "baseline": "quality/doc-baseline.json",
+    "rules": ["DS-R01", "DS-R02", "DS-R03", "DS-R04", "DS-R05"]
   }
 }
