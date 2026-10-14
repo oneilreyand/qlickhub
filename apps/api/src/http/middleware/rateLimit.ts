@@ -40,6 +40,52 @@ export const loginRateLimiter = rateLimit({
   message: rateLimitMessage,
 }) as unknown as RequestHandler;
 
+// Credential recovery (audit E4): limit unauthenticated forgot/reset attempts per client IP to slow
+// email flooding and reset-token guessing. Responses stay generic; only the 429 reveals throttling.
+export const FORGOT_PASSWORD_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+export const FORGOT_PASSWORD_RATE_LIMIT_PRODUCTION_MAX = 5;
+export const RESET_PASSWORD_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+export const RESET_PASSWORD_RATE_LIMIT_PRODUCTION_MAX = 10;
+
+export interface CredentialRecoveryRateLimiterOptions {
+  identifier: 'forgot-password' | 'reset-password';
+  windowMs: number;
+  productionLimit: number;
+  environment?: 'development' | 'production' | 'test';
+}
+
+export function createCredentialRecoveryRateLimiter(
+  options: CredentialRecoveryRateLimiterOptions,
+): RequestHandler {
+  const environment = options.environment ?? env.NODE_ENV;
+  const enforced =
+    environment === 'production' || env.VERCEL_ENV === 'preview' || env.VERCEL_ENV === 'production';
+  return rateLimit({
+    windowMs: options.windowMs,
+    limit: options.productionLimit,
+    skip: () => !enforced,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    identifier: options.identifier,
+    message: {
+      code: 'RATE_LIMITED',
+      message: 'Too many password recovery attempts. Please wait before trying again.',
+    },
+  }) as unknown as RequestHandler;
+}
+
+export const forgotPasswordRateLimiter = createCredentialRecoveryRateLimiter({
+  identifier: 'forgot-password',
+  windowMs: FORGOT_PASSWORD_RATE_LIMIT_WINDOW_MS,
+  productionLimit: FORGOT_PASSWORD_RATE_LIMIT_PRODUCTION_MAX,
+});
+
+export const resetPasswordRateLimiter = createCredentialRecoveryRateLimiter({
+  identifier: 'reset-password',
+  windowMs: RESET_PASSWORD_RATE_LIMIT_WINDOW_MS,
+  productionLimit: RESET_PASSWORD_RATE_LIMIT_PRODUCTION_MAX,
+});
+
 /**
  * Strict rate limiter for notification utility endpoints (/test, /check-deadlines).
  * Identifies user via `req.user.userId` (populated by `authenticate` middleware)
