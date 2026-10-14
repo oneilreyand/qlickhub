@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "docsys/docs-data.schema.json",
+  "title": "docsys project data",
+  "type": "object",
+  "required": [
+    "meta",
+    "stack",
+    "features",
+    "endpoints",
+    "contracts",
+    "erd",
+    "policies",
+    "adrs",
+    "todo",
+    "uxMatrix",
+    "warnings"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["schemaVersion", "project", "commit", "generatedAt", "adapters"],
+      "properties": {
+        "schemaVersion": { "type": "integer", "enum": [1] },
+        "project": { "type": "object", "required": ["name"] },
+        "commit": { "type": ["string", "null"] },
+        "generatedAt": { "type": "string" },
+        "adapters": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "required": ["node", "groups", "manifests", "workflows"],
+      "properties": {
+        "node": { "type": ["string", "null"] },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "manifest", "items"],
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": { "type": "object", "required": ["name", "label", "version", "found"] }
+              }
+            }
+          }
+        },
+        "manifests": {
+          "type": "array",
+          "items": { "type": "object", "required": ["file", "name"] }
+        },
+        "workflows": {
+          "type": "array",
+          "items": { "type": "object", "required": ["file", "jobs"] }
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "title", "file", "status", "stages", "endpoints", "contracts"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["card", "folder"] },
+          "stages": {
+            "type": "array",
+            "items": { "type": "object", "required": ["stage", "status"] }
+          },
+          "endpoints": { "type": "array", "items": { "type": "string" } },
+          "contracts": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "method", "path", "module", "file", "line", "features", "documented"],
+        "properties": {
+          "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "ALL"] },
+          "line": { "type": "integer" },
+          "documented": { "type": "boolean" }
+        }
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "file", "line", "kind", "fields", "values"]
+      }
+    },
+    "erd": {
+      "type": "object",
+      "required": ["entities", "relations"],
+      "properties": {
+        "entities": {
+          "type": "array",
+          "items": { "type": "object", "required": ["name", "table", "file", "attributes"] }
+        },
+        "relations": {
+          "type": "array",
+          "items": { "type": "object", "required": ["from", "type", "to"] }
+        }
+      }
+    },
+    "policies": {
+      "type": "array",
+      "items": { "type": "object", "required": ["id", "area", "summary"] }
+    },
+    "adrs": {
+      "type": "array",
+      "items": { "type": "object", "required": ["id", "title", "status", "file"] }
+    },
+    "todo": {
+      "type": "array",
+      "items": { "type": "object", "required": ["id", "title", "status", "owner", "layer"] }
+    },
+    "uxMatrix": {
+      "type": "object",
+      "required": ["roles", "source", "criteria", "rows"],
+      "properties": {
+        "roles": { "type": "array", "items": { "type": "string" } },
+        "source": { "type": ["string", "null"] },
+        "criteria": { "type": "array", "items": { "type": "string" } },
+        "rows": {
+          "type": "array",
+          "items": { "type": "object", "required": ["role", "flow", "scores"] }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "object", "required": ["adapter", "reason"] }
+    }
+  }
+}

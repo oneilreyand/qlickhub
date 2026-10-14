@@ -46,7 +46,10 @@
     "tier:test": "node --test scripts/checkTier.test.mjs",
     "sdlc:test": "node --test scripts/checkSdlc.test.mjs",
     "sdlc:check": "node scripts/checkSdlc.mjs",
-    "sdlc:new": "node scripts/sdlcNew.mjs"
+    "sdlc:new": "node scripts/sdlcNew.mjs",
+    "docs:extract": "node tools/docsys/cli.mjs extract",
+    "docs:portal": "node tools/docsys/cli.mjs portal",
+    "docsys:test": "node --test tools/docsys/__tests__/*.test.mjs"
   },
   "dependencies": {
     "@google-cloud/storage": "8.0.1",

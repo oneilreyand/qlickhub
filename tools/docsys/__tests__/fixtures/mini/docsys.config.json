@@ -1,0 +1,33 @@
+{
+  "project": { "name": "Mini" },
+  "adapters": ["package-json", "express-routes", "zod-contracts", "sequelize-models", "markdown"],
+  "stack": {
+    "manifests": ["package.json"],
+    "nodeVersionFile": ".nvmrc",
+    "workflows": ".github/workflows/*.yml",
+    "groups": [
+      {
+        "id": "be",
+        "name": "Backend",
+        "manifest": "package.json",
+        "packages": ["express", "zod", "typescript", "missing-pkg"]
+      }
+    ]
+  },
+  "routes": { "app": "src/app.ts", "include": ["src/modules/**/*.ts"] },
+  "contracts": { "include": ["contracts/*.ts"] },
+  "models": { "include": ["models/*.ts"], "associations": ["models/assoc/*Associations.ts"] },
+  "markdown": {
+    "features": {
+      "dir": "docs/features",
+      "catalog": "docs/features/CATALOG.md",
+      "navigationFiles": ["CATALOG.md"]
+    },
+    "policies": "docs/policies.md",
+    "adrs": "docs/adr/ADR-*.md",
+    "todo": { "file": "TODO.md", "section": "Active work" },
+    "roleFlows": "docs/flows.md",
+    "uxMatrix": { "file": "docs/ux/UX_MATRIX.md", "criteria": ["Langkah"] }
+  },
+  "links": { "stripPrefixes": ["/v1"] }
+}
