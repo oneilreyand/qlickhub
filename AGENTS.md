@@ -44,6 +44,7 @@ When documents conflict, use this priority: explicit user instruction → securi
 - A policy change must be recorded in an ADR and applied to the canonical SSoT before implementation. Reports and TODO entries are evidence/status, not policy sources.
 - Keep one canonical definition and link to it. Do not copy policy prose into model-specific instruction files or feature documents.
 - Run `npm run docs:check` for every documentation or policy change. It is part of `npm run validate` and the CI gate.
+- Document every new endpoint, model, Feature, TODO item, and role flow in the same pull request; `npm run docs:completeness` (part of `validate`) rejects new gaps against `quality/doc-baseline.json` (`DOC-006`).
 - If policy, contract, implementation, or evidence conflicts, stop and report the conflict instead of choosing one silently.
 - Never copy `.env` values, credentials, tokens, connection strings, or service-account material into documents, TODO entries, reports, fixtures, or logs.
 
