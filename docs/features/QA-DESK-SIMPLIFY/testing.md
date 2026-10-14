@@ -1,6 +1,6 @@
 # QA-DESK-SIMPLIFY — Tahap 5: Test & Review
 
-**Status:** Berjalan
+**Status:** Accepted
 **Gerbang:** G5 — verifier independen atau CI yang mencakup seluruh AC
 **Applicable Policy IDs:** AI-003, AI-004, AI-008, AI-010, TEST-001, DOC-005
 
@@ -36,7 +36,7 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT.
 | `db:migrate:test` dari database kosong       | PostgreSQL 16 disposable        | 0         | 087 + 088 migrated                  | sukses  |
 | `npm --prefix apps/api run test:integration` | PostgreSQL 16 disposable        | 0         | 500 tests, 500 pass, 0 fail         | sukses  |
 | Query audit backfill (read-only)             | Production, dijalankan Owner    | —         | content_eligible 0, will_backfill 0 | sukses  |
-| CI PR #37                                    | GitHub Actions                  | —         | menunggu                            | —       |
+| CI PR #37                                    | GitHub Actions                  | —         | hijau (Owner; PR di-merge)          | sukses  |
 
 ## 3. Bukti UI (bila UI berubah)
 
@@ -54,8 +54,8 @@ N/A — Feature ini tidak mengubah layar. Field kontrak baru opsional; `web buil
 
 ## 5. Hasil verifier
 
-| Phase | Verifier (bukan pelaksana)                    | Bukti primer yang dicek ulang         | Hasil       | AC terdampak / gap |
-| ----- | --------------------------------------------- | ------------------------------------- | ----------- | ------------------ |
-| P1    | Claude (bukan penulis kode B0/B1) + CI PR #37 | Suite integrasi, migration test, diff | Menunggu CI | —                  |
+| Phase | Verifier (bukan pelaksana)                    | Bukti primer yang dicek ulang         | Hasil    | AC terdampak / gap |
+| ----- | --------------------------------------------- | ------------------------------------- | -------- | ------------------ |
+| P1    | Claude (bukan penulis kode B0/B1) + CI PR #37 | Suite integrasi, migration test, diff | Accepted | —                  |
 
 Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).
