@@ -7,10 +7,10 @@
 
 ## 1. Peta phase
 
-| Phase | Tujuan                                                 | AC                     | WRA  | Bergantung pada | Status                            |
-| ----- | ------------------------------------------------------ | ---------------------- | ---- | --------------- | --------------------------------- |
-| P1    | Sign-off Tolak dan Release Decision Tolak bisa dicatat | AC-1.1–1.4, AC-2.1–2.2 | 5/16 | —               | Selesai (kandidat teruji)         |
-| P2    | Gate PO menghitung semua severity + ADR                | AC-3.1–3.3             | 6/16 | P1              | Kandidat teruji (menunggu window) |
+| Phase | Tujuan                                                 | AC                     | WRA  | Bergantung pada | Status                    |
+| ----- | ------------------------------------------------------ | ---------------------- | ---- | --------------- | ------------------------- |
+| P1    | Sign-off Tolak dan Release Decision Tolak bisa dicatat | AC-1.1–1.4, AC-2.1–2.2 | 5/16 | —               | Selesai (kandidat teruji) |
+| P2    | Gate PO menghitung semua severity + ADR                | AC-3.1–3.3             | 6/16 | P1              | Selesai (PR #41)          |
 
 ## 2. Task per phase
 

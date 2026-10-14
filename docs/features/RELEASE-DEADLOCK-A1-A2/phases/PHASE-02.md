@@ -1,6 +1,6 @@
 # RELEASE-DEADLOCK-A1-A2 — Tahap 4: Build Phase 02 — Gate bug semua severity
 
-**Status:** Kandidat teruji
+**Status:** Selesai
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.1, AC-3.2, AC-3.3
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, RELEASE-001, RELEASE-004
@@ -37,5 +37,5 @@ Lihat [testing.md](../testing.md) bagian Phase 2.
 
 ## 5. Hasil
 
-- PR: belum dibuat — Tier 2 (`docs/POLICY_REGISTRY.md`, `docs/2_WORKFLOW_AND_ROLES.md`).
+- PR: #41 (`9d99e71`) — Tier 2 (`docs/POLICY_REGISTRY.md`, `docs/2_WORKFLOW_AND_ROLES.md`).
 - Lanjut ke [testing.md](../testing.md) untuk tahap 5.
