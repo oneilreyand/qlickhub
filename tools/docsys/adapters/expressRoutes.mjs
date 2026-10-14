@@ -139,7 +139,7 @@ export function mounts(sourceFile, appFile) {
 }
 
 /**
- * config.routes = { app: "apps/api/src/app.ts", include: [...globs], exclude: [...globs], appRouter: "app" }
+ * config.routes = { app: "src/app.ts", include: [...globs], exclude: [...globs], appRouter: "app" }
  */
 export const expressRoutesAdapter = {
   id: 'express-routes',

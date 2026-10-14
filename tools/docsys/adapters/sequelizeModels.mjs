@@ -105,8 +105,8 @@ export function associationsInFile(source, file) {
 
 /**
  * config.models = {
- *   include: ["apps/api/src/db/models/*.ts"], exclude: [...],
- *   associations: ["apps/api/src/db/models/associations/*.ts"]
+ *   include: ["src/models/*.ts"], exclude: [...],
+ *   associations: ["src/models/associations/*.ts"]
  * }
  */
 export const sequelizeModelsAdapter = {

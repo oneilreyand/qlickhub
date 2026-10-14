@@ -214,6 +214,8 @@
   },
   "completeness": {
     "baseline": "quality/doc-baseline.json",
-    "rules": ["DS-R01", "DS-R02", "DS-R03", "DS-R04", "DS-R05"]
+    "rules": ["DS-R01", "DS-R02", "DS-R03", "DS-R04", "DS-R05"],
+    "policyLabel": "DOC-006",
+    "exceptionHint": "Pengecualian hanya lewat entri baseline (PR Tier 2, owner-approved)."
   }
 }

@@ -69,6 +69,7 @@ export function extract({
     used.push(id);
   }
   linkFeatures(root, data, config.links);
+  data.erd.domains = config.erd?.domains ?? {};
   for (const feature of data.features) delete feature.sourceFiles;
 
   const result = {

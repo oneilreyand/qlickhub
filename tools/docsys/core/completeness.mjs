@@ -22,7 +22,7 @@ export function checkBaseline(baseline) {
 }
 
 /**
- * Compares current gaps with the baseline (ratchet, DOC-006).
+ * Compares current gaps with the baseline (ratchet).
  * - `added`: gaps not in the baseline → block the change.
  * - `known`: gaps already accepted in the baseline → report only.
  * - `resolved`: baseline entries that no longer occur → can be removed with --shrink.
