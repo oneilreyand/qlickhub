@@ -3,6 +3,7 @@ import { authenticate } from '../../http/middleware/authenticate.js';
 import { notificationController } from './notificationController.js';
 import { notificationRateLimiter } from '../../http/middleware/rateLimit.js';
 import { authorize } from '../../http/middleware/authorize.js';
+import { opportunisticOutboxDispatch } from './opportunisticOutboxDispatch.js';
 
 export const notificationRoutes = Router();
 
@@ -31,8 +32,11 @@ notificationRoutes.post('/notifications/read-all', authenticate, (req, res, next
 );
 
 // List user notifications
-notificationRoutes.get('/notifications', authenticate, (req, res, next) =>
-  notificationController.listNotifications(req as any, res, next),
+notificationRoutes.get(
+  '/notifications',
+  authenticate,
+  opportunisticOutboxDispatch.middleware,
+  (req, res, next) => notificationController.listNotifications(req as any, res, next),
 );
 
 // Clear all notifications

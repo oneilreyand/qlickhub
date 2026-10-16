@@ -199,6 +199,10 @@ menambah konfigurasi CORS, cookie lintas situs, dan risiko salah scope.
   (request id, route, status, kode, pesan yang sudah disamarkan; tanpa body, query, header, atau
   cookie). Minta pengguna mengirim header `x-request-id` dari respons yang gagal, lalu cari nilai itu
   di Vercel → Logs. Di Production, `detail` respons 5xx selalu `Internal server error`.
+- **Notifikasi tertunda:** Production tidak punya scheduler. Baris outbox yang jatuh tempo atau gagal
+  dicoba ulang saat user membuka daftar notifikasi (maks. 1 batch 50 baris per menit per instance).
+  Untuk menguras antrean manual, jalankan `node apps/api/dist/jobs/notificationOutboxWorker.js` dengan
+  `DATABASE_URL` target; dead letter dikelola lewat `notificationOutboxAdmin.js`.
 - **Health `503`:** periksa koneksi/pool database dan migration status sebelum menyimpulkan login
   atau frontend rusak.
 
