@@ -1,6 +1,6 @@
 # QUICK — QA-DESK-AWAIT-BASELINE Meja QA menunggu Baseline Kesiapan sebelum Versi Uji
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **WRA:** 3/16 — lapisan 1 (frontend saja), ketersinggungan 1 (meja QA), validasi 1
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -30,8 +30,8 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Perilaku:
   - Kartu langkah berikutnya punya state baru `await_baseline` (dipakai bila
     `nextAction.code === 'await_baseline'` atau `blockers` memuat `feature_baseline_missing`):
-    judul "Menunggu Kesiapan Feature", deskripsi dari `blockerReason`, tombol utama **Buka Feature**
-    (melihat Brief), tanpa tombol Versi Uji.
+    judul "Menunggu Kesiapan Feature", deskripsi dari `blockerReason`, dan penanda status
+    "Menunggu persetujuan Brief Produk" sebagai pengganti tombol Versi Uji.
   - Tombol **Tetapkan Versi Uji** di tab Test Case & Eksekusi dinonaktifkan dengan alasan yang terbaca
     selama baseline belum ada.
   - Pesan 409 baseline dipetakan ke: "Versi uji belum dapat ditetapkan karena Feature belum memiliki
@@ -57,10 +57,15 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Masa berlaku dan stop condition: sampai PR dibuat; berhenti bila suite web gagal atau perubahan
   ternyata memerlukan backend/kontrak
 
-**Disetujui:** —
+**Disetujui:** reyand (Owner), 2026-10-16, chat "setuju"
 
 ## Hasil
 
-- Perintah — exit code — pass/fail/skip: —
-- PR dan tier: —
-- Gap: —
+- Perintah — exit code — pass/fail/skip:
+  - `vitest run` QaNextActionCard / QaTestingDesk / apiClient — 0 — 55/0/0 (3 test baru)
+  - `npm --prefix apps/web test` — 0 — 667/0/0 (114 file)
+  - `npm --prefix apps/web run typecheck` — 0; eslint pada file yang diubah — 0; `npm run validate` — 0
+- PR dan tier: belum dibuat; Tier 1 (tidak ada path Tier 2).
+- Gap: AC-5 (Playwright lokal pada Feature 817e3fca) dijalankan setelah merge, karena server lokal Owner
+  menjalankan `main`. Kartu tidak menambah tombol "Buka Feature" baru; tombol yang sudah ada di konteks
+  Feature tetap menjadi jalan ke Brief Produk.

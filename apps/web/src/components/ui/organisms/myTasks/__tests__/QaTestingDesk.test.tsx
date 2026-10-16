@@ -686,6 +686,37 @@ describe('QaTestingDesk Organism', () => {
     expect(serviceMocks.getTaskTestExecutions).toHaveBeenCalledTimes(2);
   });
 
+  it('blocks setting a test version until the Feature Readiness Baseline exists', async () => {
+    const user = userEvent.setup();
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());
+    serviceMocks.listQaTestCycles.mockResolvedValue([]);
+    serviceMocks.getQaWorkflowSummary.mockResolvedValue({
+      workspaceId: ids.workspace,
+      featureTaskId: ids.feature,
+      qaSubtaskId: ids.subtask,
+      featureTitle: 'Checkout Feature',
+      qaSubtaskTitle: 'QA checkout',
+      qaSubtaskStatus: 'in_progress',
+      testCycle: null,
+      blockers: ['feature_baseline_missing'],
+      blockerReason: 'Menunggu PO menyetujui Brief Feature',
+      nextAction: { code: 'await_baseline', label: 'Menunggu Kesiapan Feature' },
+    });
+
+    renderDesk();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Menunggu Kesiapan Feature' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Test Case & Eksekusi' }));
+    const versionButtons = await screen.findAllByRole('button', { name: 'Tetapkan Versi Uji' });
+    versionButtons.forEach((button) => expect(button).toBeDisabled());
+    expect(
+      screen.getByText(/Versi uji belum dapat ditetapkan: Menunggu PO menyetujui Brief Feature/),
+    ).toBeInTheDocument();
+    expect(serviceMocks.createQaTestCycle).not.toHaveBeenCalled();
+  });
+
   it('opens the Test Cycle form when running a Test Case without an active cycle', async () => {
     const user = userEvent.setup();
     serviceMocks.getTaskTestExecutions.mockResolvedValue(executionWorkspace());

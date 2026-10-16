@@ -74,7 +74,7 @@ export interface QaTestCaseExecutionTabProps {
 export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
   subtask: _subtask,
   parentTask: _parentTask,
-  workflowSummary: _workflowSummary,
+  workflowSummary,
   focusTarget,
   testCasesRef,
   onOpenContextTab: _onOpenContextTab,
@@ -114,6 +114,13 @@ export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
   activeExecution,
   detailViewProps,
 }) => {
+  // The backend rejects a Test Cycle until the Feature Readiness Baseline exists (PO-approved Brief).
+  const isAwaitingBaseline =
+    !selectedTestCycle &&
+    Boolean(
+      workflowSummary?.nextAction.code === 'await_baseline' ||
+      workflowSummary?.blockers.includes('feature_baseline_missing'),
+    );
   return (
     <section
       role="tabpanel"
@@ -211,12 +218,27 @@ export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
                 </Select>
               )}
               {canExecuteTests && (
-                <Button variant="outline" size="sm" onClick={onOpenTestCycleModal}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenTestCycleModal}
+                  disabled={isAwaitingBaseline}
+                  aria-describedby={isAwaitingBaseline ? 'qa-test-cycle-baseline-hint' : undefined}
+                >
                   Tetapkan Versi Uji
                 </Button>
               )}
             </div>
           </div>
+          {isAwaitingBaseline && (
+            <p
+              id="qa-test-cycle-baseline-hint"
+              className="text-xs text-amber-800 dark:text-amber-300"
+            >
+              Versi uji belum dapat ditetapkan:{' '}
+              {workflowSummary?.blockerReason || 'Menunggu PO menyetujui Brief Feature'}.
+            </p>
+          )}
           {testCycleError && !isTestCycleModalOpen && (
             <Alert tone="warning" title="Konteks Versi yang Diuji belum tersedia">
               {testCycleError}
