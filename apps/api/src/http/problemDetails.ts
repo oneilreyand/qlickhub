@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { ZodError } from 'zod';
 import { ProblemDetail, ProblemDetailSchema } from '@qlick/contracts';
+import { logServerError } from './errorLog.js';
 
 export interface ProblemDetailsOptions {
   zodCode?: string;
@@ -192,6 +193,14 @@ export function sendProblemDetails(
   options?: ProblemDetailsOptions,
 ): Response {
   const problem = toProblemDetail(err, options);
+  if (problem.status >= 500) {
+    // Audit F2: every server fault leaves one structured log line; internal messages stay out of
+    // Production responses (the client receives the request id header instead).
+    logServerError(err, res.req, problem.status, problem.code ?? 'INTERNAL_SERVER_ERROR');
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(problem.status).json({ ...problem, detail: 'Internal server error' });
+    }
+  }
   return res.status(problem.status).json(problem);
 }
 

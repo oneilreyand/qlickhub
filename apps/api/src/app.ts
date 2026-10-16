@@ -25,6 +25,7 @@ import { leaderRoutes } from './modules/leader/leaderRoutes.js';
 import { aiTaskGeneratorRoutes } from './modules/ai/aiTaskGeneratorRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
+import { assignRequestId, logServerError } from './http/errorLog.js';
 import { rejectArchivedWorkspaceMutation } from './http/middleware/workspaceArchive.js';
 import { configureProxyTrust } from './http/middleware/proxyTrust.js';
 
@@ -33,6 +34,7 @@ export const createApp = () => {
   configureProxyTrust(app, Boolean(env.VERCEL));
 
   // Security & Middleware
+  app.use(assignRequestId);
   app.use(helmet({ referrerPolicy: { policy: 'no-referrer' } }));
   app.use(cors(corsOptions));
   app.use(express.json({ limit: '100kb' }));
@@ -101,8 +103,8 @@ export const createApp = () => {
   });
 
   // Global Error Handler Middleware
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('❌ Unhandled Server Error:', err);
+  app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+    logServerError(err, req, 500, 'INTERNAL_SERVER_ERROR');
     res.status(500).json({
       type: 'https://api.qa-hub.com/errors/internal-error',
       title: 'Internal Server Error',
