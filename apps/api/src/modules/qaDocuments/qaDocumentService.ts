@@ -26,7 +26,7 @@ import {
   ProductBriefScopeItem,
   UpsertProductBriefInput,
 } from '@qlick/contracts';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { Transaction } from 'sequelize';
 
 function formatDocument(d: QaDocumentModel | Record<string, any>): QaDocument {
@@ -46,6 +46,37 @@ function formatDocument(d: QaDocumentModel | Record<string, any>): QaDocument {
   };
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Stable UUID (v5 layout) for a legacy scope item that was stored with a non-UUID id. */
+function legacyScopeItemId(
+  versionId: string,
+  list: string,
+  index: number,
+  legacyId: unknown,
+): string {
+  const hex = createHash('sha1')
+    .update(`qa-document-version:${versionId}:${list}:${index}:${String(legacyId)}`)
+    .digest('hex');
+  const variant = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+// Briefs created by the AI generator before PRODUCT-BRIEF-SCOPE-ID stored ids such as "scope-1".
+// Reads expose a deterministic UUID instead so the Brief can be saved again; history is not rewritten.
+function formatScopeItems(
+  versionId: string,
+  list: string,
+  items: unknown,
+): ProductBriefScopeItem[] {
+  if (!Array.isArray(items)) return [];
+  return items.map((item: any, index: number) =>
+    typeof item?.id === 'string' && UUID_PATTERN.test(item.id)
+      ? item
+      : { ...item, id: legacyScopeItemId(versionId, list, index, item?.id) },
+  );
+}
+
 function formatVersion(v: QaDocumentVersionModel | Record<string, any>): QaDocumentVersion {
   const json = typeof (v as any).toJSON === 'function' ? (v as any).toJSON() : v;
   return {
@@ -55,9 +86,9 @@ function formatVersion(v: QaDocumentVersionModel | Record<string, any>): QaDocum
     version: json.version,
     title: json.title,
     contentMarkdown: json.contentMarkdown,
-    inScope: Array.isArray(json.inScope) ? json.inScope : [],
-    outScope: Array.isArray(json.outScope) ? json.outScope : [],
-    acceptanceCriteria: Array.isArray(json.acceptanceCriteria) ? json.acceptanceCriteria : [],
+    inScope: formatScopeItems(json.id, 'inScope', json.inScope),
+    outScope: formatScopeItems(json.id, 'outScope', json.outScope),
+    acceptanceCriteria: formatScopeItems(json.id, 'acceptanceCriteria', json.acceptanceCriteria),
     changelog: json.changelog || null,
     createdBy: json.createdBy,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
