@@ -1,6 +1,6 @@
 # QUICK — TIER2-HTTP-SECURITY-SURFACE Wiring HTTP dan middleware keamanan menjadi Tier 2
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **WRA:** 2/16 — ketersinggungan 1 (lebih banyak PR butuh label Owner), validasi 1 (pencocokan pola)
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -35,7 +35,7 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Urutan aksi: edit → test → commit → patch → Owner publish → PR → merge (tier 2, `quality/**`)
 - Masa berlaku dan stop condition: sampai PR dibuat
 
-**Disetujui:** —
+**Disetujui:** reyand (Owner), 2026-10-16, chat "setuju E1 E2"
 
 ## Hasil
 

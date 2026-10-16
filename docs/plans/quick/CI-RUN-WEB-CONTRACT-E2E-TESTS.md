@@ -1,6 +1,6 @@
 # QUICK — CI-RUN-WEB-CONTRACT-E2E-TESTS CI menjalankan test web, kontrak, dan e2e browser
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **WRA:** 4/16 — lapisan 1 (workflow CI), ketersinggungan 1 (semua PR), validasi 1, eksternal 1 (browser di runner)
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -38,7 +38,7 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Urutan aksi: edit → test → commit → patch → Owner publish → PR → merge (tier 2, `.github/**`)
 - Masa berlaku dan stop condition: sampai PR dibuat; berhenti bila job `e2e` gagal di CI
 
-**Disetujui:** —
+**Disetujui:** reyand (Owner), 2026-10-16, chat "setuju E1 E2"
 
 ## Hasil
 
