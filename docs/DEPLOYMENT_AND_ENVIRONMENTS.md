@@ -195,6 +195,10 @@ menambah konfigurasi CORS, cookie lintas situs, dan risiko salah scope.
   migrasi yang disetujui; deployment lama harus tetap kompatibel dengan migrasi additive.
 - **Secret bermasalah:** rotasi di provider/Vercel, redeploy, lalu cabut nilai lama. Jangan
   menyalin secret ke commit, chat, TODO, atau laporan.
+- **Error 5xx:** setiap respons 5xx menulis satu baris JSON `event: "api.error"` ke Vercel Logs
+  (request id, route, status, kode, pesan yang sudah disamarkan; tanpa body, query, header, atau
+  cookie). Minta pengguna mengirim header `x-request-id` dari respons yang gagal, lalu cari nilai itu
+  di Vercel → Logs. Di Production, `detail` respons 5xx selalu `Internal server error`.
 - **Health `503`:** periksa koneksi/pool database dan migration status sebelum menyimpulkan login
   atau frontend rusak.
 
