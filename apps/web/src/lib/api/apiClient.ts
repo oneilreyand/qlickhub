@@ -129,6 +129,13 @@ export function getHumanReadableApiErrorMessage(
 
   if (
     normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('readiness baseline is required')
+  ) {
+    return 'Versi uji belum dapat ditetapkan karena Feature belum memiliki Baseline Kesiapan. Minta Product Owner menyetujui Brief Produk Feature ini terlebih dahulu.';
+  }
+
+  if (
+    normalizedCode === 'CONFLICT' &&
     normalizedServerMessage.includes('must reference a requirement linked')
   ) {
     return 'Temuan harus terkait dengan Requirement yang masih berada dalam cakupan Feature ini. Muat ulang daftar Requirement lalu coba lagi.';

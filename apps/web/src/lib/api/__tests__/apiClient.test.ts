@@ -84,6 +84,16 @@ describe('apiClient error metadata', () => {
     ).toMatch(/posisi terbaru Product, Development, dan QA/i);
   });
 
+  it('explains a missing Feature Readiness Baseline instead of asking for a reload', () => {
+    const message = getHumanReadableApiErrorMessage(
+      409,
+      'CONFLICT',
+      'A persisted Feature Readiness Baseline is required before creating a scoped Test Cycle.',
+    );
+    expect(message).toMatch(/Product Owner menyetujui Brief Produk/i);
+    expect(message).not.toMatch(/Muat ulang/i);
+  });
+
   it('uses the endpoint-specific draft-8 quota when multiple rate limiters add headers', () => {
     const rateLimit = getRateLimitInfo(
       new Headers({

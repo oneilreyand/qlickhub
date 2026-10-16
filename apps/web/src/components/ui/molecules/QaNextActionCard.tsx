@@ -44,6 +44,7 @@ export interface QaNextActionCardProps {
 
 export type QaActionStepState =
   | 'start_task'
+  | 'await_baseline'
   | 'set_version'
   | 'activate_test_case'
   | 'run_test_case'
@@ -90,6 +91,15 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
     stepState = 'sign_off_rejected';
   } else if (subtaskStatus === 'todo') {
     stepState = 'start_task';
+  } else if (
+    !testCycle &&
+    !workflowSummary?.testCycle &&
+    (workflowSummary?.nextAction.code === 'await_baseline' ||
+      workflowSummary?.blockers.includes('feature_baseline_missing'))
+  ) {
+    // A Test Cycle needs a persisted Feature Readiness Baseline; the backend rejects a version
+    // until the PO approves the Product Brief, so the card must not offer that action yet.
+    stepState = 'await_baseline';
   } else if (!testCycle && !workflowSummary?.testCycle && subtaskStatus === 'in_progress') {
     // The persisted workflow summary also knows the active version; trust it while the
     // version list is still loading so the card does not ask to set a version again.
@@ -147,6 +157,15 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
       if (!isFeatureAvailable) {
         isButtonDisabled = true;
       }
+      break;
+
+    case 'await_baseline':
+      stepBadge = 'Menunggu Kesiapan Feature';
+      title = 'Menunggu Kesiapan Feature';
+      description = `${
+        workflowSummary?.blockerReason || 'Menunggu PO menyetujui Brief Feature'
+      }. Versi uji dapat ditetapkan setelah Brief Produk disetujui dan Baseline Kesiapan tersimpan.`;
+      buttonLabel = '';
       break;
 
     case 'set_version':
@@ -328,7 +347,15 @@ export const QaNextActionCard: React.FC<QaNextActionCardProps> = ({
           )}
         </div>
 
-        {stepState === 'completed' ? (
+        {stepState === 'await_baseline' ? (
+          <div
+            role="status"
+            className="shrink-0 flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-800"
+          >
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>Menunggu persetujuan Brief Produk</span>
+          </div>
+        ) : stepState === 'completed' ? (
           <div className="shrink-0 flex items-center gap-2 rounded-xl bg-emerald-100/90 px-4 py-2.5 text-xs font-bold text-emerald-900 border border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800">
             <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>Persetujuan QA Tercatat</span>

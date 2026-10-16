@@ -58,6 +58,37 @@ describe('QaNextActionCard Molecule', () => {
     expect(onStartQaTask).toHaveBeenCalledTimes(1);
   });
 
+  it('waits for the Feature Readiness Baseline instead of offering a test version', () => {
+    const onOpenTestCycleModal = vi.fn();
+    render(
+      <QaNextActionCard
+        workflowSummary={{
+          ...baseSummary,
+          testCycle: null,
+          blockers: ['feature_baseline_missing'],
+          blockerReason: 'Menunggu PO menyetujui Brief Feature',
+          nextAction: { code: 'await_baseline', label: 'Menunggu Kesiapan Feature' },
+        }}
+        subtaskStatus="in_progress"
+        testCycle={null}
+        qaCompletionReady={false}
+        onStartQaTask={vi.fn()}
+        onActivateTestCase={vi.fn()}
+        onRunTestCase={vi.fn()}
+        onRecordResult={vi.fn()}
+        onCompleteQaTask={vi.fn()}
+        onNavigateToSignOff={vi.fn()}
+        onOpenTestCycleModal={onOpenTestCycleModal}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Menunggu Kesiapan Feature' })).toBeInTheDocument();
+    expect(screen.getByText(/Menunggu PO menyetujui Brief Feature/)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Menunggu persetujuan Brief Produk');
+    expect(screen.queryByRole('button', { name: 'Tetapkan Versi Uji' })).not.toBeInTheDocument();
+    expect(onOpenTestCycleModal).not.toHaveBeenCalled();
+  });
+
   it('renders "Tetapkan Versi Uji" when subtask is in_progress but testCycle is missing', () => {
     const onOpenTestCycleModal = vi.fn();
     render(
