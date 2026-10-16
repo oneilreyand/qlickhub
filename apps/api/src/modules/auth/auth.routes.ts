@@ -15,7 +15,11 @@ import {
 } from '@qlick/contracts';
 import { UserModel, WorkspaceMemberModel } from '../../db/models/index.js';
 import { AuthenticatedRequest, authenticate } from '../../http/middleware/authenticate.js';
-import { loginRateLimiter } from '../../http/middleware/rateLimit.js';
+import {
+  forgotPasswordRateLimiter,
+  loginRateLimiter,
+  resetPasswordRateLimiter,
+} from '../../http/middleware/rateLimit.js';
 import { env } from '../../config/env.js';
 import { emailService } from '../../services/emailService.js';
 import { createPasswordResetToken, hashPasswordResetToken } from './passwordResetToken.js';
@@ -102,96 +106,108 @@ authRouter.post('/login', loginRateLimiter, async (req: Request, res: Response) 
 });
 
 // POST /v1/auth/forgot-password — generates token and sends zero-cost reset email
-authRouter.post('/forgot-password', async (req: Request, res: Response) => {
-  try {
-    const { email } = ForgotPasswordRequestSchema.parse(req.body);
-    const user = await UserModel.findOne({
-      where: { email: { [Op.iLike]: email.trim() } },
-    });
+authRouter.post(
+  '/forgot-password',
+  forgotPasswordRateLimiter,
+  async (req: Request, res: Response) => {
+    try {
+      const { email } = ForgotPasswordRequestSchema.parse(req.body);
+      const user = await UserModel.findOne({
+        where: { email: { [Op.iLike]: email.trim() } },
+      });
 
-    // Always respond with success to avoid email enumeration
-    if (!user) {
+      // Always respond with success to avoid email enumeration
+      if (!user) {
+        return res.status(200).json({
+          data: {
+            message:
+              'If the email exists in our system, a password reset link has been dispatched.',
+          },
+        });
+      }
+
+      const resetToken = createPasswordResetToken();
+
+      user.passwordResetToken = resetToken.tokenHash;
+      user.passwordResetExpiresAt = resetToken.expiresAt;
+      await user.save();
+
+      const delivery = await emailService.sendPasswordResetEmail(
+        user.email,
+        resetToken.token,
+        user.name,
+      );
+      if (!delivery.sent) {
+        user.passwordResetToken = null;
+        user.passwordResetExpiresAt = null;
+        await user.save();
+      }
+
       return res.status(200).json({
         data: {
           message: 'If the email exists in our system, a password reset link has been dispatched.',
         },
       });
+    } catch (error) {
+      return res.status(400).json({
+        error: {
+          code: 'BAD_REQUEST',
+          message: error instanceof Error ? error.message : 'Invalid request.',
+        },
+      });
     }
-
-    const resetToken = createPasswordResetToken();
-
-    user.passwordResetToken = resetToken.tokenHash;
-    user.passwordResetExpiresAt = resetToken.expiresAt;
-    await user.save();
-
-    const delivery = await emailService.sendPasswordResetEmail(
-      user.email,
-      resetToken.token,
-      user.name,
-    );
-    if (!delivery.sent) {
-      user.passwordResetToken = null;
-      user.passwordResetExpiresAt = null;
-      await user.save();
-    }
-
-    return res.status(200).json({
-      data: {
-        message: 'If the email exists in our system, a password reset link has been dispatched.',
-      },
-    });
-  } catch (error) {
-    return res.status(400).json({
-      error: {
-        code: 'BAD_REQUEST',
-        message: error instanceof Error ? error.message : 'Invalid request.',
-      },
-    });
-  }
-});
+  },
+);
 
 // POST /v1/auth/reset-password — verifies reset token and updates password
-authRouter.post('/reset-password', async (req: Request, res: Response) => {
-  try {
-    const { token, newPassword } = ResetPasswordRequestSchema.parse(req.body);
-    const tokenHash = hashPasswordResetToken(token);
-    const resetApplied = await sequelize.transaction(async (transaction) => {
-      const user = await UserModel.findOne({
-        where: {
-          passwordResetToken: tokenHash,
-          passwordResetExpiresAt: { [Op.gt]: new Date() },
-        },
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (!user) return false;
+authRouter.post(
+  '/reset-password',
+  resetPasswordRateLimiter,
+  async (req: Request, res: Response) => {
+    try {
+      const { token, newPassword } = ResetPasswordRequestSchema.parse(req.body);
+      const tokenHash = hashPasswordResetToken(token);
+      const resetApplied = await sequelize.transaction(async (transaction) => {
+        const user = await UserModel.findOne({
+          where: {
+            passwordResetToken: tokenHash,
+            passwordResetExpiresAt: { [Op.gt]: new Date() },
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!user) return false;
 
-      user.passwordHash = await bcrypt.hash(newPassword, await bcrypt.genSalt(10));
-      user.passwordResetToken = null;
-      user.passwordResetExpiresAt = null;
-      await user.save({ transaction });
-      const revokedSessionCount = await sessionManager.revokeAllSessions(user.id, transaction);
-      await authSecurityEventService.recordPasswordResetCompleted(
-        user.id,
-        revokedSessionCount,
-        transaction,
-      );
-      return true;
-    });
-
-    if (!resetApplied) {
-      return res.status(400).json({
-        error: { code: 'INVALID_TOKEN', message: 'Password reset link is invalid or has expired.' },
+        user.passwordHash = await bcrypt.hash(newPassword, await bcrypt.genSalt(10));
+        user.passwordResetToken = null;
+        user.passwordResetExpiresAt = null;
+        await user.save({ transaction });
+        const revokedSessionCount = await sessionManager.revokeAllSessions(user.id, transaction);
+        await authSecurityEventService.recordPasswordResetCompleted(
+          user.id,
+          revokedSessionCount,
+          transaction,
+        );
+        return true;
       });
+
+      if (!resetApplied) {
+        return res.status(400).json({
+          error: {
+            code: 'INVALID_TOKEN',
+            message: 'Password reset link is invalid or has expired.',
+          },
+        });
+      }
+
+      return res.status(200).json({
+        data: { message: 'Your password has been successfully reset. You can now log in.' },
+      });
+    } catch (error) {
+      return sendCredentialRouteError(res, error);
     }
-
-    return res.status(200).json({
-      data: { message: 'Your password has been successfully reset. You can now log in.' },
-    });
-  } catch (error) {
-    return sendCredentialRouteError(res, error);
-  }
-});
+  },
+);
 
 // POST /v1/auth/change-password — authenticated self password change
 authRouter.post(
