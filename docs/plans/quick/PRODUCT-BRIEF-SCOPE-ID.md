@@ -1,6 +1,6 @@
 # QUICK — PRODUCT-BRIEF-SCOPE-ID Brief Produk dari AI tidak bisa disimpan ulang
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **WRA:** 4/16 — lapisan 1 (backend service), ketersinggungan 2 (generator AI + pembacaan Brief), validasi 1
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -22,8 +22,9 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 ## Perubahan
 
 - File/path: `apps/api/src/modules/ai/aiTaskGeneratorService.ts`,
-  `apps/api/src/modules/qaDocuments/qaDocumentService.ts`, test integrasi di
-  `apps/api/src/modules/ai/__tests__/` dan `apps/api/src/modules/qaDocuments/__tests__/`, Quick Card ini.
+  `apps/api/src/modules/qaDocuments/qaDocumentService.ts`, test integrasi
+  `apps/api/src/modules/ai/__tests__/aiTaskGeneratorIntegration.test.ts` dan
+  `apps/api/src/modules/qaDocuments/__tests__/productBriefLegacyScopeIds.test.ts` (baru), Quick Card ini.
 - Perilaku:
   - Generator AI tidak lagi mengarang id; `normalizeScopeItems` memberi UUID nyata.
   - Saat membaca versi Brief, item scope/AC dengan id yang bukan UUID diberi UUID deterministik
@@ -34,14 +35,14 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 
 ## Acceptance Criteria → bukti
 
-| AC                                                                         | Bukti (E-level) | Perintah / observasi                      |
-| -------------------------------------------------------------------------- | --------------- | ----------------------------------------- |
-| AC-1 Feature baru dari generator AI menyimpan scope id berupa UUID         | E2              | `aiTaskGeneratorIntegration.test.ts` (PG) |
-| AC-2 Brief lama dengan id non-UUID terbaca dengan UUID valid dan stabil    | E2              | `qaDocumentApiIntegration.test.ts` (PG)   |
-| AC-3 Brief lama itu bisa disimpan sebagai versi baru berstatus Disetujui   | E2              | test yang sama (HTTP nyata, PostgreSQL)   |
-| AC-4 Versi lama tidak berubah di database                                  | E2              | test yang sama                            |
-| AC-5 Feature 817e3fca lokal bisa disetujui dan Baseline Kesiapan terbentuk | E3              | Playwright lokal                          |
-| AC-6 Tidak ada regresi API                                                 | E3              | `test:integration` penuh                  |
+| AC                                                                         | Bukti (E-level) | Perintah / observasi                                              |
+| -------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------- |
+| AC-1 Feature baru dari generator AI menyimpan scope id berupa UUID         | E2              | `aiTaskGeneratorIntegration.test.ts` (PG)                         |
+| AC-2 Brief lama dengan id non-UUID terbaca dengan UUID valid dan stabil    | E2              | `productBriefLegacyScopeIds.test.ts` (PG)                         |
+| AC-3 Brief lama itu bisa disimpan sebagai versi baru berstatus Disetujui   | E2              | test yang sama (validasi `UpsertProductBriefSchema` + PostgreSQL) |
+| AC-4 Versi lama tidak berubah di database                                  | E2              | test yang sama                                                    |
+| AC-5 Feature 817e3fca lokal bisa disetujui dan Baseline Kesiapan terbentuk | E3              | Playwright lokal                                                  |
+| AC-6 Tidak ada regresi API                                                 | E3              | `test:integration` penuh                                          |
 
 ## Approval Window
 
@@ -51,10 +52,16 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Masa berlaku dan stop condition: sampai PR dibuat; berhenti bila perlu migrasi data, perubahan kontrak,
   atau suite API gagal
 
-**Disetujui:** —
+**Disetujui:** reyand (Owner), 2026-10-17, chat "setuju"
 
 ## Hasil
 
-- Perintah — exit code — pass/fail/skip: —
-- PR dan tier: —
-- Gap: —
+- Perintah — exit code — pass/fail/skip:
+  - `productBriefLegacyScopeIds.test.ts` + `aiTaskGeneratorIntegration.test.ts` (PostgreSQL 16) — 0 — 10/0/0
+  - test baru pada service lama (tanpa perbaikan) — 1 — 0/2/0 (membuktikan test menangkap bug)
+  - `npm --prefix apps/api run test:integration` (PostgreSQL 16, migrasi 1–88) — 0 — 517/0/0
+  - `npm run validate` — 0
+- PR dan tier: belum dibuat; Tier 1.
+- Gap: AC-3 memakai validasi kontrak yang sama dengan controller, bukan request HTTP; AC-5 dijalankan
+  setelah merge di lokal Owner. Data lama di Production tidak diubah; Brief lama baru memakai UUID setelah
+  disimpan ulang.

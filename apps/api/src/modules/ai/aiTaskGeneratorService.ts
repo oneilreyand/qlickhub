@@ -279,14 +279,13 @@ export class AiTaskGeneratorService {
         {
           title: `Brief Produk: ${validatedInput.task.title}`,
           contentMarkdown: validatedInput.productBrief.context || '',
+          // Ids are assigned by the Brief service; invented ids break the Brief contract on re-save.
           inScope: (validatedInput.productBrief.inScope || []).map((item, idx) => ({
-            id: `scope-${idx + 1}`,
-            position: idx + 1,
+            position: idx,
             text: item,
           })),
           outScope: (validatedInput.productBrief.outScope || []).map((item, idx) => ({
-            id: `outscope-${idx + 1}`,
-            position: idx + 1,
+            position: idx,
             text: item,
           })),
           acceptanceCriteria: [],
