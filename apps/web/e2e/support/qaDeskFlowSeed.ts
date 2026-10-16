@@ -65,7 +65,9 @@ export async function login(page: Page, email: string) {
   await page.getByRole('button', { name: 'Masuk ke Qlick Hub' }).click();
   await expect(page).toHaveURL(/\/work/);
   await page.goto('/my-tasks');
-  await expect(page.getByRole('heading', { name: 'Tugas Saya' })).toBeVisible();
+  // The first navigation after the dev servers start waits for Vite's cold compile and the
+  // workspace load; allow the same startup budget as `goto` above. The assertion is unchanged.
+  await expect(page.getByRole('heading', { name: 'Tugas Saya' })).toBeVisible({ timeout: 30_000 });
 }
 
 /** Seeds the workspace, users, Features and QA subtasks used by the QA Desk flow e2e spec. */
