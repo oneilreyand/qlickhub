@@ -1,6 +1,6 @@
 # DOC-PORTAL — Tahap 5: Test & Review
 
-**Status:** Berjalan
+**Status:** Selesai
 **Gerbang:** G5 — verifier independen atau CI yang mencakup seluruh AC
 **Applicable Policy IDs:** AI-003, AI-004, AI-008, AI-010, TEST-001, DOC-005
 
@@ -31,15 +31,17 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT. Feature ini tidak menyimpan data, s
 
 ## 2. Outcome pemeriksaan
 
-| Perintah / observasi                                                     | Environment              | Exit code | Pass / fail / skip / warn                               | AC                     | Outcome | Tindak lanjut                   |
-| ------------------------------------------------------------------------ | ------------------------ | --------- | ------------------------------------------------------- | ---------------------- | ------- | ------------------------------- |
-| `npm run docsys:test`                                                    | workspace cloud, Node 22 | 0         | 14 / 0 / 3 (browser)                                    | AC-1.1–1.5             | sukses  | —                               |
-| `node --test tools/docsys/__tests__/portal.test.mjs` + `DOCSYS_CHROMIUM` | workspace cloud          | 0         | 3 / 0 / 0                                               | AC-4.1, AC-4.3, AC-4.4 | sukses  | —                               |
-| `npm run validate`                                                       | workspace cloud          | 0         | lulus, 15 warning lint lama                             | —                      | sukses  | —                               |
-| CI `verify` + `owner-gate` pada PR #43 (Phase 1)                         | GitHub Actions           | 0         | lulus (syarat merge ruleset `main`); di-merge `1d9d437` | semua P1               | sukses  | —                               |
-| CI `verify` + `owner-gate` pada PR #44 (Phase 2)                         | GitHub Actions           | 0         | lulus (syarat merge ruleset `main`); di-merge `998e998` | semua P2               | sukses  | —                               |
-| `npm run docsys:test` + smoke browser (Phase 3)                          | workspace cloud          | 0         | 24 + 4 lulus                                            | AC-4.x, AC-5.x         | sukses  | —                               |
-| CI `verify` pada PR Phase 3                                              | GitHub Actions           | —         | —                                                       | semua P3               | belum   | Hasil dicatat setelah PR dibuat |
+| Perintah / observasi                                                     | Environment              | Exit code | Pass / fail / skip / warn                                                | AC                     | Outcome | Tindak lanjut |
+| ------------------------------------------------------------------------ | ------------------------ | --------- | ------------------------------------------------------------------------ | ---------------------- | ------- | ------------- |
+| `npm run docsys:test`                                                    | workspace cloud, Node 22 | 0         | 14 / 0 / 3 (browser)                                                     | AC-1.1–1.5             | sukses  | —             |
+| `node --test tools/docsys/__tests__/portal.test.mjs` + `DOCSYS_CHROMIUM` | workspace cloud          | 0         | 3 / 0 / 0                                                                | AC-4.1, AC-4.3, AC-4.4 | sukses  | —             |
+| `npm run validate`                                                       | workspace cloud          | 0         | lulus, 15 warning lint lama                                              | —                      | sukses  | —             |
+| CI `verify` + `owner-gate` pada PR #43 (Phase 1)                         | GitHub Actions           | 0         | lulus (syarat merge ruleset `main`); di-merge `1d9d437`                  | semua P1               | sukses  | —             |
+| CI `verify` + `owner-gate` pada PR #44 (Phase 2)                         | GitHub Actions           | 0         | lulus (syarat merge ruleset `main`); di-merge `998e998`                  | semua P2               | sukses  | —             |
+| `npm run docsys:test` + smoke browser (Phase 3)                          | workspace cloud          | 0         | 24 + 4 lulus                                                             | AC-4.x, AC-5.x         | sukses  | —             |
+| CI `verify` + `owner-gate` pada PR #45 (Phase 3)                         | GitHub Actions           | 0         | lulus (owner-gate di-re-run setelah cancel concurrency); merge `5931530` | semua P3               | sukses  | —             |
+
+| CI `verify` pada PR #55 (penutupan 39 gap, follow-up) | GitHub Actions | 1 → 0 | gagal di test notifikasi flaky (jeda 60 ms), lulus setelah re-run; merge `de3873c` | DS-R01, DS-R03 | sukses setelah re-run | follow-up test flaky |
 
 Kegagalan tidak dihapus dari tabel. Tindak lanjut: perbaiki & ulang, Bug, re-plan, atau Blocked.
 
@@ -53,13 +55,13 @@ Kegagalan tidak dihapus dari tabel. Tindak lanjut: perbaiki & ulang, Bug, re-pla
 
 ## 4. Quality review (AI-010)
 
-| Dimensi                     | Metode & scope                                | Temuan                                                                                  | Status                                 |
-| --------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------- |
-| Reuse / DRY                 | Baca `scripts/checkTier.mjs`, `checkDocs.mjs` | Pola glob dan pembacaan tabel Markdown mirip; core docsys sengaja mandiri agar portabel | follow-up P3: dokumentasikan di README |
-| Duplikasi / tumpang tindih  | Bandingkan dengan `docs:check`                | Tidak memvalidasi struktur yang sudah dicek `docs:check`/`sdlc:check`                   | none found                             |
-| Kode usang / tidak terpakai | ESLint pada `tools/docsys`                    | 0 error                                                                                 | none found                             |
-| Boundary & best practice    | Aplikasi, kontrak, DB tidak disentuh          | Hanya membaca sumber; tanpa jaringan; server portal hanya `127.0.0.1`                   | none found                             |
-| Bukti regresi               | `npm run validate` penuh                      | Lulus                                                                                   | none found                             |
+| Dimensi                     | Metode & scope                                | Temuan                                                                                  | Status                                  |
+| --------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------- |
+| Reuse / DRY                 | Baca `scripts/checkTier.mjs`, `checkDocs.mjs` | Pola glob dan pembacaan tabel Markdown mirip; core docsys sengaja mandiri agar portabel | Selesai di P3: `tools/docsys/README.md` |
+| Duplikasi / tumpang tindih  | Bandingkan dengan `docs:check`                | Tidak memvalidasi struktur yang sudah dicek `docs:check`/`sdlc:check`                   | none found                              |
+| Kode usang / tidak terpakai | ESLint pada `tools/docsys`                    | 0 error                                                                                 | none found                              |
+| Boundary & best practice    | Aplikasi, kontrak, DB tidak disentuh          | Hanya membaca sumber; tanpa jaringan; server portal hanya `127.0.0.1`                   | none found                              |
+| Bukti regresi               | `npm run validate` penuh                      | Lulus                                                                                   | none found                              |
 
 ## 5. Hasil verifier
 
@@ -67,6 +69,6 @@ Kegagalan tidak dihapus dari tabel. Tindak lanjut: perbaiki & ulang, Bug, re-pla
 | ----- | ----------------------------------------------- | ---------------------------------- | -------------------------------------- | ------------------ |
 | P1    | CI `verify` + `owner-gate` PR #43, review Owner | Diff, log CI, portal lokal         | Accepted (merge `1d9d437`, 2026-10-14) | —                  |
 | P2    | CI `verify` + `owner-gate` PR #44, review Owner | Diff, log CI, laporan completeness | Accepted (merge `998e998`, 2026-10-14) | —                  |
-| P3    | CI `verify` + review Owner pada PR P3           | Diff, log CI, screenshot portal    | Menunggu PR                            | —                  |
+| P3    | CI `verify` + `owner-gate` PR #45, review Owner | Diff, log CI, screenshot portal    | Accepted (merge `5931530`, 2026-10-19) | —                  |
 
 Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).
