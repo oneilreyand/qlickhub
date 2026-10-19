@@ -1,6 +1,6 @@
 # QUICK — QA-IN-REVIEW-ACTIVATION QA tidak ditawari aktivasi Test Case yang menunggu review PO
 
-**Status:** Disetujui
+**Status:** Selesai
 **WRA:** 2/16 — lapisan 1 (frontend saja), ketersinggungan 1 (detail Test Case meja QA), validasi 1
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -49,5 +49,5 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
   - `vitest` `QaTestingDesk.test.tsx` — 0 — 33/0/0 (AC-2 dan AC-3 dicakup test yang sudah ada)
   - `npm --prefix apps/web test` — 0 — 668/0/0 (114 file)
   - `npm --prefix apps/web run typecheck` — 0; eslint dan prettier pada file yang diubah — 0
-- PR dan tier: belum dibuat; Tier 1.
+- PR dan tier: #54 (merged); Tier 1.
 - Gap: tidak ada uji lokal Playwright; perilaku server tidak berubah.

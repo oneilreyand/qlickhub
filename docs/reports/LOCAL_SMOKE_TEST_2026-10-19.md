@@ -20,12 +20,25 @@ bukti Production (E4).
 | 8   | Tolak tanpa alasan ditolak                                          | RELEASE-DEADLOCK AC-1.1                            | "Keputusan tidak tercatat — Alasan penolakan wajib diisi"; tidak ada request ke server                                                                                    | Pass  |
 | 9   | Tolak dengan alasan tersimpan                                       | RELEASE-DEADLOCK AC-1.1                            | `POST /qa-sign-offs` 201; riwayat menampilkan "Ditolak" beserta alasan                                                                                                    | Pass  |
 
+## Tambahan 2026-10-19 (setelah PR #54)
+
+Kode `main` `ba12fe5`. Lewat API terautentikasi dari sesi browser (QA, lalu Owner):
+
+| #   | Cek                                                                    | Feature / AC            | Observasi                                                           | Hasil |
+| --- | ---------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------- | ----- |
+| 10  | QA membuat Test Case dengan `qaSubtaskId` langsung aktif               | QA-DESK-SIMPLIFY AC-3.1 | `POST /test-cases` 201, `status: active` (TC-0003)                  | Pass  |
+| 11  | Test Case tanpa run bisa dihapus                                       | QA-DESK-SIMPLIFY AC-4.1 | `DELETE` TC-0003 dan TC-0002 → 204; `GET` setelahnya 404            | Pass  |
+| 12  | Test Case dengan riwayat run tidak bisa dihapus                        | QA-DESK-SIMPLIFY AC-4.1 | `DELETE` TC-0001 → 409 "sudah memiliki riwayat eksekusi pengujian"  | Pass  |
+| 13  | PO tidak bisa menyetujui rilis atas sign-off QA yang ditolak           | RELEASE-DEADLOCK AC-2.x | `POST /release-decisions` `approved` → 409 (bukti QA belum lengkap) | Pass  |
+| 14  | PO bisa mencatat Keputusan Rilis `rejected` atas sign-off yang ditolak | RELEASE-DEADLOCK AC-2.x | `POST /release-decisions` `rejected` → 201                          | Pass  |
+
+Temuan: form **Test Case Baru** di meja QA belum mengirim `qaSubtaskId` dan masih menyimpan `draft`
+(TC-0002), sehingga AC-3.1 hanya tercapai lewat API. Ini sesuai scope QA-DESK-SIMPLIFY (UI di luar scope) dan
+menjadi bagian Feature UI drawer QA lanjutan.
+
 ## Tidak diuji
 
-- QA-DESK-SIMPLIFY AC-3.1 (QA membuat Test Case yang langsung aktif) dan AC-4.1 (hapus Test Case 0 run):
-  Test Case yang dipakai sudah ada sebelumnya; tidak ada Test Case baru dibuat atau dihapus.
 - Hasil pengujian (Lulus/Gagal) tidak dicatat karena wajib bukti gambar/video nyata.
-- Keputusan Rilis PO atas sign-off yang ditolak (RELEASE-DEADLOCK AC-2.x).
 - Semua cek di Production (E4).
 
 ## Bug yang ditemukan
@@ -39,4 +52,4 @@ bukti Production (E4).
 ## Data lokal yang berubah
 
 Brief Feature 817e3fca v2 `approved` (Owner); Versi Uji `local-smoke-2026.10.19`; TC-0001 diaktifkan
-(Owner); satu run TC-0001 dimulai tanpa hasil; satu QA Sign-off `rejected` permanen.
+(Owner); satu run TC-0001 dimulai tanpa hasil; satu QA Sign-off `rejected` permanen; satu Keputusan Rilis `rejected` (Owner); TC-0002 dan TC-0003 dibuat lalu dihapus.
