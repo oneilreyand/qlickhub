@@ -162,6 +162,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     canExecuteTests: deskData.canExecuteTests,
     canSubmitTestCasesForReview: deskData.canSubmitTestCasesForReview,
     canActivateTestCases: deskData.canActivateTestCases,
+    canActivateInReviewTestCases: deskData.isPlanner,
     submittingTestCaseId: executionState.submittingTestCaseId,
     activatingTestCaseId: executionState.activatingTestCaseId,
     onOpenAcMapping: acMappingState.openAcceptanceCriteriaMapping,

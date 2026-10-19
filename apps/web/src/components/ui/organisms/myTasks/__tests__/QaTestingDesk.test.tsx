@@ -839,6 +839,22 @@ describe('QaTestingDesk Organism', () => {
     expect(screen.queryByRole('button', { name: /Jalankan Test Case/ })).not.toBeInTheDocument();
   });
 
+  it('does not offer QA activation of a Test Case that is awaiting PO review', async () => {
+    const reviewWorkspace = executionWorkspace();
+    reviewWorkspace.executions[0].testCase.status = 'in_review';
+    serviceMocks.getTaskTestExecutions.mockResolvedValue(reviewWorkspace);
+
+    renderDesk('qa');
+
+    expect(await screen.findByText('Menunggu review PO')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: 'Aktifkan Test Case Returning customer completes checkout',
+      }),
+    ).not.toBeInTheDocument();
+    expect(serviceMocks.updateTestCase).not.toHaveBeenCalled();
+  });
+
   it('lets QA activate a draft directly while keeping PO consultation optional', async () => {
     const user = userEvent.setup();
     const draftWorkspace = executionWorkspace();
