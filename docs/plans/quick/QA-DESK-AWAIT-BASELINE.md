@@ -1,6 +1,6 @@
 # QUICK — QA-DESK-AWAIT-BASELINE Meja QA menunggu Baseline Kesiapan sebelum Versi Uji
 
-**Status:** Disetujui
+**Status:** Selesai
 **WRA:** 3/16 — lapisan 1 (frontend saja), ketersinggungan 1 (meja QA), validasi 1
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -65,7 +65,8 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
   - `vitest run` QaNextActionCard / QaTestingDesk / apiClient — 0 — 55/0/0 (3 test baru)
   - `npm --prefix apps/web test` — 0 — 667/0/0 (114 file)
   - `npm --prefix apps/web run typecheck` — 0; eslint pada file yang diubah — 0; `npm run validate` — 0
-- PR dan tier: belum dibuat; Tier 1 (tidak ada path Tier 2).
-- Gap: AC-5 (Playwright lokal pada Feature 817e3fca) dijalankan setelah merge, karena server lokal Owner
-  menjalankan `main`. Kartu tidak menambah tombol "Buka Feature" baru; tombol yang sudah ada di konteks
+- PR dan tier: #51 (merged); Tier 1.
+  - AC-5 (Playwright lokal, Feature 817e3fca, 2026-10-19): kartu "Menunggu Kesiapan Feature" dan tombol Versi Uji nonaktif — Pass
+- Gap: AC-5 dijalankan setelah merge (lulus, lihat
+  [report smoke test lokal](../../reports/LOCAL_SMOKE_TEST_2026-10-19.md)). Kartu tidak menambah tombol "Buka Feature" baru; tombol yang sudah ada di konteks
   Feature tetap menjadi jalan ke Brief Produk.
