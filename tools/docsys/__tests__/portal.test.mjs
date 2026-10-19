@@ -143,3 +143,60 @@ test('AC-4.1: home and feature pages render extracted data', { skip: !chromium }
   });
   if (result === 'no-browser') t.skip('browser unavailable');
 });
+
+test(
+  'AC-4.1/4.2/4.5: ERD, Governance, TODO, UX pages, gap badges, search, and phone width',
+  { skip: !chromium },
+  async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docsys-portal-'));
+    fs.cpSync(fixture, root, { recursive: true });
+    const config = JSON.parse(fs.readFileSync(path.join(root, 'docsys.config.json'), 'utf8'));
+    fs.writeFileSync(
+      path.join(root, 'docsys.config.json'),
+      JSON.stringify({ ...config, output: 'out' }),
+    );
+    await new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, [cli, 'extract', '--root', root], { stdio: 'ignore' });
+      child.on('exit', (code) =>
+        code === 0 ? resolve() : reject(new Error(`extract exited ${code}`)),
+      );
+    });
+    const result = await withPage(root, 4395, async (page) => {
+      await page.getByRole('heading', { name: 'Mini Dev Portal' }).waitFor();
+      assert.ok((await page.textContent('main')).includes('Kelengkapan dokumen'));
+      // Gap badges: 2 undocumented endpoints (fitur), 2 unmapped models (erd), 1 TODO, 2 UX roles.
+      assert.equal(await page.locator('.nav-links a[href="#/fitur"] .badge').textContent(), '2');
+      assert.equal(await page.locator('.nav-links a[href="#/erd"] .badge').textContent(), '2');
+      assert.equal(await page.locator('.nav-links a[href="#/todo"] .badge').textContent(), '1');
+      assert.equal(await page.locator('.nav-links a[href="#/ux"] .badge').textContent(), '2');
+
+      await page.fill('input[data-filter="global"]', 'item');
+      await page.locator('.hits li').first().waitFor();
+
+      await page.goto(page.url().replace(/#.*$/, '') + '#/erd/_all/ItemModel');
+      await page.getByRole('heading', { name: 'items' }).waitFor();
+      assert.ok((await page.textContent('main')).includes('owner_id'));
+      assert.ok((await page.textContent('main')).includes('TagModel'));
+
+      await page.goto(page.url().replace(/#.*$/, '') + '#/governance');
+      await page.locator('td', { hasText: 'ITEM-001' }).first().waitFor();
+
+      await page.goto(page.url().replace(/#.*$/, '') + '#/todo/Blocked');
+      await page.locator('td', { hasText: 'ITEM-EXPORT' }).first().waitFor();
+      assert.equal(await page.locator('tbody tr', { hasText: 'ITEM-ARCHIVE' }).count(), 0);
+
+      await page.goto(page.url().replace(/#.*$/, '') + '#/ux');
+      await page.getByRole('heading', { name: 'UX matrix belum ada' }).waitFor();
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      for (const hash of ['#/', '#/fitur', '#/erd', '#/governance', '#/todo']) {
+        await page.goto(page.url().replace(/#.*$/, '') + hash);
+        await page.locator('main h1').waitFor();
+        const width = await page.evaluate(() => document.documentElement.scrollWidth);
+        assert.ok(width <= 390, `${hash} scrolls horizontally at 390px (${width})`);
+      }
+      await shot(page, 'phone-todo');
+    });
+    if (result === 'no-browser') t.skip('browser unavailable');
+  },
+);

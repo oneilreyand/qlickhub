@@ -58,7 +58,7 @@ export function describeSchema(initializer) {
   };
 }
 
-/** config.contracts = { include: ["packages/contracts/src/*.ts"], exclude: [...], suffix: "Schema" } */
+/** config.contracts = { include: ["contracts/src/*.ts"], exclude: [...], suffix: "Schema" } */
 export const zodContractsAdapter = {
   id: 'zod-contracts',
   extract({ root, config }) {

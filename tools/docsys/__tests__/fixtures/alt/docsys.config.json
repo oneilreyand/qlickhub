@@ -1,0 +1,22 @@
+{
+  "project": { "name": "Shop" },
+  "output": "out",
+  "adapters": ["package-json", "express-routes", "zod-contracts", "sequelize-models", "markdown"],
+  "stack": {
+    "manifests": ["package.json"],
+    "groups": [{ "id": "api", "name": "API", "manifest": "package.json", "packages": ["express"] }]
+  },
+  "routes": { "app": "server/main.ts", "appRouter": "server", "include": ["server/routes/*.ts"] },
+  "contracts": { "include": ["shared/schemas/*.ts"] },
+  "models": { "include": ["db/entities/*.ts"], "associations": ["db/relations.ts"] },
+  "markdown": {
+    "features": { "dir": "knowledge/features", "catalog": "knowledge/catalog.md" },
+    "todo": { "file": "backlog.md", "section": "Doing" }
+  },
+  "erd": { "domains": { "Sales": ["Order", "Customer"] } },
+  "links": { "stripPrefixes": ["/api"] },
+  "completeness": {
+    "baseline": "quality/baseline.json",
+    "rules": ["DS-R01", "DS-R02", "DS-R03", "DS-R05"]
+  }
+}

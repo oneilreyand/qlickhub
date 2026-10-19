@@ -10,10 +10,10 @@
   var PAGES = [
     { id: 'home', label: 'Beranda & Stack', ready: true },
     { id: 'fitur', label: 'Fitur & Kontrak API', ready: true },
-    { id: 'erd', label: 'ERD', ready: false },
-    { id: 'governance', label: 'Governance', ready: false },
-    { id: 'todo', label: 'TODO aktif', ready: false },
-    { id: 'ux', label: 'UI/UX Matrix', ready: false },
+    { id: 'erd', label: 'ERD', ready: true },
+    { id: 'governance', label: 'Governance', ready: true },
+    { id: 'todo', label: 'TODO aktif', ready: true },
+    { id: 'ux', label: 'UI/UX Matrix', ready: true },
   ];
 
   function esc(value) {
@@ -59,7 +59,11 @@
       }
       var href = page.id === 'home' ? '#/' : '#/' + page.id;
       var cur = page.id === current ? ' aria-current="page"' : '';
-      return '<a href="' + href + '"' + cur + '>' + esc(page.label) + '</a>';
+      var gaps = data && PAGE_RULES[page.id] ? gapsFor(PAGE_RULES[page.id]).length : 0;
+      var badge = gaps
+        ? ' <small class="badge" aria-label="' + gaps + ' gap dokumen">' + gaps + '</small>'
+        : '';
+      return '<a href="' + href + '"' + cur + '>' + esc(page.label) + badge + '</a>';
     }).join('');
     document.getElementById('nav-links').innerHTML = links;
     if (data) {
@@ -180,6 +184,8 @@
         })
         .join('') +
       '</section>' +
+      searchSection() +
+      completenessSection() +
       '<section class="section"><div class="section-head"><h2>Stack yang digunakan</h2><span class="muted" style="font-size:13px">Versi dari package.json</span></div>' +
       '<div class="grid">' +
       groups +
@@ -405,13 +411,14 @@
   }
 
   function fiturPage(r) {
-    var view = r.a === '_endpoint' || r.a === '_kontrak' ? r.a : 'fitur';
+    var view = ['_endpoint', '_kontrak', '_gap'].indexOf(r.a) >= 0 ? r.a : 'fitur';
     var tabs =
       '<nav class="tabs" aria-label="Tampilan">' +
       [
         ['fitur', 'Per fitur', '#/fitur'],
         ['_endpoint', 'Semua endpoint (' + data.endpoints.length + ')', '#/fitur/_endpoint'],
         ['_kontrak', 'Semua kontrak (' + data.contracts.length + ')', '#/fitur/_kontrak'],
+        ['_gap', 'Gap dokumen (' + gapsFor(PAGE_RULES.fitur).length + ')', '#/fitur/_gap'],
       ]
         .map(function (t) {
           return (
@@ -437,6 +444,7 @@
         endpointTable(data.endpoints)
       );
     }
+    if (view === '_gap') return head + gapTable(gapsFor(PAGE_RULES.fitur));
     if (view === '_kontrak') {
       return (
         head +
@@ -459,11 +467,648 @@
     );
   }
 
+  /* ---------- Gaps (completeness) ---------- */
+  var PAGE_RULES = {
+    fitur: ['DS-R01', 'DS-R05'],
+    erd: ['DS-R02'],
+    todo: ['DS-R03'],
+    ux: ['DS-R04'],
+  };
+
+  function gapsFor(rules) {
+    var all = (data.completeness && data.completeness.gaps) || [];
+    return all.filter(function (g) {
+      return rules.indexOf(g.rule) >= 0;
+    });
+  }
+
+  function ruleTitle(id) {
+    var rules = (data.completeness && data.completeness.rules) || [];
+    var found = rules.filter(function (r) {
+      return r.id === id;
+    })[0];
+    return found ? found.title : id;
+  }
+
+  function gapTable(gaps) {
+    if (!data.completeness) {
+      return '<p class="muted">Laporan kelengkapan belum ada. Jalankan <span class="mono">npm run docs:extract</span>.</p>';
+    }
+    if (!gaps.length) return '<p class="chip ok">Tidak ada gap untuk bagian ini.</p>';
+    return (
+      '<div class="table-box"><table><thead><tr><th>Rule</th><th>Gap</th><th>File</th><th>Status</th><th>Perbaikan</th></tr></thead><tbody>' +
+      gaps
+        .map(function (g) {
+          return (
+            '<tr><td class="mono nowrap" title="' +
+            esc(ruleTitle(g.rule)) +
+            '">' +
+            esc(g.rule) +
+            '</td>' +
+            '<td>' +
+            esc(g.message) +
+            '</td><td class="mono">' +
+            esc(g.file || '—') +
+            '</td>' +
+            '<td>' +
+            (g.status === 'new'
+              ? '<span class="chip bad">Baru</span>'
+              : '<span class="chip warn">Baseline</span>') +
+            '</td>' +
+            '<td class="muted">' +
+            esc(g.fix) +
+            '</td></tr>'
+          );
+        })
+        .join('') +
+      '</tbody></table></div>'
+    );
+  }
+
+  function completenessSection() {
+    if (!data.completeness) return '';
+    var s = data.completeness.summary;
+    var rows = data.completeness.rules
+      .map(function (rule) {
+        var count = s.byRule[rule.id] || 0;
+        return (
+          '<tr><td class="mono">' +
+          esc(rule.id) +
+          '</td><td>' +
+          esc(rule.title) +
+          '</td>' +
+          '<td>' +
+          (count
+            ? '<span class="chip warn">' + count + '</span>'
+            : '<span class="chip ok">0</span>') +
+          '</td></tr>'
+        );
+      })
+      .join('');
+    return (
+      '<section class="section"><div class="section-head"><h2>Kelengkapan dokumen</h2>' +
+      '<span class="muted" style="font-size:13px">' +
+      s.total +
+      ' gap · ' +
+      s.known +
+      ' di baseline · ' +
+      s.added +
+      ' baru · ' +
+      s.resolved +
+      ' sudah beres</span></div>' +
+      '<div class="table-box"><table><thead><tr><th>Rule</th><th>Pemeriksaan</th><th>Gap</th></tr></thead><tbody>' +
+      rows +
+      '</tbody></table></div></section>'
+    );
+  }
+
+  /* ---------- Global search ---------- */
+  function searchIndex() {
+    var items = [];
+    data.features.forEach(function (f) {
+      items.push({
+        kind: 'Fitur',
+        label: f.title || f.id,
+        sub: f.id,
+        href: '#/fitur/' + encodeURIComponent(f.id),
+      });
+    });
+    data.endpoints.forEach(function (e) {
+      items.push({ kind: 'Endpoint', label: e.key, sub: e.module, href: '#/fitur/_endpoint' });
+    });
+    data.contracts.forEach(function (c) {
+      items.push({ kind: 'Schema', label: c.name, sub: c.file, href: '#/fitur/_kontrak' });
+    });
+    data.erd.entities.forEach(function (m) {
+      items.push({
+        kind: 'Model',
+        label: m.name,
+        sub: m.table,
+        href: '#/erd/_all/' + encodeURIComponent(m.name),
+      });
+    });
+    data.policies.forEach(function (p) {
+      items.push({ kind: 'Policy', label: p.id, sub: p.summary, href: '#/governance' });
+    });
+    data.adrs.forEach(function (a) {
+      items.push({ kind: 'ADR', label: a.id, sub: a.title, href: '#/governance' });
+    });
+    data.todo.forEach(function (t) {
+      items.push({ kind: 'TODO', label: t.id, sub: t.title, href: '#/todo' });
+    });
+    return items;
+  }
+
+  function searchSection() {
+    return (
+      '<section class="section"><label class="field">Cari di seluruh portal' +
+      '<input type="search" data-filter="global" placeholder="Fitur, endpoint, schema, model, policy, ADR, TODO"></label>' +
+      '<div id="search-results" class="search-results" aria-live="polite"></div></section>'
+    );
+  }
+
+  function renderSearch(q) {
+    var box = document.getElementById('search-results');
+    if (!box) return;
+    if (q.length < 2) {
+      box.innerHTML = '';
+      return;
+    }
+    var hits = searchIndex()
+      .filter(function (item) {
+        return (item.label + ' ' + item.sub + ' ' + item.kind).toLowerCase().indexOf(q) >= 0;
+      })
+      .slice(0, 30);
+    box.innerHTML = hits.length
+      ? '<ul class="hits">' +
+        hits
+          .map(function (h) {
+            return (
+              '<li><a href="' +
+              h.href +
+              '"><span class="chip">' +
+              esc(h.kind) +
+              '</span> <span class="mono">' +
+              esc(h.label) +
+              '</span> <span class="muted">' +
+              esc(String(h.sub || '').slice(0, 90)) +
+              '</span></a></li>'
+            );
+          })
+          .join('') +
+        '</ul>'
+      : '<p class="muted">Tidak ada hasil.</p>';
+  }
+
+  /* ---------- ERD ---------- */
+  function domainOf(name) {
+    var domains = data.erd.domains || {};
+    for (var key in domains) {
+      if (domains[key].indexOf(name) >= 0) return key;
+    }
+    return 'Tanpa domain';
+  }
+
+  function erdPage(r) {
+    var domains = Object.keys(data.erd.domains || {});
+    if (
+      data.erd.entities.some(function (e) {
+        return domainOf(e.name) === 'Tanpa domain';
+      })
+    )
+      domains.push('Tanpa domain');
+    var current = r.a && r.a !== '_all' ? r.a : '_all';
+    var chips =
+      '<nav class="chips" aria-label="Filter domain">' +
+      [['_all', 'Semua']]
+        .concat(
+          domains.map(function (d) {
+            return [d, d];
+          }),
+        )
+        .map(function (d) {
+          return (
+            '<a class="pill" href="#/erd/' +
+            encodeURIComponent(d[0]) +
+            '"' +
+            (d[0] === current ? ' aria-current="page"' : '') +
+            '>' +
+            esc(d[1]) +
+            '</a>'
+          );
+        })
+        .join('') +
+      '</nav>';
+    var shown = data.erd.entities.filter(function (e) {
+      return current === '_all' || domainOf(e.name) === current;
+    });
+    var byDomain = {};
+    shown.forEach(function (e) {
+      (byDomain[domainOf(e.name)] = byDomain[domainOf(e.name)] || []).push(e);
+    });
+    var cards = Object.keys(byDomain)
+      .map(function (d) {
+        return (
+          '<div class="card stack-card"><div class="section-head"><h3>' +
+          esc(d) +
+          '</h3><span class="muted" style="font-size:12px">' +
+          byDomain[d].length +
+          ' entitas</span></div>' +
+          '<div class="chips">' +
+          byDomain[d]
+            .map(function (e) {
+              var href = '#/erd/' + encodeURIComponent(current) + '/' + encodeURIComponent(e.name);
+              return (
+                '<a class="ent" href="' +
+                href +
+                '"' +
+                (e.name === r.b ? ' aria-current="true"' : '') +
+                '>' +
+                esc(e.table || e.name) +
+                '</a>'
+              );
+            })
+            .join('') +
+          '</div></div>'
+        );
+      })
+      .join('');
+    var entity = data.erd.entities.filter(function (e) {
+      return e.name === r.b;
+    })[0];
+    var detail = entity
+      ? entityDetail(entity)
+      : '<p class="muted">Pilih entitas untuk melihat kolom dan relasinya.</p>';
+    return (
+      '<header class="page-head"><div class="lead"><h1>Entity Relationship</h1>' +
+      '<p class="muted">' +
+      data.erd.entities.length +
+      ' model · ' +
+      data.erd.relations.length +
+      ' relasi · dibangkitkan dari model dan file asosiasi.</p></div></header>' +
+      chips +
+      '<div class="grid">' +
+      cards +
+      '</div>' +
+      '<section class="card detail" aria-label="Detail entitas">' +
+      detail +
+      '</section>' +
+      '<section class="section"><h2>Gap ERD</h2>' +
+      gapTable(gapsFor(PAGE_RULES.erd)) +
+      '</section>'
+    );
+  }
+
+  function entityDetail(entity) {
+    var cols = entity.attributes
+      .map(function (a) {
+        return (
+          '<tr><td class="mono">' +
+          esc(a.column) +
+          (a.primaryKey ? ' <span class="chip ok">PK</span>' : '') +
+          '</td><td class="mono">' +
+          esc(a.type || '—') +
+          '</td>' +
+          '<td>' +
+          (a.allowNull === false ? 'wajib' : a.allowNull === true ? 'boleh kosong' : '—') +
+          '</td><td class="mono muted">' +
+          esc(a.name) +
+          '</td></tr>'
+        );
+      })
+      .join('');
+    var rels = data.erd.relations.filter(function (rel) {
+      return rel.from === entity.name || rel.to === entity.name;
+    });
+    var relRows = rels
+      .map(function (rel) {
+        var other = rel.from === entity.name ? rel.to : rel.from;
+        var dir = rel.from === entity.name ? rel.type : 'dirujuk lewat ' + rel.type;
+        return (
+          '<tr><td>' +
+          esc(dir) +
+          '</td><td><a class="mono" href="#/erd/_all/' +
+          encodeURIComponent(other) +
+          '">' +
+          esc(other) +
+          '</a></td>' +
+          '<td class="mono">' +
+          esc(rel.as || '—') +
+          '</td><td class="mono">' +
+          esc(rel.foreignKey || '—') +
+          '</td></tr>'
+        );
+      })
+      .join('');
+    return (
+      '<div class="chips"><span class="chip mono">' +
+      esc(entity.name) +
+      '</span><span class="muted" style="font-size:13px">' +
+      esc(domainOf(entity.name)) +
+      '</span></div>' +
+      '<h2 style="font-size:22px" class="mono">' +
+      esc(entity.table || entity.name) +
+      '</h2>' +
+      '<p class="muted mono" style="font-size:12px">' +
+      esc(entity.file) +
+      '</p>' +
+      '<div class="table-box"><table><thead><tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Atribut</th></tr></thead><tbody>' +
+      cols +
+      '</tbody></table></div>' +
+      '<h3>Relasi (' +
+      rels.length +
+      ')</h3>' +
+      (rels.length
+        ? '<div class="table-box"><table><thead><tr><th>Jenis</th><th>Entitas</th><th>Alias</th><th>Foreign key</th></tr></thead><tbody>' +
+          relRows +
+          '</tbody></table></div>'
+        : '<p class="muted">Tidak ada relasi.</p>')
+    );
+  }
+
+  /* ---------- Governance ---------- */
+  function governancePage() {
+    var areas = {};
+    data.policies.forEach(function (p) {
+      (areas[p.area || 'Lainnya'] = areas[p.area || 'Lainnya'] || []).push(p);
+    });
+    var max = Math.max.apply(
+      null,
+      Object.keys(areas)
+        .map(function (k) {
+          return areas[k].length;
+        })
+        .concat([1]),
+    );
+    var bars = Object.keys(areas)
+      .sort(function (a, b) {
+        return areas[b].length - areas[a].length;
+      })
+      .map(function (k) {
+        var w = Math.round((areas[k].length / max) * 100);
+        return (
+          '<div class="bar-row"><span>' +
+          esc(k) +
+          '</span><span class="bar"><span style="width:' +
+          w +
+          '%"></span></span><span class="mono">' +
+          areas[k].length +
+          '</span></div>'
+        );
+      })
+      .join('');
+    var policyRows = data.policies
+      .map(function (p) {
+        return (
+          '<tr><td class="mono nowrap">' +
+          esc(p.id) +
+          '</td><td>' +
+          esc(p.area) +
+          '</td><td>' +
+          esc(p.summary) +
+          '</td></tr>'
+        );
+      })
+      .join('');
+    var adrRows = data.adrs
+      .slice()
+      .reverse()
+      .map(function (a) {
+        return (
+          '<tr><td class="mono nowrap">' +
+          esc(a.id) +
+          '</td><td>' +
+          esc(a.title) +
+          '</td><td>' +
+          statusChip(a.status) +
+          '</td><td class="nowrap muted">' +
+          esc(a.date || '—') +
+          '</td></tr>'
+        );
+      })
+      .join('');
+    return (
+      '<header class="page-head"><div class="lead"><h1>Governance & aturan pengembangan</h1>' +
+      '<p class="muted">Policy registry, ADR, dan pemeriksaan kelengkapan dokumen.</p></div></header>' +
+      '<div class="grid"><section class="card stack-card"><h2>Policy per area (' +
+      data.policies.length +
+      ')</h2>' +
+      bars +
+      '</section>' +
+      '<section class="card stack-card"><h2>Pemeriksaan kelengkapan</h2>' +
+      completenessRules() +
+      '</section></div>' +
+      '<section class="section"><h2>ADR (' +
+      data.adrs.length +
+      ')</h2><div class="table-box"><table><thead><tr><th>ADR</th><th>Judul</th><th>Status</th><th>Tanggal</th></tr></thead><tbody>' +
+      adrRows +
+      '</tbody></table></div></section>' +
+      '<section class="section"><h2>Policy</h2><label class="field">Cari policy<input type="search" data-filter="rows" placeholder="ID, area, atau isi aturan"></label>' +
+      '<div class="table-box"><table><thead><tr><th>ID</th><th>Area</th><th>Aturan</th></tr></thead><tbody>' +
+      policyRows +
+      '</tbody></table></div></section>'
+    );
+  }
+
+  function completenessRules() {
+    if (!data.completeness) return '<p class="muted">Belum ada laporan.</p>';
+    return data.completeness.rules
+      .map(function (rule) {
+        var n = data.completeness.summary.byRule[rule.id] || 0;
+        return (
+          '<div class="kv"><span><span class="mono">' +
+          esc(rule.id) +
+          '</span> ' +
+          esc(rule.title) +
+          '</span><span>' +
+          n +
+          '</span></div>'
+        );
+      })
+      .join('');
+  }
+
+  /* ---------- TODO ---------- */
+  var LAYER_CLASS = { Done: 'ok', 'In progress': 'info', Todo: '', 'N/A': '' };
+
+  function layerChip(value) {
+    if (!value) return '<span class="chip">Belum ditandai</span>';
+    return '<span class="chip ' + (LAYER_CLASS[value] || 'bad') + '">' + esc(value) + '</span>';
+  }
+
+  function todoPage(r) {
+    var statuses = ['Semua'].concat(
+      data.todo
+        .map(function (t) {
+          return t.status;
+        })
+        .filter(function (s, i, all) {
+          return all.indexOf(s) === i;
+        }),
+    );
+    var current = r.a || 'Semua';
+    var chips =
+      '<nav class="chips" aria-label="Filter status">' +
+      statuses
+        .map(function (s) {
+          return (
+            '<a class="pill" href="#/todo/' +
+            encodeURIComponent(s) +
+            '"' +
+            (s === current ? ' aria-current="page"' : '') +
+            '>' +
+            esc(s) +
+            '</a>'
+          );
+        })
+        .join('') +
+      '</nav>';
+    var rows = data.todo
+      .filter(function (t) {
+        return current === 'Semua' || t.status === current;
+      })
+      .map(function (t) {
+        var layer = t.layer || {};
+        return (
+          '<tr><td style="min-width:280px"><div class="mono" style="font-size:12px;color:var(--accent)">' +
+          esc(t.id) +
+          '</div><div>' +
+          esc(t.title) +
+          '</div>' +
+          (t.blocker
+            ? '<div class="muted" style="font-size:12px">Blocker: ' + esc(t.blocker) + '</div>'
+            : '') +
+          '</td>' +
+          '<td>' +
+          statusChip(t.status) +
+          '</td><td>' +
+          layerChip(layer.prd) +
+          '</td><td>' +
+          layerChip(layer.be) +
+          '</td><td>' +
+          layerChip(layer.fe) +
+          '</td>' +
+          '<td class="nowrap muted">' +
+          esc(t.owner) +
+          ' · ' +
+          esc(t.since || '—') +
+          '</td></tr>'
+        );
+      })
+      .join('');
+    var count = function (s) {
+      return data.todo.filter(function (t) {
+        return t.status === s;
+      }).length;
+    };
+    return (
+      '<header class="page-head"><div class="lead"><h1>TODO aktif</h1><p class="muted">' +
+      data.todo.length +
+      ' item terbuka · ' +
+      count('In progress') +
+      ' in progress · ' +
+      count('Blocked') +
+      ' blocked. Kolom PRD/BE/FE dari baris <span class="mono">Layer:</span>.</p></div></header>' +
+      chips +
+      '<div class="table-box"><table><thead><tr><th>Pekerjaan</th><th>Status</th><th>PRD</th><th>BE</th><th>FE</th><th>Pemilik · sejak</th></tr></thead><tbody>' +
+      rows +
+      '</tbody></table></div>' +
+      '<section class="section"><h2>Gap TODO</h2>' +
+      gapTable(gapsFor(PAGE_RULES.todo)) +
+      '</section>'
+    );
+  }
+
+  /* ---------- UI/UX Matrix ---------- */
+  function scoreChip(value) {
+    var v = String(value || '').trim();
+    var cls = /^Lancar/i.test(v)
+      ? 'ok'
+      : /^Perlu/i.test(v)
+        ? 'warn'
+        : /^Bermasalah/i.test(v)
+          ? 'bad'
+          : /spec|png|ada/i.test(v) && !/Belum/i.test(v)
+            ? 'info'
+            : '';
+    return '<span class="chip ' + cls + '">' + esc(v || '—') + '</span>';
+  }
+
+  function uxPage(r) {
+    var ux = data.uxMatrix;
+    var roles = ux.roles.length
+      ? ux.roles
+      : ux.rows
+          .map(function (row) {
+            return row.role;
+          })
+          .filter(function (v, i, a) {
+            return a.indexOf(v) === i;
+          });
+    var current = r.a && roles.indexOf(r.a) >= 0 ? r.a : roles[0];
+    if (!ux.source) {
+      return (
+        '<header class="page-head"><div class="lead"><h1>UI/UX Matrix</h1></div></header>' +
+        stateView(
+          'UX matrix belum ada',
+          'Buat file UX matrix sesuai config agar alur per role bisa dinilai.',
+          '',
+        ) +
+        gapTable(gapsFor(PAGE_RULES.ux))
+      );
+    }
+    var chips =
+      '<nav class="chips" aria-label="Pilih role">' +
+      roles
+        .map(function (role) {
+          return (
+            '<a class="pill" href="#/ux/' +
+            encodeURIComponent(role) +
+            '"' +
+            (role === current ? ' aria-current="page"' : '') +
+            '>' +
+            esc(role) +
+            '</a>'
+          );
+        })
+        .join('') +
+      '</nav>';
+    var rows = ux.rows.filter(function (row) {
+      return row.role === current;
+    });
+    var criteria = ux.criteria.length
+      ? ux.criteria
+      : rows.length
+        ? Object.keys(rows[0].scores)
+        : [];
+    var body = rows
+      .map(function (row) {
+        return (
+          '<tr><th scope="row" style="background:var(--surface);color:var(--ink);font-weight:500">' +
+          esc(row.flow) +
+          '</th>' +
+          criteria
+            .map(function (c) {
+              return '<td>' + scoreChip(row.scores[c]) + '</td>';
+            })
+            .join('') +
+          '</tr>'
+        );
+      })
+      .join('');
+    return (
+      '<header class="page-head"><div class="lead"><h1>UI/UX Matrix</h1><p class="muted">Sumber: <span class="mono">' +
+      esc(ux.source) +
+      '</span> · ' +
+      ux.rows.length +
+      ' alur.</p></div></header>' +
+      chips +
+      (rows.length
+        ? '<div class="table-box"><table><thead><tr><th>Alur · ' +
+          esc(current) +
+          '</th>' +
+          criteria
+            .map(function (c) {
+              return '<th>' + esc(c) + '</th>';
+            })
+            .join('') +
+          '</tr></thead><tbody>' +
+          body +
+          '</tbody></table></div>'
+        : '<p class="muted">Role ini belum punya baris alur.</p>') +
+      '<section class="section"><h2>Gap UX matrix</h2>' +
+      gapTable(gapsFor(PAGE_RULES.ux)) +
+      '</section>'
+    );
+  }
+
   function bindFilters() {
     Array.prototype.forEach.call(main.querySelectorAll('input[data-filter]'), function (input) {
       input.addEventListener('input', function () {
         var q = input.value.trim().toLowerCase();
-        if (input.dataset.filter === 'list') {
+        if (input.dataset.filter === 'global') {
+          renderSearch(q);
+        } else if (input.dataset.filter === 'list') {
           Array.prototype.forEach.call(main.querySelectorAll('.list a'), function (a) {
             a.hidden = q && a.dataset.search.indexOf(q) < 0;
           });
@@ -484,7 +1129,14 @@
       ? r.page
       : 'home';
     renderNav(page);
-    main.innerHTML = page === 'fitur' ? fiturPage(r) : homePage();
+    var views = {
+      fitur: fiturPage,
+      erd: erdPage,
+      governance: governancePage,
+      todo: todoPage,
+      ux: uxPage,
+    };
+    main.innerHTML = (views[page] || homePage)(r);
     bindFilters();
   }
 
