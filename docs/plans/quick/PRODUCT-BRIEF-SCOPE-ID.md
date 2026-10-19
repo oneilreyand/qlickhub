@@ -1,6 +1,6 @@
 # QUICK — PRODUCT-BRIEF-SCOPE-ID Brief Produk dari AI tidak bisa disimpan ulang
 
-**Status:** Disetujui
+**Status:** Selesai
 **WRA:** 4/16 — lapisan 1 (backend service), ketersinggungan 2 (generator AI + pembacaan Brief), validasi 1
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -61,7 +61,8 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
   - test baru pada service lama (tanpa perbaikan) — 1 — 0/2/0 (membuktikan test menangkap bug)
   - `npm --prefix apps/api run test:integration` (PostgreSQL 16, migrasi 1–88) — 0 — 517/0/0
   - `npm run validate` — 0
-- PR dan tier: belum dibuat; Tier 1.
-- Gap: AC-3 memakai validasi kontrak yang sama dengan controller, bukan request HTTP; AC-5 dijalankan
-  setelah merge di lokal Owner. Data lama di Production tidak diubah; Brief lama baru memakai UUID setelah
+- PR dan tier: #52 (merged); Tier 1.
+  - AC-5 (Playwright lokal, 2026-10-19): Brief 817e3fca tersimpan v2 `approved`, baseline terbentuk — Pass
+- Gap: AC-3 memakai validasi kontrak yang sama dengan controller, bukan request HTTP; AC-5 lulus
+  setelah merge ([report smoke test lokal](../../reports/LOCAL_SMOKE_TEST_2026-10-19.md)). Data lama di Production tidak diubah; Brief lama baru memakai UUID setelah
   disimpan ulang.

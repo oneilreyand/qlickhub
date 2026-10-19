@@ -15,16 +15,16 @@
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status    | Gerbang         | Disetujui oleh / tanggal  | Catatan                                          |
-| ----------------- | -------------------------------------------------------------------------------------- | --------- | --------------- | ------------------------- | ------------------------------------------------ |
-| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui | G0              | reyand (Owner) 2026-10-13 |                                                  |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui | G1              | reyand (Owner) 2026-10-13 | Opsi A; ADR baru: lihat solution.md              |
-| 2 PRD             | [product.md](product.md)                                                               | Disetujui | G2              | reyand (Owner) 2026-10-13 | D6, D7 diputuskan                                |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui | G3              | reyand (Owner) 2026-10-13 | Jalur: Penuh                                     |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui | bagian G2       | reyand (Owner) 2026-10-13 | bagian G2                                        |
-| 4 Build           | [phases/](phases/)                                                                     | Selesai   | dalam window G3 | reyand (Owner) 2026-10-13 | P1 kandidat teruji; P2 = rilis                   |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Selesai   | G5              | reyand (Owner) 2026-10-14 | Verifier: CI PR #37 + suite integrasi 500/500    |
-| 6 Release & Close | [release.md](release.md)                                                               | Draft     | G6              | —                         | Released de50b69; menunggu smoke test Production |
+| Tahap             | Dokumen                                                                                | Status    | Gerbang         | Disetujui oleh / tanggal  | Catatan                                             |
+| ----------------- | -------------------------------------------------------------------------------------- | --------- | --------------- | ------------------------- | --------------------------------------------------- |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui | G0              | reyand (Owner) 2026-10-13 |                                                     |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui | G1              | reyand (Owner) 2026-10-13 | Opsi A; ADR baru: lihat solution.md                 |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui | G2              | reyand (Owner) 2026-10-13 | D6, D7 diputuskan                                   |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui | G3              | reyand (Owner) 2026-10-13 | Jalur: Penuh                                        |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui | bagian G2       | reyand (Owner) 2026-10-13 | bagian G2                                           |
+| 4 Build           | [phases/](phases/)                                                                     | Selesai   | dalam window G3 | reyand (Owner) 2026-10-13 | P1 kandidat teruji; P2 = rilis                      |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Selesai   | G5              | reyand (Owner) 2026-10-14 | Verifier: CI PR #37 + suite integrasi 500/500       |
+| 6 Release & Close | [release.md](release.md)                                                               | Draft     | G6              | —                         | Smoke test lokal E3 lulus 2026-10-19; Prod E4 belum |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 (Ini terpisah dari **Status** kartu di atas, yang tetap `Draft` / `Active` / `Superseded` / `Archived`.)

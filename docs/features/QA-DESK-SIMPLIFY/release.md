@@ -15,21 +15,22 @@ Merge ke `main` otomatis men-deploy Production (keputusan Owner 2026-10-13). Mig
 
 ## 2. Verifikasi di environment target
 
-| AC             | Environment | Observasi / perintah                                                           | Level | Hasil           |
-| -------------- | ----------- | ------------------------------------------------------------------------------ | ----- | --------------- |
-| AC-2.1         | Production  | Query audit read-only sebelum migrasi: `content_eligible` 0, `will_backfill` 0 | E4    | Pass            |
-| AC-2.1, AC-5.1 | Production  | `SequelizeMeta` teratas: 088, 087, 086, 085, 084 (SQL Editor, 2026-10-14)      | E4    | Pass            |
-| Migrasi 086    | Production  | `information_schema.columns` → `bugs.environment` ada                          | E4    | Pass            |
-| AC-3.1, AC-4.1 | Production  | Smoke test QA (buat test case → jalankan; hapus test case 0 run)               | E4    | Belum dilakukan |
+| AC             | Environment | Observasi / perintah                                                                    | Level | Hasil           |
+| -------------- | ----------- | --------------------------------------------------------------------------------------- | ----- | --------------- |
+| AC-2.1         | Production  | Query audit read-only sebelum migrasi: `content_eligible` 0, `will_backfill` 0          | E4    | Pass            |
+| AC-2.1, AC-5.1 | Production  | `SequelizeMeta` teratas: 088, 087, 086, 085, 084 (SQL Editor, 2026-10-14)               | E4    | Pass            |
+| Migrasi 086    | Production  | `information_schema.columns` → `bugs.environment` ada                                   | E4    | Pass            |
+| AC-2           | Lokal       | Brief disetujui → baseline otomatis; QA tetapkan Versi Uji dan jalankan TC (2026-10-19) | E3    | Pass            |
+| AC-3.1, AC-4.1 | Production  | Smoke test QA (buat test case → jalankan; hapus test case 0 run)                        | E4    | Belum dilakukan |
 
 ## 3. QA sign-off dan keputusan rilis
 
-| Item               | Isi                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------- |
-| QA sign-off        | N/A — perubahan backend tata kelola; bukti test integrasi di [testing.md](testing.md) |
-| Keputusan rilis PO | approved — Owner merge PR #37, 2026-10-13                                             |
-| Gap yang diterima  | Smoke test Production belum dilakukan saat dokumen ini ditulis                        |
-| Rollback plan      | Alihkan alias Vercel ke deployment sebelumnya; tanpa `db:migrate:undo` di Production  |
+| Item               | Isi                                                                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| QA sign-off        | N/A — perubahan backend tata kelola; bukti test integrasi di [testing.md](testing.md)                                                           |
+| Keputusan rilis PO | approved — Owner merge PR #37, 2026-10-13                                                                                                       |
+| Gap yang diterima  | Smoke test lokal E3 lulus ([report smoke test lokal](../../reports/LOCAL_SMOKE_TEST_2026-10-19.md)); AC-3.1/4.1 dan smoke test Production belum |
+| Rollback plan      | Alihkan alias Vercel ke deployment sebelumnya; tanpa `db:migrate:undo` di Production                                                            |
 
 ## 4. Metrik sukses (dari problem.md)
 
@@ -46,4 +47,6 @@ Merge ke `main` otomatis men-deploy Production (keputusan Owner 2026-10-13). Mig
 - [ ] `docs/features/FEATURE_CATALOG.md` diperbarui (follow-up)
 - [x] SSoT/ADR terdampak sudah sesuai implementasi
 - [ ] `TODO.md` → Done dan dipindah ke arsip
+- [x] Smoke test lokal E3 dicatat di [report smoke test lokal](../../reports/LOCAL_SMOKE_TEST_2026-10-19.md); dua bug yang ditemukan diperbaiki di PR #51 dan #52
+- [ ] Smoke test Production E4 dan AC-3.1/4.1 (follow-up)
 - [x] Follow-up dicatat di report (smoke test, refactor `ensureAutoBaseline`, pemicu baseline di luar transaksi, cek migrasi Production di CI)
