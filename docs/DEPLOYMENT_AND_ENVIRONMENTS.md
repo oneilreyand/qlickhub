@@ -48,8 +48,13 @@ sesuai dengan URL di root `.env`.
 npm ci
 npm run env:setup:local
 npm run env:check
+npm --prefix packages/contracts run build
 npm run db:migrate
 ```
+
+`dev:api` mengimpor `@qlick/contracts` dari `packages/contracts/dist`; tanpa build tersebut API gagal
+start dengan `Cannot find package .../dist`. Ulangi build setiap kali `packages/contracts` berubah
+(misalnya setelah `git pull`).
 
 `env:setup:local` membuat `.env` dan `apps/web/.env.local` dari template hanya jika target belum
 ada. Perintah ini idempotent: file yang sudah ada selalu dipertahankan dan nilainya tidak pernah

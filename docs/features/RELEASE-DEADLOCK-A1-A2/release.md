@@ -20,16 +20,17 @@ Tidak ada migrasi database di kedua phase.
 | AC-1.1–2.2     | CI / lokal  | `releaseRejectionApiIntegration.test.ts` pada PostgreSQL                                                              | E3    | Pass            |
 | AC-3.1–3.3     | CI / lokal  | evaluator, contract, i18n, dan integration test (lihat testing.md Phase 2)                                            | E3    | Pass            |
 | AC-1.1, AC-3.1 | Lokal       | Gate gagal → hanya Tolak; tanpa alasan ditolak; dengan alasan 201; gate "Bug belum terverifikasi" tampil (2026-10-19) | E3    | Pass            |
+| AC-2.x         | Lokal       | Keputusan Rilis `approved` atas sign-off ditolak → 409; `rejected` → 201 (2026-10-19)                                 | E3    | Pass            |
 | AC-1.1, AC-3.1 | Production  | QA menolak sign-off saat gate gagal; gate menampilkan "Bug belum terverifikasi"                                       | E4    | Belum dilakukan |
 
 ## 3. QA sign-off dan keputusan rilis
 
-| Item               | Isi                                                                                                                                |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| QA sign-off        | N/A — perubahan aturan rilis; bukti test di [testing.md](testing.md)                                                               |
-| Keputusan rilis PO | approved — Owner merge PR #36 (2026-10-13) dan #41 (2026-10-14)                                                                    |
-| Gap yang diterima  | Uji lokal E3 lulus ([report smoke test lokal](../../reports/LOCAL_SMOKE_TEST_2026-10-19.md)); uji Production (E4) dan AC-2.x belum |
-| Rollback plan      | Revert PR; tidak ada perubahan schema, snapshot tersimpan tetap valid                                                              |
+| Item               | Isi                                                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| QA sign-off        | N/A — perubahan aturan rilis; bukti test di [testing.md](testing.md)                                                    |
+| Keputusan rilis PO | approved — Owner merge PR #36 (2026-10-13) dan #41 (2026-10-14)                                                         |
+| Gap yang diterima  | Uji lokal E3 lulus ([report smoke test lokal](../../reports/LOCAL_SMOKE_TEST_2026-10-19.md)); uji Production (E4) belum |
+| Rollback plan      | Revert PR; tidak ada perubahan schema, snapshot tersimpan tetap valid                                                   |
 
 ## 4. Metrik sukses (dari problem.md)
 
