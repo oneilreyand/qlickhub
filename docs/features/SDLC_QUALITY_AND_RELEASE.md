@@ -128,6 +128,37 @@ history mengembalikan siklus bernomor yang mengelompokkan Resolution Event, evid
 Retest Attempt, Result, dan Evidence Manifest. Kontraknya berada pada
 [Bug contracts](../../packages/contracts/src/bug.ts).
 
+### 5.1 Daftar endpoint
+
+Role mengikuti middleware route di `apps/api`; "member Workspace" berarti semua anggota Workspace yang lolos `requireWorkspaceMember`. Kontrak berada di `packages/contracts/src`.
+
+**Feature Readiness dan Requirement Finding (P1A/P1B)**
+
+| Method | Path                                                                                                     | Handler                                      | Role             | Kontrak request                                    |
+| ------ | -------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ---------------- | -------------------------------------------------- |
+| POST   | `/v1/workspaces/:workspaceId/features/:featureTaskId/readiness/baselines`                                | `createFeatureReadinessBaseline`             | owner, admin, po | `CreateFeatureReadinessBaselineSchema`             |
+| POST   | `/v1/workspaces/:workspaceId/features/:featureTaskId/readiness/reviews`                                  | `createFeatureReadinessReview`               | dev, qa          | `CreateFeatureReadinessReviewSchema`               |
+| GET    | `/v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings`                                 | `getRequirementFindings`                     | member Workspace | —                                                  |
+| POST   | `/v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings`                                 | `createRequirementFinding`                   | member Workspace | `CreateRequirementFindingSchema`                   |
+| POST   | `/v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/clarifications`       | `addRequirementFindingClarification`         | member Workspace | `CreateRequirementFindingClarificationSchema`      |
+| POST   | `/v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/triage-positions`     | `addRequirementFindingTriagePosition`        | member Workspace | `CreateRequirementFindingTriagePositionSchema`     |
+| POST   | `/v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/governance-decisions` | `recordRequirementFindingGovernanceDecision` | owner, admin     | `CreateRequirementFindingGovernanceDecisionSchema` |
+| POST   | `/v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/status-events`        | `changeRequirementFindingStatus`             | owner, admin, po | `CreateRequirementFindingStatusEventSchema`        |
+
+**Test Management: versi, Acceptance Criteria, Run, dan Result**
+
+| Method | Path                                                                                                 | Handler                                    | Role             | Kontrak request                                  |
+| ------ | ---------------------------------------------------------------------------------------------------- | ------------------------------------------ | ---------------- | ------------------------------------------------ |
+| GET    | `/v1/workspaces/:workspaceId/tasks/:taskId/test-executions`                                          | `getTaskTestExecutions`                    | member Workspace | —                                                |
+| GET    | `/v1/workspaces/:workspaceId/test-cases/:testCaseId/activity`                                        | `listTestCaseActivity`                     | member Workspace | —                                                |
+| GET    | `/v1/workspaces/:workspaceId/test-cases/:testCaseId/versions`                                        | `listTestCaseVersionCoverage`              | member Workspace | —                                                |
+| GET    | `/v1/workspaces/:workspaceId/test-cases/:testCaseId/versions/:testCaseVersionId/acceptance-criteria` | `listTestCaseVersionAcceptanceCriteria`    | member Workspace | —                                                |
+| PUT    | `/v1/workspaces/:workspaceId/test-cases/:testCaseId/versions/:testCaseVersionId/acceptance-criteria` | `replaceTestCaseVersionAcceptanceCriteria` | qa               | `ReplaceTestCaseVersionAcceptanceCriteriaSchema` |
+| GET    | `/v1/workspaces/:workspaceId/test-cases/:testCaseId/runs`                                            | `listTestRuns`                             | member Workspace | —                                                |
+| POST   | `/v1/workspaces/:workspaceId/test-cases/:testCaseId/runs`                                            | `createTestRun`                            | qa               | `CreateTestRunSchema`                            |
+| POST   | `/v1/workspaces/:workspaceId/test-cases/:testCaseId/runs/:testRunId/results`                         | `recordTestResult`                         | qa               | `CreateTestResultSchema`                         |
+| POST   | `/v1/workspaces/:workspaceId/test-cases/:testCaseId/runs/:testRunId/evidence-links`                  | `addTestResultEvidenceLink`                | qa               | `AddTestResultEvidenceSupplementInputSchema`     |
+
 ## 6. Authorization
 
 Semua anggota Workspace dapat membaca kesiapan. Review hanya dapat dibuat Dev/QA yang menjadi

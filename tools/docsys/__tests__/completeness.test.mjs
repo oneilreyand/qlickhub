@@ -32,6 +32,18 @@ test('AC-2.1: DS-R01 lists undocumented endpoints with route file and fix', () =
   assert.match(health.fix, /Sebut path endpoint/);
 });
 
+test('AC-2.1: DS-R01 skips endpoints matched by links.ignoreEndpoints', () => {
+  const config = { ...baseConfig, links: { ...baseConfig.links, ignoreEndpoints: ['/health'] } };
+  const data = dataFor(config);
+  assert.equal(data.endpoints.find((item) => item.path === '/health').ignored, true);
+  assert.deepEqual(keys(runRules(data, config), 'DS-R01'), ['endpoint:GET /v1/health']);
+  const wildcard = {
+    ...baseConfig,
+    links: { ...baseConfig.links, ignoreEndpoints: ['/**/health'] },
+  };
+  assert.deepEqual(keys(gapsFor(wildcard), 'DS-R01'), []);
+});
+
 test('AC-2.2: DS-R02 flags models outside erd.domains', () => {
   assert.deepEqual(keys(gapsFor(), 'DS-R02'), ['model:ItemModel', 'model:TagModel']);
   const mapped = { ...baseConfig, erd: { domains: { Inventory: ['ItemModel'] } } };
