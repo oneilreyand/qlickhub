@@ -276,6 +276,20 @@ describe('AI Task Generator Integration Tests (AI-001, DOMAIN-002, DOMAIN-004)',
     assert.ok(brief, 'Product brief should exist');
     assert.strictEqual(brief?.currentVersion.inScope.length, 3);
     assert.strictEqual(brief?.currentVersion.outScope.length, 2);
+    // PRODUCT-BRIEF-SCOPE-ID: the persisted rows (not just the read model) hold real UUIDs.
+    const storedBriefVersion = await QaDocumentVersionModel.findByPk(brief!.currentVersion.id);
+    const storedScopeItems = [
+      ...(storedBriefVersion?.inScope ?? []),
+      ...(storedBriefVersion?.outScope ?? []),
+    ];
+    assert.strictEqual(storedScopeItems.length, 5);
+    for (const item of storedScopeItems) {
+      assert.match(item.id, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    }
+    assert.deepStrictEqual(
+      storedBriefVersion?.inScope.map((item) => item.position),
+      [0, 1, 2],
+    );
 
     // Verify audit logs
     const activities = await TaskActivityModel.findAll({
