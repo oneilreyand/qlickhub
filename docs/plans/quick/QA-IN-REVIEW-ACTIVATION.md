@@ -1,6 +1,6 @@
 # QUICK — QA-IN-REVIEW-ACTIVATION QA tidak ditawari aktivasi Test Case yang menunggu review PO
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **WRA:** 2/16 — lapisan 1 (frontend saja), ketersinggungan 1 (detail Test Case meja QA), validasi 1
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -18,7 +18,7 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 
 ## Perubahan
 
-- File/path: `QaTestCaseDetailView.tsx`, `QaTestingDesk.tsx` (meneruskan `isPlanner`), test di
+- File/path: `QaTestCaseDetailView.tsx`, `QaTestingDesk.tsx` (meneruskan `isPlanner` sebagai `canActivateInReviewTestCases`), test di
   `apps/web/src/components/ui/organisms/myTasks/__tests__/QaTestingDesk.test.tsx`, Quick Card ini.
 - Perilaku: tombol aktivasi untuk `in_review` hanya tampil bagi Product Owner, Admin, atau Owner. QA tetap
   bisa mengaktifkan `draft`; untuk `in_review` QA melihat teks "Menunggu review PO".
@@ -40,10 +40,14 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Urutan aksi: edit → test → commit → patch → Owner publish → PR → merge (Tier 1)
 - Masa berlaku dan stop condition: sampai PR dibuat; berhenti bila perlu perubahan backend atau suite web gagal
 
-**Disetujui:** —
+**Disetujui:** reyand (Owner), 2026-10-19, chat "setuju"
 
 ## Hasil
 
-- Perintah — exit code — pass/fail/skip: —
-- PR dan tier: —
-- Gap: —
+- Perintah — exit code — pass/fail/skip:
+  - test baru (QA, `in_review`) pada kode lama — 1 — 0/1/0 (membuktikan test menangkap bug)
+  - `vitest` `QaTestingDesk.test.tsx` — 0 — 33/0/0 (AC-2 dan AC-3 dicakup test yang sudah ada)
+  - `npm --prefix apps/web test` — 0 — 668/0/0 (114 file)
+  - `npm --prefix apps/web run typecheck` — 0; eslint dan prettier pada file yang diubah — 0
+- PR dan tier: belum dibuat; Tier 1.
+- Gap: tidak ada uji lokal Playwright; perilaku server tidak berubah.

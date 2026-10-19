@@ -20,6 +20,8 @@ export interface QaTestCaseDetailViewProps {
   canExecuteTests: boolean;
   canSubmitTestCasesForReview: boolean;
   canActivateTestCases: boolean;
+  /** Only Product Owner, Admin, or Owner may move a Test Case from in_review to active. */
+  canActivateInReviewTestCases?: boolean;
   submittingTestCaseId: string | null;
   activatingTestCaseId: string | null;
   onOpenAcMapping: (testCase: TaskTestExecutionWorkspace['executions'][number]['testCase']) => void;
@@ -49,6 +51,7 @@ export const QaTestCaseDetailView: React.FC<QaTestCaseDetailViewProps> = ({
   canExecuteTests,
   canSubmitTestCasesForReview,
   canActivateTestCases,
+  canActivateInReviewTestCases = false,
   submittingTestCaseId,
   activatingTestCaseId,
   onOpenAcMapping,
@@ -164,18 +167,27 @@ export const QaTestCaseDetailView: React.FC<QaTestCaseDetailViewProps> = ({
                 </Button>
               </>
             )}
-            {canActivateTestCases && ['draft', 'in_review'].includes(testCase.status) && (
-              <Button
-                variant="primary"
-                size="sm"
-                isLoading={activatingTestCaseId === testCase.id}
-                onClick={() => void onActivateTestCase(testCase.id)}
-                aria-label={`Aktifkan Test Case ${testCase.title}`}
-                leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
-              >
-                {testCase.status === 'draft' ? 'Aktifkan' : 'Aktifkan Test Case'}
-              </Button>
-            )}
+            {canActivateTestCases &&
+              testCase.status === 'in_review' &&
+              !canActivateInReviewTestCases && (
+                <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
+                  Menunggu review PO
+                </span>
+              )}
+            {canActivateTestCases &&
+              (testCase.status === 'draft' ||
+                (testCase.status === 'in_review' && canActivateInReviewTestCases)) && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  isLoading={activatingTestCaseId === testCase.id}
+                  onClick={() => void onActivateTestCase(testCase.id)}
+                  aria-label={`Aktifkan Test Case ${testCase.title}`}
+                  leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                >
+                  {testCase.status === 'draft' ? 'Aktifkan' : 'Aktifkan Test Case'}
+                </Button>
+              )}
             {canExecuteTests && (
               <div className="flex items-center gap-1.5">
                 <Button
