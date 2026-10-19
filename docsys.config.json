@@ -137,7 +137,8 @@
     }
   },
   "links": {
-    "stripPrefixes": ["/v1"]
+    "stripPrefixes": ["/v1"],
+    "ignoreEndpoints": ["/health", "/v1", "/v1/health", "/v1/projects/**"]
   },
   "erd": {
     "domains": {

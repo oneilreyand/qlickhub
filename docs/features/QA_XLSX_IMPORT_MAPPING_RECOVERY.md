@@ -43,6 +43,16 @@ Endpoint `POST /v1/workspaces/:workspaceId/test-cases/import/preview` mengembali
 `packages/contracts/src/testManagement.ts`. Parser server menerima CSV dan XLSX, termasuk tag
 OpenXML yang menggunakan prefix namespace.
 
+### 5.1 Endpoint pendukung import
+
+Role mengikuti middleware route di `apps/api`; "member Workspace" berarti semua anggota Workspace yang lolos `requireWorkspaceMember`. Kontrak berada di `packages/contracts/src`.
+
+| Method | Path                                                                    | Handler                      | Role             | Kontrak request   |
+| ------ | ----------------------------------------------------------------------- | ---------------------------- | ---------------- | ----------------- |
+| GET    | `/v1/workspaces/:workspaceId/test-cases/template`                       | `downloadTestCaseTemplate`   | member Workspace | `— (respons CSV)` |
+| GET    | `/v1/workspaces/:workspaceId/test-cases/import/audits`                  | `listTestCaseImportAudits`   | member Workspace | —                 |
+| GET    | `/v1/workspaces/:workspaceId/test-cases/import/audits/:importId/errors` | `getTestCaseImportErrorsCsv` | member Workspace | `— (respons CSV)` |
+
 ## 6. Authorization
 
 Tidak ada kewenangan baru. Backend tetap mengotorisasi preview/commit berdasarkan membership

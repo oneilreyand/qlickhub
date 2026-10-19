@@ -23,11 +23,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:DELETE /v1/projects/:projectId/folders/:folderId",
-      "file": "apps/api/src/modules/folders/folderRoutes.ts:29"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:DELETE /v1/workspaces/:workspaceId/folders/:folderId",
       "file": "apps/api/src/modules/folders/folderRoutes.ts:29"
     },
@@ -63,16 +58,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:GET /health",
-      "file": "apps/api/src/app.ts:42"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1",
-      "file": "apps/api/src/app.ts:58"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:GET /v1/auth/session",
       "file": "apps/api/src/modules/auth/auth.routes.ts:400"
     },
@@ -80,11 +65,6 @@
       "rule": "DS-R01",
       "key": "endpoint:GET /v1/auth/sessions",
       "file": "apps/api/src/modules/auth/auth.routes.ts:482"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/health",
-      "file": "apps/api/src/app.ts:42"
     },
     {
       "rule": "DS-R01",
@@ -113,16 +93,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:GET /v1/projects/:projectId/folders",
-      "file": "apps/api/src/modules/folders/folderRoutes.ts:18"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/projects/:projectId/folders/tree",
-      "file": "apps/api/src/modules/folders/folderRoutes.ts:19"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:GET /v1/workspaces",
       "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:32"
     },
@@ -133,21 +103,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/bugs",
-      "file": "apps/api/src/modules/bugs/bugRoutes.ts:21"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/bugs/:bugId",
-      "file": "apps/api/src/modules/bugs/bugRoutes.ts:27"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/bugs/:bugId/activity",
-      "file": "apps/api/src/modules/bugs/bugRoutes.ts:58"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:GET /v1/workspaces/:workspaceId/documents",
       "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:21"
     },
@@ -155,11 +110,6 @@
       "rule": "DS-R01",
       "key": "endpoint:GET /v1/workspaces/:workspaceId/documents/:documentId",
       "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:27"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings",
-      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:36"
     },
     {
       "rule": "DS-R01",
@@ -248,46 +198,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/test-executions",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:35"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/:testCaseId/activity",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:157"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/:testCaseId/runs",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:137"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/:testCaseId/versions",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:115"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/:testCaseId/versions/:testCaseVersionId/acceptance-criteria",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:125"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/import/audits",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:78"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/import/audits/:importId/errors",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:83"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/test-cases/template",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:63"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:GET /v1/workspaces/:workspaceId/traceability",
       "file": "apps/api/src/modules/traceability/traceabilityRoutes.ts:17"
     },
@@ -300,21 +210,6 @@
       "rule": "DS-R01",
       "key": "endpoint:PATCH /v1/notifications/:id/read",
       "file": "apps/api/src/modules/notifications/notificationRoutes.ts:44"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:PATCH /v1/projects/:projectId/folders/:folderId",
-      "file": "apps/api/src/modules/folders/folderRoutes.ts:25"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:PATCH /v1/projects/:projectId/folders/:folderId/move",
-      "file": "apps/api/src/modules/folders/folderRoutes.ts:27"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/bugs/:bugId",
-      "file": "apps/api/src/modules/bugs/bugRoutes.ts:28"
     },
     {
       "rule": "DS-R01",
@@ -393,16 +288,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:POST /v1/projects/:projectId/folders",
-      "file": "apps/api/src/modules/folders/folderRoutes.ts:24"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/projects/:projectId/folders/:folderId/archive",
-      "file": "apps/api/src/modules/folders/folderRoutes.ts:28"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:POST /v1/workspaces",
       "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:33"
     },
@@ -423,16 +308,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/bugs",
-      "file": "apps/api/src/modules/bugs/bugRoutes.ts:22"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/bugs/:bugId/evidence-links",
-      "file": "apps/api/src/modules/bugs/bugRoutes.ts:53"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:POST /v1/workspaces/:workspaceId/documents",
       "file": "apps/api/src/modules/qaDocuments/qaDocumentRoutes.ts:33"
     },
@@ -445,41 +320,6 @@
       "rule": "DS-R01",
       "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/qa-sign-offs/:qaSignOffId/cancellation",
       "file": "apps/api/src/modules/releaseDecisions/releaseDecisionRoutes.ts:33"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/baselines",
-      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:30"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings",
-      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:41"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/clarifications",
-      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:46"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/governance-decisions",
-      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:56"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/status-events",
-      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:61"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/findings/:findingId/triage-positions",
-      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:51"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/features/:featureTaskId/readiness/reviews",
-      "file": "apps/api/src/modules/featureReadiness/featureReadinessRoutes.ts:25"
     },
     {
       "rule": "DS-R01",
@@ -558,26 +398,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/test-cases/:testCaseId/runs",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:142"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/test-cases/:testCaseId/runs/:testRunId/evidence-links",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:152"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/test-cases/:testCaseId/runs/:testRunId/results",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:147"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:PUT /v1/projects/:projectId/folders/:folderId/move",
-      "file": "apps/api/src/modules/folders/folderRoutes.ts:26"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:PUT /v1/workspaces/:workspaceId/folders/:folderId/move",
       "file": "apps/api/src/modules/folders/folderRoutes.ts:26"
     },
@@ -585,11 +405,6 @@
       "rule": "DS-R01",
       "key": "endpoint:PUT /v1/workspaces/:workspaceId/tasks/:taskId/move",
       "file": "apps/api/src/modules/tasks/taskRoutes.ts:31"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:PUT /v1/workspaces/:workspaceId/test-cases/:testCaseId/versions/:testCaseVersionId/acceptance-criteria",
-      "file": "apps/api/src/modules/testManagement/testManagementRoutes.ts:130"
     },
     {
       "rule": "DS-R03",
@@ -633,22 +448,12 @@
     },
     {
       "rule": "DS-R03",
-      "key": "todo:QA-DESK-SIMPLIFY",
-      "file": "TODO.md"
-    },
-    {
-      "rule": "DS-R03",
       "key": "todo:SDLC-P1C-KERJAA-OBSERVATION-PILOT",
       "file": "TODO.md"
     },
     {
       "rule": "DS-R03",
       "key": "todo:SEC-07-PRODUCTION-RELEASE",
-      "file": "TODO.md"
-    },
-    {
-      "rule": "DS-R03",
-      "key": "todo:TIERED-AUTO-MERGE",
       "file": "TODO.md"
     }
   ]

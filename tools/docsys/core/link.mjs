@@ -1,4 +1,4 @@
-import { readText } from './files.mjs';
+import { globToRegExp, readText } from './files.mjs';
 
 /** Normalizes a route path for matching: drops configured prefixes and unifies parameters. */
 export function normalizePath(routePath, stripPrefixes = []) {
@@ -60,11 +60,14 @@ export function linkFeatures(root, data, settings = {}) {
     if (feature.title === feature.id && todoTitles.has(feature.id))
       feature.title = todoTitles.get(feature.id);
   }
+  const ignore = (settings.ignoreEndpoints ?? []).map(globToRegExp);
   const documented = new Set(data.features.flatMap((feature) => feature.endpoints));
   for (const endpoint of data.endpoints) {
     endpoint.features = data.features
       .filter((feature) => feature.endpoints.includes(endpoint.key))
       .map((feature) => feature.id);
     endpoint.documented = documented.has(endpoint.key);
+    // Ignored endpoints (health checks, legacy aliases) stay visible but are not counted as gaps.
+    endpoint.ignored = ignore.some((re) => re.test(endpoint.path));
   }
 }

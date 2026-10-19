@@ -12,7 +12,7 @@ export const RULES = [
     title: 'Endpoint belum disebut di dokumen fitur',
     check(data) {
       return data.endpoints
-        .filter((endpoint) => !endpoint.documented)
+        .filter((endpoint) => !endpoint.documented && !endpoint.ignored)
         .map((endpoint) =>
           gap(
             'DS-R01',

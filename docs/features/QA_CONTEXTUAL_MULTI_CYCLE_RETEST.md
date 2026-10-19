@@ -65,6 +65,19 @@ Kontrak berada di `packages/contracts/src/bug.ts` dan `packages/contracts/src/te
 
 Error validasi dan konflik tetap memakai Problem Details yang dipetakan controller bersama.
 
+### 5.1 Endpoint dasar Bug
+
+Retest di atas bergantung pada endpoint Bug berikut. Role mengikuti middleware route di `apps/api`; "member Workspace" berarti semua anggota Workspace yang lolos `requireWorkspaceMember`. Kontrak berada di `packages/contracts/src`.
+
+| Method | Path                                                     | Handler              | Role                  | Kontrak request               |
+| ------ | -------------------------------------------------------- | -------------------- | --------------------- | ----------------------------- |
+| GET    | `/v1/workspaces/:workspaceId/bugs`                       | `listBugs`           | member Workspace      | `ListBugsQuerySchema (query)` |
+| POST   | `/v1/workspaces/:workspaceId/bugs`                       | `createBug`          | owner, admin, qa      | `CreateBugSchema`             |
+| GET    | `/v1/workspaces/:workspaceId/bugs/:bugId`                | `getBug`             | member Workspace      | —                             |
+| PATCH  | `/v1/workspaces/:workspaceId/bugs/:bugId`                | `updateBug`          | owner, admin, qa, dev | `UpdateBugSchema`             |
+| GET    | `/v1/workspaces/:workspaceId/bugs/:bugId/activity`       | `listBugActivity`    | member Workspace      | —                             |
+| POST   | `/v1/workspaces/:workspaceId/bugs/:bugId/evidence-links` | `addBugEvidenceLink` | owner, admin, qa, dev | `CreateBugEvidenceLinkSchema` |
+
 ## 6. Authorization
 
 Backend mewajibkan membership aktif. Hanya Developer yang ditugaskan pada Bug dapat membuat
