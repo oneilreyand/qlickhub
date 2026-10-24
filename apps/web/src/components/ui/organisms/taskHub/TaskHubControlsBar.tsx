@@ -98,7 +98,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
       </div>
 
       {/* Controls Bar: Search & Filters (Spacious full-width layout) */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex-1 min-w-0">
           <SearchInput
             aria-label="Filter feature"
@@ -109,7 +109,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
           />
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+        <div className="flex w-full flex-wrap items-start gap-2 xl:w-auto xl:justify-end">
           {/* Involvement Scope Toggle: Semua Feature vs Melibatkan Saya */}
           {onInvolvementFilterChange && (
             <div
@@ -120,6 +120,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               <button
                 type="button"
                 onClick={() => onInvolvementFilterChange('all')}
+                aria-pressed={involvementFilter === 'all'}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   involvementFilter === 'all'
                     ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
@@ -132,6 +133,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
                 type="button"
                 onClick={() => onInvolvementFilterChange('mine')}
                 aria-label="Filter Feature yang melibatkan saya"
+                aria-pressed={involvementFilter === 'mine'}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   involvementFilter === 'mine'
                     ? 'bg-[#B1E743] text-[#141413] shadow-xs'
@@ -148,6 +150,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
             <button
               type="button"
               onClick={() => onViewModeChange('table')}
+              aria-pressed={viewMode === 'table'}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'table'
                   ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
@@ -162,6 +165,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               onClick={() => onViewModeChange('timeline')}
               aria-label="Jadwal Feature"
               title="Lihat parent Feature per folder dan buka untuk melihat Subtask setiap peran"
+              aria-pressed={viewMode === 'timeline'}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'timeline'
                   ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
@@ -173,8 +177,8 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
             </button>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-            <div className="w-full sm:w-64 min-w-0">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="w-full min-w-0 sm:w-64">
               <DateRangePicker
                 value={dateRange}
                 onChange={onDateRangeChange}

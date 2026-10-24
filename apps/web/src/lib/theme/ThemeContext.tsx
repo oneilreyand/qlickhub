@@ -1,6 +1,21 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import {
+  applyTheme,
+  DEFAULT_THEME,
+  resolveStoredTheme,
+  THEME_STORAGE_KEY,
+  type Theme,
+} from './themePreference';
 
-type Theme = 'light' | 'dark';
+const getInitialTheme = (): Theme => {
+  if (typeof window === 'undefined') return DEFAULT_THEME;
+
+  try {
+    return resolveStoredTheme(window.localStorage.getItem(THEME_STORAGE_KEY));
+  } catch {
+    return DEFAULT_THEME;
+  }
+};
 
 interface ThemeContextType {
   theme: Theme;
@@ -11,24 +26,16 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme') as Theme | null;
-    if (saved === 'light' || saved === 'dark') return saved;
-    return 'dark';
-  });
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      root.style.backgroundColor = '#141413';
-      root.style.colorScheme = 'dark';
-    } else {
-      root.classList.remove('dark');
-      root.style.backgroundColor = '#FBFCF7';
-      root.style.colorScheme = 'light';
+    applyTheme(theme);
+
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Theme remains usable when browser storage is unavailable.
     }
-    localStorage.setItem('theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {

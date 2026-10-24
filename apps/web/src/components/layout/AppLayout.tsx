@@ -52,7 +52,7 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-[#FBFCF7] font-sans text-[#22201F] transition-colors duration-200 dark:bg-[#141413] dark:text-stone-100">
+    <div className="flex min-h-screen w-full flex-col bg-canvas font-sans text-foreground transition-colors duration-200">
       {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -64,7 +64,7 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
           />
 
           {/* Drawer Content */}
-          <div className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white shadow-2xl dark:bg-[#1C1A19]">
+          <div className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-surface shadow-2xl">
             <div className="absolute top-4 right-4 z-10">
               <IconButton
                 onClick={() => dispatch(setMobileSidebarOpen(false))}
