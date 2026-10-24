@@ -1,6 +1,6 @@
 # UI-WORKSPACE-REFRESH — Tahap 3: Breakdown (Phase → Task BE · FE · QA)
 
-**Status:** Disetujui untuk Phase 1 dan Phase 2 saja
+**Status:** Phase 1–2 kandidat E2; Phase 3 visual Task Hub disetujui user pada 2026-10-24
 **Gerbang:** G3 — disetujui oleh Owner; setiap persetujuan berlaku sebagai Approval Window untuk phase yang disebut
 **PRD:** [product.md](product.md)
 **Applicable Policy IDs:** AI-002, AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, SDLC-001
@@ -22,12 +22,12 @@ flowchart LR
     P3 --> P4["P4: My Tasks + Report<br/>AC-4.1, AC-5.1"]
 ```
 
-| Phase | Tujuan yang terlihat                                                     | AC             | WRA  | Bergantung pada | Status                  |
-| ----- | ------------------------------------------------------------------------ | -------------- | ---- | --------------- | ----------------------- |
-| P1    | Tema bootstrap/provider konsisten dan shell responsif.                   | AC-1.1, AC-1.2 | 6/16 | —               | Menunggu G3             |
-| P2    | Filter bertahan lintas view dan detail tidak terhalang shell.            | AC-2.1, AC-2.2 | 7/16 | P1 kandidat E2  | Kandidat E2; E4 pending |
-| P3    | Kanban baca-saja paginated per Feature.                                  | AC-3.1, AC-3.2 | 8/16 | P2              | Belum mulai             |
-| P4    | Queue menuju konteks benar serta ringkasan/laporan memakai data kanonis. | AC-4.1, AC-5.1 | 8/16 | P3              | Belum mulai             |
+| Phase | Tujuan yang terlihat                                                                                                    | AC             | WRA  | Bergantung pada | Status                  |
+| ----- | ----------------------------------------------------------------------------------------------------------------------- | -------------- | ---- | --------------- | ----------------------- |
+| P1    | Tema bootstrap/provider konsisten dan shell responsif.                                                                  | AC-1.1, AC-1.2 | 6/16 | —               | Menunggu G3             |
+| P2    | Filter bertahan lintas view dan detail tidak terhalang shell.                                                           | AC-2.1, AC-2.2 | 7/16 | P1 kandidat E2  | Kandidat E2; E4 pending |
+| P3    | Baseline visual Task Hub desktop dark (referensi Owner), shell/sidebar, Daftar · Kanban · Jadwal baca-saja per Feature. | AC-3.1, AC-3.2 | 7/16 | P2              | In progress             |
+| P4    | Queue menuju konteks benar serta ringkasan/laporan memakai data kanonis.                                                | AC-4.1, AC-5.1 | 8/16 | P3              | Belum mulai             |
 
 ## 2. Task per phase
 
@@ -47,11 +47,14 @@ WRA P1: requirement 0 · lapisan 1 · data 0 · authorization 0 · contract 0 ·
 Task FE: pertahankan filter di URL/state yang sesuai, perbaiki overflow/tablet/search/drawer stacking,
 dan lengkapi test view switch. BE/DB N/A. QA menjalankan E4 phone/tablet/desktop pada Light/Dark.
 
-### Phase 3 — Kanban Feature read-only
+### Phase 3 — Baseline visual dan Kanban Feature read-only
 
-Task FE: organism Kanban hanya bila komponen serupa tidak ada; panggil `listSubtasks` per parent dengan
-pagination dan semua status kanonis. BE/DB N/A kecuali inspeksi menemukan kekurangan interface;
-dalam kondisi itu Phase berhenti dan mendapat keputusan G3 baru. QA membuktikan parent scope, state
+Task FE: jadikan screenshot Owner sebagai baseline desktop dark untuk shell sidebar, breadcrumb,
+CTA Feature, folder tree, dan tab Daftar · Kanban · Jadwal. Organism Kanban bersifat baca-saja,
+memakai Feature yang telah dimuat dan semua status kanonis; tidak ada drag/drop atau mutation.
+Light mode dan breakpoint phone/tablet memakai struktur yang sama dengan token aksesibel, bukan
+menyalin ukuran desktop. BE/DB N/A kecuali inspeksi menemukan kekurangan interface; dalam kondisi
+itu Phase berhenti dan mendapat keputusan G3 baru. QA membuktikan parent scope, state
 loading/empty/error/forbidden, dan tidak ada mutation.
 
 ### Phase 4 — Tugas Saya, Ringkasan, dan Laporan

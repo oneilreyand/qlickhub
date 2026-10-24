@@ -142,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 h-20 w-full border-b border-border bg-canvas px-4 backdrop-blur-md transition-colors sm:px-8">
-      <div className="mx-auto flex h-full w-full max-w-7xl 2xl:max-w-[1600px] items-center justify-between">
+      <div className="mx-auto flex h-full w-full max-w-[1440px] items-center justify-between">
         {/* Left section: App Brand Logo & Workspace Switcher */}
         <div className="flex items-center gap-3 lg:gap-4">
           <IconButton
@@ -271,7 +271,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Center section: Content-aligned Top Navigation Pills Bar */}
-        <nav className="mx-4 hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-full border border-border bg-surface p-1.5 shadow-xs lg:flex">
+        <nav className="hidden" aria-label="Navigasi desktop alternatif">
           <button
             onClick={() => navigate('/work?tab=overview')}
             aria-current={isOverviewActive ? 'page' : undefined}

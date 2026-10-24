@@ -33,7 +33,7 @@ describe('Task Hub query state', () => {
   it('falls back safely when a deep link contains invalid filter values', () => {
     const state = parseTaskHubQueryState(
       new URLSearchParams(
-        'view=kanban&status=unknown&involvement=everyone&datePreset=tomorrow&startDate=2026-02-30&endDate=2026-02-31',
+        'view=unknown&status=unknown&involvement=everyone&datePreset=tomorrow&startDate=2026-02-30&endDate=2026-02-31',
       ),
     );
 
@@ -44,5 +44,14 @@ describe('Task Hub query state', () => {
       involvementFilter: 'all',
       dateRange: undefined,
     });
+  });
+
+  it('accepts Kanban as a persisted read-only presentation view', () => {
+    const next = patchTaskHubQueryState(new URLSearchParams('tab=tasks&q=payment'), {
+      viewMode: 'kanban',
+    });
+
+    expect(next.toString()).toBe('tab=tasks&q=payment&view=kanban');
+    expect(parseTaskHubQueryState(next).viewMode).toBe('kanban');
   });
 });

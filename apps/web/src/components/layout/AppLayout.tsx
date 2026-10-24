@@ -52,7 +52,7 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-canvas font-sans text-foreground transition-colors duration-200">
+    <div className="flex min-h-screen w-full flex-col bg-canvas font-sans text-foreground transition-colors duration-200 lg:flex-row">
       {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -81,23 +81,27 @@ export const AppLayoutContent: React.FC<AppLayoutProps> = ({ children }) => {
         </div>
       )}
 
-      {/* Header Bar */}
-      <Header
-        onToggleMobileSidebar={() => dispatch(setMobileSidebarOpen(true))}
-        userEmail={userEmail}
-        onLogout={handleLogout}
-      />
+      <aside className="hidden h-screen w-60 shrink-0 lg:sticky lg:top-0 lg:block">
+        <Sidebar />
+      </aside>
 
-      {/* Main Content Area */}
-      <main className="mx-auto w-full min-w-0 max-w-7xl 2xl:max-w-[1600px] flex-1 px-4 py-4 sm:px-8 sm:py-6 lg:py-8">
-        <ErrorBoundary key={`${location.pathname}${location.search}`}>{children}</ErrorBoundary>
-      </main>
-      <GlobalSnackbarHost />
-      <SessionTimeoutModal />
-      <RoleOnboardingModal
-        isOpen={showOnboardingModal}
-        onClose={() => dispatch(setShowOnboardingModal(false))}
-      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header
+          onToggleMobileSidebar={() => dispatch(setMobileSidebarOpen(true))}
+          userEmail={userEmail}
+          onLogout={handleLogout}
+        />
+
+        <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-5 sm:px-8 sm:py-6 lg:px-10 lg:py-8">
+          <ErrorBoundary key={`${location.pathname}${location.search}`}>{children}</ErrorBoundary>
+        </main>
+        <GlobalSnackbarHost />
+        <SessionTimeoutModal />
+        <RoleOnboardingModal
+          isOpen={showOnboardingModal}
+          onClose={() => dispatch(setShowOnboardingModal(false))}
+        />
+      </div>
     </div>
   );
 };

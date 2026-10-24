@@ -1,6 +1,6 @@
 import type { TaskDatePreset } from '@qlick/contracts';
 
-export type TaskHubViewMode = 'table' | 'timeline';
+export type TaskHubViewMode = 'table' | 'kanban' | 'timeline';
 export type TaskHubInvolvementFilter = 'all' | 'mine';
 
 export interface TaskHubDateRange {
@@ -31,7 +31,7 @@ export interface TaskHubQueryPatch {
 }
 
 const datePresets = new Set<TaskDatePreset>(['today', 'this_week', 'this_month', 'overdue']);
-const viewModes = new Set<TaskHubViewMode>(['table', 'timeline']);
+const viewModes = new Set<TaskHubViewMode>(['table', 'kanban', 'timeline']);
 const involvementFilters = new Set<TaskHubInvolvementFilter>(['all', 'mine']);
 const statusFilters = new Set(['todo', 'in_progress', 'in_review', 'done', 'canceled']);
 
