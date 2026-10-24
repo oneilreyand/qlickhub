@@ -1,5 +1,12 @@
 import React from 'react';
-import { Folder, Table as TableIcon, CalendarRange, Maximize2, Minimize2 } from 'lucide-react';
+import {
+  Folder,
+  Table as TableIcon,
+  CalendarRange,
+  KanbanSquare,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react';
 import { AnimatedCounter } from '../../atoms/AnimatedCounter';
 import { SearchInput } from '../../molecules/SearchInput';
 import { DateRange, DateRangePicker } from '../../molecules/DateRangePicker';
@@ -11,8 +18,8 @@ interface TaskHubControlsBarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onSearchClear: () => void;
-  viewMode: 'table' | 'timeline';
-  onViewModeChange: (mode: 'table' | 'timeline') => void;
+  viewMode: 'table' | 'kanban' | 'timeline';
+  onViewModeChange: (mode: 'table' | 'kanban' | 'timeline') => void;
   dateRange: DateRange | undefined;
   onDateRangeChange: (range: DateRange | undefined) => void;
   statusFilter: string;
@@ -97,8 +104,8 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
         </div>
       </div>
 
-      {/* Controls Bar: Search & Filters (Spacious full-width layout) */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      {/* View tabs and filters deliberately share one responsive row. */}
+      <div className="flex flex-col gap-3">
         <div className="flex-1 min-w-0">
           <SearchInput
             aria-label="Filter feature"
@@ -109,7 +116,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
           />
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+        <div className="flex w-full flex-wrap items-start gap-2">
           {/* Involvement Scope Toggle: Semua Feature vs Melibatkan Saya */}
           {onInvolvementFilterChange && (
             <div
@@ -120,6 +127,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               <button
                 type="button"
                 onClick={() => onInvolvementFilterChange('all')}
+                aria-pressed={involvementFilter === 'all'}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   involvementFilter === 'all'
                     ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
@@ -132,6 +140,7 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
                 type="button"
                 onClick={() => onInvolvementFilterChange('mine')}
                 aria-label="Filter Feature yang melibatkan saya"
+                aria-pressed={involvementFilter === 'mine'}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   involvementFilter === 'mine'
                     ? 'bg-[#B1E743] text-[#141413] shadow-xs'
@@ -143,11 +152,17 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
             </div>
           )}
 
-          {/* View Mode Toggle Switcher: Table vs Feature Schedule */}
-          <div className="flex items-center rounded-xl bg-stone-100 dark:bg-stone-800/80 p-1 border border-stone-200/80 dark:border-stone-700/80 shrink-0">
+          <div
+            role="tablist"
+            aria-label="Tampilan Task Hub"
+            className="flex items-center rounded-xl bg-stone-100 dark:bg-stone-800/80 p-1 border border-stone-200/80 dark:border-stone-700/80 shrink-0"
+          >
             <button
               type="button"
               onClick={() => onViewModeChange('table')}
+              aria-pressed={viewMode === 'table'}
+              role="tab"
+              aria-selected={viewMode === 'table'}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'table'
                   ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
@@ -155,13 +170,31 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               }`}
             >
               <TableIcon className="h-3.5 w-3.5" />
-              <span>Tabel</span>
+              <span>Daftar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onViewModeChange('kanban')}
+              aria-pressed={viewMode === 'kanban'}
+              role="tab"
+              aria-selected={viewMode === 'kanban'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'kanban'
+                  ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+              }`}
+            >
+              <KanbanSquare className="h-3.5 w-3.5" />
+              <span>Kanban</span>
             </button>
             <button
               type="button"
               onClick={() => onViewModeChange('timeline')}
               aria-label="Jadwal Feature"
               title="Lihat parent Feature per folder dan buka untuk melihat Subtask setiap peran"
+              aria-pressed={viewMode === 'timeline'}
+              role="tab"
+              aria-selected={viewMode === 'timeline'}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'timeline'
                   ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
@@ -169,12 +202,12 @@ export const TaskHubControlsBar: React.FC<TaskHubControlsBarProps> = ({
               }`}
             >
               <CalendarRange className="h-3.5 w-3.5 text-amber-500" />
-              <span>Jadwal Feature</span>
+              <span>Jadwal</span>
             </button>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-            <div className="w-full sm:w-64 min-w-0">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="w-full min-w-0 sm:w-64">
               <DateRangePicker
                 value={dateRange}
                 onChange={onDateRangeChange}

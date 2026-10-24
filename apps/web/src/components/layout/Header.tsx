@@ -141,8 +141,8 @@ export const Header: React.FC<HeaderProps> = ({
   const isSettingsActive = location.pathname === '/workspaces/settings';
 
   return (
-    <header className="sticky top-0 z-30 h-20 w-full border-b border-stone-200/60 bg-[#FBFCF7]/95 px-4 backdrop-blur-md transition-colors sm:px-8 dark:border-stone-800/80 dark:bg-[#141413]/95 dark:text-stone-100">
-      <div className="mx-auto flex h-full w-full max-w-7xl 2xl:max-w-[1600px] items-center justify-between">
+    <header className="sticky top-0 z-30 h-20 w-full border-b border-border bg-canvas px-4 backdrop-blur-md transition-colors sm:px-8">
+      <div className="mx-auto flex h-full w-full max-w-[1440px] items-center justify-between">
         {/* Left section: App Brand Logo & Workspace Switcher */}
         <div className="flex items-center gap-3 lg:gap-4">
           <IconButton
@@ -271,9 +271,10 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Center section: Content-aligned Top Navigation Pills Bar */}
-        <nav className="hidden lg:flex items-center gap-1 bg-white/80 dark:bg-stone-900/80 p-1.5 rounded-full border border-stone-200/80 dark:border-stone-800 shadow-xs">
+        <nav className="hidden" aria-label="Navigasi desktop alternatif">
           <button
             onClick={() => navigate('/work?tab=overview')}
+            aria-current={isOverviewActive ? 'page' : undefined}
             className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
               isOverviewActive
                 ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
@@ -285,6 +286,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => navigate('/work?tab=tasks')}
+            aria-current={isTasksActive ? 'page' : undefined}
             className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
               isTasksActive
                 ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
@@ -296,6 +298,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => navigate('/my-tasks')}
+            aria-current={isMyTasksActive ? 'page' : undefined}
             className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
               isMyTasksActive
                 ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
@@ -307,6 +310,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => navigate('/reports')}
+            aria-current={isReportsActive ? 'page' : undefined}
             className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
               isReportsActive
                 ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
@@ -374,6 +378,7 @@ export const Header: React.FC<HeaderProps> = ({
           <IconButton
             onClick={toggleTheme}
             label={`Ganti ke mode ${isDarkMode ? 'terang' : 'gelap'}`}
+            aria-pressed={isDarkMode}
             size="sm"
             className="rounded-full border border-stone-200/90 bg-white dark:border-stone-800 dark:bg-stone-900"
           >

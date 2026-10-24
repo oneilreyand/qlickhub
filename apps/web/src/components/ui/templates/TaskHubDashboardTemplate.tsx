@@ -1,18 +1,16 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { FolderTreeNode, TaskDatePreset } from '@qlick/contracts';
+import type { FolderTreeNode } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
-import { DateRange } from '../molecules/DateRangePicker';
 import { Drawer } from '../molecules/Drawer';
 import { FolderTree } from '../organisms/FolderTree';
 import { TaskCollection, type TaskDeliveryTraceRowState } from '../organisms/TaskCollection';
-import { TaskTimelineView } from '../organisms/TaskTimelineView';
 import { TaskDetailDrawer } from '../organisms/TaskDetailDrawer';
 import { CreateTaskModal } from '../organisms/CreateTaskModal';
 import { AiTaskGeneratorModal } from '../organisms/AiTaskGeneratorModal';
+import { TaskHubKanbanBoard } from '../organisms/taskHub/TaskHubKanbanBoard';
+import { TaskHubSchedule } from '../organisms/taskHub/TaskHubSchedule';
 import { TaskHubHeader } from '../organisms/taskHub/TaskHubHeader';
-import { TaskHubMetrics } from '../organisms/taskHub/TaskHubMetrics';
-import { TaskHubDatePresetBar } from '../organisms/taskHub/TaskHubDatePresetBar';
 import { TaskHubControlsBar } from '../organisms/taskHub/TaskHubControlsBar';
 import { TaskHubErrorBanner } from '../organisms/taskHub/TaskHubErrorBanner';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -30,6 +28,12 @@ import { fetchTasks, fetchTaskById, setSelectedTaskId } from '../../../store/tas
 import { useDebounce } from '../../../lib/hooks/useDebounce';
 import { useReleaseReadinessMap } from '../../../lib/hooks/useReleaseReadinessMap';
 import { traceabilityService } from '../../../lib/api/traceabilityService';
+import {
+  parseTaskHubQueryState,
+  patchTaskHubQueryState,
+  type TaskHubInvolvementFilter,
+  type TaskHubViewMode,
+} from '../../../lib/utils/taskHubQueryState';
 
 const statusFilters: { label: string; value: string }[] = [
   { label: 'SEMUA', value: 'ALL' },
@@ -38,14 +42,6 @@ const statusFilters: { label: string; value: string }[] = [
   { label: 'Dalam Review', value: 'in_review' },
   { label: 'Selesai', value: 'done' },
   { label: 'Dibatalkan', value: 'canceled' },
-];
-
-const datePresetViews: { label: string; value: TaskDatePreset | 'all' }[] = [
-  { label: 'Semua Tanggal', value: 'all' },
-  { label: 'Hari Ini', value: 'today' },
-  { label: 'Minggu Ini', value: 'this_week' },
-  { label: 'Bulan Ini', value: 'this_month' },
-  { label: 'Terlambat', value: 'overdue' },
 ];
 
 /**
@@ -87,14 +83,14 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const detailError = useAppSelector((state: RootState) => state.task?.detailError || null);
   const currentUserId = useAppSelector(selectCurrentUserId);
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const taskHubQueryState = useMemo(() => parseTaskHubQueryState(searchParams), [searchParams]);
+  const searchQuery = taskHubQueryState.searchQuery;
   const debouncedSearchQuery = useDebounce(searchQuery, 250);
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [involvementFilter, setInvolvementFilter] = useState<'all' | 'mine'>('all');
-  const [datePresetView, setDatePresetView] = useState<TaskDatePreset | 'all'>('all');
-  const [dateRange, setDateRange] = useState<DateRange>();
-  const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
-  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+  const statusFilter = taskHubQueryState.statusFilter;
+  const involvementFilter = taskHubQueryState.involvementFilter;
+  const datePresetView = taskHubQueryState.datePreset;
+  const dateRange = taskHubQueryState.dateRange;
+  const viewMode = taskHubQueryState.viewMode;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAiGeneratorModalOpen, setIsAiGeneratorModalOpen] = useState(false);
   const [isMobileFolderDrawerOpen, setIsMobileFolderDrawerOpen] = useState(false);
@@ -136,24 +132,17 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     [selectedFolderNode],
   );
 
-  // Sync URL search parameter ?folderId=... & ?datePreset=... & ?view=... & ?taskId=...
-  const urlFolderId = searchParams.get('folderId');
-  const urlDatePreset = searchParams.get('datePreset') as TaskDatePreset | null;
-  const urlView = searchParams.get('view');
-  const urlTaskId = searchParams.get('taskId');
-
   useEffect(() => {
-    dispatch(setSelectedFolderId(urlFolderId));
-    if (urlDatePreset && ['today', 'this_week', 'this_month', 'overdue'].includes(urlDatePreset)) {
-      setDatePresetView(urlDatePreset);
-    }
-    if (urlView === 'timeline' || urlView === 'table') {
-      setViewMode(urlView);
-    }
-    if (urlTaskId) {
-      dispatch(setSelectedTaskId(urlTaskId));
-    }
-  }, [urlFolderId, urlDatePreset, urlView, urlTaskId, dispatch]);
+    dispatch(setSelectedFolderId(taskHubQueryState.folderId));
+    dispatch(setSelectedTaskId(taskHubQueryState.taskId));
+  }, [taskHubQueryState.folderId, taskHubQueryState.taskId, dispatch]);
+
+  const updateTaskHubQuery = useCallback(
+    (patch: Parameters<typeof patchTaskHubQueryState>[1], replace = false) => {
+      setSearchParams((current) => patchTaskHubQueryState(current, patch), { replace });
+    },
+    [setSearchParams],
+  );
 
   useEffect(() => {
     if (activeWorkspaceId && selectedTaskId && !tasks.some((t) => t.id === selectedTaskId)) {
@@ -309,53 +298,20 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   ]);
 
   const handleSelectFolder = (folderId: string | null) => {
-    dispatch(setSelectedFolderId(folderId));
     setIsMobileFolderDrawerOpen(false);
-    const newParams = new URLSearchParams(searchParams);
-    if (folderId) {
-      newParams.set('folderId', folderId);
-    } else {
-      newParams.delete('folderId');
-    }
-    newParams.set('tab', 'tasks');
-    setSearchParams(newParams);
+    updateTaskHubQuery({ folderId });
   };
 
-  const handleSelectDatePreset = (preset: TaskDatePreset | 'all') => {
-    setDatePresetView(preset);
-    const newParams = new URLSearchParams(searchParams);
-    if (preset !== 'all') {
-      newParams.set('datePreset', preset);
-    } else {
-      newParams.delete('datePreset');
-    }
-    setSearchParams(newParams);
-  };
-
-  const handleSelectViewMode = (mode: 'table' | 'timeline') => {
-    setViewMode(mode);
-    const newParams = new URLSearchParams(searchParams);
-    if (mode !== 'table') {
-      newParams.set('view', mode);
-    } else {
-      newParams.delete('view');
-    }
-    setSearchParams(newParams);
+  const handleSelectViewMode = (mode: TaskHubViewMode) => {
+    updateTaskHubQuery({ viewMode: mode });
   };
 
   const handleOpenTask = (taskId: string) => {
-    dispatch(setSelectedTaskId(taskId));
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('taskId', taskId);
-    newParams.set('tab', 'tasks');
-    setSearchParams(newParams);
+    updateTaskHubQuery({ taskId });
   };
 
   const handleCloseTask = () => {
-    dispatch(setSelectedTaskId(null));
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete('taskId');
-    setSearchParams(newParams);
+    updateTaskHubQuery({ taskId: null });
   };
 
   const handleCreateFolder = async (name: string, parentFolderId?: string) => {
@@ -425,108 +381,42 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     });
   }, [hubTasks, debouncedSearchQuery, statusFilter, involvementFilter, currentUserId]);
 
-  // Metrics calculation
-  const totalTasksCount = hubTasks.length;
-  const totalSubtasksCount = useMemo(() => {
-    return hubTasks.reduce((acc, t) => {
-      if (t.subtaskSummary) {
-        return acc + t.subtaskSummary.total;
-      }
-      return acc + (t.subtasks?.length || 0);
-    }, 0);
-  }, [hubTasks]);
-  const doneCount = hubTasks.filter((t) => t.status === 'done').length;
-  const inReviewCount = hubTasks.filter((t) => t.status === 'in_review').length;
-  const urgentCount = hubTasks.filter(
-    (t) => t.priority === 'urgent' || t.status === 'canceled',
-  ).length;
-  const donePercentage = totalTasksCount > 0 ? Math.round((doneCount / totalTasksCount) * 100) : 0;
-
   const selectedFolderName = selectedFolderNode ? selectedFolderNode.name : 'Semua Task Workspace';
 
   const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || '').toLowerCase();
   const canCreateTask = ['owner', 'admin', 'po'].includes(userRole);
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-5 animate-fadeIn">
       {/* Top Header */}
       <TaskHubHeader
         workspaceName={activeWorkspace?.name || 'Workspace'}
         canCreateTask={canCreateTask}
-        isRefreshing={isTaskLoading || isFolderLoading}
         onCreateTask={() => setIsCreateModalOpen(true)}
-        onOpenAiGenerator={() => setIsAiGeneratorModalOpen(true)}
-        onRefresh={() => void loadWorkspaceData()}
         onOpenMobileFolders={() => setIsMobileFolderDrawerOpen(true)}
       />
 
-      {/* 4 Metric Widget Cards Grid */}
-      <TaskHubMetrics
-        totalTasksCount={totalTasksCount}
-        totalSubtasksCount={totalSubtasksCount}
-        foldersCount={folders.length}
-        doneCount={doneCount}
-        donePercentage={donePercentage}
-        inReviewCount={inReviewCount}
-        urgentCount={urgentCount}
-      />
-
-      {/* Dynamic Date Filter Presets Bar */}
-      <TaskHubDatePresetBar
-        datePresetView={datePresetView}
-        datePresetViews={datePresetViews}
-        onSelectDatePreset={handleSelectDatePreset}
-      />
-
-      {/* 2-Column Workspace Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Folder Tree Sidebar */}
-        {!(viewMode === 'timeline' && isTimelineExpanded) && (
-          <div className="hidden lg:col-span-3 lg:sticky lg:top-24 lg:block lg:space-y-4 min-w-0 transition-all duration-300">
-            <Card className="p-3.5 sm:p-4 overflow-hidden">
-              <div className="max-h-[calc(100vh-8.5rem)] overflow-y-auto overflow-x-hidden pr-0.5">
-                <FolderTree
-                  folders={folders}
-                  selectedFolderId={selectedFolderId}
-                  totalTasks={hubTasks.length}
-                  isLoading={isFolderLoading}
-                  error={folderError}
-                  userRole={activeWorkspace?.role}
-                  onSelectFolder={handleSelectFolder}
-                  onCreateFolder={handleCreateFolder}
-                  onRenameFolder={handleRenameFolder}
-                  onArchiveFolder={handleArchiveFolder}
-                  onRetry={() => activeWorkspaceId && dispatch(fetchFolderTree(activeWorkspaceId))}
-                />
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Right Column: Task Collection / Timeline & Filters */}
-        <div
-          className={`${
-            viewMode === 'timeline' && isTimelineExpanded ? 'lg:col-span-12' : 'lg:col-span-9'
-          } space-y-4 min-w-0 transition-all duration-300`}
-        >
-          <Card className="p-4 sm:p-6 space-y-4">
+      {/* Desktop folder navigation lives in the global sidebar; the drawer remains for mobile. */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
+        <div className="min-w-0 space-y-4 lg:col-span-12">
+          <Card className="space-y-5 border-stone-200/90 p-4 dark:border-slate-700 dark:bg-[#14181d] sm:p-6">
             <TaskHubControlsBar
               selectedFolderName={selectedFolderName}
               visibleTasksCount={visibleTasks.length}
               searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onSearchClear={() => setSearchQuery('')}
+              onSearchChange={(value) => updateTaskHubQuery({ searchQuery: value }, true)}
+              onSearchClear={() => updateTaskHubQuery({ searchQuery: '' }, true)}
               viewMode={viewMode}
               onViewModeChange={handleSelectViewMode}
               dateRange={dateRange}
-              onDateRangeChange={setDateRange}
+              onDateRangeChange={(range) => updateTaskHubQuery({ dateRange: range })}
               statusFilter={statusFilter}
-              onStatusFilterChange={setStatusFilter}
+              onStatusFilterChange={(value) => updateTaskHubQuery({ statusFilter: value })}
               statusFilters={statusFilters}
-              isExpanded={isTimelineExpanded}
-              onToggleExpand={() => setIsTimelineExpanded((prev) => !prev)}
               involvementFilter={involvementFilter}
-              onInvolvementFilterChange={setInvolvementFilter}
+              onInvolvementFilterChange={(filter: TaskHubInvolvementFilter) =>
+                updateTaskHubQuery({ involvementFilter: filter })
+              }
             />
 
             {taskError && (
@@ -548,12 +438,16 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 releaseReadinessStateByTaskId={releaseReadinessStateByTaskId}
                 onSelect={(task) => handleOpenTask(task.id)}
               />
-            ) : (
-              <TaskTimelineView
+            ) : viewMode === 'kanban' ? (
+              <TaskHubKanbanBoard
                 tasks={visibleTasks}
-                folders={folders}
                 isLoading={isTaskLoading}
-                selectedTaskId={selectedTaskId}
+                onSelect={(task) => handleOpenTask(task.id)}
+              />
+            ) : (
+              <TaskHubSchedule
+                tasks={visibleTasks}
+                isLoading={isTaskLoading}
                 onSelect={(task) => handleOpenTask(task.id)}
               />
             )}

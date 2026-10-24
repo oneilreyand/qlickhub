@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Component,
   ShieldCheck,
@@ -12,8 +12,16 @@ import {
   Crown,
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch } from '../../store/hooks';
 import { selectCurrentUserRole } from '../../store/authSlice';
 import { featureVisibility } from '../../config/featureVisibility';
+import { FolderTree } from '../ui/organisms/FolderTree';
+import {
+  archiveFolder,
+  createFolder,
+  fetchFolderTree,
+  updateFolder,
+} from '../../store/folderSlice';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -74,9 +82,22 @@ const navItems: NavItem[] = [
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }) => {
-  const [isHovered, setIsHovered] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { workspaces, activeWorkspaceId } = useAppSelector((state) => state.workspace);
+  const {
+    folders,
+    selectedFolderId,
+    isLoading: isFolderLoading,
+    error: folderError,
+  } = useAppSelector((state) => state.folder);
+  const workspaceFeatureCount = useAppSelector(
+    (state) =>
+      state.task.tasks.filter(
+        (task) => task.workspaceId === activeWorkspaceId && !task.parentTaskId,
+      ).length,
+  );
   const currentUserRole = useAppSelector(selectCurrentUserRole);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
@@ -89,9 +110,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
   const canAccessUISystem = userRole === 'owner';
   const canAccessLeaderHub = ['owner', 'admin'].includes(userRole);
+  const isTaskHub =
+    location.pathname === '/work' && new URLSearchParams(location.search).get('tab') === 'tasks';
 
-  // Mobile drawers always render expanded navigation.
-  const isExpanded = isHovered || Boolean(onCloseMobile);
+  // The workspace shell keeps labels visible on desktop; the mobile drawer reuses the same shape.
+  const isExpanded = true;
 
   const visibleNavItems = navItems.filter((item) => {
     if (item.path === '/leader-hub') {
@@ -110,13 +133,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   });
 
   const handleMouseEnter = () => {
-    setIsHovered(true);
     if (onHoverChange) onHoverChange(true);
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
     if (onHoverChange) onHoverChange(false);
+  };
+
+  const handleSelectFolder = (folderId: string | null) => {
+    const next = new URLSearchParams(location.search);
+    next.set('tab', 'tasks');
+    if (folderId) next.set('folderId', folderId);
+    else next.delete('folderId');
+    navigate(`/work?${next.toString()}`);
+    onCloseMobile?.();
+  };
+
+  const handleCreateFolder = async (name: string, parentFolderId?: string) => {
+    if (!activeWorkspaceId) return;
+    await dispatch(
+      createFolder({ workspaceId: activeWorkspaceId, input: { name, parentFolderId } }),
+    ).unwrap();
+  };
+
+  const handleRenameFolder = async (folderId: string, name: string) => {
+    if (!activeWorkspaceId) return;
+    await dispatch(
+      updateFolder({ workspaceId: activeWorkspaceId, folderId, input: { name } }),
+    ).unwrap();
+  };
+
+  const handleArchiveFolder = async (folderId: string) => {
+    if (!activeWorkspaceId) return;
+    await dispatch(archiveFolder({ workspaceId: activeWorkspaceId, folderId })).unwrap();
   };
 
   return (
@@ -222,6 +271,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
           })}
         </nav>
       </div>
+
+      {isTaskHub && (
+        <div className="border-t border-stone-100 px-3 py-4 dark:border-stone-800/80">
+          <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-400 dark:text-stone-500">
+            Folder workspace
+          </p>
+          <div className="max-h-[30vh] overflow-y-auto pr-0.5">
+            <FolderTree
+              folders={folders}
+              selectedFolderId={selectedFolderId || null}
+              totalTasks={workspaceFeatureCount}
+              isLoading={isFolderLoading}
+              error={folderError}
+              userRole={activeWorkspace?.role}
+              onSelectFolder={handleSelectFolder}
+              onCreateFolder={handleCreateFolder}
+              onRenameFolder={handleRenameFolder}
+              onArchiveFolder={handleArchiveFolder}
+              onRetry={() => activeWorkspaceId && dispatch(fetchFolderTree(activeWorkspaceId))}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Footer Section */}
       <div className="shrink-0 border-t border-stone-100 p-3 dark:border-stone-800/80">

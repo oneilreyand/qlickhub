@@ -53,12 +53,18 @@ describe('TaskHubControlsBar', () => {
     expect(onInvolvementFilterChange).toHaveBeenCalledWith('mine');
   });
 
-  it('switches between table and timeline view modes', () => {
+  it('switches between daftar, Kanban, and jadwal view modes', () => {
     const onViewModeChange = vi.fn();
 
     render(<TaskHubControlsBar {...defaultProps} onViewModeChange={onViewModeChange} />);
 
-    const timelineBtn = screen.getByRole('button', { name: 'Jadwal Feature' });
+    const timelineBtn = screen.getByRole('tab', { name: 'Jadwal Feature' });
+    expect(screen.getByRole('tab', { name: 'Daftar' })).toHaveAttribute('aria-pressed', 'true');
+    const kanbanBtn = screen.getByRole('tab', { name: 'Kanban' });
+    expect(kanbanBtn).toHaveAttribute('aria-pressed', 'false');
+    expect(timelineBtn).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(kanbanBtn);
+    expect(onViewModeChange).toHaveBeenCalledWith('kanban');
     fireEvent.click(timelineBtn);
     expect(onViewModeChange).toHaveBeenCalledWith('timeline');
   });

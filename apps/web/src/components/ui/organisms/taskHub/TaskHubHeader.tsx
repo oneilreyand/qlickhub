@@ -1,73 +1,46 @@
 import React from 'react';
-import { Plus, RefreshCw, Folder, Sparkles } from 'lucide-react';
+import { Plus, Folder } from 'lucide-react';
 import { Button } from '../../atoms/Button';
 
 interface TaskHubHeaderProps {
   workspaceName: string;
   canCreateTask: boolean;
-  isRefreshing: boolean;
   onCreateTask: () => void;
-  onOpenAiGenerator?: () => void;
-  onRefresh: () => void;
   onOpenMobileFolders: () => void;
 }
 
 export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
   workspaceName,
   canCreateTask,
-  isRefreshing,
   onCreateTask,
-  onOpenAiGenerator,
-  onRefresh,
   onOpenMobileFolders,
 }) => {
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-3 border-b border-stone-200 pb-5 dark:border-slate-700">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-[#22201F] tracking-tight dark:text-white">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-stone-500 dark:text-slate-400">
+            Workspace / {workspaceName}
+          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#22201F] dark:text-white">
             Task Hub
           </h1>
-          <p className="text-sm font-medium text-stone-500 mt-1 dark:text-stone-400">
-            Workspace delivery berbasis QA. Menampilkan backlog Feature dan kesiapan rilis untuk{' '}
-            {workspaceName}.
+          <p className="mt-1 text-sm font-medium text-stone-500 dark:text-slate-400">
+            Satu tempat untuk memahami dan melanjutkan delivery.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
           {canCreateTask && (
-            <>
-              {onOpenAiGenerator && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onOpenAiGenerator}
-                  className="border-[#B1E743] hover:bg-[#B1E743]/15 text-stone-900 dark:text-stone-100 font-semibold"
-                  leftIcon={<Sparkles className="h-4 w-4 text-[#7BB80E] dark:text-[#B1E743]" />}
-                >
-                  Buat via AI
-                </Button>
-              )}
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={onCreateTask}
-                leftIcon={<Plus className="h-4 w-4" />}
-              >
-                Buat Task
-              </Button>
-            </>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onCreateTask}
+              leftIcon={<Plus className="h-5 w-5" />}
+            >
+              Buat Feature
+            </Button>
           )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            isLoading={isRefreshing}
-            leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-          >
-            Muat Ulang
-          </Button>
         </div>
       </div>
 
