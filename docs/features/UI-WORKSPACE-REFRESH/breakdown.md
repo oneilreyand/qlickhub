@@ -27,6 +27,7 @@ flowchart LR
 | P1    | Tema bootstrap/provider konsisten dan shell responsif.                                                                  | AC-1.1, AC-1.2 | 6/16 | —               | Menunggu G3             |
 | P2    | Filter bertahan lintas view dan detail tidak terhalang shell.                                                           | AC-2.1, AC-2.2 | 7/16 | P1 kandidat E2  | Kandidat E2; E4 pending |
 | P3    | Baseline visual Task Hub desktop dark (referensi Owner), shell/sidebar, Daftar · Kanban · Jadwal baca-saja per Feature. | AC-3.1, AC-3.2 | 7/16 | P2              | In progress             |
+| P3.1  | Kontrak tema wajib, perbaikan defect Jadwal Light, dan guard statis untuk semua komponen/halaman visual.                | AC-1.2, AC-3.2 | 7/16 | P3              | In progress             |
 | P4    | Queue menuju konteks benar serta ringkasan/laporan memakai data kanonis.                                                | AC-4.1, AC-5.1 | 8/16 | P3              | Belum mulai             |
 
 ## 2. Task per phase
@@ -56,6 +57,14 @@ Light mode dan breakpoint phone/tablet memakai struktur yang sama dengan token a
 menyalin ukuran desktop. BE/DB N/A kecuali inspeksi menemukan kekurangan interface; dalam kondisi
 itu Phase berhenti dan mendapat keputusan G3 baru. QA membuktikan parent scope, state
 loading/empty/error/forbidden, dan tidak ada mutation.
+
+### Phase 3.1 — Kontrak tema dan guard regresi
+
+Task FE: perbaiki surface Jadwal yang unconditional dark pada mode Light; tambahkan kontrak tema
+ke UI SSoT dan checker statis tanpa dependency baru. Checker memeriksa setiap file `.tsx` produksi
+di komponen/halaman untuk strategi tema dan surface aplikasi dark yang tidak memiliki pasangan
+Light/Dark; media stage invariant wajib memakai pengecualian beralasan. QA membuktikan checker,
+test komponen, serta browser Light/Dark pada Task Hub. Tidak ada BE/DB/contract/RBAC.
 
 ### Phase 4 — Tugas Saya, Ringkasan, dan Laporan
 

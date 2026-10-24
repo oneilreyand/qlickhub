@@ -53,4 +53,13 @@ describe('Task Hub visual views', () => {
     ).toHaveAttribute('aria-valuenow', '25');
     expect(screen.getByText('4 subtask · 1 selesai')).toBeInTheDocument();
   });
+
+  it('uses a light surface with an explicit dark counterpart', () => {
+    render(<TaskHubSchedule tasks={[feature]} isLoading={false} onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('region', { name: 'Jadwal Feature' })).toHaveClass(
+      'bg-white',
+      'dark:bg-[#151a20]',
+    );
+  });
 });

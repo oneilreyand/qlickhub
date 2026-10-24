@@ -90,15 +90,19 @@ export const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-screen bg-[#FBFCF7] flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden">
+    <div className="min-h-screen w-screen bg-[#FBFCF7] text-stone-900 flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden dark:bg-[#141413] dark:text-stone-100">
       {/* Background Glows */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-[#B1E743]/20 blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 left-1/3 w-80 h-80 rounded-full bg-[#B1E743]/10 blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-white p-8 rounded-[24px] border border-stone-200/80 shadow-xl shadow-stone-200/60 space-y-6 relative z-10">
+      <div className="w-full max-w-md bg-white p-8 rounded-[24px] border border-stone-200/80 shadow-xl shadow-stone-200/60 space-y-6 relative z-10 dark:border-stone-800 dark:bg-stone-900 dark:shadow-black/40">
         <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-stone-900">Buat Kata Sandi Baru</h1>
-          <p className="text-sm text-stone-500">Masukkan dan konfirmasikan kata sandi baru Anda.</p>
+          <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">
+            Buat Kata Sandi Baru
+          </h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400">
+            Masukkan dan konfirmasikan kata sandi baru Anda.
+          </p>
         </div>
 
         {!token && (
@@ -115,10 +119,10 @@ export const ResetPasswordPage: React.FC = () => {
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-semibold text-stone-900">
+              <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100">
                 Kata Sandi Berhasil Diatur Ulang
               </h3>
-              <p className="text-xs text-stone-500">
+              <p className="text-xs text-stone-500 dark:text-stone-400">
                 Kata sandi berhasil diperbarui. Anda akan diarahkan ke halaman masuk…
               </p>
             </div>
@@ -137,7 +141,7 @@ export const ResetPasswordPage: React.FC = () => {
               placeholder="Kata sandi baru (minimal 6 karakter)"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400"
+              className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400 dark:!bg-stone-800/80 dark:!text-stone-100 dark:!border-stone-700 dark:focus:!bg-stone-800 dark:!placeholder-stone-500"
               required
               disabled={!token || isLoading}
             />
@@ -149,7 +153,7 @@ export const ResetPasswordPage: React.FC = () => {
               placeholder="Konfirmasi kata sandi baru"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400"
+              className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400 dark:!bg-stone-800/80 dark:!text-stone-100 dark:!border-stone-700 dark:focus:!bg-stone-800 dark:!placeholder-stone-500"
               required
               disabled={!token || isLoading}
             />

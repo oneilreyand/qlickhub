@@ -17,6 +17,17 @@
 | Batas       | Read-only UI; tidak ada endpoint, shared contract, database, migration, RBAC, drag/drop, atau data contoh produksi.                                                                                             |
 | Recovery    | Revert commit UI; tidak ada data yang perlu dipulihkan.                                                                                                                                                         |
 
+### Window P3.1 — kontrak tema dan perbaikan Jadwal
+
+| Item        | Isi                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Baseline    | `5165544` pada branch `docs/doc-portal-close`                                                                                                          |
+| Persetujuan | Owner, pesan `setuju`, 2026-10-25                                                                                                                      |
+| Scope       | Perbaiki Jadwal mode Light; tetapkan strategi Light/Dark wajib untuk komponen/halaman visual; gate statis, test, ADR, UI SSoT, Feature card, dan TODO. |
+| Paths       | `apps/web/src/components/**`, `apps/web/src/pages/**`, `apps/web/src/index.css`, Tailwind/lint/script validasi, dan dokumen terkait.                   |
+| Batas       | Tidak ada endpoint, shared contract, database, migration, RBAC, dependency baru, merge, atau deploy.                                                   |
+| Recovery    | Revert commit UI/dokumentasi; tidak ada data yang perlu dipulihkan.                                                                                    |
+
 ## WRA dan bukti
 
 WRA: requirement 1, layer 1, data 0, authorization 0, contract 0, blast radius 2,

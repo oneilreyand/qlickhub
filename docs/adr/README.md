@@ -42,3 +42,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-031](ADR-031-QA-REJECTION-AND-UNVERIFIED-BUG-GATE.md)                    | QA rejection while gates fail; all-severity Bug gate                 |
 | [ADR-032](ADR-032-AUTO-READINESS-BASELINE-AND-QA-TEST-CASE-LIFECYCLE.md)      | Automatic readiness baseline; QA Test Case auto-active, delete, edit |
 | [ADR-033](ADR-033-DOCUMENTATION-COMPLETENESS-RATCHET.md)                      | Documentation completeness ratchet and local developer portal        |
+| [ADR-034](ADR-034-UI-THEME-CONTRACT-AND-COVERAGE-GATE.md)                     | Light/Dark theme contract and coverage gate                          |
