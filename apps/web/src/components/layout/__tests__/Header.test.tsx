@@ -116,6 +116,23 @@ describe('Header', () => {
     expect(onToggleMobileSidebar).toHaveBeenCalledOnce();
   });
 
+  it('exposes the current theme as a pressed toggle and updates it', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem('theme', 'dark');
+
+    renderHeader(vi.fn());
+
+    const themeToggle = screen.getByRole('button', { name: 'Ganti ke mode terang' });
+    expect(themeToggle).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(themeToggle);
+
+    expect(screen.getByRole('button', { name: 'Ganti ke mode gelap' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
   it('opens the Report destination from the top navigation', async () => {
     const user = userEvent.setup();
 

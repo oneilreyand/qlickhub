@@ -59,6 +59,8 @@ describe('TaskHubControlsBar', () => {
     render(<TaskHubControlsBar {...defaultProps} onViewModeChange={onViewModeChange} />);
 
     const timelineBtn = screen.getByRole('button', { name: 'Jadwal Feature' });
+    expect(screen.getByRole('button', { name: 'Tabel' })).toHaveAttribute('aria-pressed', 'true');
+    expect(timelineBtn).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(timelineBtn);
     expect(onViewModeChange).toHaveBeenCalledWith('timeline');
   });

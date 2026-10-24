@@ -1,0 +1,48 @@
+import { describe, expect, it } from 'vitest';
+import { parseTaskHubQueryState, patchTaskHubQueryState } from '../taskHubQueryState';
+
+describe('Task Hub query state', () => {
+  it('preserves every active filter when the view changes', () => {
+    const current = new URLSearchParams(
+      'tab=tasks&folderId=folder-1&datePreset=this_week&q=payment&status=in_review&involvement=mine&startDate=2026-10-01&endDate=2026-10-24&taskId=task-1',
+    );
+
+    const next = patchTaskHubQueryState(current, { viewMode: 'timeline' });
+
+    expect(next.toString()).toContain('view=timeline');
+    expect(parseTaskHubQueryState(next)).toMatchObject({
+      folderId: 'folder-1',
+      datePreset: 'this_week',
+      viewMode: 'timeline',
+      taskId: 'task-1',
+      searchQuery: 'payment',
+      statusFilter: 'in_review',
+      involvementFilter: 'mine',
+      dateRange: { startDate: '2026-10-01', endDate: '2026-10-24' },
+    });
+  });
+
+  it('removes only a reset filter and preserves route context', () => {
+    const current = new URLSearchParams('tab=tasks&folderId=folder-1&q=payment&status=done');
+
+    const next = patchTaskHubQueryState(current, { searchQuery: '' });
+
+    expect(next.toString()).toBe('tab=tasks&folderId=folder-1&status=done');
+  });
+
+  it('falls back safely when a deep link contains invalid filter values', () => {
+    const state = parseTaskHubQueryState(
+      new URLSearchParams(
+        'view=kanban&status=unknown&involvement=everyone&datePreset=tomorrow&startDate=2026-02-30&endDate=2026-02-31',
+      ),
+    );
+
+    expect(state).toMatchObject({
+      datePreset: 'all',
+      viewMode: 'table',
+      statusFilter: 'ALL',
+      involvementFilter: 'all',
+      dateRange: undefined,
+    });
+  });
+});
