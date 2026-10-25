@@ -23,6 +23,18 @@ test('accepts paired Light/Dark utilities and semantic tokens', () => {
   );
 });
 
+test('rejects a local dark application surface even when another element is paired', () => {
+  const source = [
+    '<div className="bg-white dark:bg-stone-900" />',
+    '<div className="bg-[#151a20] text-white" />',
+  ].join('\n');
+
+  const violations = evaluateThemeSource('Schedule.tsx', source);
+
+  assert.equal(violations.length, 1);
+  assert.match(violations[0], /in this className needs a Light\/Dark counterpart/);
+});
+
 test('allows a documented invariant media stage', () => {
   const source = [
     '// theme-check: invariant-media — video and image content needs a neutral dark stage.',

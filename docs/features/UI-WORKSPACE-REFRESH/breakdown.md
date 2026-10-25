@@ -28,6 +28,7 @@ flowchart LR
 | P2    | Filter bertahan lintas view dan detail tidak terhalang shell.                                                           | AC-2.1, AC-2.2 | 7/16 | P1 kandidat E2  | Kandidat E2; E4 pending |
 | P3    | Baseline visual Task Hub desktop dark (referensi Owner), shell/sidebar, Daftar · Kanban · Jadwal baca-saja per Feature. | AC-3.1, AC-3.2 | 7/16 | P2              | In progress             |
 | P3.1  | Kontrak tema wajib, perbaikan defect Jadwal Light, dan guard statis untuk semua komponen/halaman visual.                | AC-1.2, AC-3.2 | 7/16 | P3              | In progress             |
+| P3.2  | Audit komponen bersama: permukaan toast/tooltip/login serta pengecualian stage media terdokumentasi.                    | AC-1.2, AC-3.2 | 7/16 | P3.1            | In progress             |
 | P4    | Queue menuju konteks benar serta ringkasan/laporan memakai data kanonis.                                                | AC-4.1, AC-5.1 | 8/16 | P3              | Belum mulai             |
 
 ## 2. Task per phase

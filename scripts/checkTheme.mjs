@@ -12,6 +12,8 @@ const themeStrategy =
   /(?:\bdark:|\b(?:bg|text|border|ring|outline|fill|stroke)-(?:canvas|surface(?:-elevated)?|foreground|muted-foreground|border)\b)/;
 const invariantMedia = /theme-check:\s*invariant-media\s*[—-]\s*\S+/;
 const darkApplicationSurface = /\bbg-(?:\[#(?:141413|151a20)\]|(?:stone|slate|zinc)-(?:8|9)00)\b/;
+const unconditionalBrandDarkSurface = /\bbg-\[#(?:141413|151a20)\](?!\/)/;
+const staticClassName = /\bclassName\s*=\s*["']([^"']*)["']/g;
 
 function collectTsxFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -40,6 +42,19 @@ export function evaluateThemeSource(relativePath, source) {
     violations.push(
       `${relativePath}: unconditional dark application surface needs a Light/Dark counterpart.`,
     );
+  }
+
+  for (const match of source.matchAll(staticClassName)) {
+    const classNames = match[1];
+    if (
+      unconditionalBrandDarkSurface.test(classNames) &&
+      !classNames.includes('dark:') &&
+      !hasInvariantMediaReason
+    ) {
+      violations.push(
+        `${relativePath}: unconditional dark application surface in this className needs a Light/Dark counterpart.`,
+      );
+    }
   }
 
   return violations;

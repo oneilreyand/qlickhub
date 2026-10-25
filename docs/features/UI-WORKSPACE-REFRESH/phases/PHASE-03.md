@@ -28,6 +28,17 @@
 | Batas       | Tidak ada endpoint, shared contract, database, migration, RBAC, dependency baru, merge, atau deploy.                                                   |
 | Recovery    | Revert commit UI/dokumentasi; tidak ada data yang perlu dipulihkan.                                                                                    |
 
+### Window P3.2 — audit komponen bersama Light/Dark
+
+| Item        | Isi                                                                                                                                                                    |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baseline    | `6009144` pada branch `docs/doc-portal-close`                                                                                                                          |
+| Persetujuan | Owner, pesan `setuju`, 2026-10-25                                                                                                                                      |
+| Scope       | Audit atom, molecule, shell/layout, modal/drawer, dan autentikasi; menutup permukaan aplikasi yang masih dark-only serta mendokumentasikan stage media yang invariant. |
+| Paths       | `apps/web/src/components/ui/{atoms,molecules,organisms}/`, `apps/web/src/components/{layout,auth}/`, `apps/web/src/pages/LoginPage.tsx`, test dan dokumen terkait.     |
+| Batas       | Tidak ada endpoint, shared contract, database, migration, RBAC, dependency baru, merge, atau deploy.                                                                   |
+| Recovery    | Revert commit UI/dokumentasi; tidak ada data yang perlu dipulihkan.                                                                                                    |
+
 ## WRA dan bukti
 
 WRA: requirement 1, layer 1, data 0, authorization 0, contract 0, blast radius 2,

@@ -73,7 +73,7 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen w-full bg-[#FBFCF7] dark:bg-[#141413] flex flex-col lg:flex-row overflow-x-hidden select-none">
       {/* LEFT COLUMN: Hero Showcase & Image (Desktop & Large Screens) */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-stone-900 flex-col justify-between p-10 xl:p-14 overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 relative bg-sidebar flex-col justify-between p-10 xl:p-14 overflow-hidden">
         {/* Background Image with Ambient Gradient Overlay */}
         <div className="absolute inset-0 z-0">
           <img

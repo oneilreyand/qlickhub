@@ -569,18 +569,20 @@ export const OverviewStoreDashboard: React.FC = () => {
                   >
                     {/* Floating Tooltip Pill */}
                     {isHovered && (
-                      <div className="absolute -top-24 z-20 flex flex-col items-start rounded-xl bg-[#141413] px-3.5 py-2.5 text-[10px] font-semibold text-white shadow-xl min-w-[130px] border border-stone-700 animate-fadeIn">
-                        <span className="text-stone-400 text-[9px] font-mono">{bar.period}</span>
+                      <div className="absolute -top-24 z-20 flex min-w-[130px] flex-col items-start rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-[10px] font-semibold text-stone-700 shadow-xl animate-fadeIn dark:border-stone-700 dark:bg-[#141413] dark:text-white">
+                        <span className="text-[9px] font-mono text-stone-500 dark:text-stone-400">
+                          {bar.period}
+                        </span>
                         <div className="mt-1 space-y-0.5">
-                          <span className="flex items-center gap-1.5 text-stone-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-stone-400" /> {bar.todo} To
-                            Do
+                          <span className="flex items-center gap-1.5 text-stone-600 dark:text-stone-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-stone-500 dark:bg-stone-400" />{' '}
+                            {bar.todo} To Do
                           </span>
-                          <span className="flex items-center gap-1.5 text-stone-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-stone-300" />{' '}
+                          <span className="flex items-center gap-1.5 text-stone-700 dark:text-stone-200">
+                            <span className="h-1.5 w-1.5 rounded-full bg-stone-400 dark:bg-stone-300" />{' '}
                             {bar.inProgress} In Progress
                           </span>
-                          <span className="flex items-center gap-1.5 text-amber-300">
+                          <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
                             <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />{' '}
                             {bar.inReview} In Review
                           </span>

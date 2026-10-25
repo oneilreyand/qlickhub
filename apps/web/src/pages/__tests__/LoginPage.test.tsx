@@ -54,6 +54,7 @@ describe('LoginPage Component', () => {
     expect(mobileHeroImage).not.toHaveClass('dark:hidden');
     expect(screen.queryByTestId('login-dark-mode-icon-desktop')).not.toBeInTheDocument();
     expect(screen.queryByTestId('login-dark-mode-icon-mobile')).not.toBeInTheDocument();
+    expect(desktopHeroImage.parentElement?.parentElement).toHaveClass('bg-sidebar');
 
     // Checks header & copy
     expect(screen.getByText('Selamat Datang Kembali')).toBeInTheDocument();
