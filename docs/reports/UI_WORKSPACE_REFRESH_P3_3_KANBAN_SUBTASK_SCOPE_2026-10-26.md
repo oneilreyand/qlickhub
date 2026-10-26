@@ -93,6 +93,12 @@ on the current page. Kanban remains read-only.
   subtasks and navigate page 1 → page 2. Feature-wide G5 also remains open because AC-1.1 and
   AC-2.1/AC-2.2 still need their own runtime evidence; this P3.3 E4 does not claim those unrelated
   flows.
+- The approved local fixture attempt on 2026-10-26 created `E4 Pagination Fixture — Kanban` through
+  the authenticated Feature form and persisted its three automatic role subtasks. The manual
+  `Plan Subtask` form requires a delivery-area assignee, but the local workspace had no selectable
+  Frontend member. The remaining 22 subtasks were not created; no direct database write, RBAC
+  change, or workaround was used. The fixture remains intentionally retained under the approval
+  window.
 
 ## Human decision summary
 

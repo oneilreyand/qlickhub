@@ -87,3 +87,9 @@ diamati pada 390×844, 768×1024, dan 1440×900; viewport dikembalikan dan prefe
 dipulihkan setelah pengujian. Tidak ada mutasi task dilakukan. Feature itu hanya memiliki empat
 subtask dengan `limit=24`, sehingga tidak ada kontrol pagination atau navigasi halaman dua untuk
 dibuktikan pada E4; E2/E3 pagination tetap lulus.
+
+Percobaan fixture pagination pada 2026-10-26 membuat Feature lokal terpisah dan tiga subtask
+otomatis melalui form terautentikasi. Form `Plan Subtask` untuk 22 data tambahan mewajibkan
+pelaksana area delivery, sementara workspace lokal tidak memiliki anggota Frontend yang dapat
+dipilih. Percobaan dihentikan tanpa bypass database atau perubahan member/RBAC; fixture dipertahankan
+sesuai Approval Window.
