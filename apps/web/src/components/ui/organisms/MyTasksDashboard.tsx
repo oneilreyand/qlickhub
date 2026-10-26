@@ -17,6 +17,9 @@ export interface MyTasksDashboardProps {
   onOpenQueueItem: (item: WorkQueueItem) => void | Promise<void>;
   onOpenTaskById: (taskId: string) => void | Promise<void>;
   onBugDataChanged?: () => void;
+  focusedBugId?: string | null;
+  onOpenBug?: (item: WorkQueueItem) => void;
+  onCloseBug?: () => void;
   onCreateTaskClick: () => void;
 }
 
@@ -45,15 +48,20 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
   onOpenQueueItem,
   onOpenTaskById,
   onBugDataChanged,
+  focusedBugId,
+  onOpenBug,
+  onCloseBug,
   onCreateTaskClick,
 }) => {
-  const [focusedBugId, setFocusedBugId] = useState<string | null>(null);
+  const [uncontrolledFocusedBugId, setUncontrolledFocusedBugId] = useState<string | null>(null);
   const normalizedRole = userRole.toLowerCase();
   const canCreateTask = ['owner', 'admin', 'po'].includes(normalizedRole);
+  const activeBugId = focusedBugId === undefined ? uncontrolledFocusedBugId : focusedBugId;
 
   const handleOpenItem = async (item: WorkQueueItem) => {
     if (item.subjectType === 'bug') {
-      setFocusedBugId(item.subjectId);
+      if (onOpenBug) onOpenBug(item);
+      else setUncontrolledFocusedBugId(item.subjectId);
       return;
     }
     await onOpenQueueItem(item);
@@ -92,12 +100,12 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
       />
 
       <Drawer
-        isOpen={Boolean(focusedBugId)}
-        onClose={() => setFocusedBugId(null)}
+        isOpen={Boolean(activeBugId)}
+        onClose={onCloseBug || (() => setUncontrolledFocusedBugId(null))}
         title="Detail Bug"
         width="3xl"
       >
-        {workspaceId && focusedBugId && (
+        {workspaceId && activeBugId && (
           <div className="p-4 sm:p-6">
             <BugExperiencePanel
               workspaceId={workspaceId}
@@ -108,11 +116,12 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
                 onRefreshQueue();
               }}
               onRetestRunStarted={async (qaSubtaskId) => {
-                setFocusedBugId(null);
+                if (onCloseBug) onCloseBug();
+                else setUncontrolledFocusedBugId(null);
                 await onOpenTaskById(qaSubtaskId);
               }}
-              focusedBugId={focusedBugId}
-              singleBugId={focusedBugId}
+              focusedBugId={activeBugId}
+              singleBugId={activeBugId}
             />
           </div>
         )}
