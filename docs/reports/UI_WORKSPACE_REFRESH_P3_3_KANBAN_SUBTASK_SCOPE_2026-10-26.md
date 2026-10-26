@@ -11,8 +11,7 @@ on the current page. Kanban remains read-only.
 
 ## Work assurance
 
-- **SDLC stage and path (`SDLC-001`):** Stage 4 Build, Full path; P3.3 E2/E3 accepted, with a
-  narrow E4 pagination gap.
+- **SDLC stage and path (`SDLC-001`):** Stage 4 Build, Full path; P3.3 E2/E3/E4 accepted.
 - **Work Readiness Assessment:** 8/16, Ready after split. UI/test/docs plus persisted interface
   evidence; no schema, authorization, shared contract, or endpoint change.
 - **User plan approval:** Owner said `lanjut` after P3.3 Approval Window on 2026-10-26.
@@ -22,18 +21,18 @@ on the current page. Kanban remains read-only.
 - **Agent capability and access:** source, existing API/test seams, a clean local PostgreSQL
   database, and an authenticated local browser session were available.
 
-| Acceptance Criterion | Required / achieved evidence level | Primary evidence and environment                                                                            | Verification status             |
-| -------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| AC-3.1               | E2/E3/E4 / E2/E3 plus partial E4   | 20/20 focused web tests; clean PostgreSQL subtask integration 11/11; authenticated parent-scope observation | Accepted with pagination E4 gap |
-| AC-3.2               | E2/E4 / E2/E4                      | UI states/theme guard tests; authenticated Light/Dark observation at three viewports                        | Accepted                        |
+| Acceptance Criterion | Required / achieved evidence level | Primary evidence and environment                                                                                       | Verification status |
+| -------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| AC-3.1               | E2/E3/E4 / E2/E3/E4                | 20/20 focused web tests; clean PostgreSQL subtask integration 11/11; authenticated parent-scope pagination observation | Accepted            |
+| AC-3.2               | E2/E4 / E2/E4                      | UI states/theme guard tests; authenticated Light/Dark observation at three viewports                                   | Accepted            |
 
 - **Evidence outcomes:** web tests passed 20/20; web and API typecheck passed; web production build
   passed; theme check/test passed 4/4; clean PostgreSQL migration and subtask integration passed
   11/11, then the disposable database was verified removed. E4 authenticated browser validation
   selected the persisted Feature and showed its four subtask cards (3 `Belum Dikerjakan`, 1
-  `Sedang Dikerjakan`) without opening a detail drawer or invoking any task mutation. The selected
-  Feature has four subtasks, below the page size of 24, so the runtime run cannot claim page-two
-  navigation.
+  `Sedang Dikerjakan`) without opening a detail drawer or invoking any task mutation. A subsequent
+  authenticated local fixture run used 25 persisted subtasks: page 1 rendered 24 cards, page 2
+  rendered one card, and `Sebelumnya` restored page 1. This closes the page-two evidence gap.
 - **Change Impact Map:** `taskHubQueryState` → shareable Kanban scope; dashboard template → passes
   visible Feature scope; Kanban organism → one existing paginated read per selected Feature.
   Existing backend controller/service/policy enforce membership; no backend source changes.
@@ -43,9 +42,8 @@ on the current page. Kanban remains read-only.
 - **Agent handoff and independent verification:** P5 independent review established the original
   mismatch. An independent P3.3 review rechecked URL scope, selected-parent fetch, six status
   columns, pagination, state coverage, clean PostgreSQL evidence, typecheck, docs, and diff. A
-  follow-up independent review accepted the authenticated E4 parent/theme evidence but retained a
-  narrow pagination E4 gap because the available Feature has only four subtasks. Feature-wide G5
-  remains open for P1/P2.
+  follow-up authenticated E4 run closed the page-two gap with the dedicated 25-subtask fixture.
+  Feature-wide G5 remains open for P1/P2.
 - **Quality review:** reused `taskService.listSubtasks`, `Select`, `EmptyState`, `Skeleton`,
   `Alert`, `AccessRestricted`, `Button`, and `TaskStatusBadge`; no parallel API/state calculation.
   Search confirmed one Kanban subtask fetch for the selected parent per page. No obsolete code or
@@ -84,27 +82,25 @@ on the current page. Kanban remains read-only.
   Feature, retained it as a distinct `kanbanFeatureId` URL value, and rendered only its four
   subtask cards across six canonical status columns. Light and Dark modes were each observed at
   390×844, 768×1024, and 1440×900. The browser viewport override was reset and the original Dark
-  preference restored after inspection. This Feature has four subtask cards, below `limit=24`, so
-  no pagination control or page-two navigation was present to observe.
+  preference restored after inspection. The dedicated fixture
+  `46252677-4581-4cdc-971d-7934c53a7ca7` then provided 25 persisted subtask: page 1 rendered 24,
+  `Berikutnya` opened page 2 with one, and `Sebelumnya` restored page 1.
 
 ## Risks or follow-up
 
-- P3.3 has one bounded E4 pagination gap: authenticate with a Feature containing more than 24
-  subtasks and navigate page 1 → page 2. Feature-wide G5 also remains open because AC-1.1 and
+- P3.3 page-two E4 pagination is closed. Feature-wide G5 remains open because AC-1.1 and
   AC-2.1/AC-2.2 still need their own runtime evidence; this P3.3 E4 does not claim those unrelated
   flows.
-- The approved local fixture attempt on 2026-10-26 created `E4 Pagination Fixture — Kanban` through
-  the authenticated Feature form and persisted its three automatic role subtasks. The manual
-  `Plan Subtask` form requires a delivery-area assignee, but the local workspace had no selectable
-  Frontend member. The remaining 22 subtasks were not created; no direct database write, RBAC
-  change, or workaround was used. The fixture remains intentionally retained under the approval
-  window.
+- The approved local fixture `E4 Pagination Fixture — Kanban` was created through authenticated
+  forms and now retains 25 subtasks: 22 Frontend, 1 Backend, and 2 QA. The 22 manual records used
+  an existing local Frontend delivery member through `Plan Subtask`; no direct database write or
+  RBAC change was used.
 
 ## Human decision summary
 
 The original AC-3.1 mismatch is resolved without weakening the requirement. Authenticated runtime
-verification confirms selected-parent Kanban behavior, while page navigation remains explicitly
-unclaimed until realistic persisted data spans more than one page; no product or data policy changed.
+verification confirms selected-parent Kanban behavior and page 1 → 2 → 1 navigation using realistic
+persisted local data; no product or data policy changed.
 
 ## TODO update
 
