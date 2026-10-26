@@ -11,24 +11,26 @@ on the current page. Kanban remains read-only.
 
 ## Work assurance
 
-- **SDLC stage and path (`SDLC-001`):** Stage 4 Build, Full path; P3.3 E2/E3 candidate.
+- **SDLC stage and path (`SDLC-001`):** Stage 4 Build, Full path; P3.3 E2/E3/E4 accepted.
 - **Work Readiness Assessment:** 8/16, Ready after split. UI/test/docs plus persisted interface
   evidence; no schema, authorization, shared contract, or endpoint change.
 - **User plan approval:** Owner said `lanjut` after P3.3 Approval Window on 2026-10-26.
 - **Approval Window:** baseline `a4e5642`; approved UI/query/test/docs changes and disposable
   PostgreSQL evidence, commit and push. No dependency, backend behavior, RBAC, migration, merge,
   or deploy.
-- **Agent capability and access:** source, existing API/test seams, and a clean local PostgreSQL
-  database were available. Browser session is expired, so E4 is not claimed.
+- **Agent capability and access:** source, existing API/test seams, a clean local PostgreSQL
+  database, and an authenticated local browser session were available.
 
-| Acceptance Criterion | Required / achieved evidence level | Primary evidence and environment                                                          | Verification status  |
-| -------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- | -------------------- |
-| AC-3.1               | E2/E3/E4 / E2/E3                   | 20/20 focused web tests; clean PostgreSQL subtask integration 11/11                       | Accepted with E4 gap |
-| AC-3.2               | E2/E4 / E2                         | Loading, empty, generic error/retry, 403 restricted, status labels, and theme guard tests | Accepted with E4 gap |
+| Acceptance Criterion | Required / achieved evidence level | Primary evidence and environment                                                                      | Verification status |
+| -------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------- |
+| AC-3.1               | E2/E3/E4 / E2/E3/E4                | 20/20 focused web tests; clean PostgreSQL subtask integration 11/11; authenticated Kanban observation | Accepted            |
+| AC-3.2               | E2/E4 / E2/E4                      | UI states/theme guard tests; authenticated Light/Dark observation at three viewports                  | Accepted            |
 
 - **Evidence outcomes:** web tests passed 20/20; web and API typecheck passed; web production build
   passed; theme check/test passed 4/4; clean PostgreSQL migration and subtask integration passed
-  11/11, then the disposable database was verified removed.
+  11/11, then the disposable database was verified removed. E4 authenticated browser validation
+  selected the persisted Feature and showed its four subtask cards (3 `Belum Dikerjakan`, 1
+  `Sedang Dikerjakan`) without opening a detail drawer or invoking any task mutation.
 - **Change Impact Map:** `taskHubQueryState` → shareable Kanban scope; dashboard template → passes
   visible Feature scope; Kanban organism → one existing paginated read per selected Feature.
   Existing backend controller/service/policy enforce membership; no backend source changes.
@@ -37,15 +39,15 @@ on the current page. Kanban remains read-only.
   non-sensitive and can be cleared; rollback is a code revert with no data recovery.
 - **Agent handoff and independent verification:** P5 independent review established the original
   mismatch. An independent P3.3 review rechecked URL scope, selected-parent fetch, six status
-  columns, pagination, state coverage, clean PostgreSQL evidence, typecheck, docs, and diff; result
-  **Accepted with gaps** because authenticated E4 remains pending. Feature-wide G5 remains open.
+  columns, pagination, state coverage, clean PostgreSQL evidence, typecheck, docs, and diff. The
+  authenticated E4 run then closed its only stated gap. Feature-wide G5 remains open for P1/P2.
 - **Quality review:** reused `taskService.listSubtasks`, `Select`, `EmptyState`, `Skeleton`,
   `Alert`, `AccessRestricted`, `Button`, and `TaskStatusBadge`; no parallel API/state calculation.
   Search confirmed one Kanban subtask fetch for the selected parent per page. No obsolete code or
   unused imports were introduced in the changed scope.
 - **Cross-layer quality gates:** board uses paired Light/Dark classes and passes theme gate. E4
-  phone/tablet/desktop still requires an authenticated browser session; no database relation,
-  index, or API behavior changed.
+  observed both themes at 390×844, 768×1024, and 1440×900; no database relation, index, or API
+  behavior changed.
 
 ## Source of truth and impact
 
@@ -73,16 +75,21 @@ on the current page. Kanban remains read-only.
 - `npm run theme:test && npm run theme:check` — 4/4 passed; coverage passed.
 - Clean PostgreSQL — canonical migrations passed; subtask integration 11/11 passed; database removal
   query returned `f`.
+- Authenticated local browser E4 — `/work?tab=tasks&view=kanban` selected the persisted parent
+  Feature, retained it as a distinct `kanbanFeatureId` URL value, and rendered only its four
+  subtask cards across six canonical status columns. Light and Dark modes were each observed at
+  390×844, 768×1024, and 1440×900. The browser viewport override was reset and the original Dark
+  preference restored after inspection.
 
 ## Risks or follow-up
 
-- Authenticated browser E4 is still required for Feature selection, parent-only cards, pagination,
-  Light/Dark, and phone/tablet/desktop before P3 can be accepted.
+- P3.3 is accepted. Feature-wide G5 remains open because AC-1.1 and AC-2.1/AC-2.2 still need their
+  own runtime evidence; this P3.3 E4 does not claim those unrelated flows.
 
 ## Human decision summary
 
-The original AC-3.1 mismatch is resolved without weakening the requirement. The only remaining P3
-decision is runtime verification with an authenticated user; no product or data policy changed.
+The original AC-3.1 mismatch is resolved without weakening the requirement. Authenticated runtime
+verification confirms the selected-parent Kanban behavior; no product or data policy changed.
 
 ## TODO update
 
