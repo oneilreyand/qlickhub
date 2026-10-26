@@ -13,6 +13,7 @@ export interface TaskHubQueryState {
   datePreset: TaskDatePreset | 'all';
   viewMode: TaskHubViewMode;
   taskId: string | null;
+  kanbanFeatureId: string | null;
   searchQuery: string;
   statusFilter: string;
   involvementFilter: TaskHubInvolvementFilter;
@@ -24,6 +25,7 @@ export interface TaskHubQueryPatch {
   datePreset?: TaskDatePreset | 'all';
   viewMode?: TaskHubViewMode;
   taskId?: string | null;
+  kanbanFeatureId?: string | null;
   searchQuery?: string;
   statusFilter?: string;
   involvementFilter?: TaskHubInvolvementFilter;
@@ -76,6 +78,9 @@ export function parseTaskHubQueryState(params: URLSearchParams): TaskHubQuerySta
     viewMode:
       rawView && viewModes.has(rawView as TaskHubViewMode) ? (rawView as TaskHubViewMode) : 'table',
     taskId: hasValue(params.get('taskId')) ? params.get('taskId')!.trim() : null,
+    kanbanFeatureId: hasValue(params.get('kanbanFeatureId'))
+      ? params.get('kanbanFeatureId')!.trim()
+      : null,
     searchQuery: params.get('q')?.trim() || '',
     statusFilter: statusFilters.has(params.get('status')?.trim() || '')
       ? params.get('status')!.trim()
@@ -97,6 +102,7 @@ export function patchTaskHubQueryState(
 
   if ('folderId' in patch) setOrDelete(next, 'folderId', patch.folderId);
   if ('taskId' in patch) setOrDelete(next, 'taskId', patch.taskId);
+  if ('kanbanFeatureId' in patch) setOrDelete(next, 'kanbanFeatureId', patch.kanbanFeatureId);
   if ('searchQuery' in patch) setOrDelete(next, 'q', patch.searchQuery);
 
   if ('datePreset' in patch) {

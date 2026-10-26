@@ -91,6 +91,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const datePresetView = taskHubQueryState.datePreset;
   const dateRange = taskHubQueryState.dateRange;
   const viewMode = taskHubQueryState.viewMode;
+  const kanbanFeatureId = taskHubQueryState.kanbanFeatureId;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAiGeneratorModalOpen, setIsAiGeneratorModalOpen] = useState(false);
   const [isMobileFolderDrawerOpen, setIsMobileFolderDrawerOpen] = useState(false);
@@ -440,8 +441,11 @@ export const TaskHubDashboardTemplate: React.FC = () => {
               />
             ) : viewMode === 'kanban' ? (
               <TaskHubKanbanBoard
-                tasks={visibleTasks}
-                isLoading={isTaskLoading}
+                workspaceId={activeWorkspaceId}
+                features={visibleTasks}
+                selectedFeatureId={kanbanFeatureId}
+                isLoadingFeatures={isTaskLoading}
+                onSelectFeature={(featureId) => updateTaskHubQuery({ kanbanFeatureId: featureId })}
                 onSelect={(task) => handleOpenTask(task.id)}
               />
             ) : (

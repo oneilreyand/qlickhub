@@ -444,6 +444,73 @@ describe('Parent / Subtask Service and Policy Integration Tests (ST2)', () => {
     assert.strictEqual(resAsDev.total, resAsQa.total);
   });
 
+  test('lists only one parent Feature subtasks with stable pagination', async () => {
+    const paginationParent = await taskService.createTask(
+      poUser.id,
+      CreateTaskSchema.parse({
+        workspaceId: workspace.id,
+        title: 'Paginated Kanban Feature',
+        status: 'in_progress',
+        priority: 'high',
+      }),
+    );
+
+    const createdSubtasks = await Promise.all(
+      (
+        [
+          ['Kanban FE', 'frontend', 'todo'],
+          ['Kanban BE', 'backend', 'in_review'],
+          ['Kanban QA', 'qa', 'done'],
+        ] as const
+      ).map(([title, deliveryArea, status]) =>
+        taskService.createTask(
+          poUser.id,
+          CreateTaskSchema.parse({
+            workspaceId: workspace.id,
+            parentTaskId: paginationParent.id,
+            title,
+            deliveryArea,
+            status,
+            priority: 'medium',
+          }),
+        ),
+      ),
+    );
+
+    const firstPage = await taskService.listSubtasks(
+      workspace.id,
+      paginationParent.id,
+      1,
+      2,
+      poUser.id,
+      'po',
+    );
+    const secondPage = await taskService.listSubtasks(
+      workspace.id,
+      paginationParent.id,
+      2,
+      2,
+      poUser.id,
+      'po',
+    );
+
+    assert.strictEqual(firstPage.total, createdSubtasks.length);
+    assert.strictEqual(firstPage.page, 1);
+    assert.strictEqual(firstPage.limit, 2);
+    assert.strictEqual(firstPage.tasks.length, 2);
+    assert.strictEqual(secondPage.page, 2);
+    assert.strictEqual(secondPage.tasks.length, 1);
+    assert.ok(
+      [...firstPage.tasks, ...secondPage.tasks].every(
+        (subtask) => subtask.parentTaskId === paginationParent.id,
+      ),
+    );
+    assert.deepStrictEqual(
+      new Set([...firstPage.tasks, ...secondPage.tasks].map((subtask) => subtask.status)),
+      new Set(['todo', 'in_review', 'done']),
+    );
+  });
+
   test('Strict Guard: Parent task cannot be completed when subtasks are incomplete', async () => {
     const guardParent = await taskService.createTask(
       poUser.id,

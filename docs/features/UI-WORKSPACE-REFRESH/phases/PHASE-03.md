@@ -1,6 +1,6 @@
 # UI-WORKSPACE-REFRESH — Tahap 5: Build Phase 03 — Baseline Visual Task Hub
 
-**Status:** Blocked by AC-3.1 implementation mismatch
+**Status:** P3.3 E2/E3 candidate; E4 authenticated runtime pending
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.1, AC-3.2
 **Applicable Policy IDs:** `UI-001`, `UI-002`, `UI-003`, `UI-004`, `AUTH-001`, `AUTH-002`, `CONTRACT-001`, `DATA-001`, `TEST-001`, `SDLC-001`
@@ -64,3 +64,21 @@ also asserts selecting the root Feature. This conflicts with AC-3.1, which requi
 the selected parent Feature to be displayed paginated by canonical status. This phase is therefore
 blocked, not accepted; correcting it would change the declared Kanban data contract and needs a new
 Approval Window. See [testing.md](../testing.md) and the P5 evidence report.
+
+## Window P3.3 — Kanban subtask per Feature
+
+| Item        | Isi                                                                                                                                                                                                 |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baseline    | `a4e5642` pada branch `docs/doc-portal-close`                                                                                                                                                       |
+| Persetujuan | Owner, pesan `lanjut`, 2026-10-26                                                                                                                                                                   |
+| Scope       | `kanbanFeatureId` sebagai state URL presentasional; pilih satu Feature, baca subtask paginated dari endpoint existing, kelompokkan status kanonis, dan state loading/empty/error/forbidden.         |
+| Paths       | `taskHubQueryState`, `TaskHubDashboardTemplate`, `TaskHubKanbanBoard`, test web/API existing, Feature/TODO/report.                                                                                  |
+| Batas       | Tidak ada endpoint, kontrak bersama, schema, migration, RBAC, dependency, drag/drop, mutation, merge, atau deploy. Endpoint backend `GET .../:taskId/subtasks?page&limit` tetap mengotorisasi read. |
+| Recovery    | Revert perubahan UI/test/dokumen; tidak ada data yang diubah.                                                                                                                                       |
+
+P3.3 menyelesaikan mismatch P5 tanpa menafsirkan ulang AC-3.1: template menyediakan daftar Feature
+sebagai scope selector, sedangkan Kanban memanggil `taskService.listSubtasks` hanya untuk
+`kanbanFeatureId` yang dipilih. Result `TaskListResponse` membawa `page`, `limit`, dan `total` dari
+backend; UI tidak menghitung status, otorisasi, atau kesiapan sendiri. E2 web 20/20 dan E3 clean
+PostgreSQL 11/11 tersedia. E4 menunggu sesi browser authenticated untuk memeriksa parent scope,
+pagination, dua tema, dan tiga viewport.

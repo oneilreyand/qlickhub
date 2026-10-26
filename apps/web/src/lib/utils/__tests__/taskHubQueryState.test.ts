@@ -4,7 +4,7 @@ import { parseTaskHubQueryState, patchTaskHubQueryState } from '../taskHubQueryS
 describe('Task Hub query state', () => {
   it('preserves every active filter when the view changes', () => {
     const current = new URLSearchParams(
-      'tab=tasks&folderId=folder-1&datePreset=this_week&q=payment&status=in_review&involvement=mine&startDate=2026-10-01&endDate=2026-10-24&taskId=task-1',
+      'tab=tasks&folderId=folder-1&datePreset=this_week&q=payment&status=in_review&involvement=mine&startDate=2026-10-01&endDate=2026-10-24&taskId=task-1&kanbanFeatureId=feature-1',
     );
 
     const next = patchTaskHubQueryState(current, { viewMode: 'timeline' });
@@ -15,6 +15,7 @@ describe('Task Hub query state', () => {
       datePreset: 'this_week',
       viewMode: 'timeline',
       taskId: 'task-1',
+      kanbanFeatureId: 'feature-1',
       searchQuery: 'payment',
       statusFilter: 'in_review',
       involvementFilter: 'mine',
@@ -53,5 +54,17 @@ describe('Task Hub query state', () => {
 
     expect(next.toString()).toBe('tab=tasks&q=payment&view=kanban');
     expect(parseTaskHubQueryState(next).viewMode).toBe('kanban');
+  });
+
+  it('keeps the Kanban parent scope separate from the detail drawer task', () => {
+    const current = new URLSearchParams('tab=tasks&taskId=detail-1&view=kanban');
+
+    const next = patchTaskHubQueryState(current, { kanbanFeatureId: 'feature-1' });
+
+    expect(parseTaskHubQueryState(next)).toMatchObject({
+      taskId: 'detail-1',
+      kanbanFeatureId: 'feature-1',
+      viewMode: 'kanban',
+    });
   });
 });
