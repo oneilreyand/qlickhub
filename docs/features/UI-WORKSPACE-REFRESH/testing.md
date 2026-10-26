@@ -1,6 +1,6 @@
 # UI-WORKSPACE-REFRESH — Tahap 5: Test & Review
 
-**Status:** Belum mulai
+**Status:** Blocked — P4 G5 accepted; Feature-wide G5 cannot pass while AC-3.1 conflicts with the implemented Kanban data scope.
 **Gerbang:** G5 — verifier independen atau CI yang mencakup seluruh AC
 **Applicable Policy IDs:** AI-003, AI-004, AI-008, AI-010, TEST-001, UI-001, UI-002, UI-003, UI-004, DOC-005
 
@@ -9,43 +9,51 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT.
 
 ## 1. Matriks AC → bukti
 
-| AC             | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI                         | API/PostgreSQL                                  | UAT/runtime                                    | Status  |
-| -------------- | ----- | ---------------- | -------------- | ------------------------------- | ----------------------------------------------- | ---------------------------------------------- | ------- |
-| AC-1.1, AC-1.2 | P1    | E2/E4            | —              | Theme + shell tests             | N/A                                             | Light/Dark hard refresh, phone/tablet/desktop  | Planned |
-| AC-2.1, AC-2.2 | P2    | E2/E4            | E2; E4 pending | Query-state + control tests     | N/A                                             | No overflow + keyboard on 3 widths, Light/Dark | Partial |
-| AC-3.1, AC-3.2 | P3    | E2/E3/E4         | —              | Kanban state/pagination tests   | Authenticated readback on disposable PostgreSQL | Read-only parent scope and state UAT           | Planned |
-| AC-4.1         | P4    | E2/E4            | —              | next-action route mapping tests | Existing queue integration if needed            | Owner/PO/Dev/QA session journey                | Planned |
-| AC-5.1         | P4    | E2/E3/E4         | —              | Report/overview state tests     | Authenticated capacity/task readback            | Role/session review                            | Planned |
+| AC             | Phase | Bukti dibutuhkan | Bukti tercapai                                                                                       | Unit/UI                                                      | API/PostgreSQL                                                                   | UAT/runtime                                                            | Status   |
+| -------------- | ----- | ---------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------- |
+| AC-1.1, AC-1.2 | P1    | E2/E4            | E2; Task Hub E4 is available, but hard-refresh E4 and global surface runtime remain unverified       | Theme + shell tests                                          | N/A                                                                              | QA Task Hub Light/Dark desktop/tablet/phone; hard-refresh still absent | Partial  |
+| AC-2.1, AC-2.2 | P2    | E2/E4            | E2; Task Hub layout E4 is available, but filtered view-switch and detail-drawer E4 remain unverified | Query-state + control tests                                  | N/A                                                                              | QA Task Hub Light/Dark desktop/tablet/phone                            | Partial  |
+| AC-3.1, AC-3.2 | P3    | E2/E3/E4         | E2 shows an AC-3.1 mismatch; E3/E4 cannot close it                                                   | Kanban view test selects a root Feature, not parent subtasks | Existing task endpoint supports paginated subtasks but is not consumed by Kanban | QA Task Hub Light/Dark desktop/tablet/phone                            | Blocked  |
+| AC-4.1         | P4    | E2/E4            | E2/E4                                                                                                | next-action route mapping and dashboard interaction          | N/A — no new data interface                                                      | Owner/PO/Dev/QA queue journey                                          | Accepted |
+| AC-5.1         | P4    | E2/E3/E4         | E2/E3/E4                                                                                             | Report/capacity state tests                                  | Clean PostgreSQL authenticated capacity API 10/10                                | Owner/PO/Dev/QA report readback                                        | Accepted |
 
 ## 2. Outcome pemeriksaan
 
-| Perintah / observasi | Environment | Exit code | Pass / fail / skip / warn | AC  | Outcome                  | Tindak lanjut |
-| -------------------- | ----------- | --------- | ------------------------- | --- | ------------------------ | ------------- |
-|                      |             |           |                           |     | sukses / gagal / blocked |               |
+| Perintah / observasi                          | Environment                 | Exit code           | Pass / fail / skip / warn                                                           | AC                     | Outcome                                                                                                                      | Tindak lanjut                              |
+| --------------------------------------------- | --------------------------- | ------------------- | ----------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Focused P1–P4 web suite (11 files)            | local Vitest                | 0                   | 73 passed, 0 failed/skipped; 8 existing `act()` warnings in Header/Bug-drawer paths | All                    | E2 regression suite passed; it exposed that P3 test covers root Feature cards only                                           | AC-3.1 remains blocked by code/AC mismatch |
+| `npm run theme:test && npm run theme:check`   | local Node                  | 0                   | 4/4 passed; coverage gate passed                                                    | AC-1.2, AC-3.2         | Static pair strategy is intact                                                                                               | Runtime gaps remain explicit               |
+| `npm --prefix apps/web run typecheck`         | local TypeScript            | 0                   | passed                                                                              | All UI AC              | Type-safe                                                                                                                    | —                                          |
+| `npm --prefix apps/web run build`             | local Vite production build | 0                   | passed                                                                              | All UI AC              | Build completed                                                                                                              | —                                          |
+| P3.2 browser QA observation                   | authenticated local browser | recorded 2026-10-25 | Task Hub Daftar/Kanban/Jadwal in Light/Dark at 1440×900, 768×1024, 390×844          | AC-1.2, AC-2.2, AC-3.2 | Layout/theme observation available; it does not prove hard refresh, filter persistence, detail drawer, or subtask pagination | Do not over-credit E4                      |
+| P4 disposable PostgreSQL capacity integration | local PostgreSQL            | 0                   | 10/10 passed; disposable DB verified dropped                                        | AC-5.1                 | authenticated persisted capacity data and non-member 403                                                                     | Accepted in P4                             |
 
 Kegagalan tidak dihapus dari tabel. Tindak lanjut: perbaiki & ulang, Bug, re-plan, atau Blocked.
 
 ## 3. Bukti UI (bila UI berubah)
 
-| Layar / state                                          | Phone   | Tablet  | Desktop | Keyboard & a11y                           | Link screenshot               |
-| ------------------------------------------------------ | ------- | ------- | ------- | ----------------------------------------- | ----------------------------- |
-| `/work` light/dark, data/loading/empty/error/forbidden | Planned | Planned | Planned | Focus, labels, touch targets planned      | Captured only after execution |
-| `/my-tasks` and `/reports` light/dark                  | Planned | Planned | Planned | Focus, target route, state labels planned | Captured only after execution |
+| Layar / state                                               | Phone | Tablet | Desktop | Keyboard & a11y                                                    | Link screenshot                             |
+| ----------------------------------------------------------- | ----- | ------ | ------- | ------------------------------------------------------------------ | ------------------------------------------- |
+| `/work` Task Hub Light/Dark: Daftar/Kanban/Jadwal           | Yes   | Yes    | Yes     | Existing view tab/filter labels observed; drawer flow not observed | P3.2 browser record                         |
+| `/work` hard refresh / filtered view switch / detail drawer | No    | No     | No      | Not observed                                                       | Required follow-up for AC-1.1/AC-2.1/AC-2.2 |
+| `/my-tasks` context route                                   | N/A   | N/A    | Yes     | Context panel and URL back/forward tested for QA/Owner/Dev/PO      | P4 browser record                           |
+| `/reports` persisted capacity states                        | N/A   | N/A    | Yes     | Role readback and forbidden component test                         | P4 browser and E3 record                    |
 
 ## 4. Quality review (AI-010)
 
-| Dimensi                     | Metode & scope                                        | Temuan                        | Status  |
-| --------------------------- | ----------------------------------------------------- | ----------------------------- | ------- |
-| Reuse / DRY                 | Gallery + UI tree before implementation               | Belum diperiksa pada kandidat | Planned |
-| Duplikasi / tumpang tindih  | Search components/views/status handling               | Belum diperiksa pada kandidat | Planned |
-| Kode usang / tidak terpakai | Diff + imports after each phase                       | Belum diperiksa pada kandidat | Planned |
-| Boundary & best practice    | Page orchestration vs Atomic components               | Belum diperiksa pada kandidat | Planned |
-| Bukti regresi               | Targeted + full checks proportionate to changed paths | Belum dijalankan              | Planned |
+| Dimensi                     | Metode & scope                                                          | Temuan                                                                                                      | Status                                                |
+| --------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Reuse / DRY                 | P5 source inspection of dashboard, Kanban organism, API seam, and tests | Existing `listSubtasks` API seam is not consumed by the board; no parallel implementation was added         | Follow-up: use existing seam if AC-3.1 is implemented |
+| Duplikasi / tumpang tindih  | Root-task filter, Kanban rendering, and focused test                    | One coherent root-Feature presentation, but it conflicts with the approved subtask presentation requirement | Blocked product/implementation mismatch               |
+| Kode usang / tidak terpakai | Focused source/import/test inspection and `git diff --check`            | No unused code was introduced by P5 documentation changes                                                   | None found in P5 scope                                |
+| Boundary & best practice    | Compare PRD AC to page orchestration and organism responsibility        | UI stays read-only, but page composition selects root Features before Kanban can render subtasks            | Blocked pending new implementation or AC decision     |
+| Bukti regresi               | 73-test focused suite, theme gate, typecheck, and build                 | Deterministic checks pass; they do not prove the required subtask pagination                                | Partial                                               |
 
 ## 5. Hasil verifier
 
-| Phase | Verifier (bukan pelaksana) | Bukti primer yang dicek ulang | Hasil                                              | AC terdampak / gap |
-| ----- | -------------------------- | ----------------------------- | -------------------------------------------------- | ------------------ |
-| P1    |                            |                               | Accepted / Accepted with gaps / Rejected / Blocked |                    |
+| Phase             | Verifier (bukan pelaksana) | Bukti primer yang dicek ulang                                                | Hasil                                                      | AC terdampak / gap             |
+| ----------------- | -------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------ |
+| P4                | Independent P4 re-review   | Focused 49/49, clean PostgreSQL capacity evidence, full validation, scope    | Accepted                                                   | AC-4.1, AC-5.1                 |
+| P5 reconciliation | Independent P5 review      | Source-to-AC inspection, Kanban source/test recheck, and rerun 73-test suite | Accepted — reconciliation; Feature-wide G5 remains Blocked | AC-1.1, AC-2.1/2.2, AC-3.1/3.2 |
 
 Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).

@@ -1,6 +1,6 @@
 # UI-WORKSPACE-REFRESH — Tahap 5: Build Phase 03 — Baseline Visual Task Hub
 
-**Status:** In progress
+**Status:** Blocked by AC-3.1 implementation mismatch
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.1, AC-3.2
 **Applicable Policy IDs:** `UI-001`, `UI-002`, `UI-003`, `UI-004`, `AUTH-001`, `AUTH-002`, `CONTRACT-001`, `DATA-001`, `TEST-001`, `SDLC-001`
@@ -55,3 +55,12 @@ validation 2, external runtime 1 = **7/16, Ready**.
 `AppLayout` dan `Sidebar` → shell desktop/mobile; `TaskHubDashboardTemplate` → komposisi data
 yang ada; `TaskHubControlsBar` → tab presentation; `TaskHubKanbanBoard` → presentasi Feature
 read-only. Backend, contract, persistence, authorization, dan mutation tidak terdampak.
+
+## P5 evidence reconciliation — 2026-10-26
+
+`TaskHubDashboardTemplate` restricts the board input to root Features (`!task.parentTaskId`) and
+`TaskHubKanbanBoard` renders those Feature cards with only a subtask count. The focused view test
+also asserts selecting the root Feature. This conflicts with AC-3.1, which requires the subtasks of
+the selected parent Feature to be displayed paginated by canonical status. This phase is therefore
+blocked, not accepted; correcting it would change the declared Kanban data contract and needs a new
+Approval Window. See [testing.md](../testing.md) and the P5 evidence report.
