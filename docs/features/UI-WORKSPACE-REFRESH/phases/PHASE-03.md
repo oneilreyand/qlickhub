@@ -1,6 +1,6 @@
 # UI-WORKSPACE-REFRESH — Tahap 5: Build Phase 03 — Baseline Visual Task Hub
 
-**Status:** P3.3 E2/E3/E4 accepted; Feature-wide G5 remains open outside P3
+**Status:** P3.3 E2/E3 accepted; authenticated E4 has a narrow pagination gap
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.1, AC-3.2
 **Applicable Policy IDs:** `UI-001`, `UI-002`, `UI-003`, `UI-004`, `AUTH-001`, `AUTH-002`, `CONTRACT-001`, `DATA-001`, `TEST-001`, `SDLC-001`
@@ -84,4 +84,6 @@ PostgreSQL 11/11 tersedia. E4 authenticated pada 2026-10-26 memilih Feature pers
 `kanbanFeatureId` tidak membuka detail drawer, dan menampilkan empat subtask parent tersebut (3
 `Belum Dikerjakan`, 1 `Sedang Dikerjakan`) pada Kanban read-only. Light dan Dark masing-masing
 diamati pada 390×844, 768×1024, dan 1440×900; viewport dikembalikan dan preferensi awal Dark
-dipulihkan setelah pengujian. Tidak ada mutasi task dilakukan.
+dipulihkan setelah pengujian. Tidak ada mutasi task dilakukan. Feature itu hanya memiliki empat
+subtask dengan `limit=24`, sehingga tidak ada kontrol pagination atau navigasi halaman dua untuk
+dibuktikan pada E4; E2/E3 pagination tetap lulus.
