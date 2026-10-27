@@ -49,5 +49,5 @@ Rincian dan kegagalan awal di [testing.md](../testing.md) §2. Ringkasan akhir:
 
 ## 5. Hasil
 
-- Commit lokal di `feat/simple-ui-p1-shell`; push dan PR (ke `docs/doc-portal-close`, bukan `main`) menunggu Owner menjalankan `git push` karena VM tidak punya kredensial GitHub.
+- PR: [#60](https://github.com/oneilreyand/qlickhub/pull/60) dari `feat/simple-ui-p1-shell` ke `docs/doc-portal-close` (bukan `main`) — Tier 1 — tidak ada file Tier 2. Belum di-merge.
 - Lanjut ke [testing.md](../testing.md) untuk tahap 5.
