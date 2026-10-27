@@ -273,14 +273,24 @@ export const TestCaseRunPage: React.FC = () => {
           environment: activeCycle.environment,
         });
       }
-      await testManagementService.recordTestResult(ws, data.testCase.id, run.id, {
+      const recorded = await testManagementService.recordTestResult(ws, data.testCase.id, run.id, {
         status: values.status,
         actualResult: values.actualResult.trim() || null,
         notes: values.notes.trim() || null,
         evidenceAttachmentIds: [],
         evidenceLinks: values.links,
       });
-      dispatch(enqueueSnackbar('Hasil pengujian tersimpan dan terkunci', 'success'));
+      let message = 'Hasil pengujian tersimpan dan terkunci';
+      if (run.retestBugId && recorded.result) {
+        const attempt = await bugService.createRetestAttempt(ws, run.retestBugId, {
+          testResultId: recorded.result.id,
+        });
+        message =
+          attempt.outcome === 'verified'
+            ? 'Retest lulus: Bug terverifikasi'
+            : 'Retest tidak lulus: Bug dibuka kembali untuk Developer';
+      }
+      dispatch(enqueueSnackbar(message, 'success'));
       reload();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Hasil gagal disimpan.');
@@ -405,9 +415,6 @@ export const TestCaseRunPage: React.FC = () => {
   if (data.testCase.status !== 'active') {
     blockedReason =
       'Test Case ini belum aktif, jadi belum dapat dijalankan. Aktifkan dulu atau tunggu review Product Owner.';
-  } else if (currentRun && !currentRun.result && currentRun.retestBugId) {
-    blockedReason =
-      'Run ini adalah retest dari sebuah Bug. Selesaikan lewat meja kerja QA agar hasilnya ikut memperbarui Bug.';
   }
 
   return (
@@ -451,7 +458,7 @@ export const TestCaseRunPage: React.FC = () => {
         reload();
       }}
       followUp={
-        followUpTrace && followUpBugs ? (
+        followUpTrace && followUpBugs && !currentRun?.retestBugId ? (
           <TestCaseFollowUpPanel
             testCase={data.testCase}
             result={{

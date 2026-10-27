@@ -67,6 +67,11 @@ const SubtaskWorkPage = lazy(async () => ({
   ).SubtaskWorkPage,
 }));
 
+const BugWorkPage = lazy(async () => ({
+  default: (await loadRouteModuleWithRecovery('bug-work', () => import('../pages/BugWorkPage')))
+    .BugWorkPage,
+}));
+
 const TestCaseNewPage = lazy(async () => ({
   default: (
     await loadRouteModuleWithRecovery('test-case-new', () => import('../pages/TestCaseNewPage'))
@@ -128,6 +133,18 @@ export const App: React.FC = () => {
                 <Suspense fallback={protectedPageFallback}>
                   <AppLayout>
                     <SubtaskWorkPage />
+                  </AppLayout>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/work/bugs/:bugId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <BugWorkPage />
                   </AppLayout>
                 </Suspense>
               </ProtectedRoute>

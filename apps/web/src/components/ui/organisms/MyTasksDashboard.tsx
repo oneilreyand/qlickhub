@@ -1,25 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Plus } from 'lucide-react';
 import type { WorkQueueItem, WorkspaceRole } from '@qlick/contracts';
 import type { RoleAwareWorkQueueViewState } from '../../../lib/hooks/useRoleAwareWorkQueue';
 import { Badge } from '../atoms/Badge';
 import { Button } from '../atoms/Button';
-import { Drawer } from '../molecules/Drawer';
-import { BugExperiencePanel } from './BugExperiencePanel';
 import { RoleAwareWorkQueuePanel } from './myTasks/RoleAwareWorkQueuePanel';
 
 export interface MyTasksDashboardProps {
   selectedTaskId: string | null;
   userRole?: WorkspaceRole | string;
-  workspaceId?: string;
   queueState: RoleAwareWorkQueueViewState;
   onRefreshQueue: () => void;
   onOpenQueueItem: (item: WorkQueueItem) => void | Promise<void>;
-  onOpenTaskById: (taskId: string) => void | Promise<void>;
-  onBugDataChanged?: () => void;
-  focusedBugId?: string | null;
-  onOpenBug?: (item: WorkQueueItem) => void;
-  onCloseBug?: () => void;
   onCreateTaskClick: () => void;
 }
 
@@ -42,30 +34,13 @@ function formatRoleLabel(role?: string): string {
 export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
   selectedTaskId,
   userRole = 'dev',
-  workspaceId,
   queueState,
   onRefreshQueue,
   onOpenQueueItem,
-  onOpenTaskById,
-  onBugDataChanged,
-  focusedBugId,
-  onOpenBug,
-  onCloseBug,
   onCreateTaskClick,
 }) => {
-  const [uncontrolledFocusedBugId, setUncontrolledFocusedBugId] = useState<string | null>(null);
   const normalizedRole = userRole.toLowerCase();
   const canCreateTask = ['owner', 'admin', 'po'].includes(normalizedRole);
-  const activeBugId = focusedBugId === undefined ? uncontrolledFocusedBugId : focusedBugId;
-
-  const handleOpenItem = async (item: WorkQueueItem) => {
-    if (item.subjectType === 'bug') {
-      if (onOpenBug) onOpenBug(item);
-      else setUncontrolledFocusedBugId(item.subjectId);
-      return;
-    }
-    await onOpenQueueItem(item);
-  };
 
   return (
     <div className="w-full space-y-6 pb-12 animate-fadeIn">
@@ -96,36 +71,8 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
         state={queueState}
         selectedTaskId={selectedTaskId}
         onRefresh={onRefreshQueue}
-        onOpenItem={handleOpenItem}
+        onOpenItem={onOpenQueueItem}
       />
-
-      <Drawer
-        isOpen={Boolean(activeBugId)}
-        onClose={onCloseBug || (() => setUncontrolledFocusedBugId(null))}
-        title="Detail Bug"
-        width="3xl"
-      >
-        {workspaceId && activeBugId && (
-          <div className="p-4 sm:p-6">
-            <BugExperiencePanel
-              workspaceId={workspaceId}
-              userRole={userRole}
-              mode="role_queue"
-              onDataChanged={() => {
-                onBugDataChanged?.();
-                onRefreshQueue();
-              }}
-              onRetestRunStarted={async (qaSubtaskId) => {
-                if (onCloseBug) onCloseBug();
-                else setUncontrolledFocusedBugId(null);
-                await onOpenTaskById(qaSubtaskId);
-              }}
-              focusedBugId={activeBugId}
-              singleBugId={activeBugId}
-            />
-          </div>
-        )}
-      </Drawer>
     </div>
   );
 };

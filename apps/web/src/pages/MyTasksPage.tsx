@@ -13,7 +13,11 @@ import { CreateTaskModal } from '../features/tasks';
 import { EmptyWorkspaceOnboarding } from '../features/workspaces';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { useRoleAwareWorkQueue } from '../lib/hooks/useRoleAwareWorkQueue';
-import { getTaskPagePath, shouldUseLegacyQaWorkspace } from '../lib/utils/taskRoutes';
+import {
+  getBugWorkPath,
+  getTaskPagePath,
+  shouldUseLegacyQaWorkspace,
+} from '../lib/utils/taskRoutes';
 import {
   buildWorkQueueRoute,
   clearWorkQueueRouteContext,
@@ -122,6 +126,15 @@ export const MyTasksPage: React.FC = () => {
   );
 
   useEffect(() => {
+    // Tautan lama ?bugId= diarahkan ke halaman kerja Bug yang baru.
+    if (!queueRouteContext.bugId) return;
+    navigate(getBugWorkPath(queueRouteContext.bugId), {
+      replace: true,
+      state: { returnTo: '/my-tasks' },
+    });
+  }, [navigate, queueRouteContext.bugId]);
+
+  useEffect(() => {
     if (!queueRouteContext.taskId) return;
     void handleOpenTaskById(queueRouteContext.taskId);
   }, [handleOpenTaskById, queueRouteContext.taskId]);
@@ -173,6 +186,10 @@ export const MyTasksPage: React.FC = () => {
         }
         return;
       }
+      if (item.subjectType === 'bug') {
+        navigate(getBugWorkPath(item.subjectId), { state: { returnTo: '/my-tasks' } });
+        return;
+      }
       navigate(buildWorkQueueRoute(item, location.search));
     },
     [activeWorkspaceId, currentUserId, dispatch, location.search, navigate],
@@ -201,15 +218,9 @@ export const MyTasksPage: React.FC = () => {
       <MyTasksDashboard
         selectedTaskId={selectedTaskId}
         userRole={userRole}
-        workspaceId={activeWorkspaceId || undefined}
         queueState={workQueueState}
         onRefreshQueue={reloadWorkQueue}
         onOpenQueueItem={handleOpenQueueItem}
-        onOpenTaskById={handleOpenTaskById}
-        onBugDataChanged={reloadWorkQueue}
-        focusedBugId={queueRouteContext.bugId}
-        onOpenBug={handleOpenQueueItem}
-        onCloseBug={clearQueueContext}
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
       />
 

@@ -39,3 +39,8 @@ export function getTestCaseRunPath(testCaseId: string, qaSubtaskId?: string | nu
   const base = `/tests/cases/${testCaseId}/run`;
   return qaSubtaskId ? `${base}?subtaskId=${encodeURIComponent(qaSubtaskId)}` : base;
 }
+
+/** Halaman kerja Bug (Developer memperbaiki, QA retest). */
+export function getBugWorkPath(bugId: string): string {
+  return `/work/bugs/${bugId}`;
+}

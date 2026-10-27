@@ -28,6 +28,7 @@ const m = vi.hoisted(() => ({
   updateTask: vi.fn(),
   listBugs: vi.fn(),
   createBug: vi.fn(),
+  createRetestAttempt: vi.fn(),
 }));
 
 vi.mock('../../lib/api/taskService', () => ({
@@ -41,6 +42,7 @@ vi.mock('../../lib/api/bugService', () => ({
   bugService: {
     listBugs: (...a: unknown[]) => m.listBugs(...a),
     createBug: (...a: unknown[]) => m.createBug(...a),
+    createRetestAttempt: (...a: unknown[]) => m.createRetestAttempt(...a),
   },
 }));
 vi.mock('../../lib/api/traceabilityService', () => ({
@@ -331,6 +333,34 @@ describe('TestCaseRunPage', () => {
       ),
     );
     expect(await screen.findByText(/Bug dikirim ke/)).toBeInTheDocument();
+  });
+
+  it('completes a bug retest from the run page and records the attempt', async () => {
+    m.listCycles.mockResolvedValue([cycle]);
+    m.getExecutions.mockResolvedValue({
+      executions: [
+        {
+          testCase,
+          latestRun: null,
+          testRuns: [{ id: 'run-r', testCycleId: 'cycle-1', retestBugId: 'bug-9', result: null }],
+        },
+      ],
+    });
+    m.recordResult.mockResolvedValue({ result: { id: 'res-1' } });
+    m.createRetestAttempt.mockResolvedValue({ outcome: 'verified' });
+    renderAt(`/tests/cases/${testCase.id}/run?subtaskId=${qaSubtask.id}`);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Lulus' }));
+    fireEvent.change(screen.getByLabelText(/Tautan bukti/), {
+      target: { value: 'https://www.loom.com/share/abc123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah tautan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan hasil' }));
+
+    await waitFor(() =>
+      expect(m.createRetestAttempt).toHaveBeenCalledWith(ws, 'bug-9', { testResultId: 'res-1' }),
+    );
+    expect(m.createRun).not.toHaveBeenCalled();
   });
 
   it('offers to start a cycle when none is active', async () => {

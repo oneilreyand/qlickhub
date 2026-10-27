@@ -1,23 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
 import type { RoleAwareWorkQueueViewState } from '../../../../lib/hooks/useRoleAwareWorkQueue';
 import { MyTasksDashboard } from '../MyTasksDashboard';
-import uiReducer from '../../../../store/uiSlice';
 import {
   createRoleAwareWorkQueueFixture,
   workQueueFixtureIds,
 } from '../../../../test/workQueueFixture';
-
-const bugMocks = vi.hoisted(() => ({
-  listBugs: vi.fn(),
-  updateBug: vi.fn(),
-}));
-
-vi.mock('../../../../lib/api/bugService', () => ({
-  bugService: bugMocks,
-}));
 
 function queueState(
   role: 'planner' | 'developer' | 'qa' = 'developer',
@@ -37,7 +25,6 @@ function renderDashboard(overrides: Partial<React.ComponentProps<typeof MyTasksD
     queueState: queueState(),
     onRefreshQueue: vi.fn(),
     onOpenQueueItem: vi.fn(),
-    onOpenTaskById: vi.fn(),
     onCreateTaskClick: vi.fn(),
     ...overrides,
   };
@@ -47,7 +34,6 @@ function renderDashboard(overrides: Partial<React.ComponentProps<typeof MyTasksD
 describe('MyTasksDashboard Organism', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    bugMocks.listBugs.mockResolvedValue([]);
     Element.prototype.scrollIntoView = vi.fn();
   });
 
@@ -215,33 +201,18 @@ describe('MyTasksDashboard Organism', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens bug detail drawer directly when clicking a bug queue item', async () => {
-    const store = configureStore({ reducer: { ui: uiReducer } });
-    render(
-      <Provider store={store}>
-        <MyTasksDashboard
-          selectedTaskId={null}
-          userRole="dev"
-          workspaceId={workQueueFixtureIds.workspace}
-          queueState={queueState()}
-          onRefreshQueue={vi.fn()}
-          onOpenQueueItem={vi.fn()}
-          onOpenTaskById={vi.fn()}
-          onCreateTaskClick={vi.fn()}
-        />
-      </Provider>,
-    );
+  it('passes a bug queue item to the shared open handler (halaman kerja Bug)', () => {
+    const { props } = renderDashboard();
 
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Buka pekerjaan: Checkout total mismatch. Tindakan berikutnya: Mulai Perbaikan Bug',
       }),
     );
-    expect(screen.getByRole('region', { name: 'Detail Bug content' })).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: 'Detail Bug' }).length).toBe(1);
-    expect(bugMocks.listBugs).toHaveBeenCalledWith(workQueueFixtureIds.workspace, {
-      queue: 'assigned_work',
-    });
+    expect(props.onOpenQueueItem).toHaveBeenCalledWith(
+      expect.objectContaining({ subjectType: 'bug' }),
+    );
+    expect(screen.queryByRole('region', { name: 'Detail Bug content' })).not.toBeInTheDocument();
   });
 
   it('shows loading, permission, and retryable error states', () => {
