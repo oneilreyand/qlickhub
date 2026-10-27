@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Circle } from 'lucide-react';
+import { Check, ChevronDown, Circle } from 'lucide-react';
 import type { ParentTaskDeliveryTrace, ProductBrief, Requirement, Task } from '@qlick/contracts';
 import { Button } from '../../atoms/Button';
 import { FormattedText } from '../../atoms/FormattedText';
@@ -42,6 +42,111 @@ export const FeatureStageLayout: React.FC<{
     <div className="flex min-w-0 flex-col gap-4">{main}</div>
     {rail && <div className="flex min-w-0 flex-col gap-4">{rail}</div>}
   </div>
+);
+
+export interface FeaturePlanSummaryProps {
+  task: Task;
+  canEdit: boolean;
+  messageCount: number;
+  onEditIdea: () => void;
+  /** Isi diskusi tim; ditampilkan di bagian yang bisa dibuka-tutup. */
+  discussion: React.ReactNode;
+}
+
+/** Tahap Plan untuk Feature tersimpan: ide awal, lalu diskusi tim (tertutup secara default). */
+export const FeaturePlanSummary: React.FC<FeaturePlanSummaryProps> = ({
+  task,
+  canEdit,
+  messageCount,
+  onEditIdea,
+  discussion,
+}) => {
+  const [isDiscussionOpen, setIsDiscussionOpen] = React.useState(false);
+  return (
+    <>
+      <section aria-labelledby="feature-plan-idea" className={`${cardClass} p-5`}>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <h2 id="feature-plan-idea" className={cardTitleClass}>
+            Ide awal
+          </h2>
+          {canEdit && (
+            <Button size="sm" variant="outline" onClick={onEditIdea}>
+              Ubah
+            </Button>
+          )}
+        </div>
+        {task.description?.trim() ? (
+          <FormattedText
+            content={task.description}
+            className="text-sm text-stone-700 dark:text-stone-300"
+          />
+        ) : (
+          <p className="text-sm text-stone-500 dark:text-stone-400">
+            Belum ada ide yang ditulis untuk Feature ini.
+          </p>
+        )}
+      </section>
+      <section className={cardClass}>
+        <button
+          type="button"
+          aria-expanded={isDiscussionOpen}
+          aria-controls="feature-plan-discussion"
+          onClick={() => setIsDiscussionOpen((open) => !open)}
+          className="flex w-full items-center justify-between gap-3 rounded-2xl p-5 text-left"
+        >
+          <span>
+            <span className={`${cardTitleClass} block`}>Diskusi tim ({messageCount})</span>
+            <span className="block text-xs text-stone-600 dark:text-stone-400">
+              Catatan dari Dev dan QA untuk Feature ini.
+            </span>
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className={`h-4 w-4 shrink-0 text-stone-500 transition-transform ${
+              isDiscussionOpen ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+        {isDiscussionOpen && (
+          <div
+            id="feature-plan-discussion"
+            className="border-t border-stone-200/80 p-4 dark:border-stone-800"
+          >
+            {discussion}
+          </div>
+        )}
+      </section>
+    </>
+  );
+};
+
+export const FeaturePlanRail: React.FC<{
+  hasIdea: boolean;
+  messageCount: number;
+  onContinue: () => void;
+}> = ({ hasIdea, messageCount, onContinue }) => (
+  <RailCard title="Kesiapan Plan">
+    <ul className="mb-4 space-y-2 text-sm text-stone-800 dark:text-stone-200">
+      <li className="flex items-center gap-2">
+        {hasIdea ? (
+          <Check aria-hidden="true" className="h-4 w-4 text-[#3F6212]" />
+        ) : (
+          <Circle aria-hidden="true" className="h-4 w-4 text-stone-400" />
+        )}
+        Ide ditulis
+      </li>
+      <li className="flex items-center gap-2">
+        <Check aria-hidden="true" className="h-4 w-4 text-[#3F6212]" />
+        {messageCount} pesan diskusi
+      </li>
+    </ul>
+    <Button variant="primary" className="w-full" onClick={onContinue}>
+      Lanjut ke PRD
+    </Button>
+    <p className="mt-3 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+      Plan mencatat ide dan diskusi. Keputusan terstruktur menyusul bersama alur pembuatan.
+    </p>
+  </RailCard>
 );
 
 export interface FeaturePrdSummaryProps {

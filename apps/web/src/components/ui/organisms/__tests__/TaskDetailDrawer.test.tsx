@@ -1293,10 +1293,51 @@ describe('TaskDetailDrawer UI Component', () => {
       await screen.findByRole('region', { name: 'Root task' });
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit detail' }));
-      expect(await screen.findByText('Ringkasan & Deskripsi Task')).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: 'Menyunting' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Judul')).toHaveValue('Test Parent Task Title');
+      // Isian sederhana: tanpa Properti Task / Delivery & Kesiapan.
+      expect(screen.queryByText('Delivery & Kesiapan')).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Kembali ke ringkasan' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
       expect(await screen.findByRole('region', { name: 'Root task' })).toBeInTheDocument();
+    });
+
+    test('tahap Plan menampilkan Ide awal dan diskusi tertutup', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="discussion"
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+      expect(await screen.findByRole('heading', { name: 'Ide awal' })).toBeInTheDocument();
+      const toggle = screen.getByRole('button', { name: /Diskusi tim/ });
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByText('Diskusi Task')).not.toBeInTheDocument();
+      fireEvent.click(toggle);
+      expect(await screen.findByText('Diskusi Task')).toBeInTheDocument();
+    });
+
+    test('editor Brief Produk sederhana tanpa judul dan status', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="brief"
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+      expect(
+        await screen.findByLabelText(/Konteks: kenapa Feature ini perlu ada/),
+      ).toBeInTheDocument();
+      expect(screen.queryByLabelText('Judul Brief Produk')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Status Brief Produk')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Simpan' })).toBeDisabled();
     });
 
     test('membuka Bug dari menu lainnya tanpa memilih tahap', async () => {

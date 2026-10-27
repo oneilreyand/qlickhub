@@ -58,6 +58,8 @@ import {
   TaskDetailPageFrame,
   FeatureStageLayout,
   FeaturePrdSummary,
+  FeaturePlanRail,
+  FeaturePlanSummary,
   FeaturePrdRail,
   FeatureTaskSummary,
   FeatureTaskRail,
@@ -653,6 +655,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const taskDraftIsDirty = Boolean(
     task &&
     (description !== (task.description || '') ||
+      (layout === 'page' && title.trim() !== task.title) ||
       status !== task.status ||
       priority !== task.priority ||
       folderId !== (task.folderId || null) ||
@@ -859,7 +862,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
       dispatch(enqueueSnackbar('Task berhasil disimpan', 'success'));
       onDataChanged?.();
-      onClose();
+      if (layout === 'page') commitTabChange('task-summary');
+      else onClose();
     } catch (err) {
       dispatch(
         enqueueSnackbar(err instanceof Error ? err.message : 'Task gagal diperbarui', 'error'),
@@ -1109,6 +1113,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     if (!pending) return;
 
     if (activeTab === 'overview' && task) {
+      setTitle(task.title);
       setDescription(task.description || '');
       setStatus(task.status);
       setPriority(task.priority);
@@ -1121,6 +1126,27 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     if (pending.type === 'close') onClose();
     else commitTabChange(pending.tabId);
   };
+
+  const discussionBox = (
+    <TaskCommentBox
+      comments={comments}
+      currentUserId={currentUserId || undefined}
+      members={members}
+      variant="stream"
+      title="Diskusi Task"
+      showMentionChips={true}
+      emptyIllustrationUrl={EMPTY_DISCUSSION_ILLUSTRATION_URL}
+      isLoading={isLoadingComments}
+      error={commentsError || undefined}
+      onRetry={() => void loadComments()}
+      hasMore={!commentsError && commentsTotal > comments.length}
+      onLoadMore={() => void loadComments(commentsPage + 1, true)}
+      isLoadingMore={isLoadingComments && comments.length > 0}
+      onPostComment={handlePostComment}
+      onUpdateComment={handleUpdateComment}
+      onDeleteComment={handleDeleteComment}
+    />
+  );
 
   const detailTabs: TabItem[] = [
     { id: 'overview', label: 'Detail Task', icon: <FileText className="h-3.5 w-3.5" /> },
@@ -1172,13 +1198,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     0,
   );
   const stageSummaries = {
-    plan: `${commentsTotal} pesan diskusi`,
+    plan: commentsTotal > 0 ? `Ide · ${commentsTotal} pesan diskusi` : 'Ide awal',
     prd:
       traceRequirements.length > 0
         ? `${traceRequirements.length} requirement · ${totalAcceptanceCriteria} AC`
         : 'Brief + Requirement + AC',
     task: subtasks.length > 0 ? `${subtasks.length} subtask` : 'Root task + subtask',
-    apply: 'Terapkan eksplisit',
+    apply: derivedStage === 'task' ? 'Diterapkan' : 'Terapkan eksplisit',
   };
   const personInCharge = members.find(
     (member) => member.userId === (task.assigneeId || task.reporterId),
@@ -1194,7 +1220,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const editorSummaryTab = ['brief', 'prd', 'overview', 'subtasks'].includes(activeTab)
     ? FEATURE_SUMMARY_TAB[stageForTab(activeTab) as FeatureStageParam]
     : null;
-  const isSummaryView = activeTab === 'prd-summary' || activeTab === 'task-summary';
+  const isSummaryView =
+    activeTab === 'prd-summary' ||
+    activeTab === 'task-summary' ||
+    (layout === 'page' && activeTab === 'discussion');
   const pageHeaderActions =
     layout === 'page' ? (
       <>
@@ -1256,20 +1285,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       </>
     ) : undefined;
 
-  const pageFooter =
-    activeTab === 'overview' ? (
-      <div className="flex w-full justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => handleTabChange('task-summary')}>
-          Batal
-        </Button>
-        {canEditTask && (
-          <Button variant="primary" size="sm" isLoading={isSaving} onClick={handleSave}>
-            Simpan Perubahan
-          </Button>
-        )}
-      </div>
-    ) : undefined;
-
   return (
     <>
       <DetailFrame
@@ -1289,6 +1304,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               selectedStage={stageForTab(activeTab)}
               summaries={stageSummaries}
               disabledStages={['apply']}
+              applied={derivedStage === 'task'}
               onSelect={(stage) => {
                 if (stage === 'apply') return;
                 handleTabChange(FEATURE_SUMMARY_TAB[stage]);
@@ -1305,9 +1321,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           )
         }
         footer={
-          layout === 'page' ? (
-            pageFooter
-          ) : activeTab === 'overview' ? (
+          layout === 'page' ? undefined : activeTab === 'overview' ? (
             <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-2">
                 {canCompleteThisTask && (
@@ -1375,7 +1389,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       >
         <div
           className={
-            layout === 'page' && !isSummaryView
+            layout === 'page' && !isSummaryView && activeTab !== 'brief'
               ? 'space-y-4 rounded-2xl border border-stone-200/80 bg-white p-4 text-sm text-stone-600 dark:border-stone-800 dark:bg-[#1C1A19] dark:text-stone-300 sm:p-6'
               : 'space-y-4'
           }
@@ -1473,6 +1487,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               subtasks={subtasks}
               members={members}
               onSelectTab={handleTabChange}
+              simple={layout === 'page'}
+              title={title}
+              onTitleChange={setTitle}
+              onSave={handleSave}
+              onCancel={() => handleTabChange('task-summary')}
+              isSaving={isSaving}
+              isDirty={taskDraftIsDirty}
             />
           )}
 
@@ -1489,8 +1510,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 setProductBrief(brief);
                 setIsProductBriefDirty(false);
                 void loadActivity(1);
+                if (layout === 'page' && editorSummaryTab) commitTabChange(editorSummaryTab);
               }}
               onDirtyChange={setIsProductBriefDirty}
+              simple={layout === 'page'}
+              onCancel={() => {
+                setIsProductBriefDirty(false);
+                if (layout === 'page' && editorSummaryTab) commitTabChange(editorSummaryTab);
+              }}
             />
           )}
 
@@ -1501,6 +1528,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               activeWorkspaceId={activeWorkspaceId}
               userRole={userWorkspaceRole}
               onRequirementChanged={() => loadActivity(1)}
+              simple={layout === 'page'}
               onPlanSubtask={
                 canPlan && !task.parentTaskId
                   ? (requirement: Requirement) => {
@@ -1590,26 +1618,27 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           )}
 
           {/* TAB 7: DISCUSSION */}
-          {activeTab === 'discussion' && (
-            <TaskCommentBox
-              comments={comments}
-              currentUserId={currentUserId || undefined}
-              members={members}
-              variant="stream"
-              title="Diskusi Task"
-              showMentionChips={true}
-              emptyIllustrationUrl={EMPTY_DISCUSSION_ILLUSTRATION_URL}
-              isLoading={isLoadingComments}
-              error={commentsError || undefined}
-              onRetry={() => void loadComments()}
-              hasMore={!commentsError && commentsTotal > comments.length}
-              onLoadMore={() => void loadComments(commentsPage + 1, true)}
-              isLoadingMore={isLoadingComments && comments.length > 0}
-              onPostComment={handlePostComment}
-              onUpdateComment={handleUpdateComment}
-              onDeleteComment={handleDeleteComment}
+          {layout === 'page' && activeTab === 'discussion' && (
+            <FeatureStageLayout
+              main={
+                <FeaturePlanSummary
+                  task={task}
+                  canEdit={canEditTask && !task.parentTaskId}
+                  messageCount={commentsTotal}
+                  onEditIdea={() => handleTabChange('overview')}
+                  discussion={discussionBox}
+                />
+              }
+              rail={
+                <FeaturePlanRail
+                  hasIdea={Boolean(task.description?.trim())}
+                  messageCount={commentsTotal}
+                  onContinue={() => handleTabChange('prd-summary')}
+                />
+              }
             />
           )}
+          {layout !== 'page' && activeTab === 'discussion' && discussionBox}
         </div>
       </DetailFrame>
 

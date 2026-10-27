@@ -37,4 +37,25 @@ describe('FeatureStageStepper', () => {
     expect(onSelect).toHaveBeenCalledWith('prd');
     expect(screen.getByRole('button', { name: /Apply/ })).toBeDisabled();
   });
+
+  it('Feature tersimpan: tahap saat ini tetap hijau saat dilihat dan Apply ikut selesai', () => {
+    render(
+      <FeatureStageStepper
+        currentStage="task"
+        selectedStage="plan"
+        applied
+        onSelect={vi.fn()}
+        disabledStages={['apply']}
+        summaries={{ apply: 'Diterapkan' }}
+      />,
+    );
+    // Plan dilihat tetapi tetap bercentang; Task bukan lagi kartu putus-putus.
+    expect(screen.getByRole('button', { name: /Plan/ })).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByRole('button', { name: /Task/ }).className).not.toMatch(/border-dashed/);
+    expect(screen.getByRole('button', { name: /Apply/ })).toHaveAttribute(
+      'title',
+      'Sudah diterapkan',
+    );
+    expect(screen.getByText('Diterapkan')).toBeInTheDocument();
+  });
 });

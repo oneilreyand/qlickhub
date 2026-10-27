@@ -71,3 +71,19 @@ Owner menilai hasil P2a belum sesuai desain (`design/03-feature-prd.png`, `04-fe
 Pemeriksaan: test web 3 shard 747 lulus (0 gagal); typecheck, build, `theme:check`, eslint `--max-warnings 0` lulus. UAT lokal Light 1440 (Plan, PRD, Task, menu ⋯, editor) dan Dark 390 tanpa overflow horizontal.
 
 Deviasi: tombol "Usulkan dari PRD" dan hitungan keputusan/AI di Plan belum ada (P5); "Tinjau & Apply" nonaktif (Apply P5); halaman Plan (`02-feature-plan.png`) belum dibandingkan piksel demi piksel; Dark 1440/768/1024 belum diulang pada versi ini.
+
+## 7. Tambahan: P2a-fix2 (penyederhanaan editor)
+
+Owner meminta audit dan penyederhanaan Plan, Brief, Requirement, dan edit Root task. Desain usulan ditambahkan di kanvas desain (baris "Usulan penyederhanaan": Plan tersimpan, Edit Brief, Edit Requirement, Edit Root task, Stepper tersimpan). Persetujuan Owner, 2026-10-27, pesan "ok jalankan". Scope: tampilan halaman Feature saja; tanpa perubahan API, data, authorization, atau dependency.
+
+| Temuan audit                                                       | Perubahan                                                                                                                                                  |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plan hanya berisi chat "Diskusi Task"                              | Plan = Ide awal (deskripsi root task), Diskusi tim tertutup secara default, panel Kesiapan Plan                                                            |
+| Stepper: tahap saat ini tampak putus-putus saat Plan dilihat       | Progres (centang hijau) dipisah dari tahap yang dilihat (border gelap); Apply "Diterapkan" untuk Feature yang sudah punya subtask                          |
+| Editor Brief: toolbar penuh, judul, status, area tulis tinggi      | Satu kolom: Konteks (teks biasa, "Format lanjutan" membuka editor lama), dua daftar scope (Enter menambah baris), Batal dan Simpan; judul dan status tetap |
+| Requirement "Kelola": pilih massal, cari, daftar Workspace terbuka | Tanpa pilih massal dan "Perbaiki yang dipilih"; cari hanya bila lebih dari 6; daftar Workspace tertutup; Lepas Tautan hanya saat baris dibuka              |
+| Edit Root task: editor teks kaya, Properti, Delivery & Kesiapan    | Judul, Deskripsi, Prioritas, Mulai, Tenggat; folder dan status di "Folder dan status"; hambatan satu baris; Batal dan Simpan di dalam kartu                |
+
+Pemeriksaan: test web 3 shard 750 lulus; typecheck, eslint `--max-warnings 0`, build, `theme:check` lulus. UAT lokal Light 1440 untuk Plan, editor Brief, Requirement, dan edit Root task.
+
+Deviasi: daftar Keputusan dan kolom "Catat keputusan" di desain belum ada (butuh penyimpanan baru; menyusul bersama alur pembuatan P5); Plan sementara memakai Ide awal + Diskusi. "Kesiapan Fitur & Review Mutu" tetap sebagai baris tertutup di bagian Requirement, belum dipindah ke tahap rilis. AC diketik di tempat lewat editor kriteria yang ada saat baris dibuka, bukan daftar input langsung. Status Root task tetap bisa diubah lewat "Folder dan status". Dark dan layar kecil belum diulang untuk perubahan ini.

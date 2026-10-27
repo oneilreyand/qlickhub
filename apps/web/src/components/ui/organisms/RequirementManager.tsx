@@ -44,6 +44,8 @@ export interface RequirementManagerProps {
   onRequirementChanged?: () => void;
   onPlanSubtask?: (requirement: Requirement) => void;
   initialState?: RequirementManagerInitialState;
+  /** Tampilan sederhana (halaman Feature): tanpa pilih massal, daftar Workspace tertutup. */
+  simple?: boolean;
 }
 
 export interface RequirementManagerInitialState {
@@ -59,7 +61,9 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
   onRequirementChanged,
   onPlanSubtask,
   initialState,
+  simple = false,
 }) => {
+  const [showAvailable, setShowAvailable] = useState(false);
   const [requirements, setRequirements] = useState<Requirement[]>(initialState?.requirements || []);
   const [taskLinks, setTaskLinks] = useState<TaskRequirementLink[]>(initialState?.taskLinks || []);
   const [searchQuery, setSearchQuery] = useState('');
@@ -464,6 +468,12 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
     );
   }
 
+  const availableStart = displayEntries.findIndex((entry) => entry.kind === 'available-heading');
+  const visibleEntries =
+    simple && !showAvailable && availableStart >= 0
+      ? displayEntries.slice(0, availableStart + 1)
+      : displayEntries;
+
   const getStatusBadge = (status: RequirementStatus) => {
     switch (status) {
       case 'active':
@@ -521,7 +531,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
 
           {canManage && (
             <>
-              {isTaskContext && linkedRequirements.length > 0 && (
+              {!simple && isTaskContext && linkedRequirements.length > 0 && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -555,7 +565,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
       {error && <Alert tone="error">{error}</Alert>}
 
       {/* Search Input */}
-      {searchableRequirementCount > 0 && (
+      {searchableRequirementCount > (simple ? 6 : 0) && (
         <div className="relative">
           <Input
             placeholder="Cari Requirement berdasarkan kode, judul, atau kata kunci..."
@@ -567,15 +577,19 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
         </div>
       )}
 
-      {isTaskContext && canManage && filteredLinkedRequirements.length > 0 && !isLoading && (
-        <Checkbox
-          id="select-all-linked-requirements"
-          checked={allFilteredLinkedAreSelected}
-          onChange={handleToggleAllLinkedSelection}
-          label={`Pilih semua ${filteredLinkedRequirements.length} Requirement tertaut`}
-          className="text-xs"
-        />
-      )}
+      {!simple &&
+        isTaskContext &&
+        canManage &&
+        filteredLinkedRequirements.length > 0 &&
+        !isLoading && (
+          <Checkbox
+            id="select-all-linked-requirements"
+            checked={allFilteredLinkedAreSelected}
+            onChange={handleToggleAllLinkedSelection}
+            label={`Pilih semua ${filteredLinkedRequirements.length} Requirement tertaut`}
+            className="text-xs"
+          />
+        )}
 
       {/* Loading Skeleton */}
       {isLoading ? (
@@ -607,7 +621,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
         />
       ) : (
         <div className="space-y-2.5" data-testid="requirement-list">
-          {displayEntries.map((entry) => {
+          {visibleEntries.map((entry) => {
             if (entry.kind === 'linked-empty') {
               return (
                 <EmptyState
@@ -624,6 +638,26 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                   }
                   icon={<FileText className="h-8 w-8 text-stone-400" />}
                 />
+              );
+            }
+
+            if (entry.kind === 'available-heading' && simple) {
+              return (
+                <button
+                  key="available-requirements-heading"
+                  type="button"
+                  aria-expanded={showAvailable}
+                  onClick={() => setShowAvailable((open) => !open)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 text-left text-sm font-semibold text-stone-800 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-200"
+                >
+                  <span>Tautkan Requirement dari Workspace ({availableRequirements.length})</span>
+                  <ChevronDown
+                    aria-hidden="true"
+                    className={`h-4 w-4 text-stone-500 transition-transform ${
+                      showAvailable ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
               );
             }
 
@@ -675,7 +709,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                    {taskId && canManage && linked && (
+                    {!simple && taskId && canManage && linked && (
                       <Checkbox
                         id={`select-requirement-${req.id}`}
                         checked={selectedRequirementIds.includes(req.id)}
@@ -693,7 +727,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
                           {req.title}
                         </span>
                         {getStatusBadge(req.status)}
-                        {linked && (
+                        {linked && !simple && (
                           <span className="text-[10px] font-medium text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950 px-1.5 py-0.5 rounded-full flex items-center gap-1">
                             <CheckCircle2 className="h-3 w-3" />
                             <span>Tertaut ke Task ini</span>
@@ -750,6 +784,7 @@ export const RequirementManager: React.FC<RequirementManagerProps> = ({
 
                     {taskId &&
                       canManage &&
+                      (!simple || isExpanded || !linked) &&
                       (linked ? (
                         <Button
                           size="sm"

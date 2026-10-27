@@ -14,6 +14,8 @@ export interface FeatureStageStepperProps {
   summaries?: Partial<Record<FeatureStage, string>>;
   /** Tahap yang belum bisa dibuka, mis. Apply sebelum P5b. */
   disabledStages?: FeatureStage[];
+  /** Feature sudah tersimpan penuh, jadi Apply ikut ditandai selesai. */
+  applied?: boolean;
   className?: string;
 }
 
@@ -23,6 +25,7 @@ export const FeatureStageStepper: React.FC<FeatureStageStepperProps> = ({
   onSelect,
   summaries = {},
   disabledStages = [],
+  applied = false,
   className = '',
 }) => {
   const currentIndex = ORDER.indexOf(currentStage);
@@ -33,7 +36,7 @@ export const FeatureStageStepper: React.FC<FeatureStageStepperProps> = ({
         {ORDER.map((stage, index) => {
           const isDisabled = disabledStages.includes(stage);
           const isSelected = selectedStage === stage;
-          const isDone = index < currentIndex;
+          const isDone = index <= currentIndex || (stage === 'apply' && applied);
           const isCurrent = index === currentIndex;
           const tone = isSelected
             ? 'border-2 border-stone-900 bg-white dark:border-[#B1E743] dark:bg-stone-900'
@@ -46,7 +49,13 @@ export const FeatureStageStepper: React.FC<FeatureStageStepperProps> = ({
                 type="button"
                 disabled={isDisabled}
                 aria-current={isSelected ? 'step' : undefined}
-                title={isDisabled ? 'Tersedia di pembaruan berikutnya' : undefined}
+                title={
+                  isDisabled
+                    ? applied && stage === 'apply'
+                      ? 'Sudah diterapkan'
+                      : 'Tersedia di pembaruan berikutnya'
+                    : undefined
+                }
                 onClick={() => onSelect(stage)}
                 className={`flex min-h-14 w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7CB518] disabled:cursor-not-allowed disabled:opacity-60 ${tone}`}
               >
@@ -65,7 +74,9 @@ export const FeatureStageStepper: React.FC<FeatureStageStepperProps> = ({
                 <span className="min-w-0">
                   <span className="block text-sm font-bold text-stone-900 dark:text-stone-100">
                     {FEATURE_STAGE_LABELS[stage]}
-                    {isCurrent && <span className="sr-only"> (tahap Feature saat ini)</span>}
+                    {isCurrent && !applied && (
+                      <span className="sr-only"> (tahap Feature saat ini)</span>
+                    )}
                   </span>
                   {summaries[stage] && (
                     <span className="block truncate text-xs text-stone-600 dark:text-stone-400">
