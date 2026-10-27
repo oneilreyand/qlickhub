@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 03f (P3f) — Buka kembali Bug yang sudah Terverifikasi
 
-**Status:** Disetujui Owner; implementasi selesai, menunggu verifier G5
+**Status:** Accepted with gaps — verifier G5 (2026-10-28); bukti E2/E3 lulus, UAT siklus kedua tetap terbuka
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.10 (baru)
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -36,3 +36,9 @@
 | AC      | Bukti                                                                                                                                                                                        |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AC-3.10 | Integration test API (alasan wajib 400, PO dan Developer 403, Bug bukan Terverifikasi 409, aktivitas berisi alasan dan dapat dibaca Developer); test `BugWorkView`/`BugWorkPage`; UAT lokal. |
+
+## 4. Hasil verifier G5 (2026-10-28)
+
+- API build lulus; integration test Bug PostgreSQL disposable lulus 7/7. Jalur reopen membuktikan alasan kosong ditolak (`400`), PO dan Developer ditolak (`403`), status bukan `verified` ditolak (`409`), `verifiedAt` dan `resolvedAt` dikosongkan, aktivitas menyimpan alasan, serta outbox notifikasi severity tinggi memuat Developer, pelapor, PO, Owner, dan Admin yang relevan.
+- `BugWorkView.test.tsx` dan `BugWorkPage.test.tsx` lulus 12/12: QA dapat membuka kembali dengan alasan, dan Developer melihat alasan setelah status `reopened`.
+- **Gap terbuka (E4):** siklus kedua pada UI nyata — Developer mulai mengerjakan → mengirim ke QA → QA retest gagal — belum diamati. Tidak dinyatakan lulus oleh verifier ini.

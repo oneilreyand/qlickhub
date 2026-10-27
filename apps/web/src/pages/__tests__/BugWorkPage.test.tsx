@@ -124,7 +124,11 @@ describe('BugWorkPage', () => {
       cycles: [
         {
           sequence: 1,
-          resolutionEvent: { candidateFingerprint: 'commit:fix1', resolutionNotes: 'ok' },
+          resolutionEvent: {
+            id: 'resolution-1',
+            candidateFingerprint: 'commit:fix1',
+            resolutionNotes: 'ok',
+          },
           evidenceLinks: [],
           retestAttempt: null,
         },

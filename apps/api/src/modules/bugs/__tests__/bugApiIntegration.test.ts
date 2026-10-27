@@ -28,6 +28,7 @@ import {
   TestResultModel,
   TestRunModel,
   UserModel,
+  NotificationOutboxModel,
   WorkspaceMemberModel,
   WorkspaceModel,
 } from '../../../db/models/index.js';
@@ -39,8 +40,10 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
   let server: Server;
   let baseUrl: string;
   let owner: UserModel;
+  let admin: UserModel;
   let po: UserModel;
   let qa: UserModel;
+  let reporterQa: UserModel;
   let assignedDev: UserModel;
   let unassignedDev: UserModel;
   let dualDev: UserModel;
@@ -127,6 +130,12 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
       name: 'Bug Owner',
       role: 'owner',
     });
+    admin = await UserModel.create({
+      email: `bug_admin_${stamp}@example.com`,
+      passwordHash: 'hashed_pw',
+      name: 'Bug Admin',
+      role: 'admin',
+    });
     po = await UserModel.create({
       email: `bug_po_${stamp}@example.com`,
       passwordHash: 'hashed_pw',
@@ -137,6 +146,12 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
       email: `bug_qa_${stamp}@example.com`,
       passwordHash: 'hashed_pw',
       name: 'Bug QA',
+      role: 'qa',
+    });
+    reporterQa = await UserModel.create({
+      email: `bug_reporter_qa_${stamp}@example.com`,
+      passwordHash: 'hashed_pw',
+      name: 'Bug Reporter QA',
       role: 'qa',
     });
     assignedDev = await UserModel.create({
@@ -176,8 +191,10 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     });
     await WorkspaceMemberModel.bulkCreate([
       { workspaceId: workspaceA.id, userId: owner.id, role: 'owner' },
+      { workspaceId: workspaceA.id, userId: admin.id, role: 'admin' },
       { workspaceId: workspaceA.id, userId: po.id, role: 'po' },
       { workspaceId: workspaceA.id, userId: qa.id, role: 'qa' },
+      { workspaceId: workspaceA.id, userId: reporterQa.id, role: 'qa' },
       { workspaceId: workspaceA.id, userId: assignedDev.id, role: 'dev' },
       { workspaceId: workspaceA.id, userId: unassignedDev.id, role: 'dev' },
       { workspaceId: workspaceA.id, userId: dualDev.id, role: 'dev' },
@@ -1089,7 +1106,7 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
       severity: 'high',
       status: 'verified',
       reproductionDetails: 'Checkout total is wrong again.',
-      createdBy: qa.id,
+      createdBy: reporterQa.id,
       resolvedAt: new Date(),
       verifiedAt: new Date(),
     });
@@ -1113,6 +1130,7 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     const persisted = await BugModel.findByPk(verifiedBug.id);
     assert.strictEqual(persisted?.status, 'reopened');
     assert.strictEqual(persisted?.verifiedAt, null);
+    assert.strictEqual(persisted?.resolvedAt, null);
 
     assert.strictEqual((await post(qaCookie, { reason: 'Sekali lagi' })).status, 409);
 
@@ -1127,6 +1145,18 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     const reopenEntry = activityBody.activity.find((entry) => entry.action === 'bug_reopened');
     assert.strictEqual(reopenEntry?.fromStatus, 'verified');
     assert.strictEqual(reopenEntry?.metadata?.reason, 'Total salah lagi di build 2.');
+
+    const persistedActivity = await BugActivityModel.findOne({
+      where: { bugId: verifiedBug.id, action: 'bug_reopened' },
+    });
+    assert.ok(persistedActivity);
+    const notificationRows = await NotificationOutboxModel.findAll({
+      where: { eventKey: `bug-reopen:${persistedActivity.id}` },
+    });
+    assert.deepStrictEqual(
+      new Set(notificationRows.map((row) => row.recipientUserId)),
+      new Set([assignedDev.id, reporterQa.id, owner.id, po.id, admin.id]),
+    );
   });
 
   test('rejects passed Results, non-members, and cross-Workspace links at HTTP boundaries', async () => {
