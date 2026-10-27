@@ -107,7 +107,7 @@ describe('MyTasksDashboard Organism', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows queue search and priority filters only when active bucket has more than 10 items', async () => {
+  it('always shows queue filters and limits each section to 5 items until expanded', async () => {
     vi.useFakeTimers();
     const plannerQueue = createRoleAwareWorkQueueFixture('planner');
     const { rerender, props } = renderDashboard({
@@ -121,10 +121,12 @@ describe('MyTasksDashboard Organism', () => {
     });
 
     expect(screen.getByText('Checkout release')).toBeInTheDocument();
+    expect(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas')).toBeInTheDocument();
+    expect(screen.getByLabelText('Filter antrean kerja berdasarkan tenggat')).toBeInTheDocument();
     expect(
-      screen.queryByLabelText('Filter antrean kerja berdasarkan prioritas'),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Cari antrean kerja')).not.toBeInTheDocument();
+      screen.getByLabelText('Filter antrean kerja berdasarkan jenis pekerjaan'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Cari antrean kerja')).toBeInTheDocument();
 
     const manyItems = Array.from({ length: 12 }, (_, index) => ({
       id: `po_requirement_work:feature:feat-${index}`,
@@ -166,8 +168,10 @@ describe('MyTasksDashboard Organism', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas')).toBeInTheDocument();
-    expect(screen.getByLabelText('Cari antrean kerja')).toBeInTheDocument();
+    expect(screen.getByText('Feature Item 4')).toBeInTheDocument();
+    expect(screen.queryByText('Feature Item 5')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan 7 lagi' }));
+    expect(screen.getByText('Feature Item 11')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas'), {
       target: { value: 'urgent' },

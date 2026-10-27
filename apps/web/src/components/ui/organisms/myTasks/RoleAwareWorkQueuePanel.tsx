@@ -16,6 +16,12 @@ import type { WorkQueueBucketCode, WorkQueueItem } from '@qlick/contracts';
 import type { RoleAwareWorkQueueViewState } from '../../../../lib/hooks/useRoleAwareWorkQueue';
 import { useDebounce } from '../../../../lib/hooks/useDebounce';
 import { getQueueItemActionLabel } from '../../../../lib/utils/workQueueRoute';
+import {
+  DUE_FILTER_OPTIONS,
+  matchesDueFilter,
+  sortQueueItems,
+  type DueFilter,
+} from '../../../../lib/utils/workQueueFilters';
 import { Alert } from '../../atoms/Alert';
 import { Badge } from '../../atoms/Badge';
 import { Button } from '../../atoms/Button';
@@ -165,6 +171,8 @@ function localizeReason(reason: string) {
     );
 }
 
+const SECTION_LIMIT = 5;
+
 export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = ({
   state,
   selectedTaskId,
@@ -173,6 +181,9 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [bucketFilter, setBucketFilter] = useState('all');
+  const [dueFilter, setDueFilter] = useState<DueFilter>('all');
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
   const debouncedSearchQuery = useDebounce(searchQuery, 250).trim().toLowerCase();
   const buckets = useMemo(() => state.queue?.buckets || [], [state.queue?.buckets]);
@@ -185,18 +196,22 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   const sections = useMemo(
     () =>
       buckets
+        .filter((bucket) => bucket.total > 0)
+        .filter((bucket) => bucketFilter === 'all' || bucket.code === bucketFilter)
         .map((bucket) => ({
           bucket,
-          items: bucket.items.filter((item) => {
-            if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
-            if (!debouncedSearchQuery) return true;
-            return [item.title, item.reason, item.nextAction.label, item.subjectId].some((value) =>
-              value.toLowerCase().includes(debouncedSearchQuery),
-            );
-          }),
-        }))
-        .filter((section) => section.bucket.total > 0),
-    [buckets, debouncedSearchQuery, priorityFilter],
+          items: sortQueueItems(
+            bucket.items.filter((item) => {
+              if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
+              if (!matchesDueFilter(item.dueDate, dueFilter)) return false;
+              if (!debouncedSearchQuery) return true;
+              return [item.title, item.reason, item.nextAction.label, item.subjectId].some(
+                (value) => value.toLowerCase().includes(debouncedSearchQuery),
+              );
+            }),
+          ),
+        })),
+    [buckets, bucketFilter, debouncedSearchQuery, dueFilter, priorityFilter],
   );
   const visibleCount = sections.reduce((sum, section) => sum + section.items.length, 0);
 
@@ -292,30 +307,51 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         </Button>
       </div>
 
-      {totalItems > 10 && (
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
-          <div className="w-full sm:w-64">
-            <SearchInput
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              onClear={() => setSearchQuery('')}
-              placeholder="Cari judul, alasan, atau tindakan"
-              aria-label="Cari antrean kerja"
-            />
-          </div>
-          <div className="w-full sm:w-44">
-            <Select
-              value={priorityFilter}
-              onChange={(event) => setPriorityFilter(event.target.value)}
-              aria-label="Filter antrean kerja berdasarkan prioritas"
-            >
-              <option value="all">Semua prioritas</option>
-              <option value="urgent">Mendesak</option>
-              <option value="high">Tinggi</option>
-              <option value="medium">Sedang</option>
-              <option value="low">Rendah</option>
-            </Select>
-          </div>
+      {totalItems > 0 && (
+        <div className="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <Select
+            value={bucketFilter}
+            onChange={(event) => setBucketFilter(event.target.value)}
+            aria-label="Filter antrean kerja berdasarkan jenis pekerjaan"
+          >
+            <option value="all">Semua jenis pekerjaan</option>
+            {buckets
+              .filter((bucket) => bucket.total > 0)
+              .map((bucket) => (
+                <option key={bucket.code} value={bucket.code}>
+                  {bucketLabels[bucket.code]}
+                </option>
+              ))}
+          </Select>
+          <Select
+            value={dueFilter}
+            onChange={(event) => setDueFilter(event.target.value as DueFilter)}
+            aria-label="Filter antrean kerja berdasarkan tenggat"
+          >
+            {DUE_FILTER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+          <Select
+            value={priorityFilter}
+            onChange={(event) => setPriorityFilter(event.target.value)}
+            aria-label="Filter antrean kerja berdasarkan prioritas"
+          >
+            <option value="all">Semua prioritas</option>
+            <option value="urgent">Mendesak</option>
+            <option value="high">Tinggi</option>
+            <option value="medium">Sedang</option>
+            <option value="low">Rendah</option>
+          </Select>
+          <SearchInput
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onClear={() => setSearchQuery('')}
+            placeholder="Cari judul, alasan, atau tindakan"
+            aria-label="Cari antrean kerja"
+          />
         </div>
       )}
 
@@ -331,14 +367,19 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         />
       ) : (
         <div className="space-y-6">
-          {sections.map(({ bucket, items }) =>
-            items.length === 0 ? null : (
+          {sections.map(({ bucket, items: allItems }) => {
+            if (allItems.length === 0) return null;
+            const isExpanded = expanded[bucket.code] === true;
+            const items = isExpanded ? allItems : allItems.slice(0, SECTION_LIMIT);
+            return (
               <section key={bucket.code} aria-label={bucketLabels[bucket.code]}>
                 <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-stone-900 dark:text-stone-100">
                   {bucketIcons[bucket.code]}
                   {bucketLabels[bucket.code]}
                   <span className="text-xs font-normal text-stone-500 dark:text-stone-400">
-                    {bucket.total}
+                    {allItems.length === bucket.total
+                      ? bucket.total
+                      : `${allItems.length} dari ${bucket.total}`}
                   </span>
                 </h3>
                 <div className="space-y-3">
@@ -417,9 +458,24 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                     );
                   })}
                 </div>
+                {allItems.length > SECTION_LIMIT && (
+                  <div className="mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setExpanded((prev) => ({ ...prev, [bucket.code]: !isExpanded }))
+                      }
+                    >
+                      {isExpanded
+                        ? 'Tampilkan lebih sedikit'
+                        : `Tampilkan ${allItems.length - SECTION_LIMIT} lagi`}
+                    </Button>
+                  </div>
+                )}
               </section>
-            ),
-          )}
+            );
+          })}
         </div>
       )}
     </section>
