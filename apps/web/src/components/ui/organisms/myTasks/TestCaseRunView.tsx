@@ -205,7 +205,7 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
       eyebrow={requirementLabel ? `TEST CASE · ${requirementLabel}` : 'TEST CASE'}
       meta={meta}
       onClose={onBack}
-      backLabel="Kembali"
+      backLabel="Kembali ke daftar Test Case"
       headerActions={
         <div className="flex items-center gap-3">
           {position && (

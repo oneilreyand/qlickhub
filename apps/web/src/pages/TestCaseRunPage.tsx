@@ -169,8 +169,12 @@ export const TestCaseRunPage: React.FC = () => {
 
   const goBack = useCallback(() => {
     const candidate = (location.state as { returnTo?: unknown } | null)?.returnTo;
-    navigate(typeof candidate === 'string' && candidate.startsWith('/') ? candidate : '/my-tasks');
-  }, [location.state, navigate]);
+    if (typeof candidate === 'string' && candidate.startsWith('/')) {
+      navigate(candidate);
+      return;
+    }
+    navigate(data ? `/work/subtasks/${data.subtask.id}` : '/my-tasks');
+  }, [data, location.state, navigate]);
 
   const handleStartCycle = async (values: CycleFormValues) => {
     if (!activeWorkspaceId || !data?.subtask.parentTaskId) return;
