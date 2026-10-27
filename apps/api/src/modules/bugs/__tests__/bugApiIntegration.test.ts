@@ -1090,6 +1090,7 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
       status: 'verified',
       reproductionDetails: 'Checkout total is wrong again.',
       createdBy: qa.id,
+      resolvedAt: new Date(),
       verifiedAt: new Date(),
     });
     const reopenUrl = `${baseUrl}/workspaces/${workspaceA.id}/bugs/${verifiedBug.id}/reopen`;
