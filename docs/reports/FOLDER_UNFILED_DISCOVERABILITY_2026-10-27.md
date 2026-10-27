@@ -55,6 +55,7 @@ Task Hub kini memiliki scope eksplisit `Tanpa Folder`. Scope tersebut memakai qu
 - `npm run docs:check` — exit 0; 10/10 lulus.
 - `npm run docs:completeness` — exit 0; 91 baseline gap, 0 gap baru, 0 gap selesai.
 - `npm run sdlc:check` — exit 0; skipped karena tidak ada base commit pembanding.
+- `node scripts/checkTier.mjs HEAD~1 HEAD` — exit 0; Tier 1, tidak ada path Tier 2; commit implementasi `f8cc81f` dipush ke [PR #58](https://github.com/oneilreyand/qlickhub/pull/58).
 - `git diff --check` — exit 0.
 - UAT PO `localhost:3000` — accepted; Light/Dark pada 390×844, 768×1024, dan 1440×900, tidak ada submit/mutasi data.
 

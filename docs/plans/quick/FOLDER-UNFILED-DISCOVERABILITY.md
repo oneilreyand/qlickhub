@@ -41,5 +41,5 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - `npm run theme:check`, `npm run docs:check`, `npm run docs:completeness`, `git diff --check` — exit 0; tema lulus, dokumentasi 10/10, dan 0 gap dokumentasi baru.
 - `npm run sdlc:check` — exit 0 — pemeriksaan diff otomatis dilewati karena baseline pembanding tidak tersedia; Quick Card ini diperiksa manual terhadap template dan lint dokumentasi.
 - E4 2026-10-27 — UAT pada `localhost:3000` sebagai PO: scope `unfiledOnly=true` memuat satu Feature fixture tanpa folder; Semua Task kembali ke dua Feature; modal Feature biasa dan AI menyebutkan lokasi baru; diuji Light/Dark pada 390×844, 768×1024, dan 1440×900 tanpa submit/mutasi data.
-- PR dan tier: PR #58, tier dicatat setelah commit.
+- PR dan tier: [PR #58](https://github.com/oneilreyand/qlickhub/pull/58), commit `f8cc81f`, Tier 1 (`node scripts/checkTier.mjs HEAD~1 HEAD`: tidak ada path Tier 2).
 - Gap: tidak ada dalam scope; perbaikan pemilihan Kanban stale-scope tetap di luar scope.
