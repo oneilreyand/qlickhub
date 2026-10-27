@@ -56,9 +56,9 @@ describe('MyTasksDashboard Organism', () => {
 
     expect(screen.getByRole('heading', { name: 'Tugas Saya' })).toBeInTheDocument();
     expect(screen.getByText('Developer')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Pekerjaan yang Ditugaskan/ })).toHaveTextContent('1');
-    expect(screen.getByRole('tab', { name: /Perlu Perbaikan/ })).toHaveTextContent('0');
-    expect(screen.getByRole('tab', { name: /Perbaikan Bug/ })).toHaveTextContent('1');
+    expect(screen.getByRole('region', { name: 'Pekerjaan yang Ditugaskan' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Perbaikan Bug' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Perlu Perbaikan' })).not.toBeInTheDocument();
     expect(
       screen.getByText('Subtask frontend ini ditugaskan kepada Anda dan berstatus in progress.'),
     ).toBeInTheDocument();
@@ -207,17 +207,7 @@ describe('MyTasksDashboard Organism', () => {
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda di kelompok ini.',
-      ),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('tab', { name: /Keputusan Rilis/ }));
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda di kelompok ini.',
-      ),
+      screen.getByText('Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda.'),
     ).toBeInTheDocument();
   });
 
@@ -238,7 +228,6 @@ describe('MyTasksDashboard Organism', () => {
       </Provider>,
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: /Perbaikan Bug/ }));
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Buka pekerjaan: Checkout total mismatch. Tindakan berikutnya: Mulai Perbaikan Bug',

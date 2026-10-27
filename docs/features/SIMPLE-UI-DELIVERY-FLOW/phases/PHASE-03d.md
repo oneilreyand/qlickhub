@@ -67,3 +67,7 @@
 ## Catatan tambahan: Hapus Test Case
 
 Atas permintaan Owner, setiap baris Test Case di halaman kerja QA punya aksi **Hapus** dengan dialog konfirmasi. Aksi hanya tampil untuk Test Case yang belum pernah dijalankan dan untuk peran yang berhak (Owner, Admin, PO, atau QA pembuatnya), sesuai `assertCanDeleteTestCase`. Memakai endpoint `DELETE /workspaces/:id/test-cases/:id` yang sudah ada; bila backend menolak (mis. sudah ada riwayat eksekusi), pesannya ditampilkan sebagai notifikasi. Tidak ada kontrak atau endpoint baru.
+
+## Catatan tambahan: Tugas Saya tanpa tab
+
+Atas permintaan Owner, antrean Tugas Saya untuk semua peran tidak lagi memakai tab per jenis pekerjaan. Panel `RoleAwareWorkQueuePanel` kini menampilkan satu daftar dengan seksi per jenis pekerjaan (judul dan jumlah); seksi kosong disembunyikan, dan pencarian/filter prioritas muncul bila total item lebih dari 10. Data antrean dan kontrak tidak berubah. Tata letak penuh desain 11–13 (kartu "Mulai dari sini", panel alur) tetap menjadi lingkup P4a/P4b.
