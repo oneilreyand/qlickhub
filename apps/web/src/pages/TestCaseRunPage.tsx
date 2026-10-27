@@ -16,7 +16,6 @@ import {
   type CycleFormValues,
   type RunFormValues,
 } from '../components/ui/organisms/myTasks/TestCaseRunView';
-import { attachmentService } from '../lib/api/attachmentService';
 import { taskService } from '../lib/api/taskService';
 import { testManagementService } from '../lib/api/testManagementService';
 import { getTestCaseRunPath } from '../lib/utils/taskRoutes';
@@ -217,7 +216,7 @@ export const TestCaseRunPage: React.FC = () => {
         status: values.status,
         actualResult: values.actualResult.trim() || null,
         notes: values.notes.trim() || null,
-        evidenceAttachmentIds: values.attachmentIds,
+        evidenceAttachmentIds: [],
         evidenceLinks: values.links,
       });
       dispatch(enqueueSnackbar('Hasil pengujian tersimpan dan terkunci', 'success'));
@@ -339,18 +338,6 @@ export const TestCaseRunPage: React.FC = () => {
       blockedReason={blockedReason}
       isSaving={isSaving}
       error={error}
-      onUploadEvidence={async (file) => {
-        if (!activeWorkspaceId) throw new Error('Workspace belum siap.');
-        const attachment = await attachmentService.uploadAttachment(
-          activeWorkspaceId,
-          data.subtask.id,
-          await file.arrayBuffer(),
-          file.name,
-          file.type,
-          { category: 'qa_evidence', caption: 'Bukti hasil pengujian QA' },
-        );
-        return { id: attachment.id, fileName: attachment.fileName };
-      }}
       onSave={(values) => void handleSave(values)}
       onAddSupplement={async (values) => {
         if (!activeWorkspaceId || !currentRun) return;

@@ -1,10 +1,19 @@
-import React, { useRef, useState } from 'react';
-import { Link2, Upload, X } from 'lucide-react';
-import type { QaTestCycle, TestCase, TestResultStatus, TestRun } from '@qlick/contracts';
+import React, { useState } from 'react';
+import { Link2, X } from 'lucide-react';
+import type {
+  QaTestCycle,
+  TestCase,
+  TestResultEvidenceLink,
+  TestResultStatus,
+  TestRun,
+} from '@qlick/contracts';
 import { Alert } from '../../atoms/Alert';
 import { Button } from '../../atoms/Button';
 import { Input } from '../../atoms/Input';
 import { Textarea } from '../../atoms/Textarea';
+import { EvidenceCard } from '../../molecules/EvidenceCard';
+import { EvidencePreviewModal } from '../EvidencePreviewModal';
+import { isPreviewableEvidenceUrl } from '../../../../lib/utils/evidenceLinks';
 import { TaskDetailPageFrame } from '../taskDetail/TaskDetailPageFrame';
 
 const cardClass =
@@ -35,16 +44,10 @@ const PRIORITY_LABEL: Record<string, string> = {
   low: 'Prioritas rendah',
 };
 
-export interface EvidenceItem {
-  id: string;
-  fileName: string;
-}
-
 export interface RunFormValues {
   status: TestResultStatus;
   actualResult: string;
   notes: string;
-  attachmentIds: string[];
   links: Array<{ url: string; label?: string }>;
 }
 
@@ -74,14 +77,13 @@ export interface TestCaseRunViewProps {
   blockedReason?: string | null;
   isSaving: boolean;
   error?: string | null;
-  onUploadEvidence: (file: File) => Promise<EvidenceItem>;
   onSave: (values: RunFormValues) => void;
   onAddSupplement: (values: { url: string; label?: string; reason: string }) => Promise<void>;
   onBack: () => void;
 }
 
 function saveBlocker(values: RunFormValues): string | null {
-  const hasEvidence = values.attachmentIds.length > 0 || values.links.length > 0;
+  const hasEvidence = values.links.some((link) => isPreviewableEvidenceUrl(link.url));
   if ((values.status === 'failed' || values.status === 'blocked') && !values.actualResult.trim()) {
     return 'Tulis hasil aktual untuk hasil Gagal atau Terblokir.';
   }
@@ -89,7 +91,7 @@ function saveBlocker(values: RunFormValues): string | null {
     return 'Tulis alasan hasil Dilewati.';
   }
   if (values.status !== 'skipped' && !hasEvidence) {
-    return 'Tambahkan bukti gambar atau video untuk hasil ini.';
+    return 'Tambahkan tautan bukti (Google Drive, Loom, YouTube, atau Vimeo) untuk hasil ini.';
   }
   return null;
 }
@@ -115,7 +117,6 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
   blockedReason,
   isSaving,
   error,
-  onUploadEvidence,
   onSave,
   onAddSupplement,
   onBack,
@@ -123,12 +124,10 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
   const [status, setStatus] = useState<TestResultStatus | null>(initialStatus);
   const [actualResult, setActualResult] = useState('');
   const [notes, setNotes] = useState('');
-  const [attachments, setAttachments] = useState<EvidenceItem[]>([]);
   const [links, setLinks] = useState<Array<{ url: string; label: string }>>([]);
   const [linkUrl, setLinkUrl] = useState('');
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<TestResultEvidenceLink | null>(null);
 
   const [cycleValues, setCycleValues] = useState<CycleFormValues>(cycleDefaults);
 
@@ -147,7 +146,6 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
         status,
         actualResult,
         notes,
-        attachmentIds: attachments.map((item) => item.id),
         links: links.map((link) => ({ url: link.url, label: link.label || undefined })),
       }
     : null;
@@ -155,42 +153,16 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
     ? saveBlocker(values)
     : 'Pilih hasil: Lulus, Gagal, Terblokir, atau Dilewati.';
 
-  const uploadFiles = async (files: File[]) => {
-    for (const file of files) {
-      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-        setUploadError(
-          'Unggahan harus berupa gambar atau video. Dokumen dapat ditambahkan lewat tautan.',
-        );
-        continue;
-      }
-      if (file.size > 15 * 1024 * 1024) {
-        setUploadError('Ukuran bukti maksimal 15 MB per file.');
-        continue;
-      }
-      setIsUploading(true);
-      setUploadError(null);
-      try {
-        const item = await onUploadEvidence(file);
-        setAttachments((prev) => (prev.some((p) => p.id === item.id) ? prev : [...prev, item]));
-      } catch (uploadErr) {
-        setUploadError(uploadErr instanceof Error ? uploadErr.message : 'Bukti gagal diunggah.');
-      } finally {
-        setIsUploading(false);
-      }
-    }
-  };
-
-  const handlePaste = (event: React.ClipboardEvent) => {
-    const files = Array.from(event.clipboardData.files);
-    if (files.length > 0) {
-      event.preventDefault();
-      void uploadFiles(files);
-    }
-  };
-
   const addLink = () => {
     const url = linkUrl.trim();
     if (!url) return;
+    if (!isPreviewableEvidenceUrl(url)) {
+      setLinkError(
+        'Tautan harus https dari Google Drive, Loom, YouTube, atau Vimeo agar bisa dibuka di sini.',
+      );
+      return;
+    }
+    setLinkError(null);
     setLinks((prev) =>
       prev.some((item) => item.url === url) ? prev : [...prev, { url, label: '' }],
     );
@@ -384,23 +356,18 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
               )}
               <div>
                 <p className={labelClass}>Bukti</p>
-                <ul className="space-y-1 text-sm text-stone-800 dark:text-stone-200">
-                  {result.evidence.map((item) => (
-                    <li key={item.attachmentId}>{item.fileName}</li>
-                  ))}
+                {result.evidence.length > 0 && (
+                  <ul className="mb-1 space-y-1 text-sm text-stone-800 dark:text-stone-200">
+                    {result.evidence.map((item) => (
+                      <li key={item.attachmentId}>{item.fileName}</li>
+                    ))}
+                  </ul>
+                )}
+                <div className="space-y-2">
                   {result.evidenceLinks.map((link) => (
-                    <li key={link.id}>
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline underline-offset-2"
-                      >
-                        {link.label || link.url}
-                      </a>
-                    </li>
+                    <EvidenceCard key={link.id} link={link} onPreview={setPreview} />
                   ))}
-                </ul>
+                </div>
                 {supplements.length > 0 && (
                   <ul className="mt-2 space-y-1 text-xs text-stone-600 dark:text-stone-400">
                     {supplements.map((manifest) => (
@@ -500,70 +467,15 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
                 />
               )}
 
-              <div onPaste={handlePaste}>
+              <div>
                 <p className={labelClass}>Bukti</p>
                 <p className="mb-2 text-xs text-stone-600 dark:text-stone-400">
-                  Wajib ada gambar atau video untuk Lulus, Gagal, dan Terblokir. Dokumen dan tautan
-                  lain hanya pelengkap. Tautan YouTube, Loom, Vimeo, dan Google Drive dihitung
-                  sebagai video.
+                  Wajib minimal satu tautan rekaman layar atau gambar untuk Lulus, Gagal, dan
+                  Terblokir. Unggah dulu ke Google Drive, Loom, YouTube, atau Vimeo, lalu tempel
+                  tautannya di sini; bukti bisa dibuka langsung di aplikasi.
                 </p>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*,video/*"
-                  multiple
-                  hidden
-                  aria-label="Pilih file bukti"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files ?? []);
-                    e.target.value = '';
-                    void uploadFiles(files);
-                  }}
-                />
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (!formDisabled) void uploadFiles(Array.from(e.dataTransfer.files));
-                  }}
-                  className="flex min-h-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-stone-300 p-3 text-center text-sm text-stone-700 dark:border-stone-700 dark:text-stone-300"
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    isLoading={isUploading}
-                    disabled={formDisabled}
-                    leftIcon={<Upload aria-hidden="true" className="h-4 w-4" />}
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    Unggah gambar atau video
-                  </Button>
-                  <span className="text-xs text-stone-600 dark:text-stone-400">
-                    atau seret ke sini, atau tempel dengan Ctrl+V
-                  </span>
-                </div>
-                {uploadError && (
-                  <p role="alert" className="mt-1 text-xs text-rose-600 dark:text-rose-400">
-                    {uploadError}
-                  </p>
-                )}
-                {(attachments.length > 0 || links.length > 0) && (
-                  <ul className="mt-2 space-y-1 text-sm text-stone-800 dark:text-stone-200">
-                    {attachments.map((item) => (
-                      <li key={item.id} className="flex items-center justify-between gap-2">
-                        <span className="truncate">{item.fileName}</span>
-                        <button
-                          type="button"
-                          aria-label={`Hapus bukti ${item.fileName}`}
-                          onClick={() =>
-                            setAttachments((prev) => prev.filter((p) => p.id !== item.id))
-                          }
-                          className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800"
-                        >
-                          <X aria-hidden="true" className="h-4 w-4" />
-                        </button>
-                      </li>
-                    ))}
+                {links.length > 0 && (
+                  <ul className="mb-2 space-y-1 text-sm text-stone-800 dark:text-stone-200">
                     {links.map((link) => (
                       <li key={link.url} className="flex items-center justify-between gap-2">
                         <span className="truncate">{link.url}</span>
@@ -579,13 +491,16 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
                     ))}
                   </ul>
                 )}
-                <div className="mt-2 flex items-end gap-2">
+                <div className="flex items-end gap-2">
                   <Input
                     id="run-link"
-                    label="Tautan (mis. rekaman Loom)"
+                    label="Tautan bukti (mis. rekaman Loom)"
                     value={linkUrl}
                     disabled={formDisabled}
-                    onChange={(e) => setLinkUrl(e.target.value)}
+                    onChange={(e) => {
+                      setLinkUrl(e.target.value);
+                      setLinkError(null);
+                    }}
                     placeholder="https://"
                     className="flex-1"
                   />
@@ -599,6 +514,11 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
                     Tambah tautan
                   </Button>
                 </div>
+                {linkError && (
+                  <p role="alert" className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+                    {linkError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -648,6 +568,11 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
           </ul>
         )}
       </section>
+      <EvidencePreviewModal
+        isOpen={Boolean(preview)}
+        onClose={() => setPreview(null)}
+        evidence={preview}
+      />
     </TaskDetailPageFrame>
   );
 };

@@ -66,3 +66,7 @@
 - Bukti susulan hanya berupa tautan.
 - Alur simpan oleh QA tidak bisa di-UAT dengan login Owner (halaman tampil baca saja); dicakup component test.
 - Test integrasi API tidak bisa dijalankan di VM (tanpa Postgres); Owner menjalankan `npm --prefix apps/api run test:integration` di Mac.
+
+## Catatan perubahan (P3d): bukti hanya tautan
+
+Keputusan K1 diubah atas permintaan Owner: halaman jalankan Test Case tidak lagi menyediakan unggah file. Bukti hanya berupa **tautan https** dari Google Drive, Loom, YouTube, atau Vimeo, yang dicek lewat `isPreviewableEvidenceUrl` (`apps/web/src/lib/utils/evidenceLinks.ts`) agar sesuai aturan pratinjau backend. Tautan lain ditolak dengan pesan jelas. Hasil yang tersimpan menampilkan tiap tautan sebagai kartu bukti yang bisa dibuka di dalam aplikasi (`EvidencePreviewModal`). Tombol Simpan hasil tetap nonaktif sampai ada minimal satu tautan yang bisa dipratinjau. Lampiran lama (unggahan sebelumnya) tetap tampil sebagai nama berkas. Backend tidak berubah (`evidenceAttachmentIds` dikirim kosong).

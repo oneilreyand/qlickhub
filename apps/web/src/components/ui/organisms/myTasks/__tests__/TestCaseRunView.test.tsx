@@ -35,7 +35,6 @@ function setup(overrides: Partial<TestCaseRunViewProps> = {}) {
     history: [],
     canExecute: true,
     isSaving: false,
-    onUploadEvidence: vi.fn().mockResolvedValue({ id: 'att1', fileName: 'layar.png' }),
     onSave: vi.fn(),
     onAddSupplement: vi.fn().mockResolvedValue(undefined),
     onBack: vi.fn(),
@@ -63,13 +62,15 @@ describe('TestCaseRunView', () => {
     });
     expect(save).toBeDisabled();
     expect(
-      screen.getByText('Tambahkan bukti gambar atau video untuk hasil ini.'),
+      screen.getByText(
+        'Tambahkan tautan bukti (Google Drive, Loom, YouTube, atau Vimeo) untuk hasil ini.',
+      ),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Pilih file bukti'), {
-      target: { files: [new File(['x'], 'layar.png', { type: 'image/png' })] },
+    fireEvent.change(screen.getByLabelText(/Tautan bukti/), {
+      target: { value: 'https://drive.google.com/file/d/abc123/view' },
     });
-    await waitFor(() => expect(screen.getByText('layar.png')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah tautan' }));
     expect(save).toBeEnabled();
 
     fireEvent.click(save);
@@ -77,7 +78,7 @@ describe('TestCaseRunView', () => {
       expect.objectContaining({
         status: 'failed',
         actualResult: 'Halaman 2 kosong',
-        attachmentIds: ['att1'],
+        links: [{ url: 'https://drive.google.com/file/d/abc123/view', label: undefined }],
       }),
     );
   });
@@ -86,7 +87,7 @@ describe('TestCaseRunView', () => {
     setup();
     fireEvent.click(screen.getByRole('button', { name: 'Terblokir' }));
     fireEvent.change(screen.getByLabelText(/Hasil aktual/), { target: { value: 'Server mati' } });
-    fireEvent.change(screen.getByLabelText(/Tautan \(mis/), {
+    fireEvent.change(screen.getByLabelText(/Tautan bukti/), {
       target: { value: 'https://www.loom.com/share/abc' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Tambah tautan' }));
@@ -102,13 +103,47 @@ describe('TestCaseRunView', () => {
     expect(screen.getByRole('button', { name: 'Simpan hasil' })).toBeEnabled();
   });
 
-  it('rejects non-image uploads with a clear message', async () => {
-    const props = setup();
-    fireEvent.change(screen.getByLabelText('Pilih file bukti'), {
-      target: { files: [new File(['x'], 'log.pdf', { type: 'application/pdf' })] },
+  it('rejects links that cannot be previewed in the app (only link evidence is accepted)', () => {
+    setup();
+    expect(screen.queryByLabelText('Pilih file bukti')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Lulus' }));
+    fireEvent.change(screen.getByLabelText(/Tautan bukti/), {
+      target: { value: 'https://example.com/screenshot.png' },
     });
-    expect(await screen.findByRole('alert')).toHaveTextContent('gambar atau video');
-    expect(props.onUploadEvidence).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah tautan' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Google Drive, Loom, YouTube, atau Vimeo');
+    expect(screen.getByRole('button', { name: 'Simpan hasil' })).toBeDisabled();
+  });
+
+  it('opens a saved evidence link inside the app instead of leaving it', () => {
+    const run = {
+      id: 'run1',
+      build: 'b1',
+      environment: 'staging',
+      status: 'completed',
+      result: {
+        status: 'passed',
+        actualResult: null,
+        notes: null,
+        evidence: [],
+        evidenceLinks: [
+          {
+            id: 'l1',
+            url: 'https://www.loom.com/share/abc123',
+            provider: 'loom',
+            mediaKind: 'video',
+            label: 'Rekaman uji',
+            normalizedUrl: 'https://www.loom.com/embed/abc123',
+            previewStatus: 'ready',
+          },
+        ],
+        evidenceManifests: [],
+      },
+    } as unknown as TestRun;
+    setup({ run });
+    fireEvent.click(screen.getByText('Rekaman uji'));
+    const frame = screen.getByTitle('Rekaman uji');
+    expect(frame).toHaveAttribute('src', 'https://www.loom.com/embed/abc123');
   });
 
   it('offers to start a cycle prefilled from the last one when none is active', () => {

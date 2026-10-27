@@ -25,7 +25,6 @@ const m = vi.hoisted(() => ({
   createRun: vi.fn(),
   recordResult: vi.fn(),
   createCycle: vi.fn(),
-  uploadAttachment: vi.fn(),
 }));
 
 vi.mock('../../lib/api/taskService', () => ({
@@ -36,9 +35,6 @@ vi.mock('../../lib/api/taskService', () => ({
 }));
 vi.mock('../../lib/api/traceabilityService', () => ({
   traceabilityService: { getParentTaskDeliveryTrace: (...a: unknown[]) => m.getTrace(...a) },
-}));
-vi.mock('../../lib/api/attachmentService', () => ({
-  attachmentService: { uploadAttachment: (...a: unknown[]) => m.uploadAttachment(...a) },
 }));
 vi.mock('../../lib/api/testManagementService', () => ({
   testManagementService: {
@@ -157,7 +153,7 @@ describe('TestCaseNewPage', () => {
     renderAt(`/tests/cases/new?subtaskId=${qaSubtask.id}`);
 
     fireEvent.change(await screen.findByLabelText('Judul'), { target: { value: 'Halaman 2' } });
-    fireEvent.click(screen.getByRole('button', { name: /REQ-1 · AC-1/ }));
+    fireEvent.click(screen.getByRole('button', { name: /REQ-1 AC-1/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Simpan & jalankan sekarang' }));
 
     await waitFor(() =>
@@ -188,7 +184,7 @@ describe('TestCaseNewPage', () => {
     renderAt(`/tests/cases/new?subtaskId=${qaSubtask.id}`);
 
     fireEvent.change(await screen.findByLabelText('Judul'), { target: { value: 'Halaman 2' } });
-    fireEvent.click(screen.getByRole('button', { name: /REQ-1 · AC-1/ }));
+    fireEvent.click(screen.getByRole('button', { name: /REQ-1 AC-1/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Simpan Test Case' }));
 
     expect(
@@ -226,15 +222,14 @@ describe('TestCaseRunPage', () => {
     m.listCycles.mockResolvedValue([cycle]);
     m.createRun.mockResolvedValue({ id: 'run-1' });
     m.recordResult.mockResolvedValue({});
-    m.uploadAttachment.mockResolvedValue({ id: 'att-1', fileName: 'layar.png' });
     renderAt(`/tests/cases/${testCase.id}/run?subtaskId=${qaSubtask.id}`);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Gagal' }));
     fireEvent.change(screen.getByLabelText(/Hasil aktual/), { target: { value: 'Kosong' } });
-    fireEvent.change(screen.getByLabelText('Pilih file bukti'), {
-      target: { files: [new File(['x'], 'layar.png', { type: 'image/png' })] },
+    fireEvent.change(screen.getByLabelText(/Tautan bukti/), {
+      target: { value: 'https://www.loom.com/share/abc123' },
     });
-    await waitFor(() => expect(screen.getByText('layar.png')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah tautan' }));
     fireEvent.click(screen.getByRole('button', { name: 'Simpan hasil' }));
 
     await waitFor(() => expect(m.recordResult).toHaveBeenCalled());
@@ -254,7 +249,7 @@ describe('TestCaseRunPage', () => {
       expect.objectContaining({
         status: 'failed',
         actualResult: 'Kosong',
-        evidenceAttachmentIds: ['att-1'],
+        evidenceLinks: [{ url: 'https://www.loom.com/share/abc123', label: undefined }],
       }),
     );
   });

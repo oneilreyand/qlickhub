@@ -11,7 +11,7 @@ const subtask = {
 
 const requirements = [
   {
-    requirement: { id: 'r1', code: 'REQ-1' },
+    requirement: { id: 'r1', code: 'REQ-1', title: 'Paginasi subtask' },
     acceptanceCriteria: [
       { id: 'a1', code: 'AC-1', text: 'Halaman 1 berisi 24', status: 'active' },
       { id: 'a2', code: 'AC-2', text: 'Dihapus', status: 'archived' },
@@ -37,7 +37,10 @@ function setup(overrides: Partial<TestCaseEditorProps> = {}) {
 describe('TestCaseEditor', () => {
   it('lists only active AC and requires a title and at least one AC', () => {
     const props = setup();
-    expect(screen.getByRole('button', { name: /REQ-1 · AC-1/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /REQ-1 AC-1/ })).toBeInTheDocument();
+    // Chip dikelompokkan per requirement dengan judulnya agar jelas AC milik requirement mana.
+    expect(screen.getAllByText(/Paginasi subtask/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/TEST CASE BARU · REQ-1/)).toBeInTheDocument();
     expect(screen.queryByText(/AC-2/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Simpan Test Case' }));
@@ -49,7 +52,7 @@ describe('TestCaseEditor', () => {
   it('submits trimmed values and distinguishes save from save-and-run', () => {
     const props = setup();
     fireEvent.change(screen.getByLabelText('Judul'), { target: { value: '  Halaman 2  ' } });
-    fireEvent.click(screen.getByRole('button', { name: /REQ-1 · AC-1/ }));
+    fireEvent.click(screen.getByRole('button', { name: /REQ-1 AC-1/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Negatif' }));
     fireEvent.change(screen.getByLabelText('Langkah 1'), { target: { value: 'Buka Task Hub' } });
     fireEvent.click(screen.getByRole('button', { name: 'Langkah' }));

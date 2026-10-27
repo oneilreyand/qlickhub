@@ -75,6 +75,7 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
           .filter((criterion) => criterion.status === 'active')
           .map((criterion) => ({
             id: criterion.id,
+            requirementId: node.requirement.id,
             requirementCode: node.requirement.code,
             code: criterion.code,
             text: criterion.text,
@@ -113,7 +114,7 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   return (
     <TaskDetailPageFrame
       title="Tambah Test Case"
-      eyebrow="TEST CASE BARU"
+      eyebrow={`TEST CASE BARU${requirements.length > 0 ? ` · ${requirements.map((node) => node.requirement.code).join(', ')}` : ''}`}
       meta={`Untuk subtask uji: ${subtask.title}`}
       onClose={onBack}
       backLabel="Kembali"
@@ -153,25 +154,44 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                   Feature ini belum punya acceptance criteria aktif. Minta PO menambahkannya dulu.
                 </p>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {criteria.map((criterion) => {
-                    const selected = criterionIds.includes(criterion.id);
+                <div className="space-y-3">
+                  {requirements.map((node) => {
+                    const group = criteria.filter(
+                      (criterion) => criterion.requirementId === node.requirement.id,
+                    );
+                    if (group.length === 0) return null;
                     return (
-                      <button
-                        key={criterion.id}
-                        type="button"
-                        aria-pressed={selected}
-                        title={criterion.text}
-                        onClick={() => toggleCriterion(criterion.id)}
-                        className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${
-                          selected
-                            ? 'border-[#B1E743] bg-[#F1F9DC] text-[#3F6212] dark:bg-[#253014] dark:text-[#B1E743]'
-                            : 'border-stone-300 text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800'
-                        }`}
-                      >
-                        {selected && <Check aria-hidden="true" className="h-3.5 w-3.5" />}
-                        {criterion.requirementCode} · {criterion.code}
-                      </button>
+                      <div key={node.requirement.id}>
+                        <p className="mb-1.5 text-xs text-stone-600 dark:text-stone-400">
+                          <span className="font-semibold text-stone-800 dark:text-stone-200">
+                            {node.requirement.code}
+                          </span>
+                          {node.requirement.title ? ` · ${node.requirement.title}` : ''}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {group.map((criterion) => {
+                            const selected = criterionIds.includes(criterion.id);
+                            return (
+                              <button
+                                key={criterion.id}
+                                type="button"
+                                aria-pressed={selected}
+                                aria-label={`${criterion.requirementCode} ${criterion.code}`}
+                                title={criterion.text}
+                                onClick={() => toggleCriterion(criterion.id)}
+                                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${
+                                  selected
+                                    ? 'border-[#B1E743] bg-[#F1F9DC] text-[#3F6212] dark:bg-[#253014] dark:text-[#B1E743]'
+                                    : 'border-stone-300 text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800'
+                                }`}
+                              >
+                                {selected && <Check aria-hidden="true" className="h-3.5 w-3.5" />}
+                                {criterion.code}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -330,7 +350,14 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
             <ul className="space-y-2 text-sm text-stone-800 dark:text-stone-200">
               {requirements.map((node) => (
                 <li key={node.requirement.id} className="flex items-center justify-between gap-3">
-                  <span className="truncate">{node.requirement.code}</span>
+                  <span className="min-w-0">
+                    <span className="font-semibold">{node.requirement.code}</span>
+                    {node.requirement.title && (
+                      <span className="block truncate text-xs text-stone-500 dark:text-stone-400">
+                        {node.requirement.title}
+                      </span>
+                    )}
+                  </span>
                   <span className="shrink-0 font-semibold text-[#3F6212] dark:text-[#B1E743]">
                     {node.testCases.length} Test Case
                   </span>
