@@ -151,12 +151,17 @@ function LocationProbe({ label }: { label: string }) {
   );
 }
 
-function renderRoute(includeWorkspace = true, role = 'po', state?: { returnTo: string }) {
+function renderRoute(
+  includeWorkspace = true,
+  role = 'po',
+  state?: { returnTo: string },
+  search = '',
+) {
   const store = createStore(includeWorkspace, role);
   render(
     <Provider store={store}>
       <MemoryRouter
-        initialEntries={[{ pathname: `/projects/${workspaceId}/tasks/${taskId}`, state }]}
+        initialEntries={[{ pathname: `/projects/${workspaceId}/tasks/${taskId}`, search, state }]}
       >
         <Routes>
           <Route path="/projects/:projectId/tasks/:taskId" element={<TaskDeepLinkPage />} />
@@ -250,7 +255,22 @@ describe('TaskDeepLinkPage', () => {
     );
   });
 
-  it('opens a QA subtask deep link in the QA workspace for the authenticated QA actor', async () => {
+  it('redirects a QA subtask deep link to the QA work page (AC-3.7)', async () => {
+    getTaskMock.mockResolvedValue({
+      ...task,
+      parentTaskId: '10000000-0000-4000-8000-000000000004',
+      deliveryArea: 'qa' as const,
+      title: 'Checkout QA subtask',
+    });
+    renderRoute(true, 'qa');
+
+    expect(await screen.findByTestId('redirect-target')).toHaveTextContent(
+      `subtask:/work/subtasks/${taskId}`,
+    );
+    expect(screen.queryByTestId('qa-deep-link-workspace')).not.toBeInTheDocument();
+  });
+
+  it('opens the full QA desk only when asked with ?desk=lengkap', async () => {
     const qaSubtask = {
       ...task,
       parentTaskId: '10000000-0000-4000-8000-000000000004',
@@ -258,7 +278,7 @@ describe('TaskDeepLinkPage', () => {
       title: 'Checkout QA subtask',
     };
     getTaskMock.mockResolvedValue(qaSubtask);
-    renderRoute(true, 'qa');
+    renderRoute(true, 'qa', undefined, '?desk=lengkap');
 
     expect(await screen.findByTestId('qa-deep-link-workspace')).toHaveTextContent(
       'Checkout QA subtask · Peran: qa',

@@ -15,6 +15,7 @@ import {
 import type { WorkQueueBucket, WorkQueueBucketCode, WorkQueueItem } from '@qlick/contracts';
 import type { RoleAwareWorkQueueViewState } from '../../../../lib/hooks/useRoleAwareWorkQueue';
 import { useDebounce } from '../../../../lib/hooks/useDebounce';
+import { getQueueItemActionLabel } from '../../../../lib/utils/workQueueRoute';
 import { Alert } from '../../atoms/Alert';
 import { Badge } from '../../atoms/Badge';
 import { Button } from '../../atoms/Button';
@@ -410,9 +411,9 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                     disabled={openingItemId !== null && openingItemId !== item.id}
                     onClick={() => void openItem(item)}
                     rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
-                    aria-label={`${workState.action}: ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`}
+                    aria-label={`${getQueueItemActionLabel(item, workState.action)}: ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`}
                   >
-                    {workState.action}
+                    {getQueueItemActionLabel(item, workState.action)}
                   </Button>
                 </div>
               </Card>

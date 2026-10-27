@@ -4,6 +4,7 @@ import type { ParentTaskDeliveryTrace, TaskComment } from '@qlick/contracts';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
+import { QaSubtaskWorkSection } from './QaSubtaskWorkSection';
 import { SubtaskWorkView } from '../components/ui/organisms/myTasks/SubtaskWorkView';
 import { useTaskWithParent } from '../lib/hooks/useTaskWithParent';
 import { taskService } from '../lib/api/taskService';
@@ -168,6 +169,17 @@ export const SubtaskWorkPage: React.FC = () => {
         description="Subtask tidak dapat dimuat. Coba lagi atau kembali ke Tugas Saya."
         resetErrorBoundary={reload}
         showHomeButton
+      />
+    );
+  }
+
+  if (task.deliveryArea === 'qa') {
+    return (
+      <QaSubtaskWorkSection
+        subtask={task}
+        parentTask={parentTask}
+        trace={trace}
+        memberName={memberName}
       />
     );
   }

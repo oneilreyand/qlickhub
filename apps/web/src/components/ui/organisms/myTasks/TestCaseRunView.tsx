@@ -55,6 +55,8 @@ export interface CycleFormValues {
 }
 
 export interface TestCaseRunViewProps {
+  /** Pilihan awal hasil (mis. dari tombol Lulus/Gagal di halaman kerjaan QA). */
+  initialStatus?: TestResultStatus | null;
   testCase: TestCase;
   /** Mis. "REQ-1"; kosong bila belum diketahui. */
   requirementLabel?: string;
@@ -98,6 +100,7 @@ function saveBlocker(values: RunFormValues): string | null {
  * bukti susulan dengan alasan.
  */
 export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
+  initialStatus = null,
   testCase,
   requirementLabel,
   position,
@@ -117,7 +120,7 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
   onAddSupplement,
   onBack,
 }) => {
-  const [status, setStatus] = useState<TestResultStatus | null>(null);
+  const [status, setStatus] = useState<TestResultStatus | null>(initialStatus);
   const [actualResult, setActualResult] = useState('');
   const [notes, setNotes] = useState('');
   const [attachments, setAttachments] = useState<EvidenceItem[]>([]);

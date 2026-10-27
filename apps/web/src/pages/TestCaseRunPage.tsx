@@ -1,6 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import type { QaTestCycle, Task, TaskTestCaseExecution, TestCase } from '@qlick/contracts';
+import type {
+  QaTestCycle,
+  Task,
+  TaskTestCaseExecution,
+  TestCase,
+  TestResultStatus,
+} from '@qlick/contracts';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { Button } from '../components/ui/atoms/Button';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
@@ -47,6 +53,9 @@ export const TestCaseRunPage: React.FC = () => {
   const { testCaseId } = useParams<{ testCaseId: string }>();
   const [searchParams] = useSearchParams();
   const subtaskParam = searchParams.get('subtaskId');
+  const hasilParam = searchParams.get('hasil');
+  const initialStatus: TestResultStatus | null =
+    hasilParam === 'passed' || hasilParam === 'failed' ? hasilParam : null;
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -304,6 +313,7 @@ export const TestCaseRunPage: React.FC = () => {
 
   return (
     <TestCaseRunView
+      initialStatus={initialStatus}
       testCase={data.testCase}
       requirementLabel={data.requirementLabel}
       position={position}

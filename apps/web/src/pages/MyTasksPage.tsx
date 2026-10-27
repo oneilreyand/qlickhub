@@ -6,6 +6,7 @@ import { RootState } from '../store/store';
 import { selectCurrentUserId } from '../store/authSlice';
 import { fetchTasks, fetchTaskById, setSelectedTaskId } from '../store/taskSlice';
 import { fetchMembers } from '../store/workspaceSlice';
+import { taskService } from '../lib/api/taskService';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { MyTaskDetailWorkspaceDrawer, MyTasksDashboard } from '../features/myTasks';
 import { CreateTaskModal } from '../features/tasks';
@@ -99,7 +100,7 @@ export const MyTasksPage: React.FC = () => {
             taskId,
           }),
         ).unwrap();
-        if (!shouldUseLegacyQaWorkspace(userRole, task)) {
+        if (!shouldUseLegacyQaWorkspace(userRole, task, location.search)) {
           // Pengalih (AC-2.3): ?taskId= membuka halaman Feature atau halaman kerja subtask.
           navigate(getTaskPagePath(task), {
             replace: true,
@@ -117,7 +118,7 @@ export const MyTasksPage: React.FC = () => {
         );
       }
     },
-    [activeWorkspaceId, dispatch, navigate, userRole],
+    [activeWorkspaceId, dispatch, location.search, navigate, userRole],
   );
 
   useEffect(() => {
@@ -130,10 +131,51 @@ export const MyTasksPage: React.FC = () => {
   }, [location.search, navigate]);
 
   const handleOpenQueueItem = useCallback(
-    (item: WorkQueueItem) => {
+    async (item: WorkQueueItem) => {
+      // AC-3.8: Persetujuan QA yang tertahan QA Subtask membuka subtask itu, bukan halaman Feature.
+      if (
+        item.bucketCode === 'qa_sign_off' &&
+        item.workState === 'blocked' &&
+        activeWorkspaceId &&
+        currentUserId
+      ) {
+        try {
+          const result = await taskService.listSubtasks(
+            activeWorkspaceId,
+            item.featureTaskId ?? item.subjectId,
+            1,
+            100,
+          );
+          const mine = result.tasks.filter(
+            (task) =>
+              task.deliveryArea === 'qa' &&
+              task.assigneeId === currentUserId &&
+              task.status !== 'done' &&
+              task.status !== 'canceled',
+          );
+          if (mine.length >= 1) {
+            navigate(`/work/subtasks/${mine[0].id}`, { state: { returnTo: '/my-tasks' } });
+          } else {
+            dispatch(
+              enqueueSnackbar(
+                'Tidak ada subtask QA aktif milik Anda di Feature ini. Buka Feature untuk melihat siapa yang menahan.',
+                'info',
+              ),
+            );
+          }
+        } catch (error) {
+          dispatch(
+            enqueueSnackbar(
+              error instanceof Error ? error.message : 'Subtask QA tidak dapat dimuat.',
+              'error',
+            ),
+          );
+        }
+        return;
+      }
       navigate(buildWorkQueueRoute(item, location.search));
     },
-    [location.search, navigate],
+    [activeWorkspaceId, currentUserId, dispatch, location.search, navigate],
   );
 
   const handleCloseDrawer = () => {

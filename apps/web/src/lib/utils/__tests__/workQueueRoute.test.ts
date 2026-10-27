@@ -3,6 +3,7 @@ import type { WorkQueueItem, WorkQueueNextActionCode } from '@qlick/contracts';
 import {
   buildWorkQueueRoute,
   clearWorkQueueRouteContext,
+  getQueueItemActionLabel,
   getWorkQueueRouteContext,
 } from '../workQueueRoute';
 
@@ -86,5 +87,31 @@ describe('work queue route context', () => {
     expect(
       clearWorkQueueRouteContext('?taskId=task&bugId=bug&nextAction=continue_subtask&from=notice'),
     ).toBe('/my-tasks?from=notice');
+  });
+});
+
+describe('getQueueItemActionLabel (AC-3.8)', () => {
+  it('points a blocked QA sign-off at the QA subtask that holds it', () => {
+    expect(
+      getQueueItemActionLabel(
+        { bucketCode: 'qa_sign_off', workState: 'blocked' },
+        'Lihat prasyarat',
+      ),
+    ).toBe('Selesaikan uji subtask');
+  });
+
+  it('keeps the default label for every other item', () => {
+    expect(
+      getQueueItemActionLabel(
+        { bucketCode: 'qa_sign_off', workState: 'actionable' },
+        'Buka pekerjaan',
+      ),
+    ).toBe('Buka pekerjaan');
+    expect(
+      getQueueItemActionLabel(
+        { bucketCode: 'qa_test_work', workState: 'blocked' },
+        'Lihat prasyarat',
+      ),
+    ).toBe('Lihat prasyarat');
   });
 });

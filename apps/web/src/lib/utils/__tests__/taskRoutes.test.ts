@@ -10,8 +10,9 @@ describe('taskRoutes', () => {
     expect(getTaskPagePath({ id: 's1', parentTaskId: 'f1' })).toBe('/work/subtasks/s1');
   });
 
-  it('keeps the legacy workspace only for a QA user on a QA-area subtask', () => {
-    expect(shouldUseLegacyQaWorkspace('qa', { deliveryArea: 'qa' })).toBe(true);
+  it('opens the legacy desk only on explicit request by a QA user on a QA-area subtask', () => {
+    expect(shouldUseLegacyQaWorkspace('qa', { deliveryArea: 'qa' })).toBe(false);
+    expect(shouldUseLegacyQaWorkspace('qa', { deliveryArea: 'qa' }, '?desk=lengkap')).toBe(true);
     expect(shouldUseLegacyQaWorkspace('qa', { deliveryArea: 'frontend' })).toBe(false);
     expect(shouldUseLegacyQaWorkspace('dev', { deliveryArea: 'qa' })).toBe(false);
     expect(shouldUseLegacyQaWorkspace(undefined, { deliveryArea: 'qa' })).toBe(false);

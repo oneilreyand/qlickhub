@@ -130,7 +130,7 @@ export const TaskDeepLinkPage: React.FC = () => {
     );
   }
 
-  const useQaWorkspace = shouldUseLegacyQaWorkspace(userRole, task);
+  const useQaWorkspace = shouldUseLegacyQaWorkspace(userRole, task, location.search);
 
   if (!useQaWorkspace) {
     // Pengalih (AC-2.3): tautan lama membuka halaman Feature atau halaman kerja subtask.

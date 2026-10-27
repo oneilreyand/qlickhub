@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 03d (P3d) — Halaman kerjaan QA dan jalan masuk dari Tugas Saya
 
-**Status:** Approval Window disiapkan (menunggu persetujuan Owner)
+**Status:** Dikerjakan
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.7, AC-3.8 (baru, diusulkan di bawah)
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -46,3 +46,20 @@
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AC-3.7 | Component test `QaSubtaskWorkView` (daftar per Requirement, hasil terakhir, tombol membuka halaman jalankan); test halaman: peran QA mendapat tampilan QA, Developer tetap tampilan Developer; UAT lokal; tangkapan layar Light 1440 berdampingan dengan `design/08` |
 | AC-3.8 | Test pengalih/antrean: Persetujuan QA tertahan menuju `/work/subtasks/:qaSubtaskId`; tanpa subtask QA milik pengguna tampil penjelasan; UAT lokal                                                                                                                    |
+
+## 5. Hasil pengerjaan
+
+**Yang dibangun:** `QaSubtaskWorkView` dan `QaSubtaskWorkSection` (halaman kerja QA di `/work/subtasks/:id` untuk subtask `deliveryArea` qa), `?hasil=passed|failed` pada halaman jalankan (pilihan awal dari tombol Lulus/Gagal), `?desk=lengkap` untuk desk lama, aksi antrean "Selesaikan uji subtask" yang membuka subtask QA milik pengguna, helper `getQueueItemActionLabel` dan `getQaFullDeskPath`. Tanpa endpoint, migrasi, atau kontrak baru.
+
+**Pemeriksaan:** typecheck, eslint (0 warning), build, `theme:check`, `docs:check` bersih; suite web (8 shard) lulus; test baru: view 7, halaman 5, label antrean 2, pengalih tautan dalam diperbarui. UAT di Chrome Owner (Tugas Saya QA): halaman kerja QA tampil sesuai desain 08, Lulus/Gagal membuka halaman jalankan dengan hasil terpilih, Aktivitas dan Kembali berfungsi, tab Persetujuan QA menuju subtask QA, "Buka desk QA lengkap" membuka desk lama.
+
+**Deviasi dan catatan:**
+
+- Satu tambahan di luar desain: tautan kecil "Buka desk QA lengkap" di bawah halaman, karena Bug & Retest, impor spreadsheet, dan persetujuan hanya ada di desk lama sampai P4c. Bukan bagian desain 08.
+- Tombol kembali dan Aktivitas berada di baris konten di bawah header aplikasi (pola yang sama dengan halaman Feature dan kerja Developer), bukan di header aplikasi seperti mockup.
+- Pesan serah-terima: nama, peran, dan waktu dari data subtask; isi dari komentar pelaksana yang ditulis maksimal 10 menit sebelum waktu kirim; bila tidak ada, baris pesan tidak tampil. Disempurnakan di P4a.
+- Lingkungan tampil `environment · build` dari siklus uji; Siklus uji "Ke-N" dari jumlah siklus subtask.
+- Nomor TC-xx mengikuti urutan pembuatan di subtask ini, bukan nomor tersimpan (belum ada kolom kode Test Case).
+- Kode AC per Test Case dibaca dari versi aktif; Test Case tanpa pemetaan AC hanya menampilkan nomor TC.
+- Membuka `?desk=lengkap` lewat muat ulang penuh (bukan klik dalam aplikasi) dialihkan ke halaman kerja karena peran belum termuat saat pengalih berjalan (kondisi balapan yang sudah ada sebelumnya pada tautan dalam QA); jalur klik dalam aplikasi berfungsi.
+- UAT Dark/390 dan kasus Test Case yang sudah punya hasil belum dicoba dengan data nyata (data uji hanya satu Test Case tanpa hasil); dicakup component test.

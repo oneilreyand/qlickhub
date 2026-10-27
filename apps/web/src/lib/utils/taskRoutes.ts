@@ -8,12 +8,25 @@ export function getTaskPagePath(task: Pick<Task, 'id' | 'parentTaskId'>): string
   return task.parentTaskId ? `/work/subtasks/${task.id}` : `/work/features/${task.id}`;
 }
 
-/** Subtask QA dibuka petugas QA di meja kerja QA sampai halaman QA tersedia (P3). */
+/**
+ * Subtask QA kini membuka halaman kerja QA (P3d). Desk QA lama hanya dibuka bila diminta
+ * eksplisit lewat `?desk=lengkap` (Bug & Retest, impor, persetujuan) sampai P4c.
+ */
 export function shouldUseLegacyQaWorkspace(
   userRole: string | null | undefined,
   task: Pick<Task, 'deliveryArea'>,
+  search = '',
 ): boolean {
-  return userRole === 'qa' && task.deliveryArea === 'qa';
+  return (
+    userRole === 'qa' &&
+    task.deliveryArea === 'qa' &&
+    new URLSearchParams(search).get('desk') === 'lengkap'
+  );
+}
+
+/** Tautan ke desk QA lengkap untuk satu subtask QA. */
+export function getQaFullDeskPath(qaSubtaskId: string): string {
+  return `/my-tasks?taskId=${encodeURIComponent(qaSubtaskId)}&desk=lengkap`;
 }
 
 /** Halaman tambah Test Case, selalu dalam konteks subtask QA milik pelaksana. */
