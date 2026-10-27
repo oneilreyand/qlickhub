@@ -33,8 +33,8 @@ flowchart LR
 
 | Phase | Tujuan yang terlihat user                                                                                           | AC                             | WRA  | Bergantung pada | Status                                 |
 | ----- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---- | --------------- | -------------------------------------- |
-| P1    | Shell sederhana: Sidebar ringkas dengan pemilih workspace, 4 menu utama, menu Lainnya, folder, profil; header tipis | AC-1.1, AC-1.2                 | 6/16 | PR #59          | Kandidat teruji — menunggu verifier G5 |
-| P2a   | Detail Feature sebagai halaman dengan stepper; 8 tab dipetakan ke tahap dan header                                  | AC-2.1, AC-2.2                 | 7/16 | P1              | Belum mulai                            |
+| P1    | Shell sederhana: Sidebar ringkas dengan pemilih workspace, 4 menu utama, menu Lainnya, folder, profil; header tipis | AC-1.1, AC-1.2                 | 6/16 | PR #59          | Accepted (G5 Owner, 2026-10-27)        |
+| P2a   | Detail Feature sebagai halaman dengan stepper; 8 tab dipetakan ke tahap dan header                                  | AC-2.1, AC-2.2                 | 7/16 | P1              | Kandidat teruji — menunggu verifier G5 |
 | P2b   | URL lama dialihkan; halaman detail kerjaan Developer dengan cek AC dan Kirim ke QA                                  | AC-2.3, AC-2.4                 | 6/16 | P2a             | Belum mulai                            |
 | P3a   | Halaman tambah dan jalankan Test Case; bukti wajib untuk Gagal/Terblokir; 403 non-QA                                | AC-3.1, AC-3.2, AC-3.3, AC-3.6 | 7/16 | P2b             | Belum mulai                            |
 | P3b   | Centang per langkah dan browser/perangkat tersimpan bersama hasil                                                   | AC-3.4                         | 7/16 | P3a             | Belum mulai                            |

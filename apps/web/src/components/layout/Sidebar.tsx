@@ -122,6 +122,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const canAccessLeaderHub = ['owner', 'admin'].includes(userRole);
   const isTaskHub =
     location.pathname === '/work' && new URLSearchParams(location.search).get('tab') === 'tasks';
+  // Halaman Feature dan tautan langsung Task adalah bagian dari Task Hub: Sidebar tetap
+  // menampilkan folder dan menyorot menu Task Hub.
+  const isFeaturePage =
+    /^\/work\/features\/[^/]+$/.test(location.pathname) ||
+    /^\/projects\/[^/]+\/tasks\/[^/]+$/.test(location.pathname);
+  const showFolders = isTaskHub || isFeaturePage;
   const isUnfiledSelected = new URLSearchParams(location.search).get('unfiledOnly') === 'true';
 
   // The workspace shell keeps labels visible on desktop; the mobile drawer reuses the same shape.
@@ -150,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
     const Icon = item.icon;
     const searchParams = new URLSearchParams(location.search);
     const currentTab = searchParams.get('tab') || (location.pathname === '/work' ? 'overview' : '');
-    const isTaskDeepLink = /^\/projects\/[^/]+\/tasks\/[^/]+$/.test(location.pathname);
+    const isTaskDeepLink = isFeaturePage;
 
     const isActive =
       item.path === '/work?tab=overview'
@@ -298,7 +304,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
             </>
           )}
         </nav>
-        {isTaskHub && (
+        {showFolders && (
           <div className="mt-4 border-t border-stone-100 px-3 pt-4 dark:border-stone-800/80">
             <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-400 dark:text-stone-500">
               Folder workspace
@@ -308,7 +314,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
                 folders={folders}
                 selectedFolderId={selectedFolderId || null}
                 isUnfiledSelected={isUnfiledSelected}
-                totalTasks={workspaceFeatureCount}
+                // Jumlah berasal dari daftar Task Hub; di halaman Feature yang dibuka langsung
+                // daftar itu belum dimuat, jadi angka disembunyikan daripada menampilkan 0.
+                totalTasks={
+                  isFeaturePage && workspaceFeatureCount === 0 ? undefined : workspaceFeatureCount
+                }
                 isLoading={isFolderLoading}
                 error={folderError}
                 userRole={activeWorkspace?.role}

@@ -55,6 +55,12 @@ const TaskDeepLinkPage = lazy(async () => ({
   ).TaskDeepLinkPage,
 }));
 
+const FeatureDetailPage = lazy(async () => ({
+  default: (
+    await loadRouteModuleWithRecovery('feature-detail', () => import('../pages/FeatureDetailPage'))
+  ).FeatureDetailPage,
+}));
+
 const protectedPageFallback = (
   <div
     className="min-h-screen w-screen bg-[#FBFCF7] dark:bg-[#141413] flex items-center justify-center"
@@ -80,6 +86,18 @@ export const App: React.FC = () => {
                 <Suspense fallback={protectedPageFallback}>
                   <AppLayout>
                     <WorkHubPage />
+                  </AppLayout>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/work/features/:featureId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <FeatureDetailPage />
                   </AppLayout>
                 </Suspense>
               </ProtectedRoute>

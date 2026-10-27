@@ -47,8 +47,9 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT. Pada fase ini E4 = UAT lokal (batas
 
 ## 5. Hasil verifier
 
-| Phase | Verifier (bukan pelaksana)  | Bukti primer yang dicek ulang | Hasil    | AC terdampak / gap                                          |
-| ----- | --------------------------- | ----------------------------- | -------- | ----------------------------------------------------------- |
-| P1    | Belum — perlu Owner atau QA | —                             | Menunggu | Pelaksana dan UAT oleh Claude; G5 butuh verifier independen |
+| Phase | Verifier (bukan pelaksana)                              | Bukti primer yang dicek ulang                                                                                       | Hasil    | AC terdampak / gap                                          |
+| ----- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------- |
+| P1    | Owner (Reyand), 2026-10-27, pesan "aku sudah setuju p1" | UAT lokal di `localhost:3000` (login sendiri), laporan suite 717/717, PR #60                                        | Accepted | —                                                           |
+| P2a   | Belum — menunggu Owner                                  | Bukti P2a ada di [phases/PHASE-02.md](phases/PHASE-02.md) §3: 735 test lulus, UAT Light/Dark, 8 bagian lama terbuka | Menunggu | Pelaksana dan UAT oleh Claude; G5 butuh verifier independen |
 
 Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).

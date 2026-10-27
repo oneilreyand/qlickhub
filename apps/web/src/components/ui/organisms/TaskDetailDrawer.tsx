@@ -27,7 +27,15 @@ import type {
 import { getTaskScheduleValidationIssue } from '@qlick/contracts';
 import { getIndonesianTaskScheduleMessage } from '../../../lib/i18n/indonesianCopy';
 
-import { Drawer } from '../molecules/Drawer';
+import { Drawer, type DrawerProps } from '../molecules/Drawer';
+import { FeatureStageStepper } from '../molecules/FeatureStageStepper';
+import {
+  FEATURE_HEADER_TABS,
+  FEATURE_STAGE_TABS,
+  deriveFeatureStage,
+  stageForTab,
+  type FeatureStageParam,
+} from '../../../lib/utils/featureStages';
 import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
 import { Skeleton } from '../atoms/Skeleton';
@@ -43,6 +51,7 @@ import {
 import { BugExperiencePanel, type BugExperienceInitialState } from './BugExperiencePanel';
 import type { RequirementManagerInitialState } from './RequirementManager';
 import {
+  TaskDetailPageFrame,
   TaskDetailOverviewTab,
   TaskDetailProductBriefTab,
   TaskDetailSpecsTab,
@@ -112,7 +121,43 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+type DetailFrameProps = Pick<
+  DrawerProps,
+  'onClose' | 'title' | 'subtitle' | 'toolbar' | 'footer' | 'children' | 'closeOnEscape'
+> & {
+  layout: 'drawer' | 'page';
+  headerActions?: React.ReactNode;
+  backLabel?: string;
+};
+
+/** Drawer menutup layar; page tampil di area konten dengan Sidebar tetap terlihat. */
+const DetailFrame: React.FC<DetailFrameProps> = ({
+  layout,
+  backLabel,
+  closeOnEscape,
+  headerActions,
+  ...frame
+}) =>
+  layout === 'page' ? (
+    <TaskDetailPageFrame {...frame} backLabel={backLabel} headerActions={headerActions} />
+  ) : (
+    <Drawer
+      isOpen
+      width="4xl"
+      defaultFullScreen={true}
+      allowFullScreen={true}
+      closeOnEscape={closeOnEscape}
+      {...frame}
+    />
+  );
+
 export interface TaskDetailDrawerProps {
+  /** `page` menampilkan detail sebagai halaman Feature (stepper Plan · PRD · Task · Apply). */
+  layout?: 'drawer' | 'page';
+  /** Tab awal pada layout page; default `overview`. */
+  initialTab?: string;
+  onTabChange?: (tabId: string) => void;
+  backLabel?: string;
   task: Task | null;
   folders: FolderTreeNode[];
   pendingTaskId?: string | null;
@@ -127,6 +172,10 @@ export interface TaskDetailDrawerProps {
 }
 
 export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
+  layout = 'drawer',
+  initialTab,
+  onTabChange,
+  backLabel,
   task,
   folders,
   pendingTaskId,
@@ -152,7 +201,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   );
   const userWorkspaceRole = (activeWorkspace?.role || '').toLowerCase();
 
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [activeTab, setActiveTab] = useState<string>(initialTab ?? 'overview');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
@@ -347,7 +396,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         setFolderId(task.folderId || null);
         setStartDate(task.startDate || '');
         setDueDate(task.dueDate || '');
-        setActiveTab('overview');
+        setActiveTab(layout === 'page' && initialTab ? initialTab : 'overview');
         setIsProductBriefDirty(false);
         setPendingNavigation(null);
         setActivityPage(1);
@@ -597,16 +646,41 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     return () => window.removeEventListener('beforeunload', protectBrowserNavigation);
   }, [taskDraftIsDirty, isProductBriefDirty]);
 
+  const hasPickedInitialStage = useRef(Boolean(initialTab));
+  const onTabChangeRef = useRef(onTabChange);
+  onTabChangeRef.current = onTabChange;
+  useEffect(() => {
+    // Pada halaman tanpa tahap di URL, tunggu tahap awal dipilih agar URL tidak berkedip.
+    if (layout === 'page' && !hasPickedInitialStage.current) return;
+    onTabChangeRef.current?.(activeTab);
+  }, [activeTab, layout]);
+
+  const derivedStage: FeatureStageParam = deriveFeatureStage({
+    subtaskCount: subtasks.length,
+    hasProductBrief: Boolean(productBrief),
+    requirementCount: featureEligibleRequirements?.length ?? 0,
+  });
+
+  // Tanpa tahap di URL, halaman Feature dibuka pada tahap Feature saat ini
+  // setelah datanya selesai dimuat (sekali per halaman).
+  const isDetailReady =
+    Boolean(task) && loadedTaskKey === `${effectiveWorkspaceId || task?.workspaceId}:${task?.id}`;
+  useEffect(() => {
+    if (layout !== 'page' || hasPickedInitialStage.current || !isDetailReady) return;
+    hasPickedInitialStage.current = true;
+    const tabs = FEATURE_STAGE_TABS[derivedStage];
+    const next = task?.parentTaskId ? tabs.find((id) => id !== 'brief') : tabs[0];
+    if (next) setActiveTab(next);
+  }, [layout, isDetailReady, derivedStage, task?.parentTaskId]);
+
   if (!task) {
     if (!pendingTaskId) return null;
 
     return (
-      <Drawer
-        isOpen
+      <DetailFrame
+        layout={layout}
+        backLabel={backLabel}
         onClose={onClose}
-        width="4xl"
-        defaultFullScreen={true}
-        allowFullScreen={true}
         closeOnEscape={!pendingNavigation}
         title={detailLoadError ? 'Detail task tidak tersedia' : 'Memuat detail task'}
         subtitle={
@@ -638,7 +712,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         ) : (
           <TaskDetailLoadingBody />
         )}
-      </Drawer>
+      </DetailFrame>
     );
   }
 
@@ -647,18 +721,16 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
   if (isInitialDetailLoading) {
     return (
-      <Drawer
-        isOpen
+      <DetailFrame
+        layout={layout}
+        backLabel={backLabel}
         onClose={onClose}
-        width="4xl"
-        defaultFullScreen={true}
-        allowFullScreen={true}
         title="Memuat detail task"
         subtitle="Mengambil data terbaru dari Workspace…"
         toolbar={<TaskDetailLoadingToolbar />}
       >
         <TaskDetailLoadingBody />
-      </Drawer>
+      </DetailFrame>
     );
   }
 
@@ -1069,24 +1141,75 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     },
   ];
 
+  const activeStage = stageForTab(activeTab);
+  const stageSubTabs = activeStage
+    ? detailTabs.filter((tab) => FEATURE_STAGE_TABS[activeStage].includes(tab.id))
+    : [];
+  const pageHeaderActions =
+    layout === 'page' ? (
+      <div role="group" aria-label="Bagian lain" className="flex flex-wrap items-center gap-1.5">
+        {FEATURE_HEADER_TABS.map((tabId) => {
+          const tab = detailTabs.find((item) => item.id === tabId);
+          if (!tab) return null;
+          return (
+            <Button
+              key={tab.id}
+              variant={activeTab === tab.id ? 'primary' : 'outline'}
+              size="sm"
+              aria-pressed={activeTab === tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              leftIcon={tab.icon}
+            >
+              {tab.label}
+            </Button>
+          );
+        })}
+      </div>
+    ) : undefined;
+
   return (
     <>
-      <Drawer
-        isOpen={Boolean(task)}
+      <DetailFrame
+        layout={layout}
+        backLabel={backLabel}
+        headerActions={pageHeaderActions}
         onClose={handleRequestClose}
-        width="4xl"
-        defaultFullScreen={true}
-        allowFullScreen={true}
         title={task.title}
         subtitle={`ID Task: ${task.id.substring(0, 8)} • Dibuat ${new Date(task.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}${task.deliveryArea ? ` • Area Delivery: ${task.deliveryArea.toUpperCase()}` : ''}`}
         toolbar={
-          <Tabs
-            tabs={detailTabs}
-            activeTabId={activeTab}
-            onChange={handleTabChange}
-            variant="pills"
-            ariaLabel="Bagian detail Task"
-          />
+          layout === 'page' ? (
+            <>
+              <FeatureStageStepper
+                currentStage={derivedStage}
+                selectedStage={stageForTab(activeTab)}
+                disabledStages={['apply']}
+                onSelect={(stage) => {
+                  if (stage === 'apply') return;
+                  const first = FEATURE_STAGE_TABS[stage].find((id) =>
+                    detailTabs.some((tab) => tab.id === id),
+                  );
+                  if (first) handleTabChange(first);
+                }}
+              />
+              {stageSubTabs.length > 0 && (
+                <Tabs
+                  tabs={stageSubTabs}
+                  activeTabId={activeTab}
+                  onChange={handleTabChange}
+                  variant="pills"
+                  ariaLabel="Bagian pada tahap ini"
+                />
+              )}
+            </>
+          ) : (
+            <Tabs
+              tabs={detailTabs}
+              activeTabId={activeTab}
+              onChange={handleTabChange}
+              variant="pills"
+              ariaLabel="Bagian detail Task"
+            />
+          )
         }
         footer={
           activeTab === 'overview' ? (
@@ -1328,7 +1451,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             />
           )}
         </div>
-      </Drawer>
+      </DetailFrame>
 
       <CreateSubtaskModal
         parentTask={task}

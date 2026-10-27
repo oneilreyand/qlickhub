@@ -161,4 +161,20 @@ describe('Sidebar Role-based Visibility', () => {
 
     expect(screen.getByRole('link', { name: 'Task Hub' })).toHaveClass('bg-[#B1E743]');
   });
+
+  it('keeps Task Hub active and shows folders on the Feature page (AC-2.1)', () => {
+    renderSidebar('po', '/work/features/10000000-0000-4000-8000-000000000002?tahap=prd');
+
+    expect(screen.getByRole('link', { name: 'Task Hub' })).toHaveClass('bg-[#B1E743]');
+    expect(screen.getByText('Folder workspace')).toBeInTheDocument();
+  });
+
+  it('shows folders only on work pages', () => {
+    const { unmount } = renderSidebar('po', '/work?tab=tasks');
+    expect(screen.getByText('Folder workspace')).toBeInTheDocument();
+    unmount();
+
+    renderSidebar('po', '/reports');
+    expect(screen.queryByText('Folder workspace')).not.toBeInTheDocument();
+  });
 });

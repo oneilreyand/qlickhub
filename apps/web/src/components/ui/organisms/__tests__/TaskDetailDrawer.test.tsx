@@ -1220,4 +1220,101 @@ describe('TaskDetailDrawer UI Component', () => {
     // Subtasks tab must now display the animated unread badge: "+1 Baru"
     expect(await screen.findByText(/\+1 Baru/i)).toBeInTheDocument();
   });
+  describe('layout page (halaman detail Feature)', () => {
+    test('tampil sebagai halaman, bukan dialog, dengan stepper tahap dan bagian di baris atas (AC-2.1, AC-2.2)', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer layout="page" task={mockTask} folders={[]} onClose={vi.fn()} />,
+        'po',
+      );
+
+      expect(
+        await screen.findByRole('heading', { name: 'Test Parent Task Title' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByRole('navigation', { name: 'Tahap Feature' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Apply/ })).toBeDisabled();
+
+      const otherSections = screen.getByRole('group', { name: 'Bagian lain' });
+      expect(within(otherSections).getByRole('button', { name: /Aktivitas/ })).toBeInTheDocument();
+      expect(within(otherSections).getByRole('button', { name: /Bug/ })).toBeInTheDocument();
+      expect(
+        within(otherSections).getByRole('button', { name: /Jejak Delivery/ }),
+      ).toBeInTheDocument();
+    });
+
+    test('Brief Produk dan Requirement berada di tahap PRD; Diskusi di tahap Plan', async () => {
+      const onTabChange = vi.fn();
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="discussion"
+          onTabChange={onTabChange}
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+
+      await screen.findByRole('heading', { name: 'Test Parent Task Title' });
+      expect(screen.getByRole('button', { name: /Plan/ })).toHaveAttribute('aria-current', 'step');
+      expect(screen.getByRole('tab', { name: /Diskusi/ })).toHaveAttribute('aria-selected', 'true');
+
+      fireEvent.click(screen.getByRole('button', { name: /PRD/ }));
+      expect(await screen.findByRole('tab', { name: /Brief Produk/ })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(screen.getByRole('tab', { name: /Requirement/ })).toBeInTheDocument();
+      expect(onTabChange).toHaveBeenLastCalledWith('brief');
+
+      fireEvent.click(
+        within(screen.getByRole('navigation', { name: 'Tahap Feature' })).getByRole('button', {
+          name: /Task/,
+        }),
+      );
+      expect(await screen.findByRole('tab', { name: /Detail Task/ })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(screen.getByRole('tab', { name: /Subtask/ })).toBeInTheDocument();
+    });
+
+    test('membuka Bug dari baris atas tanpa memilih tahap', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer layout="page" task={mockTask} folders={[]} onClose={vi.fn()} />,
+        'po',
+      );
+      await screen.findByRole('heading', { name: 'Test Parent Task Title' });
+
+      fireEvent.click(
+        within(screen.getByRole('group', { name: 'Bagian lain' })).getByRole('button', {
+          name: /Bug/,
+        }),
+      );
+
+      expect(
+        within(screen.getByRole('navigation', { name: 'Tahap Feature' }))
+          .getAllByRole('button')
+          .some((button) => button.getAttribute('aria-current') === 'step'),
+      ).toBe(false);
+    });
+
+    test('tombol kembali memakai onClose', async () => {
+      const onClose = vi.fn();
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          backLabel="Task Hub"
+          task={mockTask}
+          folders={[]}
+          onClose={onClose}
+        />,
+        'po',
+      );
+      await screen.findByRole('heading', { name: 'Test Parent Task Title' });
+      fireEvent.click(screen.getByRole('button', { name: 'Task Hub' }));
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
 });

@@ -1,33 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import type { Task } from '@qlick/contracts';
 import { Card } from '../components/ui/atoms/Card';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
 import { MyTaskDetailWorkspaceDrawer } from '../components/ui/organisms/myTasks/MyTaskDetailWorkspaceDrawer';
 import { TaskDetailDrawer, TaskHubDashboardTemplate } from '../features/tasks';
-import { taskService } from '../lib/api/taskService';
+import { useTaskWithParent } from '../lib/hooks/useTaskWithParent';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { selectCurrentUserRole } from '../store/authSlice';
 import { fetchFolderTree } from '../store/folderSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setActiveWorkspaceId } from '../store/workspaceSlice';
-
-type RouteFailure = {
-  status?: number;
-  message: string;
-};
-
-function getFailure(error: unknown): RouteFailure {
-  return {
-    status:
-      typeof error === 'object' && error !== null && 'status' in error
-        ? Number(error.status)
-        : undefined,
-    message: error instanceof Error ? error.message : 'Task ini tidak dapat dimuat.',
-  };
-}
 
 export const TaskDeepLinkPage: React.FC = () => {
   const { projectId, taskId } = useParams<{ projectId: string; taskId: string }>();
@@ -42,12 +26,15 @@ export const TaskDeepLinkPage: React.FC = () => {
   const folders = useAppSelector((state) => state.folder.folders);
   const userRole = useAppSelector(selectCurrentUserRole);
 
-  const [task, setTask] = useState<Task | null>(null);
-  const [parentTask, setParentTask] = useState<Task | null>(null);
-  const [isTaskLoading, setIsTaskLoading] = useState(true);
-  const [isParentTaskLoading, setIsParentTaskLoading] = useState(false);
-  const [failure, setFailure] = useState<RouteFailure | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
+  const isWorkspaceReady = isInitialized && !isWorkspaceLoading;
+  const {
+    task,
+    parentTask,
+    isTaskLoading,
+    isParentTaskLoading,
+    failure,
+    reload: reloadTask,
+  } = useTaskWithParent(projectId, taskId, isWorkspaceReady);
 
   const featureTaskId = task?.parentTaskId || task?.id;
   const featureTaskIds = useMemo(() => (featureTaskId ? [featureTaskId] : []), [featureTaskId]);
@@ -70,60 +57,21 @@ export const TaskDeepLinkPage: React.FC = () => {
     });
 
   useEffect(() => {
-    if (!isInitialized || isWorkspaceLoading) return;
-
-    if (!projectId || !taskId) {
-      setFailure({ status: 404, message: 'The requested task route is incomplete.' });
-      setIsTaskLoading(false);
-      return;
-    }
-
-    let isCancelled = false;
-    const workspace = workspaces.find((item) => item.id === projectId);
-    if (workspace) {
+    if (!isWorkspaceReady || !projectId) return;
+    if (workspaces.some((item) => item.id === projectId)) {
       dispatch(setActiveWorkspaceId(projectId));
       void dispatch(fetchFolderTree(projectId));
     }
+  }, [dispatch, isWorkspaceReady, projectId, workspaces]);
 
-    setTask(null);
-    setParentTask(null);
-    setFailure(null);
-    setIsTaskLoading(true);
-    setIsParentTaskLoading(false);
-
-    void taskService
-      .getTask(projectId, taskId)
-      .then(async (loadedTask) => {
-        if (isCancelled) return;
-        dispatch(setActiveWorkspaceId(projectId));
-        setTask(loadedTask);
-        setIsTaskLoading(false);
-
-        if (!loadedTask.parentTaskId) return;
-        setIsParentTaskLoading(true);
-        try {
-          const loadedParent = await taskService.getTask(projectId, loadedTask.parentTaskId);
-          if (!isCancelled) setParentTask(loadedParent);
-        } finally {
-          if (!isCancelled) setIsParentTaskLoading(false);
-        }
-      })
-      .catch((error: unknown) => {
-        if (isCancelled) return;
-        setFailure(getFailure(error));
-        setIsTaskLoading(false);
-        setIsParentTaskLoading(false);
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [dispatch, isInitialized, isWorkspaceLoading, projectId, reloadToken, taskId, workspaces]);
+  useEffect(() => {
+    if (task && projectId) dispatch(setActiveWorkspaceId(projectId));
+  }, [dispatch, projectId, task]);
 
   const reload = useCallback(() => {
-    setReloadToken((current) => current + 1);
+    reloadTask();
     reloadReleaseReadiness();
-  }, [reloadReleaseReadiness]);
+  }, [reloadTask, reloadReleaseReadiness]);
 
   if (!isInitialized || isWorkspaceLoading) {
     return (
