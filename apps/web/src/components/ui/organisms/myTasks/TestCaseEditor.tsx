@@ -168,7 +168,7 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                           </span>
                           {node.requirement.title ? ` · ${node.requirement.title}` : ''}
                         </p>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="space-y-1.5">
                           {group.map((criterion) => {
                             const selected = criterionIds.includes(criterion.id);
                             return (
@@ -177,16 +177,29 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                                 type="button"
                                 aria-pressed={selected}
                                 aria-label={`${criterion.requirementCode} ${criterion.code}`}
-                                title={criterion.text}
                                 onClick={() => toggleCriterion(criterion.id)}
-                                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${
+                                className={`flex min-h-11 w-full items-start gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${
                                   selected
                                     ? 'border-[#B1E743] bg-[#F1F9DC] text-[#3F6212] dark:bg-[#253014] dark:text-[#B1E743]'
                                     : 'border-stone-300 text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800'
                                 }`}
                               >
-                                {selected && <Check aria-hidden="true" className="h-3.5 w-3.5" />}
-                                {criterion.code}
+                                <span
+                                  aria-hidden="true"
+                                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                                    selected
+                                      ? 'border-[#3F6212] bg-[#3F6212] text-white'
+                                      : 'border-stone-400 dark:border-stone-600'
+                                  }`}
+                                >
+                                  {selected && <Check className="h-3 w-3" />}
+                                </span>
+                                <span className="w-12 shrink-0 font-semibold">
+                                  {criterion.code}
+                                </span>
+                                <span className="min-w-0 break-words font-normal">
+                                  {criterion.text}
+                                </span>
                               </button>
                             );
                           })}
@@ -200,17 +213,6 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                 <p role="alert" className="mt-2 text-xs text-rose-600 dark:text-rose-400">
                   Pilih minimal satu AC yang diuji.
                 </p>
-              )}
-              {criterionIds.length > 0 && (
-                <ul className="mt-2 space-y-0.5 text-xs text-stone-600 dark:text-stone-400">
-                  {criteria
-                    .filter((criterion) => criterionIds.includes(criterion.id))
-                    .map((criterion) => (
-                      <li key={criterion.id}>
-                        {criterion.requirementCode} · {criterion.code}: {criterion.text}
-                      </li>
-                    ))}
-                </ul>
               )}
             </fieldset>
 
