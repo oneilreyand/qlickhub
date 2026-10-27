@@ -1079,6 +1079,55 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     assert.strictEqual(repeatedRetest.retestRun.testRun.id, startedRetest.retestRun.testRun.id);
   });
 
+  test('QA reopens a verified Bug with a required reason that the assigned Developer can read', async () => {
+    const verifiedBug = await BugModel.create({
+      workspaceId: workspaceA.id,
+      featureTaskId: featureA.id,
+      requirementId: requirementA.id,
+      assigneeId: assignedDev.id,
+      title: 'Verified then reproduced again',
+      severity: 'high',
+      status: 'verified',
+      reproductionDetails: 'Checkout total is wrong again.',
+      createdBy: qa.id,
+      verifiedAt: new Date(),
+    });
+    const reopenUrl = `${baseUrl}/workspaces/${workspaceA.id}/bugs/${verifiedBug.id}/reopen`;
+    const post = (cookie: string, body: unknown) =>
+      fetch(reopenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify(body),
+      });
+
+    assert.strictEqual((await post(qaCookie, {})).status, 400);
+    assert.strictEqual((await post(qaCookie, { reason: '   ' })).status, 400);
+    assert.strictEqual((await post(poCookie, { reason: 'Muncul lagi' })).status, 403);
+    assert.strictEqual((await post(assignedDevCookie, { reason: 'Muncul lagi' })).status, 403);
+
+    const reopened = await post(qaCookie, { reason: 'Total salah lagi di build 2.' });
+    assert.strictEqual(reopened.status, 200);
+    const body = (await reopened.json()) as { bug: { status: string } };
+    assert.strictEqual(body.bug.status, 'reopened');
+    const persisted = await BugModel.findByPk(verifiedBug.id);
+    assert.strictEqual(persisted?.status, 'reopened');
+    assert.strictEqual(persisted?.verifiedAt, null);
+
+    assert.strictEqual((await post(qaCookie, { reason: 'Sekali lagi' })).status, 409);
+
+    const activity = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${verifiedBug.id}/activity`,
+      { headers: { Cookie: assignedDevCookie } },
+    );
+    assert.strictEqual(activity.status, 200);
+    const activityBody = (await activity.json()) as {
+      activity: Array<{ action: string; fromStatus: string | null; metadata: any }>;
+    };
+    const reopenEntry = activityBody.activity.find((entry) => entry.action === 'bug_reopened');
+    assert.strictEqual(reopenEntry?.fromStatus, 'verified');
+    assert.strictEqual(reopenEntry?.metadata?.reason, 'Total salah lagi di build 2.');
+  });
+
   test('rejects passed Results, non-members, and cross-Workspace links at HTTP boundaries', async () => {
     const passedResult = await fetch(`${baseUrl}/workspaces/${workspaceA.id}/bugs`, {
       method: 'POST',

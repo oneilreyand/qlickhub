@@ -18,6 +18,7 @@ import type {
   BugRetestRun,
   BugRetestTimelineAttempt,
   CreateBugRetestRunInput,
+  ReopenBugInput,
   TestRun,
 } from '@qlick/contracts';
 import { sequelize } from '../../db/sequelize.js';
@@ -49,6 +50,7 @@ import {
 } from '../../db/models/index.js';
 import {
   assertBugStatusTransition,
+  assertCanReopenVerifiedBug,
   assertCanAddBugEvidence,
   assertCanCreateBug,
   assertCanReadBug,
@@ -1308,6 +1310,80 @@ export class BugService {
     void reliableNotificationOutboxService.dispatchDue(50);
 
     return result;
+  }
+
+  /**
+   * QA/Owner/Admin membuka kembali Bug yang sudah Terverifikasi karena temuan muncul lagi.
+   * Alasan wajib dan dicatat di aktivitas supaya Developer yang ditugaskan melihatnya.
+   */
+  async reopenBug(actorId: string, input: ReopenBugInput): Promise<BugWithContext> {
+    await sequelize.transaction(async (transaction) => {
+      const membership = await requireActiveMember(input.workspaceId, actorId, transaction);
+      assertCanReopenVerifiedBug(membership.role);
+      const bug = await BugModel.findOne({
+        where: { id: input.bugId, workspaceId: input.workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
+      if (bug.status !== 'verified') {
+        throw new Error('CONFLICT: Only a verified Bug can be reopened this way.');
+      }
+      const latestResolution = await BugResolutionEventModel.findOne({
+        where: { workspaceId: input.workspaceId, bugId: bug.id },
+        order: [['sequence', 'DESC']],
+        transaction,
+      });
+      await bug.update({ status: 'reopened', verifiedAt: null, resolvedAt: null }, { transaction });
+      const activity = await BugActivityModel.create(
+        {
+          workspaceId: input.workspaceId,
+          bugId: bug.id,
+          actorId,
+          action: 'bug_reopened',
+          fromStatus: 'verified',
+          toStatus: 'reopened',
+          metadata: {
+            reason: input.reason.trim(),
+            kind: 'reopened_after_verification',
+            resolutionEventId: latestResolution?.id ?? null,
+          },
+        },
+        { transaction },
+      );
+      const stakeholderMembers = await WorkspaceMemberModel.findAll({
+        where: { workspaceId: input.workspaceId },
+        attributes: ['userId', 'role'],
+        transaction,
+      });
+      const recipients = [
+        bug.assigneeId,
+        bug.createdBy,
+        ...(bug.severity === 'critical' || bug.severity === 'high'
+          ? stakeholderMembers
+              .filter((member) => ['po', 'owner', 'admin'].includes(member.role))
+              .map((member) => member.userId)
+          : []),
+      ].filter((recipientId): recipientId is string =>
+        Boolean(recipientId && recipientId !== actorId),
+      );
+      await reliableNotificationOutboxService.enqueue(
+        `bug-reopen:${activity.id}`,
+        [...new Set(recipients)].map((userId) => ({
+          userId,
+          workspaceId: input.workspaceId,
+          taskId: bug.featureTaskId,
+          actorId,
+          type: 'bug_status_change',
+          title: 'Bug Dibuka Kembali QA',
+          message: `QA membuka kembali bug "${bug.title}" setelah terverifikasi: ${input.reason.trim()}`,
+          payload: { bugId: bug.id, status: 'reopened', activityId: activity.id },
+        })),
+        transaction,
+      );
+    });
+    void reliableNotificationOutboxService.dispatchDue(50);
+    return this.getBug(input.workspaceId, input.bugId, actorId);
   }
 
   async updateBug(actorId: string, input: UpdateBugInput): Promise<BugWithContext> {

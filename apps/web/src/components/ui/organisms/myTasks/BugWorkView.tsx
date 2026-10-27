@@ -55,6 +55,10 @@ export interface BugWorkViewProps {
   canFix: boolean;
   /** QA: boleh memulai retest saat Bug menunggu retest. */
   canRetest: boolean;
+  /** QA/Owner/Admin: boleh membuka kembali Bug yang sudah Terverifikasi. */
+  canReopen?: boolean;
+  /** Alasan QA saat membuka kembali Bug yang sudah terverifikasi (untuk Developer). */
+  reopenReason?: string | null;
   isBusy: boolean;
   error?: string | null;
   onBack: () => void;
@@ -62,6 +66,7 @@ export interface BugWorkViewProps {
   onStart: () => void;
   onResolve: (values: BugResolveValues) => Promise<void>;
   onStartRetest: () => void;
+  onReopen?: (reason: string) => Promise<void>;
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -81,6 +86,8 @@ export const BugWorkView: React.FC<BugWorkViewProps> = ({
   reporterName,
   canFix,
   canRetest,
+  canReopen = false,
+  reopenReason,
   isBusy,
   error,
   onBack,
@@ -88,6 +95,7 @@ export const BugWorkView: React.FC<BugWorkViewProps> = ({
   onStart,
   onResolve,
   onStartRetest,
+  onReopen,
 }) => {
   const [isResolving, setIsResolving] = useState(false);
   const [values, setValues] = useState<BugResolveValues>({
@@ -98,6 +106,9 @@ export const BugWorkView: React.FC<BugWorkViewProps> = ({
   });
   const [preview, setPreview] = useState<TestResultEvidenceLink | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [isReopening, setIsReopening] = useState(false);
+  const [reopenText, setReopenText] = useState('');
+  const [isReopenSending, setIsReopenSending] = useState(false);
 
   const currentIndex = Math.max(
     0,
@@ -106,6 +117,7 @@ export const BugWorkView: React.FC<BugWorkViewProps> = ({
   const canStart = canFix && (bug.status === 'open' || bug.status === 'reopened');
   const canSend = canFix && bug.status === 'in_progress';
   const canStartRetest = canRetest && bug.status === 'resolved';
+  const canReopenNow = canReopen && Boolean(onReopen) && bug.status === 'verified';
   const sendBlocker = !values.candidateFingerprint.trim()
     ? 'Isi kandidat perbaikan (mis. commit:a1b2c3d).'
     : !values.resolutionNotes.trim()
@@ -123,6 +135,18 @@ export const BugWorkView: React.FC<BugWorkViewProps> = ({
   const originCase = bug.originatingTestCase;
   const triageLinks = bug.bugEvidenceLinks.filter((link) => link.evidenceStage !== 'resolution');
   const originLinks = origin?.evidenceLinks ?? [];
+
+  const submitReopen = async () => {
+    if (!onReopen) return;
+    setIsReopenSending(true);
+    try {
+      await onReopen(reopenText.trim());
+      setIsReopening(false);
+      setReopenText('');
+    } finally {
+      setIsReopenSending(false);
+    }
+  };
 
   const submit = async () => {
     setIsSending(true);
@@ -170,7 +194,7 @@ export const BugWorkView: React.FC<BugWorkViewProps> = ({
             );
           })}
         </ol>
-        {(canStart || canSend || canStartRetest) && (
+        {(canStart || canSend || canStartRetest || (canReopenNow && !isReopening)) && (
           <div className="flex flex-col items-end gap-1.5 max-sm:w-full max-sm:items-stretch">
             {canStart && (
               <Button variant="primary" isLoading={isBusy} onClick={onStart}>
@@ -187,6 +211,11 @@ export const BugWorkView: React.FC<BugWorkViewProps> = ({
                 Mulai retest
               </Button>
             )}
+            {canReopenNow && !isReopening && (
+              <Button variant="outline" onClick={() => setIsReopening(true)}>
+                Buka kembali
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -194,7 +223,9 @@ export const BugWorkView: React.FC<BugWorkViewProps> = ({
       {bug.status === 'reopened' && (
         <div className="mb-4">
           <Alert tone="warning">
-            Bug dibuka kembali setelah retest QA gagal. Lihat riwayat di bawah sebelum memperbaiki.
+            {reopenReason
+              ? `QA membuka kembali Bug ini setelah terverifikasi. Alasan: ${reopenReason}`
+              : 'Bug dibuka kembali setelah retest QA gagal. Lihat riwayat di bawah sebelum memperbaiki.'}
           </Alert>
         </div>
       )}
@@ -206,6 +237,43 @@ export const BugWorkView: React.FC<BugWorkViewProps> = ({
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex min-w-0 flex-col gap-4">
+          {isReopening && canReopenNow && (
+            <section
+              aria-labelledby="bug-reopen"
+              className={`${cardClass} space-y-3 border-2 border-stone-900 p-5 dark:border-stone-200`}
+            >
+              <h2 id="bug-reopen" className={cardTitleClass}>
+                Buka kembali Bug
+              </h2>
+              <Textarea
+                id="bug-reopen-reason"
+                label="Alasan dibuka kembali"
+                rows={4}
+                value={reopenText}
+                onChange={(event) => setReopenText(event.target.value)}
+                placeholder="Apa yang masih terlihat setelah Bug terverifikasi, dan di build mana."
+              />
+              {!reopenText.trim() && (
+                <p className="text-xs text-stone-600 dark:text-stone-400">
+                  Tulis alasan agar Developer tahu apa yang muncul lagi.
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  isLoading={isReopenSending}
+                  disabled={!reopenText.trim()}
+                  onClick={() => void submitReopen()}
+                >
+                  Buka kembali Bug
+                </Button>
+                <Button variant="outline" onClick={() => setIsReopening(false)}>
+                  Batal
+                </Button>
+              </div>
+            </section>
+          )}
+
           {isResolving && canSend && (
             <section
               aria-labelledby="bug-resolve"

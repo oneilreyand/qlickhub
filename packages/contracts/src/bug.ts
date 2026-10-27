@@ -60,6 +60,12 @@ export const CreateBugRetestAttemptSchema = z.object({
   testResultId: z.string().uuid(),
 });
 export type CreateBugRetestAttemptInput = z.infer<typeof CreateBugRetestAttemptSchema>;
+export const ReopenBugSchema = z.object({
+  workspaceId: z.string().uuid(),
+  bugId: z.string().uuid(),
+  reason: NonBlankTextSchema.max(2000),
+});
+export type ReopenBugInput = z.infer<typeof ReopenBugSchema>;
 export const BugRetestTimelineAttemptSchema = BugRetestAttemptSchema.extend({
   result: TestResultSchema,
   evidenceManifests: z.array(TestResultEvidenceManifestSchema),

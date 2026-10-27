@@ -12,6 +12,7 @@ import {
   createBugRetestAttempt,
   createBugRetestRun,
   getBugRetestHistory,
+  reopenBug,
 } from './bugController.js';
 
 export const bugRoutes = Router({ mergeParams: true });
@@ -39,6 +40,11 @@ bugRoutes.post(
   '/workspaces/:workspaceId/bugs/:bugId/retest-attempts',
   requireWorkspaceMember(['qa']),
   createBugRetestAttempt,
+);
+bugRoutes.post(
+  '/workspaces/:workspaceId/bugs/:bugId/reopen',
+  requireWorkspaceMember(['owner', 'admin', 'qa']),
+  reopenBug,
 );
 bugRoutes.post(
   '/workspaces/:workspaceId/bugs/:bugId/retest-runs',

@@ -15,6 +15,8 @@ const bugMocks = vi.hoisted(() => ({
   updateBug: vi.fn(),
   createResolutionEvent: vi.fn(),
   createRetestRun: vi.fn(),
+  listBugActivity: vi.fn(),
+  reopenBug: vi.fn(),
 }));
 const tmMocks = vi.hoisted(() => ({
   listQaTestCycles: vi.fn(),
@@ -95,6 +97,7 @@ describe('BugWorkPage', () => {
     bugMocks.getRetestHistory.mockResolvedValue({ cycles: [] });
     bugMocks.updateBug.mockResolvedValue({});
     tmMocks.listQaTestCycles.mockResolvedValue([]);
+    bugMocks.listBugActivity.mockResolvedValue([]);
   });
 
   it('lets the assigned developer start the bug', async () => {
@@ -156,6 +159,32 @@ describe('BugWorkPage', () => {
       }),
     );
     await waitFor(() => expect(bugMocks.createRetestRun).toHaveBeenCalled());
+  });
+
+  it('lets QA reopen a verified bug with a reason', async () => {
+    bugMocks.getBug.mockResolvedValue({ ...bug, status: 'verified' });
+    bugMocks.reopenBug.mockResolvedValue({});
+    renderPage('qa', 'qa-1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Buka kembali' }));
+    await userEvent.type(screen.getByLabelText('Alasan dibuka kembali'), 'Muncul lagi di build 2');
+    await userEvent.click(screen.getByRole('button', { name: 'Buka kembali Bug' }));
+    await waitFor(() =>
+      expect(bugMocks.reopenBug).toHaveBeenCalledWith('w1', 'b1', 'Muncul lagi di build 2'),
+    );
+  });
+
+  it('shows the QA reason to the developer on a reopened bug', async () => {
+    bugMocks.getBug.mockResolvedValue({ ...bug, status: 'reopened' });
+    bugMocks.listBugActivity.mockResolvedValue([
+      {
+        action: 'bug_reopened',
+        fromStatus: 'verified',
+        toStatus: 'reopened',
+        metadata: { reason: 'Total salah lagi' },
+      },
+    ]);
+    renderPage('dev', 'dev-1');
+    expect(await screen.findByText(/Alasan: Total salah lagi/)).toBeInTheDocument();
   });
 
   it('opens the retest run page for QA', async () => {

@@ -87,4 +87,21 @@ describe('BugWorkView', () => {
     expect(screen.queryByRole('button', { name: 'Mulai retest' })).not.toBeInTheDocument();
     expect(screen.getByText(/dibuka kembali setelah retest/i)).toBeInTheDocument();
   });
+
+  it('requires a reason before reopening a verified bug', async () => {
+    const onReopen = vi.fn().mockResolvedValue(undefined);
+    setup('verified', { canReopen: true, onReopen });
+    fireEvent.click(screen.getByRole('button', { name: 'Buka kembali' }));
+    expect(screen.getByRole('button', { name: 'Buka kembali Bug' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Alasan dibuka kembali'), {
+      target: { value: 'Muncul lagi' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Buka kembali Bug' }));
+    await waitFor(() => expect(onReopen).toHaveBeenCalledWith('Muncul lagi'));
+  });
+
+  it('does not offer reopen to viewers or on a bug that is not verified', () => {
+    setup('verified');
+    expect(screen.queryByRole('button', { name: 'Buka kembali' })).not.toBeInTheDocument();
+  });
 });

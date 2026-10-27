@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import type { BugRetestHistory, BugWithContext } from '@qlick/contracts';
+import type { BugActivity, BugRetestHistory, BugWithContext } from '@qlick/contracts';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
@@ -37,6 +37,7 @@ export const BugWorkPage: React.FC = () => {
 
   const [bug, setBug] = useState<BugWithContext | null>(null);
   const [history, setHistory] = useState<BugRetestHistory | null>(null);
+  const [activity, setActivity] = useState<BugActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [failure, setFailure] = useState<{ status?: number; message: string } | null>(null);
   const [isBusy, setIsBusy] = useState(false);
@@ -54,11 +55,13 @@ export const BugWorkPage: React.FC = () => {
     Promise.all([
       bugService.getBug(activeWorkspaceId, bugId),
       bugService.getRetestHistory(activeWorkspaceId, bugId).catch(() => null),
+      bugService.listBugActivity(activeWorkspaceId, bugId).catch(() => []),
     ])
-      .then(([loadedBug, loadedHistory]) => {
+      .then(([loadedBug, loadedHistory, loadedActivity]) => {
         if (!isCurrent) return;
         setBug(loadedBug);
         setHistory(loadedHistory);
+        setActivity(loadedActivity);
         setIsLoading(false);
       })
       .catch((error) => {
@@ -163,6 +166,14 @@ export const BugWorkPage: React.FC = () => {
     });
   };
 
+  const handleReopen = async (reason: string) => {
+    if (!activeWorkspaceId || !bug) return;
+    await run(async () => {
+      await bugService.reopenBug(activeWorkspaceId, bug.id, reason);
+      reload();
+    }, 'Bug dibuka kembali untuk Developer');
+  };
+
   const handleStartRetest = () => {
     if (!activeWorkspaceId || !bug) return;
     void run(async () => {
@@ -218,6 +229,14 @@ export const BugWorkPage: React.FC = () => {
     ['dev', 'developer'].includes(userRole) &&
     Boolean(bug.assigneeId && currentUserId && bug.assigneeId === currentUserId);
   const canRetest = userRole === 'qa';
+  const canReopen = ['qa', 'owner', 'admin'].includes(userRole);
+  const lastReopen = [...activity]
+    .reverse()
+    .find((entry) => entry.action === 'bug_reopened' && entry.fromStatus === 'verified');
+  const reopenReason =
+    bug.status === 'reopened' && typeof lastReopen?.metadata?.reason === 'string'
+      ? lastReopen.metadata.reason
+      : null;
 
   return (
     <BugWorkView
@@ -226,6 +245,8 @@ export const BugWorkPage: React.FC = () => {
       reporterName={bug.createdBy ? memberName(bug.createdBy) : undefined}
       canFix={canFix}
       canRetest={canRetest}
+      canReopen={canReopen}
+      reopenReason={reopenReason}
       isBusy={isBusy}
       error={actionError}
       onBack={() => navigate(returnTo, { state: returnState })}
@@ -237,6 +258,7 @@ export const BugWorkPage: React.FC = () => {
       onStart={handleStart}
       onResolve={handleResolve}
       onStartRetest={handleStartRetest}
+      onReopen={handleReopen}
     />
   );
 };
