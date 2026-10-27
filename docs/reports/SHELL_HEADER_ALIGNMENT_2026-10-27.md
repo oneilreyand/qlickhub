@@ -53,7 +53,7 @@ Header brand Sidebar sekarang memakai `h-20` (80px), sama dengan Header aplikasi
 - `npm run docs:completeness` — exit 0; 91 gap baseline, 0 gap baru, 0 gap selesai.
 - `npm run sdlc:check` — exit 0; skipped karena tidak ada baseline pembanding.
 - `git diff --check` — exit 0.
-- Tier — dicatat setelah commit diperiksa.
+- `node scripts/checkTier.mjs HEAD~1 HEAD` — exit 0; Tier 1, tidak ada path Tier 2; commit `e6f9324` dipush ke [PR #58](https://github.com/oneilreyand/qlickhub/pull/58).
 - UAT PO `localhost:3000` — desktop 1440×960 dan mobile 390×844 accepted; tanpa submit/mutasi data.
 
 ## Risks or follow-up

@@ -39,5 +39,5 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - `npm --prefix apps/web run test -- --run src/components/layout/__tests__/Sidebar.test.tsx src/components/layout/__tests__/Header.test.tsx src/components/layout/__tests__/AppLayout.test.tsx` — exit 0 — 3 file, 18/18 test lulus. Ada peringatan `act(...)` Header yang telah ada; tidak terkait slice ini.
 - `npm --prefix apps/web run typecheck`, `npm --prefix apps/web run build`, dan `npm run theme:check` — exit 0 — tanpa error build/tipe; theme coverage lulus.
 - E4 2026-10-27 — UAT lokal `localhost:3000`: desktop 1440×960 menunjukkan garis di bawah logo Qlick Hub sejajar tepat dengan border Header; sidebar ponsel 390×844 terbuka utuh tanpa overflow. Tinggi `h-20` tidak memakai breakpoint sehingga kontrak yang sama diterapkan pada tablet.
-- PR dan tier: [PR #58](https://github.com/oneilreyand/qlickhub/pull/58), dicatat setelah commit diperiksa.
+- PR dan tier: [PR #58](https://github.com/oneilreyand/qlickhub/pull/58), commit `e6f9324`, Tier 1 (`node scripts/checkTier.mjs HEAD~1 HEAD`: tidak ada path Tier 2).
 - Gap: tidak ada dalam scope; pemeriksaan visual mode terang tidak diulang karena perubahan hanya tinggi, `theme:check` lulus, dan tidak ada class warna/theme yang diubah.
