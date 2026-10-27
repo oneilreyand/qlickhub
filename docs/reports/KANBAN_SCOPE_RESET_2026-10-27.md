@@ -52,6 +52,7 @@ Memilih folder lain atau `Tanpa Folder` saat Kanban aktif kini membuang `kanbanF
 - `npm run docs:check` — exit 0; 10/10 test lulus, 0 gagal/skipped; Documentation governance passed.
 - `npm run docs:completeness` — exit 0; 91 gap baseline, 0 gap baru, 0 gap selesai.
 - `npm run sdlc:check` — exit 0; skipped karena baseline pembanding tidak tersedia.
+- `node scripts/checkTier.mjs HEAD~1 HEAD` — exit 0; Tier 1, tidak ada path Tier 2; commit `a102e8d` dipush ke [PR #58](https://github.com/oneilreyand/qlickhub/pull/58).
 - `git diff --check` — exit 0.
 - UAT PO `localhost:3000` — accepted; view Kanban menunjukkan reset aman setelah scope folder berubah, kemudian memuat 4 subtask Feature yang benar. Responsif di 390×844, 768×1024, dan 1440×960; tidak ada submit/mutasi data.
 
