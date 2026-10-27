@@ -10,6 +10,7 @@ export interface TaskHubDateRange {
 
 export interface TaskHubQueryState {
   folderId: string | null;
+  unfiledOnly: boolean;
   datePreset: TaskDatePreset | 'all';
   viewMode: TaskHubViewMode;
   taskId: string | null;
@@ -22,6 +23,7 @@ export interface TaskHubQueryState {
 
 export interface TaskHubQueryPatch {
   folderId?: string | null;
+  unfiledOnly?: boolean;
   datePreset?: TaskDatePreset | 'all';
   viewMode?: TaskHubViewMode;
   taskId?: string | null;
@@ -68,9 +70,12 @@ export function parseTaskHubQueryState(params: URLSearchParams): TaskHubQuerySta
   const rawDatePreset = params.get('datePreset');
   const rawView = params.get('view');
   const rawInvolvement = params.get('involvement');
+  const unfiledOnly = params.get('unfiledOnly') === 'true';
 
   return {
-    folderId: hasValue(params.get('folderId')) ? params.get('folderId')!.trim() : null,
+    folderId:
+      !unfiledOnly && hasValue(params.get('folderId')) ? params.get('folderId')!.trim() : null,
+    unfiledOnly,
     datePreset:
       rawDatePreset && datePresets.has(rawDatePreset as TaskDatePreset)
         ? (rawDatePreset as TaskDatePreset)
@@ -100,7 +105,18 @@ export function patchTaskHubQueryState(
 ): URLSearchParams {
   const next = new URLSearchParams(current);
 
-  if ('folderId' in patch) setOrDelete(next, 'folderId', patch.folderId);
+  if ('folderId' in patch) {
+    setOrDelete(next, 'folderId', patch.folderId);
+    if (patch.folderId) next.delete('unfiledOnly');
+  }
+  if ('unfiledOnly' in patch) {
+    if (patch.unfiledOnly) {
+      next.set('unfiledOnly', 'true');
+      next.delete('folderId');
+    } else {
+      next.delete('unfiledOnly');
+    }
+  }
   if ('taskId' in patch) setOrDelete(next, 'taskId', patch.taskId);
   if ('kanbanFeatureId' in patch) setOrDelete(next, 'kanbanFeatureId', patch.kanbanFeatureId);
   if ('searchQuery' in patch) setOrDelete(next, 'q', patch.searchQuery);

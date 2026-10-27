@@ -12,6 +12,7 @@ import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
 import { Select } from '../atoms/Select';
+import { FolderLocationSelect } from '../molecules/FolderLocationSelect';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
@@ -140,22 +141,6 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
       }
     }
   }, [chatMessages, isRefiningChat, generatorMode, step]);
-
-  const flattenFolders = (
-    items: FolderTreeNode[],
-    depth = 0,
-  ): { id: string; name: string; depth: number }[] => {
-    let result: { id: string; name: string; depth: number }[] = [];
-    for (const item of items) {
-      result.push({ id: item.id, name: item.name, depth });
-      if (item.children && item.children.length > 0) {
-        result = result.concat(flattenFolders(item.children, depth + 1));
-      }
-    }
-    return result;
-  };
-
-  const flatFolders = flattenFolders(folders);
 
   const togglePlatform = (p: TargetPlatform) => {
     if (targetPlatforms.includes(p)) {
@@ -634,24 +619,14 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                    Lokasi Folder Target
-                  </label>
-                  <Select
-                    value={folderId || ''}
-                    onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
-                    aria-label="Lokasi folder target"
-                  >
-                    <option value="">Tanpa Folder (Root Workspace)</option>
-                    {flatFolders.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {'\u00A0'.repeat(f.depth * 4)}
-                        {f.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                <FolderLocationSelect
+                  folders={folders}
+                  value={folderId}
+                  onChange={setFolderId}
+                  label="Lokasi Folder Target"
+                  selectId="ai-quick-folder-location"
+                  ariaLabel="Lokasi folder target"
+                />
 
                 <div>
                   <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
@@ -808,24 +783,14 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
 
               {/* Shared folder and platform targets in chat mode */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                    Lokasi Folder Target
-                  </label>
-                  <Select
-                    value={folderId || ''}
-                    onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
-                    aria-label="Lokasi folder target"
-                  >
-                    <option value="">Tanpa Folder (Root Workspace)</option>
-                    {flatFolders.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {'\u00A0'.repeat(f.depth * 4)}
-                        {f.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                <FolderLocationSelect
+                  folders={folders}
+                  value={folderId}
+                  onChange={setFolderId}
+                  label="Lokasi Folder Target"
+                  selectId="ai-chat-folder-location"
+                  ariaLabel="Lokasi folder target"
+                />
 
                 <div>
                   <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
@@ -998,23 +963,13 @@ export const AiTaskGeneratorModal: React.FC<AiTaskGeneratorModalProps> = ({
                       <option value="urgent">Mendesak (Urgent)</option>
                     </Select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                      Folder Tujuan
-                    </label>
-                    <Select
-                      value={folderId || ''}
-                      onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
-                    >
-                      <option value="">Tanpa Folder (Root Workspace)</option>
-                      {flatFolders.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {'\u00A0'.repeat(f.depth * 4)}
-                          {f.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
+                  <FolderLocationSelect
+                    folders={folders}
+                    value={folderId}
+                    onChange={setFolderId}
+                    label="Folder Tujuan"
+                    selectId="ai-preview-folder-location"
+                  />
                 </div>
 
                 <div>

@@ -67,4 +67,37 @@ describe('Task Hub query state', () => {
       viewMode: 'kanban',
     });
   });
+
+  it('makes the folderless scope explicit and preserves unrelated filters', () => {
+    const current = new URLSearchParams('tab=tasks&folderId=folder-1&view=kanban&status=done');
+
+    const next = patchTaskHubQueryState(current, { folderId: null, unfiledOnly: true });
+
+    expect(next.toString()).toBe('tab=tasks&view=kanban&status=done&unfiledOnly=true');
+    expect(parseTaskHubQueryState(next)).toMatchObject({
+      folderId: null,
+      unfiledOnly: true,
+      viewMode: 'kanban',
+      statusFilter: 'done',
+    });
+  });
+
+  it('prefers the explicit folderless scope over a conflicting deep-link folder', () => {
+    const state = parseTaskHubQueryState(
+      new URLSearchParams('tab=tasks&folderId=folder-1&unfiledOnly=true'),
+    );
+
+    expect(state).toMatchObject({ folderId: null, unfiledOnly: true });
+  });
+
+  it('removes the folderless scope when a folder or Semua Task is selected', () => {
+    const current = new URLSearchParams('tab=tasks&unfiledOnly=true&q=payment');
+
+    expect(
+      patchTaskHubQueryState(current, { folderId: 'folder-1', unfiledOnly: false }).toString(),
+    ).toBe('tab=tasks&q=payment&folderId=folder-1');
+    expect(patchTaskHubQueryState(current, { folderId: null, unfiledOnly: false }).toString()).toBe(
+      'tab=tasks&q=payment',
+    );
+  });
 });

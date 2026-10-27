@@ -112,6 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const canAccessLeaderHub = ['owner', 'admin'].includes(userRole);
   const isTaskHub =
     location.pathname === '/work' && new URLSearchParams(location.search).get('tab') === 'tasks';
+  const isUnfiledSelected = new URLSearchParams(location.search).get('unfiledOnly') === 'true';
 
   // The workspace shell keeps labels visible on desktop; the mobile drawer reuses the same shape.
   const isExpanded = true;
@@ -143,8 +144,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const handleSelectFolder = (folderId: string | null) => {
     const next = new URLSearchParams(location.search);
     next.set('tab', 'tasks');
+    next.delete('unfiledOnly');
     if (folderId) next.set('folderId', folderId);
     else next.delete('folderId');
+    navigate(`/work?${next.toString()}`);
+    onCloseMobile?.();
+  };
+
+  const handleSelectUnfiled = () => {
+    const next = new URLSearchParams(location.search);
+    next.set('tab', 'tasks');
+    next.delete('folderId');
+    next.set('unfiledOnly', 'true');
     navigate(`/work?${next.toString()}`);
     onCloseMobile?.();
   };
@@ -281,11 +292,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
             <FolderTree
               folders={folders}
               selectedFolderId={selectedFolderId || null}
+              isUnfiledSelected={isUnfiledSelected}
               totalTasks={workspaceFeatureCount}
               isLoading={isFolderLoading}
               error={folderError}
               userRole={activeWorkspace?.role}
               onSelectFolder={handleSelectFolder}
+              onSelectUnfiled={handleSelectUnfiled}
               onCreateFolder={handleCreateFolder}
               onRenameFolder={handleRenameFolder}
               onArchiveFolder={handleArchiveFolder}
