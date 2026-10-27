@@ -48,7 +48,8 @@ export interface FeaturePlanSummaryProps {
   task: Task;
   canEdit: boolean;
   messageCount: number;
-  onEditIdea: () => void;
+  /** Simpan ide awal (deskripsi Feature) langsung di tahap Plan. */
+  onSaveIdea: (description: string | null) => Promise<void>;
   /** Isi diskusi tim; ditampilkan di bagian yang bisa dibuka-tutup. */
   discussion: React.ReactNode;
 }
@@ -58,10 +59,28 @@ export const FeaturePlanSummary: React.FC<FeaturePlanSummaryProps> = ({
   task,
   canEdit,
   messageCount,
-  onEditIdea,
+  onSaveIdea,
   discussion,
 }) => {
   const [isDiscussionOpen, setIsDiscussionOpen] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [draft, setDraft] = React.useState('');
+  const startEditing = () => {
+    setDraft(task.description ?? '');
+    setIsEditing(true);
+  };
+  const saveIdea = async () => {
+    setIsSaving(true);
+    try {
+      await onSaveIdea(draft.trim() || null);
+      setIsEditing(false);
+    } catch {
+      // Pesan galat sudah ditampilkan oleh pemanggil; editor tetap terbuka.
+    } finally {
+      setIsSaving(false);
+    }
+  };
   return (
     <>
       <section aria-labelledby="feature-plan-idea" className={`${cardClass} p-5`}>
@@ -69,13 +88,41 @@ export const FeaturePlanSummary: React.FC<FeaturePlanSummaryProps> = ({
           <h2 id="feature-plan-idea" className={cardTitleClass}>
             Ide awal
           </h2>
-          {canEdit && (
-            <Button size="sm" variant="outline" onClick={onEditIdea}>
+          {canEdit && !isEditing && (
+            <Button size="sm" variant="outline" onClick={startEditing}>
               Ubah
             </Button>
           )}
         </div>
-        {task.description?.trim() ? (
+        {isEditing ? (
+          <div className="space-y-3">
+            <textarea
+              aria-label="Ide awal"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              rows={6}
+              className="w-full rounded-xl border border-stone-300 bg-white p-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-stone-700 dark:bg-[#141413] dark:text-stone-100"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isSaving}
+                onClick={() => setIsEditing(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                isLoading={isSaving}
+                onClick={() => void saveIdea()}
+              >
+                Simpan
+              </Button>
+            </div>
+          </div>
+        ) : task.description?.trim() ? (
           <FormattedText
             content={task.description}
             className="text-sm text-stone-700 dark:text-stone-300"

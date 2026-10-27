@@ -1321,6 +1321,42 @@ describe('TaskDetailDrawer UI Component', () => {
       expect(await screen.findByText('Diskusi Task')).toBeInTheDocument();
     });
 
+    test('Ubah di tahap Plan mengedit ide awal di tempat, tanpa pindah ke tahap Task', async () => {
+      const { taskService } = await import('../../../../lib/api/taskService');
+      vi.mocked(taskService.updateTask).mockResolvedValue({
+        ...mockTask,
+        description: 'Ide baru',
+      } as Task);
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="discussion"
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Ubah' }));
+      const editor = await screen.findByRole('textbox', { name: 'Ide awal' });
+      expect(screen.queryByRole('region', { name: 'Root task' })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
+      expect(screen.queryByRole('textbox', { name: 'Ide awal' })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ubah' }));
+      fireEvent.change(await screen.findByRole('textbox', { name: 'Ide awal' }), {
+        target: { value: 'Ide baru' },
+      });
+      expect(editor).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+      await waitFor(() =>
+        expect(taskService.updateTask).toHaveBeenCalledWith(expect.any(String), mockTask.id, {
+          description: 'Ide baru',
+        }),
+      );
+    });
+
     test('editor Brief Produk sederhana tanpa judul dan status', async () => {
       renderWithRedux(
         <TaskDetailDrawer

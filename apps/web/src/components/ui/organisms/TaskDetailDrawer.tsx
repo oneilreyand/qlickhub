@@ -1625,7 +1625,28 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   task={task}
                   canEdit={canEditTask && !task.parentTaskId}
                   messageCount={commentsTotal}
-                  onEditIdea={() => handleTabChange('overview')}
+                  onSaveIdea={async (nextDescription) => {
+                    if (!activeWorkspaceId) return;
+                    try {
+                      await dispatch(
+                        updateTask({
+                          workspaceId: activeWorkspaceId,
+                          taskId: task.id,
+                          input: { description: nextDescription },
+                        }),
+                      ).unwrap();
+                      dispatch(enqueueSnackbar('Ide awal disimpan', 'success'));
+                      onDataChanged?.();
+                    } catch (err) {
+                      dispatch(
+                        enqueueSnackbar(
+                          err instanceof Error ? err.message : 'Ide awal gagal disimpan',
+                          'error',
+                        ),
+                      );
+                      throw err;
+                    }
+                  }}
                   discussion={discussionBox}
                 />
               }
