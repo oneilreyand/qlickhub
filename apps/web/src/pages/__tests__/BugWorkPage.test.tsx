@@ -16,6 +16,11 @@ const bugMocks = vi.hoisted(() => ({
   createResolutionEvent: vi.fn(),
   createRetestRun: vi.fn(),
 }));
+const tmMocks = vi.hoisted(() => ({
+  listQaTestCycles: vi.fn(),
+  createQaTestCycle: vi.fn(),
+}));
+vi.mock('../../lib/api/testManagementService', () => ({ testManagementService: tmMocks }));
 vi.mock('../../lib/api/bugService', () => ({ bugService: bugMocks }));
 vi.mock('../../lib/api/workspaceService', () => ({
   workspaceService: { getMembers: vi.fn().mockResolvedValue([]) },
@@ -89,6 +94,7 @@ describe('BugWorkPage', () => {
     bugMocks.getBug.mockResolvedValue(bug);
     bugMocks.getRetestHistory.mockResolvedValue({ cycles: [] });
     bugMocks.updateBug.mockResolvedValue({});
+    tmMocks.listQaTestCycles.mockResolvedValue([]);
   });
 
   it('lets the assigned developer start the bug', async () => {
@@ -103,6 +109,53 @@ describe('BugWorkPage', () => {
     renderPage('dev', 'dev-2');
     await screen.findByText('Total checkout salah');
     expect(screen.queryByRole('button', { name: 'Mulai dikerjakan' })).not.toBeInTheDocument();
+  });
+
+  it('creates the Test Cycle for the fix candidate before starting the retest', async () => {
+    bugMocks.getBug.mockResolvedValue({
+      ...bug,
+      status: 'resolved',
+      originatingTestResult: { testRun: { build: 'b1', environment: 'staging' } },
+    });
+    bugMocks.getRetestHistory.mockResolvedValue({
+      cycles: [
+        {
+          sequence: 1,
+          resolutionEvent: { candidateFingerprint: 'commit:fix1', resolutionNotes: 'ok' },
+          evidenceLinks: [],
+          retestAttempt: null,
+        },
+      ],
+    });
+    tmMocks.listQaTestCycles.mockResolvedValue([
+      {
+        id: 'c0',
+        ownerQaId: 'qa-1',
+        qaSubtaskId: 'qs1',
+        candidateFingerprint: 'commit:old',
+        build: 'b1',
+        environment: 'staging',
+        status: 'in_progress',
+      },
+    ]);
+    tmMocks.createQaTestCycle.mockResolvedValue({});
+    bugMocks.createRetestRun.mockResolvedValue({
+      qaSubtaskId: 'qs1',
+      reused: false,
+      testRun: { testCaseId: 'tc1' },
+    });
+    renderPage('qa', 'qa-1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Mulai retest' }));
+    await waitFor(() =>
+      expect(tmMocks.createQaTestCycle).toHaveBeenCalledWith('w1', {
+        featureTaskId: 'f1',
+        qaSubtaskId: 'qs1',
+        candidateFingerprint: 'commit:fix1',
+        build: 'b1',
+        environment: 'staging',
+      }),
+    );
+    await waitFor(() => expect(bugMocks.createRetestRun).toHaveBeenCalled());
   });
 
   it('opens the retest run page for QA', async () => {

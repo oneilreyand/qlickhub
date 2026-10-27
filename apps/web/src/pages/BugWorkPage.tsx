@@ -6,6 +6,7 @@ import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
 import { BugWorkView, type BugResolveValues } from '../components/ui/organisms/myTasks/BugWorkView';
 import { bugService } from '../lib/api/bugService';
+import { testManagementService } from '../lib/api/testManagementService';
 import { getTestCaseRunPath } from '../lib/utils/taskRoutes';
 import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
 import { fetchMembers } from '../store/workspaceSlice';
@@ -123,9 +124,49 @@ export const BugWorkPage: React.FC = () => {
     }, 'Perbaikan dikirim ke QA untuk retest');
   };
 
+  /**
+   * Retest butuh siklus uji aktif untuk kandidat perbaikan Developer. Bila belum ada, dibuat
+   * dari siklus QA sebelumnya (subtask, build, dan lingkungan yang sama) agar QA tidak buntu.
+   */
+  const ensureRetestCycle = async (workspaceId: string, targetBug: BugWithContext) => {
+    const latestCycle = history?.cycles?.[history.cycles.length - 1];
+    const candidate = latestCycle?.resolutionEvent.candidateFingerprint;
+    if (!candidate) return;
+    const cycles = await testManagementService.listQaTestCycles(
+      workspaceId,
+      targetBug.featureTaskId,
+    );
+    const mine = cycles.filter((cycle) => cycle.ownerQaId === currentUserId);
+    if (
+      mine.some(
+        (cycle) => cycle.candidateFingerprint === candidate && cycle.status === 'in_progress',
+      )
+    ) {
+      return;
+    }
+    const origin = targetBug.originatingTestResult?.testRun;
+    const base =
+      mine.find(
+        (cycle) => cycle.build === origin?.build && cycle.environment === origin?.environment,
+      ) ?? mine[0];
+    if (!base) {
+      throw new Error(
+        'Siklus uji untuk kandidat ini belum ada dan tidak ada siklus QA sebelumnya Anda di Feature ini. Buat siklus di halaman kerja QA lebih dulu.',
+      );
+    }
+    await testManagementService.createQaTestCycle(workspaceId, {
+      featureTaskId: targetBug.featureTaskId,
+      qaSubtaskId: base.qaSubtaskId,
+      candidateFingerprint: candidate,
+      build: origin?.build ?? base.build,
+      environment: origin?.environment ?? base.environment,
+    });
+  };
+
   const handleStartRetest = () => {
     if (!activeWorkspaceId || !bug) return;
     void run(async () => {
+      await ensureRetestCycle(activeWorkspaceId, bug);
       const retestRun = await bugService.createRetestRun(activeWorkspaceId, bug.id);
       navigate(getTestCaseRunPath(retestRun.testRun.testCaseId, retestRun.qaSubtaskId), {
         state: { returnTo: `${location.pathname}${location.search}` },
