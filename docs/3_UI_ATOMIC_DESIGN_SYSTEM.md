@@ -68,6 +68,32 @@ graph BT
 
 ## 2. Blueprint Tata Letak Antarmuka (3-Panel Grid Layout)
 
+### Layout target ([ADR-035](adr/ADR-035-SIMPLIFIED-SHELL-AND-FEATURE-DETAIL-PAGE.md))
+
+Shell dan detail berpindah bertahap ke layout di bawah melalui slice
+[SIMPLE-UI-DELIVERY-FLOW](features/SIMPLE-UI-DELIVERY-FLOW/README.md). Desain acuan:
+[`design/`](features/SIMPLE-UI-DELIVERY-FLOW/design/README.md) (Light, Dark, dan HP). Sampai slice
+detail selesai, blueprint 3-panel di bawahnya tetap menggambarkan kode yang berjalan.
+
+```mermaid
+graph TD
+    subgraph Shell["AppLayout (≥1024px)"]
+        Side["Sidebar tetap (240px)\nLogo · Workspace · Ringkasan · Task Hub · Tugas Saya · Laporan\nFolder · Profil"]
+        subgraph Content["Area konten"]
+            Header["Header 80px: breadcrumb · cari · aksi utama"]
+            Page["Halaman: Task Hub · Detail Feature (stepper Plan · PRD · Task · Apply)\nDetail kerjaan per peran · Test Case · Rilis"]
+        end
+    end
+    Phone["<1024px: Sidebar menjadi menu; panel kanan turun ke bawah konten"]
+    Shell --> Phone
+```
+
+- Detail Feature dan detail kerjaan dibuka sebagai **halaman** di area konten; Sidebar tetap terlihat.
+- `Drawer` hanya untuk tugas kecil dan mandiri (pemilih folder di HP, form singkat).
+- Warna dan tema tetap dari token Stitch dan kontrak tema (§4, ADR-034).
+
+### Layout saat ini (digantikan bertahap)
+
 ```mermaid
 graph TD
     subgraph AppShell["AppLayout Shell (apps/web/src/components/layout/)"]
@@ -97,15 +123,18 @@ graph TD
 
 ## 3. Rute Navigasi Resmi (_Application Routes_)
 
-| Rute URL                             | Komponen Halaman            | Fungsi & Cakupan                                                                                                                                                                          |
-| :----------------------------------- | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/work`                              | `WorkHubPage.tsx`           | Halaman utama: navigasi pohon folder, tabel task, filter, timeline, dan drawer detail fitur.                                                                                              |
-| `/projects/:projectId/tasks/:taskId` | `TaskDeepLinkPage.tsx`      | Tautan langsung menuju task/fitur spesifik dengan mempertahankan konteks parent.                                                                                                          |
-| `/my-tasks`                          | `MyTasksPage.tsx`           | Tab antrean kerja berbasis peran serta root Task persisten yang dibuat pengguna terautentikasi di Workspace aktif.                                                                        |
-| `/reports`                           | `ReportPage.tsx`            | Timeline kapasitas tim berbasis data persisten backend, termasuk filter anggota, rentang tanggal, skala, dan scope Workspace.                                                             |
-| `/user-flows`                        | `UserFlowPage.tsx`          | Panduan interaktif alur kerja kolaborasi lintas peran.                                                                                                                                    |
-| `/workspaces/settings`               | `WorkspaceSettingsPage.tsx` | Pengaturan anggota, role, spesialisasi developer, kebijakan pembuatan task, serta status rollout QA assurance; seluruh member aktif dapat membaca rollout, Owner/Admin dapat mengubahnya. |
-| `/components`                        | `ComponentGalleryPage.tsx`  | Galeri showcase interaktif untuk memverifikasi seluruh komponen atom, molekul, dan organisme secara terisolasi.                                                                           |
+| Rute URL                                                  | Komponen Halaman            | Fungsi & Cakupan                                                                                                                                                                          |
+| :-------------------------------------------------------- | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/work`                                                   | `WorkHubPage.tsx`           | Halaman utama: navigasi pohon folder, tabel task, filter, timeline, dan drawer detail fitur.                                                                                              |
+| `/projects/:projectId/tasks/:taskId`                      | `TaskDeepLinkPage.tsx`      | Tautan langsung menuju task/fitur spesifik dengan mempertahankan konteks parent. Setelah ADR-035 diterapkan, dialihkan ke halaman detail.                                                 |
+| `/my-tasks`                                               | `MyTasksPage.tsx`           | Tab antrean kerja berbasis peran serta root Task persisten yang dibuat pengguna terautentikasi di Workspace aktif.                                                                        |
+| `/work/features/:featureId`                               | Direncanakan (ADR-035)      | Halaman detail Feature dengan stepper Plan · PRD · Task · Apply; nama route final di [contracts.md](features/SIMPLE-UI-DELIVERY-FLOW/contracts.md).                                       |
+| `/tests/cases/new`, `/tests/cases/:testCaseId/run`        | Direncanakan (ADR-035)      | Halaman tambah dan jalankan Test Case dengan bukti (QA).                                                                                                                                  |
+| `/releases/:releaseId`, `/releases/:releaseId/monitoring` | Direncanakan (ADR-035)      | Verifikasi Production, penerimaan user, dan pemantauan pasca-rilis.                                                                                                                       |
+| `/reports`                                                | `ReportPage.tsx`            | Timeline kapasitas tim berbasis data persisten backend, termasuk filter anggota, rentang tanggal, skala, dan scope Workspace.                                                             |
+| `/user-flows`                                             | `UserFlowPage.tsx`          | Panduan interaktif alur kerja kolaborasi lintas peran.                                                                                                                                    |
+| `/workspaces/settings`                                    | `WorkspaceSettingsPage.tsx` | Pengaturan anggota, role, spesialisasi developer, kebijakan pembuatan task, serta status rollout QA assurance; seluruh member aktif dapat membaca rollout, Owner/Admin dapat mengubahnya. |
+| `/components`                                             | `ComponentGalleryPage.tsx`  | Galeri showcase interaktif untuk memverifikasi seluruh komponen atom, molekul, dan organisme secara terisolasi.                                                                           |
 
 ---
 
@@ -219,26 +248,30 @@ regresi, bukan pengganti inspeksi kontras dan browser pada kedua tema.
 
 ### 🟣 Organisms
 
-| Komponen                    | File Path                                            | Penggunaan                                                                                       |
-| :-------------------------- | :--------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
-| `FolderTree`                | `organisms/FolderTree.tsx`                           | Pohon folder interaktif untuk navigasi struktur workspace.                                       |
-| `TaskCollection`            | `organisms/TaskCollection.tsx`                       | Daftar / tabel tugas utama dengan filter dan sorting.                                            |
-| `TaskTimelineView`          | `organisms/TaskTimelineView.tsx`                     | Visualisasi Gantt chart durasi subtask.                                                          |
-| `TaskDetailDrawer`          | `organisms/TaskDetailDrawer.tsx`                     | Organisme utama penampil seluruh konteks parent Task, Requirements, Tests, Bugs, dan Dokumen.    |
-| `TaskDetailProductBriefTab` | `organisms/taskDetail/TaskDetailProductBriefTab.tsx` | Product Brief berversi untuk konteks, referensi eksternal, In Scope, dan Out of Scope Feature.   |
-| `RequirementManager`        | `organisms/RequirementManager.tsx`                   | Pengelola daftar Requirement dan Acceptance Criteria terkait fitur.                              |
-| `FeatureReadinessPanel`     | `organisms/FeatureReadinessPanel.tsx`                | Pemeriksaan dan baseline kesiapan root Feature dalam mode observasi.                             |
-| `RequirementFindingPanel`   | `organisms/RequirementFindingPanel.tsx`              | Temuan Requirement, klarifikasi, triage lintas peran, dan penyelesaian pada root Feature.        |
-| `QaTraceabilityMatrix`      | `organisms/QaTraceabilityMatrix.tsx`                 | Matriks ketertelusuran hubungan antara Requirement, Test Case, dan Bug.                          |
-| `ReleaseAssurancePanel`     | `organisms/ReleaseAssurancePanel.tsx`                | Panel evaluasi kesiapan rilis, QA Sign-off, dan PO Release Decision.                             |
-| `BugExperiencePanel`        | `organisms/BugExperiencePanel.tsx`                   | Panel Bug dengan aksi retest kontekstual tanpa UUID dan histori siklus perbaikan #1..n.          |
-| `EvidencePreviewModal`      | `organisms/EvidencePreviewModal.tsx`                 | Modal preview media (Google Drive, video player YouTube/Loom, gambar fullscreen).                |
-| `MyTasksDashboard`          | `organisms/MyTasksDashboard.tsx`                     | Dashboard utama antrean kerja personal berbasis peran.                                           |
-| `CreatedByMeTaskPanel`      | `organisms/myTasks/CreatedByMeTaskPanel.tsx`         | Daftar root Task persisten yang dibuat pengguna saat ini, lengkap dengan filter dan pagination.  |
-| `QaTestingDesk`             | `organisms/myTasks/QaTestingDesk.tsx`                | Meja kerja QA untuk Run/Result, contextual Bug retest, intake Test Case, dan evidence hasil uji. |
-| `DevWorkingDesk`            | `organisms/myTasks/DevWorkingDesk.tsx`               | Meja kerja Developer untuk mengelola subtask aktif dan perbaikan bug.                            |
-| `TestCaseImportWizardModal` | `organisms/myTasks/TestCaseImportWizardModal.tsx`    | Wizard 3-langkah untuk impor Test Case dari spreadsheet CSV/XLSX.                                |
-| `WorkspaceMembersTable`     | `organisms/WorkspaceMembersTable.tsx`                | Tabel manajemen anggota workspace, peran, dan spesialisasi dev.                                  |
+| Komponen                    | File Path                                            | Penggunaan                                                                                                                                 |
+| :-------------------------- | :--------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| `FolderTree`                | `organisms/FolderTree.tsx`                           | Pohon folder interaktif untuk navigasi struktur workspace.                                                                                 |
+| `TaskCollection`            | `organisms/TaskCollection.tsx`                       | Daftar / tabel tugas utama dengan filter dan sorting.                                                                                      |
+| `TaskTimelineView`          | `organisms/TaskTimelineView.tsx`                     | Visualisasi Gantt chart durasi subtask.                                                                                                    |
+| `TaskDetailDrawer`          | `organisms/TaskDetailDrawer.tsx`                     | Organisme utama penampil seluruh konteks parent Task, Requirements, Tests, Bugs, dan Dokumen. Digantikan halaman detail Feature (ADR-035). |
+| `TaskDetailProductBriefTab` | `organisms/taskDetail/TaskDetailProductBriefTab.tsx` | Product Brief berversi untuk konteks, referensi eksternal, In Scope, dan Out of Scope Feature.                                             |
+| `RequirementManager`        | `organisms/RequirementManager.tsx`                   | Pengelola daftar Requirement dan Acceptance Criteria terkait fitur.                                                                        |
+| `FeatureReadinessPanel`     | `organisms/FeatureReadinessPanel.tsx`                | Pemeriksaan dan baseline kesiapan root Feature dalam mode observasi.                                                                       |
+| `RequirementFindingPanel`   | `organisms/RequirementFindingPanel.tsx`              | Temuan Requirement, klarifikasi, triage lintas peran, dan penyelesaian pada root Feature.                                                  |
+| `QaTraceabilityMatrix`      | `organisms/QaTraceabilityMatrix.tsx`                 | Matriks ketertelusuran hubungan antara Requirement, Test Case, dan Bug.                                                                    |
+| `ReleaseAssurancePanel`     | `organisms/ReleaseAssurancePanel.tsx`                | Panel evaluasi kesiapan rilis, QA Sign-off, dan PO Release Decision.                                                                       |
+| `BugExperiencePanel`        | `organisms/BugExperiencePanel.tsx`                   | Panel Bug dengan aksi retest kontekstual tanpa UUID dan histori siklus perbaikan #1..n.                                                    |
+| `EvidencePreviewModal`      | `organisms/EvidencePreviewModal.tsx`                 | Modal preview media (Google Drive, video player YouTube/Loom, gambar fullscreen).                                                          |
+| `MyTasksDashboard`          | `organisms/MyTasksDashboard.tsx`                     | Dashboard utama antrean kerja personal berbasis peran.                                                                                     |
+| `CreatedByMeTaskPanel`      | `organisms/myTasks/CreatedByMeTaskPanel.tsx`         | Daftar root Task persisten yang dibuat pengguna saat ini, lengkap dengan filter dan pagination.                                            |
+| `QaTestingDesk`             | `organisms/myTasks/QaTestingDesk.tsx`                | Meja kerja QA untuk Run/Result, contextual Bug retest, intake Test Case, dan evidence hasil uji.                                           |
+| `DevWorkingDesk`            | `organisms/myTasks/DevWorkingDesk.tsx`               | Meja kerja Developer untuk mengelola subtask aktif dan perbaikan bug.                                                                      |
+| `TestCaseImportWizardModal` | `organisms/myTasks/TestCaseImportWizardModal.tsx`    | Wizard 3-langkah untuk impor Test Case dari spreadsheet CSV/XLSX.                                                                          |
+| `WorkspaceMembersTable`     | `organisms/WorkspaceMembersTable.tsx`                | Tabel manajemen anggota workspace, peran, dan spesialisasi dev.                                                                            |
+
+Direncanakan oleh ADR-035 (belum ada di kode): `FeatureStageStepper` (stepper tahap Feature),
+`HandoffTimeline` (riwayat serah-terima antar peran), dan `WorkQueueItem` bila audit reuse
+membuktikan belum ada. Baris katalog ditambahkan saat komponennya dibangun.
 
 ### 🔵 Templates
 

@@ -43,3 +43,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-032](ADR-032-AUTO-READINESS-BASELINE-AND-QA-TEST-CASE-LIFECYCLE.md)      | Automatic readiness baseline; QA Test Case auto-active, delete, edit |
 | [ADR-033](ADR-033-DOCUMENTATION-COMPLETENESS-RATCHET.md)                      | Documentation completeness ratchet and local developer portal        |
 | [ADR-034](ADR-034-UI-THEME-CONTRACT-AND-COVERAGE-GATE.md)                     | Light/Dark theme contract and coverage gate                          |
+| [ADR-035](ADR-035-SIMPLIFIED-SHELL-AND-FEATURE-DETAIL-PAGE.md)                | Simplified shell and Feature detail as a page                        |
