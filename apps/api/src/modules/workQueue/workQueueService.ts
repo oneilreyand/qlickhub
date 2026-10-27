@@ -487,24 +487,10 @@ async function qaBuckets(
       continue;
     }
 
-    if (qaSubtask.status !== 'done') {
-      signOffItems.push({
-        id: itemId('qa_sign_off', 'feature', feature.id),
-        bucketCode: 'qa_sign_off',
-        subjectType: 'feature',
-        subjectId: feature.id,
-        featureTaskId: feature.id,
-        title: feature.title,
-        reason: 'QA Subtask Anda harus diselesaikan sebelum Persetujuan QA dapat dicatat.',
-        nextAction: nextAction('view_context', 'View QA Sign-off context'),
-        status: feature.status,
-        workState: 'blocked',
-        priority: feature.priority,
-        dueDate: feature.dueDate,
-        sourceUpdatedAt: iso(qaSubtask.updatedAt),
-      });
-      continue;
-    }
+    // Selama QA Subtask belum selesai, pekerjaannya sudah tampil di bucket qa_test_work.
+    // Kartu Persetujuan QA yang tertahan hanya menggandakan pekerjaan yang sama, jadi
+    // baru dibuat setelah subtask selesai.
+    if (qaSubtask.status !== 'done') continue;
 
     const gate = await evaluateQaCompletionGate(
       workspaceId,

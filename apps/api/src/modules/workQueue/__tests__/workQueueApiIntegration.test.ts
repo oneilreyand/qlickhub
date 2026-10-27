@@ -601,7 +601,7 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     );
   });
 
-  test('returns only capability-scoped QA work and marks blocked sign-off context', async () => {
+  test('returns only capability-scoped QA work and hides sign-off until the QA subtask is done', async () => {
     const response = await fetchQueue(workspaceA.id, qaCookie);
     assert.strictEqual(response.status, 200);
     const queue = RoleAwareWorkQueueSchema.parse(
@@ -621,14 +621,8 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       !buckets.get('qa_retest_work')?.items.some((item) => item.subjectId === resolvedBug.id),
     );
     assert.ok(
-      buckets
-        .get('qa_sign_off')
-        ?.items.some(
-          (item) =>
-            item.subjectId === deliveryFeature.id &&
-            item.workState === 'blocked' &&
-            item.reason.includes('QA Subtask Anda harus diselesaikan'),
-        ),
+      !buckets.get('qa_sign_off')?.items.some((item) => item.subjectId === deliveryFeature.id),
+      'sign-off card must not duplicate a QA subtask that is still being worked',
     );
     assert.ok(
       !buckets.get('qa_sign_off')?.items.some((item) => item.subjectId === signOffFeature.id),

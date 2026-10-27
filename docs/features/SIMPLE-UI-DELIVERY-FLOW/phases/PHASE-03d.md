@@ -71,3 +71,7 @@ Atas permintaan Owner, setiap baris Test Case di halaman kerja QA punya aksi **H
 ## Catatan tambahan: Tugas Saya tanpa tab
 
 Atas permintaan Owner, antrean Tugas Saya untuk semua peran tidak lagi memakai tab per jenis pekerjaan. Panel `RoleAwareWorkQueuePanel` kini menampilkan satu daftar dengan seksi per jenis pekerjaan (judul dan jumlah); seksi kosong disembunyikan, dan kini ada baris filter yang selalu tampil (jenis pekerjaan, tenggat: terlambat/hari ini/minggu ini/bulan ini/tanpa tenggat, prioritas, cari), urutan dalam seksi menurut prioritas lalu tenggat terdekat, dan tiap seksi menampilkan 5 item dulu dengan "Tampilkan n lagi". Data antrean dan kontrak tidak berubah. Tata letak penuh desain 11–13 (kartu "Mulai dari sini", panel alur) tetap menjadi lingkup P4a/P4b.
+
+## Catatan tambahan: tidak ada kartu ganda Persetujuan QA
+
+Audit Owner menemukan satu QA Subtask menghasilkan dua kartu di Tugas Saya: kartu subtask di "Pengujian dan Review" dan kartu Feature di "Persetujuan QA" yang tertahan dengan alasan "QA Subtask Anda harus diselesaikan". Antrean backend (`workQueueService.ts`) kini tidak membuat kartu Persetujuan QA selama QA Subtask belum `done`; kartu baru muncul setelah subtask selesai (siap dicatat, tertahan oleh syarat lain seperti bukti atau Bug terbuka, atau sudah tercatat). Tidak ada perubahan kontrak. Test integrasi antrean QA disesuaikan.
