@@ -62,6 +62,9 @@ export interface QaSubtaskWorkViewProps {
   onOpenActivity: () => void;
   onOpenRun: (testCaseId: string, hasil?: 'passed' | 'failed') => void;
   onAddTestCase: () => void;
+  /** Hanya Test Case yang belum pernah dijalankan dan boleh dihapus pengguna ini. */
+  canDeleteTestCase?: (execution: TaskTestCaseExecution) => boolean;
+  onDeleteTestCase?: (execution: TaskTestCaseExecution) => void;
   /** Desk QA lengkap untuk Bug & Retest, impor, dan persetujuan (sampai P4c). */
   onOpenFullDesk?: () => void;
 }
@@ -105,6 +108,8 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
   onOpenActivity,
   onOpenRun,
   onAddTestCase,
+  canDeleteTestCase,
+  onDeleteTestCase,
   onOpenFullDesk,
 }) => {
   const requirementNodes = useMemo(
@@ -283,42 +288,54 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
                                 : 'Belum aktif — belum bisa dijalankan'}
                             </p>
                           </div>
-                          {isActive && (
-                            <div className="flex shrink-0 items-center gap-2">
-                              {result ? (
-                                <button
-                                  type="button"
-                                  onClick={() => onOpenRun(execution.testCase.id)}
-                                  className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold ${
-                                    result.status === 'passed'
-                                      ? passClass
-                                      : result.status === 'failed'
-                                        ? failClass
-                                        : neutralClass
-                                  }`}
-                                >
-                                  {RESULT_LABELS[result.status]}
-                                </button>
-                              ) : (
-                                <>
+                          <div className="flex shrink-0 items-center gap-2">
+                            {onDeleteTestCase && canDeleteTestCase?.(execution) && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteTestCase(execution)}
+                                aria-label={`Hapus Test Case ${execution.testCase.title}`}
+                                className="rounded-lg px-2 py-1.5 text-[13px] text-stone-500 underline underline-offset-2 hover:text-red-600 dark:text-stone-400 dark:hover:text-red-400"
+                              >
+                                Hapus
+                              </button>
+                            )}
+                            {isActive && (
+                              <>
+                                {result ? (
                                   <button
                                     type="button"
-                                    onClick={() => onOpenRun(execution.testCase.id, 'passed')}
-                                    className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold ${passClass}`}
+                                    onClick={() => onOpenRun(execution.testCase.id)}
+                                    className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold ${
+                                      result.status === 'passed'
+                                        ? passClass
+                                        : result.status === 'failed'
+                                          ? failClass
+                                          : neutralClass
+                                    }`}
                                   >
-                                    Lulus
+                                    {RESULT_LABELS[result.status]}
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onOpenRun(execution.testCase.id, 'failed')}
-                                    className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold ${failClass}`}
-                                  >
-                                    Gagal
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          )}
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => onOpenRun(execution.testCase.id, 'passed')}
+                                      className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold ${passClass}`}
+                                    >
+                                      Lulus
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onOpenRun(execution.testCase.id, 'failed')}
+                                      className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold ${failClass}`}
+                                    >
+                                      Gagal
+                                    </button>
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </li>
                       );
                     })}

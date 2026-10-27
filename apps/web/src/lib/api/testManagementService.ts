@@ -152,6 +152,12 @@ export const testManagementService = {
     return response.testCase;
   },
 
+  async deleteTestCase(workspaceId: string, testCaseId: string): Promise<void> {
+    await apiClient<unknown>(`/workspaces/${workspaceId}/test-cases/${testCaseId}`, {
+      method: 'DELETE',
+    });
+  },
+
   async createTestRun(
     workspaceId: string,
     testCaseId: string,

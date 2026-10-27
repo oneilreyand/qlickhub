@@ -125,6 +125,21 @@ describe('QaSubtaskWorkView (desain 08)', () => {
     expect(screen.getAllByRole('button', { name: 'Gagal' })).toHaveLength(1);
   });
 
+  it('offers Hapus only for Test Cases the viewer may delete', () => {
+    const onDeleteTestCase = vi.fn();
+    const props = setup({
+      canDeleteTestCase: (item) => item.latestRun === null,
+      onDeleteTestCase,
+    });
+    expect(props).toBeDefined();
+    const buttons = screen.getAllByRole('button', { name: /^Hapus Test Case/ });
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]);
+    expect(onDeleteTestCase).toHaveBeenCalledWith(
+      expect.objectContaining({ testCase: expect.objectContaining({ id: 'tc-2' }) }),
+    );
+  });
+
   it('hides add and result actions for non-assigned viewers', () => {
     setup({ canExecute: false });
     expect(screen.queryByRole('button', { name: '+ Test Case' })).not.toBeInTheDocument();

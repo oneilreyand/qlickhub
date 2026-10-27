@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   listCycles: vi.fn(),
   listVersions: vi.fn(),
   listMappings: vi.fn(),
+  deleteTestCase: vi.fn(),
 }));
 
 vi.mock('../../lib/api/taskService', () => ({
@@ -37,6 +38,7 @@ vi.mock('../../lib/api/testManagementService', () => ({
     listQaTestCycles: (...a: unknown[]) => mocks.listCycles(...a),
     listTestCaseVersionCoverage: (...a: unknown[]) => mocks.listVersions(...a),
     listTestCaseVersionAcceptanceCriteria: (...a: unknown[]) => mocks.listMappings(...a),
+    deleteTestCase: (...a: unknown[]) => mocks.deleteTestCase(...a),
   },
 }));
 
@@ -158,6 +160,7 @@ describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
             status: 'active',
             createdAt: '2026-10-01T07:00:00.000Z',
             requirementIds: ['req-1'],
+            createdBy: qaId,
           },
           latestRun: null,
           testRuns: [],
@@ -202,6 +205,16 @@ describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
     expect(
       await screen.findByText(`run:/tests/cases/new?subtaskId=${qaSubtaskId}`),
     ).toBeInTheDocument();
+  });
+
+  it('deletes an unexecuted Test Case after confirmation', async () => {
+    mocks.deleteTestCase.mockResolvedValue(undefined);
+    renderPage();
+    expect(await screen.findByText('Bayar dengan kartu')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Hapus Test Case Bayar dengan kartu' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Hapus Test Case' }));
+    await waitFor(() => expect(mocks.deleteTestCase).toHaveBeenCalledWith(workspaceId, 'tc-1'));
+    await waitFor(() => expect(screen.queryByText('Bayar dengan kartu')).not.toBeInTheDocument());
   });
 
   it('opens the activity drawer', async () => {

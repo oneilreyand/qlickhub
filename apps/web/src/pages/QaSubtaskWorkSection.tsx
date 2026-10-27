@@ -18,7 +18,9 @@ import { testManagementService } from '../lib/api/testManagementService';
 import { getAreaLabel } from '../lib/utils/featureDisplay';
 import { getQaFullDeskPath, getTestCaseNewPath, getTestCaseRunPath } from '../lib/utils/taskRoutes';
 import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
-import { useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { enqueueSnackbar } from '../store/uiSlice';
+import { Modal } from '../components/ui/molecules/Modal';
 
 const ACTIVITY_PAGE_SIZE = 50;
 /** Komentar yang ditulis sesaat sebelum menekan Kirim ke QA tetap dianggap pesan serah-terima. */
@@ -43,6 +45,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
   const currentUserId = useAppSelector(selectCurrentUserId);
   const userRole = (useAppSelector(selectCurrentUserRole) || '').toLowerCase();
   const activeWorkspaceId = useAppSelector((state) => state.workspace.activeWorkspaceId);
@@ -53,6 +56,8 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
   const [handoff, setHandoff] = useState<QaHandoff | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const [pendingDelete, setPendingDelete] = useState<TaskTestCaseExecution | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   const [activities, setActivities] = useState<TaskActivity[]>([]);
   const [activityTotal, setActivityTotal] = useState(0);
@@ -62,6 +67,36 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
 
   const parentId = subtask.parentTaskId;
   const canExecute = userRole === 'qa' && subtask.assigneeId === currentUserId;
+
+  const canDeleteTestCase = useCallback(
+    (execution: TaskTestCaseExecution) => {
+      if (execution.latestRun) return false;
+      if (['owner', 'admin', 'po'].includes(userRole)) return true;
+      return userRole === 'qa' && execution.testCase.createdBy === currentUserId;
+    },
+    [userRole, currentUserId],
+  );
+
+  const confirmDelete = async () => {
+    if (!activeWorkspaceId || !pendingDelete) return;
+    setIsDeleting(true);
+    try {
+      await testManagementService.deleteTestCase(activeWorkspaceId, pendingDelete.testCase.id);
+      const removedId = pendingDelete.testCase.id;
+      setExecutions((prev) => prev.filter((item) => item.testCase.id !== removedId));
+      dispatch(enqueueSnackbar('Test Case dihapus.', 'success'));
+      setPendingDelete(null);
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Test Case tidak dapat dihapus.',
+          'error',
+        ),
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const requirementNodes = useMemo(
     () =>
@@ -267,10 +302,28 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
         onOpenFullDesk={
           userRole === 'qa' ? () => navigate(getQaFullDeskPath(subtask.id)) : undefined
         }
+        canDeleteTestCase={canDeleteTestCase}
+        onDeleteTestCase={setPendingDelete}
         onAddTestCase={() =>
           navigate(getTestCaseNewPath(subtask.id), { state: { returnTo: here } })
         }
       />
+      <Modal
+        isOpen={pendingDelete !== null}
+        onClose={() => (isDeleting ? undefined : setPendingDelete(null))}
+        title="Hapus Test Case?"
+        description="Test Case yang dihapus tidak bisa dikembalikan."
+        size="sm"
+        primaryActionLabel="Hapus Test Case"
+        primaryActionVariant="destructive"
+        onPrimaryAction={() => void confirmDelete()}
+        isPrimaryLoading={isDeleting}
+        secondaryActionLabel="Batal"
+      >
+        <p className="text-sm text-stone-700 dark:text-stone-300">
+          {pendingDelete?.testCase.title}
+        </p>
+      </Modal>
       <Drawer
         isOpen={isActivityOpen}
         onClose={() => setIsActivityOpen(false)}

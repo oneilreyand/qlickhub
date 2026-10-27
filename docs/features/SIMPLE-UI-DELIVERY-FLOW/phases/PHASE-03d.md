@@ -63,3 +63,7 @@
 - Kode AC per Test Case dibaca dari versi aktif; Test Case tanpa pemetaan AC hanya menampilkan nomor TC.
 - Membuka `?desk=lengkap` lewat muat ulang penuh (bukan klik dalam aplikasi) dialihkan ke halaman kerja karena peran belum termuat saat pengalih berjalan (kondisi balapan yang sudah ada sebelumnya pada tautan dalam QA); jalur klik dalam aplikasi berfungsi.
 - UAT Dark/390 dan kasus Test Case yang sudah punya hasil belum dicoba dengan data nyata (data uji hanya satu Test Case tanpa hasil); dicakup component test.
+
+## Catatan tambahan: Hapus Test Case
+
+Atas permintaan Owner, setiap baris Test Case di halaman kerja QA punya aksi **Hapus** dengan dialog konfirmasi. Aksi hanya tampil untuk Test Case yang belum pernah dijalankan dan untuk peran yang berhak (Owner, Admin, PO, atau QA pembuatnya), sesuai `assertCanDeleteTestCase`. Memakai endpoint `DELETE /workspaces/:id/test-cases/:id` yang sudah ada; bila backend menolak (mis. sudah ada riwayat eksekusi), pesannya ditampilkan sebagai notifikasi. Tidak ada kontrak atau endpoint baru.
