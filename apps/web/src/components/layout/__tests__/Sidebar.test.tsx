@@ -68,6 +68,21 @@ function renderSidebar(role: 'owner' | 'admin' | 'po' | 'dev' | 'qa', initialPat
 }
 
 describe('Sidebar Role-based Visibility', () => {
+  it('keeps four primary destinations and groups the rest under Lainnya (ADR-035)', () => {
+    renderSidebar('owner');
+
+    const links = screen.getAllByRole('link').map((link) => link.textContent?.trim());
+    expect(links.slice(0, 4)).toEqual(['Ringkasan', 'Task Hub', 'Tugas Saya', 'Laporan']);
+    expect(screen.getByText('Lainnya')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ganti workspace/i })).toBeInTheDocument();
+  });
+
+  it('hides the Lainnya group when a role has no secondary destinations', () => {
+    renderSidebar('dev');
+
+    expect(screen.queryByText('Lainnya')).toBeNull();
+  });
+
   it('aligns the brand divider with the 80px application header', () => {
     renderSidebar('owner');
 

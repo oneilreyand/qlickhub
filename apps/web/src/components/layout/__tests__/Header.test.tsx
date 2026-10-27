@@ -24,6 +24,7 @@ import uiReducer from '../../../store/uiSlice';
 import workspaceReducer from '../../../store/workspaceSlice';
 import { ThemeProvider } from '../../../lib/theme/ThemeContext';
 import { Header } from '../Header';
+import { getSectionLabel } from '../../../lib/utils/sectionLabel';
 
 function renderHeader(onToggleMobileSidebar: () => void) {
   const store = configureStore({
@@ -133,123 +134,36 @@ describe('Header', () => {
     );
   });
 
-  it('opens the Report destination from the top navigation', async () => {
-    const user = userEvent.setup();
-
+  it('shows the current section name in the slim header', () => {
     renderHeader(vi.fn());
 
-    const reportButton = screen.getByRole('button', { name: 'Laporan' });
-    await user.click(reportButton);
-
-    expect(reportButton).toHaveClass('bg-[#B1E743]');
+    expect(screen.getByText('Task Hub')).toBeInTheDocument();
   });
 
-  it('highlights the Tugas Saya button as active when on /my-tasks', () => {
-    const store = configureStore({
-      reducer: {
-        auth: authReducer,
-        ui: uiReducer,
-        workspace: workspaceReducer,
-        folder: folderReducer,
-        task: taskReducer,
-      },
-    });
-
-    render(
-      <Provider store={store}>
-        <ThemeProvider>
-          <MemoryRouter initialEntries={['/my-tasks']}>
-            <Header onToggleMobileSidebar={vi.fn()} />
-          </MemoryRouter>
-        </ThemeProvider>
-      </Provider>,
-    );
-
-    const myTasksButton = screen.getByRole('button', { name: 'Tugas Saya' });
-    expect(myTasksButton).toHaveClass('bg-[#B1E743]');
-  });
-
-  it('hides Pengaturan Workspace and UI System buttons for dev and qa roles', () => {
-    const store = configureStore({
-      reducer: {
-        auth: authReducer,
-        ui: uiReducer,
-        workspace: workspaceReducer,
-        folder: folderReducer,
-        task: taskReducer,
-      },
-      preloadedState: {
-        auth: {
-          currentUser: {
-            id: 'u1',
-            name: 'Dev User',
-            email: 'dev@example.com',
-            role: 'dev',
-            onboardingCompletedAt: '2026-08-01',
-          },
-          isAuthenticated: true,
-          showOnboardingModal: false,
-          status: 'succeeded' as const,
-          error: null,
-        },
-        workspace: {
-          workspaces: [
-            {
-              id: 'w1',
-              name: 'Dev Workspace',
-              slug: 'dev-ws',
-              ownerId: 'other',
-              allowQaTaskCreation: true,
-              createdAt: '',
-              updatedAt: '',
-              role: 'dev' as const,
-            },
-          ],
-          activeWorkspaceId: 'w1',
-          members: [],
-          isLoading: false,
-          isMembersLoading: false,
-          isInitialized: true,
-          error: null,
-        },
-      },
-    });
-
-    const rendered = render(
-      <Provider store={store}>
-        <ThemeProvider>
-          <MemoryRouter initialEntries={['/work']}>
-            <Header onToggleMobileSidebar={vi.fn()} />
-          </MemoryRouter>
-        </ThemeProvider>
-      </Provider>,
-    );
-
-    expect(screen.queryByRole('button', { name: 'Pengaturan Workspace' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
-    rendered.unmount();
-
-    renderHeaderForRole('qa');
-    expect(screen.queryByRole('button', { name: 'Pengaturan Workspace' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
-  });
-
-  it('shows Pengaturan Workspace for PO and Admin roles while hiding UI System', () => {
-    const { unmount: unmountPo } = renderHeaderForRole('po');
-    expect(screen.getByRole('button', { name: 'Pengaturan Workspace' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
-    unmountPo();
-
-    const { unmount: unmountAdmin } = renderHeaderForRole('admin');
-    expect(screen.getByRole('button', { name: 'Pengaturan Workspace' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
-    unmountAdmin();
-  });
-
-  it('shows both Pengaturan Workspace and UI System buttons for owner role', () => {
+  it('no longer hosts the workspace switcher or a duplicate top navigation (ADR-035)', () => {
     renderHeaderForRole('owner');
-    expect(screen.getByRole('button', { name: 'Pengaturan Workspace' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sistem UI' })).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', { name: /ganti workspace/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Laporan' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sistem UI' })).toBeNull();
+  });
+
+  it('offers Pengaturan Workspace in the profile menu only to owner, admin, and po', async () => {
+    const user = userEvent.setup();
+
+    for (const role of ['owner', 'admin', 'po'] as const) {
+      const rendered = renderHeaderForRole(role);
+      await user.click(screen.getByRole('button', { name: 'Menu profil pengguna' }));
+      expect(screen.getByRole('button', { name: 'Pengaturan Workspace' })).toBeInTheDocument();
+      rendered.unmount();
+    }
+
+    for (const role of ['dev', 'qa'] as const) {
+      const rendered = renderHeaderForRole(role);
+      await user.click(screen.getByRole('button', { name: 'Menu profil pengguna' }));
+      expect(screen.queryByRole('button', { name: 'Pengaturan Workspace' })).toBeNull();
+      rendered.unmount();
+    }
   });
 
   it('hides the Task Creation Policy shortcut from the profile menu', async () => {
@@ -258,7 +172,7 @@ describe('Header', () => {
 
     await user.click(screen.getByRole('button', { name: 'Menu profil pengguna' }));
 
-    expect(screen.getAllByRole('button', { name: 'Pengaturan Workspace' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Pengaturan Workspace' })).toHaveLength(1);
     expect(screen.queryByText('Task Creation Policy')).not.toBeInTheDocument();
   });
 
@@ -274,13 +188,15 @@ describe('Header', () => {
 
     expect(screen.queryByText('Panduan User Flow & Roles')).not.toBeInTheDocument();
   });
+});
 
-  it('does not offer workspace creation to QA', async () => {
-    const user = userEvent.setup();
-    renderHeaderForRole('qa');
-
-    await user.click(screen.getByRole('button', { name: /ganti workspace/i }));
-
-    expect(screen.queryByRole('button', { name: /^buat workspace$/i })).not.toBeInTheDocument();
+describe('getSectionLabel', () => {
+  it('maps routes to the Sidebar destination names', () => {
+    expect(getSectionLabel('/work', 'overview')).toBe('Ringkasan');
+    expect(getSectionLabel('/work', 'tasks')).toBe('Task Hub');
+    expect(getSectionLabel('/my-tasks', 'overview')).toBe('Tugas Saya');
+    expect(getSectionLabel('/projects/p1/tasks/t1', 'overview')).toBe('Task Hub');
+    expect(getSectionLabel('/reports', 'overview')).toBe('Laporan');
+    expect(getSectionLabel('/unknown', 'overview')).toBe('Qlick Hub');
   });
 });
