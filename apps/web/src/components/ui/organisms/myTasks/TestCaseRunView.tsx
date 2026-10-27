@@ -79,6 +79,8 @@ export interface TestCaseRunViewProps {
   error?: string | null;
   onSave: (values: RunFormValues) => void;
   onAddSupplement: (values: { url: string; label?: string; reason: string }) => Promise<void>;
+  /** Panel tindak lanjut (AC-3.5); ditampilkan di bawah bila hasil tersimpan Gagal/Terblokir. */
+  followUp?: React.ReactNode;
   onBack: () => void;
 }
 
@@ -119,6 +121,7 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
   error,
   onSave,
   onAddSupplement,
+  followUp,
   onBack,
 }) => {
   const [status, setStatus] = useState<TestResultStatus | null>(initialStatus);
@@ -539,6 +542,13 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
           )}
         </section>
       </div>
+
+      {followUp &&
+      canExecute &&
+      result &&
+      (result.status === 'failed' || result.status === 'blocked')
+        ? followUp
+        : null}
 
       <section aria-labelledby="run-history" className={`${cardClass} p-5`}>
         <h2 id="run-history" className={cardTitleClass}>

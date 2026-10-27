@@ -25,12 +25,22 @@ const m = vi.hoisted(() => ({
   createRun: vi.fn(),
   recordResult: vi.fn(),
   createCycle: vi.fn(),
+  updateTask: vi.fn(),
+  listBugs: vi.fn(),
+  createBug: vi.fn(),
 }));
 
 vi.mock('../../lib/api/taskService', () => ({
   taskService: {
     getTask: (...a: unknown[]) => m.getTask(...a),
     listSubtasks: (...a: unknown[]) => m.listSubtasks(...a),
+    updateTask: (...a: unknown[]) => m.updateTask(...a),
+  },
+}));
+vi.mock('../../lib/api/bugService', () => ({
+  bugService: {
+    listBugs: (...a: unknown[]) => m.listBugs(...a),
+    createBug: (...a: unknown[]) => m.createBug(...a),
   },
 }));
 vi.mock('../../lib/api/traceabilityService', () => ({
@@ -258,6 +268,69 @@ describe('TestCaseRunPage', () => {
         evidenceLinks: [{ url: 'https://www.loom.com/share/abc123', label: undefined }],
       }),
     );
+  });
+
+  it('offers to report a failed result as a bug or request changes (AC-3.5)', async () => {
+    const devSubtask = {
+      id: 'dev-sub-1',
+      parentTaskId: featureId,
+      title: 'Endpoint paginasi',
+      deliveryArea: 'be',
+      assigneeId: 'dev-1',
+      status: 'in_review',
+    };
+    m.getTrace.mockResolvedValue({
+      requirements: [
+        {
+          ...trace.requirements[0],
+          implementingSubtasks: [qaSubtask, devSubtask],
+        },
+      ],
+    });
+    m.listCycles.mockResolvedValue([cycle]);
+    m.getExecutions.mockResolvedValue({
+      executions: [
+        {
+          testCase,
+          latestRun: null,
+          testRuns: [
+            {
+              id: 'run-1',
+              testCycleId: 'cycle-1',
+              result: {
+                id: 'result-1',
+                status: 'failed',
+                actualResult: 'Halaman 2 kosong',
+                notes: null,
+                evidence: [],
+                evidenceLinks: [],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    m.listBugs.mockResolvedValue([]);
+    m.createBug.mockResolvedValue({ id: 'bug-1' });
+    renderAt(`/tests/cases/${testCase.id}/run?subtaskId=${qaSubtask.id}`);
+
+    expect(await screen.findByRole('heading', { name: 'Tindak lanjut' })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Developer penerima'), { target: { value: 'dev-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim bug ke Developer' }));
+
+    await waitFor(() =>
+      expect(m.createBug).toHaveBeenCalledWith(
+        ws,
+        expect.objectContaining({
+          featureTaskId: featureId,
+          requirementId: 'r1',
+          testResultId: 'result-1',
+          assigneeId: 'dev-1',
+          environment: 'staging',
+        }),
+      ),
+    );
+    expect(await screen.findByText(/Bug dikirim ke/)).toBeInTheDocument();
   });
 
   it('offers to start a cycle when none is active', async () => {

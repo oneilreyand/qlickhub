@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type {
+  BugWithContext,
+  ParentTaskDeliveryTrace,
   QaTestCycle,
   Task,
   TaskTestCaseExecution,
@@ -16,7 +18,14 @@ import {
   type CycleFormValues,
   type RunFormValues,
 } from '../components/ui/organisms/myTasks/TestCaseRunView';
+import {
+  TestCaseFollowUpPanel,
+  type FollowUpBugValues,
+  type FollowUpChangesValues,
+} from '../components/ui/organisms/myTasks/TestCaseFollowUpPanel';
+import { bugService } from '../lib/api/bugService';
 import { taskService } from '../lib/api/taskService';
+import { traceabilityService } from '../lib/api/traceabilityService';
 import { testManagementService } from '../lib/api/testManagementService';
 import { getTestCaseRunPath } from '../lib/utils/taskRoutes';
 import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
@@ -60,7 +69,7 @@ export const TestCaseRunPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const currentUserId = useAppSelector(selectCurrentUserId);
   const userRole = useAppSelector(selectCurrentUserRole) || '';
-  const { activeWorkspaceId, isInitialized } = useAppSelector((state) => state.workspace);
+  const { activeWorkspaceId, isInitialized, members } = useAppSelector((state) => state.workspace);
   const isReady = isInitialized && Boolean(activeWorkspaceId);
 
   const [data, setData] = useState<PageData | null>(null);
@@ -72,6 +81,15 @@ export const TestCaseRunPage: React.FC = () => {
   const [isStartingCycle, setIsStartingCycle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
+  const [followUpTrace, setFollowUpTrace] = useState<ParentTaskDeliveryTrace | null>(null);
+  const [followUpBugs, setFollowUpBugs] = useState<BugWithContext[] | null>(null);
+  const memberName = useCallback(
+    (userId: string) => {
+      const member = members.find((item) => item.userId === userId);
+      return member?.user?.name || member?.user?.email || 'Developer';
+    },
+    [members],
+  );
 
   useEffect(() => {
     if (!isReady || !activeWorkspaceId || !testCaseId) return undefined;
@@ -153,6 +171,45 @@ export const TestCaseRunPage: React.FC = () => {
     return execution.testRuns.find((run) => run.testCycleId === activeCycle.id) ?? null;
   }, [execution, activeCycle]);
 
+  const failedResultId = useMemo(() => {
+    if (!data || !activeCycle) return null;
+    const run = data.executions
+      .find((item) => item.testCase.id === data.testCase.id)
+      ?.testRuns.find((item) => item.testCycleId === activeCycle.id);
+    const result = run?.result;
+    return result && (result.status === 'failed' || result.status === 'blocked') ? result.id : null;
+  }, [data, activeCycle]);
+  const followUpFeatureId = data?.subtask.parentTaskId ?? null;
+
+  useEffect(() => {
+    if (!activeWorkspaceId || !failedResultId || !followUpFeatureId) {
+      setFollowUpTrace(null);
+      setFollowUpBugs(null);
+      return undefined;
+    }
+    let isCurrent = true;
+    void (async () => {
+      try {
+        const [trace, bugs] = await Promise.all([
+          traceabilityService.getParentTaskDeliveryTrace(activeWorkspaceId, followUpFeatureId),
+          bugService.listBugs(activeWorkspaceId, { testResultId: failedResultId }),
+        ]);
+        if (!isCurrent) return;
+        setFollowUpTrace(trace);
+        setFollowUpBugs(bugs);
+      } catch {
+        // Panel tindak lanjut tidak tampil; hasil tetap tersimpan dan terlihat.
+        if (isCurrent) {
+          setFollowUpTrace(null);
+          setFollowUpBugs(null);
+        }
+      }
+    })();
+    return () => {
+      isCurrent = false;
+    };
+  }, [activeWorkspaceId, failedResultId, followUpFeatureId]);
+
   const ordered = useMemo(() => data?.executions ?? [], [data]);
   const position = useMemo(() => {
     if (!data) return null;
@@ -233,6 +290,33 @@ export const TestCaseRunPage: React.FC = () => {
     }
   };
 
+  const handleReportBug = async (values: FollowUpBugValues) => {
+    if (!activeWorkspaceId || !data || !activeCycle || !data.subtask.parentTaskId) return;
+    const requirementId = data.testCase.requirementIds[0];
+    if (!requirementId || !failedResultId)
+      throw new Error('Requirement hasil ini tidak ditemukan.');
+    await bugService.createBug(activeWorkspaceId, {
+      featureTaskId: data.subtask.parentTaskId,
+      requirementId,
+      testResultId: failedResultId,
+      environment: activeCycle.environment === 'production' ? 'production' : 'staging',
+      assigneeId: values.assigneeId,
+      title: values.title,
+      severity: values.severity,
+      reproductionDetails: values.reproductionDetails,
+    });
+    dispatch(enqueueSnackbar('Bug dikirim ke Developer', 'success'));
+  };
+
+  const handleRequestChanges = async (values: FollowUpChangesValues) => {
+    if (!activeWorkspaceId) return;
+    await taskService.updateTask(activeWorkspaceId, values.subtaskId, {
+      status: 'changes_requested',
+      reviewNotes: values.notes,
+    });
+    dispatch(enqueueSnackbar('Permintaan perbaikan dikirim ke Developer', 'success'));
+  };
+
   if (!isReady || isLoading) {
     return (
       <div className="mx-auto max-w-5xl space-y-4" aria-label="Memuat halaman jalankan Test Case">
@@ -305,6 +389,18 @@ export const TestCaseRunPage: React.FC = () => {
     Boolean(currentUserId) &&
     data.subtask.assigneeId === currentUserId;
 
+  const testRequirementIds = new Set(data.testCase.requirementIds);
+  const followUpDevelopers: Task[] = [];
+  for (const node of followUpTrace?.requirements ?? []) {
+    if (!testRequirementIds.has(node.requirement.id)) continue;
+    for (const item of node.implementingSubtasks) {
+      if (item.deliveryArea === 'qa' || !item.assigneeId) continue;
+      if (!followUpDevelopers.some((existing) => existing.id === item.id)) {
+        followUpDevelopers.push(item);
+      }
+    }
+  }
+
   let blockedReason: string | null = null;
   if (data.testCase.status !== 'active') {
     blockedReason =
@@ -354,6 +450,35 @@ export const TestCaseRunPage: React.FC = () => {
         dispatch(enqueueSnackbar('Bukti susulan dicatat', 'success'));
         reload();
       }}
+      followUp={
+        followUpTrace && followUpBugs ? (
+          <TestCaseFollowUpPanel
+            testCase={data.testCase}
+            result={{
+              status: currentRun?.result?.status ?? 'failed',
+              actualResult: currentRun?.result?.actualResult ?? null,
+            }}
+            developers={followUpDevelopers.map((item) => ({
+              userId: item.assigneeId as string,
+              name: memberName(item.assigneeId as string),
+            }))}
+            reviewTargets={followUpDevelopers
+              .filter((item) => item.status === 'in_review')
+              .map((item) => ({
+                id: item.id,
+                title: item.title,
+                assigneeName: item.assigneeId ? memberName(item.assigneeId) : undefined,
+              }))}
+            existingBugs={followUpBugs.map((bug) => ({
+              id: bug.id,
+              title: bug.title,
+              assigneeName: bug.assigneeId ? memberName(bug.assigneeId) : undefined,
+            }))}
+            onReportBug={handleReportBug}
+            onRequestChanges={handleRequestChanges}
+          />
+        ) : null
+      }
       onBack={goBack}
     />
   );
