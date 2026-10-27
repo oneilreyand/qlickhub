@@ -100,4 +100,38 @@ describe('Task Hub query state', () => {
       'tab=tasks&q=payment',
     );
   });
+
+  it('resets a Kanban Feature from the previous folder scope', () => {
+    const current = new URLSearchParams(
+      'tab=tasks&view=kanban&kanbanFeatureId=feature-outside&folderId=folder-old&status=done',
+    );
+
+    const next = patchTaskHubQueryState(current, {
+      folderId: 'folder-current',
+      unfiledOnly: false,
+    });
+
+    expect(next.toString()).toBe('tab=tasks&view=kanban&folderId=folder-current&status=done');
+    expect(parseTaskHubQueryState(next)).toMatchObject({
+      folderId: 'folder-current',
+      kanbanFeatureId: null,
+      viewMode: 'kanban',
+      statusFilter: 'done',
+    });
+  });
+
+  it('resets a Kanban Feature when entering the folderless scope', () => {
+    const current = new URLSearchParams(
+      'tab=tasks&view=kanban&kanbanFeatureId=feature-foldered&folderId=folder-current',
+    );
+
+    const next = patchTaskHubQueryState(current, { folderId: null, unfiledOnly: true });
+
+    expect(next.toString()).toBe('tab=tasks&view=kanban&unfiledOnly=true');
+    expect(parseTaskHubQueryState(next)).toMatchObject({
+      folderId: null,
+      unfiledOnly: true,
+      kanbanFeatureId: null,
+    });
+  });
 });

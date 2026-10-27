@@ -15,6 +15,7 @@ import { useAppSelector } from '../../store/hooks';
 import { useAppDispatch } from '../../store/hooks';
 import { selectCurrentUserRole } from '../../store/authSlice';
 import { featureVisibility } from '../../config/featureVisibility';
+import { patchTaskHubQueryState } from '../../lib/utils/taskHubQueryState';
 import { FolderTree } from '../ui/organisms/FolderTree';
 import {
   archiveFolder,
@@ -142,20 +143,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   };
 
   const handleSelectFolder = (folderId: string | null) => {
-    const next = new URLSearchParams(location.search);
+    const next = patchTaskHubQueryState(new URLSearchParams(location.search), {
+      folderId,
+      unfiledOnly: false,
+    });
     next.set('tab', 'tasks');
-    next.delete('unfiledOnly');
-    if (folderId) next.set('folderId', folderId);
-    else next.delete('folderId');
     navigate(`/work?${next.toString()}`);
     onCloseMobile?.();
   };
 
   const handleSelectUnfiled = () => {
-    const next = new URLSearchParams(location.search);
+    const next = patchTaskHubQueryState(new URLSearchParams(location.search), {
+      folderId: null,
+      unfiledOnly: true,
+    });
     next.set('tab', 'tasks');
-    next.delete('folderId');
-    next.set('unfiledOnly', 'true');
     navigate(`/work?${next.toString()}`);
     onCloseMobile?.();
   };

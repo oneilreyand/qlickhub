@@ -104,6 +104,7 @@ export function patchTaskHubQueryState(
   patch: TaskHubQueryPatch,
 ): URLSearchParams {
   const next = new URLSearchParams(current);
+  const changesFolderScope = 'folderId' in patch || 'unfiledOnly' in patch;
 
   if ('folderId' in patch) {
     setOrDelete(next, 'folderId', patch.folderId);
@@ -118,7 +119,11 @@ export function patchTaskHubQueryState(
     }
   }
   if ('taskId' in patch) setOrDelete(next, 'taskId', patch.taskId);
-  if ('kanbanFeatureId' in patch) setOrDelete(next, 'kanbanFeatureId', patch.kanbanFeatureId);
+  if ('kanbanFeatureId' in patch) {
+    setOrDelete(next, 'kanbanFeatureId', patch.kanbanFeatureId);
+  } else if (changesFolderScope) {
+    next.delete('kanbanFeatureId');
+  }
   if ('searchQuery' in patch) setOrDelete(next, 'q', patch.searchQuery);
 
   if ('datePreset' in patch) {
