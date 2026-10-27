@@ -110,7 +110,7 @@ describe('QaSubtaskWorkView (desain 08)', () => {
     expect(within(group).getByText('1 dari 2 diuji')).toBeInTheDocument();
     expect(within(group).getByText('TC-01 · AC-1.1')).toBeInTheDocument();
     expect(within(group).getByText('TC-02 · AC-1.1, AC-1.2')).toBeInTheDocument();
-    expect(within(group).getAllByText('Buka untuk cara uji dan unggah bukti')).toHaveLength(2);
+    expect(within(group).getAllByText('Buka untuk cara uji dan tautan bukti')).toHaveLength(2);
   });
 
   it('Lulus and Gagal open the run page with the chosen result; tested cases show their result', () => {

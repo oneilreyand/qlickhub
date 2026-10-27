@@ -123,6 +123,10 @@ function renderAt(path: string, role = 'qa') {
           <Route path="/tests/cases/new" element={<TestCaseNewPage />} />
           <Route path="/tests/cases/:testCaseId/run" element={<TestCaseRunPage />} />
           <Route path="/my-tasks" element={<div>Tugas Saya destination</div>} />
+          <Route
+            path="/work/subtasks/:subtaskId"
+            element={<div>Halaman kerja QA destination</div>}
+          />
         </Routes>
         <Probe />
       </MemoryRouter>
@@ -191,7 +195,9 @@ describe('TestCaseNewPage', () => {
       await screen.findByText(/tersimpan sebagai draf, tetapi belum aktif/),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Simpan Test Case' }));
-    await waitFor(() => expect(screen.getByText('Tugas Saya destination')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Halaman kerja QA destination')).toBeInTheDocument(),
+    );
     expect(m.createTestCase).toHaveBeenCalledTimes(1);
     expect(m.replaceAc).toHaveBeenCalledTimes(1);
     expect(m.updateTestCase).toHaveBeenCalledTimes(2);

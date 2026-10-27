@@ -284,7 +284,7 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
                             </button>
                             <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
                               {isActive
-                                ? 'Buka untuk cara uji dan unggah bukti'
+                                ? 'Buka untuk cara uji dan tautan bukti'
                                 : 'Belum aktif — belum bisa dijalankan'}
                             </p>
                           </div>

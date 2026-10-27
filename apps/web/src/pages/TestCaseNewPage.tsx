@@ -85,8 +85,12 @@ export const TestCaseNewPage: React.FC = () => {
 
   const returnTo = useCallback(() => {
     const candidate = (location.state as { returnTo?: unknown } | null)?.returnTo;
-    navigate(typeof candidate === 'string' && candidate.startsWith('/') ? candidate : '/my-tasks');
-  }, [location.state, navigate]);
+    if (typeof candidate === 'string' && candidate.startsWith('/')) {
+      navigate(candidate);
+      return;
+    }
+    navigate(subtaskId ? `/work/subtasks/${subtaskId}` : '/my-tasks');
+  }, [location.state, navigate, subtaskId]);
 
   const handleSubmit = async (values: TestCaseEditorValues, runAfterSave: boolean) => {
     if (!activeWorkspaceId || !subtask || !trace) return;
