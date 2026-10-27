@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Card } from '../components/ui/atoms/Card';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
 import { MyTaskDetailWorkspaceDrawer } from '../components/ui/organisms/myTasks/MyTaskDetailWorkspaceDrawer';
 import { TaskDetailDrawer, TaskHubDashboardTemplate } from '../features/tasks';
+import { getTaskPagePath, shouldUseLegacyQaWorkspace } from '../lib/utils/taskRoutes';
 import { useTaskWithParent } from '../lib/hooks/useTaskWithParent';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { selectCurrentUserRole } from '../store/authSlice';
@@ -20,6 +21,7 @@ export const TaskDeepLinkPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const {
     workspaces,
+    activeWorkspaceId,
     isInitialized,
     isLoading: isWorkspaceLoading,
   } = useAppSelector((state) => state.workspace);
@@ -29,9 +31,7 @@ export const TaskDeepLinkPage: React.FC = () => {
   const isWorkspaceReady = isInitialized && !isWorkspaceLoading;
   const {
     task,
-    parentTask,
     isTaskLoading,
-    isParentTaskLoading,
     failure,
     reload: reloadTask,
   } = useTaskWithParent(projectId, taskId, isWorkspaceReady);
@@ -130,33 +130,29 @@ export const TaskDeepLinkPage: React.FC = () => {
     );
   }
 
-  const useQaWorkspace = userRole === 'qa' && task.deliveryArea === 'qa';
+  const useQaWorkspace = shouldUseLegacyQaWorkspace(userRole, task);
+
+  if (!useQaWorkspace) {
+    // Pengalih (AC-2.3): tautan lama membuka halaman Feature atau halaman kerja subtask.
+    // Tunggu Workspace aktif sama dengan tautan agar halaman tujuan memuat Task yang benar.
+    if (activeWorkspaceId !== projectId) {
+      return <Skeleton className="mx-auto h-64 w-full max-w-3xl rounded-xl" />;
+    }
+    return <Navigate to={getTaskPagePath(task)} replace state={location.state} />;
+  }
 
   return (
     <>
       <TaskHubDashboardTemplate />
-      {useQaWorkspace ? (
-        <MyTaskDetailWorkspaceDrawer
-          task={task}
-          userRole={userRole}
-          isOpen
-          releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
-          onClose={closeDrawer}
-          onOpenFeature={openRelatedTask}
-          onDataChanged={reload}
-        />
-      ) : (
-        <TaskDetailDrawer
-          task={task}
-          folders={folders}
-          parentTask={parentTask}
-          isParentTaskLoading={isParentTaskLoading}
-          releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
-          onClose={closeDrawer}
-          onNavigateToTask={openRelatedTask}
-          onDataChanged={reload}
-        />
-      )}
+      <MyTaskDetailWorkspaceDrawer
+        task={task}
+        userRole={userRole}
+        isOpen
+        releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
+        onClose={closeDrawer}
+        onOpenFeature={openRelatedTask}
+        onDataChanged={reload}
+      />
     </>
   );
 };

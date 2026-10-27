@@ -12,6 +12,7 @@ import { CreateTaskModal } from '../features/tasks';
 import { EmptyWorkspaceOnboarding } from '../features/workspaces';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { useRoleAwareWorkQueue } from '../lib/hooks/useRoleAwareWorkQueue';
+import { getTaskPagePath, shouldUseLegacyQaWorkspace } from '../lib/utils/taskRoutes';
 import {
   buildWorkQueueRoute,
   clearWorkQueueRouteContext,
@@ -98,6 +99,14 @@ export const MyTasksPage: React.FC = () => {
             taskId,
           }),
         ).unwrap();
+        if (!shouldUseLegacyQaWorkspace(userRole, task)) {
+          // Pengalih (AC-2.3): ?taskId= membuka halaman Feature atau halaman kerja subtask.
+          navigate(getTaskPagePath(task), {
+            replace: true,
+            state: { returnTo: '/my-tasks' },
+          });
+          return;
+        }
         dispatch(setSelectedTaskId(task.id));
       } catch (error) {
         dispatch(
@@ -108,7 +117,7 @@ export const MyTasksPage: React.FC = () => {
         );
       }
     },
-    [activeWorkspaceId, dispatch],
+    [activeWorkspaceId, dispatch, navigate, userRole],
   );
 
   useEffect(() => {

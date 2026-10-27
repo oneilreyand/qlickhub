@@ -61,6 +61,12 @@ const FeatureDetailPage = lazy(async () => ({
   ).FeatureDetailPage,
 }));
 
+const SubtaskWorkPage = lazy(async () => ({
+  default: (
+    await loadRouteModuleWithRecovery('subtask-work', () => import('../pages/SubtaskWorkPage'))
+  ).SubtaskWorkPage,
+}));
+
 const protectedPageFallback = (
   <div
     className="min-h-screen w-screen bg-[#FBFCF7] dark:bg-[#141413] flex items-center justify-center"
@@ -98,6 +104,18 @@ export const App: React.FC = () => {
                 <Suspense fallback={protectedPageFallback}>
                   <AppLayout>
                     <FeatureDetailPage />
+                  </AppLayout>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/work/subtasks/:subtaskId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <SubtaskWorkPage />
                   </AppLayout>
                 </Suspense>
               </ProtectedRoute>

@@ -1,7 +1,7 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Task } from '@qlick/contracts';
 import { TaskDeepLinkPage } from '../TaskDeepLinkPage';
@@ -141,14 +141,28 @@ function createStore(includeWorkspace = true, role = 'po') {
   });
 }
 
-function renderRoute(includeWorkspace = true, role = 'po') {
+function LocationProbe({ label }: { label: string }) {
+  const location = useLocation();
+  const state = location.state as { returnTo?: string } | null;
+  return (
+    <div data-testid="redirect-target">
+      {label}:{location.pathname}|{state?.returnTo ?? ''}
+    </div>
+  );
+}
+
+function renderRoute(includeWorkspace = true, role = 'po', state?: { returnTo: string }) {
   const store = createStore(includeWorkspace, role);
   render(
     <Provider store={store}>
-      <MemoryRouter initialEntries={[`/projects/${workspaceId}/tasks/${taskId}`]}>
+      <MemoryRouter
+        initialEntries={[{ pathname: `/projects/${workspaceId}/tasks/${taskId}`, state }]}
+      >
         <Routes>
           <Route path="/projects/:projectId/tasks/:taskId" element={<TaskDeepLinkPage />} />
           <Route path="/work" element={<div>Work Hub destination</div>} />
+          <Route path="/work/features/:featureId" element={<LocationProbe label="feature" />} />
+          <Route path="/work/subtasks/:subtaskId" element={<LocationProbe label="subtask" />} />
         </Routes>
       </MemoryRouter>
     </Provider>,
@@ -163,20 +177,20 @@ describe('TaskDeepLinkPage', () => {
     getFolderTreeMock.mockResolvedValue([]);
   });
 
-  it('loads an authorized persisted task after a direct refresh and restores its Workspace', async () => {
+  it('redirects a persisted Feature to its page and restores the Workspace', async () => {
     getTaskMock.mockResolvedValue(task);
     const store = renderRoute();
 
-    expect(await screen.findByTestId('task-deep-link-drawer')).toHaveTextContent(task.title);
+    expect(await screen.findByTestId('redirect-target')).toHaveTextContent(
+      `feature:/work/features/${taskId}`,
+    );
     expect(getTaskMock).toHaveBeenCalledWith(workspaceId, taskId);
     expect(getFolderTreeMock).toHaveBeenCalledWith(workspaceId);
     expect(store.getState().workspace.activeWorkspaceId).toBe(workspaceId);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close task' }));
-    expect(await screen.findByText('Work Hub destination')).toBeInTheDocument();
+    expect(screen.queryByTestId('task-deep-link-drawer')).not.toBeInTheDocument();
   });
 
-  it('shows the detail loading drawer while the persisted task request is pending', async () => {
+  it('shows the loading state while the task request is pending, then redirects', async () => {
     let resolveTask!: (value: Task) => void;
     getTaskMock.mockImplementationOnce(
       () =>
@@ -189,13 +203,15 @@ describe('TaskDeepLinkPage', () => {
     expect(await screen.findByRole('status', { name: 'Memuat detail task' })).toHaveTextContent(
       taskId,
     );
-    expect(screen.queryByTestId('task-deep-link-drawer')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('redirect-target')).not.toBeInTheDocument();
 
     await act(async () => {
       resolveTask(task);
     });
 
-    expect(await screen.findByTestId('task-deep-link-drawer')).toHaveTextContent(task.title);
+    expect(await screen.findByTestId('redirect-target')).toHaveTextContent(
+      `feature:/work/features/${taskId}`,
+    );
   });
 
   it('renders an explicit forbidden state from the authenticated task endpoint', async () => {
@@ -219,30 +235,19 @@ describe('TaskDeepLinkPage', () => {
     expect(screen.getByText(/tidak ada di Workspace yang diminta/)).toBeInTheDocument();
   });
 
-  it('loads sebuah Subtask parent and navigates Kembali ke Feature without losing the return path', async () => {
-    const parentTask = {
-      ...task,
-      id: '10000000-0000-4000-8000-000000000004',
-      title: 'Parent Feature',
-    };
+  it('redirects a Subtask to its work page and keeps the return path', async () => {
     const subtask = {
       ...task,
-      parentTaskId: parentTask.id,
+      parentTaskId: '10000000-0000-4000-8000-000000000004',
       deliveryArea: 'frontend' as const,
       title: 'Checkout frontend subtask',
     };
-    getTaskMock.mockImplementation((_workspaceId: string, requestedTaskId: string) =>
-      Promise.resolve(requestedTaskId === taskId ? subtask : parentTask),
+    getTaskMock.mockResolvedValue(subtask);
+    renderRoute(true, 'dev', { returnTo: '/my-tasks' });
+
+    expect(await screen.findByTestId('redirect-target')).toHaveTextContent(
+      `subtask:/work/subtasks/${taskId}|/my-tasks`,
     );
-    renderRoute();
-
-    expect(await screen.findByText('Parent: Parent Feature')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Open parent' }));
-
-    await waitFor(() => {
-      expect(getTaskMock).toHaveBeenCalledWith(workspaceId, parentTask.id);
-    });
-    expect(await screen.findByText('Parent Feature')).toBeInTheDocument();
   });
 
   it('opens a QA subtask deep link in the QA workspace for the authenticated QA actor', async () => {
