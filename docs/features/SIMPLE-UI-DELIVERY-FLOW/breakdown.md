@@ -31,27 +31,27 @@ flowchart LR
     P5c --> ADR["ADR rilis"] --> P7a["P7a data rilis<br/>AC-7.1"] --> P7b["P7b verifikasi + terima<br/>AC-7.2, 7.3"] --> P8a["P8a bug Production<br/>AC-8.1"] --> P8b["P8b pemantauan + tutup<br/>AC-8.2"]
 ```
 
-| Phase | Tujuan yang terlihat user                                                                                           | AC                             | WRA  | Bergantung pada | Status      |
-| ----- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---- | --------------- | ----------- |
-| P1    | Shell sederhana: Sidebar ringkas dengan pemilih workspace, 4 menu utama, menu Lainnya, folder, profil; header tipis | AC-1.1, AC-1.2                 | 6/16 | PR #59          | Berjalan    |
-| P2a   | Detail Feature sebagai halaman dengan stepper; 8 tab dipetakan ke tahap dan header                                  | AC-2.1, AC-2.2                 | 7/16 | P1              | Belum mulai |
-| P2b   | URL lama dialihkan; halaman detail kerjaan Developer dengan cek AC dan Kirim ke QA                                  | AC-2.3, AC-2.4                 | 6/16 | P2a             | Belum mulai |
-| P3a   | Halaman tambah dan jalankan Test Case; bukti wajib untuk Gagal/Terblokir; 403 non-QA                                | AC-3.1, AC-3.2, AC-3.3, AC-3.6 | 7/16 | P2b             | Belum mulai |
-| P3b   | Centang per langkah dan browser/perangkat tersimpan bersama hasil                                                   | AC-3.4                         | 7/16 | P3a             | Belum mulai |
-| P3c   | Hasil Gagal diteruskan ke Developer sebagai perbaikan atau bug                                                      | AC-3.5                         | 7/16 | P3a             | Belum mulai |
-| P4a   | Penanda serah-terima di komentar; pesan pengirim di antrean; balas langsung                                         | AC-4.2, AC-4.4                 | 8/16 | P2b             | Belum mulai |
-| P4b   | Tugas Saya Developer dan QA dengan "Mulai dari sini" dan "Menunggu orang lain"                                      | AC-4.1, AC-4.3                 | 8/16 | P4a             | Belum mulai |
-| P4c   | Tugas Saya PO; desk lama per peran dilepas setelah E4                                                               | AC-4.1                         | 7/16 | P4b             | Belum mulai |
-| P4d   | Panel riwayat serah-terima per Feature                                                                              | AC-4.5                         | 8/16 | P4a             | Belum mulai |
-| P5a-1 | Plan tersimpan: Feature dibuat dengan tahap Plan (tanpa AI)                                                         | AC-5.1, AC-5.5                 | 8/16 | P4d             | Belum mulai |
-| P5a-2 | Pertanyaan AI v2 (alasan, wajib/opsional, pilihan) tersimpan                                                        | AC-5.2                         | 8/16 | P5a-1           | Belum mulai |
-| P5a-3 | Draft berversi dan Apply dari draft dalam satu transaksi                                                            | AC-5.3, AC-5.4                 | 8/16 | P5a-2           | Belum mulai |
-| P5b   | UI Plan → PRD → Task → Apply dengan syarat per tahap                                                                | AC-5.6                         | 6/16 | P5a-3           | Belum mulai |
-| P5c   | Kolom Tahap di Task Hub                                                                                             | AC-5.7                         | 7/16 | P5b             | Belum mulai |
-| P7a   | Data dan API catatan rilis, cek, penerimaan (setelah ADR rilis diterima)                                            | AC-7.1                         | 8/16 | ADR rilis       | Belum mulai |
-| P7b   | Halaman verifikasi Production dan penerimaan user; tanda smoke di Test Case                                         | AC-7.2, AC-7.3                 | 7/16 | P7a             | Belum mulai |
-| P8a   | Bug Production dengan `source` dan `release_id`; gate readiness tidak berubah                                       | AC-8.1                         | 8/16 | P7b             | Belum mulai |
-| P8b   | Halaman pemantauan dan tutup rilis dengan syarat di backend                                                         | AC-8.2                         | 8/16 | P8a             | Belum mulai |
+| Phase | Tujuan yang terlihat user                                                                                           | AC                             | WRA  | Bergantung pada | Status                                 |
+| ----- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---- | --------------- | -------------------------------------- |
+| P1    | Shell sederhana: Sidebar ringkas dengan pemilih workspace, 4 menu utama, menu Lainnya, folder, profil; header tipis | AC-1.1, AC-1.2                 | 6/16 | PR #59          | Kandidat teruji — menunggu verifier G5 |
+| P2a   | Detail Feature sebagai halaman dengan stepper; 8 tab dipetakan ke tahap dan header                                  | AC-2.1, AC-2.2                 | 7/16 | P1              | Belum mulai                            |
+| P2b   | URL lama dialihkan; halaman detail kerjaan Developer dengan cek AC dan Kirim ke QA                                  | AC-2.3, AC-2.4                 | 6/16 | P2a             | Belum mulai                            |
+| P3a   | Halaman tambah dan jalankan Test Case; bukti wajib untuk Gagal/Terblokir; 403 non-QA                                | AC-3.1, AC-3.2, AC-3.3, AC-3.6 | 7/16 | P2b             | Belum mulai                            |
+| P3b   | Centang per langkah dan browser/perangkat tersimpan bersama hasil                                                   | AC-3.4                         | 7/16 | P3a             | Belum mulai                            |
+| P3c   | Hasil Gagal diteruskan ke Developer sebagai perbaikan atau bug                                                      | AC-3.5                         | 7/16 | P3a             | Belum mulai                            |
+| P4a   | Penanda serah-terima di komentar; pesan pengirim di antrean; balas langsung                                         | AC-4.2, AC-4.4                 | 8/16 | P2b             | Belum mulai                            |
+| P4b   | Tugas Saya Developer dan QA dengan "Mulai dari sini" dan "Menunggu orang lain"                                      | AC-4.1, AC-4.3                 | 8/16 | P4a             | Belum mulai                            |
+| P4c   | Tugas Saya PO; desk lama per peran dilepas setelah E4                                                               | AC-4.1                         | 7/16 | P4b             | Belum mulai                            |
+| P4d   | Panel riwayat serah-terima per Feature                                                                              | AC-4.5                         | 8/16 | P4a             | Belum mulai                            |
+| P5a-1 | Plan tersimpan: Feature dibuat dengan tahap Plan (tanpa AI)                                                         | AC-5.1, AC-5.5                 | 8/16 | P4d             | Belum mulai                            |
+| P5a-2 | Pertanyaan AI v2 (alasan, wajib/opsional, pilihan) tersimpan                                                        | AC-5.2                         | 8/16 | P5a-1           | Belum mulai                            |
+| P5a-3 | Draft berversi dan Apply dari draft dalam satu transaksi                                                            | AC-5.3, AC-5.4                 | 8/16 | P5a-2           | Belum mulai                            |
+| P5b   | UI Plan → PRD → Task → Apply dengan syarat per tahap                                                                | AC-5.6                         | 6/16 | P5a-3           | Belum mulai                            |
+| P5c   | Kolom Tahap di Task Hub                                                                                             | AC-5.7                         | 7/16 | P5b             | Belum mulai                            |
+| P7a   | Data dan API catatan rilis, cek, penerimaan (setelah ADR rilis diterima)                                            | AC-7.1                         | 8/16 | ADR rilis       | Belum mulai                            |
+| P7b   | Halaman verifikasi Production dan penerimaan user; tanda smoke di Test Case                                         | AC-7.2, AC-7.3                 | 7/16 | P7a             | Belum mulai                            |
+| P8a   | Bug Production dengan `source` dan `release_id`; gate readiness tidak berubah                                       | AC-8.1                         | 8/16 | P7b             | Belum mulai                            |
+| P8b   | Halaman pemantauan dan tutup rilis dengan syarat di backend                                                         | AC-8.2                         | 8/16 | P8a             | Belum mulai                            |
 
 ## 2. Task per phase
 

@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 01 — Shell sederhana
 
-**Status:** Berjalan
+**Status:** Kandidat teruji
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-1.1, AC-1.2
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -21,23 +21,33 @@
 
 ## 2. Log perubahan
 
-| Task | File berubah | Ringkasan     | Commit |
-| ---- | ------------ | ------------- | ------ |
-| —    | —            | Belum dimulai | —      |
+| Task    | File berubah                                                                         | Ringkasan                                                                                                                                                               | Commit          |
+| ------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| P1-FE-1 | `components/layout/WorkspaceSwitcher.tsx` (baru), `Sidebar.tsx`, `Header.tsx`        | Pemilih workspace (daftar, Leader Hub, Buat Workspace) dipindah ke atas Sidebar; kartu dan badge "Workspace Aktif v2.0" dihapus                                         | lihat commit P1 |
+| P1-FE-2 | `Sidebar.tsx`                                                                        | 4 menu utama di atas; Leader Hub, Panduan, Pengaturan Workspace, Galeri Komponen di bawah "Lainnya" dengan aturan peran yang sama; navigasi dan folder satu area scroll | lihat commit P1 |
+| P1-FE-3 | `Header.tsx`, `lib/utils/sectionLabel.ts` (baru)                                     | Header 80px: tombol menu dan logo hanya di layar kecil, nama bagian aktif, tema, notifikasi, profil; navigasi tersembunyi dan logo ganda dihapus                        | lihat commit P1 |
+| P1-FE-4 | —                                                                                    | Menu seluler memakai drawer yang ada; kini ikut memuat pemilih workspace                                                                                                | —               |
+| Test    | `__tests__/Header.test.tsx`, `Sidebar.test.tsx`, `WorkspaceSwitcher.test.tsx` (baru) | Test navigasi tersembunyi diganti test perilaku nyata; test pemilih workspace dan pengelompokan menu                                                                    | lihat commit P1 |
 
 ## 3. Pemeriksaan yang dijalankan
 
-| Perintah | Environment | Exit code | Pass / fail / skip | AC  |
-| -------- | ----------- | --------- | ------------------ | --- |
-| —        | —           | —         | Belum dijalankan   | —   |
+Rincian dan kegagalan awal di [testing.md](../testing.md) §2. Ringkasan akhir:
+
+| Perintah                                                                           | Environment                                  | Exit code | Pass / fail / skip            | AC                       |
+| ---------------------------------------------------------------------------------- | -------------------------------------------- | --------- | ----------------------------- | ------------------------ |
+| `npm --prefix apps/web run test -- --run`                                          | Salinan Linux VM                             | 0         | 717 / 0 / 0                   | AC-1.1, AC-1.2 + regresi |
+| `npm run typecheck:web`, `npm run build:web`, `npm run theme:check`, eslint layout | Salinan Linux VM                             | 0         | pass                          | AC-1.1                   |
+| UAT 1440, 1024, 768, 390; Light dan Dark                                           | Playwright Chromium di Mac, `localhost:3000` | —         | pass setelah perbaikan scroll | AC-1.1, AC-1.2           |
 
 ## 4. Deviasi dari rencana
 
-| Deviasi   | Alasan | Masih dalam scope? | Persetujuan baru? |
-| --------- | ------ | ------------------ | ----------------- |
-| Tidak ada | —      | —                  | —                 |
+| Deviasi                                                                      | Alasan                                                                                | Masih dalam scope? | Persetujuan baru? |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------ | ----------------- |
+| UAT memakai browser Playwright, bukan browser bawaan Claude                  | Browser bawaan memblokir permintaan ke API `localhost:4000` (`ERR_BLOCKED_BY_CLIENT`) | Ya                 | Tidak             |
+| Folder tetap hanya tampil di Task Hub, belum di semua halaman seperti desain | Mengubah perilaku folder di luar shell; dicatat untuk P2a                             | Ya                 | Tidak             |
+| Tabel Task Hub terpotong di kiri pada 1440/1024                              | Sudah ada sebelum P1 (tabel bergeser horizontal); bukan bagian shell                  | Di luar P1         | Dicatat untuk P2a |
 
 ## 5. Hasil
 
-- PR: belum dibuat.
+- Commit lokal di `feat/simple-ui-p1-shell`; push dan PR (ke `docs/doc-portal-close`, bukan `main`) menunggu Owner menjalankan `git push` karena VM tidak punya kredensial GitHub.
 - Lanjut ke [testing.md](../testing.md) untuk tahap 5.

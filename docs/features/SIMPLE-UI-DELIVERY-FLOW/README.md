@@ -22,7 +22,7 @@
 | 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner (Reyand), 2026-10-27    | Jalur: Penuh (lintas role, data, authorization)                      |
 | (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | PO/Owner (Reyand), 2026-10-27 | file yang sudah ada di `_template`                                   |
 | 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                             |                                                                      |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                             | Verifier: —                                                          |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Draft       | G5              | —                             | Verifier: —                                                          |
 | 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                             |                                                                      |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
