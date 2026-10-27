@@ -1654,6 +1654,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 <FeaturePlanRail
                   hasIdea={Boolean(task.description?.trim())}
                   messageCount={commentsTotal}
+                  requirementCount={traceRequirements.length}
+                  subtaskCount={subtasks.length}
+                  isDone={derivedStage === 'task'}
                   onContinue={() => handleTabChange('prd-summary')}
                 />
               }

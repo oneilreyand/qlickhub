@@ -170,9 +170,16 @@ export const FeaturePlanSummary: React.FC<FeaturePlanSummaryProps> = ({
 export const FeaturePlanRail: React.FC<{
   hasIdea: boolean;
   messageCount: number;
+  requirementCount: number;
+  subtaskCount: number;
+  /** Plan dianggap selesai bila Feature sudah diterapkan (punya subtask). */
+  isDone: boolean;
   onContinue: () => void;
-}> = ({ hasIdea, messageCount, onContinue }) => (
-  <RailCard title="Kesiapan Plan">
+}> = ({ hasIdea, messageCount, requirementCount, subtaskCount, isDone, onContinue }) => (
+  <RailCard title="Ringkasan Plan">
+    <p className="mb-3 text-sm font-semibold text-stone-900 dark:text-stone-100">
+      {isDone ? 'Plan sudah selesai' : 'Plan belum selesai'}
+    </p>
     <ul className="mb-4 space-y-2 text-sm text-stone-800 dark:text-stone-200">
       <li className="flex items-center gap-2">
         {hasIdea ? (
@@ -180,19 +187,20 @@ export const FeaturePlanRail: React.FC<{
         ) : (
           <Circle aria-hidden="true" className="h-4 w-4 text-stone-400" />
         )}
-        Ide ditulis
+        {hasIdea ? 'Ide sudah ditulis' : 'Ide belum ditulis'}
       </li>
       <li className="flex items-center gap-2">
         <Check aria-hidden="true" className="h-4 w-4 text-[#3F6212]" />
         {messageCount} pesan diskusi
       </li>
+      <li className="flex items-center gap-2">
+        <Check aria-hidden="true" className="h-4 w-4 text-[#3F6212]" />
+        {requirementCount} requirement · {subtaskCount} subtask
+      </li>
     </ul>
-    <Button variant="primary" className="w-full" onClick={onContinue}>
-      Lanjut ke PRD
+    <Button variant="outline" className="w-full" onClick={onContinue}>
+      Lihat PRD
     </Button>
-    <p className="mt-3 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-      Plan mencatat ide dan diskusi. Keputusan terstruktur menyusul bersama alur pembuatan.
-    </p>
   </RailCard>
 );
 

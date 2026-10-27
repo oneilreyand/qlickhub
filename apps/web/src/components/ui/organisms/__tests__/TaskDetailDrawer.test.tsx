@@ -1314,6 +1314,10 @@ describe('TaskDetailDrawer UI Component', () => {
         'po',
       );
       expect(await screen.findByRole('heading', { name: 'Ide awal' })).toBeInTheDocument();
+      const rail = screen.getByRole('complementary', { name: 'Ringkasan Plan' });
+      expect(rail).toHaveTextContent(/Plan (sudah|belum) selesai/);
+      expect(screen.getByRole('button', { name: 'Lihat PRD' })).toBeInTheDocument();
+      expect(screen.queryByText(/Keputusan terstruktur/)).not.toBeInTheDocument();
       const toggle = screen.getByRole('button', { name: /Diskusi tim/ });
       expect(toggle).toHaveAttribute('aria-expanded', 'false');
       expect(screen.queryByText('Diskusi Task')).not.toBeInTheDocument();
