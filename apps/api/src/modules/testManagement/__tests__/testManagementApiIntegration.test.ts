@@ -565,11 +565,55 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
         body: JSON.stringify({
           status: 'passed',
           actualResult: 'Confirmation page displayed.',
+          stepResults: [
+            { index: 0, checked: true },
+            { index: 1, checked: false },
+          ],
+          browser: 'Chrome 130',
+          device: 'MacBook Air',
           evidenceAttachmentIds: [evidence.id],
         }),
       },
     );
     assert.strictEqual(passResponse.status, 201);
+    const passBody = (await passResponse.json()) as {
+      testRun: {
+        result: {
+          stepResults: Array<{ index: number; checked: boolean }> | null;
+          browser: string | null;
+          device: string | null;
+        };
+      };
+    };
+    assert.deepStrictEqual(passBody.testRun.result.stepResults, [
+      { index: 0, checked: true },
+      { index: 1, checked: false },
+    ]);
+    assert.strictEqual(passBody.testRun.result.browser, 'Chrome 130');
+    assert.strictEqual(passBody.testRun.result.device, 'MacBook Air');
+    const duplicateStepResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs/${firstRunId}/results`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({
+          status: 'passed',
+          stepResults: [
+            { index: 0, checked: true },
+            { index: 0, checked: false },
+          ],
+          evidenceAttachmentIds: [evidence.id],
+        }),
+      },
+    );
+    assert.strictEqual(duplicateStepResponse.status, 400);
+    const persistedStepResult = await TestResultModel.findOne({ where: { testRunId: firstRunId } });
+    assert.deepStrictEqual(persistedStepResult?.stepResults, [
+      { index: 0, checked: true },
+      { index: 1, checked: false },
+    ]);
+    assert.strictEqual(persistedStepResult?.browser, 'Chrome 130');
+    assert.strictEqual(persistedStepResult?.device, 'MacBook Air');
 
     const rejectedCandidateResponse = await fetch(
       `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,

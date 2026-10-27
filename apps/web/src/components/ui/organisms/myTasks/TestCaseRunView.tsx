@@ -49,6 +49,10 @@ export interface RunFormValues {
   actualResult: string;
   notes: string;
   links: Array<{ url: string; label?: string }>;
+  /** Langkah yang sudah dicentang QA selama menjalankan (indeks mulai 0). */
+  stepResults: Array<{ index: number; checked: boolean }>;
+  browser: string;
+  device: string;
 }
 
 export interface CycleFormValues {
@@ -131,6 +135,9 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
   const [linkUrl, setLinkUrl] = useState('');
   const [linkError, setLinkError] = useState<string | null>(null);
   const [preview, setPreview] = useState<TestResultEvidenceLink | null>(null);
+  const [checkedSteps, setCheckedSteps] = useState<boolean[]>([]);
+  const [browser, setBrowser] = useState('');
+  const [device, setDevice] = useState('');
 
   const [cycleValues, setCycleValues] = useState<CycleFormValues>(cycleDefaults);
 
@@ -150,6 +157,12 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
         actualResult,
         notes,
         links: links.map((link) => ({ url: link.url, label: link.label || undefined })),
+        stepResults: testCase.steps.map((_, index) => ({
+          index,
+          checked: Boolean(checkedSteps[index]),
+        })),
+        browser: browser.trim(),
+        device: device.trim(),
       }
     : null;
   const blocker = values
@@ -264,10 +277,34 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
             {testCase.steps.length === 0 ? (
               <p className="text-sm text-stone-500 dark:text-stone-400">Belum ada langkah.</p>
             ) : (
-              <ol className="mt-1 list-decimal space-y-1.5 pl-5 text-sm text-stone-800 dark:text-stone-200">
-                {testCase.steps.map((step, index) => (
-                  <li key={index}>{step}</li>
-                ))}
+              <ol className="mt-1 space-y-1.5 text-sm text-stone-800 dark:text-stone-200">
+                {testCase.steps.map((step, index) => {
+                  const lockedState = result?.stepResults?.find((item) => item.index === index);
+                  const checked = locked
+                    ? Boolean(lockedState?.checked)
+                    : Boolean(checkedSteps[index]);
+                  return (
+                    <li key={index} className="flex items-start gap-2">
+                      <input
+                        id={`run-step-${index}`}
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-stone-900 dark:accent-[#B1E743]"
+                        checked={checked}
+                        disabled={locked || formDisabled}
+                        onChange={(event) =>
+                          setCheckedSteps((prev) => {
+                            const next = [...prev];
+                            next[index] = event.target.checked;
+                            return next;
+                          })
+                        }
+                      />
+                      <label htmlFor={`run-step-${index}`}>
+                        <span className="font-semibold">{index + 1}.</span> {step}
+                      </label>
+                    </li>
+                  );
+                })}
               </ol>
             )}
           </div>
@@ -343,6 +380,14 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
                   {STATUS_LABEL[result.status]}
                 </span>
               </p>
+              {(result.browser || result.device) && (
+                <div>
+                  <p className={labelClass}>Lingkungan uji</p>
+                  <p className="text-sm text-stone-800 dark:text-stone-200">
+                    {[result.browser, result.device].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+              )}
               {result.actualResult && (
                 <div>
                   <p className={labelClass}>Hasil aktual</p>
@@ -445,6 +490,25 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
                     {option.label}
                   </button>
                 ))}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  id="run-browser"
+                  label="Browser (opsional)"
+                  value={browser}
+                  disabled={formDisabled}
+                  onChange={(e) => setBrowser(e.target.value)}
+                  placeholder="mis. Chrome 130"
+                />
+                <Input
+                  id="run-device"
+                  label="Perangkat (opsional)"
+                  value={device}
+                  disabled={formDisabled}
+                  onChange={(e) => setDevice(e.target.value)}
+                  placeholder="mis. MacBook Air, iPhone 15"
+                />
               </div>
 
               <Textarea

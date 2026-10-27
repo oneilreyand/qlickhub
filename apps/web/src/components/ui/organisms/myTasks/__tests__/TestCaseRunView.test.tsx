@@ -200,6 +200,58 @@ describe('TestCaseRunView', () => {
     );
   });
 
+  it('saves ticked steps, browser, and device with the result (AC-3.4)', () => {
+    const props = setup();
+    fireEvent.click(screen.getByRole('checkbox', { name: /Buka Task Hub/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lulus' }));
+    fireEvent.change(screen.getByLabelText(/Browser/), { target: { value: ' Chrome 130 ' } });
+    fireEvent.change(screen.getByLabelText(/Perangkat/), { target: { value: 'MacBook Air' } });
+    fireEvent.change(screen.getByLabelText(/Tautan bukti/), {
+      target: { value: 'https://www.loom.com/share/abc123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah tautan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan hasil' }));
+    expect(props.onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'passed',
+        stepResults: [
+          { index: 0, checked: true },
+          { index: 1, checked: false },
+        ],
+        browser: 'Chrome 130',
+        device: 'MacBook Air',
+      }),
+    );
+  });
+
+  it('shows the saved steps and environment read-only once the result is locked', () => {
+    const run = {
+      id: 'run1',
+      build: 'f19bab6',
+      environment: 'Lokal',
+      status: 'completed',
+      result: {
+        status: 'passed',
+        actualResult: null,
+        notes: null,
+        stepResults: [
+          { index: 0, checked: true },
+          { index: 1, checked: false },
+        ],
+        browser: 'Safari 18',
+        device: 'iPhone 15',
+        evidence: [],
+        evidenceLinks: [],
+        evidenceManifests: [],
+      },
+    } as unknown as TestRun;
+    setup({ run });
+    expect(screen.getByText('Safari 18 · iPhone 15')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Buka Task Hub/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Klik halaman 2/ })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Buka Task Hub/ })).toBeDisabled();
+  });
+
   it('is read-only for someone who is not the assigned QA and shows blocked reasons', () => {
     setup({ canExecute: false, blockedReason: 'Test Case ini belum aktif.' });
     expect(screen.getByText('Test Case ini belum aktif.')).toBeInTheDocument();

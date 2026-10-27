@@ -201,6 +201,12 @@ export const TestResultEvidenceManifestSchema = z.object({
 });
 export type TestResultEvidenceManifest = z.infer<typeof TestResultEvidenceManifestSchema>;
 
+export const TestStepResultSchema = z.object({
+  index: z.number().int().min(0).max(999),
+  checked: z.boolean(),
+});
+export type TestStepResult = z.infer<typeof TestStepResultSchema>;
+
 export const TestResultSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
@@ -209,6 +215,9 @@ export const TestResultSchema = z.object({
   executorId: z.string().uuid(),
   actualResult: z.string().nullable(),
   notes: z.string().nullable(),
+  stepResults: z.array(TestStepResultSchema).nullable().optional(),
+  browser: z.string().nullable().optional(),
+  device: z.string().nullable().optional(),
   executedAt: z.string().datetime(),
   evidence: z.array(TestResultEvidenceSchema),
   evidenceLinks: z.array(TestResultEvidenceLinkSchema).default([]),
@@ -365,6 +374,15 @@ export const RecordTestResultSchema = z.object({
   status: TestResultStatusSchema,
   actualResult: z.string().trim().max(10000).nullable().optional(),
   notes: z.string().trim().max(10000).nullable().optional(),
+  stepResults: z
+    .array(TestStepResultSchema)
+    .max(100)
+    .refine((items) => new Set(items.map((item) => item.index)).size === items.length, {
+      message: 'Step results must not repeat a step index',
+    })
+    .optional(),
+  browser: z.string().trim().max(100).nullable().optional(),
+  device: z.string().trim().max(100).nullable().optional(),
   evidenceAttachmentIds: z
     .array(z.string().uuid())
     .max(

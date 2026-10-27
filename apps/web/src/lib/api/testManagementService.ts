@@ -176,7 +176,14 @@ export const testManagementService = {
     testRunId: string,
     input: Pick<
       CreateTestResultInput,
-      'status' | 'actualResult' | 'notes' | 'evidenceAttachmentIds' | 'evidenceLinks'
+      | 'status'
+      | 'actualResult'
+      | 'notes'
+      | 'evidenceAttachmentIds'
+      | 'evidenceLinks'
+      | 'stepResults'
+      | 'browser'
+      | 'device'
     >,
   ): Promise<TestRun> {
     const response = await apiClient<{ testRun: TestRun }>(

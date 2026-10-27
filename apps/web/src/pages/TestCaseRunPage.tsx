@@ -279,6 +279,9 @@ export const TestCaseRunPage: React.FC = () => {
         notes: values.notes.trim() || null,
         evidenceAttachmentIds: [],
         evidenceLinks: values.links,
+        stepResults: values.stepResults,
+        browser: values.browser || null,
+        device: values.device || null,
       });
       let message = 'Hasil pengujian tersimpan dan terkunci';
       if (run.retestBugId && recorded.result) {
