@@ -1744,6 +1744,12 @@ export class TestManagementService {
         );
       }
 
+      if (['failed', 'blocked'].includes(input.status) && !input.actualResult?.trim()) {
+        throw new Error(
+          'BAD_REQUEST: A failed or blocked Test Result requires a non-empty actual result.',
+        );
+      }
+
       let attachments: TaskAttachmentModel[] = [];
       if (evidenceAttachmentIds.length > 0) {
         attachments = await TaskAttachmentModel.findAll({

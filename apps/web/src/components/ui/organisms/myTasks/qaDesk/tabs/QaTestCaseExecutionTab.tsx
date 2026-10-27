@@ -27,6 +27,8 @@ export interface QaTestCaseExecutionTabProps {
   canAuthorTests: boolean;
   onOpenImportWizard: () => void;
   onOpenTestCaseForm: () => void;
+  /** Membuka halaman tambah Test Case yang baru (P3a). */
+  onOpenCreatePage?: () => void;
   isLoadingRequirementOptions: boolean;
   requirementOptions: Array<{ id: string; code: string; title: string }>;
   isLoadingTestCycles: boolean;
@@ -81,6 +83,7 @@ export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
   canAuthorTests,
   onOpenImportWizard,
   onOpenTestCaseForm,
+  onOpenCreatePage,
   isLoadingRequirementOptions,
   requirementOptions,
   isLoadingTestCycles,
@@ -172,6 +175,11 @@ export const QaTestCaseExecutionTab: React.FC<QaTestCaseExecutionTabProps> = ({
                 >
                   Test Case Baru
                 </Button>
+                {onOpenCreatePage && (
+                  <Button variant="outline" size="sm" onClick={onOpenCreatePage}>
+                    Halaman tambah
+                  </Button>
+                )}
                 {!isLoadingRequirementOptions && requirementOptions.length === 0 && (
                   <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
                     Tautkan minimal 1 Requirement aktif

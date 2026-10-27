@@ -28,6 +28,8 @@ export interface QaTestCaseDetailViewProps {
   onSubmitTestCaseForReview: (testCaseId: string) => void;
   onActivateTestCase: (testCaseId: string) => void;
   onOpenRunModal: (testCaseId: string) => void;
+  /** Membuka halaman jalankan Test Case yang baru (P3a). */
+  onOpenRunPage?: (testCaseId: string) => void;
   onOpenResultModal: (testCaseId: string, runId: string) => void;
   finalizingRetestRunId: string | null;
   onFinalizeRetest: (run: TestRun) => void;
@@ -58,6 +60,7 @@ export const QaTestCaseDetailView: React.FC<QaTestCaseDetailViewProps> = ({
   onSubmitTestCaseForReview,
   onActivateTestCase,
   onOpenRunModal,
+  onOpenRunPage,
   onOpenResultModal,
   finalizingRetestRunId,
   onFinalizeRetest,
@@ -204,6 +207,16 @@ export const QaTestCaseDetailView: React.FC<QaTestCaseDetailViewProps> = ({
                 >
                   {!featureTaskId ? 'Memuat konteks Feature…' : 'Jalankan Test Case'}
                 </Button>
+                {onOpenRunPage && testCase.status === 'active' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onOpenRunPage(testCase.id)}
+                    aria-label={`Buka halaman jalankan untuk ${testCase.title}`}
+                  >
+                    Halaman jalankan
+                  </Button>
+                )}
                 {featureTaskId && testCase.status !== 'active' && (
                   <span className="text-[11px] text-stone-500 dark:text-stone-400">
                     Aktifkan untuk menjalankan

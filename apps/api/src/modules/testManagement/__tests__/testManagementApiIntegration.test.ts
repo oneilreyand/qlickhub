@@ -1015,4 +1015,112 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       }),
     );
   });
+
+  test('rejects failed or blocked Results without an actual result and writes nothing (AC-3.2)', async () => {
+    const candidate = 'commit:checkout-actual-result';
+    const cycle = await createScopedCycle('checkout-web-actual-result', candidate);
+    const input = await scopedRunInput(cycle.testCycle.id, 'checkout-web-actual-result', candidate);
+    const runResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify(input),
+      },
+    );
+    assert.strictEqual(runResponse.status, 201);
+    const runId = ((await runResponse.json()) as { testRun: { id: string } }).testRun.id;
+    const resultsUrl = `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs/${runId}/results`;
+
+    for (const status of ['failed', 'blocked']) {
+      for (const actualResult of [undefined, '', '   ']) {
+        const response = await fetch(resultsUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+          body: JSON.stringify({ status, actualResult, evidenceAttachmentIds: [evidence.id] }),
+        });
+        assert.strictEqual(response.status, 400, `${status} with "${actualResult}"`);
+      }
+    }
+    assert.strictEqual(
+      await TestResultModel.count({ where: { workspaceId: workspaceA.id, testRunId: runId } }),
+      0,
+    );
+
+    const accepted = await fetch(resultsUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+      body: JSON.stringify({
+        status: 'failed',
+        actualResult: 'Halaman 2 kosong.',
+        evidenceAttachmentIds: [evidence.id],
+      }),
+    });
+    assert.strictEqual(accepted.status, 201);
+  });
+
+  test('rejects Results and evidence from non-QA roles and outsiders with 403 and no writes (AC-3.6)', async () => {
+    const candidate = 'commit:checkout-non-qa';
+    const cycle = await createScopedCycle('checkout-web-non-qa', candidate);
+    const input = await scopedRunInput(cycle.testCycle.id, 'checkout-web-non-qa', candidate);
+    const runResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify(input),
+      },
+    );
+    assert.strictEqual(runResponse.status, 201);
+    const runId = ((await runResponse.json()) as { testRun: { id: string } }).testRun.id;
+    const resultsUrl = `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs/${runId}/results`;
+    const evidenceUrl = `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs/${firstRunId}/evidence-links`;
+    const firstResult = await TestResultModel.findOne({
+      where: { workspaceId: workspaceA.id, testRunId: firstRunId },
+    });
+    assert.ok(firstResult);
+    const manifestsBefore = await TestResultEvidenceManifestModel.count({
+      where: { workspaceId: workspaceA.id, testResultId: firstResult!.id },
+    });
+
+    for (const [label, cookie] of [
+      ['owner', ownerCookie],
+      ['po', poCookie],
+      ['dev', devCookie],
+      ['outsider', outsiderCookie],
+    ] as const) {
+      const result = await fetch(resultsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify({
+          status: 'failed',
+          actualResult: 'Tidak boleh tersimpan.',
+          evidenceAttachmentIds: [evidence.id],
+        }),
+      });
+      assert.strictEqual(result.status, 403, `${label} result`);
+
+      const supplement = await fetch(evidenceUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify({
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          label: 'Tidak boleh tersimpan',
+          reason: 'Percobaan non-QA.',
+        }),
+      });
+      assert.strictEqual(supplement.status, 403, `${label} supplement`);
+    }
+
+    assert.strictEqual(
+      await TestResultModel.count({ where: { workspaceId: workspaceA.id, testRunId: runId } }),
+      0,
+    );
+    assert.strictEqual(
+      await TestResultEvidenceManifestModel.count({
+        where: { workspaceId: workspaceA.id, testResultId: firstResult!.id },
+      }),
+      manifestsBefore,
+    );
+  });
 });

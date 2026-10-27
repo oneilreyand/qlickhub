@@ -8,6 +8,7 @@ import type {
   ListTestCasesQuery,
   TaskTestExecutionWorkspace,
   TestCase,
+  TestCaseScopeValidationResult,
   TestCaseImportAudit,
   TestCaseImportPreviewResponse,
   TestCaseImportResult,
@@ -115,6 +116,17 @@ export const testManagementService = {
       { method: 'POST', body: JSON.stringify(input) },
     );
     return response.testCycle;
+  },
+
+  async validateTestCaseScope(
+    workspaceId: string,
+    requirementIds: string[],
+    qaSubtaskId?: string,
+  ): Promise<TestCaseScopeValidationResult> {
+    return apiClient<TestCaseScopeValidationResult>(
+      `/workspaces/${workspaceId}/test-cases/validate-scope`,
+      { method: 'POST', body: JSON.stringify({ requirementIds, qaSubtaskId }) },
+    );
   },
 
   async createTestCase(

@@ -15,3 +15,14 @@ export function shouldUseLegacyQaWorkspace(
 ): boolean {
   return userRole === 'qa' && task.deliveryArea === 'qa';
 }
+
+/** Halaman tambah Test Case, selalu dalam konteks subtask QA milik pelaksana. */
+export function getTestCaseNewPath(qaSubtaskId: string): string {
+  return `/tests/cases/new?subtaskId=${encodeURIComponent(qaSubtaskId)}`;
+}
+
+/** Halaman jalankan Test Case. `qaSubtaskId` boleh kosong: halaman mencarinya sendiri. */
+export function getTestCaseRunPath(testCaseId: string, qaSubtaskId?: string | null): string {
+  const base = `/tests/cases/${testCaseId}/run`;
+  return qaSubtaskId ? `${base}?subtaskId=${encodeURIComponent(qaSubtaskId)}` : base;
+}

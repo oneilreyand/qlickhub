@@ -30,6 +30,7 @@ import { useTestExecution } from './qaDesk/hooks/useTestExecution';
 import { useQaTaskInitiation } from './qaDesk/hooks/useQaTaskInitiation';
 
 import { QaContextTab } from './qaDesk/tabs/QaContextTab';
+import { getTestCaseNewPath, getTestCaseRunPath } from '../../../../lib/utils/taskRoutes';
 import { QaTestCaseExecutionTab } from './qaDesk/tabs/QaTestCaseExecutionTab';
 import { QaBugsTab } from './qaDesk/tabs/QaBugsTab';
 import { QaSignOffTab } from './qaDesk/tabs/QaSignOffTab';
@@ -169,6 +170,8 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
     onSubmitTestCaseForReview: executionState.handleSubmitTestCaseForReview,
     onActivateTestCase: executionState.handleActivateTestCase,
     onOpenRunModal: executionState.openRunModal,
+    onOpenRunPage: (testCaseId: string) =>
+      window.location.assign(getTestCaseRunPath(testCaseId, subtask.id)),
     onOpenResultModal: executionState.openResultModal,
     finalizingRetestRunId: executionState.finalizingRetestRunId,
     onFinalizeRetest: executionState.handleFinalizeRetest,
@@ -431,6 +434,7 @@ export const QaTestingDesk: React.FC<QaTestingDeskProps> = ({
           canAuthorTests={deskData.canAuthorTests}
           onOpenImportWizard={() => executionState.setIsImportWizardOpen(true)}
           onOpenTestCaseForm={() => executionState.setIsTestCaseFormOpen(true)}
+          onOpenCreatePage={() => window.location.assign(getTestCaseNewPath(subtask.id))}
           isLoadingRequirementOptions={executionState.isLoadingRequirementOptions}
           requirementOptions={executionState.requirementOptions}
           requirementOptionsError={executionState.requirementOptionsError}
