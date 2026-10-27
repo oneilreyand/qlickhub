@@ -13,12 +13,15 @@ export interface DropdownMenuItem {
 export interface DropdownMenuProps {
   triggerLabel: string;
   triggerIcon?: React.ReactNode;
+  /** Hanya ikon yang tampil; `triggerLabel` tetap dipakai sebagai nama aksesibel. */
+  iconOnly?: boolean;
   items: DropdownMenuItem[];
 }
 
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   triggerLabel,
   triggerIcon,
+  iconOnly = false,
   items,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,11 +35,15 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-stone-200/80 bg-white px-3.5 text-xs font-semibold text-stone-700 shadow-xs hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-[#22201F]/20 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800"
+        aria-haspopup="menu"
+        aria-label={iconOnly ? triggerLabel : undefined}
+        className={`inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-stone-200/80 bg-white text-xs font-semibold text-stone-700 shadow-xs hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-[#22201F]/20 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800 ${
+          iconOnly ? 'justify-center px-3' : 'px-3.5'
+        }`}
       >
         {triggerIcon}
-        <span>{triggerLabel}</span>
-        <ChevronDown className="h-4 w-4 text-stone-400" />
+        {!iconOnly && <span>{triggerLabel}</span>}
+        {!iconOnly && <ChevronDown className="h-4 w-4 text-stone-400" />}
       </button>
 
       {isOpen && (

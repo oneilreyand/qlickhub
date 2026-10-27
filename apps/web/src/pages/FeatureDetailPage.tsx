@@ -56,12 +56,7 @@ export const FeatureDetailPage: React.FC = () => {
   }, [reload, reloadReleaseReadiness]);
 
   const tahap = searchParams.get('tahap');
-  const initialTab = useMemo(() => {
-    if (!isFeatureStageParam(tahap)) return undefined;
-    // Subtask tidak punya Brief Produk, jadi PRD langsung ke Requirement.
-    if (tahap === 'prd' && task?.parentTaskId) return 'prd';
-    return firstTabForStage(tahap);
-  }, [tahap, task?.parentTaskId]);
+  const initialTab = isFeatureStageParam(tahap) ? firstTabForStage(tahap) : undefined;
 
   const handleTabChange = useCallback(
     (tabId: string) => {

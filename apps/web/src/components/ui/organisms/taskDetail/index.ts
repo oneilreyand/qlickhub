@@ -6,3 +6,4 @@ export * from './TaskDeleteConfirmationModal';
 export * from './TaskCreateQaDocModal';
 export * from './TaskAttachmentsPanel';
 export * from './TaskDetailPageFrame';
+export * from './FeatureStagePanels';

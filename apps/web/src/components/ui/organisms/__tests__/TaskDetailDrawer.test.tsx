@@ -1221,7 +1221,9 @@ describe('TaskDetailDrawer UI Component', () => {
     expect(await screen.findByText(/\+1 Baru/i)).toBeInTheDocument();
   });
   describe('layout page (halaman detail Feature)', () => {
-    test('tampil sebagai halaman, bukan dialog, dengan stepper tahap dan bagian di baris atas (AC-2.1, AC-2.2)', async () => {
+    const stepper = () => within(screen.getByRole('navigation', { name: 'Tahap Feature' }));
+
+    test('tampil sebagai halaman, bukan dialog, dengan stepper bersummary dan menu lainnya (AC-2.1, AC-2.2)', async () => {
       renderWithRedux(
         <TaskDetailDrawer layout="page" task={mockTask} folders={[]} onClose={vi.fn()} />,
         'po',
@@ -1231,18 +1233,17 @@ describe('TaskDetailDrawer UI Component', () => {
         await screen.findByRole('heading', { name: 'Test Parent Task Title' }),
       ).toBeInTheDocument();
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(screen.getByRole('navigation', { name: 'Tahap Feature' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Apply/ })).toBeDisabled();
+      expect(screen.getByText('FEATURE')).toBeInTheDocument();
+      expect(stepper().getAllByRole('button')).toHaveLength(4);
+      expect(stepper().getByRole('button', { name: /Apply/ })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Aktivitas' })).toBeInTheDocument();
 
-      const otherSections = screen.getByRole('group', { name: 'Bagian lain' });
-      expect(within(otherSections).getByRole('button', { name: /Aktivitas/ })).toBeInTheDocument();
-      expect(within(otherSections).getByRole('button', { name: /Bug/ })).toBeInTheDocument();
-      expect(
-        within(otherSections).getByRole('button', { name: /Jejak Delivery/ }),
-      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Bagian dan aksi lainnya' }));
+      expect(screen.getByRole('button', { name: /Bug/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Jejak Delivery/ })).toBeInTheDocument();
     });
 
-    test('Brief Produk dan Requirement berada di tahap PRD; Diskusi di tahap Plan', async () => {
+    test('Diskusi di Plan; ringkasan PRD memuat Product Brief dan Requirement; ringkasan Task memuat root task', async () => {
       const onTabChange = vi.fn();
       renderWithRedux(
         <TaskDetailDrawer
@@ -1257,44 +1258,59 @@ describe('TaskDetailDrawer UI Component', () => {
       );
 
       await screen.findByRole('heading', { name: 'Test Parent Task Title' });
-      expect(screen.getByRole('button', { name: /Plan/ })).toHaveAttribute('aria-current', 'step');
-      expect(screen.getByRole('tab', { name: /Diskusi/ })).toHaveAttribute('aria-selected', 'true');
+      expect(stepper().getByRole('button', { name: /Plan/ })).toHaveAttribute(
+        'aria-current',
+        'step',
+      );
 
-      fireEvent.click(screen.getByRole('button', { name: /PRD/ }));
-      expect(await screen.findByRole('tab', { name: /Brief Produk/ })).toHaveAttribute(
-        'aria-selected',
-        'true',
-      );
-      expect(screen.getByRole('tab', { name: /Requirement/ })).toBeInTheDocument();
-      expect(onTabChange).toHaveBeenLastCalledWith('brief');
+      fireEvent.click(stepper().getByRole('button', { name: /PRD/ }));
+      expect(await screen.findByRole('region', { name: 'Product Brief' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('region', { name: /Requirement dan Acceptance/ }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('complementary', { name: 'Kelengkapan PRD' })).toBeInTheDocument();
+      expect(onTabChange).toHaveBeenLastCalledWith('prd-summary');
 
-      fireEvent.click(
-        within(screen.getByRole('navigation', { name: 'Tahap Feature' })).getByRole('button', {
-          name: /Task/,
-        }),
-      );
-      expect(await screen.findByRole('tab', { name: /Detail Task/ })).toHaveAttribute(
-        'aria-selected',
-        'true',
-      );
-      expect(screen.getByRole('tab', { name: /Subtask/ })).toBeInTheDocument();
+      fireEvent.click(stepper().getByRole('button', { name: /Task/ }));
+      expect(await screen.findByRole('region', { name: 'Root task' })).toBeInTheDocument();
+      expect(screen.getByRole('region', { name: 'Subtask' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('complementary', { name: 'Cakupan requirement' }),
+      ).toBeInTheDocument();
     });
 
-    test('membuka Bug dari baris atas tanpa memilih tahap', async () => {
+    test('Edit membuka editor lama dan kembali ke ringkasan', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="task-summary"
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+      await screen.findByRole('region', { name: 'Root task' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Edit detail' }));
+      expect(await screen.findByText('Ringkasan & Deskripsi Task')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Kembali ke ringkasan' }));
+      expect(await screen.findByRole('region', { name: 'Root task' })).toBeInTheDocument();
+    });
+
+    test('membuka Bug dari menu lainnya tanpa memilih tahap', async () => {
       renderWithRedux(
         <TaskDetailDrawer layout="page" task={mockTask} folders={[]} onClose={vi.fn()} />,
         'po',
       );
       await screen.findByRole('heading', { name: 'Test Parent Task Title' });
 
-      fireEvent.click(
-        within(screen.getByRole('group', { name: 'Bagian lain' })).getByRole('button', {
-          name: /Bug/,
-        }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Bagian dan aksi lainnya' }));
+      fireEvent.click(screen.getByRole('button', { name: /Bug/ }));
 
       expect(
-        within(screen.getByRole('navigation', { name: 'Tahap Feature' }))
+        stepper()
           .getAllByRole('button')
           .some((button) => button.getAttribute('aria-current') === 'step'),
       ).toBe(false);
@@ -1313,7 +1329,7 @@ describe('TaskDetailDrawer UI Component', () => {
         'po',
       );
       await screen.findByRole('heading', { name: 'Test Parent Task Title' });
-      fireEvent.click(screen.getByRole('button', { name: 'Task Hub' }));
+      fireEvent.click(screen.getByRole('button', { name: /Task Hub/ }));
       expect(onClose).toHaveBeenCalled();
     });
   });

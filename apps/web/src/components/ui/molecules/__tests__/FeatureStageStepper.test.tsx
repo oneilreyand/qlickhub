@@ -9,6 +9,7 @@ describe('FeatureStageStepper', () => {
         currentStage="prd"
         selectedStage="task"
         onSelect={vi.fn()}
+        summaries={{ prd: '3 requirement · 7 AC', task: '4 subtask' }}
         disabledStages={['apply']}
       />,
     );
@@ -18,6 +19,8 @@ describe('FeatureStageStepper', () => {
     expect(screen.getByRole('button', { name: /Task/ })).toHaveAttribute('aria-current', 'step');
     expect(screen.getByRole('button', { name: /Plan/ })).not.toHaveAttribute('aria-current');
     expect(screen.getByText('(tahap Feature saat ini)')).toBeInTheDocument();
+    expect(screen.getByText('3 requirement · 7 AC')).toBeInTheDocument();
+    expect(screen.getByText('4 subtask')).toBeInTheDocument();
   });
 
   it('memanggil onSelect, dan Apply nonaktif', () => {

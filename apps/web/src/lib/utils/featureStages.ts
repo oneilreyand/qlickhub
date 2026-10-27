@@ -13,11 +13,21 @@ export const FEATURE_STAGE_LABELS: Record<FeatureStage, string> = {
   apply: 'Apply',
 };
 
-/** Tab di dalam tiap tahap, berurutan. */
+/**
+ * Tab di dalam tiap tahap. Tab pertama adalah ringkasan (`prd-summary`, `task-summary`);
+ * sisanya adalah editor lama yang dibuka dari tombol Edit/Kelola di ringkasan.
+ */
 export const FEATURE_STAGE_TABS: Record<FeatureStageParam, string[]> = {
   plan: ['discussion'],
-  prd: ['brief', 'prd'],
-  task: ['overview', 'subtasks'],
+  prd: ['prd-summary', 'brief', 'prd'],
+  task: ['task-summary', 'overview', 'subtasks'],
+};
+
+/** Ringkasan tempat editor kembali. */
+export const FEATURE_SUMMARY_TAB: Record<FeatureStageParam, string> = {
+  plan: 'discussion',
+  prd: 'prd-summary',
+  task: 'task-summary',
 };
 
 /** Tab yang dibuka dari baris atas, bukan dari tahap. */

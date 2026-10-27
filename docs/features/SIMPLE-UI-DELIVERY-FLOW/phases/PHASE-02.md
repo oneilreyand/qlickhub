@@ -57,3 +57,17 @@
 
 - Branch `feat/simple-ui-p2a-feature-page` dari `feat/simple-ui-p1-shell` @ `c02ac79`. PR menuju branch P1 (bukan `main`) setelah Owner push. Tier 1, tidak ada file Tier 2. Belum di-merge.
 - Lanjut ke [testing.md](../testing.md) untuk G5 P2a.
+
+## 6. Tambahan: P2a-fix (kesesuaian desain)
+
+Owner menilai hasil P2a belum sesuai desain (`design/03-feature-prd.png`, `04-feature-task.png`). Perbaikan dijalankan setelah persetujuan Owner, 2026-10-27, pesan "ok jalankan". Scope: hanya tampilan halaman Feature; tanpa perubahan API, data, authorization, atau dependency.
+
+| Task      | File                                                                                                         | Ringkasan                                                                                                                                                                                |
+| --------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2a-fix-1 | `molecules/FeatureStageStepper.tsx`, `molecules/DropdownMenu.tsx` (prop `iconOnly`)                          | Stepper berbentuk kartu dengan ringkasan per tahap; menu ⋯ berupa ikon                                                                                                                   |
+| P2a-fix-2 | `taskDetail/TaskDetailPageFrame.tsx`, `organisms/TaskDetailDrawer.tsx`, `lib/utils/featureDisplay.ts` (baru) | Header: breadcrumb folder, label Feature, judul, PIC dan rentang tanggal; menu ⋯ berisi Bug, Jejak Delivery, Selesaikan, Hapus; footer hanya di Detail Task                              |
+| P2a-fix-3 | `taskDetail/FeatureStagePanels.tsx` (baru), `lib/utils/featureStages.ts`                                     | Ringkasan PRD dan Task dari jejak delivery (requirement, AC, label REQ pada subtask), panel Kelengkapan PRD dan Cakupan requirement; editor lewat "Edit detail" / "Kembali ke ringkasan" |
+
+Pemeriksaan: test web 3 shard 747 lulus (0 gagal); typecheck, build, `theme:check`, eslint `--max-warnings 0` lulus. UAT lokal Light 1440 (Plan, PRD, Task, menu ⋯, editor) dan Dark 390 tanpa overflow horizontal.
+
+Deviasi: tombol "Usulkan dari PRD" dan hitungan keputusan/AI di Plan belum ada (P5); "Tinjau & Apply" nonaktif (Apply P5); halaman Plan (`02-feature-plan.png`) belum dibandingkan piksel demi piksel; Dark 1440/768/1024 belum diulang pada versi ini.

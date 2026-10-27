@@ -11,6 +11,8 @@ import {
   BookOpen,
   Bug,
   Route,
+  MoreHorizontal,
+  ChevronLeft,
 } from 'lucide-react';
 
 import type {
@@ -29,13 +31,15 @@ import { getIndonesianTaskScheduleMessage } from '../../../lib/i18n/indonesianCo
 
 import { Drawer, type DrawerProps } from '../molecules/Drawer';
 import { FeatureStageStepper } from '../molecules/FeatureStageStepper';
+import { DropdownMenu } from '../molecules/DropdownMenu';
 import {
-  FEATURE_HEADER_TABS,
   FEATURE_STAGE_TABS,
+  FEATURE_SUMMARY_TAB,
   deriveFeatureStage,
   stageForTab,
   type FeatureStageParam,
 } from '../../../lib/utils/featureStages';
+import { formatDateRange, getFolderPath } from '../../../lib/utils/featureDisplay';
 import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
 import { Skeleton } from '../atoms/Skeleton';
@@ -52,6 +56,11 @@ import { BugExperiencePanel, type BugExperienceInitialState } from './BugExperie
 import type { RequirementManagerInitialState } from './RequirementManager';
 import {
   TaskDetailPageFrame,
+  FeatureStageLayout,
+  FeaturePrdSummary,
+  FeaturePrdRail,
+  FeatureTaskSummary,
+  FeatureTaskRail,
   TaskDetailOverviewTab,
   TaskDetailProductBriefTab,
   TaskDetailSpecsTab,
@@ -128,6 +137,9 @@ type DetailFrameProps = Pick<
   layout: 'drawer' | 'page';
   headerActions?: React.ReactNode;
   backLabel?: string;
+  eyebrow?: string;
+  meta?: string;
+  breadcrumb?: string[];
 };
 
 /** Drawer menutup layar; page tampil di area konten dengan Sidebar tetap terlihat. */
@@ -136,10 +148,21 @@ const DetailFrame: React.FC<DetailFrameProps> = ({
   backLabel,
   closeOnEscape,
   headerActions,
+  eyebrow,
+  meta,
+  breadcrumb,
+  subtitle,
   ...frame
 }) =>
   layout === 'page' ? (
-    <TaskDetailPageFrame {...frame} backLabel={backLabel} headerActions={headerActions} />
+    <TaskDetailPageFrame
+      {...frame}
+      eyebrow={eyebrow}
+      meta={meta}
+      breadcrumb={breadcrumb}
+      backLabel={backLabel}
+      headerActions={headerActions}
+    />
   ) : (
     <Drawer
       isOpen
@@ -147,6 +170,7 @@ const DetailFrame: React.FC<DetailFrameProps> = ({
       defaultFullScreen={true}
       allowFullScreen={true}
       closeOnEscape={closeOnEscape}
+      subtitle={subtitle}
       {...frame}
     />
   );
@@ -1141,29 +1165,108 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     },
   ];
 
-  const activeStage = stageForTab(activeTab);
-  const stageSubTabs = activeStage
-    ? detailTabs.filter((tab) => FEATURE_STAGE_TABS[activeStage].includes(tab.id))
-    : [];
+  const traceForPage = deliveryTraceInitialState?.trace ?? null;
+  const traceRequirements = traceForPage?.requirements ?? [];
+  const totalAcceptanceCriteria = traceRequirements.reduce(
+    (sum, node) => sum + node.totalAcceptanceCriteria,
+    0,
+  );
+  const stageSummaries = {
+    plan: `${commentsTotal} pesan diskusi`,
+    prd:
+      traceRequirements.length > 0
+        ? `${traceRequirements.length} requirement · ${totalAcceptanceCriteria} AC`
+        : 'Brief + Requirement + AC',
+    task: subtasks.length > 0 ? `${subtasks.length} subtask` : 'Root task + subtask',
+    apply: 'Terapkan eksplisit',
+  };
+  const personInCharge = members.find(
+    (member) => member.userId === (task.assigneeId || task.reporterId),
+  )?.user?.name;
+  const folderPath = getFolderPath(folders, task.folderId);
+  const pageMeta = [
+    personInCharge ? `PIC ${personInCharge}` : null,
+    folderPath[folderPath.length - 1] ?? 'Tanpa folder',
+    formatDateRange(task.startDate, task.dueDate) || null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const editorSummaryTab = ['brief', 'prd', 'overview', 'subtasks'].includes(activeTab)
+    ? FEATURE_SUMMARY_TAB[stageForTab(activeTab) as FeatureStageParam]
+    : null;
+  const isSummaryView = activeTab === 'prd-summary' || activeTab === 'task-summary';
   const pageHeaderActions =
     layout === 'page' ? (
-      <div role="group" aria-label="Bagian lain" className="flex flex-wrap items-center gap-1.5">
-        {FEATURE_HEADER_TABS.map((tabId) => {
-          const tab = detailTabs.find((item) => item.id === tabId);
-          if (!tab) return null;
-          return (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? 'primary' : 'outline'}
-              size="sm"
-              aria-pressed={activeTab === tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              leftIcon={tab.icon}
-            >
-              {tab.label}
-            </Button>
-          );
-        })}
+      <>
+        <Button
+          variant={activeTab === 'activity' ? 'primary' : 'outline'}
+          size="sm"
+          aria-pressed={activeTab === 'activity'}
+          onClick={() => handleTabChange('activity')}
+        >
+          Aktivitas
+        </Button>
+        <DropdownMenu
+          triggerLabel="Bagian dan aksi lainnya"
+          triggerIcon={<MoreHorizontal className="h-4 w-4" />}
+          iconOnly
+          items={[
+            {
+              id: 'bugs',
+              label: 'Bug',
+              icon: <Bug className="h-3.5 w-3.5" />,
+              onClick: () => handleTabChange('bugs'),
+            },
+            {
+              id: 'trace',
+              label: 'Jejak Delivery',
+              icon: <Route className="h-3.5 w-3.5" />,
+              onClick: () => handleTabChange('trace'),
+            },
+            ...(canCompleteThisTask
+              ? [
+                  {
+                    id: 'complete',
+                    label:
+                      task.status === 'done'
+                        ? isSubtask
+                          ? 'Buka Kembali Subtask'
+                          : 'Buka Kembali Task'
+                        : isSubtask
+                          ? 'Setujui Subtask (Selesai)'
+                          : 'Selesaikan Task',
+                    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+                    onClick: () => void handleToggleComplete(),
+                  },
+                ]
+              : []),
+            ...(canPlan
+              ? [
+                  {
+                    id: 'delete',
+                    label: isSubtask ? 'Hapus Subtask' : 'Hapus Task',
+                    icon: <Trash2 className="h-3.5 w-3.5" />,
+                    destructive: true,
+                    onClick: () => setIsDeleteConfirmationOpen(true),
+                  },
+                ]
+              : []),
+          ]}
+        />
+      </>
+    ) : undefined;
+
+  const pageFooter =
+    activeTab === 'overview' ? (
+      <div className="flex w-full justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={() => handleTabChange('task-summary')}>
+          Batal
+        </Button>
+        {canEditTask && (
+          <Button variant="primary" size="sm" isLoading={isSaving} onClick={handleSave}>
+            Simpan Perubahan
+          </Button>
+        )}
       </div>
     ) : undefined;
 
@@ -1173,34 +1276,24 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         layout={layout}
         backLabel={backLabel}
         headerActions={pageHeaderActions}
+        eyebrow={isSubtask ? 'SUBTASK' : 'FEATURE'}
+        meta={pageMeta}
+        breadcrumb={folderPath}
         onClose={handleRequestClose}
         title={task.title}
         subtitle={`ID Task: ${task.id.substring(0, 8)} • Dibuat ${new Date(task.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}${task.deliveryArea ? ` • Area Delivery: ${task.deliveryArea.toUpperCase()}` : ''}`}
         toolbar={
           layout === 'page' ? (
-            <>
-              <FeatureStageStepper
-                currentStage={derivedStage}
-                selectedStage={stageForTab(activeTab)}
-                disabledStages={['apply']}
-                onSelect={(stage) => {
-                  if (stage === 'apply') return;
-                  const first = FEATURE_STAGE_TABS[stage].find((id) =>
-                    detailTabs.some((tab) => tab.id === id),
-                  );
-                  if (first) handleTabChange(first);
-                }}
-              />
-              {stageSubTabs.length > 0 && (
-                <Tabs
-                  tabs={stageSubTabs}
-                  activeTabId={activeTab}
-                  onChange={handleTabChange}
-                  variant="pills"
-                  ariaLabel="Bagian pada tahap ini"
-                />
-              )}
-            </>
+            <FeatureStageStepper
+              currentStage={derivedStage}
+              selectedStage={stageForTab(activeTab)}
+              summaries={stageSummaries}
+              disabledStages={['apply']}
+              onSelect={(stage) => {
+                if (stage === 'apply') return;
+                handleTabChange(FEATURE_SUMMARY_TAB[stage]);
+              }}
+            />
           ) : (
             <Tabs
               tabs={detailTabs}
@@ -1212,7 +1305,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           )
         }
         footer={
-          activeTab === 'overview' ? (
+          layout === 'page' ? (
+            pageFooter
+          ) : activeTab === 'overview' ? (
             <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-2">
                 {canCompleteThisTask && (
@@ -1278,13 +1373,78 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           )
         }
       >
-        <div className="space-y-4">
-          <TaskHierarchyBreadcrumb
-            task={task}
-            parentTask={parentTask}
-            isParentTaskLoading={isParentTaskLoading}
-            onNavigateToTask={onNavigateToTask}
-          />
+        <div
+          className={
+            layout === 'page' && !isSummaryView
+              ? 'space-y-4 rounded-2xl border border-stone-200/80 bg-white p-4 text-sm text-stone-600 dark:border-stone-800 dark:bg-[#1C1A19] dark:text-stone-300 sm:p-6'
+              : 'space-y-4'
+          }
+        >
+          {layout === 'page' && editorSummaryTab && (
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<ChevronLeft className="h-3.5 w-3.5" />}
+              onClick={() => handleTabChange(editorSummaryTab)}
+            >
+              Kembali ke ringkasan
+            </Button>
+          )}
+          {(layout !== 'page' || task.parentTaskId) && (
+            <TaskHierarchyBreadcrumb
+              task={task}
+              parentTask={parentTask}
+              isParentTaskLoading={isParentTaskLoading}
+              onNavigateToTask={onNavigateToTask}
+            />
+          )}
+
+          {/* HALAMAN FEATURE: RINGKASAN PRD DAN TASK */}
+          {layout === 'page' && activeTab === 'prd-summary' && (
+            <FeatureStageLayout
+              main={
+                <FeaturePrdSummary
+                  productBrief={productBrief}
+                  briefError={productBriefError}
+                  trace={traceForPage}
+                  fallbackRequirements={featureEligibleRequirements}
+                  showBrief={!task.parentTaskId}
+                  onEditBrief={() => handleTabChange('brief')}
+                  onManageRequirements={() => handleTabChange('prd')}
+                />
+              }
+              rail={
+                <FeaturePrdRail
+                  productBrief={productBrief}
+                  trace={traceForPage}
+                  showBrief={!task.parentTaskId}
+                  onContinue={() => handleTabChange('task-summary')}
+                />
+              }
+            />
+          )}
+          {layout === 'page' && activeTab === 'task-summary' && (
+            <FeatureStageLayout
+              main={
+                <FeatureTaskSummary
+                  task={task}
+                  subtasks={subtasks}
+                  trace={traceForPage}
+                  members={members}
+                  isSubtask={isSubtask}
+                  canPlan={canPlan && !task.parentTaskId}
+                  onEditTask={() => handleTabChange('overview')}
+                  onOpenSubtask={(subtaskId) => onNavigateToTask?.(subtaskId)}
+                  onManageSubtasks={() => handleTabChange('subtasks')}
+                  onAddSubtask={() => {
+                    setPlannedRequirementIds([]);
+                    setIsSubtaskModalOpen(true);
+                  }}
+                />
+              }
+              rail={isSubtask ? undefined : <FeatureTaskRail trace={traceForPage} />}
+            />
+          )}
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (

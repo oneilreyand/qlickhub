@@ -133,7 +133,10 @@ describe('FeatureDetailPage', () => {
     getTaskMock.mockResolvedValue(feature);
     renderPage(`/work/features/${featureId}?tahap=prd`);
 
-    expect(await screen.findByTestId('feature-page')).toHaveAttribute('data-initial-tab', 'brief');
+    expect(await screen.findByTestId('feature-page')).toHaveAttribute(
+      'data-initial-tab',
+      'prd-summary',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'ke Subtask' }));
     await waitFor(() =>
