@@ -11,7 +11,7 @@ Header brand Sidebar sekarang memakai `h-20` (80px), sama dengan Header aplikasi
 - **SDLC stage and path (`SDLC-001`):** Quick path; [Quick Card](../plans/quick/SHELL-HEADER-ALIGNMENT.md) selesai (`SDLC-002`).
 - **Work Readiness Assessment:** 4/16, `Ready`; satu perubahan frontend lokal dengan unit test, static checks, dan UAT lokal, tanpa data/otorisasi/kontrak/migrasi.
 - **User plan approval:** Owner menyetujui rencana dan Approval Window melalui pesan “ok” pada 2026-10-27.
-- **Approval Window / high-risk decisions:** `SHELL-HEADER-ALIGNMENT @ f19bab6`; path Sidebar/test/Quick Card/TODO/laporan; test regresi → edit → test/build/theme → UAT baca-saja → review → commit/push PR #58; tidak ada merge `main`, deploy, atau mutasi data. Jendela selesai tanpa stop condition.
+- **Approval Window / high-risk decisions:** `SHELL-HEADER-ALIGNMENT @ f19bab6`; path Sidebar/test/Quick Card/TODO/laporan; test regresi → edit → test/build/theme → UAT baca-saja → review → commit/push PR #59; tidak ada merge `main`, deploy, atau mutasi data. Jendela selesai tanpa stop condition.
 - **Agent capability and access:** Executor dapat membaca shell dan test, menjalankan build lokal, serta melihat UAT terautentikasi sebelum tab IAB ditutup. Tidak ada akses database atau form mutasi yang digunakan.
 - **AC-to-evidence matrix:**
 
@@ -53,7 +53,7 @@ Header brand Sidebar sekarang memakai `h-20` (80px), sama dengan Header aplikasi
 - `npm run docs:completeness` — exit 0; 91 gap baseline, 0 gap baru, 0 gap selesai.
 - `npm run sdlc:check` — exit 0; skipped karena tidak ada baseline pembanding.
 - `git diff --check` — exit 0.
-- `node scripts/checkTier.mjs HEAD~1 HEAD` — exit 0; Tier 1, tidak ada path Tier 2; commit `e6f9324` dipush ke [PR #58](https://github.com/oneilreyand/qlickhub/pull/58).
+- `node scripts/checkTier.mjs HEAD~1 HEAD` — exit 0; Tier 1, tidak ada path Tier 2; commit `e6f9324` dipush ke [PR #59](https://github.com/oneilreyand/qlickhub/pull/59).
 - UAT PO `localhost:3000` — desktop 1440×960 dan mobile 390×844 accepted; tanpa submit/mutasi data.
 
 ## Risks or follow-up

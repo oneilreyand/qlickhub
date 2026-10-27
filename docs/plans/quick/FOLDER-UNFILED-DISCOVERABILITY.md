@@ -29,7 +29,7 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 
 - Task / baseline: FOLDER-UNFILED-DISCOVERABILITY @ `54867ee`
 - Path yang diizinkan: `apps/web/src/lib/utils/taskHubQueryState.ts`, Task Hub/Sidebar/FolderTree/modal folder UI dan test terkait, `docs/plans/quick/`, `docs/reports/`, `TODO.md`.
-- Urutan aksi: edit → test → validasi dokumen → UAT lokal baca-saja → quality review → commit → push ke branch PR #58. Tier diperiksa sebelum push; tidak ada merge `main` atau deploy.
+- Urutan aksi: edit → test → validasi dokumen → UAT lokal baca-saja → quality review → commit → push ke branch PR #59. Tier diperiksa sebelum push; tidak ada merge `main` atau deploy.
 - Masa berlaku dan stop condition: hanya untuk slice ini sampai validasi atau quality review menemukan konflik scope/kontrak/otorisasi. Berhenti dan minta keputusan bila backend, schema, data, RBAC, atau perilaku Kanban stale-scope harus berubah.
 
 **Disetujui:** Owner, 2026-10-26, pesan "ok jalankan" setelah rencana dan Approval Window dipresentasikan.
@@ -41,5 +41,5 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - `npm run theme:check`, `npm run docs:check`, `npm run docs:completeness`, `git diff --check` — exit 0; tema lulus, dokumentasi 10/10, dan 0 gap dokumentasi baru.
 - `npm run sdlc:check` — exit 0 — pemeriksaan diff otomatis dilewati karena baseline pembanding tidak tersedia; Quick Card ini diperiksa manual terhadap template dan lint dokumentasi.
 - E4 2026-10-27 — UAT pada `localhost:3000` sebagai PO: scope `unfiledOnly=true` memuat satu Feature fixture tanpa folder; Semua Task kembali ke dua Feature; modal Feature biasa dan AI menyebutkan lokasi baru; diuji Light/Dark pada 390×844, 768×1024, dan 1440×900 tanpa submit/mutasi data.
-- PR dan tier: [PR #58](https://github.com/oneilreyand/qlickhub/pull/58), commit `f8cc81f`, Tier 1 (`node scripts/checkTier.mjs HEAD~1 HEAD`: tidak ada path Tier 2).
+- PR dan tier: [PR #59](https://github.com/oneilreyand/qlickhub/pull/59), commit `f8cc81f`, Tier 1 (`node scripts/checkTier.mjs HEAD~1 HEAD`: tidak ada path Tier 2).
 - Gap: tidak ada dalam scope; perbaikan pemilihan Kanban stale-scope tetap di luar scope.

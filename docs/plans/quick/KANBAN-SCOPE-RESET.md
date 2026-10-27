@@ -28,7 +28,7 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 
 - Task / baseline: KANBAN-SCOPE-RESET @ `067c04f`
 - Path yang diizinkan: `apps/web/src/lib/utils/taskHubQueryState.ts`, `apps/web/src/components/layout/Sidebar.tsx`, test terkait, `docs/plans/quick/`, `docs/reports/`, dan `TODO.md`.
-- Urutan aksi: edit → test → docs/theme/typecheck → UAT lokal read-only → quality review → commit → push ke PR #58. Periksa Tier; tidak ada merge `main`/deploy.
+- Urutan aksi: edit → test → docs/theme/typecheck → UAT lokal read-only → quality review → commit → push ke PR #59. Periksa Tier; tidak ada merge `main`/deploy.
 - Masa berlaku dan stop condition: hanya slice reset scope ini sampai validasi menemukan konflik kontrak, data, RBAC, atau kebutuhan perubahan perilaku Kanban lain.
 
 **Disetujui:** Owner, 2026-10-27, pesan "ok setuju" setelah rencana G3 disajikan.
@@ -39,5 +39,5 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - `npm --prefix apps/web run typecheck` dan `npm --prefix apps/web run build` — exit 0 — tanpa error tipe atau build.
 - `npm run theme:check`, `npm run docs:check`, `npm run docs:completeness`, dan `git diff --check` — exit 0; theme coverage lulus, dokumentasi diverifikasi, dan tidak ada whitespace error.
 - E4 2026-10-27 — UAT PO pada `localhost:3000`: Kanban unfiled dengan Feature `46252677-4581-4cdc-971d-7934c53a7ca7` dipindahkan ke folder Oktober; URL menjadi `view=kanban&folderId=…` tanpa `kanbanFeatureId`; selector menawarkan satu Feature Oktober, lalu menampilkan 4 subtask miliknya. Responsif diverifikasi di 390×844, 768×1024, dan 1440×960 dalam mode gelap; `theme:check` memverifikasi cakupan strategi Light/Dark.
-- PR dan tier: [PR #58](https://github.com/oneilreyand/qlickhub/pull/58), commit `a102e8d`, Tier 1 (`node scripts/checkTier.mjs HEAD~1 HEAD`: tidak ada path Tier 2).
+- PR dan tier: [PR #59](https://github.com/oneilreyand/qlickhub/pull/59), commit `a102e8d`, Tier 1 (`node scripts/checkTier.mjs HEAD~1 HEAD`: tidak ada path Tier 2).
 - Gap: tidak ada dalam scope; URL stale yang diketik manual tetap menampilkan state pemilihan aman sampai Feature dipilih, bukan data lintas-folder.

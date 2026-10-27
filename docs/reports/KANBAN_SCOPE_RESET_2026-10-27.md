@@ -11,7 +11,7 @@ Memilih folder lain atau `Tanpa Folder` saat Kanban aktif kini membuang `kanbanF
 - **SDLC stage and path (`SDLC-001`):** Quick path; [Quick Card](../plans/quick/KANBAN-SCOPE-RESET.md) selesai (`SDLC-002`).
 - **Work Readiness Assessment:** 4/16, `Ready`; perubahan frontend state kecil, E2 dan UAT E4 lokal, tanpa API, kontrak, data, otorisasi, atau migrasi.
 - **User plan approval:** Owner menyetujui scope dan Approval Window melalui pesan “ok setuju” pada 2026-10-27.
-- **Approval Window / high-risk decisions:** `KANBAN-SCOPE-RESET @ 067c04f`; path query state, Sidebar, test, Quick Card/TODO/laporan; edit → test → docs → UAT read-only → review → commit/push PR #58; tanpa merge `main`, deploy, mutasi data, API, RBAC, atau schema. Jendela selesai tanpa stop condition.
+- **Approval Window / high-risk decisions:** `KANBAN-SCOPE-RESET @ 067c04f`; path query state, Sidebar, test, Quick Card/TODO/laporan; edit → test → docs → UAT read-only → review → commit/push PR #59; tanpa merge `main`, deploy, mutasi data, API, RBAC, atau schema. Jendela selesai tanpa stop condition.
 - **Agent capability and access:** Executor dapat membaca implementasi frontend, menjalankan test/build lokal, serta UAT PO pada `localhost:3000`. Tidak ada akses database langsung atau form mutasi yang digunakan.
 - **AC-to-evidence matrix:**
 
@@ -52,7 +52,7 @@ Memilih folder lain atau `Tanpa Folder` saat Kanban aktif kini membuang `kanbanF
 - `npm run docs:check` — exit 0; 10/10 test lulus, 0 gagal/skipped; Documentation governance passed.
 - `npm run docs:completeness` — exit 0; 91 gap baseline, 0 gap baru, 0 gap selesai.
 - `npm run sdlc:check` — exit 0; skipped karena baseline pembanding tidak tersedia.
-- `node scripts/checkTier.mjs HEAD~1 HEAD` — exit 0; Tier 1, tidak ada path Tier 2; commit `a102e8d` dipush ke [PR #58](https://github.com/oneilreyand/qlickhub/pull/58).
+- `node scripts/checkTier.mjs HEAD~1 HEAD` — exit 0; Tier 1, tidak ada path Tier 2; commit `a102e8d` dipush ke [PR #59](https://github.com/oneilreyand/qlickhub/pull/59).
 - `git diff --check` — exit 0.
 - UAT PO `localhost:3000` — accepted; view Kanban menunjukkan reset aman setelah scope folder berubah, kemudian memuat 4 subtask Feature yang benar. Responsif di 390×844, 768×1024, dan 1440×960; tidak ada submit/mutasi data.
 

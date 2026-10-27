@@ -11,7 +11,7 @@ Task Hub kini memiliki scope eksplisit `Tanpa Folder`. Scope tersebut memakai qu
 - **SDLC stage and path (`SDLC-001`):** Quick path; [Quick Card](../plans/quick/FOLDER-UNFILED-DISCOVERABILITY.md) selesai (`SDLC-002`).
 - **Work Readiness Assessment:** 4/16, `Ready`; frontend-only, tanpa perubahan kontrak/data/otorisasi/migrasi, dengan kebutuhan E2 dan UAT E4 lokal.
 - **User plan approval:** Owner menyetujui scope dan Approval Window melalui pesan “ok jalankan” pada 2026-10-26.
-- **Approval Window / high-risk decisions:** `FOLDER-UNFILED-DISCOVERABILITY @ 54867ee`; path frontend, test, Quick Card/TODO/laporan; edit → test → docs → UAT read-only → review → commit/push PR #58; tidak ada merge `main`, deploy, perubahan data, API, RBAC, atau schema. Jendela selesai tanpa stop condition.
+- **Approval Window / high-risk decisions:** `FOLDER-UNFILED-DISCOVERABILITY @ 54867ee`; path frontend, test, Quick Card/TODO/laporan; edit → test → docs → UAT read-only → review → commit/push PR #59; tidak ada merge `main`, deploy, perubahan data, API, RBAC, atau schema. Jendela selesai tanpa stop condition.
 - **Agent capability and access:** Executor dapat membaca code dan menjalankan test/build lokal serta UAT sebagai PO di `localhost:3000`. Tidak ada akses database langsung atau mutasi form yang digunakan.
 - **AC-to-evidence matrix:**
 
@@ -55,7 +55,7 @@ Task Hub kini memiliki scope eksplisit `Tanpa Folder`. Scope tersebut memakai qu
 - `npm run docs:check` — exit 0; 10/10 lulus.
 - `npm run docs:completeness` — exit 0; 91 baseline gap, 0 gap baru, 0 gap selesai.
 - `npm run sdlc:check` — exit 0; skipped karena tidak ada base commit pembanding.
-- `node scripts/checkTier.mjs HEAD~1 HEAD` — exit 0; Tier 1, tidak ada path Tier 2; commit implementasi `f8cc81f` dipush ke [PR #58](https://github.com/oneilreyand/qlickhub/pull/58).
+- `node scripts/checkTier.mjs HEAD~1 HEAD` — exit 0; Tier 1, tidak ada path Tier 2; commit implementasi `f8cc81f` dipush ke [PR #59](https://github.com/oneilreyand/qlickhub/pull/59).
 - `git diff --check` — exit 0.
 - UAT PO `localhost:3000` — accepted; Light/Dark pada 390×844, 768×1024, dan 1440×900, tidak ada submit/mutasi data.
 
