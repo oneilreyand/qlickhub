@@ -68,6 +68,14 @@ function renderSidebar(role: 'owner' | 'admin' | 'po' | 'dev' | 'qa', initialPat
 }
 
 describe('Sidebar Role-based Visibility', () => {
+  it('aligns the brand divider with the 80px application header', () => {
+    renderSidebar('owner');
+
+    const brandHeader = screen.getByText('Qlick Hub').closest('div')?.parentElement;
+
+    expect(brandHeader).toHaveClass('h-20');
+  });
+
   it('hides Pengaturan Workspace and Galeri Komponen for dev and qa roles', () => {
     const { unmount } = renderSidebar('dev');
     expect(screen.queryByText('Pengaturan Workspace')).toBeNull();

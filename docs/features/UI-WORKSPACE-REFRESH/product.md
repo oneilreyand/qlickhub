@@ -96,7 +96,7 @@ flowchart TD
 
 ## 7. Unknown yang tersisa
 
-| Pertanyaan                                       | Memengaruhi AC         | Status                        |
-| ------------------------------------------------ | ---------------------- | ----------------------------- |
-| Sesi runtime Dev/QA/PO tersedia untuk E4?        | AC-3.1, AC-4.1, AC-5.1 | Open — dibutuhkan sebelum G5. |
-| Disposable PostgreSQL dan test records tersedia? | AC-3.1, AC-5.1         | Open — dibutuhkan sebelum G5. |
+| Pertanyaan                                       | Memengaruhi AC         | Status                                                                                                                             |
+| ------------------------------------------------ | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Sesi runtime Dev/QA/PO tersedia untuk E4?        | AC-3.1, AC-4.1, AC-5.1 | Resolved for P4 and Task Hub visual observation; the missing specific P1/P2 flows are tracked in `testing.md`.                     |
+| Disposable PostgreSQL dan test records tersedia? | AC-3.1, AC-5.1         | Resolved for P4 capacity E3; P3 remains blocked by its UI data-scope mismatch before a Kanban-specific E3 run would be meaningful. |

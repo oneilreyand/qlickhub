@@ -65,6 +65,27 @@ describe('GlobalSnackbarHost Molecule', () => {
     expect(screen.queryByText('Manual close test')).not.toBeInTheDocument();
   });
 
+  it('uses an explicit Light/Dark surface pair for notification content', () => {
+    const store = createTestStore();
+    render(
+      <Provider store={store}>
+        <GlobalSnackbarHost />
+      </Provider>,
+    );
+
+    act(() => {
+      store.dispatch(enqueueSnackbar('Theme surface test', 'info'));
+    });
+
+    const snackbar = screen.getByText('Theme surface test').parentElement;
+    expect(snackbar).toHaveClass(
+      'bg-white',
+      'text-stone-700',
+      'dark:bg-[#1C1A19]',
+      'dark:text-white',
+    );
+  });
+
   it('keeps long snackbar content centered and contained on mobile and tablet viewports', () => {
     const store = createTestStore();
     render(

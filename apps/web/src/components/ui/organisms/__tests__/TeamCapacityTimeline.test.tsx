@@ -235,6 +235,56 @@ describe('TeamCapacityTimeline Component', () => {
     });
   });
 
+  test('renders safe forbidden-state copy when the timeline is not accessible', async () => {
+    vi.mocked(capacityService.getTeamTimeline).mockRejectedValueOnce(
+      Object.assign(new Error('Anda tidak memiliki izin untuk melakukan tindakan ini.'), {
+        status: 403,
+        code: 'FORBIDDEN',
+      }),
+    );
+
+    render(
+      <TeamCapacityTimeline
+        workspaceId="ws-1"
+        initialStartDate="2026-09-01"
+        initialEndDate="2026-09-15"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Gagal Memuat Timeline');
+      expect(
+        screen.getByText('Anda tidak memiliki izin untuk melakukan tindakan ini.'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  test('renders a canonical empty response without inventing capacity totals', async () => {
+    vi.mocked(capacityService.getTeamTimeline).mockResolvedValue({
+      ...mockTimelineData,
+      totalMembers: 0,
+      totalScheduledSubtasks: 0,
+      totalUnscheduledSubtasks: 0,
+      totalOutsideWindowSubtasks: 0,
+      members: [],
+    });
+
+    render(
+      <TeamCapacityTimeline
+        workspaceId="ws-1"
+        initialStartDate="2026-09-01"
+        initialEndDate="2026-09-15"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Tidak Ada Anggota atau Subtask' }),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Developer Satu')).not.toBeInTheDocument();
+  });
+
   test('applies a custom date range through the shared DateRangePicker', async () => {
     vi.mocked(capacityService.getTeamTimeline).mockResolvedValue(mockTimelineData);
 

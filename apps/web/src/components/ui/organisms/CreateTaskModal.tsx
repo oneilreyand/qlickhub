@@ -9,6 +9,7 @@ import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
+import { FolderLocationSelect } from '../molecules/FolderLocationSelect';
 import {
   User,
   Sparkles,
@@ -108,21 +109,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     prevIsOpenRef.current = isOpen;
   }, [defaultFolderId, isOpen, activeWorkspaceId, dispatch]);
 
-  const flattenFolders = (
-    items: FolderTreeNode[],
-    depth = 0,
-  ): { id: string; name: string; depth: number }[] => {
-    let result: { id: string; name: string; depth: number }[] = [];
-    for (const item of items) {
-      result.push({ id: item.id, name: item.name, depth });
-      if (item.children && item.children.length > 0) {
-        result = result.concat(flattenFolders(item.children, depth + 1));
-      }
-    }
-    return result;
-  };
-
-  const flatFolders = flattenFolders(folders);
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
   const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
 
@@ -320,24 +306,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              Lokasi Folder
-            </label>
-            <Select
-              value={folderId || ''}
-              onChange={(e) => setFolderId(e.target.value ? e.target.value : null)}
-              aria-label="Lokasi folder"
-            >
-              <option value="">Tanpa Folder (Root Workspace)</option>
-              {flatFolders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {'\u00A0'.repeat(f.depth * 4)}
-                  {f.name}
-                </option>
-              ))}
-            </Select>
-          </div>
+          <FolderLocationSelect
+            folders={folders}
+            value={folderId}
+            onChange={setFolderId}
+            label="Lokasi Folder"
+            selectId="task-folder-location"
+            ariaLabel="Lokasi folder"
+          />
 
           <div>
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">

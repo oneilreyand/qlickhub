@@ -128,6 +128,9 @@ describe('AiTaskGeneratorModal Organism', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Tata Kelola AI \(Policy AI-001\):/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Generate Draf Feature/i })).toBeInTheDocument();
+    expect(
+      screen.getByText('Tanpa Folder — tampil di Semua Task dan Tanpa Folder'),
+    ).toBeInTheDocument();
   });
 
   it('allows user to type into the prompt textarea', () => {

@@ -156,6 +156,21 @@ lime `#B1E743` dengan charcoal `#141413`, navy `#0B1C30` dengan putih, emerald `
 charcoal, dan amber `#F59E0B` dengan charcoal. Warna bukan satu-satunya pembawa status: label,
 ikon, dan nama aksesibel tetap wajib tersedia.
 
+### Kontrak tema dan gate pencegahan regresi
+
+Setiap komponen atau halaman produksi yang merender surface, border, teks, ikon, fokus, atau state
+visual wajib memiliki strategi Light/Dark yang eksplisit: gunakan token semantik (`canvas`,
+`surface`, `surface-elevated`, `foreground`, `muted-foreground`, `border`) atau kelas default
+beserta pasangan `dark:` yang setara. Aturan ini juga berlaku untuk loading, empty, error,
+disabled, dan permission-denied state yang relevan.
+
+Surface media yang memang harus mempertahankan latar gelap untuk keterbacaan gambar/video dapat
+menjadi pengecualian hanya bila diberi komentar `theme-check: invariant-media` dengan alasan di
+berkasnya. Pengecualian tidak boleh dipakai untuk kartu, form, navigasi, atau konten aplikasi biasa.
+`npm run theme:check` memeriksa seluruh `.tsx` produksi di `apps/web/src/components` dan
+`apps/web/src/pages`; ia adalah bagian dari `npm run validate`. Pemeriksaan statis ini adalah guard
+regresi, bukan pengganti inspeksi kontras dan browser pada kedua tema.
+
 ---
 
 ## 5. Katalog Lengkap Komponen Atomic (`apps/web/src/components/ui/`)

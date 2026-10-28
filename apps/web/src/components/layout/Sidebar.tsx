@@ -15,6 +15,7 @@ import { useAppSelector } from '../../store/hooks';
 import { useAppDispatch } from '../../store/hooks';
 import { selectCurrentUserRole } from '../../store/authSlice';
 import { featureVisibility } from '../../config/featureVisibility';
+import { patchTaskHubQueryState } from '../../lib/utils/taskHubQueryState';
 import { FolderTree } from '../ui/organisms/FolderTree';
 import {
   archiveFolder,
@@ -112,6 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const canAccessLeaderHub = ['owner', 'admin'].includes(userRole);
   const isTaskHub =
     location.pathname === '/work' && new URLSearchParams(location.search).get('tab') === 'tasks';
+  const isUnfiledSelected = new URLSearchParams(location.search).get('unfiledOnly') === 'true';
 
   // The workspace shell keeps labels visible on desktop; the mobile drawer reuses the same shape.
   const isExpanded = true;
@@ -141,10 +143,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   };
 
   const handleSelectFolder = (folderId: string | null) => {
-    const next = new URLSearchParams(location.search);
+    const next = patchTaskHubQueryState(new URLSearchParams(location.search), {
+      folderId,
+      unfiledOnly: false,
+    });
     next.set('tab', 'tasks');
-    if (folderId) next.set('folderId', folderId);
-    else next.delete('folderId');
+    navigate(`/work?${next.toString()}`);
+    onCloseMobile?.();
+  };
+
+  const handleSelectUnfiled = () => {
+    const next = patchTaskHubQueryState(new URLSearchParams(location.search), {
+      folderId: null,
+      unfiledOnly: true,
+    });
+    next.set('tab', 'tasks');
     navigate(`/work?${next.toString()}`);
     onCloseMobile?.();
   };
@@ -174,10 +187,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
       onMouseLeave={handleMouseLeave}
       className="relative flex h-full w-full flex-col overflow-hidden border-r border-stone-200/80 bg-white/95 backdrop-blur-md text-stone-700 shadow-[0_4px_24px_rgba(0,0,0,0.04)] transition-all duration-300 ease-in-out dark:border-stone-800/80 dark:bg-[#141413] dark:text-stone-300"
     >
-      {/* Top Header: Matched h-16 (64px) height with compact Shield icon */}
+      {/* Top Header: Matches the h-20 (80px) application header divider. */}
       <div className="shrink-0">
         <div
-          className={`flex h-16 items-center border-b border-stone-100 dark:border-stone-800/80 ${isExpanded ? 'px-4 gap-2.5' : 'justify-center px-0'}`}
+          className={`flex h-20 items-center border-b border-stone-100 dark:border-stone-800/80 ${isExpanded ? 'px-4 gap-2.5' : 'justify-center px-0'}`}
         >
           <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#B1E743] text-[#141413] shadow-xs font-bold">
             <ShieldCheck className="h-4 w-4" />
@@ -281,11 +294,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
             <FolderTree
               folders={folders}
               selectedFolderId={selectedFolderId || null}
+              isUnfiledSelected={isUnfiledSelected}
               totalTasks={workspaceFeatureCount}
               isLoading={isFolderLoading}
               error={folderError}
               userRole={activeWorkspace?.role}
               onSelectFolder={handleSelectFolder}
+              onSelectUnfiled={handleSelectUnfiled}
               onCreateFolder={handleCreateFolder}
               onRenameFolder={handleRenameFolder}
               onArchiveFolder={handleArchiveFolder}

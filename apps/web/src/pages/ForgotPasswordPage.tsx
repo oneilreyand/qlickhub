@@ -30,16 +30,18 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-screen bg-[#FBFCF7] flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden">
+    <div className="min-h-screen w-screen bg-[#FBFCF7] text-stone-900 flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden dark:bg-[#141413] dark:text-stone-100">
       {/* Background Glows */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-[#B1E743]/20 blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 left-1/3 w-80 h-80 rounded-full bg-[#B1E743]/10 blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-white p-8 rounded-[24px] border border-stone-200/80 shadow-xl shadow-stone-200/60 space-y-6 relative z-10">
+      <div className="w-full max-w-md bg-white p-8 rounded-[24px] border border-stone-200/80 shadow-xl shadow-stone-200/60 space-y-6 relative z-10 dark:border-stone-800 dark:bg-stone-900 dark:shadow-black/40">
         {/* Header */}
         <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-stone-900">Atur Ulang Kata Sandi</h1>
-          <p className="text-sm text-stone-500">
+          <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">
+            Atur Ulang Kata Sandi
+          </h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400">
             Masukkan alamat email Anda. Kami akan mengirimkan tautan untuk mengatur ulang kata
             sandi.
           </p>
@@ -53,10 +55,13 @@ export const ForgotPasswordPage: React.FC = () => {
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-semibold text-stone-900">Periksa kotak masuk Anda</h3>
-              <p className="text-xs text-stone-500 leading-relaxed max-w-xs mx-auto">
-                Jika akun untuk <strong className="text-stone-700">{email}</strong> tersedia, kami
-                telah mengirimkan tautan atur ulang kata sandi.
+              <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+                Periksa kotak masuk Anda
+              </h3>
+              <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed max-w-xs mx-auto">
+                Jika akun untuk{' '}
+                <strong className="text-stone-700 dark:text-stone-200">{email}</strong> tersedia,
+                kami telah mengirimkan tautan atur ulang kata sandi.
               </p>
             </div>
             <div className="pt-2">
@@ -80,7 +85,7 @@ export const ForgotPasswordPage: React.FC = () => {
               placeholder="Masukkan email yang terdaftar"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400"
+              className="!bg-stone-50/80 !text-stone-900 !border-stone-200 focus:!bg-white focus:!border-[#B1E743] focus:!ring-[#B1E743]/20 !placeholder-stone-400 dark:!bg-stone-800/80 dark:!text-stone-100 dark:!border-stone-700 dark:focus:!bg-stone-800 dark:!placeholder-stone-500"
               required
             />
 
@@ -95,7 +100,7 @@ export const ForgotPasswordPage: React.FC = () => {
               </Button>
 
               <Link to="/login" className="block text-center pt-2">
-                <span className="text-xs text-stone-500 hover:text-stone-800 font-medium inline-flex items-center gap-1">
+                <span className="text-xs text-stone-500 hover:text-stone-800 font-medium inline-flex items-center gap-1 dark:text-stone-400 dark:hover:text-stone-200">
                   <ArrowLeft className="h-3 w-3" /> Kembali ke Halaman Masuk
                 </span>
               </Link>

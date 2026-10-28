@@ -12,6 +12,11 @@ import { CreateTaskModal } from '../features/tasks';
 import { EmptyWorkspaceOnboarding } from '../features/workspaces';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { useRoleAwareWorkQueue } from '../lib/hooks/useRoleAwareWorkQueue';
+import {
+  buildWorkQueueRoute,
+  clearWorkQueueRouteContext,
+  getWorkQueueRouteContext,
+} from '../lib/utils/workQueueRoute';
 
 export const MyTasksPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -34,10 +39,11 @@ export const MyTasksPage: React.FC = () => {
   const userRole = activeWorkspace?.role || activeWorkspace?.myRole || '';
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [queueFocusTarget, setQueueFocusTarget] = useState<'test_cases' | 'qa_sign_off' | null>(
-    null,
-  );
   const queueTriggerRef = useRef<HTMLElement | null>(null);
+  const queueRouteContext = useMemo(
+    () => getWorkQueueRouteContext(location.search),
+    [location.search],
+  );
 
   const reloadTasks = useCallback(() => {
     if (activeWorkspaceId) {
@@ -80,43 +86,50 @@ export const MyTasksPage: React.FC = () => {
     activeWorkspaceId || undefined,
   );
 
-  const handleOpenTaskById = async (taskId: string) => {
-    if (!activeWorkspaceId) return;
-    queueTriggerRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    try {
-      const task = await dispatch(
-        fetchTaskById({
-          workspaceId: activeWorkspaceId,
-          taskId,
-        }),
-      ).unwrap();
-      dispatch(setSelectedTaskId(task.id));
-    } catch (error) {
-      dispatch(
-        enqueueSnackbar(
-          error instanceof Error ? error.message : 'Pekerjaan ini tidak dapat dibuka.',
-          'error',
-        ),
-      );
-    }
-  };
+  const handleOpenTaskById = useCallback(
+    async (taskId: string) => {
+      if (!activeWorkspaceId) return;
+      queueTriggerRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      try {
+        const task = await dispatch(
+          fetchTaskById({
+            workspaceId: activeWorkspaceId,
+            taskId,
+          }),
+        ).unwrap();
+        dispatch(setSelectedTaskId(task.id));
+      } catch (error) {
+        dispatch(
+          enqueueSnackbar(
+            error instanceof Error ? error.message : 'Pekerjaan ini tidak dapat dibuka.',
+            'error',
+          ),
+        );
+      }
+    },
+    [activeWorkspaceId, dispatch],
+  );
 
-  const handleOpenQueueItem = async (item: WorkQueueItem) => {
-    if (item.subjectType === 'bug') return;
-    setQueueFocusTarget(
-      item.bucketCode === 'qa_sign_off'
-        ? 'qa_sign_off'
-        : item.bucketCode === 'qa_test_work'
-          ? 'test_cases'
-          : null,
-    );
-    await handleOpenTaskById(item.subjectId);
-  };
+  useEffect(() => {
+    if (!queueRouteContext.taskId) return;
+    void handleOpenTaskById(queueRouteContext.taskId);
+  }, [handleOpenTaskById, queueRouteContext.taskId]);
+
+  const clearQueueContext = useCallback(() => {
+    navigate(clearWorkQueueRouteContext(location.search), { replace: true });
+  }, [location.search, navigate]);
+
+  const handleOpenQueueItem = useCallback(
+    (item: WorkQueueItem) => {
+      navigate(buildWorkQueueRoute(item, location.search));
+    },
+    [location.search, navigate],
+  );
 
   const handleCloseDrawer = () => {
     dispatch(setSelectedTaskId(null));
-    setQueueFocusTarget(null);
+    clearQueueContext();
     window.requestAnimationFrame(() => queueTriggerRef.current?.focus());
   };
 
@@ -143,6 +156,9 @@ export const MyTasksPage: React.FC = () => {
         onOpenQueueItem={handleOpenQueueItem}
         onOpenTaskById={handleOpenTaskById}
         onBugDataChanged={reloadWorkQueue}
+        focusedBugId={queueRouteContext.bugId}
+        onOpenBug={handleOpenQueueItem}
+        onCloseBug={clearQueueContext}
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
       />
 
@@ -156,7 +172,7 @@ export const MyTasksPage: React.FC = () => {
             ? releaseReadinessStateByFeatureId[selectedTask.parentTaskId || selectedTask.id]
             : undefined
         }
-        focusTarget={queueFocusTarget}
+        focusTarget={queueRouteContext.focusTarget}
         onClose={handleCloseDrawer}
         onOpenFeature={(featureTaskId) => {
           if (!activeWorkspaceId) return;

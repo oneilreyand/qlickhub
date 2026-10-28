@@ -21,11 +21,13 @@ import { Input } from '../atoms/Input';
 interface FolderTreeProps {
   folders: FolderTreeNode[];
   selectedFolderId: string | null;
+  isUnfiledSelected?: boolean;
   totalTasks?: number;
   isLoading?: boolean;
   error?: string | null;
   userRole?: WorkspaceRole;
   onSelectFolder: (folderId: string | null) => void;
+  onSelectUnfiled?: () => void;
   onCreateFolder: (name: string, parentFolderId?: string) => Promise<void>;
   onRenameFolder: (folderId: string, newName: string) => Promise<void>;
   onArchiveFolder: (folderId: string) => Promise<void>;
@@ -35,11 +37,13 @@ interface FolderTreeProps {
 export const FolderTree: React.FC<FolderTreeProps> = ({
   folders,
   selectedFolderId,
+  isUnfiledSelected = false,
   totalTasks = 0,
   isLoading = false,
   error = null,
   userRole,
   onSelectFolder,
+  onSelectUnfiled,
   onCreateFolder,
   onRenameFolder,
   onArchiveFolder,
@@ -170,22 +174,38 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
             type="button"
             onClick={() => onSelectFolder(null)}
             className={`flex min-h-10 w-full min-w-0 items-center justify-between rounded-xl px-3 text-xs font-semibold transition-colors ${
-              selectedFolderId === null
+              selectedFolderId === null && !isUnfiledSelected
                 ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
                 : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800/60'
             }`}
           >
             <span className="flex min-w-0 items-center gap-2 truncate">
               <FolderOpen
-                className={`h-4 w-4 shrink-0 ${selectedFolderId === null ? 'text-[#141413] dark:text-[#141413]' : 'text-stone-500'}`}
+                className={`h-4 w-4 shrink-0 ${selectedFolderId === null && !isUnfiledSelected ? 'text-[#141413] dark:text-[#141413]' : 'text-stone-500'}`}
               />
               <span className="truncate">Semua Task</span>
             </span>
             <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null ? 'bg-[#141413] text-[#B1E743] dark:bg-[#141413] dark:text-[#B1E743]' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null && !isUnfiledSelected ? 'bg-[#141413] text-[#B1E743] dark:bg-[#141413] dark:text-[#B1E743]' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
             >
               {totalTasks}
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onSelectUnfiled}
+            disabled={!onSelectUnfiled}
+            className={`flex min-h-10 w-full min-w-0 items-center rounded-xl px-3 text-left text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              isUnfiledSelected
+                ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+                : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800/60'
+            }`}
+          >
+            <Folder
+              className={`h-4 w-4 shrink-0 ${isUnfiledSelected ? 'text-[#141413]' : 'text-amber-500'}`}
+            />
+            <span className="ml-2 truncate">Tanpa Folder</span>
           </button>
 
           {/* Empty Folder Tree State */}

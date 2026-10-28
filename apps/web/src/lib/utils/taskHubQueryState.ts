@@ -10,9 +10,11 @@ export interface TaskHubDateRange {
 
 export interface TaskHubQueryState {
   folderId: string | null;
+  unfiledOnly: boolean;
   datePreset: TaskDatePreset | 'all';
   viewMode: TaskHubViewMode;
   taskId: string | null;
+  kanbanFeatureId: string | null;
   searchQuery: string;
   statusFilter: string;
   involvementFilter: TaskHubInvolvementFilter;
@@ -21,9 +23,11 @@ export interface TaskHubQueryState {
 
 export interface TaskHubQueryPatch {
   folderId?: string | null;
+  unfiledOnly?: boolean;
   datePreset?: TaskDatePreset | 'all';
   viewMode?: TaskHubViewMode;
   taskId?: string | null;
+  kanbanFeatureId?: string | null;
   searchQuery?: string;
   statusFilter?: string;
   involvementFilter?: TaskHubInvolvementFilter;
@@ -66,9 +70,12 @@ export function parseTaskHubQueryState(params: URLSearchParams): TaskHubQuerySta
   const rawDatePreset = params.get('datePreset');
   const rawView = params.get('view');
   const rawInvolvement = params.get('involvement');
+  const unfiledOnly = params.get('unfiledOnly') === 'true';
 
   return {
-    folderId: hasValue(params.get('folderId')) ? params.get('folderId')!.trim() : null,
+    folderId:
+      !unfiledOnly && hasValue(params.get('folderId')) ? params.get('folderId')!.trim() : null,
+    unfiledOnly,
     datePreset:
       rawDatePreset && datePresets.has(rawDatePreset as TaskDatePreset)
         ? (rawDatePreset as TaskDatePreset)
@@ -76,6 +83,9 @@ export function parseTaskHubQueryState(params: URLSearchParams): TaskHubQuerySta
     viewMode:
       rawView && viewModes.has(rawView as TaskHubViewMode) ? (rawView as TaskHubViewMode) : 'table',
     taskId: hasValue(params.get('taskId')) ? params.get('taskId')!.trim() : null,
+    kanbanFeatureId: hasValue(params.get('kanbanFeatureId'))
+      ? params.get('kanbanFeatureId')!.trim()
+      : null,
     searchQuery: params.get('q')?.trim() || '',
     statusFilter: statusFilters.has(params.get('status')?.trim() || '')
       ? params.get('status')!.trim()
@@ -94,9 +104,26 @@ export function patchTaskHubQueryState(
   patch: TaskHubQueryPatch,
 ): URLSearchParams {
   const next = new URLSearchParams(current);
+  const changesFolderScope = 'folderId' in patch || 'unfiledOnly' in patch;
 
-  if ('folderId' in patch) setOrDelete(next, 'folderId', patch.folderId);
+  if ('folderId' in patch) {
+    setOrDelete(next, 'folderId', patch.folderId);
+    if (patch.folderId) next.delete('unfiledOnly');
+  }
+  if ('unfiledOnly' in patch) {
+    if (patch.unfiledOnly) {
+      next.set('unfiledOnly', 'true');
+      next.delete('folderId');
+    } else {
+      next.delete('unfiledOnly');
+    }
+  }
   if ('taskId' in patch) setOrDelete(next, 'taskId', patch.taskId);
+  if ('kanbanFeatureId' in patch) {
+    setOrDelete(next, 'kanbanFeatureId', patch.kanbanFeatureId);
+  } else if (changesFolderScope) {
+    next.delete('kanbanFeatureId');
+  }
   if ('searchQuery' in patch) setOrDelete(next, 'q', patch.searchQuery);
 
   if ('datePreset' in patch) {

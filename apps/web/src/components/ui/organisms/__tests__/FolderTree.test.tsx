@@ -62,6 +62,26 @@ describe('FolderTree', () => {
     expect(onSelectFolder).toHaveBeenCalledWith('44444444-4444-4444-8444-444444444444');
   });
 
+  it('offers an explicit Tanpa Folder scope', async () => {
+    const user = userEvent.setup();
+    const onSelectUnfiled = vi.fn();
+
+    render(
+      <FolderTree
+        folders={[rootFolder]}
+        selectedFolderId={null}
+        isUnfiledSelected
+        onSelectFolder={vi.fn()}
+        onSelectUnfiled={onSelectUnfiled}
+        {...handlers}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Tanpa Folder' }));
+
+    expect(onSelectUnfiled).toHaveBeenCalledOnce();
+  });
+
   it('shows the error state and lets the user retry', async () => {
     const user = userEvent.setup();
     const onRetry = vi.fn();

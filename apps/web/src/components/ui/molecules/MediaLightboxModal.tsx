@@ -15,6 +15,8 @@ import { IconButton } from '../atoms/IconButton';
 
 export type MediaLightboxType = 'image' | 'video_direct' | 'video_embed';
 
+// theme-check: invariant-media — the full-screen stage stays dark so images and video retain a neutral frame in both themes.
+
 export interface MediaLightboxModalProps {
   isOpen: boolean;
   src: string;
@@ -206,11 +208,10 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
             <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-4">
               <ImageOff className="h-7 w-7 text-rose-400" />
             </div>
-            <h4 className="text-sm font-bold text-stone-100 mb-1.5">
-              Gambar Tidak Dapat Dimuat
-            </h4>
+            <h4 className="text-sm font-bold text-stone-100 mb-1.5">Gambar Tidak Dapat Dimuat</h4>
             <p className="text-xs text-stone-400 mb-5 leading-relaxed">
-              Tautan gambar ini mungkin diblokir oleh penyedia (seperti Google Drive / kebijakan CORS), membutuhkan hak akses login, atau bukan tautan langsung ke file gambar.
+              Tautan gambar ini mungkin diblokir oleh penyedia (seperti Google Drive / kebijakan
+              CORS), membutuhkan hak akses login, atau bukan tautan langsung ke file gambar.
             </p>
             <div className="flex items-center gap-2">
               <a

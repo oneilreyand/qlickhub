@@ -12,6 +12,8 @@ import type { EvidencePreviewStatus } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
 
+// theme-check: invariant-media — evidence image and video previews require a neutral dark stage.
+
 export interface EvidencePreviewItem {
   url: string;
   normalizedUrl: string;

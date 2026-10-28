@@ -91,6 +91,8 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const datePresetView = taskHubQueryState.datePreset;
   const dateRange = taskHubQueryState.dateRange;
   const viewMode = taskHubQueryState.viewMode;
+  const kanbanFeatureId = taskHubQueryState.kanbanFeatureId;
+  const unfiledOnly = taskHubQueryState.unfiledOnly;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAiGeneratorModalOpen, setIsAiGeneratorModalOpen] = useState(false);
   const [isMobileFolderDrawerOpen, setIsMobileFolderDrawerOpen] = useState(false);
@@ -170,6 +172,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
           workspaceId: activeWorkspaceId,
           query: {
             folderId: selectedFolderId || undefined,
+            unfiledOnly: unfiledOnly || undefined,
             includeDescendants: selectedFolderIsParent,
             rootOnly: true,
             includeSubtasks: true,
@@ -185,6 +188,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     activeWorkspaceId,
     selectedFolderId,
     selectedFolderIsParent,
+    unfiledOnly,
     datePresetView,
     dateRange,
     dispatch,
@@ -269,6 +273,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
             workspaceId: activeWorkspaceId,
             query: {
               folderId: selectedFolderId || undefined,
+              unfiledOnly: unfiledOnly || undefined,
               includeDescendants: selectedFolderIsParent,
               rootOnly: true,
               includeSubtasks: true,
@@ -292,6 +297,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     activeWorkspaceId,
     selectedFolderId,
     selectedFolderIsParent,
+    unfiledOnly,
     datePresetView,
     dateRange,
     dispatch,
@@ -299,7 +305,12 @@ export const TaskHubDashboardTemplate: React.FC = () => {
 
   const handleSelectFolder = (folderId: string | null) => {
     setIsMobileFolderDrawerOpen(false);
-    updateTaskHubQuery({ folderId });
+    updateTaskHubQuery({ folderId, unfiledOnly: false });
+  };
+
+  const handleSelectUnfiled = () => {
+    setIsMobileFolderDrawerOpen(false);
+    updateTaskHubQuery({ folderId: null, unfiledOnly: true });
   };
 
   const handleSelectViewMode = (mode: TaskHubViewMode) => {
@@ -381,7 +392,11 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     });
   }, [hubTasks, debouncedSearchQuery, statusFilter, involvementFilter, currentUserId]);
 
-  const selectedFolderName = selectedFolderNode ? selectedFolderNode.name : 'Semua Task Workspace';
+  const selectedFolderName = unfiledOnly
+    ? 'Tanpa Folder'
+    : selectedFolderNode
+      ? selectedFolderNode.name
+      : 'Semua Task Workspace';
 
   const userRole = (activeWorkspace?.role || activeWorkspace?.myRole || '').toLowerCase();
   const canCreateTask = ['owner', 'admin', 'po'].includes(userRole);
@@ -440,8 +455,11 @@ export const TaskHubDashboardTemplate: React.FC = () => {
               />
             ) : viewMode === 'kanban' ? (
               <TaskHubKanbanBoard
-                tasks={visibleTasks}
-                isLoading={isTaskLoading}
+                workspaceId={activeWorkspaceId}
+                features={visibleTasks}
+                selectedFeatureId={kanbanFeatureId}
+                isLoadingFeatures={isTaskLoading}
+                onSelectFeature={(featureId) => updateTaskHubQuery({ kanbanFeatureId: featureId })}
                 onSelect={(task) => handleOpenTask(task.id)}
               />
             ) : (
@@ -465,11 +483,13 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         <FolderTree
           folders={folders}
           selectedFolderId={selectedFolderId}
+          isUnfiledSelected={unfiledOnly}
           totalTasks={hubTasks.length}
           isLoading={isFolderLoading}
           error={folderError}
           userRole={activeWorkspace?.role}
           onSelectFolder={handleSelectFolder}
+          onSelectUnfiled={handleSelectUnfiled}
           onCreateFolder={handleCreateFolder}
           onRenameFolder={handleRenameFolder}
           onArchiveFolder={handleArchiveFolder}

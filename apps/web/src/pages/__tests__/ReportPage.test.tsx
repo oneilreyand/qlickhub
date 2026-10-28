@@ -66,6 +66,33 @@ describe('ReportPage Component', () => {
     expect(screen.getByTestId('mock-empty-workspace')).toBeInTheDocument();
   });
 
+  test('does not render partial capacity totals when an active workspace is unavailable', () => {
+    renderReportPage(['/reports'], {
+      workspaces: [
+        {
+          id: 'ws-1',
+          name: 'Workspace Utama',
+          slug: 'ws-utama',
+          role: 'owner',
+          ownerId: 'user-1',
+          createdAt: '2026-01-01',
+          updatedAt: '2026-01-01',
+        },
+      ],
+      activeWorkspaceId: null,
+      isLoading: false,
+      isInitialized: true,
+      members: [],
+      isMembersLoading: false,
+      error: null,
+    });
+
+    expect(
+      screen.getByText('Pilih workspace aktif untuk melihat timeline kapasitas tim.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-team-capacity-timeline')).not.toBeInTheDocument();
+  });
+
   test('renders TeamCapacityTimeline with search params forwarded when workspace is active', () => {
     renderReportPage(['/reports?memberId=user-123&startDate=2026-09-01&endDate=2026-09-15'], {
       workspaces: [

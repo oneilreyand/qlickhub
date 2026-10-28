@@ -60,6 +60,12 @@ describe('CreateTaskModal Organism', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Deskripsi/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Lokasi folder')).toBeInTheDocument();
+    expect(
+      screen.getByText('Tanpa Folder — tampil di Semua Task dan Tanpa Folder'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Pilih folder agar Feature mudah ditemukan pada navigasi workspace.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Dibuat oleh (Reporter)')).toBeInTheDocument();
     expect(
       screen.getByText(
