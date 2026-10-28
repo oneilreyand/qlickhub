@@ -279,6 +279,14 @@ export const TestCaseRunView: React.FC<TestCaseRunViewProps> = ({
             ) : (
               <ol className="mt-1 space-y-1.5 text-sm text-stone-800 dark:text-stone-200">
                 {testCase.steps.map((step, index) => {
+                  if (locked && !result?.stepResults) {
+                    // Hasil lama tanpa data langkah: tampilkan daftar biasa, bukan kotak kosong.
+                    return (
+                      <li key={index}>
+                        <span className="font-semibold">{index + 1}.</span> {step}
+                      </li>
+                    );
+                  }
                   const lockedState = result?.stepResults?.find((item) => item.index === index);
                   const checked = locked
                     ? Boolean(lockedState?.checked)

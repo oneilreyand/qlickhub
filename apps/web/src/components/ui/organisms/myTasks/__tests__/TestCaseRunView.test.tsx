@@ -252,6 +252,26 @@ describe('TestCaseRunView', () => {
     expect(screen.getByRole('checkbox', { name: /Buka Task Hub/ })).toBeDisabled();
   });
 
+  it('shows plain steps without checkboxes for a legacy result that has no step data', () => {
+    const run = {
+      id: 'run1',
+      build: 'f19bab6',
+      environment: 'Lokal',
+      status: 'completed',
+      result: {
+        status: 'passed',
+        actualResult: null,
+        notes: null,
+        evidence: [],
+        evidenceLinks: [],
+        evidenceManifests: [],
+      },
+    } as unknown as TestRun;
+    setup({ run });
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.getByText(/Buka Task Hub/)).toBeInTheDocument();
+  });
+
   it('is read-only for someone who is not the assigned QA and shows blocked reasons', () => {
     setup({ canExecute: false, blockedReason: 'Test Case ini belum aktif.' });
     expect(screen.getByText('Test Case ini belum aktif.')).toBeInTheDocument();
