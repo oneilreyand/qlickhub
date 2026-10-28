@@ -1,5 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import type { ParentTaskDeliveryTrace, Task, TaskComment, TaskStatus } from '@qlick/contracts';
+import React, { useMemo, useState } from 'react';
+import type {
+  ParentTaskDeliveryTrace,
+  SubtaskAcceptanceCheck,
+  Task,
+  TaskComment,
+  TaskStatus,
+} from '@qlick/contracts';
 import { Button } from '../../atoms/Button';
 import { FormattedText } from '../../atoms/FormattedText';
 import { TaskDetailPageFrame } from '../taskDetail/TaskDetailPageFrame';
@@ -33,6 +39,11 @@ export interface SubtaskWorkViewProps {
   resolveMemberName?: (userId: string) => string | undefined;
   /** Developer yang ditugaskan atau perencana boleh mengubah status. */
   canChangeStatus: boolean;
+  /** Cek mandiri per kriteria (disimpan di server, P2c). */
+  acceptanceChecks?: SubtaskAcceptanceCheck[];
+  /** Hanya penanggung jawab subtask (atau Owner/Admin) yang boleh mencentang. */
+  canCheckCriteria?: boolean;
+  onToggleCriterion?: (criterionId: string, checked: boolean) => void;
   isUpdatingStatus: boolean;
   onBack: () => void;
   onOpenFeature: () => void;
@@ -43,7 +54,7 @@ export interface SubtaskWorkViewProps {
 
 /**
  * Halaman kerja subtask (desain "Detail kerjaan · Developer"): yang dikerjakan, kriteria
- * "Selesai jika" sebagai cek mandiri (state UI saja, tidak disimpan), diskusi, dan Kirim ke QA.
+ * "Selesai jika" sebagai cek mandiri (disimpan di server, P2c), diskusi, dan Kirim ke QA.
  */
 export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
   subtask,
@@ -53,6 +64,9 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
   assigneeName,
   resolveMemberName,
   canChangeStatus,
+  acceptanceChecks = [],
+  canCheckCriteria = false,
+  onToggleCriterion,
   isUpdatingStatus,
   onBack,
   onOpenFeature,
@@ -79,10 +93,12 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
     [requirementNodes],
   );
 
-  // Cek mandiri Developer: hanya di layar, tidak disimpan ke server.
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
-  useEffect(() => setChecked({}), [subtask.id]);
-  const checkedCount = criteria.filter((criterion) => checked[criterion.id]).length;
+  // Cek mandiri Developer: disimpan di server per kriteria, jadi tidak hilang saat status berubah.
+  const checkByCriterion = useMemo(
+    () => new Map(acceptanceChecks.map((check) => [check.acceptanceCriterionId, check])),
+    [acceptanceChecks],
+  );
+  const checkedCount = criteria.filter((criterion) => checkByCriterion.has(criterion.id)).length;
   const allChecked = criteria.length === 0 || checkedCount === criteria.length;
 
   const [reply, setReply] = useState('');
@@ -225,9 +241,10 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
                     <label className="flex cursor-pointer items-start gap-3 px-5 py-3.5">
                       <input
                         type="checkbox"
-                        checked={Boolean(checked[criterion.id])}
+                        checked={checkByCriterion.has(criterion.id)}
+                        disabled={!canCheckCriteria}
                         onChange={() =>
-                          setChecked((prev) => ({ ...prev, [criterion.id]: !prev[criterion.id] }))
+                          onToggleCriterion?.(criterion.id, !checkByCriterion.has(criterion.id))
                         }
                         className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-[#3F6212]"
                       />
@@ -238,6 +255,11 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
                         <span className="text-sm leading-relaxed text-stone-800 dark:text-stone-200">
                           {criterion.text}
                         </span>
+                        {checkByCriterion.get(criterion.id) && (
+                          <span className="text-xs text-stone-500 dark:text-stone-400">
+                            Dicek oleh {checkByCriterion.get(criterion.id)!.checkedByName}
+                          </span>
+                        )}
                       </span>
                     </label>
                   </li>
@@ -245,8 +267,8 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
               </ul>
             )}
             <p className="px-5 py-3 text-xs text-stone-600 dark:text-stone-400">
-              Centang ini cek mandiri Developer dan tidak disimpan. QA tetap memverifikasi lewat
-              Test Case.
+              Centang ini cek mandiri Developer dan tersimpan, jadi QA ikut melihatnya. QA tetap
+              memverifikasi lewat Test Case.
             </p>
           </section>
 

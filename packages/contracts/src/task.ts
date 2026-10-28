@@ -336,3 +336,28 @@ export const TaskListResponseSchema = z.object({
 });
 
 export type TaskListResponse = z.infer<typeof TaskListResponseSchema>;
+
+/**
+ * P2c (AC-2.11): cek mandiri Developer per Acceptance Criterion pada subtask.
+ * Hanya Acceptance Criterion yang dicentang yang punya baris; membatalkan centang menghapusnya.
+ */
+export const SubtaskAcceptanceCheckSchema = z.object({
+  acceptanceCriterionId: z.string().uuid(),
+  checkedBy: z.string().uuid(),
+  checkedByName: z.string(),
+  checkedAt: z.string(),
+});
+
+export type SubtaskAcceptanceCheck = z.infer<typeof SubtaskAcceptanceCheckSchema>;
+
+export const SetSubtaskAcceptanceCheckSchema = z.object({
+  checked: z.boolean(),
+});
+
+export type SetSubtaskAcceptanceCheckInput = z.infer<typeof SetSubtaskAcceptanceCheckSchema>;
+
+export const SubtaskAcceptanceChecksResponseSchema = z.object({
+  checks: z.array(SubtaskAcceptanceCheckSchema),
+});
+
+export type SubtaskAcceptanceChecksResponse = z.infer<typeof SubtaskAcceptanceChecksResponseSchema>;

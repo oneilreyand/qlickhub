@@ -53,6 +53,7 @@ function setup(overrides: Partial<SubtaskWorkViewProps> = {}) {
     onStart: vi.fn(),
     onSendToQa: vi.fn(),
     onPostComment: vi.fn().mockResolvedValue(undefined),
+    onToggleCriterion: vi.fn(),
     ...overrides,
   };
   render(<SubtaskWorkView {...props} />);
@@ -67,21 +68,45 @@ describe('SubtaskWorkView', () => {
     expect(screen.queryByText('Bukan milik subtask ini')).not.toBeInTheDocument();
   });
 
-  it('disables Kirim ke QA until every criterion is checked', () => {
-    const props = setup();
+  const check = (id: string, name = 'Bima') => ({
+    acceptanceCriterionId: id,
+    checkedBy: 'u1',
+    checkedByName: name,
+    checkedAt: '2026-10-28T01:00:00.000Z',
+  });
+
+  it('disables Kirim ke QA until every criterion is checked (checks come from the server)', () => {
+    const props = setup({ canCheckCriteria: true, acceptanceChecks: [check('a1')] });
     const send = screen.getByRole('button', { name: 'Kirim ke QA' });
     expect(send).toBeDisabled();
-    expect(screen.getByText('Cek semua kriteria dulu (0/2).')).toBeInTheDocument();
+    expect(screen.getByText('Cek semua kriteria dulu (1/2).')).toBeInTheDocument();
+    expect(screen.getByText('Dicek oleh Bima')).toBeInTheDocument();
 
     const boxes = screen.getAllByRole('checkbox');
-    fireEvent.click(boxes[0]);
-    expect(send).toBeDisabled();
+    expect(boxes[0]).toBeChecked();
     fireEvent.click(boxes[1]);
+    expect(props.onToggleCriterion).toHaveBeenCalledWith('a2', true);
+    fireEvent.click(boxes[0]);
+    expect(props.onToggleCriterion).toHaveBeenCalledWith('a1', false);
+  });
+
+  it('enables Kirim ke QA when every criterion is already checked', () => {
+    const props = setup({
+      canCheckCriteria: true,
+      acceptanceChecks: [check('a1'), check('a2')],
+    });
+    const send = screen.getByRole('button', { name: 'Kirim ke QA' });
     expect(send).toBeEnabled();
     expect(screen.getByText('Semua kriteria sudah dicek.')).toBeInTheDocument();
-
     fireEvent.click(send);
     expect(props.onSendToQa).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows checks read-only for someone who cannot check criteria', () => {
+    setup({ canCheckCriteria: false, acceptanceChecks: [check('a1')] });
+    const boxes = screen.getAllByRole('checkbox');
+    expect(boxes[0]).toBeChecked();
+    boxes.forEach((box) => expect(box).toBeDisabled());
   });
 
   it('offers Mulai dikerjakan for a todo subtask', () => {

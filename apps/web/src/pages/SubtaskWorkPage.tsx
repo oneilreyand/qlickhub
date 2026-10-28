@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import type { ParentTaskDeliveryTrace, TaskComment } from '@qlick/contracts';
+import type {
+  ParentTaskDeliveryTrace,
+  SubtaskAcceptanceCheck,
+  TaskComment,
+} from '@qlick/contracts';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
@@ -36,6 +40,7 @@ export const SubtaskWorkPage: React.FC = () => {
   );
   const [trace, setTrace] = useState<ParentTaskDeliveryTrace | null>(null);
   const [comments, setComments] = useState<TaskComment[]>([]);
+  const [acceptanceChecks, setAcceptanceChecks] = useState<SubtaskAcceptanceCheck[]>([]);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   useEffect(() => {
@@ -77,6 +82,26 @@ export const SubtaskWorkPage: React.FC = () => {
     };
   }, [activeWorkspaceId, task]);
 
+  const isQaSubtask = task?.deliveryArea === 'qa';
+  useEffect(() => {
+    let isCurrent = true;
+    setAcceptanceChecks([]);
+    if (!activeWorkspaceId || !task || isQaSubtask) return undefined;
+    taskService
+      .listAcceptanceChecks(activeWorkspaceId, task.id)
+      .then((result) => {
+        if (isCurrent) setAcceptanceChecks(result.checks);
+      })
+      .catch(() => {
+        if (isCurrent) setAcceptanceChecks([]);
+      });
+    return () => {
+      isCurrent = false;
+    };
+    // Hanya dimuat ulang saat subtask berganti, bukan saat status berubah.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspaceId, task?.id, isQaSubtask]);
+
   const returnTo = useMemo(() => {
     const candidate = (location.state as { returnTo?: unknown } | null)?.returnTo;
     return typeof candidate === 'string' && candidate.startsWith('/') ? candidate : '/my-tasks';
@@ -95,6 +120,41 @@ export const SubtaskWorkPage: React.FC = () => {
   const isAssignedDev =
     ['dev', 'developer'].includes(userRole.toLowerCase()) &&
     Boolean(task?.assigneeId && currentUserId && task.assigneeId === currentUserId);
+
+  const canCheckCriteria = isAssignedDev || ['owner', 'admin'].includes(userRole.toLowerCase());
+
+  const toggleCriterion = async (criterionId: string, checked: boolean) => {
+    if (!activeWorkspaceId || !task) return;
+    const previous = acceptanceChecks;
+    // Pembaruan optimistis; server mengembalikan daftar yang berlaku.
+    setAcceptanceChecks(
+      checked
+        ? [
+            ...previous,
+            {
+              acceptanceCriterionId: criterionId,
+              checkedBy: currentUserId ?? '',
+              checkedByName: (currentUserId && memberName(currentUserId)) || 'Anda',
+              checkedAt: new Date().toISOString(),
+            },
+          ]
+        : previous.filter((check) => check.acceptanceCriterionId !== criterionId),
+    );
+    try {
+      const result = await taskService.setAcceptanceCheck(
+        activeWorkspaceId,
+        task.id,
+        criterionId,
+        checked,
+      );
+      setAcceptanceChecks(result.checks);
+    } catch (error) {
+      setAcceptanceChecks(previous);
+      dispatch(
+        enqueueSnackbar(error instanceof Error ? error.message : 'Centang gagal disimpan', 'error'),
+      );
+    }
+  };
 
   const changeStatus = async (status: 'in_progress' | 'in_review', successMessage: string) => {
     if (!activeWorkspaceId || !task) return;
@@ -193,6 +253,9 @@ export const SubtaskWorkPage: React.FC = () => {
       assigneeName={task.assigneeId ? memberName(task.assigneeId) : undefined}
       resolveMemberName={memberName}
       canChangeStatus={isPlanner || isAssignedDev}
+      acceptanceChecks={acceptanceChecks}
+      canCheckCriteria={canCheckCriteria}
+      onToggleCriterion={(criterionId, checked) => void toggleCriterion(criterionId, checked)}
       isUpdatingStatus={isUpdatingStatus}
       onBack={() => navigate(returnTo, { state: returnState })}
       onOpenFeature={() => {

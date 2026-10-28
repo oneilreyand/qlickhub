@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   getTask: vi.fn(),
   updateTask: vi.fn(),
   listTaskComments: vi.fn(),
+  listAcceptanceChecks: vi.fn(),
+  setAcceptanceCheck: vi.fn(),
   createTaskComment: vi.fn(),
   getTrace: vi.fn(),
   getMembers: vi.fn(),
@@ -24,6 +26,8 @@ vi.mock('../../lib/api/taskService', () => ({
     getTask: (...a: unknown[]) => mocks.getTask(...a),
     updateTask: (...a: unknown[]) => mocks.updateTask(...a),
     listTaskComments: (...a: unknown[]) => mocks.listTaskComments(...a),
+    listAcceptanceChecks: (...a: unknown[]) => mocks.listAcceptanceChecks(...a),
+    setAcceptanceCheck: (...a: unknown[]) => mocks.setAcceptanceCheck(...a),
     createTaskComment: (...a: unknown[]) => mocks.createTaskComment(...a),
   },
 }));
@@ -106,6 +110,7 @@ describe('SubtaskWorkPage', () => {
       Promise.resolve(id === subtaskId ? subtask : parent),
     );
     mocks.listTaskComments.mockResolvedValue({ comments: [] });
+    mocks.listAcceptanceChecks.mockResolvedValue({ checks: [] });
     mocks.getTrace.mockResolvedValue({ requirements: [] });
     mocks.getMembers.mockResolvedValue([]);
   });
@@ -122,6 +127,62 @@ describe('SubtaskWorkPage', () => {
         status: 'in_progress',
       }),
     );
+  });
+
+  it('saves a criterion check on the server and shows who checked it (AC-2.11)', async () => {
+    mocks.getTrace.mockResolvedValue({
+      requirements: [
+        {
+          requirement: { id: 'r1', code: 'REQ-1' },
+          acceptanceCriteria: [{ id: 'a1', code: 'AC-1', text: 'Form tampil' }],
+          implementingSubtasks: [{ id: subtaskId }],
+        },
+      ],
+    });
+    mocks.getTask.mockImplementation((_w: string, id: string) =>
+      Promise.resolve(id === subtaskId ? { ...subtask, status: 'in_progress' } : parent),
+    );
+    mocks.setAcceptanceCheck.mockResolvedValue({
+      checks: [
+        {
+          acceptanceCriterionId: 'a1',
+          checkedBy: devId,
+          checkedByName: 'Dev',
+          checkedAt: '2026-10-28T01:00:00.000Z',
+        },
+      ],
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('checkbox'));
+    await waitFor(() =>
+      expect(mocks.setAcceptanceCheck).toHaveBeenCalledWith(workspaceId, subtaskId, 'a1', true),
+    );
+    expect(await screen.findByText('Dicek oleh Dev')).toBeInTheDocument();
+  });
+
+  it('restores saved checks after a reload', async () => {
+    mocks.getTrace.mockResolvedValue({
+      requirements: [
+        {
+          requirement: { id: 'r1', code: 'REQ-1' },
+          acceptanceCriteria: [{ id: 'a1', code: 'AC-1', text: 'Form tampil' }],
+          implementingSubtasks: [{ id: subtaskId }],
+        },
+      ],
+    });
+    mocks.listAcceptanceChecks.mockResolvedValue({
+      checks: [
+        {
+          acceptanceCriterionId: 'a1',
+          checkedBy: devId,
+          checkedByName: 'Dev',
+          checkedAt: '2026-10-28T01:00:00.000Z',
+        },
+      ],
+    });
+    renderPage();
+    expect(await screen.findByRole('checkbox')).toBeChecked();
   });
 
   it('is read-only for a developer who is not assigned', async () => {

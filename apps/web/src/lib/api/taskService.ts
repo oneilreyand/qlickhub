@@ -14,6 +14,7 @@ import {
   UpdateTaskCommentInput,
   TaskComment,
   TaskAttachment,
+  SubtaskAcceptanceChecksResponse,
 } from '@qlick/contracts';
 
 export const taskService = {
@@ -154,6 +155,29 @@ export const taskService = {
     const res = await apiClient<{ data: TaskActivityListResponse }>(
       `/workspaces/${workspaceId}/tasks/${taskId}/activity`,
       { params: { page: String(page), limit: String(limit) } },
+    );
+    return res.data;
+  },
+
+  async listAcceptanceChecks(
+    workspaceId: string,
+    taskId: string,
+  ): Promise<SubtaskAcceptanceChecksResponse> {
+    const res = await apiClient<{ data: SubtaskAcceptanceChecksResponse }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/acceptance-checks`,
+    );
+    return res.data;
+  },
+
+  async setAcceptanceCheck(
+    workspaceId: string,
+    taskId: string,
+    criterionId: string,
+    checked: boolean,
+  ): Promise<SubtaskAcceptanceChecksResponse> {
+    const res = await apiClient<{ data: SubtaskAcceptanceChecksResponse }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/acceptance-checks/${criterionId}`,
+      { method: 'PUT', body: JSON.stringify({ checked }) },
     );
     return res.data;
   },

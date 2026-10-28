@@ -10,9 +10,11 @@ import {
   CreateTaskCommentSchema,
   UpdateTaskCommentSchema,
   UpdateTaskStatusSchema,
+  SetSubtaskAcceptanceCheckSchema,
 } from '@qlick/contracts';
 import { taskService } from './taskService.js';
 import { taskDiscussionService } from './taskDiscussionService.js';
+import { taskAcceptanceCheckService } from './taskAcceptanceCheckService.js';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { formatProblemDetails } from '../../http/problemDetails.js';
 
@@ -79,6 +81,43 @@ export class TaskController {
         workspaceId,
         taskId,
         query,
+      );
+      res.status(200).json({ data: result });
+    } catch (err) {
+      formatProblemDetails(err, res);
+    }
+  }
+
+  async listAcceptanceChecks(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
+    try {
+      const result = await taskAcceptanceCheckService.list(
+        req.user!.userId,
+        req.params.workspaceId,
+        req.params.taskId,
+      );
+      res.status(200).json({ data: result });
+    } catch (err) {
+      formatProblemDetails(err, res);
+    }
+  }
+
+  async setAcceptanceCheck(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
+    try {
+      const input = SetSubtaskAcceptanceCheckSchema.parse(req.body);
+      const result = await taskAcceptanceCheckService.setChecked(
+        req.user!.userId,
+        req.params.workspaceId,
+        req.params.taskId,
+        req.params.criterionId,
+        input.checked,
       );
       res.status(200).json({ data: result });
     } catch (err) {
