@@ -366,6 +366,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
           onClose={() => setIsImportOpen(false)}
           workspaceId={activeWorkspaceId}
           userRole={userRole as WorkspaceRole}
+          qaSubtaskId={subtask.id}
           onImportComplete={() => {
             dispatch(enqueueSnackbar('Impor spreadsheet selesai', 'success'));
             setReloadKey((key) => key + 1);

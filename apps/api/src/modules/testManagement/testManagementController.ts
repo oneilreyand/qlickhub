@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { z } from 'zod';
 import {
   CommitTestCaseImportSchema,
+  FetchGoogleSheetImportSchema,
   AddTestResultEvidenceSupplementInputSchema,
   CreateQaTestCycleSchema,
   CreateTestCaseSchema,
@@ -16,7 +17,10 @@ import {
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { testManagementService } from './testManagementService.js';
 import { testCaseImportService } from './testCaseImportService.js';
+import { googleSheetImportService } from './googleSheetImportService.js';
 import { sendProblemDetails } from '../../http/problemDetails.js';
+import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import { assertCanImportTestCases } from '../../policies/testManagementPolicy.js';
 
 export async function getTaskTestExecutions(req: AuthenticatedRequest, res: Response) {
   try {
@@ -259,7 +263,7 @@ export async function downloadTestCaseTemplate(_req: AuthenticatedRequest, res: 
 
 export async function previewTestCaseImport(req: AuthenticatedRequest, res: Response) {
   try {
-    const { fileName, fileContent, fileBase64, mimeType, sheetName, columnMapping } =
+    const { fileName, fileContent, fileBase64, mimeType, sheetName, columnMapping, qaSubtaskId } =
       req.body || {};
     if (!fileName || (!fileContent && !fileBase64)) {
       return sendProblemDetails(
@@ -279,6 +283,7 @@ export async function previewTestCaseImport(req: AuthenticatedRequest, res: Resp
       mimeType || '',
       sheetName || (req.query.sheetName as string) || undefined,
       columnMapping || undefined,
+      typeof qaSubtaskId === 'string' && qaSubtaskId ? qaSubtaskId : undefined,
     );
     return res.status(200).json({ preview });
   } catch (error) {
@@ -367,6 +372,18 @@ export async function remindPo(req: AuthenticatedRequest, res: Response) {
       req.user!.userId,
     );
     return res.status(200).json(result);
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function fetchGoogleSheetForImport(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = FetchGoogleSheetImportSchema.parse(req.body);
+    const membership = await requireActiveMember(req.params.workspaceId, req.user!.userId);
+    assertCanImportTestCases(membership.role);
+    const file = await googleSheetImportService.fetchCsv(input.url);
+    return res.status(200).json({ file });
   } catch (error) {
     return sendProblemDetails(res, error);
   }

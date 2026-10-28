@@ -11,6 +11,7 @@ import type {
   TestCaseScopeValidationResult,
   TestCaseImportAudit,
   TestCaseImportPreviewResponse,
+  GoogleSheetImportFile,
   TestCaseImportResult,
   TestResultEvidenceLink,
   TestRun,
@@ -222,15 +223,35 @@ export const testManagementService = {
     fileBase64?: string,
     sheetName?: string,
     columnMapping?: Record<string, string>,
+    qaSubtaskId?: string,
   ): Promise<TestCaseImportPreviewResponse> {
     const response = await apiClient<{ preview: TestCaseImportPreviewResponse }>(
       `/workspaces/${workspaceId}/test-cases/import/preview`,
       {
         method: 'POST',
-        body: JSON.stringify({ fileName, fileContent, fileBase64, sheetName, columnMapping }),
+        body: JSON.stringify({
+          fileName,
+          fileContent,
+          fileBase64,
+          sheetName,
+          columnMapping,
+          qaSubtaskId,
+        }),
       },
     );
     return response.preview;
+  },
+
+  /** Mengambil satu tab Google Sheets (akses "siapa saja yang memiliki link") sebagai CSV. */
+  async fetchGoogleSheetForImport(
+    workspaceId: string,
+    url: string,
+  ): Promise<GoogleSheetImportFile> {
+    const response = await apiClient<{ file: GoogleSheetImportFile }>(
+      `/workspaces/${workspaceId}/test-cases/import/google-sheet`,
+      { method: 'POST', body: JSON.stringify({ url }) },
+    );
+    return response.file;
   },
 
   async commitImport(

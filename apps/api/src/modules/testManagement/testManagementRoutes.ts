@@ -17,6 +17,7 @@ import {
   listTestCases,
   listTestRuns,
   previewTestCaseImport,
+  fetchGoogleSheetForImport,
   recordTestResult,
   updateTestCase,
   replaceTestCaseVersionAcceptanceCriteria,
@@ -69,6 +70,12 @@ testManagementRoutes.post(
   '/workspaces/:workspaceId/test-cases/import/preview',
   requireWorkspaceMember(),
   previewTestCaseImport,
+  fetchGoogleSheetForImport,
+);
+testManagementRoutes.post(
+  '/workspaces/:workspaceId/test-cases/import/google-sheet',
+  requireWorkspaceMember(),
+  fetchGoogleSheetForImport,
 );
 testManagementRoutes.post(
   '/workspaces/:workspaceId/test-cases/import/commit',

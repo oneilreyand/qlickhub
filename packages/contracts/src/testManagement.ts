@@ -541,6 +541,10 @@ export const TestCaseImportPreviewResponseSchema = z.object({
   headers: z.array(z.string()).default([]),
   columnMapping: z.record(z.string()).optional(),
   unmappedHeaders: z.array(z.string()).default([]),
+  /** Kolom hasil uji/metadata (Status, Evidence, Notes, ...) yang dilewati, bukan error. */
+  ignoredHeaders: z.array(z.string()).default([]),
+  /** Kode Requirement aktif yang sah untuk Feature subtask QA (kosong bila tanpa subtask). */
+  allowedRequirementCodes: z.array(z.string()).default([]),
   expiresAt: z.string().datetime(),
   rows: z.array(TestCaseImportDryRunRowSchema),
 });
@@ -614,3 +618,16 @@ export const RemindPoResponseSchema = z.object({
   remindedAt: z.string(),
 });
 export type RemindPoResponse = z.infer<typeof RemindPoResponseSchema>;
+
+/** Impor dari tautan Google Sheets (akses "siapa saja yang memiliki link"). */
+export const FetchGoogleSheetImportSchema = z.object({
+  url: z.string().trim().min(1).max(2048),
+});
+export type FetchGoogleSheetImportInput = z.infer<typeof FetchGoogleSheetImportSchema>;
+
+export const GoogleSheetImportFileSchema = z.object({
+  fileName: z.string(),
+  fileContent: z.string(),
+  sheetGid: z.string(),
+});
+export type GoogleSheetImportFile = z.infer<typeof GoogleSheetImportFileSchema>;

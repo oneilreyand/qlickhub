@@ -473,12 +473,43 @@ export function resolveSpreadsheetColumnMapping(
   );
 }
 
+/**
+ * Kolom hasil uji dan metadata yang lazim ada di spreadsheet tim. Tidak diimpor: hasil dan bukti
+ * dicatat lewat eksekusi di aplikasi. Kolom ini dilewati tanpa membuat baris gagal.
+ */
+const ignoredSpreadsheetHeaders = new Set([
+  'no',
+  'status',
+  'evidence',
+  'evidance',
+  'bukti',
+  'notes',
+  'note',
+  'catatan',
+  'sprint',
+  'date',
+  'tanggal',
+]);
+
+function isIgnoredSpreadsheetHeader(header: string, columnMapping?: Record<string, string>) {
+  if (columnMapping && Object.hasOwn(columnMapping, header.trim())) return false;
+  return ignoredSpreadsheetHeaders.has(normalizeHeader(header.trim()));
+}
+
+export function findIgnoredSpreadsheetHeaders(
+  headers: string[],
+  columnMapping?: Record<string, string>,
+): string[] {
+  return headers.filter((header) => isIgnoredSpreadsheetHeader(header, columnMapping));
+}
+
 export function findUnmappedSpreadsheetHeaders(
   headers: string[],
   columnMapping?: Record<string, string>,
 ): string[] {
   return headers.filter((header) => {
     if (columnMapping && Object.hasOwn(columnMapping, header.trim())) return false;
+    if (isIgnoredSpreadsheetHeader(header, columnMapping)) return false;
     return !canonicalImportFields.has(resolveHeader(header));
   });
 }
