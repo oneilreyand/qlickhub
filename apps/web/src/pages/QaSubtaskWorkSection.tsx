@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type {
   ParentTaskDeliveryTrace,
   QaTestCycle,
+  QaWorkflowSummary,
   Task,
   TaskActivity,
   TaskTestCaseExecution,
@@ -21,6 +22,7 @@ import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { Modal } from '../components/ui/molecules/Modal';
+import { ReleaseAssurancePanel } from '../components/ui/organisms/ReleaseAssurancePanel';
 
 const ACTIVITY_PAGE_SIZE = 50;
 /** Komentar yang ditulis sesaat sebelum menekan Kirim ke QA tetap dianggap pesan serah-terima. */
@@ -55,6 +57,9 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
   const [acCodesByCase, setAcCodesByCase] = useState<Record<string, string[]>>({});
   const [handoff, setHandoff] = useState<QaHandoff | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [workflowSummary, setWorkflowSummary] = useState<QaWorkflowSummary | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const [pendingDelete, setPendingDelete] = useState<TaskTestCaseExecution | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -253,6 +258,32 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
     [activeWorkspaceId, subtask.id],
   );
 
+  const isAssignedQa = userRole === 'qa' && subtask.assigneeId === currentUserId;
+  const loadWorkflowSummary = useCallback(async () => {
+    if (!activeWorkspaceId || !isAssignedQa) {
+      setWorkflowSummary(null);
+      return;
+    }
+    setIsLoadingSummary(true);
+    setSummaryError(null);
+    try {
+      setWorkflowSummary(
+        await testManagementService.getQaWorkflowSummary(activeWorkspaceId, subtask.id),
+      );
+    } catch (error) {
+      setWorkflowSummary(null);
+      setSummaryError(
+        error instanceof Error ? error.message : 'Ringkasan kesiapan QA tidak dapat dimuat.',
+      );
+    } finally {
+      setIsLoadingSummary(false);
+    }
+  }, [activeWorkspaceId, isAssignedQa, subtask.id]);
+
+  useEffect(() => {
+    void loadWorkflowSummary();
+  }, [loadWorkflowSummary]);
+
   const here = `${location.pathname}${location.search}`;
   const returnTo = useMemo(() => {
     const candidate = (location.state as { returnTo?: unknown } | null)?.returnTo;
@@ -301,6 +332,21 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
         }}
         onOpenFullDesk={
           userRole === 'qa' ? () => navigate(getQaFullDeskPath(subtask.id)) : undefined
+        }
+        signOffSlot={
+          isAssignedQa && activeWorkspaceId && subtask.parentTaskId ? (
+            <ReleaseAssurancePanel
+              workspaceId={activeWorkspaceId}
+              featureTaskId={subtask.parentTaskId}
+              currentUserId={currentUserId ?? undefined}
+              userRole={userRole}
+              mode="qa"
+              qaWorkflowSummary={workflowSummary}
+              isQaWorkflowSummaryLoading={isLoadingSummary}
+              qaWorkflowSummaryError={summaryError}
+              onDataChanged={() => void loadWorkflowSummary()}
+            />
+          ) : undefined
         }
         canDeleteTestCase={canDeleteTestCase}
         onDeleteTestCase={setPendingDelete}

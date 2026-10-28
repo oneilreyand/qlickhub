@@ -171,6 +171,17 @@ describe('QaSubtaskWorkView (desain 08)', () => {
     expect(props.onOpenFullDesk).toHaveBeenCalled();
   });
 
+  it('renders the QA sign-off slot inside the work page when provided', () => {
+    setup({ signOffSlot: <div>Panel persetujuan</div> });
+    const region = screen.getByRole('region', { name: 'Persetujuan QA' });
+    expect(region).toHaveTextContent('Panel persetujuan');
+  });
+
+  it('omits the sign-off section without a slot', () => {
+    setup();
+    expect(screen.queryByRole('region', { name: 'Persetujuan QA' })).not.toBeInTheDocument();
+  });
+
   it('shows an empty state and no cycle without data', () => {
     setup({ executions: [], cycle: null, cycleCount: 0, handoff: null });
     expect(screen.getByText('Belum ada Test Case untuk requirement ini.')).toBeInTheDocument();

@@ -145,13 +145,9 @@ export const MyTasksPage: React.FC = () => {
 
   const handleOpenQueueItem = useCallback(
     async (item: WorkQueueItem) => {
-      // AC-3.8: Persetujuan QA yang tertahan QA Subtask membuka subtask itu, bukan halaman Feature.
-      if (
-        item.bucketCode === 'qa_sign_off' &&
-        item.workState === 'blocked' &&
-        activeWorkspaceId &&
-        currentUserId
-      ) {
+      // AC-3.8: Persetujuan QA dikerjakan di halaman kerja QA subtask milik pengguna (P4c).
+      // Tertahan: subtask yang belum selesai. Siap: subtask QA yang sudah selesai.
+      if (item.bucketCode === 'qa_sign_off' && activeWorkspaceId && currentUserId) {
         try {
           const result = await taskService.listSubtasks(
             activeWorkspaceId,
@@ -160,18 +156,22 @@ export const MyTasksPage: React.FC = () => {
             100,
           );
           const mine = result.tasks.filter(
-            (task) =>
-              task.deliveryArea === 'qa' &&
-              task.assigneeId === currentUserId &&
-              task.status !== 'done' &&
-              task.status !== 'canceled',
+            (task) => task.deliveryArea === 'qa' && task.assigneeId === currentUserId,
           );
-          if (mine.length >= 1) {
-            navigate(`/work/subtasks/${mine[0].id}`, { state: { returnTo: '/my-tasks' } });
+          const isBlocked = item.workState === 'blocked';
+          const candidates = isBlocked
+            ? mine.filter((task) => task.status !== 'done' && task.status !== 'canceled')
+            : mine
+                .filter((task) => task.status === 'done')
+                .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+          const fallback = isBlocked ? [] : mine.filter((task) => task.status !== 'canceled');
+          const target = candidates[0] ?? fallback[0];
+          if (target) {
+            navigate(`/work/subtasks/${target.id}`, { state: { returnTo: '/my-tasks' } });
           } else {
             dispatch(
               enqueueSnackbar(
-                'Tidak ada subtask QA aktif milik Anda di Feature ini. Buka Feature untuk melihat siapa yang menahan.',
+                'Tidak ada subtask QA milik Anda di Feature ini. Buka Feature untuk melihat siapa yang menahan.',
                 'info',
               ),
             );

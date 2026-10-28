@@ -67,6 +67,8 @@ export interface QaSubtaskWorkViewProps {
   onDeleteTestCase?: (execution: TaskTestCaseExecution) => void;
   /** Desk QA lengkap untuk Bug & Retest, impor, dan persetujuan (sampai P4c). */
   onOpenFullDesk?: () => void;
+  /** Panel Persetujuan QA (hanya QA); ditampilkan di bawah daftar Test Case. */
+  signOffSlot?: React.ReactNode;
 }
 
 function formatHandoffTime(value: string): string {
@@ -111,6 +113,7 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
   canDeleteTestCase,
   onDeleteTestCase,
   onOpenFullDesk,
+  signOffSlot,
 }) => {
   const requirementNodes = useMemo(
     () =>
@@ -344,6 +347,14 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
               </section>
             );
           })}
+          {signOffSlot && (
+            <section
+              aria-label="Persetujuan QA"
+              className="rounded-2xl border border-stone-200/80 bg-white dark:border-stone-800 dark:bg-[#1C1A19]"
+            >
+              {signOffSlot}
+            </section>
+          )}
         </div>
 
         <aside aria-label="Status uji" className="flex flex-col gap-3">
@@ -397,7 +408,7 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
       </div>
       {onOpenFullDesk && (
         <p className="mt-8 text-xs text-stone-500 dark:text-stone-400">
-          Butuh Bug &amp; Retest, impor spreadsheet, atau persetujuan QA?{' '}
+          Butuh impor spreadsheet Test Case?{' '}
           <button
             type="button"
             onClick={onOpenFullDesk}
