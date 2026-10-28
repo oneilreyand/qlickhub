@@ -413,31 +413,95 @@ async function qaBuckets(
     }
   }
 
-  const testItems = tasks.map<WorkQueueItem>((task) => {
-    const isReview = task.status === 'in_review';
-    const action = isReview
-      ? nextAction('review_subtask', 'Review Subtask')
-      : task.status === 'changes_requested'
-        ? nextAction('resume_qa_task', 'Resume QA Task')
-        : nextAction('execute_qa_task', 'Execute QA Task');
-    return {
-      id: itemId('qa_test_work', 'subtask', task.id),
+  // AC-3.16: subtask Developer yang siap diuji dikelompokkan menjadi satu kartu per Feature,
+  // karena subtask QA, pengujian, dan Persetujuan QA bersifat per Feature.
+  const readyDeveloperTasks = tasks.filter(
+    (task) => task.status === 'in_review' && task.deliveryArea !== 'qa',
+  );
+  const readyFeatureIds = [...new Set(readyDeveloperTasks.map((task) => task.parentTaskId!))];
+  const readyFeatures = readyFeatureIds.length
+    ? await TaskModel.findAll({
+        where: { workspaceId, id: { [Op.in]: readyFeatureIds }, parentTaskId: null },
+        transaction,
+      })
+    : [];
+  const readyFeatureById = new Map(readyFeatures.map((feature) => [feature.id, feature]));
+  const featureDeveloperTasks = readyFeatureIds.length
+    ? await TaskModel.findAll({
+        where: {
+          workspaceId,
+          parentTaskId: { [Op.in]: readyFeatureIds },
+          deliveryArea: { [Op.or]: [{ [Op.ne]: 'qa' }, { [Op.is]: null }] },
+          status: { [Op.ne]: 'canceled' },
+        },
+        transaction,
+      })
+    : [];
+  const developerTotalByFeature = new Map<string, number>();
+  for (const task of featureDeveloperTasks) {
+    developerTotalByFeature.set(
+      task.parentTaskId!,
+      (developerTotalByFeature.get(task.parentTaskId!) ?? 0) + 1,
+    );
+  }
+  const readyByFeature = new Map<string, TaskModel[]>();
+  for (const task of readyDeveloperTasks) {
+    const list = readyByFeature.get(task.parentTaskId!) ?? [];
+    list.push(task);
+    readyByFeature.set(task.parentTaskId!, list);
+  }
+  const readyFeatureItems: WorkQueueItem[] = [];
+  for (const [featureId, readyTasks] of readyByFeature) {
+    const feature = readyFeatureById.get(featureId);
+    if (!feature) continue;
+    const latest = [...readyTasks].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0];
+    const total = Math.max(developerTotalByFeature.get(featureId) ?? 0, readyTasks.length);
+    readyFeatureItems.push({
+      id: itemId('qa_test_work', 'subtask', latest.id),
       bucketCode: 'qa_test_work',
       subjectType: 'subtask',
-      subjectId: task.id,
-      featureTaskId: task.parentTaskId!,
-      title: task.title,
-      reason: isReview
-        ? `${task.deliveryArea || 'delivery'} subtask is waiting for independent QA review.`
-        : `QA subtask is assigned to you and is ${task.status.replaceAll('_', ' ')}.`,
-      nextAction: action,
-      status: task.status,
+      subjectId: latest.id,
+      featureTaskId: featureId,
+      title: feature.title,
+      reason: `${readyTasks.length} dari ${total} subtask Developer siap diuji.`,
+      nextAction: nextAction('review_subtask', 'Review Subtask'),
+      status: 'in_review',
       workState: 'actionable',
-      priority: task.priority,
-      dueDate: task.dueDate,
-      sourceUpdatedAt: iso(task.updatedAt),
-    };
-  });
+      priority: feature.priority,
+      dueDate: feature.dueDate,
+      sourceUpdatedAt: iso(latest.updatedAt),
+    });
+  }
+  const testItems = [
+    ...readyFeatureItems,
+    ...tasks
+      .filter((task) => !(task.status === 'in_review' && task.deliveryArea !== 'qa'))
+      .map<WorkQueueItem>((task) => {
+        const isReview = task.status === 'in_review';
+        const action = isReview
+          ? nextAction('review_subtask', 'Review Subtask')
+          : task.status === 'changes_requested'
+            ? nextAction('resume_qa_task', 'Resume QA Task')
+            : nextAction('execute_qa_task', 'Execute QA Task');
+        return {
+          id: itemId('qa_test_work', 'subtask', task.id),
+          bucketCode: 'qa_test_work',
+          subjectType: 'subtask',
+          subjectId: task.id,
+          featureTaskId: task.parentTaskId!,
+          title: task.title,
+          reason: isReview
+            ? 'QA subtask is waiting for independent QA review.'
+            : `QA subtask is assigned to you and is ${task.status.replaceAll('_', ' ')}.`,
+          nextAction: action,
+          status: task.status,
+          workState: 'actionable',
+          priority: task.priority,
+          dueDate: task.dueDate,
+          sourceUpdatedAt: iso(task.updatedAt),
+        };
+      }),
+  ];
   const retestItems = bugs.map<WorkQueueItem>((bug) => ({
     id: itemId('qa_retest_work', 'bug', bug.id),
     bucketCode: 'qa_retest_work',

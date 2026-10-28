@@ -613,6 +613,12 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     const qaTaskIds = buckets.get('qa_test_work')?.items.map((item) => item.subjectId) || [];
     assert.ok(qaTaskIds.includes(qaSubtask.id));
     assert.ok(qaTaskIds.includes(reviewSubtask.id));
+    const readyCard = buckets
+      .get('qa_test_work')
+      ?.items.find((item) => item.subjectId === reviewSubtask.id);
+    assert.strictEqual(readyCard?.title, deliveryFeature.title);
+    assert.strictEqual(readyCard?.featureTaskId, deliveryFeature.id);
+    assert.strictEqual(readyCard?.reason, '1 dari 3 subtask Developer siap diuji.');
     assert.deepStrictEqual(
       buckets.get('qa_retest_work')?.items.map((item) => item.subjectId),
       [actionableRetestBug.id],
@@ -630,6 +636,35 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     assert.ok(
       queue.buckets.flatMap((entry) => entry.items).every((item) => Boolean(item.workState)),
     );
+  });
+
+  test('shows one ready-to-test card per Feature even with several in-review Developer subtasks (AC-3.16)', async () => {
+    const second = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: deliveryFeature.id,
+      deliveryArea: 'frontend',
+      title: 'Review recovery screen',
+      status: 'in_review',
+      priority: 'medium',
+      reporterId: po.id,
+      assigneeId: dev.id,
+      startDate: '2099-01-13',
+      dueDate: '2099-01-13',
+    });
+    try {
+      const response = await fetchQueue(workspaceA.id, qaCookie);
+      const queue = RoleAwareWorkQueueSchema.parse(
+        ((await response.json()) as { queue: RoleAwareWorkQueue }).queue,
+      );
+      const cards = (bucketMap(queue).get('qa_test_work')?.items ?? []).filter(
+        (item) => item.featureTaskId === deliveryFeature.id && item.status === 'in_review',
+      );
+      assert.strictEqual(cards.length, 1);
+      assert.strictEqual(cards[0].title, deliveryFeature.title);
+      assert.strictEqual(cards[0].reason, '2 dari 4 subtask Developer siap diuji.');
+    } finally {
+      await second.destroy({ force: true });
+    }
   });
 
   test('enforces membership before returning queue data and keeps Workspaces isolated', async () => {
