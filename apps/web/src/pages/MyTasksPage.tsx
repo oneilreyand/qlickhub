@@ -186,6 +186,31 @@ export const MyTasksPage: React.FC = () => {
         }
         return;
       }
+      // Tinjau Subtask: QA menyiapkan Test Case di subtask QA miliknya pada Feature yang sama,
+      // bukan membaca halaman kerja Developer. Tanpa subtask QA aktif, halaman subtask dibuka.
+      if (item.nextAction.code === 'review_subtask' && activeWorkspaceId && currentUserId) {
+        try {
+          const result = await taskService.listSubtasks(
+            activeWorkspaceId,
+            item.featureTaskId,
+            1,
+            100,
+          );
+          const qaSubtask = result.tasks.find(
+            (task) =>
+              task.deliveryArea === 'qa' &&
+              task.assigneeId === currentUserId &&
+              task.status !== 'done' &&
+              task.status !== 'canceled',
+          );
+          if (qaSubtask) {
+            navigate(`/work/subtasks/${qaSubtask.id}`, { state: { returnTo: '/my-tasks' } });
+            return;
+          }
+        } catch {
+          // Gagal memuat subtask QA: lanjut ke tujuan bawaan di bawah.
+        }
+      }
       if (item.subjectType === 'bug') {
         navigate(getBugWorkPath(item.subjectId), { state: { returnTo: '/my-tasks' } });
         return;
