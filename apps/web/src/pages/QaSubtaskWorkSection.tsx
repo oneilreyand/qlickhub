@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type {
   WorkspaceRole,
@@ -300,17 +300,20 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
   );
 
   const isAssignedQa = userRole === 'qa' && subtask.assigneeId === currentUserId;
+  const summaryLoadedRef = useRef(false);
   const loadWorkflowSummary = useCallback(async () => {
     if (!activeWorkspaceId || !isAssignedQa) {
       setWorkflowSummary(null);
       return;
     }
-    setIsLoadingSummary(true);
+    // Muat ulang setelah daftar Test Case berubah berjalan diam-diam, tanpa mengosongkan panel.
+    if (!summaryLoadedRef.current) setIsLoadingSummary(true);
     setSummaryError(null);
     try {
       setWorkflowSummary(
         await testManagementService.getQaWorkflowSummary(activeWorkspaceId, subtask.id),
       );
+      summaryLoadedRef.current = true;
     } catch (error) {
       setWorkflowSummary(null);
       setSummaryError(
@@ -323,7 +326,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
 
   useEffect(() => {
     void loadWorkflowSummary();
-  }, [loadWorkflowSummary]);
+  }, [loadWorkflowSummary, reloadKey]);
 
   const here = `${location.pathname}${location.search}`;
   const returnTo = useMemo(() => {
@@ -389,6 +392,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
               qaWorkflowSummary={workflowSummary}
               isQaWorkflowSummaryLoading={isLoadingSummary}
               qaWorkflowSummaryError={summaryError}
+              refreshToken={reloadKey}
               onDataChanged={() => void loadWorkflowSummary()}
             />
           ) : undefined

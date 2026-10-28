@@ -50,6 +50,8 @@ export interface ReleaseAssurancePanelProps {
   qaWorkflowSummaryError?: string | null;
   /** `simple` hides the duplicate metric tiles and blocker list; used on the QA work page. */
   variant?: 'default' | 'simple';
+  /** Ubah nilainya untuk memuat ulang catatan dan gate kesiapan tanpa mengosongkan panel. */
+  refreshToken?: number;
 }
 
 const qaWorkflowBlockerCopy: Record<string, string> = {
@@ -184,10 +186,12 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
   qaWorkflowSummary,
   isQaWorkflowSummaryLoading = false,
   qaWorkflowSummaryError = null,
+  refreshToken = 0,
 }) => {
   const dispatch = useAppDispatch();
   const members = useAppSelector((state: RootState) => state.workspace.members);
   const requestIdRef = useRef(0);
+  const hasLoadedRef = useRef(false);
   const panelRef = useRef<HTMLElement>(null);
   const [records, setRecords] = useState<FeatureReleaseRecords | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -243,7 +247,8 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
 
   const loadRecords = useCallback(async () => {
     const requestId = ++requestIdRef.current;
-    setIsLoading(true);
+    // Muat ulang berikutnya berjalan diam-diam agar panel tidak berkedip.
+    if (!hasLoadedRef.current) setIsLoading(true);
     setError(null);
     setPermissionDenied(false);
     try {
@@ -253,6 +258,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       );
       if (requestId !== requestIdRef.current) return;
       setRecords(result);
+      hasLoadedRef.current = true;
     } catch (loadError) {
       if (requestId !== requestIdRef.current) return;
       const status = (loadError as { status?: number }).status;
@@ -275,7 +281,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     return () => {
       requestIdRef.current += 1;
     };
-  }, [loadRecords]);
+  }, [loadRecords, refreshToken]);
 
   useEffect(() => {
     if (!focusWhenReady || isLoading) return;

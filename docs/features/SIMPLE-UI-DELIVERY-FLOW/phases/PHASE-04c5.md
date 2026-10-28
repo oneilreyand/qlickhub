@@ -34,3 +34,7 @@
 - Yatim turunan yang ikut dihapus (tidak punya referensi selain test-nya sendiri setelah desk QA dilepas di P4c-4): `QaWorkflowSummaryWidget`, `QaExecutionFilterToolbar`, `QaNextActionCard`.
 - Tidak dihapus: `ImageLightboxModal` (sudah yatim sebelum fase ini; dicatat untuk keputusan Owner).
 - Pemeriksaan: pencarian impor nol referensi; typecheck; eslint 0 error; vitest 8 shard; build; `theme:check`; `docs:check`.
+
+## 4. Perbaikan susulan: panel Persetujuan QA tidak ikut berubah
+
+Laporan Owner: setelah menambah atau menghapus Test Case, gate kesiapan di bagian Persetujuan QA tidak berubah. Penyebab: `ReleaseAssurancePanel` memuat catatan dan snapshot kesiapan sekali saat halaman dibuka, dan `QaSubtaskWorkSection` memuat ringkasan alur QA sekali saja; muat ulang daftar Test Case tidak menyentuh keduanya. Perbaikan: prop `refreshToken` pada panel (diisi `reloadKey`) dan ringkasan QA dimuat ulang pada `reloadKey` yang sama; muat ulang berjalan diam-diam tanpa mengosongkan panel. Test baru: panel memuat ulang saat `refreshToken` berubah tanpa tampilan memuat.
