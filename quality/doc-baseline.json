@@ -38,11 +38,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:DELETE /v1/workspaces/:workspaceId/tasks/:taskId",
-      "file": "apps/api/src/modules/tasks/taskRoutes.ts:17"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:DELETE /v1/workspaces/:workspaceId/tasks/:taskId/attachments/:attachmentId",
       "file": "apps/api/src/modules/attachments/attachmentRoutes.ts:32"
     },
@@ -158,11 +153,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId",
-      "file": "apps/api/src/modules/tasks/taskRoutes.ts:16"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/activity",
       "file": "apps/api/src/modules/tasks/taskRoutes.ts:22"
     },
@@ -235,11 +225,6 @@
       "rule": "DS-R01",
       "key": "endpoint:PATCH /v1/workspaces/:workspaceId/requirements/:requirementId/test-cases/:testCaseId",
       "file": "apps/api/src/modules/traceability/traceabilityRoutes.ts:42"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:PATCH /v1/workspaces/:workspaceId/tasks/:taskId",
-      "file": "apps/api/src/modules/tasks/taskRoutes.ts:29"
     },
     {
       "rule": "DS-R01",

@@ -33,15 +33,16 @@ Dipakai ulang tanpa perubahan: `tasks` (root Feature + subtask), `requirements`,
 
 Endpoint yang ada dan dipakai ulang (sumber kontrak di `packages/contracts/src`):
 
-| Kebutuhan                            | Endpoint yang ada                                                                                                      | Kontrak                                |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Detail, subtask, komentar, aktivitas | `/workspaces/:workspaceId/tasks/:taskId`, `…/subtasks`, `…/comments`, `…/activity`                                     | `task.ts`, `comment.ts`, `activity.ts` |
-| Test Case, versi, pemetaan AC        | `/workspaces/:workspaceId/test-cases…`, `…/versions/:testCaseVersionId/acceptance-criteria`                            | `testManagement.ts`                    |
-| Run, hasil, bukti                    | `…/test-cases/:testCaseId/runs`, `…/runs/:testRunId/results`, `…/evidence-links`                                       | `testManagement.ts`                    |
-| Bug                                  | `/workspaces/:workspaceId/bugs…`                                                                                       | `bug.ts`                               |
-| Sign-off, keputusan rilis            | `/workspaces/:workspaceId/features/:featureTaskId/qa-sign-offs`, `…/release-decisions`, `…/release-records`            | `releaseDecision.ts`                   |
-| Antrean                              | `/workspaces/:workspaceId/my-work-queue`                                                                               | `workQueue.ts`                         |
-| AI                                   | `/workspaces/:workspaceId/ai/generate-task-draft`, `…/chat-refinement`, `…/synthesize-from-chat`, `…/apply-task-draft` | `aiTaskGenerator.ts`                   |
+| Kebutuhan                              | Endpoint yang ada                                                                                                                           | Kontrak                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Detail, subtask, komentar, aktivitas   | `/workspaces/:workspaceId/tasks/:taskId`, `…/subtasks`, `…/comments`, `…/activity`                                                          | `task.ts`, `comment.ts`, `activity.ts` |
+| Test Case, versi, pemetaan AC          | `/workspaces/:workspaceId/test-cases…`, `…/versions/:testCaseVersionId/acceptance-criteria`                                                 | `testManagement.ts`                    |
+| Run, hasil, bukti                      | `…/test-cases/:testCaseId/runs`, `…/runs/:testRunId/results`, `…/evidence-links`                                                            | `testManagement.ts`                    |
+| Bug                                    | `/workspaces/:workspaceId/bugs…`                                                                                                            | `bug.ts`                               |
+| Sign-off, keputusan rilis              | `/workspaces/:workspaceId/features/:featureTaskId/qa-sign-offs`, `…/release-decisions`, `…/release-records`                                 | `releaseDecision.ts`                   |
+| Antrean                                | `/workspaces/:workspaceId/my-work-queue`                                                                                                    | `workQueue.ts`                         |
+| Centang AC Developer per subtask (P2c) | `GET /workspaces/:workspaceId/tasks/:taskId/acceptance-checks`, `PUT /workspaces/:workspaceId/tasks/:taskId/acceptance-checks/:criterionId` | `task.ts`                              |
+| AI                                     | `/workspaces/:workspaceId/ai/generate-task-draft`, `…/chat-refinement`, `…/synthesize-from-chat`, `…/apply-task-draft`                      | `aiTaskGenerator.ts`                   |
 
 Perubahan kontrak per slice (aditif; field baru opsional bagi klien lama):
 
