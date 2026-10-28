@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   getTask: vi.fn(),
   listTaskComments: vi.fn(),
   listTaskActivity: vi.fn(),
+  listSubtasks: vi.fn(),
   getTrace: vi.fn(),
   getExecutions: vi.fn(),
   listCycles: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock('../../lib/api/taskService', () => ({
     getTask: (...a: unknown[]) => mocks.getTask(...a),
     listTaskComments: (...a: unknown[]) => mocks.listTaskComments(...a),
     listTaskActivity: (...a: unknown[]) => mocks.listTaskActivity(...a),
+    listSubtasks: (...a: unknown[]) => mocks.listSubtasks(...a),
   },
 }));
 vi.mock('../../lib/api/traceabilityService', () => ({
@@ -127,6 +129,7 @@ describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
     mocks.getTask.mockImplementation((_w: string, id: string) =>
       Promise.resolve(id === qaSubtaskId ? qaSubtask : parent),
     );
+    mocks.listSubtasks.mockResolvedValue({ tasks: [qaSubtask, devSubtask] });
     mocks.getTrace.mockResolvedValue({
       requirements: [
         {
@@ -187,6 +190,22 @@ describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
     expect(screen.getByText(/Bima \(BE\) mengirim ke QA/)).toBeInTheDocument();
     expect(screen.getByText('staging · b1')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Kirim ke QA' })).not.toBeInTheDocument();
+  });
+
+  it('shows Tahap Siapkan and disables Lulus/Gagal while a developer subtask is unfinished (AC-3.15)', async () => {
+    mocks.listSubtasks.mockResolvedValue({
+      tasks: [
+        qaSubtask,
+        devSubtask,
+        { ...devSubtask, id: 'dev-2', status: 'in_progress', title: 'UI pembayaran' },
+      ],
+    });
+    renderPage();
+    expect(await screen.findByText('Bayar dengan kartu')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Menunggu Developer: 1 dari 2 subtask siap diuji/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Gagal' })).toBeDisabled();
   });
 
   it('opens the run page with the chosen result and the subtask in the URL', async () => {

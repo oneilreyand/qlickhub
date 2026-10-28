@@ -57,6 +57,8 @@ export interface QaSubtaskWorkViewProps {
   handoff: QaHandoff | null;
   /** Selain QA yang ditugaskan hanya melihat. */
   canExecute: boolean;
+  /** Tahap Siapkan: Developer belum selesai, jadi Lulus/Gagal dinonaktifkan (AC-3.15). */
+  preparing?: { ready: number; total: number } | null;
   onBack: () => void;
   onOpenFeature: () => void;
   onOpenActivity: () => void;
@@ -109,6 +111,7 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
   developerNames,
   handoff,
   canExecute,
+  preparing = null,
   onBack,
   onOpenFeature,
   onOpenActivity,
@@ -205,6 +208,20 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
           {due && <> · uji sebelum {due}</>}
         </p>
       </header>
+
+      {preparing && (
+        <section
+          aria-label="Tahap Siapkan Test Case"
+          className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100"
+        >
+          <p className="font-semibold">Siapkan Test Case</p>
+          <p>
+            Menunggu Developer: {preparing.ready} dari {preparing.total} subtask siap diuji. Anda
+            dapat menambah, mengimpor, dan mengaktifkan Test Case sekarang; Lulus dan Gagal aktif
+            setelah semua subtask Developer siap diuji.
+          </p>
+        </section>
+      )}
 
       {handoff && (
         <section
@@ -355,14 +372,18 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => onOpenRun(execution.testCase.id, 'passed')}
-                                      className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold ${passClass}`}
+                                      disabled={Boolean(preparing)}
+                                      title={preparing ? 'Menunggu Developer selesai' : undefined}
+                                      className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${passClass}`}
                                     >
                                       Lulus
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => onOpenRun(execution.testCase.id, 'failed')}
-                                      className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold ${failClass}`}
+                                      disabled={Boolean(preparing)}
+                                      title={preparing ? 'Menunggu Developer selesai' : undefined}
+                                      className={`rounded-lg border px-3 py-1.5 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${failClass}`}
                                     >
                                       Gagal
                                     </button>

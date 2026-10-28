@@ -152,6 +152,7 @@ beforeEach(() => {
     File.prototype.arrayBuffer = () => Promise.resolve(new ArrayBuffer(1));
   }
   Object.values(m).forEach((fn) => fn.mockReset());
+  m.listSubtasks.mockResolvedValue({ tasks: [], total: 0, page: 1, limit: 100 });
   m.getTask.mockResolvedValue(qaSubtask);
   m.getTrace.mockResolvedValue(trace);
   m.getTestCase.mockResolvedValue(testCase);
@@ -413,6 +414,25 @@ describe('TestCaseRunPage', () => {
     m.listCycles.mockResolvedValue([cycle]);
     renderAt(`/tests/cases/${testCase.id}/run?subtaskId=${qaSubtask.id}`);
     expect(await screen.findByText(/belum aktif/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simpan hasil' })).toBeDisabled();
+  });
+
+  it('blocks saving a result while developer subtasks are unfinished (AC-3.15)', async () => {
+    m.listCycles.mockResolvedValue([cycle]);
+    m.listSubtasks.mockResolvedValue({
+      tasks: [
+        qaSubtask,
+        { ...qaSubtask, id: 'dev-1', deliveryArea: 'backend', status: 'in_progress' },
+        { ...qaSubtask, id: 'dev-2', deliveryArea: 'frontend', status: 'done' },
+      ],
+      total: 3,
+      page: 1,
+      limit: 100,
+    });
+    renderAt(`/tests/cases/${testCase.id}/run?subtaskId=${qaSubtask.id}`);
+    expect(
+      await screen.findByText(/Menunggu Developer: 1 dari 2 subtask siap diuji/),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Simpan hasil' })).toBeDisabled();
   });
 

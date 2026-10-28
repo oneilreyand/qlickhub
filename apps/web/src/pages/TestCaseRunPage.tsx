@@ -25,6 +25,7 @@ import {
 } from '../components/ui/organisms/myTasks/TestCaseFollowUpPanel';
 import { bugService } from '../lib/api/bugService';
 import { taskService } from '../lib/api/taskService';
+import { useDeveloperReadiness } from '../lib/hooks/useDeveloperReadiness';
 import { startQaSubtaskIfTodo } from '../lib/utils/startQaSubtask';
 import { traceabilityService } from '../lib/api/traceabilityService';
 import { testManagementService } from '../lib/api/testManagementService';
@@ -181,6 +182,7 @@ export const TestCaseRunPage: React.FC = () => {
     return result && (result.status === 'failed' || result.status === 'blocked') ? result.id : null;
   }, [data, activeCycle]);
   const followUpFeatureId = data?.subtask.parentTaskId ?? null;
+  const readiness = useDeveloperReadiness(activeWorkspaceId ?? undefined, followUpFeatureId);
 
   useEffect(() => {
     if (!activeWorkspaceId || !failedResultId || !followUpFeatureId) {
@@ -417,7 +419,9 @@ export const TestCaseRunPage: React.FC = () => {
   }
 
   let blockedReason: string | null = null;
-  if (data.testCase.status !== 'active') {
+  if (readiness && !readiness.isReadyToTest && readiness.total > 0) {
+    blockedReason = `Tahap Siapkan Test Case. Menunggu Developer: ${readiness.ready} dari ${readiness.total} subtask siap diuji. Hasil uji dapat disimpan setelah semua subtask Developer siap diuji.`;
+  } else if (data.testCase.status !== 'active') {
     blockedReason =
       'Test Case ini belum aktif, jadi belum dapat dijalankan. Aktifkan dulu atau tunggu review Product Owner.';
   }

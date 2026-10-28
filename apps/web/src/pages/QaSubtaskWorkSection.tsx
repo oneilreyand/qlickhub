@@ -19,6 +19,7 @@ import { taskService } from '../lib/api/taskService';
 import { testManagementService } from '../lib/api/testManagementService';
 import { getAreaLabel } from '../lib/utils/featureDisplay';
 import { getTestCaseNewPath, getTestCaseRunPath } from '../lib/utils/taskRoutes';
+import { useDeveloperReadiness } from '../lib/hooks/useDeveloperReadiness';
 import { startQaSubtaskIfTodo } from '../lib/utils/startQaSubtask';
 import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -77,6 +78,11 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
 
   const parentId = subtask.parentTaskId;
   const canExecute = userRole === 'qa' && subtask.assigneeId === currentUserId;
+  const readiness = useDeveloperReadiness(activeWorkspaceId ?? undefined, parentId, reloadKey);
+  const preparing =
+    readiness && readiness.total > 0 && !readiness.isReadyToTest
+      ? { ready: readiness.ready, total: readiness.total }
+      : null;
 
   const canDeleteTestCase = useCallback(
     (execution: TaskTestCaseExecution) => {
@@ -358,6 +364,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
         developerNames={developerNames}
         handoff={handoff}
         canExecute={canExecute}
+        preparing={preparing}
         onBack={() => navigate(returnTo, { state: returnState })}
         onOpenFeature={() => {
           if (parentTask) {

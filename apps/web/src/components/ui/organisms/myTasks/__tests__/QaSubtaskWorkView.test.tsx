@@ -125,6 +125,24 @@ describe('QaSubtaskWorkView (desain 08)', () => {
     expect(screen.getAllByRole('button', { name: 'Gagal' })).toHaveLength(1);
   });
 
+  it('Tahap Siapkan: shows the waiting banner and disables Lulus/Gagal but keeps adding Test Cases', () => {
+    const props = setup({ preparing: { ready: 1, total: 3 } });
+    const banner = screen.getByRole('region', { name: 'Tahap Siapkan Test Case' });
+    expect(within(banner).getByText('Siapkan Test Case')).toBeInTheDocument();
+    expect(banner).toHaveTextContent('Menunggu Developer: 1 dari 3 subtask siap diuji');
+    // TC-01 sudah punya hasil (tombol hasil); hanya pasangan Lulus/Gagal TC-02 yang dikunci.
+    expect(screen.getByRole('button', { name: 'Gagal' })).toBeDisabled();
+    expect(screen.getAllByRole('button', { name: 'Lulus' })[1]).toBeDisabled();
+    fireEvent.click(screen.getAllByRole('button', { name: '+ Test Case' })[0]);
+    expect(props.onAddTestCase).toHaveBeenCalled();
+  });
+
+  it('Tahap Uji: no banner and Lulus/Gagal stay enabled', () => {
+    setup({ preparing: null });
+    expect(screen.queryByRole('region', { name: 'Tahap Siapkan Test Case' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Gagal' })).toBeEnabled();
+  });
+
   it('offers Hapus only for Test Cases the viewer may delete', () => {
     const onDeleteTestCase = vi.fn();
     const props = setup({
