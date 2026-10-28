@@ -32,6 +32,11 @@ export interface TestCaseImportWizardModalProps {
   onClose: () => void;
   workspaceId: string;
   userRole: WorkspaceRole;
+  /**
+   * Subtask QA tujuan impor. Bila ada, Requirement harus tertaut ke Feature subtask itu dan
+   * Test Case yang diimpor langsung aktif; baris di luar itu tidak diimpor.
+   */
+  qaSubtaskId?: string;
   onImportComplete: () => void;
 }
 
@@ -56,11 +61,13 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
   onClose,
   workspaceId,
   userRole,
+  qaSubtaskId,
   onImportComplete,
 }) => {
   const [step, setStep] = useState<WizardStep>('upload');
   const [previewData, setPreviewData] = useState<TestCaseImportPreviewResponse | null>(null);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [bulkRequirement, setBulkRequirement] = useState('');
   const [importMode, setImportMode] = useState<TestCaseImportMode>('create_only');
   const [selectedSheet, setSelectedSheet] = useState<string>('Sheet1');
   const [activeFile, setActiveFile] = useState<{
@@ -73,6 +80,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
   const canUpdateImportedCases = userRole === 'owner' || userRole === 'admin' || userRole === 'po';
 
   const [loading, setLoading] = useState(false);
+  const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -123,6 +131,9 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
               file.name,
               undefined,
               base64,
+              undefined,
+              undefined,
+              qaSubtaskId,
             );
             setPreviewData(preview);
             setSelectedSheet(preview.selectedSheet || 'Sheet1');
@@ -138,15 +149,44 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
       } else {
         const text = await file.text();
         setActiveFile({ name: file.name, content: text });
-        const preview = await testManagementService.previewImport(workspaceId, file.name, text);
-        setPreviewData(preview);
-        setSelectedSheet('Sheet1');
-        setColumnMapping(preview.columnMapping || {});
-        setStep(preview.unmappedHeaders?.length ? 'mapping' : 'preview');
-        setLoading(false);
+        await previewText(file.name, text);
       }
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : 'Spreadsheet gagal dibaca.');
+      setLoading(false);
+    }
+  };
+
+  const previewText = async (name: string, text: string) => {
+    setActiveFile({ name, content: text });
+    const preview = await testManagementService.previewImport(
+      workspaceId,
+      name,
+      text,
+      undefined,
+      undefined,
+      undefined,
+      qaSubtaskId,
+    );
+    setPreviewData(preview);
+    setSelectedSheet('Sheet1');
+    setColumnMapping(preview.columnMapping || {});
+    setStep(preview.unmappedHeaders?.length ? 'mapping' : 'preview');
+    setLoading(false);
+  };
+
+  const handleFetchGoogleSheet = async () => {
+    if (!googleSheetUrl.trim()) return;
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const file = await testManagementService.fetchGoogleSheetForImport(
+        workspaceId,
+        googleSheetUrl.trim(),
+      );
+      await previewText(file.fileName, file.fileContent);
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Google Sheets gagal diambil.');
       setLoading(false);
     }
   };
@@ -163,6 +203,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         activeFile.base64,
         selectedSheet,
         columnMapping,
+        qaSubtaskId,
       );
       setPreviewData(preview);
       setStep('preview');
@@ -186,11 +227,45 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         activeFile.base64,
         newSheet,
         columnMapping,
+        qaSubtaskId,
       );
       setPreviewData(preview);
       setColumnMapping(preview.columnMapping || {});
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : 'Sheet yang dipilih gagal dibaca.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const hasRequirementError = (row: TestCaseImportPreviewResponse['rows'][number]) =>
+    row.validationErrors.some((message) => message.startsWith('Requirement'));
+
+  const rejectedByRequirement = previewData ? previewData.rows.filter(hasRequirementError) : [];
+
+  // Koreksi manual: ganti kode Requirement baris yang ditolak. Sheet asli tidak berubah.
+  const handleFixRequirement = async (requirementCode: string, sourceRowNumbers: number[]) => {
+    if (!previewData || !requirementCode || sourceRowNumbers.length === 0) return;
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const updated = await testManagementService.updateImportRowRequirement(workspaceId, {
+        importSessionId: previewData.importSessionId,
+        requirementCode,
+        sourceRowNumbers,
+        qaSubtaskId,
+      });
+      const byRow = new Map(updated.rows.map((r) => [r.sourceRowNumber, r]));
+      setPreviewData({
+        ...previewData,
+        rows: previewData.rows.map((r) => byRow.get(r.sourceRowNumber) ?? r),
+        validRows: updated.validRows,
+        invalidRows: updated.invalidRows,
+        duplicateRows: updated.duplicateRows,
+      });
+      setBulkRequirement('');
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Requirement gagal diperbarui.');
     } finally {
       setLoading(false);
     }
@@ -208,6 +283,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
         contentHash: previewData.contentHash,
         mode: importMode,
         sheetName: selectedSheet,
+        qaSubtaskId,
       });
       setImportResult(result);
       setStep('result');
@@ -328,6 +404,38 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
               <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
                 Mendukung format CSV dan XLSX hingga {MAX_IMPORT_ROWS} baris.
               </p>
+            </div>
+
+            {/* Google Sheets */}
+            <div className="space-y-2 rounded-xl border border-stone-200/80 p-4 dark:border-stone-800">
+              <label
+                htmlFor="google-sheet-url"
+                className="text-sm font-semibold text-stone-900 dark:text-stone-100"
+              >
+                Atau tempel tautan Google Sheets
+              </label>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                Buka tab yang berisi Test Case, lalu salin tautannya. Akses bagikan harus "Siapa
+                saja yang memiliki link" sebagai Pelihat.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  id="google-sheet-url"
+                  type="url"
+                  value={googleSheetUrl}
+                  onChange={(event) => setGoogleSheetUrl(event.target.value)}
+                  placeholder="https://docs.google.com/spreadsheets/d/…"
+                  disabled={loading}
+                  className="min-w-0 flex-1 rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 dark:border-stone-700 dark:bg-[#1C1A19] dark:text-stone-100"
+                />
+                <Button
+                  variant="primary"
+                  onClick={() => void handleFetchGoogleSheet()}
+                  disabled={loading || !googleSheetUrl.trim()}
+                >
+                  Ambil dari Google Sheets
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -484,6 +592,67 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
               </div>
             </div>
 
+            {previewData.invalidRows > 0 && (
+              <div
+                role="status"
+                className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300"
+              >
+                <p className="font-semibold">{previewData.invalidRows} baris tidak akan diimpor.</p>
+                <p className="mt-0.5">
+                  Pilih Requirement yang benar langsung di tabel di bawah, atau perbaiki di
+                  spreadsheet lalu ambil ulang. Perubahan di sini tidak mengubah spreadsheet asli.
+                </p>
+                {previewData.allowedRequirementCodes.length > 0 && (
+                  <p className="mt-0.5">
+                    Requirement yang dapat dipakai di Feature ini:{' '}
+                    <span className="font-mono">
+                      {previewData.allowedRequirementCodes.join(', ')}
+                    </span>
+                  </p>
+                )}
+                {previewData.allowedRequirementCodes.length > 0 &&
+                  rejectedByRequirement.length > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <label htmlFor="bulk-requirement" className="font-medium">
+                        Ganti Requirement semua baris yang ditolak karena Requirement:
+                      </label>
+                      <select
+                        id="bulk-requirement"
+                        value={bulkRequirement}
+                        onChange={(e) => setBulkRequirement(e.target.value)}
+                        className="rounded-md border border-amber-500/40 bg-white px-2 py-1 font-mono text-xs text-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                      >
+                        <option value="">Pilih Requirement</option>
+                        {previewData.allowedRequirementCodes.map((code) => (
+                          <option key={code} value={code}>
+                            {code}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={loading || !bulkRequirement}
+                        onClick={() =>
+                          void handleFixRequirement(
+                            bulkRequirement,
+                            rejectedByRequirement.map((r) => r.sourceRowNumber),
+                          )
+                        }
+                      >
+                        {`Terapkan ke ${rejectedByRequirement.length} baris`}
+                      </Button>
+                    </div>
+                  )}
+              </div>
+            )}
+            {previewData.ignoredHeaders.length > 0 && (
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                Kolom tidak diimpor: {previewData.ignoredHeaders.join(', ')}. Hasil dan bukti uji
+                dicatat lewat eksekusi Test Case di aplikasi.
+              </p>
+            )}
+
             {/* Sheet selection bar (if multi-sheet XLSX) */}
             {previewData.availableSheets && previewData.availableSheets.length > 1 && (
               <div className="flex items-center justify-between gap-3 p-3 bg-stone-50/80 rounded-xl border border-stone-200/80 text-xs dark:bg-stone-900/50 dark:border-stone-800">
@@ -583,9 +752,30 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                             {row.requirementCode}
                           </span>
                         ) : (
-                          <span className="text-rose-600 dark:text-rose-400">
-                            {row.requirementCode || 'Tidak ada'}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-rose-600 dark:text-rose-400">
+                              {row.requirementCode || 'Tidak ada'}
+                            </span>
+                            {previewData.allowedRequirementCodes.length > 0 &&
+                              hasRequirementError(row) && (
+                                <select
+                                  aria-label={`Ganti Requirement baris ${row.sourceRowNumber}`}
+                                  value=""
+                                  disabled={loading}
+                                  onChange={(e) =>
+                                    void handleFixRequirement(e.target.value, [row.sourceRowNumber])
+                                  }
+                                  className="rounded-md border border-stone-300 bg-white px-1.5 py-0.5 font-mono text-[11px] text-stone-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                                >
+                                  <option value="">Pilih Requirement</option>
+                                  {previewData.allowedRequirementCodes.map((code) => (
+                                    <option key={code} value={code}>
+                                      {code}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                          </div>
                         )}
                       </td>
                       <td className="px-3 py-2 uppercase text-[10px]">{row.priority}</td>
@@ -601,11 +791,11 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                           </span>
                         ) : (
                           <span
-                            className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 truncate max-w-[180px]"
+                            className="inline-flex items-start gap-1 text-rose-600 dark:text-rose-400 max-w-[320px] whitespace-normal"
                             title={row.validationErrors.join('; ')}
                           >
-                            <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                            {row.validationErrors[0]}
+                            <XCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                            <span>{row.validationErrors.join(' ')}</span>
                           </span>
                         )}
                       </td>

@@ -13,6 +13,7 @@ export interface TaskDetailSpecsTabProps {
   onRequirementChanged: () => void;
   onPlanSubtask?: (requirement: Requirement) => void;
   requirementInitialState?: RequirementManagerInitialState;
+  simple?: boolean;
 }
 
 export const TaskDetailSpecsTab: React.FC<TaskDetailSpecsTabProps> = ({
@@ -22,6 +23,7 @@ export const TaskDetailSpecsTab: React.FC<TaskDetailSpecsTabProps> = ({
   onRequirementChanged,
   onPlanSubtask,
   requirementInitialState,
+  simple = false,
 }) => {
   const [isGovernanceExpanded, setIsGovernanceExpanded] = useState(false);
 
@@ -35,6 +37,7 @@ export const TaskDetailSpecsTab: React.FC<TaskDetailSpecsTabProps> = ({
         onRequirementChanged={onRequirementChanged}
         onPlanSubtask={onPlanSubtask}
         initialState={requirementInitialState}
+        simple={simple}
       />
 
       {/* 2. Secondary Governance & Assurance Section (Only for root tasks) */}

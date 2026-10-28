@@ -265,6 +265,7 @@ const renderPanel = (
     qaWorkflowSummary?: QaWorkflowSummary | null;
     isQaWorkflowSummaryLoading?: boolean;
     qaWorkflowSummaryError?: string | null;
+    variant?: 'default' | 'simple';
   },
 ) =>
   render(
@@ -275,6 +276,7 @@ const renderPanel = (
         currentUserId={options?.currentUserId || (mode === 'qa' ? ids.qa : ids.po)}
         userRole={options?.userRole || (mode === 'qa' ? 'qa' : 'po')}
         mode={mode}
+        variant={options?.variant}
         qaWorkflowSummary={options?.qaWorkflowSummary}
         isQaWorkflowSummaryLoading={options?.isQaWorkflowSummaryLoading}
         qaWorkflowSummaryError={options?.qaWorkflowSummaryError}
@@ -294,6 +296,31 @@ describe('ReleaseAssurancePanel', () => {
     expect(screen.getByLabelText('Memuat Persetujuan QA')).toBeInTheDocument();
     expect(await screen.findByText('Belum ada Persetujuan QA')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Catat Persetujuan QA' })).toBeEnabled();
+  });
+
+  it('reloads the records quietly when refreshToken changes', async () => {
+    const element = (token: number) => (
+      <Provider store={createStore()}>
+        <ReleaseAssurancePanel
+          workspaceId={ids.workspace}
+          featureTaskId={ids.feature}
+          currentUserId={ids.qa}
+          userRole="qa"
+          mode="qa"
+          refreshToken={token}
+        />
+      </Provider>
+    );
+    const { rerender } = render(element(0));
+    expect(await screen.findByText('Belum ada Persetujuan QA')).toBeInTheDocument();
+    expect(releaseServiceMocks.listFeatureReleaseRecords).toHaveBeenCalledTimes(1);
+
+    rerender(element(1));
+    await waitFor(() =>
+      expect(releaseServiceMocks.listFeatureReleaseRecords).toHaveBeenCalledTimes(2),
+    );
+    expect(screen.queryByLabelText('Memuat Persetujuan QA')).not.toBeInTheDocument();
+    expect(screen.getByText('Belum ada Persetujuan QA')).toBeInTheDocument();
   });
 
   it('recovers from a generic load error', async () => {
@@ -329,6 +356,23 @@ describe('ReleaseAssurancePanel', () => {
         notes: 'Regression passed on staging.',
       }),
     );
+  });
+
+  it('simple variant explains the decision in plain words and drops the duplicate blocker list', async () => {
+    renderPanel('qa', {
+      variant: 'simple',
+      qaWorkflowSummary: {
+        ...qaWorkflowSummary({ code: 'create_test_cycle', label: 'Tetapkan Versi yang Diuji' }, [
+          'qa_test_cycle_missing',
+        ]),
+        testCycle: null,
+      },
+    });
+    expect(await screen.findByText(/Keputusan akhir QA untuk Feature ini/)).toBeInTheDocument();
+    expect(screen.getByText(/Anda tetap dapat mencatat penolakan/)).toBeInTheDocument();
+    expect(
+      screen.queryByText('Tetapkan versi yang diuji terlebih dahulu.'),
+    ).not.toBeInTheDocument();
   });
 
   it('fails closed for a blocked QA workflow and restricts sign-off to its backend-selected cycle', async () => {

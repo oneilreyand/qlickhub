@@ -317,22 +317,16 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                 ID / Judul Feature
               </th>
               <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
-                Lokasi Folder
-              </th>
-              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap w-[100px]">
-                Prioritas
-              </th>
-              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
                 Tanggal
               </th>
               <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
                 Delivery &amp; Rilis
               </th>
-              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap w-[120px]">
-                Status
+              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
+                Status &amp; Prioritas
               </th>
-              <th scope="col" className="py-3.5 px-3.5 text-right whitespace-nowrap">
-                Aksi
+              <th scope="col" className="w-12 py-3.5 px-2">
+                <span className="sr-only">Aksi</span>
               </th>
             </tr>
           </thead>
@@ -340,7 +334,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
             {isLoading
               ? [1, 2, 3, 4].map((id) => (
                   <tr key={id}>
-                    <td className="p-3.5" colSpan={7}>
+                    <td className="p-3.5" colSpan={5}>
                       <Skeleton variant="text" className="h-5 w-full" />
                     </td>
                   </tr>
@@ -377,20 +371,15 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                                 {task.title}
                               </p>
                               {task.description && (
-                                <p className="text-xs text-stone-600 dark:text-stone-400 truncate max-w-sm mt-0.5">
+                                <p className="text-xs text-stone-600 dark:text-stone-400 truncate max-w-xs mt-0.5">
                                   {stripMarkdown(task.description)}
                                 </p>
                               )}
                               {renderSubtaskSummary(task.subtaskSummary)}
-                            </td>
-                            <td className="py-3.5 px-3.5 whitespace-nowrap">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 font-medium text-stone-700 dark:text-stone-300 text-xs">
-                                <Folder className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                                <span className="max-w-[140px] truncate">{folderName}</span>
+                              <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                                <Folder className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                                <span className="max-w-[180px] truncate">{folderName}</span>
                               </span>
-                            </td>
-                            <td className="py-3.5 px-3.5 whitespace-nowrap">
-                              {getPriorityBadge(task.priority)}
                             </td>
                             <td className="py-3.5 px-3.5 whitespace-nowrap">
                               {task.startDate || task.dueDate ? (
@@ -432,19 +421,22 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                               )}
                             </td>
                             <td className="py-3.5 px-3.5 whitespace-nowrap">
-                              <TaskStatusBadge state={task.status} />
+                              <div className="flex flex-col items-start gap-1.5">
+                                <TaskStatusBadge state={task.status} />
+                                {getPriorityBadge(task.priority)}
+                              </div>
                             </td>
-                            <td className="py-3.5 px-3.5 text-right whitespace-nowrap">
+                            <td className="py-3.5 px-2 text-right whitespace-nowrap">
                               <Button
                                 variant="outline"
                                 size="sm"
+                                aria-label={`Lihat detail ${task.title}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onSelect(task);
                                 }}
-                                rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
                               >
-                                Lihat Detail
+                                <ChevronRight className="h-3.5 w-3.5" />
                               </Button>
                             </td>
                           </tr>
@@ -455,7 +447,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                       key={`${group.status}-header`}
                       className="bg-stone-50/70 dark:bg-stone-900/70"
                     >
-                      <td colSpan={7} className="p-0">
+                      <td colSpan={5} className="p-0">
                         <button
                           type="button"
                           className="flex min-h-11 w-full items-center justify-between px-3.5 text-left text-xs font-bold text-stone-700 dark:text-stone-200"

@@ -10,7 +10,8 @@ test.beforeAll(async () => {
 // worker (workers: 1), so closing it would break the specs that run after this one
 // (qa-role-isolation.spec.ts closes it at the end of the run).
 
-test('Alur Pass Lengkap: Inisiasi modal rantai 5 langkah, eksekusi versi aktif, catat hasil, selesai, sign-off, dan screenshot 390px', async ({
+// FIXME(P4c-8): desk QA lama sudah dilepas di P4c-4/P4c-5; spec ini perlu ditulis ulang untuk halaman kerja QA.
+test.fixme('Alur Pass Lengkap: Inisiasi modal rantai 5 langkah, eksekusi versi aktif, catat hasil, selesai, sign-off, dan screenshot 390px', async ({
   page,
 }) => {
   let actualClickCount = 0;
@@ -154,7 +155,8 @@ test('Alur Pass Lengkap: Inisiasi modal rantai 5 langkah, eksekusi versi aktif, 
   });
 });
 
-test('Alur Bug -> Dev Resolve (Candidate Fingerprint) -> QA Retest Prefill -> Sign-off', async ({
+// FIXME(P4c-8): desk QA lama sudah dilepas di P4c-4/P4c-5; spec ini perlu ditulis ulang untuk halaman kerja QA.
+test.fixme('Alur Bug -> Dev Resolve (Candidate Fingerprint) -> QA Retest Prefill -> Sign-off', async ({
   browser,
 }) => {
   const qaContext = await browser.newContext();

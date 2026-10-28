@@ -6,17 +6,14 @@ import { RootState } from '../store/store';
 import { selectCurrentUserId } from '../store/authSlice';
 import { fetchTasks, fetchTaskById, setSelectedTaskId } from '../store/taskSlice';
 import { fetchMembers } from '../store/workspaceSlice';
+import { taskService } from '../lib/api/taskService';
 import { enqueueSnackbar } from '../store/uiSlice';
-import { MyTaskDetailWorkspaceDrawer, MyTasksDashboard } from '../features/myTasks';
+import { MyTasksDashboard } from '../features/myTasks';
 import { CreateTaskModal } from '../features/tasks';
 import { EmptyWorkspaceOnboarding } from '../features/workspaces';
-import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { useRoleAwareWorkQueue } from '../lib/hooks/useRoleAwareWorkQueue';
-import {
-  buildWorkQueueRoute,
-  clearWorkQueueRouteContext,
-  getWorkQueueRouteContext,
-} from '../lib/utils/workQueueRoute';
+import { getBugWorkPath, getTaskPagePath } from '../lib/utils/taskRoutes';
+import { buildWorkQueueRoute, getWorkQueueRouteContext } from '../lib/utils/workQueueRoute';
 
 export const MyTasksPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -28,7 +25,7 @@ export const MyTasksPage: React.FC = () => {
     isLoading: isWsLoading,
     isInitialized: isWsInitialized,
   } = useAppSelector((state: RootState) => state.workspace);
-  const { tasks, selectedTaskId } = useAppSelector((state: RootState) => state.task);
+  const { selectedTaskId } = useAppSelector((state: RootState) => state.task);
   const { folders } = useAppSelector((state: RootState) => state.folder);
   const currentUserId = useAppSelector(selectCurrentUserId);
 
@@ -75,13 +72,6 @@ export const MyTasksPage: React.FC = () => {
     };
   }, [dispatch]);
 
-  const selectedTask = useMemo(
-    () => tasks.find((t) => t.id === selectedTaskId) || null,
-    [tasks, selectedTaskId],
-  );
-  const featureTaskIds = useMemo(() => tasks.map((task) => task.parentTaskId || task.id), [tasks]);
-  const { stateByFeatureTaskId: releaseReadinessStateByFeatureId, reload: reloadReleaseReadiness } =
-    useReleaseReadinessMap(activeWorkspaceId || undefined, featureTaskIds);
   const { state: workQueueState, reload: reloadWorkQueue } = useRoleAwareWorkQueue(
     activeWorkspaceId || undefined,
   );
@@ -98,7 +88,11 @@ export const MyTasksPage: React.FC = () => {
             taskId,
           }),
         ).unwrap();
-        dispatch(setSelectedTaskId(task.id));
+        // Pengalih (AC-2.3): ?taskId= membuka halaman Feature atau halaman kerja subtask.
+        navigate(getTaskPagePath(task), {
+          replace: true,
+          state: { returnTo: '/my-tasks' },
+        });
       } catch (error) {
         dispatch(
           enqueueSnackbar(
@@ -108,30 +102,99 @@ export const MyTasksPage: React.FC = () => {
         );
       }
     },
-    [activeWorkspaceId, dispatch],
+    [activeWorkspaceId, dispatch, navigate],
   );
+
+  useEffect(() => {
+    // Tautan lama ?bugId= diarahkan ke halaman kerja Bug yang baru.
+    if (!queueRouteContext.bugId) return;
+    navigate(getBugWorkPath(queueRouteContext.bugId), {
+      replace: true,
+      state: { returnTo: '/my-tasks' },
+    });
+  }, [navigate, queueRouteContext.bugId]);
 
   useEffect(() => {
     if (!queueRouteContext.taskId) return;
     void handleOpenTaskById(queueRouteContext.taskId);
   }, [handleOpenTaskById, queueRouteContext.taskId]);
 
-  const clearQueueContext = useCallback(() => {
-    navigate(clearWorkQueueRouteContext(location.search), { replace: true });
-  }, [location.search, navigate]);
-
   const handleOpenQueueItem = useCallback(
-    (item: WorkQueueItem) => {
+    async (item: WorkQueueItem) => {
+      // AC-3.8: Persetujuan QA dikerjakan di halaman kerja QA subtask milik pengguna (P4c).
+      // Tertahan: subtask yang belum selesai. Siap: subtask QA yang sudah selesai.
+      if (item.bucketCode === 'qa_sign_off' && activeWorkspaceId && currentUserId) {
+        try {
+          const result = await taskService.listSubtasks(
+            activeWorkspaceId,
+            item.featureTaskId ?? item.subjectId,
+            1,
+            100,
+          );
+          const mine = result.tasks.filter(
+            (task) => task.deliveryArea === 'qa' && task.assigneeId === currentUserId,
+          );
+          const isBlocked = item.workState === 'blocked';
+          const candidates = isBlocked
+            ? mine.filter((task) => task.status !== 'done' && task.status !== 'canceled')
+            : mine
+                .filter((task) => task.status === 'done')
+                .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+          const fallback = isBlocked ? [] : mine.filter((task) => task.status !== 'canceled');
+          const target = candidates[0] ?? fallback[0];
+          if (target) {
+            navigate(`/work/subtasks/${target.id}`, { state: { returnTo: '/my-tasks' } });
+          } else {
+            dispatch(
+              enqueueSnackbar(
+                'Tidak ada subtask QA milik Anda di Feature ini. Buka Feature untuk melihat siapa yang menahan.',
+                'info',
+              ),
+            );
+          }
+        } catch (error) {
+          dispatch(
+            enqueueSnackbar(
+              error instanceof Error ? error.message : 'Subtask QA tidak dapat dimuat.',
+              'error',
+            ),
+          );
+        }
+        return;
+      }
+      // Tinjau Subtask: QA menyiapkan Test Case di subtask QA miliknya pada Feature yang sama,
+      // bukan membaca halaman kerja Developer. Tanpa subtask QA aktif, halaman subtask dibuka.
+      if (item.nextAction.code === 'review_subtask' && activeWorkspaceId && currentUserId) {
+        try {
+          const result = await taskService.listSubtasks(
+            activeWorkspaceId,
+            item.featureTaskId,
+            1,
+            100,
+          );
+          const qaSubtask = result.tasks.find(
+            (task) =>
+              task.deliveryArea === 'qa' &&
+              task.assigneeId === currentUserId &&
+              task.status !== 'done' &&
+              task.status !== 'canceled',
+          );
+          if (qaSubtask) {
+            navigate(`/work/subtasks/${qaSubtask.id}`, { state: { returnTo: '/my-tasks' } });
+            return;
+          }
+        } catch {
+          // Gagal memuat subtask QA: lanjut ke tujuan bawaan di bawah.
+        }
+      }
+      if (item.subjectType === 'bug') {
+        navigate(getBugWorkPath(item.subjectId), { state: { returnTo: '/my-tasks' } });
+        return;
+      }
       navigate(buildWorkQueueRoute(item, location.search));
     },
-    [location.search, navigate],
+    [activeWorkspaceId, currentUserId, dispatch, location.search, navigate],
   );
-
-  const handleCloseDrawer = () => {
-    dispatch(setSelectedTaskId(null));
-    clearQueueContext();
-    window.requestAnimationFrame(() => queueTriggerRef.current?.focus());
-  };
 
   if (!isWsInitialized || (isWsLoading && workspaces.length === 0)) {
     return (
@@ -150,42 +213,10 @@ export const MyTasksPage: React.FC = () => {
       <MyTasksDashboard
         selectedTaskId={selectedTaskId}
         userRole={userRole}
-        workspaceId={activeWorkspaceId || undefined}
         queueState={workQueueState}
         onRefreshQueue={reloadWorkQueue}
         onOpenQueueItem={handleOpenQueueItem}
-        onOpenTaskById={handleOpenTaskById}
-        onBugDataChanged={reloadWorkQueue}
-        focusedBugId={queueRouteContext.bugId}
-        onOpenBug={handleOpenQueueItem}
-        onCloseBug={clearQueueContext}
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
-      />
-
-      {/* Role-tailored Collaborative Workspace Drawer */}
-      <MyTaskDetailWorkspaceDrawer
-        task={selectedTask}
-        userRole={userRole}
-        isOpen={Boolean(selectedTaskId && selectedTask)}
-        releaseReadinessState={
-          selectedTask
-            ? releaseReadinessStateByFeatureId[selectedTask.parentTaskId || selectedTask.id]
-            : undefined
-        }
-        focusTarget={queueRouteContext.focusTarget}
-        onClose={handleCloseDrawer}
-        onOpenFeature={(featureTaskId) => {
-          if (!activeWorkspaceId) return;
-          // The deep link honours returnTo, so closing the Feature brings the user back here.
-          navigate(`/projects/${activeWorkspaceId}/tasks/${featureTaskId}`, {
-            state: { returnTo: `${location.pathname}${location.search}` },
-          });
-        }}
-        onDataChanged={() => {
-          reloadTasks();
-          reloadReleaseReadiness();
-          reloadWorkQueue();
-        }}
       />
 
       {/* Create Task Modal */}

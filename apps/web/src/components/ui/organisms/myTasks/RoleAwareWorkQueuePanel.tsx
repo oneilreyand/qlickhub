@@ -12,9 +12,16 @@ import {
   ShieldCheck,
   Wrench,
 } from 'lucide-react';
-import type { WorkQueueBucket, WorkQueueBucketCode, WorkQueueItem } from '@qlick/contracts';
+import type { WorkQueueBucketCode, WorkQueueItem } from '@qlick/contracts';
 import type { RoleAwareWorkQueueViewState } from '../../../../lib/hooks/useRoleAwareWorkQueue';
 import { useDebounce } from '../../../../lib/hooks/useDebounce';
+import { getQueueItemActionLabel } from '../../../../lib/utils/workQueueRoute';
+import {
+  DUE_FILTER_OPTIONS,
+  matchesDueFilter,
+  sortQueueItems,
+  type DueFilter,
+} from '../../../../lib/utils/workQueueFilters';
 import { Alert } from '../../atoms/Alert';
 import { Badge } from '../../atoms/Badge';
 import { Button } from '../../atoms/Button';
@@ -23,7 +30,6 @@ import { Select } from '../../atoms/Select';
 import { Skeleton } from '../../atoms/Skeleton';
 import { EmptyState } from '../../molecules/EmptyState';
 import { SearchInput } from '../../molecules/SearchInput';
-import { Tabs } from '../../molecules/Tabs';
 
 export interface RoleAwareWorkQueuePanelProps {
   state: RoleAwareWorkQueueViewState;
@@ -165,10 +171,7 @@ function localizeReason(reason: string) {
     );
 }
 
-function firstActiveBucket(buckets: WorkQueueBucket[], currentCode: string | null) {
-  if (currentCode && buckets.some((bucket) => bucket.code === currentCode)) return currentCode;
-  return buckets.find((bucket) => bucket.total > 0)?.code || buckets[0]?.code || null;
-}
+const SECTION_LIMIT = 5;
 
 export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = ({
   state,
@@ -176,31 +179,41 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   onRefresh,
   onOpenItem,
 }) => {
-  const [selectedBucketCode, setSelectedBucketCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [bucketFilter, setBucketFilter] = useState('all');
+  const [dueFilter, setDueFilter] = useState<DueFilter>('all');
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
   const debouncedSearchQuery = useDebounce(searchQuery, 250).trim().toLowerCase();
   const buckets = useMemo(() => state.queue?.buckets || [], [state.queue?.buckets]);
+  const totalItems = useMemo(
+    () => buckets.reduce((sum, bucket) => sum + bucket.total, 0),
+    [buckets],
+  );
 
-  const activeBucketCode = useMemo(() => {
-    if (selectedBucketCode && buckets.some((bucket) => bucket.code === selectedBucketCode)) {
-      return selectedBucketCode;
-    }
-    return firstActiveBucket(buckets, null);
-  }, [buckets, selectedBucketCode]);
-
-  const activeBucket = buckets.find((bucket) => bucket.code === activeBucketCode) || buckets[0];
-  const visibleItems = useMemo(() => {
-    if (!activeBucket) return [];
-    return activeBucket.items.filter((item) => {
-      if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
-      if (!debouncedSearchQuery) return true;
-      return [item.title, item.reason, item.nextAction.label, item.subjectId].some((value) =>
-        value.toLowerCase().includes(debouncedSearchQuery),
-      );
-    });
-  }, [activeBucket, debouncedSearchQuery, priorityFilter]);
+  // Satu daftar tanpa tab: tiap jenis pekerjaan jadi seksi, seksi kosong disembunyikan.
+  const sections = useMemo(
+    () =>
+      buckets
+        .filter((bucket) => bucket.total > 0)
+        .filter((bucket) => bucketFilter === 'all' || bucket.code === bucketFilter)
+        .map((bucket) => ({
+          bucket,
+          items: sortQueueItems(
+            bucket.items.filter((item) => {
+              if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
+              if (!matchesDueFilter(item.dueDate, dueFilter)) return false;
+              if (!debouncedSearchQuery) return true;
+              return [item.title, item.reason, item.nextAction.label, item.subjectId].some(
+                (value) => value.toLowerCase().includes(debouncedSearchQuery),
+              );
+            }),
+          ),
+        })),
+    [buckets, bucketFilter, debouncedSearchQuery, dueFilter, priorityFilter],
+  );
+  const visibleCount = sections.reduce((sum, section) => sum + section.items.length, 0);
 
   const openItem = async (item: WorkQueueItem) => {
     setOpeningItemId(item.id);
@@ -259,7 +272,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
     );
   }
 
-  if (!state.queue || !activeBucket) {
+  if (!state.queue || buckets.length === 0) {
     return (
       <EmptyState
         icon={<ListChecks className="h-5 w-5" />}
@@ -275,21 +288,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         Yang perlu Anda perhatikan
       </h2>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1 overflow-x-auto">
-          <Tabs
-            variant="pills"
-            activeTabId={activeBucket.code}
-            onChange={setSelectedBucketCode}
-            ariaLabel="Filter antrean kerja"
-            tabs={buckets.map((bucket) => ({
-              id: bucket.code,
-              label: bucketLabels[bucket.code],
-              count: bucket.total,
-              icon: bucketIcons[bucket.code],
-            }))}
-          />
-        </div>
+      <div className="flex justify-end">
         <Button
           variant="ghost"
           size="sm"
@@ -308,114 +307,173 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         </Button>
       </div>
 
-      {activeBucket.total > 10 && (
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
-          <div className="w-full sm:w-64">
-            <SearchInput
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              onClear={() => setSearchQuery('')}
-              placeholder="Cari judul, alasan, atau tindakan"
-              aria-label="Cari antrean kerja"
-            />
-          </div>
-          <div className="w-full sm:w-44">
-            <Select
-              value={priorityFilter}
-              onChange={(event) => setPriorityFilter(event.target.value)}
-              aria-label="Filter antrean kerja berdasarkan prioritas"
-            >
-              <option value="all">Semua prioritas</option>
-              <option value="urgent">Mendesak</option>
-              <option value="high">Tinggi</option>
-              <option value="medium">Sedang</option>
-              <option value="low">Rendah</option>
-            </Select>
-          </div>
+      {totalItems > 0 && (
+        <div className="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <Select
+            value={bucketFilter}
+            onChange={(event) => setBucketFilter(event.target.value)}
+            aria-label="Filter antrean kerja berdasarkan jenis pekerjaan"
+          >
+            <option value="all">Semua jenis pekerjaan</option>
+            {buckets
+              .filter((bucket) => bucket.total > 0)
+              .map((bucket) => (
+                <option key={bucket.code} value={bucket.code}>
+                  {bucketLabels[bucket.code]}
+                </option>
+              ))}
+          </Select>
+          <Select
+            value={dueFilter}
+            onChange={(event) => setDueFilter(event.target.value as DueFilter)}
+            aria-label="Filter antrean kerja berdasarkan tenggat"
+          >
+            {DUE_FILTER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+          <Select
+            value={priorityFilter}
+            onChange={(event) => setPriorityFilter(event.target.value)}
+            aria-label="Filter antrean kerja berdasarkan prioritas"
+          >
+            <option value="all">Semua prioritas</option>
+            <option value="urgent">Mendesak</option>
+            <option value="high">Tinggi</option>
+            <option value="medium">Sedang</option>
+            <option value="low">Rendah</option>
+          </Select>
+          <SearchInput
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onClear={() => setSearchQuery('')}
+            placeholder="Cari judul, alasan, atau tindakan"
+            aria-label="Cari antrean kerja"
+          />
         </div>
       )}
 
-      {visibleItems.length === 0 ? (
+      {visibleCount === 0 ? (
         <EmptyState
           icon={<CheckCircle2 className="h-5 w-5" />}
-          title={
-            activeBucket.total === 0
-              ? `Belum ada ${bucketLabels[activeBucket.code].toLowerCase()}`
-              : 'Tidak ada tindakan yang cocok'
-          }
+          title={totalItems === 0 ? 'Belum ada pekerjaan' : 'Tidak ada tindakan yang cocok'}
           description={
-            activeBucket.total === 0
-              ? 'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda di kelompok ini.'
+            totalItems === 0
+              ? 'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda.'
               : 'Hapus pencarian atau filter prioritas untuk melihat semua pekerjaan.'
           }
         />
       ) : (
-        <div className="space-y-3">
-          {visibleItems.map((item) => {
-            const isSelected = item.subjectType !== 'bug' && item.subjectId === selectedTaskId;
-            const workState = workStateCopy[item.workState];
+        <div className="space-y-6">
+          {sections.map(({ bucket, items: allItems }) => {
+            if (allItems.length === 0) return null;
+            const isExpanded = expanded[bucket.code] === true;
+            const items = isExpanded ? allItems : allItems.slice(0, SECTION_LIMIT);
             return (
-              <Card
-                key={item.id}
-                className={`p-4 transition-colors ${
-                  isSelected ? 'border-[#B1E743] bg-[#B1E743]/5 ring-2 ring-[#B1E743]/20' : ''
-                }`}
-              >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0 space-y-2">
-                    <div>
-                      <h4 className="break-words text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                        {item.title}
-                      </h4>
-                      <p className="mt-1 text-sm leading-relaxed text-stone-700 dark:text-stone-200">
-                        {localizeReason(item.reason)}
-                      </p>
-                    </div>
-                    {(item.priority || item.dueDate) && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        {item.priority && (
-                          <Badge variant={priorityVariants[item.priority]} size="sm">
-                            Prioritas {localizeTerm(item.priority)}
-                          </Badge>
-                        )}
-                        {item.dueDate && (
-                          <Badge variant="neutral" size="sm">
-                            <Calendar className="mr-1 h-3 w-3 text-stone-400" aria-hidden="true" />
-                            Tenggat {item.dueDate}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
-                      <span className="font-semibold text-stone-800 dark:text-stone-200">
-                        Berikutnya: {actionLabels[item.nextAction.code] || item.nextAction.label}
-                      </span>
-                      <span className="text-stone-300 dark:text-stone-600">•</span>
-                      <span>{localizeTerm(item.status)}</span>
-                      {item.workState === 'blocked' && (
-                        <>
-                          <span className="text-stone-300 dark:text-stone-600">•</span>
-                          <span className="font-semibold text-amber-600 dark:text-amber-400">
-                            Ada prasyarat
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    className="w-full sm:w-auto"
-                    isLoading={openingItemId === item.id}
-                    disabled={openingItemId !== null && openingItemId !== item.id}
-                    onClick={() => void openItem(item)}
-                    rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
-                    aria-label={`${workState.action}: ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`}
-                  >
-                    {workState.action}
-                  </Button>
+              <section key={bucket.code} aria-label={bucketLabels[bucket.code]}>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-stone-900 dark:text-stone-100">
+                  {bucketIcons[bucket.code]}
+                  {bucketLabels[bucket.code]}
+                  <span className="text-xs font-normal text-stone-500 dark:text-stone-400">
+                    {allItems.length === bucket.total
+                      ? bucket.total
+                      : `${allItems.length} dari ${bucket.total}`}
+                  </span>
+                </h3>
+                <div className="space-y-3">
+                  {items.map((item) => {
+                    const isSelected =
+                      item.subjectType !== 'bug' && item.subjectId === selectedTaskId;
+                    const workState = workStateCopy[item.workState];
+                    return (
+                      <Card
+                        key={item.id}
+                        className={`p-4 transition-colors ${
+                          isSelected
+                            ? 'border-[#B1E743] bg-[#B1E743]/5 ring-2 ring-[#B1E743]/20'
+                            : ''
+                        }`}
+                      >
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0 space-y-2">
+                            <div>
+                              <h4 className="break-words text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                                {item.title}
+                              </h4>
+                              <p className="mt-1 text-sm leading-relaxed text-stone-700 dark:text-stone-200">
+                                {localizeReason(item.reason)}
+                              </p>
+                            </div>
+                            {(item.priority || item.dueDate) && (
+                              <div className="flex flex-wrap items-center gap-2">
+                                {item.priority && (
+                                  <Badge variant={priorityVariants[item.priority]} size="sm">
+                                    Prioritas {localizeTerm(item.priority)}
+                                  </Badge>
+                                )}
+                                {item.dueDate && (
+                                  <Badge variant="neutral" size="sm">
+                                    <Calendar
+                                      className="mr-1 h-3 w-3 text-stone-400"
+                                      aria-hidden="true"
+                                    />
+                                    Tenggat {item.dueDate}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
+                              <span className="font-semibold text-stone-800 dark:text-stone-200">
+                                Berikutnya:{' '}
+                                {actionLabels[item.nextAction.code] || item.nextAction.label}
+                              </span>
+                              <span className="text-stone-300 dark:text-stone-600">•</span>
+                              <span>{localizeTerm(item.status)}</span>
+                              {item.workState === 'blocked' && (
+                                <>
+                                  <span className="text-stone-300 dark:text-stone-600">•</span>
+                                  <span className="font-semibold text-amber-600 dark:text-amber-400">
+                                    Ada prasyarat
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="primary"
+                            size="md"
+                            className="w-full sm:w-auto"
+                            isLoading={openingItemId === item.id}
+                            disabled={openingItemId !== null && openingItemId !== item.id}
+                            onClick={() => void openItem(item)}
+                            rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
+                            aria-label={`${getQueueItemActionLabel(item, workState.action)}: ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`}
+                          >
+                            {getQueueItemActionLabel(item, workState.action)}
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
-              </Card>
+                {allItems.length > SECTION_LIMIT && (
+                  <div className="mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setExpanded((prev) => ({ ...prev, [bucket.code]: !isExpanded }))
+                      }
+                    >
+                      {isExpanded
+                        ? 'Tampilkan lebih sedikit'
+                        : `Tampilkan ${allItems.length - SECTION_LIMIT} lagi`}
+                    </Button>
+                  </div>
+                )}
+              </section>
             );
           })}
         </div>

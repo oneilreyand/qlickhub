@@ -1,23 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
 import type { RoleAwareWorkQueueViewState } from '../../../../lib/hooks/useRoleAwareWorkQueue';
 import { MyTasksDashboard } from '../MyTasksDashboard';
-import uiReducer from '../../../../store/uiSlice';
 import {
   createRoleAwareWorkQueueFixture,
   workQueueFixtureIds,
 } from '../../../../test/workQueueFixture';
-
-const bugMocks = vi.hoisted(() => ({
-  listBugs: vi.fn(),
-  updateBug: vi.fn(),
-}));
-
-vi.mock('../../../../lib/api/bugService', () => ({
-  bugService: bugMocks,
-}));
 
 function queueState(
   role: 'planner' | 'developer' | 'qa' = 'developer',
@@ -37,7 +25,6 @@ function renderDashboard(overrides: Partial<React.ComponentProps<typeof MyTasksD
     queueState: queueState(),
     onRefreshQueue: vi.fn(),
     onOpenQueueItem: vi.fn(),
-    onOpenTaskById: vi.fn(),
     onCreateTaskClick: vi.fn(),
     ...overrides,
   };
@@ -47,7 +34,6 @@ function renderDashboard(overrides: Partial<React.ComponentProps<typeof MyTasksD
 describe('MyTasksDashboard Organism', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    bugMocks.listBugs.mockResolvedValue([]);
     Element.prototype.scrollIntoView = vi.fn();
   });
 
@@ -56,9 +42,9 @@ describe('MyTasksDashboard Organism', () => {
 
     expect(screen.getByRole('heading', { name: 'Tugas Saya' })).toBeInTheDocument();
     expect(screen.getByText('Developer')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Pekerjaan yang Ditugaskan/ })).toHaveTextContent('1');
-    expect(screen.getByRole('tab', { name: /Perlu Perbaikan/ })).toHaveTextContent('0');
-    expect(screen.getByRole('tab', { name: /Perbaikan Bug/ })).toHaveTextContent('1');
+    expect(screen.getByRole('region', { name: 'Pekerjaan yang Ditugaskan' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Perbaikan Bug' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Perlu Perbaikan' })).not.toBeInTheDocument();
     expect(
       screen.getByText('Subtask frontend ini ditugaskan kepada Anda dan berstatus in progress.'),
     ).toBeInTheDocument();
@@ -107,7 +93,7 @@ describe('MyTasksDashboard Organism', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows queue search and priority filters only when active bucket has more than 10 items', async () => {
+  it('always shows queue filters and limits each section to 5 items until expanded', async () => {
     vi.useFakeTimers();
     const plannerQueue = createRoleAwareWorkQueueFixture('planner');
     const { rerender, props } = renderDashboard({
@@ -121,10 +107,12 @@ describe('MyTasksDashboard Organism', () => {
     });
 
     expect(screen.getByText('Checkout release')).toBeInTheDocument();
+    expect(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas')).toBeInTheDocument();
+    expect(screen.getByLabelText('Filter antrean kerja berdasarkan tenggat')).toBeInTheDocument();
     expect(
-      screen.queryByLabelText('Filter antrean kerja berdasarkan prioritas'),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Cari antrean kerja')).not.toBeInTheDocument();
+      screen.getByLabelText('Filter antrean kerja berdasarkan jenis pekerjaan'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Cari antrean kerja')).toBeInTheDocument();
 
     const manyItems = Array.from({ length: 12 }, (_, index) => ({
       id: `po_requirement_work:feature:feat-${index}`,
@@ -166,8 +154,10 @@ describe('MyTasksDashboard Organism', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas')).toBeInTheDocument();
-    expect(screen.getByLabelText('Cari antrean kerja')).toBeInTheDocument();
+    expect(screen.getByText('Feature Item 4')).toBeInTheDocument();
+    expect(screen.queryByText('Feature Item 5')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan 7 lagi' }));
+    expect(screen.getByText('Feature Item 11')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas'), {
       target: { value: 'urgent' },
@@ -207,48 +197,22 @@ describe('MyTasksDashboard Organism', () => {
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda di kelompok ini.',
-      ),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('tab', { name: /Keputusan Rilis/ }));
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda di kelompok ini.',
-      ),
+      screen.getByText('Saat ini tidak ada pekerjaan yang membutuhkan perhatian Anda.'),
     ).toBeInTheDocument();
   });
 
-  it('opens bug detail drawer directly when clicking a bug queue item', async () => {
-    const store = configureStore({ reducer: { ui: uiReducer } });
-    render(
-      <Provider store={store}>
-        <MyTasksDashboard
-          selectedTaskId={null}
-          userRole="dev"
-          workspaceId={workQueueFixtureIds.workspace}
-          queueState={queueState()}
-          onRefreshQueue={vi.fn()}
-          onOpenQueueItem={vi.fn()}
-          onOpenTaskById={vi.fn()}
-          onCreateTaskClick={vi.fn()}
-        />
-      </Provider>,
-    );
+  it('passes a bug queue item to the shared open handler (halaman kerja Bug)', () => {
+    const { props } = renderDashboard();
 
-    fireEvent.click(screen.getByRole('tab', { name: /Perbaikan Bug/ }));
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Buka pekerjaan: Checkout total mismatch. Tindakan berikutnya: Mulai Perbaikan Bug',
       }),
     );
-    expect(screen.getByRole('region', { name: 'Detail Bug content' })).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: 'Detail Bug' }).length).toBe(1);
-    expect(bugMocks.listBugs).toHaveBeenCalledWith(workQueueFixtureIds.workspace, {
-      queue: 'assigned_work',
-    });
+    expect(props.onOpenQueueItem).toHaveBeenCalledWith(
+      expect.objectContaining({ subjectType: 'bug' }),
+    );
+    expect(screen.queryByRole('region', { name: 'Detail Bug content' })).not.toBeInTheDocument();
   });
 
   it('shows loading, permission, and retryable error states', () => {

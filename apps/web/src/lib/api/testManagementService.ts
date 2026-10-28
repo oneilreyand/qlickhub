@@ -8,8 +8,12 @@ import type {
   ListTestCasesQuery,
   TaskTestExecutionWorkspace,
   TestCase,
+  TestCaseScopeValidationResult,
   TestCaseImportAudit,
   TestCaseImportPreviewResponse,
+  GoogleSheetImportFile,
+  UpdateImportRowRequirementInput,
+  UpdateImportRowRequirementResponse,
   TestCaseImportResult,
   TestResultEvidenceLink,
   TestRun,
@@ -117,6 +121,17 @@ export const testManagementService = {
     return response.testCycle;
   },
 
+  async validateTestCaseScope(
+    workspaceId: string,
+    requirementIds: string[],
+    qaSubtaskId?: string,
+  ): Promise<TestCaseScopeValidationResult> {
+    return apiClient<TestCaseScopeValidationResult>(
+      `/workspaces/${workspaceId}/test-cases/validate-scope`,
+      { method: 'POST', body: JSON.stringify({ requirementIds, qaSubtaskId }) },
+    );
+  },
+
   async createTestCase(
     workspaceId: string,
     input: Omit<CreateTestCaseInput, 'workspaceId'>,
@@ -140,6 +155,12 @@ export const testManagementService = {
     return response.testCase;
   },
 
+  async deleteTestCase(workspaceId: string, testCaseId: string): Promise<void> {
+    await apiClient<unknown>(`/workspaces/${workspaceId}/test-cases/${testCaseId}`, {
+      method: 'DELETE',
+    });
+  },
+
   async createTestRun(
     workspaceId: string,
     testCaseId: string,
@@ -158,7 +179,14 @@ export const testManagementService = {
     testRunId: string,
     input: Pick<
       CreateTestResultInput,
-      'status' | 'actualResult' | 'notes' | 'evidenceAttachmentIds' | 'evidenceLinks'
+      | 'status'
+      | 'actualResult'
+      | 'notes'
+      | 'evidenceAttachmentIds'
+      | 'evidenceLinks'
+      | 'stepResults'
+      | 'browser'
+      | 'device'
     >,
   ): Promise<TestRun> {
     const response = await apiClient<{ testRun: TestRun }>(
@@ -197,15 +225,45 @@ export const testManagementService = {
     fileBase64?: string,
     sheetName?: string,
     columnMapping?: Record<string, string>,
+    qaSubtaskId?: string,
   ): Promise<TestCaseImportPreviewResponse> {
     const response = await apiClient<{ preview: TestCaseImportPreviewResponse }>(
       `/workspaces/${workspaceId}/test-cases/import/preview`,
       {
         method: 'POST',
-        body: JSON.stringify({ fileName, fileContent, fileBase64, sheetName, columnMapping }),
+        body: JSON.stringify({
+          fileName,
+          fileContent,
+          fileBase64,
+          sheetName,
+          columnMapping,
+          qaSubtaskId,
+        }),
       },
     );
     return response.preview;
+  },
+
+  /** Mengambil satu tab Google Sheets (akses "siapa saja yang memiliki link") sebagai CSV. */
+  async fetchGoogleSheetForImport(
+    workspaceId: string,
+    url: string,
+  ): Promise<GoogleSheetImportFile> {
+    const response = await apiClient<{ file: GoogleSheetImportFile }>(
+      `/workspaces/${workspaceId}/test-cases/import/google-sheet`,
+      { method: 'POST', body: JSON.stringify({ url }) },
+    );
+    return response.file;
+  },
+
+  async updateImportRowRequirement(
+    workspaceId: string,
+    input: UpdateImportRowRequirementInput,
+  ): Promise<UpdateImportRowRequirementResponse> {
+    return apiClient<UpdateImportRowRequirementResponse>(
+      `/workspaces/${workspaceId}/test-cases/import/row-requirement`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
   },
 
   async commitImport(

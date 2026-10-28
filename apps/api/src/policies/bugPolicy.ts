@@ -12,6 +12,11 @@ export function assertCanCreateBug(role: WorkspaceRole): void {
   throw new Error('FORBIDDEN: Only Owner, Admin, or QA can open Bugs.');
 }
 
+export function assertCanReopenVerifiedBug(role: WorkspaceRole): void {
+  if (bugManagers.includes(role)) return;
+  throw new Error('FORBIDDEN: Only Owner, Admin, or QA can reopen a verified Bug.');
+}
+
 export function assertCanUpdateBug(
   role: WorkspaceRole,
   actorId: string,

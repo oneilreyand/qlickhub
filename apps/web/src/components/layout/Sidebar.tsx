@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { getWorkPageOrigin } from '../../lib/utils/sectionLabel';
 import {
   Component,
   ShieldCheck,
@@ -17,6 +18,7 @@ import { selectCurrentUserRole } from '../../store/authSlice';
 import { featureVisibility } from '../../config/featureVisibility';
 import { patchTaskHubQueryState } from '../../lib/utils/taskHubQueryState';
 import { FolderTree } from '../ui/organisms/FolderTree';
+import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import {
   archiveFolder,
   createFolder,
@@ -82,6 +84,14 @@ const navItems: NavItem[] = [
   },
 ];
 
+/** The four primary destinations stay on top; everything else is grouped under "Lainnya". */
+const PRIMARY_NAV_PATHS = new Set([
+  '/work?tab=overview',
+  '/work?tab=tasks',
+  '/my-tasks',
+  '/reports',
+]);
+
 export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -113,6 +123,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const canAccessLeaderHub = ['owner', 'admin'].includes(userRole);
   const isTaskHub =
     location.pathname === '/work' && new URLSearchParams(location.search).get('tab') === 'tasks';
+  // Halaman Feature dan tautan langsung Task adalah bagian dari Task Hub: Sidebar tetap
+  // menampilkan folder dan menyorot menu Task Hub.
+  const isFeaturePage =
+    /^\/work\/features\/[^/]+$/.test(location.pathname) ||
+    /^\/projects\/[^/]+\/tasks\/[^/]+$/.test(location.pathname);
+  const showFolders = isTaskHub || isFeaturePage;
   const isUnfiledSelected = new URLSearchParams(location.search).get('unfiledOnly') === 'true';
 
   // The workspace shell keeps labels visible on desktop; the mobile drawer reuses the same shape.
@@ -133,6 +149,72 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
     }
     return true;
   });
+
+  const primaryNavItems = visibleNavItems.filter((item) => PRIMARY_NAV_PATHS.has(item.path));
+  const secondaryNavItems = visibleNavItems.filter((item) => !PRIMARY_NAV_PATHS.has(item.path));
+
+  const renderNavItem = (item: NavItem) => {
+    const Icon = item.icon;
+    const searchParams = new URLSearchParams(location.search);
+    const currentTab = searchParams.get('tab') || (location.pathname === '/work' ? 'overview' : '');
+    const workPageOrigin = getWorkPageOrigin(location.pathname, location.state);
+    const isTaskDeepLink = isFeaturePage || workPageOrigin === 'task-hub';
+
+    const isActive =
+      item.path === '/work?tab=overview'
+        ? location.pathname === '/work' && currentTab === 'overview'
+        : item.path === '/work?tab=tasks'
+          ? (location.pathname === '/work' && currentTab === 'tasks') || isTaskDeepLink
+          : item.path === '/my-tasks'
+            ? location.pathname === '/my-tasks' ||
+              location.pathname.startsWith('/my-tasks/') ||
+              workPageOrigin === 'my-tasks' ||
+              location.pathname === '/requirements'
+            : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+
+    return (
+      <NavLink
+        key={item.path}
+        to={item.path}
+        onClick={onCloseMobile}
+        title={!isExpanded ? item.name : undefined}
+        className={`group relative flex min-h-[40px] items-center rounded-xl text-xs font-medium transition-colors ${
+          isActive
+            ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
+            : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800/80 dark:hover:text-white'
+        } ${isExpanded ? 'px-3 gap-2.5 justify-start' : 'justify-center px-0'}`}
+      >
+        {/* Menu Icon */}
+        <div className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <Icon
+            className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-105 ${
+              isActive
+                ? 'text-[#141413] dark:text-[#141413]'
+                : 'text-stone-400 group-hover:text-stone-800 dark:group-hover:text-white'
+            }`}
+          />
+        </div>
+
+        {/* Text Label & Badge: ONLY visible when expanded (isExpanded) */}
+        {isExpanded && (
+          <div className="flex flex-1 items-center justify-between truncate whitespace-nowrap min-w-0">
+            <span className="truncate">{item.name}</span>
+            {item.badge && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ml-2 shrink-0 ${
+                  isActive
+                    ? 'bg-[#141413]/20 text-[#141413]'
+                    : 'bg-stone-100 text-stone-500 group-hover:bg-stone-200 group-hover:text-stone-800 dark:bg-stone-800 dark:text-stone-400 dark:group-hover:bg-stone-700 dark:group-hover:text-stone-200'
+                }`}
+              >
+                {item.badge}
+              </span>
+            )}
+          </div>
+        )}
+      </NavLink>
+    );
+  };
 
   const handleMouseEnter = () => {
     if (onHoverChange) onHoverChange(true);
@@ -200,136 +282,59 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
               isExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 pointer-events-none'
             }`}
           >
-            <span className="text-xs font-bold tracking-tight text-stone-900 dark:text-white">
+            <span className="text-sm font-bold tracking-tight text-stone-900 dark:text-white">
               Qlick Hub
             </span>
-            <span className="text-[9px] font-semibold text-stone-500 dark:text-[#B1E743]">
-              Work Hub v2.0
-            </span>
           </div>
         </div>
       </div>
 
-      {/* Navigation Menu (Scrollable area) */}
+      {/* Workspace selector lives in the Sidebar (ADR-035). */}
+      <div className="shrink-0 px-3 pt-4">
+        <WorkspaceSwitcher onNavigate={onCloseMobile} />
+      </div>
+
+      {/* Navigation and folder tree share one scroll area so short screens keep every item reachable. */}
       <div className="flex-1 overflow-y-auto overscroll-contain py-4">
         <nav className="space-y-1.5 px-3">
-          <div
-            className={`px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-stone-400 whitespace-nowrap transition-all duration-200 dark:text-stone-500 ${
-              isExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 h-0 p-0 overflow-hidden'
-            }`}
-          >
-            Menu Utama
-          </div>
-          {visibleNavItems.map((item) => {
-            const Icon = item.icon;
-            const searchParams = new URLSearchParams(location.search);
-            const currentTab =
-              searchParams.get('tab') || (location.pathname === '/work' ? 'overview' : '');
-            const isTaskDeepLink = /^\/projects\/[^/]+\/tasks\/[^/]+$/.test(location.pathname);
-
-            const isActive =
-              item.path === '/work?tab=overview'
-                ? location.pathname === '/work' && currentTab === 'overview'
-                : item.path === '/work?tab=tasks'
-                  ? (location.pathname === '/work' && currentTab === 'tasks') || isTaskDeepLink
-                  : item.path === '/my-tasks'
-                    ? location.pathname === '/my-tasks' ||
-                      location.pathname.startsWith('/my-tasks/') ||
-                      location.pathname === '/requirements'
-                    : location.pathname === item.path ||
-                      location.pathname.startsWith(`${item.path}/`);
-
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={onCloseMobile}
-                title={!isExpanded ? item.name : undefined}
-                className={`group relative flex min-h-[40px] items-center rounded-xl text-xs font-medium transition-colors ${
-                  isActive
-                    ? 'bg-[#B1E743] text-[#141413] font-bold shadow-xs dark:bg-[#B1E743] dark:text-[#141413]'
-                    : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800/80 dark:hover:text-white'
-                } ${isExpanded ? 'px-3 gap-2.5 justify-start' : 'justify-center px-0'}`}
-              >
-                {/* Menu Icon */}
-                <div className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
-                  <Icon
-                    className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-105 ${
-                      isActive
-                        ? 'text-[#141413] dark:text-[#141413]'
-                        : 'text-stone-400 group-hover:text-stone-800 dark:group-hover:text-white'
-                    }`}
-                  />
-                </div>
-
-                {/* Text Label & Badge: ONLY visible when expanded (isExpanded) */}
-                {isExpanded && (
-                  <div className="flex flex-1 items-center justify-between truncate whitespace-nowrap min-w-0">
-                    <span className="truncate">{item.name}</span>
-                    {item.badge && (
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ml-2 shrink-0 ${
-                          isActive
-                            ? 'bg-[#141413]/20 text-[#141413]'
-                            : 'bg-stone-100 text-stone-500 group-hover:bg-stone-200 group-hover:text-stone-800 dark:bg-stone-800 dark:text-stone-400 dark:group-hover:bg-stone-700 dark:group-hover:text-stone-200'
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </NavLink>
-            );
-          })}
+          {primaryNavItems.map(renderNavItem)}
+          {secondaryNavItems.length > 0 && (
+            <>
+              <div className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                Lainnya
+              </div>
+              {secondaryNavItems.map(renderNavItem)}
+            </>
+          )}
         </nav>
-      </div>
-
-      {isTaskHub && (
-        <div className="border-t border-stone-100 px-3 py-4 dark:border-stone-800/80">
-          <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-400 dark:text-stone-500">
-            Folder workspace
-          </p>
-          <div className="max-h-[30vh] overflow-y-auto pr-0.5">
-            <FolderTree
-              folders={folders}
-              selectedFolderId={selectedFolderId || null}
-              isUnfiledSelected={isUnfiledSelected}
-              totalTasks={workspaceFeatureCount}
-              isLoading={isFolderLoading}
-              error={folderError}
-              userRole={activeWorkspace?.role}
-              onSelectFolder={handleSelectFolder}
-              onSelectUnfiled={handleSelectUnfiled}
-              onCreateFolder={handleCreateFolder}
-              onRenameFolder={handleRenameFolder}
-              onArchiveFolder={handleArchiveFolder}
-              onRetry={() => activeWorkspaceId && dispatch(fetchFolderTree(activeWorkspaceId))}
-            />
+        {showFolders && (
+          <div className="mt-4 border-t border-stone-100 px-3 pt-4 dark:border-stone-800/80">
+            <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-400 dark:text-stone-500">
+              Folder workspace
+            </p>
+            <div className="pr-0.5">
+              <FolderTree
+                folders={folders}
+                selectedFolderId={selectedFolderId || null}
+                isUnfiledSelected={isUnfiledSelected}
+                // Jumlah berasal dari daftar Task Hub; di halaman Feature yang dibuka langsung
+                // daftar itu belum dimuat, jadi angka disembunyikan daripada menampilkan 0.
+                totalTasks={
+                  isFeaturePage && workspaceFeatureCount === 0 ? undefined : workspaceFeatureCount
+                }
+                isLoading={isFolderLoading}
+                error={folderError}
+                userRole={activeWorkspace?.role}
+                onSelectFolder={handleSelectFolder}
+                onSelectUnfiled={handleSelectUnfiled}
+                onCreateFolder={handleCreateFolder}
+                onRenameFolder={handleRenameFolder}
+                onArchiveFolder={handleArchiveFolder}
+                onRetry={() => activeWorkspaceId && dispatch(fetchFolderTree(activeWorkspaceId))}
+              />
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Footer Section */}
-      <div className="shrink-0 border-t border-stone-100 p-3 dark:border-stone-800/80">
-        <div
-          className={`flex items-center overflow-hidden rounded-xl border border-stone-200/80 bg-stone-50 px-3 py-2 text-[11px] dark:border-stone-800 dark:bg-stone-900/60 ${isExpanded ? '' : 'justify-center px-0'}`}
-        >
-          <span className="relative flex h-2 w-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          <div
-            className={`flex flex-1 items-center justify-between truncate pl-2.5 whitespace-nowrap transition-all duration-200 ${
-              isExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 pointer-events-none'
-            }`}
-          >
-            <span className="font-semibold text-stone-700 dark:text-stone-200">
-              Workspace Aktif
-            </span>
-            <span className="text-[10px] font-medium text-stone-400 dark:text-stone-500">v2.0</span>
-          </div>
-        </div>
+        )}
       </div>
     </aside>
   );

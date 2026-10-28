@@ -55,6 +55,35 @@ const TaskDeepLinkPage = lazy(async () => ({
   ).TaskDeepLinkPage,
 }));
 
+const FeatureDetailPage = lazy(async () => ({
+  default: (
+    await loadRouteModuleWithRecovery('feature-detail', () => import('../pages/FeatureDetailPage'))
+  ).FeatureDetailPage,
+}));
+
+const SubtaskWorkPage = lazy(async () => ({
+  default: (
+    await loadRouteModuleWithRecovery('subtask-work', () => import('../pages/SubtaskWorkPage'))
+  ).SubtaskWorkPage,
+}));
+
+const BugWorkPage = lazy(async () => ({
+  default: (await loadRouteModuleWithRecovery('bug-work', () => import('../pages/BugWorkPage')))
+    .BugWorkPage,
+}));
+
+const TestCaseNewPage = lazy(async () => ({
+  default: (
+    await loadRouteModuleWithRecovery('test-case-new', () => import('../pages/TestCaseNewPage'))
+  ).TestCaseNewPage,
+}));
+
+const TestCaseRunPage = lazy(async () => ({
+  default: (
+    await loadRouteModuleWithRecovery('test-case-run', () => import('../pages/TestCaseRunPage'))
+  ).TestCaseRunPage,
+}));
+
 const protectedPageFallback = (
   <div
     className="min-h-screen w-screen bg-[#FBFCF7] dark:bg-[#141413] flex items-center justify-center"
@@ -80,6 +109,66 @@ export const App: React.FC = () => {
                 <Suspense fallback={protectedPageFallback}>
                   <AppLayout>
                     <WorkHubPage />
+                  </AppLayout>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/work/features/:featureId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <FeatureDetailPage />
+                  </AppLayout>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/work/subtasks/:subtaskId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <SubtaskWorkPage />
+                  </AppLayout>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/work/bugs/:bugId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <BugWorkPage />
+                  </AppLayout>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tests/cases/new"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <TestCaseNewPage />
+                  </AppLayout>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tests/cases/:testCaseId/run"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <TestCaseRunPage />
                   </AppLayout>
                 </Suspense>
               </ProtectedRoute>

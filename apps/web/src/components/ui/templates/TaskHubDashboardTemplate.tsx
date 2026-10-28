@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import type { FolderTreeNode } from '@qlick/contracts';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import type { FolderTreeNode, Task } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { Drawer } from '../molecules/Drawer';
 import { FolderTree } from '../organisms/FolderTree';
@@ -61,6 +61,8 @@ function findFolderInTree(folders: FolderTreeNode[], folderId: string): FolderTr
 export const TaskHubDashboardTemplate: React.FC = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Granular selectors to minimize unwanted re-renders
   const activeWorkspaceId = useAppSelector(
@@ -321,6 +323,17 @@ export const TaskHubDashboardTemplate: React.FC = () => {
     updateTaskHubQuery({ taskId });
   };
 
+  // Feature (task induk) dibuka sebagai halaman; subtask tetap lewat panel yang ada (P2b).
+  const handleSelectTask = (task: Task) => {
+    if (task.parentTaskId) {
+      handleOpenTask(task.id);
+      return;
+    }
+    navigate(`/work/features/${task.id}`, {
+      state: { returnTo: `${location.pathname}${location.search}` },
+    });
+  };
+
   const handleCloseTask = () => {
     updateTaskHubQuery({ taskId: null });
   };
@@ -451,7 +464,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 selectedTaskId={selectedTaskId}
                 deliveryTraceStateByTaskId={deliveryTraceStateByTaskId}
                 releaseReadinessStateByTaskId={releaseReadinessStateByTaskId}
-                onSelect={(task) => handleOpenTask(task.id)}
+                onSelect={handleSelectTask}
               />
             ) : viewMode === 'kanban' ? (
               <TaskHubKanbanBoard
@@ -460,13 +473,13 @@ export const TaskHubDashboardTemplate: React.FC = () => {
                 selectedFeatureId={kanbanFeatureId}
                 isLoadingFeatures={isTaskLoading}
                 onSelectFeature={(featureId) => updateTaskHubQuery({ kanbanFeatureId: featureId })}
-                onSelect={(task) => handleOpenTask(task.id)}
+                onSelect={handleSelectTask}
               />
             ) : (
               <TaskHubSchedule
                 tasks={visibleTasks}
                 isLoading={isTaskLoading}
-                onSelect={(task) => handleOpenTask(task.id)}
+                onSelect={handleSelectTask}
               />
             )}
           </Card>

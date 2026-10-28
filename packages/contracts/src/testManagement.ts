@@ -201,6 +201,12 @@ export const TestResultEvidenceManifestSchema = z.object({
 });
 export type TestResultEvidenceManifest = z.infer<typeof TestResultEvidenceManifestSchema>;
 
+export const TestStepResultSchema = z.object({
+  index: z.number().int().min(0).max(999),
+  checked: z.boolean(),
+});
+export type TestStepResult = z.infer<typeof TestStepResultSchema>;
+
 export const TestResultSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
@@ -209,6 +215,9 @@ export const TestResultSchema = z.object({
   executorId: z.string().uuid(),
   actualResult: z.string().nullable(),
   notes: z.string().nullable(),
+  stepResults: z.array(TestStepResultSchema).nullable().optional(),
+  browser: z.string().nullable().optional(),
+  device: z.string().nullable().optional(),
   executedAt: z.string().datetime(),
   evidence: z.array(TestResultEvidenceSchema),
   evidenceLinks: z.array(TestResultEvidenceLinkSchema).default([]),
@@ -365,6 +374,15 @@ export const RecordTestResultSchema = z.object({
   status: TestResultStatusSchema,
   actualResult: z.string().trim().max(10000).nullable().optional(),
   notes: z.string().trim().max(10000).nullable().optional(),
+  stepResults: z
+    .array(TestStepResultSchema)
+    .max(100)
+    .refine((items) => new Set(items.map((item) => item.index)).size === items.length, {
+      message: 'Step results must not repeat a step index',
+    })
+    .optional(),
+  browser: z.string().trim().max(100).nullable().optional(),
+  device: z.string().trim().max(100).nullable().optional(),
   evidenceAttachmentIds: z
     .array(z.string().uuid())
     .max(
@@ -523,6 +541,10 @@ export const TestCaseImportPreviewResponseSchema = z.object({
   headers: z.array(z.string()).default([]),
   columnMapping: z.record(z.string()).optional(),
   unmappedHeaders: z.array(z.string()).default([]),
+  /** Kolom hasil uji/metadata (Status, Evidence, Notes, ...) yang dilewati, bukan error. */
+  ignoredHeaders: z.array(z.string()).default([]),
+  /** Kode Requirement aktif yang sah untuk Feature subtask QA (kosong bila tanpa subtask). */
+  allowedRequirementCodes: z.array(z.string()).default([]),
   expiresAt: z.string().datetime(),
   rows: z.array(TestCaseImportDryRunRowSchema),
 });
@@ -596,3 +618,36 @@ export const RemindPoResponseSchema = z.object({
   remindedAt: z.string(),
 });
 export type RemindPoResponse = z.infer<typeof RemindPoResponseSchema>;
+
+/** Impor dari tautan Google Sheets (akses "siapa saja yang memiliki link"). */
+export const FetchGoogleSheetImportSchema = z.object({
+  url: z.string().trim().min(1).max(2048),
+});
+export type FetchGoogleSheetImportInput = z.infer<typeof FetchGoogleSheetImportSchema>;
+
+export const GoogleSheetImportFileSchema = z.object({
+  fileName: z.string(),
+  fileContent: z.string(),
+  sheetGid: z.string(),
+});
+export type GoogleSheetImportFile = z.infer<typeof GoogleSheetImportFileSchema>;
+
+/** Koreksi manual kode Requirement pada baris pratinjau impor (sheet asli tidak berubah). */
+export const UpdateImportRowRequirementSchema = z.object({
+  importSessionId: z.string().uuid(),
+  requirementCode: NonBlankTextSchema.max(64),
+  /** Nomor baris sumber yang diubah; setiap baris harus berasal dari sesi impor ini. */
+  sourceRowNumbers: z.array(z.number().int().positive()).min(1).max(MAX_IMPORT_ROWS),
+  qaSubtaskId: z.string().uuid().optional(),
+});
+export type UpdateImportRowRequirementInput = z.infer<typeof UpdateImportRowRequirementSchema>;
+
+export const UpdateImportRowRequirementResponseSchema = z.object({
+  rows: z.array(TestCaseImportDryRunRowSchema),
+  validRows: z.number().int().nonnegative(),
+  invalidRows: z.number().int().nonnegative(),
+  duplicateRows: z.number().int().nonnegative(),
+});
+export type UpdateImportRowRequirementResponse = z.infer<
+  typeof UpdateImportRowRequirementResponseSchema
+>;

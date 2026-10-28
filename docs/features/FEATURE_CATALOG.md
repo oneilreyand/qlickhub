@@ -82,12 +82,13 @@ utama membantu navigasi saja; hak akses dan urutan kerja tetap mengikuti
 
 ## 6. Feature folder (SDLC)
 
-| Feature                                                    | Pembaca utama     | Tujuan singkat                                                | Status                    |
-| ---------------------------------------------------------- | ----------------- | ------------------------------------------------------------- | ------------------------- |
-| [DOC-PORTAL](DOC-PORTAL/README.md)                         | Semua role        | Portal dokumentasi lokal dan completeness check dokumen.      | Active                    |
-| [QA-DESK-SIMPLIFY](QA-DESK-SIMPLIFY/README.md)             | QA, PO, Developer | Baseline kesiapan otomatis dan siklus Test Case QA.           | Draft — rilis, smoke test |
-| [RELEASE-DEADLOCK-A1-A2](RELEASE-DEADLOCK-A1-A2/README.md) | QA, PO            | Penolakan QA/PO saat gate evidence gagal dan gate Bug.        | Draft                     |
-| [UI-WORKSPACE-REFRESH](UI-WORKSPACE-REFRESH/README.md)     | Semua role        | Refresh terpadu Ringkasan, Task Hub, Tugas Saya, dan Laporan. | Draft — G0–G2 disetujui   |
+| Feature                                                      | Pembaca utama     | Tujuan singkat                                                                                          | Status                             |
+| ------------------------------------------------------------ | ----------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| [DOC-PORTAL](DOC-PORTAL/README.md)                           | Semua role        | Portal dokumentasi lokal dan completeness check dokumen.                                                | Active                             |
+| [QA-DESK-SIMPLIFY](QA-DESK-SIMPLIFY/README.md)               | QA, PO, Developer | Baseline kesiapan otomatis dan siklus Test Case QA.                                                     | Draft — rilis, smoke test          |
+| [RELEASE-DEADLOCK-A1-A2](RELEASE-DEADLOCK-A1-A2/README.md)   | QA, PO            | Penolakan QA/PO saat gate evidence gagal dan gate Bug.                                                  | Draft                              |
+| [UI-WORKSPACE-REFRESH](UI-WORKSPACE-REFRESH/README.md)       | Semua role        | Refresh terpadu Ringkasan, Task Hub, Tugas Saya, dan Laporan.                                           | Draft — G0–G2 disetujui            |
+| [SIMPLE-UI-DELIVERY-FLOW](SIMPLE-UI-DELIVERY-FLOW/README.md) | Semua role        | UI sederhana, alur Plan → PRD → Task → Apply, Tugas Saya per peran, dan rilis Production terverifikasi. | Draft — G0/G1 menunggu persetujuan |
 
 ## Format Feature ke depan
 

@@ -9,13 +9,23 @@ export interface TestResultAttributes {
   executorId: string;
   actualResult?: string | null;
   notes?: string | null;
+  stepResults?: Array<{ index: number; checked: boolean }> | null;
+  browser?: string | null;
+  device?: string | null;
   executedAt?: Date;
   createdAt?: Date;
 }
 
 type TestResultCreationAttributes = Optional<
   TestResultAttributes,
-  'id' | 'actualResult' | 'notes' | 'executedAt' | 'createdAt'
+  | 'id'
+  | 'actualResult'
+  | 'notes'
+  | 'stepResults'
+  | 'browser'
+  | 'device'
+  | 'executedAt'
+  | 'createdAt'
 >;
 
 export class TestResultModel
@@ -29,6 +39,9 @@ export class TestResultModel
   declare executorId: string;
   declare actualResult: string | null;
   declare notes: string | null;
+  declare stepResults: Array<{ index: number; checked: boolean }> | null;
+  declare browser: string | null;
+  declare device: string | null;
   declare readonly executedAt: Date;
   declare readonly createdAt: Date;
 }
@@ -42,6 +55,9 @@ TestResultModel.init(
     executorId: { type: DataTypes.UUID, allowNull: false, field: 'executor_id' },
     actualResult: { type: DataTypes.TEXT, allowNull: true, field: 'actual_result' },
     notes: { type: DataTypes.TEXT, allowNull: true },
+    stepResults: { type: DataTypes.JSONB, allowNull: true, field: 'step_results' },
+    browser: { type: DataTypes.STRING(100), allowNull: true },
+    device: { type: DataTypes.STRING(100), allowNull: true },
     executedAt: {
       type: DataTypes.DATE,
       allowNull: false,

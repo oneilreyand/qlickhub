@@ -11,6 +11,8 @@ vi.mock('../../../../../lib/api/testManagementService', () => ({
     commitImport: vi.fn(),
     listImportAudits: vi.fn(),
     downloadErrorReport: vi.fn(),
+    fetchGoogleSheetForImport: vi.fn(),
+    updateImportRowRequirement: vi.fn(),
   },
 }));
 
@@ -32,6 +34,8 @@ const preview = (unmappedHeaders: string[] = []): TestCaseImportPreviewResponse 
     ...Object.fromEntries(unmappedHeaders.map((header) => [header, ''])),
   },
   unmappedHeaders,
+  ignoredHeaders: [],
+  allowedRequirementCodes: [],
   expiresAt: '2026-09-19T10:00:00.000Z',
   rows: [
     {
@@ -123,5 +127,147 @@ describe('TestCaseImportWizardModal', () => {
       ).toBeInTheDocument(),
     );
     expect(screen.getByText(/Kolom belum dikenali: Unsupported Source Field/)).toBeInTheDocument();
+  });
+
+  it('fetches a Google Sheets link, scopes the preview to the QA subtask, and explains rejected rows', async () => {
+    vi.mocked(testManagementService.fetchGoogleSheetForImport).mockResolvedValue({
+      fileName: 'google-sheet-0.csv',
+      fileContent: 'Title,Requirement Code\nImported case,REQ-001',
+      sheetGid: '0',
+    });
+    vi.mocked(testManagementService.previewImport).mockResolvedValue({
+      ...preview(),
+      totalRows: 3,
+      validRows: 1,
+      invalidRows: 2,
+      ignoredHeaders: ['Status', 'Evidance'],
+      allowedRequirementCodes: ['REQ-001', 'REQ-002'],
+    });
+    render(
+      <TestCaseImportWizardModal
+        isOpen
+        onClose={vi.fn()}
+        workspaceId="10000000-0000-4000-8000-000000000003"
+        userRole="qa"
+        qaSubtaskId="10000000-0000-4000-8000-000000000009"
+        onImportComplete={vi.fn()}
+      />,
+    );
+
+    const button = screen.getByRole('button', { name: 'Ambil dari Google Sheets' });
+    expect(button).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Atau tempel tautan Google Sheets'), {
+      target: { value: 'https://docs.google.com/spreadsheets/d/abc/edit#gid=0' },
+    });
+    fireEvent.click(button);
+
+    await waitFor(() =>
+      expect(testManagementService.fetchGoogleSheetForImport).toHaveBeenCalledWith(
+        '10000000-0000-4000-8000-000000000003',
+        'https://docs.google.com/spreadsheets/d/abc/edit#gid=0',
+      ),
+    );
+    await waitFor(() =>
+      expect(testManagementService.previewImport).toHaveBeenCalledWith(
+        '10000000-0000-4000-8000-000000000003',
+        'google-sheet-0.csv',
+        'Title,Requirement Code\nImported case,REQ-001',
+        undefined,
+        undefined,
+        undefined,
+        '10000000-0000-4000-8000-000000000009',
+      ),
+    );
+    expect(await screen.findByText('2 baris tidak akan diimpor.')).toBeInTheDocument();
+    expect(screen.getByText('REQ-001, REQ-002')).toBeInTheDocument();
+    expect(screen.getByText(/Kolom tidak diimpor: Status, Evidance/)).toBeInTheDocument();
+  });
+
+  it('shows the API error when the Google Sheet is not shared', async () => {
+    vi.mocked(testManagementService.fetchGoogleSheetForImport).mockRejectedValue(
+      new Error('Spreadsheet tidak dapat dibaca.'),
+    );
+    render(
+      <TestCaseImportWizardModal
+        isOpen
+        onClose={vi.fn()}
+        workspaceId="10000000-0000-4000-8000-000000000003"
+        userRole="qa"
+        onImportComplete={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Atau tempel tautan Google Sheets'), {
+      target: { value: 'https://docs.google.com/spreadsheets/d/abc/edit' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Ambil dari Google Sheets' }));
+    expect(await screen.findByText('Spreadsheet tidak dapat dibaca.')).toBeInTheDocument();
+  });
+
+  it('lets the QA pick a valid Requirement for a rejected row without touching the sheet', async () => {
+    const base = preview();
+    const rejected = {
+      ...base.rows[0],
+      requirementCode: 'REQ-001',
+      resolvedRequirementId: null,
+      isValid: false,
+      validationErrors: ['Requirement "REQ-001" tidak ada di aplikasi.'],
+    };
+    vi.mocked(testManagementService.fetchGoogleSheetForImport).mockResolvedValue({
+      fileName: 'google-sheet-1.csv',
+      fileContent: 'Title,Requirement Code\nImported case,REQ-001',
+      sheetGid: '1',
+    });
+    vi.mocked(testManagementService.previewImport).mockResolvedValue({
+      ...base,
+      validRows: 0,
+      invalidRows: 1,
+      allowedRequirementCodes: ['REQ-9SQ1', 'REQ-9TS2'],
+      rows: [rejected],
+    });
+    vi.mocked(testManagementService.updateImportRowRequirement).mockResolvedValue({
+      rows: [
+        {
+          ...rejected,
+          requirementCode: 'REQ-9SQ1',
+          resolvedRequirementId: '10000000-0000-4000-8000-000000000002',
+          isValid: true,
+          validationErrors: [],
+        },
+      ],
+      validRows: 1,
+      invalidRows: 0,
+      duplicateRows: 0,
+    });
+    render(
+      <TestCaseImportWizardModal
+        isOpen
+        onClose={vi.fn()}
+        workspaceId="10000000-0000-4000-8000-000000000003"
+        userRole="qa"
+        qaSubtaskId="10000000-0000-4000-8000-000000000009"
+        onImportComplete={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Atau tempel tautan Google Sheets'), {
+      target: { value: 'https://docs.google.com/spreadsheets/d/abc/edit#gid=1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Ambil dari Google Sheets' }));
+
+    const rowSelect = await screen.findByLabelText('Ganti Requirement baris 2');
+    fireEvent.change(rowSelect, { target: { value: 'REQ-9SQ1' } });
+
+    await waitFor(() =>
+      expect(testManagementService.updateImportRowRequirement).toHaveBeenCalledWith(
+        '10000000-0000-4000-8000-000000000003',
+        {
+          importSessionId: '10000000-0000-4000-8000-000000000001',
+          requirementCode: 'REQ-9SQ1',
+          sourceRowNumbers: [2],
+          qaSubtaskId: '10000000-0000-4000-8000-000000000009',
+        },
+      ),
+    );
+    expect(await screen.findByRole('button', { name: 'Impor 1 Baris Valid' })).toBeEnabled();
+    expect(screen.queryByLabelText('Ganti Requirement baris 2')).not.toBeInTheDocument();
   });
 });

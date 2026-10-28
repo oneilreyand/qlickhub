@@ -8,6 +8,7 @@ import {
   CreateBugResolutionEventSchema,
   CreateBugRetestAttemptSchema,
   CreateBugRetestRunSchema,
+  ReopenBugSchema,
 } from '@qlick/contracts';
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { bugService } from './bugService.js';
@@ -78,6 +79,19 @@ export async function createBugRetestAttempt(req: AuthenticatedRequest, res: Res
     });
     const retestAttempt = await bugService.createRetestAttempt(req.user!.userId, input);
     return res.status(201).json({ retestAttempt });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+export async function reopenBug(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = ReopenBugSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+      bugId: req.params.bugId,
+    });
+    const bug = await bugService.reopenBug(req.user!.userId, input);
+    return res.status(200).json({ bug });
   } catch (error) {
     return sendProblemDetails(res, error);
   }

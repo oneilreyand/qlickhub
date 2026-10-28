@@ -26,6 +26,9 @@ export interface TaskDetailProductBriefTabProps {
   onReload: () => void;
   onSaved?: (brief: ProductBrief) => void;
   onDirtyChange?: (isDirty: boolean) => void;
+  /** Tampilan sederhana (halaman Feature): satu kolom, tanpa judul/status, teks biasa dulu. */
+  simple?: boolean;
+  onCancel?: () => void;
 }
 
 const isPlanner = (role: string) => ['owner', 'admin', 'po'].includes(role);
@@ -45,7 +48,10 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
   onReload,
   onSaved,
   onDirtyChange,
+  simple = false,
+  onCancel,
 }) => {
+  const [advanced, setAdvanced] = useState(false);
   const canPlan = isPlanner(userRole);
   const [currentBrief, setCurrentBrief] = useState(productBrief);
   const [title, setTitle] = useState(productBrief?.document.title || `Brief Produk ${task.title}`);
@@ -224,6 +230,83 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
     </section>
   );
 
+  const resetToSaved = () => {
+    setTitle(currentBrief?.document.title || `Brief Produk ${task.title}`);
+    setContentMarkdown(currentBrief?.currentVersion.contentMarkdown || '');
+    setInScope(currentBrief?.currentVersion.inScope || []);
+    setOutScope(currentBrief?.currentVersion.outScope || []);
+    setStatus(currentBrief?.document.status || 'draft');
+    setSaveError(null);
+    onCancel?.();
+  };
+
+  const renderSimpleScope = (
+    kind: 'in' | 'out',
+    heading: string,
+    addLabel: string,
+    items: ProductBriefScopeItem[],
+  ) => {
+    const append = () =>
+      kind === 'in'
+        ? setInScope((list) => [...list, newScopeItem(list.length)])
+        : setOutScope((list) => [...list, newScopeItem(list.length)]);
+    return (
+      <section className="space-y-2" aria-labelledby={`product-brief-${kind}-scope-heading`}>
+        <h3
+          id={`product-brief-${kind}-scope-heading`}
+          className={`text-xs font-bold uppercase tracking-wide ${
+            kind === 'in'
+              ? 'text-lime-800 dark:text-[#B1E743]'
+              : 'text-stone-500 dark:text-stone-400'
+          }`}
+        >
+          {heading}
+        </h3>
+        {items.map((item, index) => (
+          <div key={item.id} className="flex items-center gap-2">
+            <input
+              type="text"
+              aria-label={`Item ${heading} ${index + 1}`}
+              value={item.text}
+              autoFocus={item.text === '' && index === items.length - 1 && items.length > 1}
+              onChange={(event) => updateScopeItem(kind, item.id, event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  if (item.text.trim()) append();
+                }
+              }}
+              disabled={!canPlan || isSaving}
+              className="h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/30 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+            />
+            {canPlan && (
+              <IconButton
+                label={`Hapus item ${heading} ${index + 1}`}
+                size="sm"
+                variant="ghost"
+                disabled={isSaving}
+                onClick={() => removeScopeItem(kind, item.id)}
+                className="shrink-0 text-stone-400 hover:text-rose-500"
+              >
+                <Trash2 className="h-4 w-4" />
+              </IconButton>
+            )}
+          </div>
+        ))}
+        {canPlan && (
+          <button
+            type="button"
+            onClick={append}
+            disabled={isSaving}
+            className="inline-flex h-8 items-center gap-1 rounded-md px-1 text-sm font-semibold text-lime-800 hover:underline disabled:opacity-60 dark:text-[#B1E743]"
+          >
+            <Plus className="h-3.5 w-3.5" /> {addLabel}
+          </button>
+        )}
+      </section>
+    );
+  };
+
   if (loadError) {
     return (
       <Card className="border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900/90 sm:p-5">
@@ -245,6 +328,88 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
         <Alert tone="info" title="Brief Produk belum tersedia">
           Product Owner, Admin, atau Owner perlu menentukan konteks dan cakupan Feature.
         </Alert>
+      </Card>
+    );
+  }
+
+  if (simple) {
+    return (
+      <Card className="space-y-4 border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900/90">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-[15px] font-semibold text-stone-900 dark:text-stone-100">
+            Product Brief
+          </h2>
+          <span className="text-xs text-stone-500 dark:text-stone-400">
+            {currentBrief
+              ? `Menyunting · akan jadi v${currentBrief.currentVersion.version + 1}`
+              : 'Draf baru'}
+          </span>
+        </div>
+        {!canPlan && (
+          <Alert tone="info" title="Brief Produk hanya dapat dilihat">
+            <span className="inline-flex items-center gap-1.5">
+              <Lock className="h-3.5 w-3.5" /> Hanya Product Owner, Admin, atau Owner yang dapat
+              membuat versi baru.
+            </span>
+          </Alert>
+        )}
+        {saveError && <Alert tone="error">{saveError}</Alert>}
+        {advanced ? (
+          <RichTextEditor
+            id="product-brief-context"
+            label="Konteks: kenapa Feature ini perlu ada?"
+            helperText="Tambahkan tautan PRD, Figma, atau riset dengan format [Nama](url)."
+            value={contentMarkdown}
+            onChange={setContentMarkdown}
+            disabled={!canPlan || isSaving}
+            minRows={6}
+          />
+        ) : (
+          <div className="space-y-1.5">
+            <label
+              htmlFor="product-brief-context"
+              className="text-xs font-semibold text-stone-600 dark:text-stone-300"
+            >
+              Konteks: kenapa Feature ini perlu ada?
+            </label>
+            <textarea
+              id="product-brief-context"
+              rows={4}
+              value={contentMarkdown}
+              onChange={(event) => setContentMarkdown(event.target.value)}
+              disabled={!canPlan || isSaving}
+              placeholder="Jelaskan masalah dan hasil yang diharapkan pengguna."
+              className="w-full resize-y rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm leading-relaxed text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/30 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+            />
+            <button
+              type="button"
+              onClick={() => setAdvanced(true)}
+              className="text-xs text-stone-500 underline hover:text-stone-800 dark:text-stone-400"
+            >
+              Format lanjutan (judul, tautan, gambar)
+            </button>
+          </div>
+        )}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {renderSimpleScope('in', 'Dalam scope', 'Item scope', inScope)}
+          {renderSimpleScope('out', 'Di luar scope', 'Item di luar scope', outScope)}
+        </div>
+        {canPlan && (
+          <div className="flex justify-end gap-2 border-t border-stone-100 pt-4 dark:border-stone-800">
+            <Button size="sm" variant="outline" onClick={resetToSaved} disabled={isSaving}>
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              isLoading={isSaving}
+              disabled={!title.trim() || !hasUnsavedChanges}
+              onClick={() => void handleSave()}
+            >
+              Simpan
+            </Button>
+          </div>
+        )}
       </Card>
     );
   }

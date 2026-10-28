@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** QA
-**Last reviewed:** 2026-10-14
+**Last reviewed:** 2026-10-27
 **Applicable Policy IDs:** DOC-006, UI-001, UI-002
 
 Matriks ini menilai setiap alur utama per role dengan kriteria yang sama. Role mengikuti
@@ -31,20 +31,24 @@ Matriks ini menilai setiap alur utama per role dengan kriteria yang sama. Role m
 
 ## Matriks
 
-| Role          | Alur                                     | Jumlah langkah | Aksi berikutnya | Empty / error | Mobile 390px  | Bahasa        | Bukti e2e                          |
-| ------------- | ---------------------------------------- | -------------- | --------------- | ------------- | ------------- | ------------- | ---------------------------------- |
-| Owner / Admin | Kelola anggota Workspace                 | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| Owner / Admin | Beri delegasi pembuatan Task             | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| Owner / Admin | Pengecualian darurat (break-glass)       | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| Product Owner | Tulis Product Brief                      | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| Product Owner | Buat Requirement dan Acceptance Criteria | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| Product Owner | Tinjau QA sign-off                       | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| Product Owner | Putuskan rilis                           | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| Developer     | Ambil Subtask dari Requirement           | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| Developer     | Tandai siap diuji QA                     | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| Developer     | Perbaiki Bug dan minta retest            | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| QA            | Susun Test Case dari Requirement dan AC  | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| QA            | Jalankan Test Run dan unggah evidence    | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | `qa-desk-flow-integration.spec.ts` |
-| QA            | Laporkan Bug ke Developer                | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
-| QA            | Retest independen                        | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | `qa-desk-flow-integration.spec.ts` |
-| QA            | QA sign-off ke PO                        | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                          |
+| Role          | Alur                                           | Jumlah langkah | Aksi berikutnya | Empty / error | Mobile 390px  | Bahasa        | Bukti e2e                                |
+| ------------- | ---------------------------------------------- | -------------- | --------------- | ------------- | ------------- | ------------- | ---------------------------------------- |
+| Owner / Admin | Kelola anggota Workspace                       | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Owner / Admin | Beri delegasi pembuatan Task                   | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Owner / Admin | Pengecualian darurat (break-glass)             | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Product Owner | Tulis Product Brief                            | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Product Owner | Buat Requirement dan Acceptance Criteria       | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Product Owner | Tinjau QA sign-off                             | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Product Owner | Putuskan rilis                                 | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Developer     | Ambil Subtask dari Requirement                 | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Developer     | Tandai siap diuji QA                           | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Developer     | Perbaiki Bug dan minta retest                  | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| QA            | Susun Test Case dari Requirement dan AC        | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| QA            | Jalankan Test Run dan unggah evidence          | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | `qa-desk-flow-integration.spec.ts`       |
+| QA            | Laporkan Bug ke Developer                      | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| QA            | Retest independen                              | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | `qa-desk-flow-integration.spec.ts`       |
+| QA            | QA sign-off ke PO                              | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
+| Product Owner | Plan dengan AI lalu Apply (ADR-035)            | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Desain: `SIMPLE-UI-DELIVERY-FLOW/design` |
+| Product Owner | Terima rilis dan tutup pemantauan              | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Desain: `SIMPLE-UI-DELIVERY-FLOW/design` |
+| Developer     | Kerjakan dari Tugas Saya dengan pesan pengirim | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Desain: `SIMPLE-UI-DELIVERY-FLOW/design` |
+| QA            | Verifikasi Production dan triage laporan user  | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Desain: `SIMPLE-UI-DELIVERY-FLOW/design` |

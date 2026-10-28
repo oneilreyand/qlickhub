@@ -38,7 +38,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   folders,
   selectedFolderId,
   isUnfiledSelected = false,
-  totalTasks = 0,
+  totalTasks,
   isLoading = false,
   error = null,
   userRole,
@@ -185,11 +185,13 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
               />
               <span className="truncate">Semua Task</span>
             </span>
-            <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null && !isUnfiledSelected ? 'bg-[#141413] text-[#B1E743] dark:bg-[#141413] dark:text-[#B1E743]' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
-            >
-              {totalTasks}
-            </span>
+            {totalTasks !== undefined && (
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${selectedFolderId === null && !isUnfiledSelected ? 'bg-[#141413] text-[#B1E743] dark:bg-[#141413] dark:text-[#B1E743]' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
+              >
+                {totalTasks}
+              </span>
+            )}
           </button>
 
           <button

@@ -424,6 +424,9 @@ function formatResult(result: TestResultWithEvidence): TestResult {
     executorId: result.executorId,
     actualResult: result.actualResult || null,
     notes: result.notes || null,
+    stepResults: result.stepResults ?? null,
+    browser: result.browser || null,
+    device: result.device || null,
     executedAt: iso(result.executedAt),
     evidence: (result.evidenceLinks || []).map((link) => ({
       attachmentId: link.attachmentId,
@@ -1744,6 +1747,12 @@ export class TestManagementService {
         );
       }
 
+      if (['failed', 'blocked'].includes(input.status) && !input.actualResult?.trim()) {
+        throw new Error(
+          'BAD_REQUEST: A failed or blocked Test Result requires a non-empty actual result.',
+        );
+      }
+
       let attachments: TaskAttachmentModel[] = [];
       if (evidenceAttachmentIds.length > 0) {
         attachments = await TaskAttachmentModel.findAll({
@@ -1855,6 +1864,9 @@ export class TestManagementService {
           executorId: actorId,
           actualResult: input.actualResult || null,
           notes: input.notes || null,
+          stepResults: input.stepResults && input.stepResults.length > 0 ? input.stepResults : null,
+          browser: input.browser || null,
+          device: input.device || null,
           executedAt,
         },
         { transaction },

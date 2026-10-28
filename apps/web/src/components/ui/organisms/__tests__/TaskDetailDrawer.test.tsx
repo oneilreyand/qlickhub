@@ -1220,4 +1220,198 @@ describe('TaskDetailDrawer UI Component', () => {
     // Subtasks tab must now display the animated unread badge: "+1 Baru"
     expect(await screen.findByText(/\+1 Baru/i)).toBeInTheDocument();
   });
+  describe('layout page (halaman detail Feature)', () => {
+    const stepper = () => within(screen.getByRole('navigation', { name: 'Tahap Feature' }));
+
+    test('tampil sebagai halaman, bukan dialog, dengan stepper bersummary dan menu lainnya (AC-2.1, AC-2.2)', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer layout="page" task={mockTask} folders={[]} onClose={vi.fn()} />,
+        'po',
+      );
+
+      expect(
+        await screen.findByRole('heading', { name: 'Test Parent Task Title' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText('FEATURE')).toBeInTheDocument();
+      expect(stepper().getAllByRole('button')).toHaveLength(4);
+      expect(stepper().getByRole('button', { name: /Apply/ })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Aktivitas' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Bagian dan aksi lainnya' }));
+      expect(screen.getByRole('button', { name: /Bug/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Jejak Delivery/ })).toBeInTheDocument();
+    });
+
+    test('Diskusi di Plan; ringkasan PRD memuat Product Brief dan Requirement; ringkasan Task memuat root task', async () => {
+      const onTabChange = vi.fn();
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="discussion"
+          onTabChange={onTabChange}
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+
+      await screen.findByRole('heading', { name: 'Test Parent Task Title' });
+      expect(stepper().getByRole('button', { name: /Plan/ })).toHaveAttribute(
+        'aria-current',
+        'step',
+      );
+
+      fireEvent.click(stepper().getByRole('button', { name: /PRD/ }));
+      expect(await screen.findByRole('region', { name: 'Product Brief' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('region', { name: /Requirement dan Acceptance/ }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('complementary', { name: 'Kelengkapan PRD' })).toBeInTheDocument();
+      expect(onTabChange).toHaveBeenLastCalledWith('prd-summary');
+
+      fireEvent.click(stepper().getByRole('button', { name: /Task/ }));
+      expect(await screen.findByRole('region', { name: 'Root task' })).toBeInTheDocument();
+      expect(screen.getByRole('region', { name: 'Subtask' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('complementary', { name: 'Cakupan requirement' }),
+      ).toBeInTheDocument();
+    });
+
+    test('Edit membuka editor lama dan kembali ke ringkasan', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="task-summary"
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+      await screen.findByRole('region', { name: 'Root task' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Edit detail' }));
+      expect(await screen.findByRole('heading', { name: 'Menyunting' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Judul')).toHaveValue('Test Parent Task Title');
+      // Isian sederhana: tanpa Properti Task / Delivery & Kesiapan.
+      expect(screen.queryByText('Delivery & Kesiapan')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
+      expect(await screen.findByRole('region', { name: 'Root task' })).toBeInTheDocument();
+    });
+
+    test('tahap Plan menampilkan Ide awal dan diskusi tertutup', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="discussion"
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+      expect(await screen.findByRole('heading', { name: 'Ide awal' })).toBeInTheDocument();
+      const rail = screen.getByRole('complementary', { name: 'Ringkasan Plan' });
+      expect(rail).toHaveTextContent(/Plan (sudah|belum) selesai/);
+      expect(screen.getByRole('button', { name: 'Lihat PRD' })).toBeInTheDocument();
+      expect(screen.queryByText(/Keputusan terstruktur/)).not.toBeInTheDocument();
+      const toggle = screen.getByRole('button', { name: /Diskusi tim/ });
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByText('Diskusi Task')).not.toBeInTheDocument();
+      fireEvent.click(toggle);
+      expect(await screen.findByText('Diskusi Task')).toBeInTheDocument();
+    });
+
+    test('Ubah di tahap Plan mengedit ide awal di tempat, tanpa pindah ke tahap Task', async () => {
+      const { taskService } = await import('../../../../lib/api/taskService');
+      vi.mocked(taskService.updateTask).mockResolvedValue({
+        ...mockTask,
+        description: 'Ide baru',
+      } as Task);
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="discussion"
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Ubah' }));
+      const editor = await screen.findByRole('textbox', { name: 'Ide awal' });
+      expect(screen.queryByRole('region', { name: 'Root task' })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
+      expect(screen.queryByRole('textbox', { name: 'Ide awal' })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ubah' }));
+      fireEvent.change(await screen.findByRole('textbox', { name: 'Ide awal' }), {
+        target: { value: 'Ide baru' },
+      });
+      expect(editor).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+      await waitFor(() =>
+        expect(taskService.updateTask).toHaveBeenCalledWith(expect.any(String), mockTask.id, {
+          description: 'Ide baru',
+        }),
+      );
+    });
+
+    test('editor Brief Produk sederhana tanpa judul dan status', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="brief"
+          task={mockTask}
+          folders={[]}
+          onClose={vi.fn()}
+        />,
+        'po',
+      );
+      expect(
+        await screen.findByLabelText(/Konteks: kenapa Feature ini perlu ada/),
+      ).toBeInTheDocument();
+      expect(screen.queryByLabelText('Judul Brief Produk')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Status Brief Produk')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Simpan' })).toBeDisabled();
+    });
+
+    test('membuka Bug dari menu lainnya tanpa memilih tahap', async () => {
+      renderWithRedux(
+        <TaskDetailDrawer layout="page" task={mockTask} folders={[]} onClose={vi.fn()} />,
+        'po',
+      );
+      await screen.findByRole('heading', { name: 'Test Parent Task Title' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Bagian dan aksi lainnya' }));
+      fireEvent.click(screen.getByRole('button', { name: /Bug/ }));
+
+      expect(
+        stepper()
+          .getAllByRole('button')
+          .some((button) => button.getAttribute('aria-current') === 'step'),
+      ).toBe(false);
+    });
+
+    test('tombol kembali memakai onClose', async () => {
+      const onClose = vi.fn();
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          backLabel="Task Hub"
+          task={mockTask}
+          folders={[]}
+          onClose={onClose}
+        />,
+        'po',
+      );
+      await screen.findByRole('heading', { name: 'Test Parent Task Title' });
+      fireEvent.click(screen.getByRole('button', { name: /Task Hub/ }));
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
 });

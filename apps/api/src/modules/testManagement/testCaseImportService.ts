@@ -7,10 +7,12 @@ import type {
   TestCaseImportPreviewResponse,
   TestCaseImportResult,
   TestCaseImportRowError,
+  UpdateImportRowRequirementInput,
+  UpdateImportRowRequirementResponse,
 } from '@qlick/contracts';
 
 import { MAX_IMPORT_ROWS } from '@qlick/contracts';
-import { Op } from 'sequelize';
+import { Op, type Transaction } from 'sequelize';
 import { sequelize } from '../../db/sequelize.js';
 import {
   RequirementModel,
@@ -29,6 +31,7 @@ import { snapshotTestCase } from './testManagementService.js';
 import {
   computeContentHash,
   extractSpreadsheetHeaders,
+  findIgnoredSpreadsheetHeaders,
   findUnmappedSpreadsheetHeaders,
   getSpreadsheetSheets,
   parseCsvContent,
@@ -37,6 +40,23 @@ import {
 } from './spreadsheetParser.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import { iso } from '../../utils/dateUtils.js';
+
+/** Label "Type" di spreadsheet tim yang bukan jenis pengujian sistem; dibaca sebagai manual. */
+const IGNORED_TEST_TYPE_LABELS = new Set([
+  'ui',
+  'ux',
+  'functional',
+  'fungsional',
+  'regression',
+  'smoke',
+  'sanity',
+  'usability',
+  'uat',
+]);
+
+function normalizePriorityAlias(value: string): string {
+  return value === 'critical' || value === 'kritis' || value === 'urgent' ? 'high' : value;
+}
 
 const SESSION_TTL_MS = 3600 * 1000; // 1 hour
 
@@ -98,6 +118,45 @@ export class TestCaseImportService {
     return lines.join('\n');
   }
 
+  /**
+   * Scope impor QA: subtask QA milik pengguna dan Requirement yang tertaut ke Feature-nya
+   * (Feature dan seluruh subtask-nya).
+   */
+  private async loadQaScope(
+    workspaceId: string,
+    actorId: string,
+    qaSubtaskId: string,
+    transaction?: Transaction,
+  ): Promise<{ featureId: string; requirementIds: Set<string> }> {
+    const qaSubtask = await TaskModel.findOne({
+      where: { workspaceId, id: qaSubtaskId },
+      transaction,
+    });
+    if (!qaSubtask) {
+      throw new Error('NOT_FOUND: QA Subtask tidak ditemukan di workspace ini.');
+    }
+    if (qaSubtask.deliveryArea !== 'qa' || qaSubtask.assigneeId !== actorId) {
+      throw new Error(
+        'FORBIDDEN: Hanya QA yang ditugaskan pada subtask ini yang dapat mengimpor Test Case dalam scope QA.',
+      );
+    }
+    if (!qaSubtask.parentTaskId) {
+      throw new Error('CONFLICT: Subtask QA harus memiliki parent Feature.');
+    }
+    const featureId = qaSubtask.parentTaskId;
+    const featureTasks = await TaskModel.findAll({
+      where: { workspaceId, [Op.or]: [{ id: featureId }, { parentTaskId: featureId }] },
+      attributes: ['id'],
+      transaction,
+    });
+    const taskLinks = await TaskRequirementModel.findAll({
+      where: { workspaceId, taskId: featureTasks.map((task) => task.id) },
+      attributes: ['requirementId'],
+      transaction,
+    });
+    return { featureId, requirementIds: new Set(taskLinks.map((link) => link.requirementId)) };
+  }
+
   async previewImport(
     workspaceId: string,
     actorId: string,
@@ -106,6 +165,7 @@ export class TestCaseImportService {
     mimeType = '',
     sheetName?: string,
     columnMapping?: Record<string, string>,
+    qaSubtaskId?: string,
   ): Promise<TestCaseImportPreviewResponse> {
     const membership = await requireActiveMember(workspaceId, actorId);
     assertCanImportTestCases(membership.role);
@@ -118,6 +178,12 @@ export class TestCaseImportService {
     const headers = extractSpreadsheetHeaders(fileBuffer, mimeType, selectedSheet);
     const resolvedColumnMapping = resolveSpreadsheetColumnMapping(headers, columnMapping);
     const unmappedHeaders = findUnmappedSpreadsheetHeaders(headers, columnMapping);
+    const ignoredHeaders = findIgnoredSpreadsheetHeaders(headers).filter(
+      (header) => !columnMapping?.[header.trim()],
+    );
+    // Tanpa subtask QA, Requirement cukup ada dan aktif di Workspace; dengan subtask QA, Requirement
+    // harus tertaut ke Feature subtask itu. Baris di luar itu ditolak dan perlu disesuaikan QA.
+    const qaScope = qaSubtaskId ? await this.loadQaScope(workspaceId, actorId, qaSubtaskId) : null;
 
     const parsedRows = isBuffer
       ? parseXlsxContent(fileBuffer, selectedSheet, resolvedColumnMapping)
@@ -181,7 +247,7 @@ export class TestCaseImportService {
 
       // Normalize Priority
       let priority: 'high' | 'medium' | 'low' = 'medium';
-      const rawPriority = (data.priority || '').trim().toLowerCase();
+      const rawPriority = normalizePriorityAlias((data.priority || '').trim().toLowerCase());
       if (rawPriority === 'high' || rawPriority === 'medium' || rawPriority === 'low') {
         priority = rawPriority;
       } else if (rawPriority.length > 0) {
@@ -190,7 +256,16 @@ export class TestCaseImportService {
 
       // Normalize Scenario Kind
       let scenarioKind: 'positive' | 'negative' | 'edge' = 'positive';
-      const rawScenario = (data.scenario_kind || '').trim().toLowerCase();
+      let rawScenario = (data.scenario_kind || '').trim().toLowerCase();
+      let rawTypeInput = (data.test_type || '').trim().toLowerCase();
+      // Spreadsheet tim memakai kolom "Type" untuk jenis skenario (Positive/Negative/Edge) dan
+      // label area uji (UI, Functional, ...). Nilai skenario di kolom itu dibaca sebagai skenario.
+      if (!rawScenario && ['positive', 'negative', 'edge'].includes(rawTypeInput)) {
+        rawScenario = rawTypeInput;
+        rawTypeInput = '';
+      } else if (IGNORED_TEST_TYPE_LABELS.has(rawTypeInput)) {
+        rawTypeInput = '';
+      }
       if (rawScenario === 'positive' || rawScenario === 'negative' || rawScenario === 'edge') {
         scenarioKind = rawScenario;
       } else if (rawScenario.length > 0) {
@@ -201,7 +276,7 @@ export class TestCaseImportService {
 
       // Normalize Test Type
       let testType: 'manual' | 'e2e' | 'integration' | 'unit' = 'manual';
-      const rawType = (data.test_type || '').trim().toLowerCase();
+      const rawType = rawTypeInput;
       if (['manual', 'e2e', 'integration', 'unit'].includes(rawType)) {
         testType = rawType as typeof testType;
       } else if (rawType.length > 0) {
@@ -224,10 +299,16 @@ export class TestCaseImportService {
       } else {
         const found = reqByCode.get(reqCode.toUpperCase());
         if (!found) {
-          errors.push(`Requirement code "${reqCode}" was not found in this workspace.`);
+          errors.push(
+            `Requirement "${reqCode}" tidak ada di aplikasi. Baris tidak diimpor; sesuaikan kode Requirement di spreadsheet.`,
+          );
         } else if (found.status !== 'active') {
           errors.push(
             `Requirement "${reqCode}" is not active (${found.status}). Only active requirements can be mapped.`,
+          );
+        } else if (qaScope && !qaScope.requirementIds.has(found.id)) {
+          errors.push(
+            `Requirement "${reqCode}" tidak ditautkan ke Feature ini. Baris tidak diimpor; sesuaikan kode Requirement di spreadsheet.`,
           );
         } else {
           resolvedReqId = found.id;
@@ -239,7 +320,7 @@ export class TestCaseImportService {
       if (stepsRaw.length > 0) {
         steps = stepsRaw
           .split(/\r?\n/)
-          .map((s) => s.trim())
+          .map((s) => s.trim().replace(/^(?:\d+[.)]|[-•*])\s+/, ''))
           .filter((s) => s.length > 0);
       }
 
@@ -345,9 +426,114 @@ export class TestCaseImportService {
       headers,
       columnMapping: resolvedColumnMapping,
       unmappedHeaders,
+      ignoredHeaders,
+      allowedRequirementCodes: qaScope
+        ? requirements
+            .filter((req) => req.status === 'active' && qaScope.requirementIds.has(req.id))
+            .map((req) => req.code)
+            .sort()
+        : [],
       expiresAt: expiresAt.toISOString(),
       rows: dryRunRows,
     };
+  }
+
+  /**
+   * Koreksi manual kode Requirement baris pratinjau. Hanya mengubah data staging sesi impor
+   * ini (sheet asli tidak disentuh); kode baru divalidasi dengan aturan yang sama seperti
+   * pratinjau (ada, aktif, dan tertaut ke Feature subtask QA).
+   */
+  async updateStagedRowRequirement(
+    workspaceId: string,
+    actorId: string,
+    input: UpdateImportRowRequirementInput,
+  ): Promise<UpdateImportRowRequirementResponse> {
+    const membership = await requireActiveMember(workspaceId, actorId);
+    assertCanImportTestCases(membership.role);
+
+    const reqCode = input.requirementCode.trim();
+    const requirement = await RequirementModel.findOne({
+      where: { workspaceId, code: { [Op.iLike]: reqCode } },
+      attributes: ['id', 'code', 'status'],
+    });
+    if (!requirement) {
+      throw new Error(`BAD_REQUEST: Requirement "${reqCode}" tidak ada di aplikasi.`);
+    }
+    if (requirement.status !== 'active') {
+      throw new Error(`BAD_REQUEST: Requirement "${requirement.code}" tidak aktif.`);
+    }
+    const qaScope = input.qaSubtaskId
+      ? await this.loadQaScope(workspaceId, actorId, input.qaSubtaskId)
+      : null;
+    if (qaScope && !qaScope.requirementIds.has(requirement.id)) {
+      throw new Error(
+        `BAD_REQUEST: Requirement "${requirement.code}" tidak ditautkan ke Feature ini.`,
+      );
+    }
+
+    return sequelize.transaction(async (transaction) => {
+      const staged = await TestCaseImportModel.findOne({
+        where: { id: input.importSessionId, workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!staged) throw new Error('NOT_FOUND: Import session not found or invalid.');
+      if (staged.actorId !== actorId) {
+        throw new Error('FORBIDDEN: You do not own this import session.');
+      }
+      if (staged.status !== 'in_progress') {
+        throw new Error('BAD_REQUEST: Sesi impor ini sudah selesai.');
+      }
+
+      const rows = await TestCaseImportRowModel.findAll({
+        where: { importId: input.importSessionId },
+        order: [['sourceRowNumber', 'ASC']],
+        transaction,
+      });
+      const targets = new Set(input.sourceRowNumbers);
+      const updatedRows: TestCaseImportDryRunRow[] = [];
+      let validRows = 0;
+      let invalidRows = 0;
+      let duplicateRows = 0;
+
+      for (const row of rows) {
+        const payload = row.parsedPayload as unknown as TestCaseImportDryRunRow;
+        if (targets.has(row.sourceRowNumber)) {
+          const remaining = (payload.validationErrors || []).filter(
+            (message) => !message.startsWith('Requirement'),
+          );
+          const isValid = remaining.length === 0;
+          const next: TestCaseImportDryRunRow = {
+            ...payload,
+            requirementCode: requirement.code,
+            resolvedRequirementId: requirement.id,
+            validationErrors: remaining,
+            isValid,
+          };
+          await row.update(
+            {
+              parsedPayload: next as unknown as Record<string, unknown>,
+              outcome: isValid ? (next.isDuplicate ? 'skipped' : 'created') : 'failed',
+              validationErrors: remaining.length > 0 ? remaining : null,
+            },
+            { transaction },
+          );
+          updatedRows.push(next);
+          if (next.isValid) validRows++;
+          else invalidRows++;
+          if (next.isDuplicate) duplicateRows++;
+        } else {
+          if (payload.isValid) validRows++;
+          else invalidRows++;
+          if (payload.isDuplicate) duplicateRows++;
+        }
+      }
+
+      if (updatedRows.length !== targets.size) {
+        throw new Error('BAD_REQUEST: Ada baris yang bukan bagian dari sesi impor ini.');
+      }
+      return { rows: updatedRows, validRows, invalidRows, duplicateRows };
+    });
   }
 
   async commitImport(
@@ -457,44 +643,11 @@ export class TestCaseImportService {
           }
         }
 
-        let qaTargetFeatureId: string | null = null;
-        let scopedReqIds: Set<string> | null = null;
-        if (input.qaSubtaskId) {
-          const qaSubtask = await TaskModel.findOne({
-            where: { workspaceId, id: input.qaSubtaskId },
-            transaction,
-          });
-          if (!qaSubtask) {
-            throw new Error('NOT_FOUND: QA Subtask tidak ditemukan di workspace ini.');
-          }
-          if (qaSubtask.deliveryArea !== 'qa' || qaSubtask.assigneeId !== actorId) {
-            throw new Error(
-              'FORBIDDEN: Hanya QA yang ditugaskan pada subtask ini yang dapat mengimpor Test Case dalam scope QA.',
-            );
-          }
-          if (!qaSubtask.parentTaskId) {
-            throw new Error('CONFLICT: Subtask QA harus memiliki parent Feature.');
-          }
-          qaTargetFeatureId = qaSubtask.parentTaskId;
-
-          const featureTasks = await TaskModel.findAll({
-            where: {
-              workspaceId,
-              [Op.or]: [{ id: qaTargetFeatureId }, { parentTaskId: qaTargetFeatureId }],
-            },
-            attributes: ['id'],
-            transaction,
-          });
-          const taskLinks = await TaskRequirementModel.findAll({
-            where: {
-              workspaceId,
-              taskId: featureTasks.map((t) => t.id),
-            },
-            attributes: ['requirementId'],
-            transaction,
-          });
-          scopedReqIds = new Set(taskLinks.map((l) => l.requirementId));
-        }
+        const qaScope = input.qaSubtaskId
+          ? await this.loadQaScope(workspaceId, actorId, input.qaSubtaskId, transaction)
+          : null;
+        const scopedReqIds = qaScope ? qaScope.requirementIds : null;
+        const qaTargetFeatureId = qaScope ? qaScope.featureId : null;
 
         const stagedRows = await TestCaseImportRowModel.findAll({
           where: { importId: importSessionId },

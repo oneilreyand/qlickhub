@@ -155,6 +155,7 @@
       ],
       "Task & kolaborasi": [
         "FolderActivityModel",
+        "SubtaskAcceptanceCheckModel",
         "TaskActivityModel",
         "TaskAttachmentModel",
         "TaskCommentMentionModel",

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   TrendingUp,
   AlertTriangle,
@@ -19,6 +19,7 @@ import { Card } from '../../atoms/Card';
 import { Input } from '../../atoms/Input';
 import { Select } from '../../atoms/Select';
 import { Alert } from '../../atoms/Alert';
+import { Button } from '../../atoms/Button';
 import { ProgressBar } from '../../atoms/ProgressBar';
 import { RichTextEditor } from '../../molecules/RichTextEditor';
 import { ReleaseReadinessSignal } from '../../molecules/ReleaseReadinessSignal';
@@ -26,6 +27,14 @@ import { TaskScheduleHealthBadge } from '../../molecules/TaskScheduleHealthBadge
 import { calculateRoleOverlapAndBottlenecks } from '../../../../lib/utils/scheduleHealth';
 import type { ReleaseReadinessViewState } from '../../../../lib/hooks/useReleaseReadinessMap';
 import { getIndonesianTaskScheduleMessage } from '../../../../lib/i18n/indonesianCopy';
+
+const STATUS_LABELS: Record<string, string> = {
+  todo: 'Belum dikerjakan',
+  in_progress: 'Sedang dikerjakan',
+  in_review: 'Dalam review',
+  done: 'Selesai',
+  canceled: 'Dibatalkan',
+};
 
 export interface TaskDetailOverviewTabProps {
   task: Task;
@@ -52,6 +61,14 @@ export interface TaskDetailOverviewTabProps {
   subtasks: Task[];
   members: WorkspaceMemberItem[];
   onSelectTab: (tabId: string) => void;
+  /** Tampilan sederhana (halaman Feature): lima isian dan tombol di dalam kartu. */
+  simple?: boolean;
+  title?: string;
+  onTitleChange?: (title: string) => void;
+  onSave?: () => void;
+  onCancel?: () => void;
+  isSaving?: boolean;
+  isDirty?: boolean;
 }
 
 export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
@@ -79,7 +96,16 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
   subtasks,
   members,
   onSelectTab,
+  simple = false,
+  title = '',
+  onTitleChange,
+  onSave,
+  onCancel,
+  isSaving = false,
+  isDirty = false,
 }) => {
+  const [advanced, setAdvanced] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
   const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
 
@@ -123,6 +149,265 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
   const scheduleOverlapAnalysis = React.useMemo(() => {
     return calculateRoleOverlapAndBottlenecks(task, subtasks, productBrief, members);
   }, [task, subtasks, productBrief, members]);
+
+  if (simple) {
+    const bottleneck =
+      scheduleOverlapAnalysis && scheduleOverlapAnalysis.primaryBottleneck.role !== 'none'
+        ? scheduleOverlapAnalysis.primaryBottleneck
+        : null;
+    const isSubtask = Boolean(task.parentTaskId);
+    return (
+      <div className="space-y-4">
+        {!canEditTask && (
+          <Alert tone="info" title="Task hanya dapat dilihat">
+            Hanya Product Owner, Admin, atau Owner yang dapat memperbarui parent Task ini.
+          </Alert>
+        )}
+        {isAssignedExecutor && !canPlan && (
+          <Alert tone="info" title="Akses eksekusi">
+            Anda hanya dapat memperbarui deskripsi dan status Subtask yang ditugaskan kepada Anda.
+          </Alert>
+        )}
+        <Card className="space-y-4 border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900/90">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <span className="text-xs font-semibold text-stone-600 dark:text-stone-400">
+                {isSubtask ? 'SUBTASK' : 'ROOT TASK'}
+              </span>
+              <h2 className="text-[15px] font-semibold text-stone-900 dark:text-stone-100">
+                Menyunting
+              </h2>
+            </div>
+            {!isSubtask && (
+              <span className="text-xs text-stone-500 dark:text-stone-400">
+                Status: {STATUS_LABELS[status] ?? status} · otomatis dari subtask
+              </span>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <label
+              htmlFor="task-title"
+              className="text-xs font-semibold text-stone-600 dark:text-stone-300"
+            >
+              Judul
+            </label>
+            <input
+              id="task-title"
+              type="text"
+              value={title}
+              onChange={(event) => onTitleChange?.(event.target.value)}
+              disabled={!canEditPlanning}
+              className="h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/30 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+            />
+          </div>
+          <div className="space-y-1.5">
+            {advanced ? (
+              <RichTextEditor
+                id="task-description"
+                label="Deskripsi"
+                value={description}
+                onChange={onDescriptionChange}
+                minRows={6}
+                disabled={!canEditTask}
+                placeholder="Ringkasan, tujuan, dan kebutuhan utama Task..."
+              />
+            ) : (
+              <>
+                <label
+                  htmlFor="task-description"
+                  className="text-xs font-semibold text-stone-600 dark:text-stone-300"
+                >
+                  Deskripsi
+                </label>
+                <textarea
+                  id="task-description"
+                  rows={3}
+                  value={description}
+                  onChange={(event) => onDescriptionChange(event.target.value)}
+                  disabled={!canEditTask}
+                  className="w-full resize-y rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm leading-relaxed text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/30 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAdvanced(true)}
+                  className="text-xs text-stone-500 underline hover:text-stone-800 dark:text-stone-400"
+                >
+                  Format lanjutan
+                </button>
+              </>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="task-priority"
+                className="text-xs font-semibold text-stone-600 dark:text-stone-300"
+              >
+                Prioritas
+              </label>
+              <select
+                id="task-priority"
+                value={priority}
+                onChange={(event) => onPriorityChange(event.target.value as TaskPriority)}
+                disabled={!canEditPlanning}
+                className="h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/30 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+              >
+                <option value="low">Rendah</option>
+                <option value="medium">Sedang</option>
+                <option value="high">Tinggi</option>
+                <option value="urgent">Mendesak</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="task-start-date"
+                className="text-xs font-semibold text-stone-600 dark:text-stone-300"
+              >
+                Mulai
+              </label>
+              <input
+                id="task-start-date"
+                type="date"
+                value={startDate}
+                onChange={(event) => onStartDateChange(event.target.value)}
+                disabled={!canEditPlanning}
+                aria-invalid={Boolean(scheduleIssue)}
+                aria-describedby={scheduleIssue ? 'task-detail-schedule-error' : undefined}
+                className="h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/30 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="task-due-date"
+                className="text-xs font-semibold text-stone-600 dark:text-stone-300"
+              >
+                Tenggat
+              </label>
+              <input
+                id="task-due-date"
+                type="date"
+                value={dueDate}
+                onChange={(event) => onDueDateChange(event.target.value)}
+                disabled={!canEditPlanning}
+                aria-invalid={Boolean(scheduleIssue)}
+                aria-describedby={scheduleIssue ? 'task-detail-schedule-error' : undefined}
+                className="h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/30 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+              />
+            </div>
+          </div>
+          {scheduleIssue && canEditPlanning && (
+            <p
+              id="task-detail-schedule-error"
+              role="alert"
+              className="text-xs font-medium text-rose-600 dark:text-rose-400"
+            >
+              {scheduleIssueMessage}
+            </p>
+          )}
+          {canEditPlanning && (
+            <div>
+              <button
+                type="button"
+                aria-expanded={showMore}
+                onClick={() => setShowMore((open) => !open)}
+                className="text-xs text-stone-500 underline hover:text-stone-800 dark:text-stone-400"
+              >
+                {isSubtask ? 'Status' : 'Folder dan status'}
+              </button>
+              {showMore && (
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {!isSubtask && (
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="task-folder"
+                        className="text-xs font-semibold text-stone-600 dark:text-stone-300"
+                      >
+                        Lokasi folder
+                      </label>
+                      <select
+                        id="task-folder"
+                        value={folderId || ''}
+                        onChange={(event) =>
+                          onFolderIdChange(event.target.value ? event.target.value : null)
+                        }
+                        disabled={!canEditPlanning}
+                        className="h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/30 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                      >
+                        <option value="">Tanpa Folder (Root Workspace)</option>
+                        {flatFolders.map((folder) => (
+                          <option key={folder.id} value={folder.id}>
+                            {'\u00A0'.repeat(folder.depth * 4)}
+                            {folder.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="task-status"
+                      className="text-xs font-semibold text-stone-600 dark:text-stone-300"
+                    >
+                      Status
+                    </label>
+                    <select
+                      id="task-status"
+                      value={status}
+                      onChange={(event) => onStatusChange(event.target.value as TaskStatus)}
+                      disabled={!canEditStatus}
+                      className="h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 outline-none transition focus:border-[#B1E743] focus:ring-2 focus:ring-[#B1E743]/30 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                    >
+                      <option value="todo">Belum Dikerjakan</option>
+                      <option value="in_progress">Sedang Dikerjakan</option>
+                      <option value="in_review">Dalam Review</option>
+                      <option value="done">Selesai</option>
+                      <option value="canceled">Dibatalkan</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 border-t border-stone-100 pt-4 dark:border-stone-800">
+            <Button size="sm" variant="outline" onClick={onCancel} disabled={isSaving}>
+              Batal
+            </Button>
+            {canEditTask && (
+              <Button
+                size="sm"
+                variant="primary"
+                isLoading={isSaving}
+                disabled={!isDirty}
+                onClick={onSave}
+              >
+                Simpan
+              </Button>
+            )}
+          </div>
+        </Card>
+        {bottleneck && (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelectTab('subtasks')}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onSelectTab('subtasks');
+              }
+            }}
+            aria-label="Peringatan jadwal delivery, buka subtask"
+            className="flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200"
+          >
+            <span>
+              <strong>Hambatan:</strong> {bottleneck.title}. {bottleneck.description}
+            </span>
+            <span className="font-semibold underline">Lihat subtask</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

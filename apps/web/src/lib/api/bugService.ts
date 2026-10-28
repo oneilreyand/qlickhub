@@ -12,6 +12,7 @@ import type {
   BugRetestAttempt,
   BugRetestHistory,
   BugRetestRun,
+  BugActivity,
 } from '@qlick/contracts';
 import { apiClient } from './apiClient';
 
@@ -81,6 +82,19 @@ export const bugService = {
       { method: 'POST', body: JSON.stringify(input) },
     );
     return r.retestAttempt;
+  },
+  async reopenBug(workspaceId: string, bugId: string, reason: string): Promise<BugWithContext> {
+    const response = await apiClient<{ bug: BugWithContext }>(
+      `/workspaces/${workspaceId}/bugs/${bugId}/reopen`,
+      { method: 'POST', body: JSON.stringify({ reason }) },
+    );
+    return response.bug;
+  },
+  async listBugActivity(workspaceId: string, bugId: string): Promise<BugActivity[]> {
+    const response = await apiClient<{ activity: BugActivity[] }>(
+      `/workspaces/${workspaceId}/bugs/${bugId}/activity`,
+    );
+    return response.activity;
   },
   async createRetestRun(workspaceId: string, bugId: string): Promise<BugRetestRun> {
     const response = await apiClient<{ retestRun: BugRetestRun }>(

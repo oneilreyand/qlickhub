@@ -72,3 +72,13 @@ export function clearWorkQueueRouteContext(search: string): string {
   const query = params.toString();
   return query ? `/my-tasks?${query}` : '/my-tasks';
 }
+
+/** Persetujuan QA yang tertahan membawa QA ke subtask uji yang menahan (AC-3.8). */
+export function getQueueItemActionLabel(
+  item: Pick<WorkQueueItem, 'bucketCode' | 'workState'>,
+  fallback: string,
+): string {
+  return item.bucketCode === 'qa_sign_off' && item.workState === 'blocked'
+    ? 'Selesaikan uji subtask'
+    : fallback;
+}

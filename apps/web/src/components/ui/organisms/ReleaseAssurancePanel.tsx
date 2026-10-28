@@ -48,6 +48,10 @@ export interface ReleaseAssurancePanelProps {
   qaWorkflowSummary?: QaWorkflowSummary | null;
   isQaWorkflowSummaryLoading?: boolean;
   qaWorkflowSummaryError?: string | null;
+  /** `simple` hides the duplicate metric tiles and blocker list; used on the QA work page. */
+  variant?: 'default' | 'simple';
+  /** Ubah nilainya untuk memuat ulang catatan dan gate kesiapan tanpa mengosongkan panel. */
+  refreshToken?: number;
 }
 
 const qaWorkflowBlockerCopy: Record<string, string> = {
@@ -119,15 +123,16 @@ const SnapshotFacts: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) 
   </dl>
 );
 
-const SnapshotGates: React.FC<{ snapshot: ReadinessSnapshot }> = ({ snapshot }) => {
+const SnapshotGates: React.FC<{ snapshot: ReadinessSnapshot; heading?: string }> = ({
+  snapshot,
+  heading = 'Quality gate kesiapan saat ini',
+}) => {
   if (snapshot.schemaVersion === 1) return null;
 
   return (
     <div className="space-y-2" aria-label="Quality gate kesiapan saat ini">
       <div className="flex items-center justify-between gap-3">
-        <h4 className="text-xs font-extrabold text-stone-900 dark:text-stone-100">
-          Quality gate kesiapan saat ini
-        </h4>
+        <h4 className="text-xs font-extrabold text-stone-900 dark:text-stone-100">{heading}</h4>
         {snapshot.evaluation.ready ? (
           <Badge variant="passed" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
             Siap
@@ -175,15 +180,18 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
   currentUserId,
   userRole,
   mode,
+  variant = 'default',
   onDataChanged,
   focusWhenReady = false,
   qaWorkflowSummary,
   isQaWorkflowSummaryLoading = false,
   qaWorkflowSummaryError = null,
+  refreshToken = 0,
 }) => {
   const dispatch = useAppDispatch();
   const members = useAppSelector((state: RootState) => state.workspace.members);
   const requestIdRef = useRef(0);
+  const hasLoadedRef = useRef(false);
   const panelRef = useRef<HTMLElement>(null);
   const [records, setRecords] = useState<FeatureReleaseRecords | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -239,7 +247,8 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
 
   const loadRecords = useCallback(async () => {
     const requestId = ++requestIdRef.current;
-    setIsLoading(true);
+    // Muat ulang berikutnya berjalan diam-diam agar panel tidak berkedip.
+    if (!hasLoadedRef.current) setIsLoading(true);
     setError(null);
     setPermissionDenied(false);
     try {
@@ -249,6 +258,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       );
       if (requestId !== requestIdRef.current) return;
       setRecords(result);
+      hasLoadedRef.current = true;
     } catch (loadError) {
       if (requestId !== requestIdRef.current) return;
       const status = (loadError as { status?: number }).status;
@@ -271,7 +281,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
     return () => {
       requestIdRef.current += 1;
     };
-  }, [loadRecords]);
+  }, [loadRecords, refreshToken]);
 
   useEffect(() => {
     if (!focusWhenReady || isLoading) return;
@@ -441,6 +451,7 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
   };
 
   const title = mode === 'qa' ? 'Persetujuan QA' : 'Keputusan Rilis';
+  const isSimple = variant === 'simple';
   const snapshot =
     latestRecord?.readinessSnapshot || latestActiveQaSignOff?.readinessSnapshot || null;
   const canMutate = mode === 'qa' ? canSignOff : canDecideRelease;
@@ -484,8 +495,9 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             <h3 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">{title}</h3>
           </div>
           <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-            Setiap keputusan disimpan permanen di riwayat. Mencatat keputusan tidak mengubah status
-            Task.
+            {isSimple
+              ? 'Keputusan akhir QA untuk Feature ini: setujui bila sudah layak, atau tolak dengan alasan. Tersimpan permanen di riwayat.'
+              : 'Setiap keputusan disimpan permanen di riwayat. Mencatat keputusan tidak mengubah status Task.'}
           </p>
         </div>
         {!isLoading && !permissionDenied && !error && (
@@ -640,8 +652,8 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
               {latestRecord.overrideReason}
             </Alert>
           )}
-          {snapshot && <SnapshotFacts snapshot={snapshot} />}
-          {snapshot?.schemaVersion === 3 && (
+          {snapshot && !isSimple && <SnapshotFacts snapshot={snapshot} />}
+          {snapshot?.schemaVersion === 3 && !isSimple && (
             <p className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-950/40 dark:text-stone-400">
               Cakupan bukti:{' '}
               {snapshot.evidenceScope.candidateFingerprint
@@ -653,7 +665,10 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
       )}
 
       {!isLoading && !permissionDenied && !error && currentReadinessSnapshot && (
-        <SnapshotGates snapshot={currentReadinessSnapshot} />
+        <SnapshotGates
+          snapshot={currentReadinessSnapshot}
+          heading={isSimple ? 'Syarat sebelum disetujui' : undefined}
+        />
       )}
 
       {mode === 'qa' && !isLoading && !permissionDenied && !error && (
@@ -673,7 +688,12 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             ) : (
               <Alert tone="warning" title="Persetujuan QA masih memiliki prasyarat">
                 <p>Langkah berikutnya: {qaWorkflowSummary.nextAction.label}.</p>
-                {qaWorkflowSummary.blockers.length > 0 && (
+                {isSimple && (
+                  <p className="mt-1">
+                    Anda tetap dapat mencatat penolakan sambil menunggu syarat di atas terpenuhi.
+                  </p>
+                )}
+                {!isSimple && qaWorkflowSummary.blockers.length > 0 && (
                   <ul className="mt-2 list-disc space-y-1 pl-4">
                     {qaWorkflowSummary.blockers.map((blocker) => (
                       <li key={blocker}>

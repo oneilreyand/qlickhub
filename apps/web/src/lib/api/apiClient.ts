@@ -295,6 +295,9 @@ async function sendRequest<T>(
     throw error;
   }
 
+  // 204 No Content (mis. DELETE) tidak punya body untuk di-parse.
+  if (response.status === 204) return undefined as T;
+
   return response.json();
 }
 
