@@ -67,6 +67,8 @@ export interface QaSubtaskWorkViewProps {
   onDeleteTestCase?: (execution: TaskTestCaseExecution) => void;
   /** Desk QA lengkap untuk Bug & Retest, impor, dan persetujuan (sampai P4c). */
   onOpenFullDesk?: () => void;
+  /** Impor Test Case dari spreadsheet (CSV, JSON, Excel); hanya untuk QA yang ditugaskan. */
+  onImportSpreadsheet?: () => void;
   /** Panel Persetujuan QA (hanya QA); ditampilkan di bawah daftar Test Case. */
   signOffSlot?: React.ReactNode;
 }
@@ -113,6 +115,7 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
   canDeleteTestCase,
   onDeleteTestCase,
   onOpenFullDesk,
+  onImportSpreadsheet,
   signOffSlot,
 }) => {
   const requirementNodes = useMemo(
@@ -406,16 +409,30 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
           )}
         </aside>
       </div>
-      {onOpenFullDesk && (
+      {(onImportSpreadsheet || onOpenFullDesk) && (
         <p className="mt-8 text-xs text-stone-500 dark:text-stone-400">
-          Butuh impor spreadsheet Test Case?{' '}
-          <button
-            type="button"
-            onClick={onOpenFullDesk}
-            className="underline underline-offset-2 hover:text-stone-800 dark:hover:text-stone-200"
-          >
-            Buka desk QA lengkap
-          </button>
+          {onImportSpreadsheet && (
+            <>
+              Test Case sudah ada di spreadsheet?{' '}
+              <button
+                type="button"
+                onClick={onImportSpreadsheet}
+                className="underline underline-offset-2 hover:text-stone-800 dark:hover:text-stone-200"
+              >
+                Impor spreadsheet
+              </button>
+              {onOpenFullDesk ? ' · ' : ''}
+            </>
+          )}
+          {onOpenFullDesk && (
+            <button
+              type="button"
+              onClick={onOpenFullDesk}
+              className="underline underline-offset-2 hover:text-stone-800 dark:hover:text-stone-200"
+            >
+              Buka desk QA lengkap
+            </button>
+          )}
         </p>
       )}
     </article>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type {
+  WorkspaceRole,
   ParentTaskDeliveryTrace,
   QaTestCycle,
   QaWorkflowSummary,
@@ -23,6 +24,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { Modal } from '../components/ui/molecules/Modal';
 import { ReleaseAssurancePanel } from '../components/ui/organisms/ReleaseAssurancePanel';
+import { TestCaseImportWizardModal } from '../components/ui/organisms/myTasks/TestCaseImportWizardModal';
 
 const ACTIVITY_PAGE_SIZE = 50;
 /** Komentar yang ditulis sesaat sebelum menekan Kirim ke QA tetap dianggap pesan serah-terima. */
@@ -69,6 +71,8 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
   const [activityPage, setActivityPage] = useState(1);
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const parentId = subtask.parentTaskId;
   const canExecute = userRole === 'qa' && subtask.assigneeId === currentUserId;
@@ -188,7 +192,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
     return () => {
       isCurrent = false;
     };
-  }, [activeWorkspaceId, parentId, subtask.id, trace]);
+  }, [activeWorkspaceId, parentId, subtask.id, trace, reloadKey]);
 
   // Pesan serah-terima: subtask pelaksana terbaru yang sudah masuk review QA.
   useEffect(() => {
@@ -333,6 +337,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
         onOpenFullDesk={
           userRole === 'qa' ? () => navigate(getQaFullDeskPath(subtask.id)) : undefined
         }
+        onImportSpreadsheet={canExecute ? () => setIsImportOpen(true) : undefined}
         signOffSlot={
           isAssignedQa && activeWorkspaceId && subtask.parentTaskId ? (
             <ReleaseAssurancePanel
@@ -355,6 +360,18 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
           navigate(getTestCaseNewPath(subtask.id), { state: { returnTo: here } })
         }
       />
+      {activeWorkspaceId && (
+        <TestCaseImportWizardModal
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          workspaceId={activeWorkspaceId}
+          userRole={userRole as WorkspaceRole}
+          onImportComplete={() => {
+            dispatch(enqueueSnackbar('Impor spreadsheet selesai', 'success'));
+            setReloadKey((key) => key + 1);
+          }}
+        />
+      )}
       <Modal
         isOpen={pendingDelete !== null}
         onClose={() => (isDeleting ? undefined : setPendingDelete(null))}

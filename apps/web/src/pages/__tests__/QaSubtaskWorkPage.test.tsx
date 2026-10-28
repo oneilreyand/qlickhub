@@ -207,6 +207,13 @@ describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
     ).toBeInTheDocument();
   });
 
+  it('opens the spreadsheet import wizard on the QA work page', async () => {
+    renderPage();
+    expect(await screen.findByText('Bayar dengan kartu')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Impor spreadsheet' }));
+    expect((await screen.findAllByText(/Impor Test Case/i)).length).toBeGreaterThan(0);
+  });
+
   it('deletes an unexecuted Test Case after confirmation', async () => {
     mocks.deleteTestCase.mockResolvedValue(undefined);
     renderPage();

@@ -78,6 +78,7 @@ function setup(overrides: Partial<QaSubtaskWorkViewProps> = {}) {
     onOpenRun: vi.fn(),
     onAddTestCase: vi.fn(),
     onOpenFullDesk: vi.fn(),
+    onImportSpreadsheet: vi.fn(),
     ...overrides,
   };
   render(<QaSubtaskWorkView {...props} />);
@@ -169,6 +170,17 @@ describe('QaSubtaskWorkView (desain 08)', () => {
     expect(props.onOpenFeature).toHaveBeenCalled();
     expect(props.onBack).toHaveBeenCalled();
     expect(props.onOpenFullDesk).toHaveBeenCalled();
+  });
+
+  it('offers spreadsheet import next to the full-desk link', () => {
+    const props = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Impor spreadsheet' }));
+    expect(props.onImportSpreadsheet).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides spreadsheet import without the handler', () => {
+    setup({ onImportSpreadsheet: undefined });
+    expect(screen.queryByRole('button', { name: 'Impor spreadsheet' })).not.toBeInTheDocument();
   });
 
   it('renders the QA sign-off slot inside the work page when provided', () => {
