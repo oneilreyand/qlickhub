@@ -4,12 +4,10 @@ import { Card } from '../components/ui/atoms/Card';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
-import { MyTaskDetailWorkspaceDrawer } from '../components/ui/organisms/myTasks/MyTaskDetailWorkspaceDrawer';
-import { TaskDetailDrawer, TaskHubDashboardTemplate } from '../features/tasks';
-import { getTaskPagePath, shouldUseLegacyQaWorkspace } from '../lib/utils/taskRoutes';
+import { TaskDetailDrawer } from '../features/tasks';
+import { getTaskPagePath } from '../lib/utils/taskRoutes';
 import { useTaskWithParent } from '../lib/hooks/useTaskWithParent';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
-import { selectCurrentUserRole } from '../store/authSlice';
 import { fetchFolderTree } from '../store/folderSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setActiveWorkspaceId } from '../store/workspaceSlice';
@@ -26,7 +24,6 @@ export const TaskDeepLinkPage: React.FC = () => {
     isLoading: isWorkspaceLoading,
   } = useAppSelector((state) => state.workspace);
   const folders = useAppSelector((state) => state.folder.folders);
-  const userRole = useAppSelector(selectCurrentUserRole);
 
   const isWorkspaceReady = isInitialized && !isWorkspaceLoading;
   const {
@@ -38,8 +35,7 @@ export const TaskDeepLinkPage: React.FC = () => {
 
   const featureTaskId = task?.parentTaskId || task?.id;
   const featureTaskIds = useMemo(() => (featureTaskId ? [featureTaskId] : []), [featureTaskId]);
-  const { stateByFeatureTaskId: releaseReadinessStateByFeatureId, reload: reloadReleaseReadiness } =
-    useReleaseReadinessMap(projectId, featureTaskIds);
+  const { reload: reloadReleaseReadiness } = useReleaseReadinessMap(projectId, featureTaskIds);
 
   const returnTo = useMemo(() => {
     const candidate = (location.state as { returnTo?: unknown } | null)?.returnTo;
@@ -51,10 +47,6 @@ export const TaskDeepLinkPage: React.FC = () => {
   // My Tasks -> Subtask -> Feature closes back step by step instead of jumping to Task Hub.
   const returnState = (location.state as { returnState?: unknown } | null)?.returnState;
   const closeDrawer = () => navigate(returnTo, { state: returnState });
-  const openRelatedTask = (nextTaskId: string) =>
-    navigate(`/projects/${projectId}/tasks/${nextTaskId}`, {
-      state: { returnTo: `${location.pathname}${location.search}`, returnState: location.state },
-    });
 
   useEffect(() => {
     if (!isWorkspaceReady || !projectId) return;
@@ -130,29 +122,10 @@ export const TaskDeepLinkPage: React.FC = () => {
     );
   }
 
-  const useQaWorkspace = shouldUseLegacyQaWorkspace(userRole, task, location.search);
-
-  if (!useQaWorkspace) {
-    // Pengalih (AC-2.3): tautan lama membuka halaman Feature atau halaman kerja subtask.
-    // Tunggu Workspace aktif sama dengan tautan agar halaman tujuan memuat Task yang benar.
-    if (activeWorkspaceId !== projectId) {
-      return <Skeleton className="mx-auto h-64 w-full max-w-3xl rounded-xl" />;
-    }
-    return <Navigate to={getTaskPagePath(task)} replace state={location.state} />;
+  // Pengalih (AC-2.3): tautan lama membuka halaman Feature atau halaman kerja subtask.
+  // Tunggu Workspace aktif sama dengan tautan agar halaman tujuan memuat Task yang benar.
+  if (activeWorkspaceId !== projectId) {
+    return <Skeleton className="mx-auto h-64 w-full max-w-3xl rounded-xl" />;
   }
-
-  return (
-    <>
-      <TaskHubDashboardTemplate />
-      <MyTaskDetailWorkspaceDrawer
-        task={task}
-        userRole={userRole}
-        isOpen
-        releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
-        onClose={closeDrawer}
-        onOpenFeature={openRelatedTask}
-        onDataChanged={reload}
-      />
-    </>
-  );
+  return <Navigate to={getTaskPagePath(task)} replace state={location.state} />;
 };

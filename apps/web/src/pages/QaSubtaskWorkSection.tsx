@@ -18,7 +18,8 @@ import {
 import { taskService } from '../lib/api/taskService';
 import { testManagementService } from '../lib/api/testManagementService';
 import { getAreaLabel } from '../lib/utils/featureDisplay';
-import { getQaFullDeskPath, getTestCaseNewPath, getTestCaseRunPath } from '../lib/utils/taskRoutes';
+import { getTestCaseNewPath, getTestCaseRunPath } from '../lib/utils/taskRoutes';
+import { startQaSubtaskIfTodo } from '../lib/utils/startQaSubtask';
 import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
@@ -85,6 +86,42 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
     },
     [userRole, currentUserId],
   );
+
+  const [startedStatus, setStartedStatus] = useState<Task['status'] | null>(null);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
+  const subtaskView = useMemo(
+    () => (startedStatus ? { ...subtask, status: startedStatus } : subtask),
+    [subtask, startedStatus],
+  );
+
+  const startIfTodo = async () => {
+    if (!activeWorkspaceId) return;
+    const started = await startQaSubtaskIfTodo(activeWorkspaceId, subtaskView, currentUserId);
+    if (started) setStartedStatus(started.status);
+  };
+
+  const handleActivate = async (execution: TaskTestCaseExecution) => {
+    if (!activeWorkspaceId) return;
+    setActivatingId(execution.testCase.id);
+    try {
+      await testManagementService.updateTestCase(activeWorkspaceId, execution.testCase.id, {
+        status: 'active',
+        qaSubtaskId: subtask.id,
+      });
+      dispatch(enqueueSnackbar('Test Case diaktifkan dan siap dijalankan', 'success'));
+      await startIfTodo();
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Test Case tidak dapat diaktifkan.',
+          'error',
+        ),
+      );
+    } finally {
+      setActivatingId(null);
+    }
+  };
 
   const confirmDelete = async () => {
     if (!activeWorkspaceId || !pendingDelete) return;
@@ -308,7 +345,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
         </p>
       )}
       <QaSubtaskWorkView
-        subtask={subtask}
+        subtask={subtaskView}
         parentTask={parentTask}
         trace={trace}
         executions={executions}
@@ -334,9 +371,11 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
           const base = getTestCaseRunPath(testCaseId, subtask.id);
           navigate(hasil ? `${base}&hasil=${hasil}` : base, { state: { returnTo: here } });
         }}
-        onOpenFullDesk={
-          userRole === 'qa' ? () => navigate(getQaFullDeskPath(subtask.id)) : undefined
+        canActivateTestCase={(execution) =>
+          canExecute && ['draft', 'in_review'].includes(execution.testCase.status)
         }
+        onActivateTestCase={(execution) => void handleActivate(execution)}
+        activatingTestCaseId={activatingId}
         onImportSpreadsheet={canExecute ? () => setIsImportOpen(true) : undefined}
         signOffSlot={
           isAssignedQa && activeWorkspaceId && subtask.parentTaskId ? (
@@ -369,6 +408,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
           qaSubtaskId={subtask.id}
           onImportComplete={() => {
             dispatch(enqueueSnackbar('Impor spreadsheet selesai', 'success'));
+            void startIfTodo();
             setReloadKey((key) => key + 1);
           }}
         />

@@ -8,21 +8,12 @@ import { fetchTasks, fetchTaskById, setSelectedTaskId } from '../store/taskSlice
 import { fetchMembers } from '../store/workspaceSlice';
 import { taskService } from '../lib/api/taskService';
 import { enqueueSnackbar } from '../store/uiSlice';
-import { MyTaskDetailWorkspaceDrawer, MyTasksDashboard } from '../features/myTasks';
+import { MyTasksDashboard } from '../features/myTasks';
 import { CreateTaskModal } from '../features/tasks';
 import { EmptyWorkspaceOnboarding } from '../features/workspaces';
-import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { useRoleAwareWorkQueue } from '../lib/hooks/useRoleAwareWorkQueue';
-import {
-  getBugWorkPath,
-  getTaskPagePath,
-  shouldUseLegacyQaWorkspace,
-} from '../lib/utils/taskRoutes';
-import {
-  buildWorkQueueRoute,
-  clearWorkQueueRouteContext,
-  getWorkQueueRouteContext,
-} from '../lib/utils/workQueueRoute';
+import { getBugWorkPath, getTaskPagePath } from '../lib/utils/taskRoutes';
+import { buildWorkQueueRoute, getWorkQueueRouteContext } from '../lib/utils/workQueueRoute';
 
 export const MyTasksPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -34,7 +25,7 @@ export const MyTasksPage: React.FC = () => {
     isLoading: isWsLoading,
     isInitialized: isWsInitialized,
   } = useAppSelector((state: RootState) => state.workspace);
-  const { tasks, selectedTaskId } = useAppSelector((state: RootState) => state.task);
+  const { selectedTaskId } = useAppSelector((state: RootState) => state.task);
   const { folders } = useAppSelector((state: RootState) => state.folder);
   const currentUserId = useAppSelector(selectCurrentUserId);
 
@@ -81,13 +72,6 @@ export const MyTasksPage: React.FC = () => {
     };
   }, [dispatch]);
 
-  const selectedTask = useMemo(
-    () => tasks.find((t) => t.id === selectedTaskId) || null,
-    [tasks, selectedTaskId],
-  );
-  const featureTaskIds = useMemo(() => tasks.map((task) => task.parentTaskId || task.id), [tasks]);
-  const { stateByFeatureTaskId: releaseReadinessStateByFeatureId, reload: reloadReleaseReadiness } =
-    useReleaseReadinessMap(activeWorkspaceId || undefined, featureTaskIds);
   const { state: workQueueState, reload: reloadWorkQueue } = useRoleAwareWorkQueue(
     activeWorkspaceId || undefined,
   );
@@ -104,15 +88,11 @@ export const MyTasksPage: React.FC = () => {
             taskId,
           }),
         ).unwrap();
-        if (!shouldUseLegacyQaWorkspace(userRole, task, location.search)) {
-          // Pengalih (AC-2.3): ?taskId= membuka halaman Feature atau halaman kerja subtask.
-          navigate(getTaskPagePath(task), {
-            replace: true,
-            state: { returnTo: '/my-tasks' },
-          });
-          return;
-        }
-        dispatch(setSelectedTaskId(task.id));
+        // Pengalih (AC-2.3): ?taskId= membuka halaman Feature atau halaman kerja subtask.
+        navigate(getTaskPagePath(task), {
+          replace: true,
+          state: { returnTo: '/my-tasks' },
+        });
       } catch (error) {
         dispatch(
           enqueueSnackbar(
@@ -122,7 +102,7 @@ export const MyTasksPage: React.FC = () => {
         );
       }
     },
-    [activeWorkspaceId, dispatch, location.search, navigate, userRole],
+    [activeWorkspaceId, dispatch, navigate],
   );
 
   useEffect(() => {
@@ -138,10 +118,6 @@ export const MyTasksPage: React.FC = () => {
     if (!queueRouteContext.taskId) return;
     void handleOpenTaskById(queueRouteContext.taskId);
   }, [handleOpenTaskById, queueRouteContext.taskId]);
-
-  const clearQueueContext = useCallback(() => {
-    navigate(clearWorkQueueRouteContext(location.search), { replace: true });
-  }, [location.search, navigate]);
 
   const handleOpenQueueItem = useCallback(
     async (item: WorkQueueItem) => {
@@ -220,12 +196,6 @@ export const MyTasksPage: React.FC = () => {
     [activeWorkspaceId, currentUserId, dispatch, location.search, navigate],
   );
 
-  const handleCloseDrawer = () => {
-    dispatch(setSelectedTaskId(null));
-    clearQueueContext();
-    window.requestAnimationFrame(() => queueTriggerRef.current?.focus());
-  };
-
   if (!isWsInitialized || (isWsLoading && workspaces.length === 0)) {
     return (
       <div className="py-24 flex items-center justify-center" aria-label="Memuat workspace">
@@ -247,32 +217,6 @@ export const MyTasksPage: React.FC = () => {
         onRefreshQueue={reloadWorkQueue}
         onOpenQueueItem={handleOpenQueueItem}
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
-      />
-
-      {/* Role-tailored Collaborative Workspace Drawer */}
-      <MyTaskDetailWorkspaceDrawer
-        task={selectedTask}
-        userRole={userRole}
-        isOpen={Boolean(selectedTaskId && selectedTask)}
-        releaseReadinessState={
-          selectedTask
-            ? releaseReadinessStateByFeatureId[selectedTask.parentTaskId || selectedTask.id]
-            : undefined
-        }
-        focusTarget={queueRouteContext.focusTarget}
-        onClose={handleCloseDrawer}
-        onOpenFeature={(featureTaskId) => {
-          if (!activeWorkspaceId) return;
-          // The deep link honours returnTo, so closing the Feature brings the user back here.
-          navigate(`/projects/${activeWorkspaceId}/tasks/${featureTaskId}`, {
-            state: { returnTo: `${location.pathname}${location.search}` },
-          });
-        }}
-        onDataChanged={() => {
-          reloadTasks();
-          reloadReleaseReadiness();
-          reloadWorkQueue();
-        }}
       />
 
       {/* Create Task Modal */}

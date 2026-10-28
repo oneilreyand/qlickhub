@@ -25,6 +25,7 @@ import {
 } from '../components/ui/organisms/myTasks/TestCaseFollowUpPanel';
 import { bugService } from '../lib/api/bugService';
 import { taskService } from '../lib/api/taskService';
+import { startQaSubtaskIfTodo } from '../lib/utils/startQaSubtask';
 import { traceabilityService } from '../lib/api/traceabilityService';
 import { testManagementService } from '../lib/api/testManagementService';
 import { getTestCaseRunPath } from '../lib/utils/taskRoutes';
@@ -283,6 +284,7 @@ export const TestCaseRunPage: React.FC = () => {
         browser: values.browser || null,
         device: values.device || null,
       });
+      await startQaSubtaskIfTodo(ws, data.subtask, currentUserId);
       let message = 'Hasil pengujian tersimpan dan terkunci';
       if (run.retestBugId && recorded.result) {
         const attempt = await bugService.createRetestAttempt(ws, run.retestBugId, {

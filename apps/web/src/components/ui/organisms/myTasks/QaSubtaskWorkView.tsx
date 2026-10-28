@@ -65,8 +65,10 @@ export interface QaSubtaskWorkViewProps {
   /** Hanya Test Case yang belum pernah dijalankan dan boleh dihapus pengguna ini. */
   canDeleteTestCase?: (execution: TaskTestCaseExecution) => boolean;
   onDeleteTestCase?: (execution: TaskTestCaseExecution) => void;
-  /** Desk QA lengkap untuk Bug & Retest, impor, dan persetujuan (sampai P4c). */
-  onOpenFullDesk?: () => void;
+  /** Hanya QA yang ditugaskan: Test Case berstatus draf boleh diaktifkan agar bisa dijalankan. */
+  canActivateTestCase?: (execution: TaskTestCaseExecution) => boolean;
+  onActivateTestCase?: (execution: TaskTestCaseExecution) => void;
+  activatingTestCaseId?: string | null;
   /** Impor Test Case dari spreadsheet (CSV, JSON, Excel); hanya untuk QA yang ditugaskan. */
   onImportSpreadsheet?: () => void;
   /** Panel Persetujuan QA (hanya QA); ditampilkan di bawah daftar Test Case. */
@@ -114,7 +116,9 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
   onAddTestCase,
   canDeleteTestCase,
   onDeleteTestCase,
-  onOpenFullDesk,
+  canActivateTestCase,
+  onActivateTestCase,
+  activatingTestCaseId,
   onImportSpreadsheet,
   signOffSlot,
 }) => {
@@ -305,6 +309,21 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
                             </p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
+                            {!isActive &&
+                              onActivateTestCase &&
+                              canActivateTestCase?.(execution) && (
+                                <button
+                                  type="button"
+                                  onClick={() => onActivateTestCase(execution)}
+                                  disabled={activatingTestCaseId === execution.testCase.id}
+                                  aria-label={`Aktifkan Test Case ${execution.testCase.title}`}
+                                  className="rounded-lg border border-stone-300 px-3 py-1.5 text-[13px] font-semibold text-stone-900 hover:bg-stone-100 disabled:opacity-50 dark:border-stone-700 dark:text-stone-100 dark:hover:bg-stone-800"
+                                >
+                                  {activatingTestCaseId === execution.testCase.id
+                                    ? 'Mengaktifkan...'
+                                    : 'Aktifkan'}
+                                </button>
+                              )}
                             {onDeleteTestCase && canDeleteTestCase?.(execution) && (
                               <button
                                 type="button"
@@ -419,17 +438,6 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
           )}
         </aside>
       </div>
-      {onOpenFullDesk && (
-        <p className="mt-8 text-xs text-stone-500 dark:text-stone-400">
-          <button
-            type="button"
-            onClick={onOpenFullDesk}
-            className="underline underline-offset-2 hover:text-stone-800 dark:hover:text-stone-200"
-          >
-            Buka desk QA lengkap
-          </button>
-        </p>
-      )}
     </article>
   );
 };

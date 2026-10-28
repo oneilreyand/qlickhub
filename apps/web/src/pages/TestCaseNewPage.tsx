@@ -9,6 +9,7 @@ import {
   type TestCaseEditorValues,
 } from '../components/ui/organisms/myTasks/TestCaseEditor';
 import { taskService } from '../lib/api/taskService';
+import { startQaSubtaskIfTodo } from '../lib/utils/startQaSubtask';
 import { testManagementService } from '../lib/api/testManagementService';
 import { traceabilityService } from '../lib/api/traceabilityService';
 import { getTestCaseRunPath } from '../lib/utils/taskRoutes';
@@ -146,6 +147,7 @@ export const TestCaseNewPage: React.FC = () => {
         qaSubtaskId: subtask.id,
       });
 
+      await startQaSubtaskIfTodo(ws, subtask, currentUserId);
       dispatch(enqueueSnackbar('Test Case tersimpan dan siap dijalankan', 'success'));
       if (runAfterSave) navigate(getTestCaseRunPath(testCaseId, subtask.id));
       else returnTo();

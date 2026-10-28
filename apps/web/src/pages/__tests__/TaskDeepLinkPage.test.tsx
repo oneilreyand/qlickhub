@@ -72,14 +72,6 @@ vi.mock('../../components/ui/organisms/TaskDetailDrawer', () => ({
   },
 }));
 
-vi.mock('../../components/ui/organisms/myTasks/MyTaskDetailWorkspaceDrawer', () => ({
-  MyTaskDetailWorkspaceDrawer: ({ task, userRole }: { task: Task; userRole: string }) => (
-    <div data-testid="qa-deep-link-workspace">
-      {task.title} · Peran: {userRole}
-    </div>
-  ),
-}));
-
 const workspaceId = '10000000-0000-4000-8000-000000000001';
 const taskId = '10000000-0000-4000-8000-000000000002';
 
@@ -267,22 +259,19 @@ describe('TaskDeepLinkPage', () => {
     expect(await screen.findByTestId('redirect-target')).toHaveTextContent(
       `subtask:/work/subtasks/${taskId}`,
     );
-    expect(screen.queryByTestId('qa-deep-link-workspace')).not.toBeInTheDocument();
   });
 
-  it('opens the full QA desk only when asked with ?desk=lengkap', async () => {
-    const qaSubtask = {
+  it('sends the retired ?desk=lengkap link to the QA work page too (AC-3.14)', async () => {
+    getTaskMock.mockResolvedValue({
       ...task,
       parentTaskId: '10000000-0000-4000-8000-000000000004',
       deliveryArea: 'qa' as const,
       title: 'Checkout QA subtask',
-    };
-    getTaskMock.mockResolvedValue(qaSubtask);
+    });
     renderRoute(true, 'qa', undefined, '?desk=lengkap');
 
-    expect(await screen.findByTestId('qa-deep-link-workspace')).toHaveTextContent(
-      'Checkout QA subtask · Peran: qa',
+    expect(await screen.findByTestId('redirect-target')).toHaveTextContent(
+      `subtask:/work/subtasks/${taskId}`,
     );
-    expect(screen.queryByTestId('task-deep-link-drawer')).not.toBeInTheDocument();
   });
 });

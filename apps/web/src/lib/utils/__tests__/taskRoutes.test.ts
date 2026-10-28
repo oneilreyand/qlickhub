@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getTaskPagePath, shouldUseLegacyQaWorkspace } from '../taskRoutes';
+import { getTaskPagePath } from '../taskRoutes';
 
 describe('taskRoutes', () => {
   it('maps a Feature (root task) to its Feature page', () => {
@@ -8,13 +8,5 @@ describe('taskRoutes', () => {
 
   it('maps a Subtask to its work page', () => {
     expect(getTaskPagePath({ id: 's1', parentTaskId: 'f1' })).toBe('/work/subtasks/s1');
-  });
-
-  it('opens the legacy desk only on explicit request by a QA user on a QA-area subtask', () => {
-    expect(shouldUseLegacyQaWorkspace('qa', { deliveryArea: 'qa' })).toBe(false);
-    expect(shouldUseLegacyQaWorkspace('qa', { deliveryArea: 'qa' }, '?desk=lengkap')).toBe(true);
-    expect(shouldUseLegacyQaWorkspace('qa', { deliveryArea: 'frontend' })).toBe(false);
-    expect(shouldUseLegacyQaWorkspace('dev', { deliveryArea: 'qa' })).toBe(false);
-    expect(shouldUseLegacyQaWorkspace(undefined, { deliveryArea: 'qa' })).toBe(false);
   });
 });

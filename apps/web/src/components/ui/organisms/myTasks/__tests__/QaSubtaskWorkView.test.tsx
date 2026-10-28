@@ -77,7 +77,6 @@ function setup(overrides: Partial<QaSubtaskWorkViewProps> = {}) {
     onOpenActivity: vi.fn(),
     onOpenRun: vi.fn(),
     onAddTestCase: vi.fn(),
-    onOpenFullDesk: vi.fn(),
     onImportSpreadsheet: vi.fn(),
     ...overrides,
   };
@@ -157,25 +156,47 @@ describe('QaSubtaskWorkView (desain 08)', () => {
     expect(screen.queryByText(/Siap diuji/)).not.toBeInTheDocument();
   });
 
-  it('wires Aktivitas, add, feature, back, and full-desk actions', () => {
+  it('wires Aktivitas, add, feature, and back actions', () => {
     const props = setup();
     fireEvent.click(screen.getByRole('button', { name: 'Aktivitas' }));
     fireEvent.click(screen.getByRole('button', { name: '+ Test Case' }));
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Test Case untuk AC ini' }));
     fireEvent.click(screen.getByRole('button', { name: 'Sistem Manajemen Tugas' }));
     fireEvent.click(screen.getByRole('button', { name: /Tugas Saya/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Buka desk QA lengkap' }));
     expect(props.onOpenActivity).toHaveBeenCalled();
     expect(props.onAddTestCase).toHaveBeenCalledTimes(2);
     expect(props.onOpenFeature).toHaveBeenCalled();
     expect(props.onBack).toHaveBeenCalled();
-    expect(props.onOpenFullDesk).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Buka desk QA lengkap' })).not.toBeInTheDocument();
   });
 
-  it('offers spreadsheet import next to the full-desk link', () => {
+  it('offers spreadsheet import', () => {
     const props = setup();
     fireEvent.click(screen.getByRole('button', { name: 'Impor spreadsheet' }));
     expect(props.onImportSpreadsheet).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the assigned QA activate a draft Test Case so it can be run', () => {
+    const onActivateTestCase = vi.fn();
+    const draft = execution('tc-3', 'Draf dari impor lama', '2026-10-01T03:00:00Z', null, 'draft');
+    setup({
+      executions: [draft],
+      onActivateTestCase,
+      canActivateTestCase: () => true,
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Aktifkan Test Case Draf dari impor lama' }),
+    );
+    expect(onActivateTestCase).toHaveBeenCalledWith(draft);
+  });
+
+  it('does not offer Aktifkan to viewers who may not activate', () => {
+    setup({
+      executions: [execution('tc-3', 'Draf', '2026-10-01T03:00:00Z', null, 'draft')],
+      onActivateTestCase: vi.fn(),
+      canActivateTestCase: () => false,
+    });
+    expect(screen.queryByRole('button', { name: /Aktifkan Test Case/ })).not.toBeInTheDocument();
   });
 
   it('hides spreadsheet import without the handler', () => {
