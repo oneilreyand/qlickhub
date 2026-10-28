@@ -298,7 +298,7 @@ export class TestCaseImportService {
         const found = reqByCode.get(reqCode.toUpperCase());
         if (!found) {
           errors.push(
-            `Requirement code "${reqCode}" was not found in this workspace. Baris tidak diimpor; sesuaikan kode Requirement di spreadsheet.`,
+            `Requirement "${reqCode}" tidak ada di aplikasi. Baris tidak diimpor; sesuaikan kode Requirement di spreadsheet.`,
           );
         } else if (found.status !== 'active') {
           errors.push(

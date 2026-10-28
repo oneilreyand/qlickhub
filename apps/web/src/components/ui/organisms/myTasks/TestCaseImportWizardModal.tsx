@@ -702,11 +702,11 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                           </span>
                         ) : (
                           <span
-                            className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 truncate max-w-[180px]"
+                            className="inline-flex items-start gap-1 text-rose-600 dark:text-rose-400 max-w-[320px] whitespace-normal"
                             title={row.validationErrors.join('; ')}
                           >
-                            <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                            {row.validationErrors[0]}
+                            <XCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                            <span>{row.validationErrors.join(' ')}</span>
                           </span>
                         )}
                       </td>
