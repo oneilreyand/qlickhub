@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { getWorkPageOrigin } from '../../lib/utils/sectionLabel';
 import {
   Component,
   ShieldCheck,
@@ -156,7 +157,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
     const Icon = item.icon;
     const searchParams = new URLSearchParams(location.search);
     const currentTab = searchParams.get('tab') || (location.pathname === '/work' ? 'overview' : '');
-    const isTaskDeepLink = isFeaturePage;
+    const workPageOrigin = getWorkPageOrigin(location.pathname, location.state);
+    const isTaskDeepLink = isFeaturePage || workPageOrigin === 'task-hub';
 
     const isActive =
       item.path === '/work?tab=overview'
@@ -166,6 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
           : item.path === '/my-tasks'
             ? location.pathname === '/my-tasks' ||
               location.pathname.startsWith('/my-tasks/') ||
+              workPageOrigin === 'my-tasks' ||
               location.pathname === '/requirements'
             : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
 

@@ -11,7 +11,10 @@ import uiReducer from '../../../store/uiSlice';
 import workspaceReducer from '../../../store/workspaceSlice';
 import { Sidebar } from '../Sidebar';
 
-function renderSidebar(role: 'owner' | 'admin' | 'po' | 'dev' | 'qa', initialPath = '/work') {
+function renderSidebar(
+  role: 'owner' | 'admin' | 'po' | 'dev' | 'qa',
+  initialPath: string | { pathname: string; state?: unknown } = '/work',
+) {
   const store = configureStore({
     reducer: {
       auth: authReducer,
@@ -167,6 +170,21 @@ describe('Sidebar Role-based Visibility', () => {
 
     expect(screen.getByRole('link', { name: 'Task Hub' })).toHaveClass('bg-[#B1E743]');
     expect(screen.getByText('Folder workspace')).toBeInTheDocument();
+  });
+
+  it('highlights Task Hub on subtask and Bug work pages opened from Task Hub', () => {
+    renderSidebar('dev', '/work/subtasks/10000000-0000-4000-8000-000000000003');
+    expect(screen.getByRole('link', { name: 'Task Hub' })).toHaveClass('bg-[#B1E743]');
+    expect(screen.getByRole('link', { name: 'Tugas Saya' })).not.toHaveClass('bg-[#B1E743]');
+  });
+
+  it('highlights Tugas Saya on work pages opened from Tugas Saya', () => {
+    renderSidebar('qa', {
+      pathname: '/work/bugs/10000000-0000-4000-8000-000000000004',
+      state: { returnTo: '/my-tasks' },
+    });
+    expect(screen.getByRole('link', { name: 'Tugas Saya' })).toHaveClass('bg-[#B1E743]');
+    expect(screen.getByRole('link', { name: 'Task Hub' })).not.toHaveClass('bg-[#B1E743]');
   });
 
   it('shows folders only on work pages', () => {

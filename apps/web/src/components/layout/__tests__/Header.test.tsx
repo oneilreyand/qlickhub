@@ -197,6 +197,11 @@ describe('getSectionLabel', () => {
     expect(getSectionLabel('/my-tasks', 'overview')).toBe('Tugas Saya');
     expect(getSectionLabel('/projects/p1/tasks/t1', 'overview')).toBe('Task Hub');
     expect(getSectionLabel('/work/features/f1', 'overview')).toBe('Task Hub');
+    expect(getSectionLabel('/work/subtasks/s1', 'overview')).toBe('Task Hub');
+    expect(getSectionLabel('/work/bugs/b1', 'overview')).toBe('Task Hub');
+    expect(getSectionLabel('/work/subtasks/s1', 'overview', { returnTo: '/my-tasks' })).toBe(
+      'Tugas Saya',
+    );
     expect(getSectionLabel('/reports', 'overview')).toBe('Laporan');
     expect(getSectionLabel('/unknown', 'overview')).toBe('Qlick Hub');
   });

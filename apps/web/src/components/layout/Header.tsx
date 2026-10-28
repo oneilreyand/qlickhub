@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab') || 'overview';
-  const sectionLabel = getSectionLabel(location.pathname, currentTab);
+  const sectionLabel = getSectionLabel(location.pathname, currentTab, location.state);
 
   const { workspaces, activeWorkspaceId } = useAppSelector((state) => state.workspace);
   const currentUser = useAppSelector(selectCurrentUser);
