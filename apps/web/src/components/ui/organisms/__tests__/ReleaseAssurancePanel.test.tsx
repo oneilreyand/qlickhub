@@ -265,6 +265,7 @@ const renderPanel = (
     qaWorkflowSummary?: QaWorkflowSummary | null;
     isQaWorkflowSummaryLoading?: boolean;
     qaWorkflowSummaryError?: string | null;
+    variant?: 'default' | 'simple';
   },
 ) =>
   render(
@@ -275,6 +276,7 @@ const renderPanel = (
         currentUserId={options?.currentUserId || (mode === 'qa' ? ids.qa : ids.po)}
         userRole={options?.userRole || (mode === 'qa' ? 'qa' : 'po')}
         mode={mode}
+        variant={options?.variant}
         qaWorkflowSummary={options?.qaWorkflowSummary}
         isQaWorkflowSummaryLoading={options?.isQaWorkflowSummaryLoading}
         qaWorkflowSummaryError={options?.qaWorkflowSummaryError}
@@ -329,6 +331,23 @@ describe('ReleaseAssurancePanel', () => {
         notes: 'Regression passed on staging.',
       }),
     );
+  });
+
+  it('simple variant explains the decision in plain words and drops the duplicate blocker list', async () => {
+    renderPanel('qa', {
+      variant: 'simple',
+      qaWorkflowSummary: {
+        ...qaWorkflowSummary({ code: 'create_test_cycle', label: 'Tetapkan Versi yang Diuji' }, [
+          'qa_test_cycle_missing',
+        ]),
+        testCycle: null,
+      },
+    });
+    expect(await screen.findByText(/Keputusan akhir QA untuk Feature ini/)).toBeInTheDocument();
+    expect(screen.getByText(/Anda tetap dapat mencatat penolakan/)).toBeInTheDocument();
+    expect(
+      screen.queryByText('Tetapkan versi yang diuji terlebih dahulu.'),
+    ).not.toBeInTheDocument();
   });
 
   it('fails closed for a blocked QA workflow and restricts sign-off to its backend-selected cycle', async () => {

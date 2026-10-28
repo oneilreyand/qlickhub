@@ -341,6 +341,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
               currentUserId={currentUserId ?? undefined}
               userRole={userRole}
               mode="qa"
+              variant="simple"
               qaWorkflowSummary={workflowSummary}
               isQaWorkflowSummaryLoading={isLoadingSummary}
               qaWorkflowSummaryError={summaryError}
