@@ -238,6 +238,16 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="flex min-w-0 flex-col gap-5">
+          {onImportSpreadsheet && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-stone-300 px-5 py-3 dark:border-stone-700">
+              <p className="text-sm text-stone-600 dark:text-stone-400">
+                Test Case sudah ada di spreadsheet (CSV atau Excel)?
+              </p>
+              <Button variant="outline" size="sm" onClick={onImportSpreadsheet}>
+                Impor spreadsheet
+              </Button>
+            </div>
+          )}
           {groups.map((group) => {
             const tested = group.items.filter((item) => item.execution.latestRun?.result).length;
             return (
@@ -409,30 +419,15 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
           )}
         </aside>
       </div>
-      {(onImportSpreadsheet || onOpenFullDesk) && (
+      {onOpenFullDesk && (
         <p className="mt-8 text-xs text-stone-500 dark:text-stone-400">
-          {onImportSpreadsheet && (
-            <>
-              Test Case sudah ada di spreadsheet?{' '}
-              <button
-                type="button"
-                onClick={onImportSpreadsheet}
-                className="underline underline-offset-2 hover:text-stone-800 dark:hover:text-stone-200"
-              >
-                Impor spreadsheet
-              </button>
-              {onOpenFullDesk ? ' · ' : ''}
-            </>
-          )}
-          {onOpenFullDesk && (
-            <button
-              type="button"
-              onClick={onOpenFullDesk}
-              className="underline underline-offset-2 hover:text-stone-800 dark:hover:text-stone-200"
-            >
-              Buka desk QA lengkap
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onOpenFullDesk}
+            className="underline underline-offset-2 hover:text-stone-800 dark:hover:text-stone-200"
+          >
+            Buka desk QA lengkap
+          </button>
         </p>
       )}
     </article>
