@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   CommitTestCaseImportSchema,
   FetchGoogleSheetImportSchema,
+  UpdateImportRowRequirementSchema,
   AddTestResultEvidenceSupplementInputSchema,
   CreateQaTestCycleSchema,
   CreateTestCaseSchema,
@@ -384,6 +385,20 @@ export async function fetchGoogleSheetForImport(req: AuthenticatedRequest, res: 
     assertCanImportTestCases(membership.role);
     const file = await googleSheetImportService.fetchCsv(input.url);
     return res.status(200).json({ file });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+export async function updateTestCaseImportRowRequirement(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = UpdateImportRowRequirementSchema.parse(req.body);
+    const result = await testCaseImportService.updateStagedRowRequirement(
+      req.params.workspaceId,
+      req.user!.userId,
+      input,
+    );
+    return res.status(200).json(result);
   } catch (error) {
     return sendProblemDetails(res, error);
   }

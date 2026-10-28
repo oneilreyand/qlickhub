@@ -187,6 +187,57 @@ describe('Spreadsheet import scope and team format (P4c-3)', () => {
     assert.ok(created.every((tc) => tc.status === 'active'));
   });
 
+  test('lets the QA correct rejected rows to a valid Requirement, then commits them', async () => {
+    const preview = await testCaseImportService.previewImport(
+      workspace.id,
+      qa.id,
+      'team.csv',
+      Buffer.from(teamCsv(), 'utf8'),
+      'text/csv',
+      undefined,
+      undefined,
+      qaSubtask.id,
+    );
+    await assert.rejects(
+      testCaseImportService.updateStagedRowRequirement(workspace.id, qa.id, {
+        importSessionId: preview.importSessionId,
+        requirementCode: unlinkedCode,
+        sourceRowNumbers: [4],
+        qaSubtaskId: qaSubtask.id,
+      }),
+      /tidak ditautkan ke Feature ini/,
+    );
+    await assert.rejects(
+      testCaseImportService.updateStagedRowRequirement(workspace.id, otherQa.id, {
+        importSessionId: preview.importSessionId,
+        requirementCode: linkedCode,
+        sourceRowNumbers: [4],
+      }),
+      /FORBIDDEN/,
+    );
+
+    const rejectedRows = preview.rows.filter((row) => !row.isValid).map((r) => r.sourceRowNumber);
+    const fixed = await testCaseImportService.updateStagedRowRequirement(workspace.id, qa.id, {
+      importSessionId: preview.importSessionId,
+      requirementCode: linkedCode.toLowerCase(),
+      sourceRowNumbers: rejectedRows,
+      qaSubtaskId: qaSubtask.id,
+    });
+    assert.strictEqual(fixed.validRows, 4);
+    assert.strictEqual(fixed.invalidRows, 0);
+    assert.ok(fixed.rows.every((row) => row.requirementCode === linkedCode && row.isValid));
+
+    const result = await testCaseImportService.commitImport(qa.id, {
+      workspaceId: workspace.id,
+      importSessionId: preview.importSessionId,
+      contentHash: preview.contentHash,
+      mode: 'create_only',
+      qaSubtaskId: qaSubtask.id,
+    });
+    assert.strictEqual(result.createdRows, 4);
+    assert.strictEqual(result.failedRows, 0);
+  });
+
   test('rejects a QA who is not assigned to the subtask', async () => {
     await assert.rejects(
       testCaseImportService.previewImport(

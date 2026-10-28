@@ -631,3 +631,23 @@ export const GoogleSheetImportFileSchema = z.object({
   sheetGid: z.string(),
 });
 export type GoogleSheetImportFile = z.infer<typeof GoogleSheetImportFileSchema>;
+
+/** Koreksi manual kode Requirement pada baris pratinjau impor (sheet asli tidak berubah). */
+export const UpdateImportRowRequirementSchema = z.object({
+  importSessionId: z.string().uuid(),
+  requirementCode: NonBlankTextSchema.max(64),
+  /** Nomor baris sumber yang diubah; setiap baris harus berasal dari sesi impor ini. */
+  sourceRowNumbers: z.array(z.number().int().positive()).min(1).max(MAX_IMPORT_ROWS),
+  qaSubtaskId: z.string().uuid().optional(),
+});
+export type UpdateImportRowRequirementInput = z.infer<typeof UpdateImportRowRequirementSchema>;
+
+export const UpdateImportRowRequirementResponseSchema = z.object({
+  rows: z.array(TestCaseImportDryRunRowSchema),
+  validRows: z.number().int().nonnegative(),
+  invalidRows: z.number().int().nonnegative(),
+  duplicateRows: z.number().int().nonnegative(),
+});
+export type UpdateImportRowRequirementResponse = z.infer<
+  typeof UpdateImportRowRequirementResponseSchema
+>;

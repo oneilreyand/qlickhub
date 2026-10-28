@@ -67,6 +67,7 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
   const [step, setStep] = useState<WizardStep>('upload');
   const [previewData, setPreviewData] = useState<TestCaseImportPreviewResponse | null>(null);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [bulkRequirement, setBulkRequirement] = useState('');
   const [importMode, setImportMode] = useState<TestCaseImportMode>('create_only');
   const [selectedSheet, setSelectedSheet] = useState<string>('Sheet1');
   const [activeFile, setActiveFile] = useState<{
@@ -232,6 +233,39 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
       setColumnMapping(preview.columnMapping || {});
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : 'Sheet yang dipilih gagal dibaca.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const hasRequirementError = (row: TestCaseImportPreviewResponse['rows'][number]) =>
+    row.validationErrors.some((message) => message.startsWith('Requirement'));
+
+  const rejectedByRequirement = previewData ? previewData.rows.filter(hasRequirementError) : [];
+
+  // Koreksi manual: ganti kode Requirement baris yang ditolak. Sheet asli tidak berubah.
+  const handleFixRequirement = async (requirementCode: string, sourceRowNumbers: number[]) => {
+    if (!previewData || !requirementCode || sourceRowNumbers.length === 0) return;
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const updated = await testManagementService.updateImportRowRequirement(workspaceId, {
+        importSessionId: previewData.importSessionId,
+        requirementCode,
+        sourceRowNumbers,
+        qaSubtaskId,
+      });
+      const byRow = new Map(updated.rows.map((r) => [r.sourceRowNumber, r]));
+      setPreviewData({
+        ...previewData,
+        rows: previewData.rows.map((r) => byRow.get(r.sourceRowNumber) ?? r),
+        validRows: updated.validRows,
+        invalidRows: updated.invalidRows,
+        duplicateRows: updated.duplicateRows,
+      });
+      setBulkRequirement('');
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Requirement gagal diperbarui.');
     } finally {
       setLoading(false);
     }
@@ -565,8 +599,8 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
               >
                 <p className="font-semibold">{previewData.invalidRows} baris tidak akan diimpor.</p>
                 <p className="mt-0.5">
-                  Perbaiki baris itu di spreadsheet (misalnya kode Requirement yang tidak sesuai),
-                  lalu impor ulang. Baris yang sudah valid tidak terpengaruh.
+                  Pilih Requirement yang benar langsung di tabel di bawah, atau perbaiki di
+                  spreadsheet lalu ambil ulang. Perubahan di sini tidak mengubah spreadsheet asli.
                 </p>
                 {previewData.allowedRequirementCodes.length > 0 && (
                   <p className="mt-0.5">
@@ -576,6 +610,40 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                     </span>
                   </p>
                 )}
+                {previewData.allowedRequirementCodes.length > 0 &&
+                  rejectedByRequirement.length > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <label htmlFor="bulk-requirement" className="font-medium">
+                        Ganti Requirement semua baris yang ditolak karena Requirement:
+                      </label>
+                      <select
+                        id="bulk-requirement"
+                        value={bulkRequirement}
+                        onChange={(e) => setBulkRequirement(e.target.value)}
+                        className="rounded-md border border-amber-500/40 bg-white px-2 py-1 font-mono text-xs text-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                      >
+                        <option value="">Pilih Requirement</option>
+                        {previewData.allowedRequirementCodes.map((code) => (
+                          <option key={code} value={code}>
+                            {code}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={loading || !bulkRequirement}
+                        onClick={() =>
+                          void handleFixRequirement(
+                            bulkRequirement,
+                            rejectedByRequirement.map((r) => r.sourceRowNumber),
+                          )
+                        }
+                      >
+                        {`Terapkan ke ${rejectedByRequirement.length} baris`}
+                      </Button>
+                    </div>
+                  )}
               </div>
             )}
             {previewData.ignoredHeaders.length > 0 && (
@@ -684,9 +752,30 @@ export const TestCaseImportWizardModal: React.FC<TestCaseImportWizardModalProps>
                             {row.requirementCode}
                           </span>
                         ) : (
-                          <span className="text-rose-600 dark:text-rose-400">
-                            {row.requirementCode || 'Tidak ada'}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-rose-600 dark:text-rose-400">
+                              {row.requirementCode || 'Tidak ada'}
+                            </span>
+                            {previewData.allowedRequirementCodes.length > 0 &&
+                              hasRequirementError(row) && (
+                                <select
+                                  aria-label={`Ganti Requirement baris ${row.sourceRowNumber}`}
+                                  value=""
+                                  disabled={loading}
+                                  onChange={(e) =>
+                                    void handleFixRequirement(e.target.value, [row.sourceRowNumber])
+                                  }
+                                  className="rounded-md border border-stone-300 bg-white px-1.5 py-0.5 font-mono text-[11px] text-stone-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                                >
+                                  <option value="">Pilih Requirement</option>
+                                  {previewData.allowedRequirementCodes.map((code) => (
+                                    <option key={code} value={code}>
+                                      {code}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                          </div>
                         )}
                       </td>
                       <td className="px-3 py-2 uppercase text-[10px]">{row.priority}</td>

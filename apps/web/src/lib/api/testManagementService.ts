@@ -12,6 +12,8 @@ import type {
   TestCaseImportAudit,
   TestCaseImportPreviewResponse,
   GoogleSheetImportFile,
+  UpdateImportRowRequirementInput,
+  UpdateImportRowRequirementResponse,
   TestCaseImportResult,
   TestResultEvidenceLink,
   TestRun,
@@ -252,6 +254,16 @@ export const testManagementService = {
       { method: 'POST', body: JSON.stringify({ url }) },
     );
     return response.file;
+  },
+
+  async updateImportRowRequirement(
+    workspaceId: string,
+    input: UpdateImportRowRequirementInput,
+  ): Promise<UpdateImportRowRequirementResponse> {
+    return apiClient<UpdateImportRowRequirementResponse>(
+      `/workspaces/${workspaceId}/test-cases/import/row-requirement`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
   },
 
   async commitImport(

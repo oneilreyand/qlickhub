@@ -12,6 +12,7 @@ vi.mock('../../../../../lib/api/testManagementService', () => ({
     listImportAudits: vi.fn(),
     downloadErrorReport: vi.fn(),
     fetchGoogleSheetForImport: vi.fn(),
+    updateImportRowRequirement: vi.fn(),
   },
 }));
 
@@ -200,5 +201,73 @@ describe('TestCaseImportWizardModal', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Ambil dari Google Sheets' }));
     expect(await screen.findByText('Spreadsheet tidak dapat dibaca.')).toBeInTheDocument();
+  });
+
+  it('lets the QA pick a valid Requirement for a rejected row without touching the sheet', async () => {
+    const base = preview();
+    const rejected = {
+      ...base.rows[0],
+      requirementCode: 'REQ-001',
+      resolvedRequirementId: null,
+      isValid: false,
+      validationErrors: ['Requirement "REQ-001" tidak ada di aplikasi.'],
+    };
+    vi.mocked(testManagementService.fetchGoogleSheetForImport).mockResolvedValue({
+      fileName: 'google-sheet-1.csv',
+      fileContent: 'Title,Requirement Code\nImported case,REQ-001',
+      sheetGid: '1',
+    });
+    vi.mocked(testManagementService.previewImport).mockResolvedValue({
+      ...base,
+      validRows: 0,
+      invalidRows: 1,
+      allowedRequirementCodes: ['REQ-9SQ1', 'REQ-9TS2'],
+      rows: [rejected],
+    });
+    vi.mocked(testManagementService.updateImportRowRequirement).mockResolvedValue({
+      rows: [
+        {
+          ...rejected,
+          requirementCode: 'REQ-9SQ1',
+          resolvedRequirementId: '10000000-0000-4000-8000-000000000002',
+          isValid: true,
+          validationErrors: [],
+        },
+      ],
+      validRows: 1,
+      invalidRows: 0,
+      duplicateRows: 0,
+    });
+    render(
+      <TestCaseImportWizardModal
+        isOpen
+        onClose={vi.fn()}
+        workspaceId="10000000-0000-4000-8000-000000000003"
+        userRole="qa"
+        qaSubtaskId="10000000-0000-4000-8000-000000000009"
+        onImportComplete={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Atau tempel tautan Google Sheets'), {
+      target: { value: 'https://docs.google.com/spreadsheets/d/abc/edit#gid=1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Ambil dari Google Sheets' }));
+
+    const rowSelect = await screen.findByLabelText('Ganti Requirement baris 2');
+    fireEvent.change(rowSelect, { target: { value: 'REQ-9SQ1' } });
+
+    await waitFor(() =>
+      expect(testManagementService.updateImportRowRequirement).toHaveBeenCalledWith(
+        '10000000-0000-4000-8000-000000000003',
+        {
+          importSessionId: '10000000-0000-4000-8000-000000000001',
+          requirementCode: 'REQ-9SQ1',
+          sourceRowNumbers: [2],
+          qaSubtaskId: '10000000-0000-4000-8000-000000000009',
+        },
+      ),
+    );
+    expect(await screen.findByRole('button', { name: 'Impor 1 Baris Valid' })).toBeEnabled();
+    expect(screen.queryByLabelText('Ganti Requirement baris 2')).not.toBeInTheDocument();
   });
 });

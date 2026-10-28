@@ -7,6 +7,8 @@ import type {
   TestCaseImportPreviewResponse,
   TestCaseImportResult,
   TestCaseImportRowError,
+  UpdateImportRowRequirementInput,
+  UpdateImportRowRequirementResponse,
 } from '@qlick/contracts';
 
 import { MAX_IMPORT_ROWS } from '@qlick/contracts';
@@ -434,6 +436,104 @@ export class TestCaseImportService {
       expiresAt: expiresAt.toISOString(),
       rows: dryRunRows,
     };
+  }
+
+  /**
+   * Koreksi manual kode Requirement baris pratinjau. Hanya mengubah data staging sesi impor
+   * ini (sheet asli tidak disentuh); kode baru divalidasi dengan aturan yang sama seperti
+   * pratinjau (ada, aktif, dan tertaut ke Feature subtask QA).
+   */
+  async updateStagedRowRequirement(
+    workspaceId: string,
+    actorId: string,
+    input: UpdateImportRowRequirementInput,
+  ): Promise<UpdateImportRowRequirementResponse> {
+    const membership = await requireActiveMember(workspaceId, actorId);
+    assertCanImportTestCases(membership.role);
+
+    const reqCode = input.requirementCode.trim();
+    const requirement = await RequirementModel.findOne({
+      where: { workspaceId, code: { [Op.iLike]: reqCode } },
+      attributes: ['id', 'code', 'status'],
+    });
+    if (!requirement) {
+      throw new Error(`BAD_REQUEST: Requirement "${reqCode}" tidak ada di aplikasi.`);
+    }
+    if (requirement.status !== 'active') {
+      throw new Error(`BAD_REQUEST: Requirement "${requirement.code}" tidak aktif.`);
+    }
+    const qaScope = input.qaSubtaskId
+      ? await this.loadQaScope(workspaceId, actorId, input.qaSubtaskId)
+      : null;
+    if (qaScope && !qaScope.requirementIds.has(requirement.id)) {
+      throw new Error(
+        `BAD_REQUEST: Requirement "${requirement.code}" tidak ditautkan ke Feature ini.`,
+      );
+    }
+
+    return sequelize.transaction(async (transaction) => {
+      const staged = await TestCaseImportModel.findOne({
+        where: { id: input.importSessionId, workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!staged) throw new Error('NOT_FOUND: Import session not found or invalid.');
+      if (staged.actorId !== actorId) {
+        throw new Error('FORBIDDEN: You do not own this import session.');
+      }
+      if (staged.status !== 'in_progress') {
+        throw new Error('BAD_REQUEST: Sesi impor ini sudah selesai.');
+      }
+
+      const rows = await TestCaseImportRowModel.findAll({
+        where: { importId: input.importSessionId },
+        order: [['sourceRowNumber', 'ASC']],
+        transaction,
+      });
+      const targets = new Set(input.sourceRowNumbers);
+      const updatedRows: TestCaseImportDryRunRow[] = [];
+      let validRows = 0;
+      let invalidRows = 0;
+      let duplicateRows = 0;
+
+      for (const row of rows) {
+        const payload = row.parsedPayload as unknown as TestCaseImportDryRunRow;
+        if (targets.has(row.sourceRowNumber)) {
+          const remaining = (payload.validationErrors || []).filter(
+            (message) => !message.startsWith('Requirement'),
+          );
+          const isValid = remaining.length === 0;
+          const next: TestCaseImportDryRunRow = {
+            ...payload,
+            requirementCode: requirement.code,
+            resolvedRequirementId: requirement.id,
+            validationErrors: remaining,
+            isValid,
+          };
+          await row.update(
+            {
+              parsedPayload: next as unknown as Record<string, unknown>,
+              outcome: isValid ? (next.isDuplicate ? 'skipped' : 'created') : 'failed',
+              validationErrors: remaining.length > 0 ? remaining : null,
+            },
+            { transaction },
+          );
+          updatedRows.push(next);
+          if (next.isValid) validRows++;
+          else invalidRows++;
+          if (next.isDuplicate) duplicateRows++;
+        } else {
+          if (payload.isValid) validRows++;
+          else invalidRows++;
+          if (payload.isDuplicate) duplicateRows++;
+        }
+      }
+
+      if (updatedRows.length !== targets.size) {
+        throw new Error('BAD_REQUEST: Ada baris yang bukan bagian dari sesi impor ini.');
+      }
+      return { rows: updatedRows, validRows, invalidRows, duplicateRows };
+    });
   }
 
   async commitImport(
