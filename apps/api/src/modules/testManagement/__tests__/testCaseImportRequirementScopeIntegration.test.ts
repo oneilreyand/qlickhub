@@ -234,8 +234,14 @@ describe('Spreadsheet import scope and team format (P4c-3)', () => {
       mode: 'create_only',
       qaSubtaskId: qaSubtask.id,
     });
-    assert.strictEqual(result.createdRows, 4);
+    // TC-P4C3-1/2 sudah dibuat test sebelumnya, jadi dilewati sebagai duplikat (create_only).
     assert.strictEqual(result.failedRows, 0);
+    assert.strictEqual(result.createdRows + result.skippedRows, 4);
+    const corrected = await TestCaseModel.findAll({
+      where: { workspaceId: workspace.id, externalReference: ['TC-P4C3-3', 'TC-P4C3-4'] },
+    });
+    assert.strictEqual(corrected.length, 2);
+    assert.ok(corrected.every((tc) => tc.status === 'active'));
   });
 
   test('rejects a QA who is not assigned to the subtask', async () => {
