@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { HandoffTimeline } from './HandoffTimeline';
 import {
   CheckCircle2,
   RotateCcw,
@@ -1149,6 +1150,19 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     />
   );
 
+  const discussionWithHandoffs = task.parentTaskId ? (
+    discussionBox
+  ) : (
+    <div className="space-y-6">
+      {discussionBox}
+      <HandoffTimeline
+        workspaceId={effectiveWorkspaceId}
+        featureTaskId={task.id}
+        currentUserId={currentUserId}
+      />
+    </div>
+  );
+
   const detailTabs: TabItem[] = [
     { id: 'overview', label: 'Detail Task', icon: <FileText className="h-3.5 w-3.5" /> },
     ...(!task.parentTaskId
@@ -1648,7 +1662,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                       throw err;
                     }
                   }}
-                  discussion={discussionBox}
+                  discussion={discussionWithHandoffs}
                 />
               }
               rail={
@@ -1663,7 +1677,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               }
             />
           )}
-          {layout !== 'page' && activeTab === 'discussion' && discussionBox}
+          {layout !== 'page' && activeTab === 'discussion' && discussionWithHandoffs}
         </div>
       </DetailFrame>
 

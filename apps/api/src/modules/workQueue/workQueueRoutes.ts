@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../../http/middleware/authenticate.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
-import { getRoleAwareWorkQueue } from './workQueueController.js';
+import { getFeatureHandoffs, getRoleAwareWorkQueue } from './workQueueController.js';
 
 export const workQueueRoutes = Router({ mergeParams: true });
 
@@ -26,4 +26,11 @@ workQueueRoutes.get(
   validateWorkspaceId,
   requireWorkspaceMember(),
   getRoleAwareWorkQueue,
+);
+
+workQueueRoutes.get(
+  '/workspaces/:workspaceId/features/:featureTaskId/handoffs',
+  validateWorkspaceId,
+  requireWorkspaceMember(),
+  getFeatureHandoffs,
 );

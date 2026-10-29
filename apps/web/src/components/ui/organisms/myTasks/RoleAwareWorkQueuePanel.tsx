@@ -29,6 +29,7 @@ import { Button } from '../../atoms/Button';
 import { Card } from '../../atoms/Card';
 import { Select } from '../../atoms/Select';
 import { Skeleton } from '../../atoms/Skeleton';
+import { HandoffTimeline } from '../HandoffTimeline';
 import { EmptyState } from '../../molecules/EmptyState';
 import { SearchInput } from '../../molecules/SearchInput';
 
@@ -194,6 +195,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
+  const [historyItemId, setHistoryItemId] = useState<string | null>(null);
   const [replyingItemId, setReplyingItemId] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
@@ -409,6 +411,29 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
             {getQueueItemActionLabel(item, workState.action)}
           </Button>
         </div>
+        {state.queue && (
+          <div className="mt-3 border-t border-stone-100 pt-2 dark:border-stone-800">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-2"
+              aria-expanded={historyItemId === item.id}
+              aria-label={`Riwayat serah-terima: ${item.title}`}
+              onClick={() => setHistoryItemId((current) => (current === item.id ? null : item.id))}
+            >
+              {historyItemId === item.id ? 'Sembunyikan riwayat' : 'Riwayat'}
+            </Button>
+            {historyItemId === item.id && (
+              <div className="mt-2">
+                <HandoffTimeline
+                  workspaceId={state.queue.workspaceId}
+                  featureTaskId={item.featureTaskId}
+                  currentUserId={currentUserId}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </Card>
     );
   };
