@@ -60,7 +60,7 @@ graph LR
 10. Treat a private design canvas as a working file only. A `design/` folder under `docs/` holds
     `README.md`, the canvas source as text in `source/`, and WebP exports of at most 300 KB each,
     exported only when a design is approved and only for changed screens (`DOC-007`,
-    [ADR-036](adr/ADR-036-DESIGN-ASSET-WORKFLOW.md)).
+    [ADR-037](adr/ADR-037-DESIGN-ASSET-WORKFLOW.md)).
 
 The automated gate verifies required entry points, local target-file links in the active SSoT,
 Policy Registry, deployment document, and Feature Cards; it also verifies unique Policy IDs,

@@ -1,7 +1,7 @@
 # WORK-VISIBILITY — Design Exports
 
 **Status:** Draft — diekspor 2026-10-29; menunggu G0/G1 [plan program](../../WORK_VISIBILITY_PROGRAM_PLAN.md)
-**Policy:** `DOC-007` ([ADR-036](../../../adr/ADR-036-DESIGN-ASSET-WORKFLOW.md))
+**Policy:** `DOC-007` ([ADR-037](../../../adr/ADR-037-DESIGN-ASSET-WORKFLOW.md))
 **Sumber kerja:** canvas Design "qlickHub — Laporan, Leader Hub & Akses" (privat, bukan acuan resmi):
 https://claude.ai/artifact/UhMWePRnt1K1DpcHQVPSed
 **Sumber di repo:** [`source/`](source/canvas.json) — artboard `.dc.html` dan index canvas

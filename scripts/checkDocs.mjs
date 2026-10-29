@@ -68,7 +68,7 @@ const featureNavigationRequirements = {
   'docs/features/ROLE_FLOWS.md': ['## Owner / Admin', '## Product Owner', '## Developer', '## QA'],
 };
 
-// DOC-007 (ADR-036): design folders keep text source and small WebP exports.
+// DOC-007 (ADR-037): design folders keep text source and small WebP exports.
 const legacyDesignFolders = new Set(['docs/features/SIMPLE-UI-DELIVERY-FLOW/design']);
 export const designImageMaxBytes = 300 * 1024;
 const rasterImagePattern = /\.(png|jpe?g|gif|bmp|tiff?|webp)$/i;

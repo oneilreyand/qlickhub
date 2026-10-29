@@ -1,4 +1,4 @@
-# ADR-036: Design Asset Workflow — Canvas as Working File, Text Source and WebP Exports in the Repository
+# ADR-037: Design Asset Workflow — Canvas as Working File, Text Source and WebP Exports in the Repository
 
 **Status:** Accepted — effective when merged with the Owner's `owner-approved` label (Tier 2)
 **Date:** 2026-10-29
