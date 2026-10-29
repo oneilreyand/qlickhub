@@ -80,17 +80,17 @@ flowchart LR
     M -->|bug kritis| H
 ```
 
-| Langkah | Layar / route (usulan, final di contracts.md)      | Aksi user                        | Respons sistem                                         | AC terkait     |
-| ------- | -------------------------------------------------- | -------------------------------- | ------------------------------------------------------ | -------------- |
-| 1       | `/work`                                            | Klik Feature                     | Halaman detail pada tahapnya                           | AC-2.1, AC-5.7 |
-| 2       | `/work/features/:featureId?tahap=plan`             | Tulis ide, jawab pertanyaan AI   | Pertanyaan/jawaban tersimpan                           | AC-5.1, AC-5.2 |
-| 3       | `…?tahap=prd`, `…?tahap=task`                      | Tinjau dan ubah draft            | Draft berversi tersimpan                               | AC-5.3, AC-5.6 |
-| 4       | `…?tahap=apply`                                    | Centang tinjau, Terapkan         | Data dibuat dalam satu transaksi                       | AC-5.4         |
-| 5       | `/my-tasks`                                        | Pilih item "Mulai dari sini"     | Detail kerjaan sesuai peran                            | AC-4.1–AC-4.4  |
-| 6       | `/projects/:projectId/tasks/:taskId`               | Developer cek AC, Kirim ke QA    | Item muncul di Tugas Saya QA                           | AC-2.4         |
-| 7       | `/tests/cases/new`, `/tests/cases/:testCaseId/run` | QA tambah dan jalankan Test Case | Hasil + bukti tersimpan; gagal diteruskan ke Developer | AC-3.1–AC-3.6  |
-| 8       | `/releases/:releaseId`                             | QA verifikasi, PO terima         | Catatan rilis, verifikasi, penerimaan tersimpan        | AC-7.1–AC-7.3  |
-| 9       | `/releases/:releaseId/monitoring`                  | QA triage, PO tutup              | Bug Production tertaut; rilis ditutup                  | AC-8.1, AC-8.2 |
+| Langkah | Layar / route (usulan, final di contracts.md)      | Aksi user                        | Respons sistem                                         | AC terkait             |
+| ------- | -------------------------------------------------- | -------------------------------- | ------------------------------------------------------ | ---------------------- |
+| 1       | `/work`                                            | Klik Feature                     | Halaman detail pada tahapnya                           | AC-2.1, AC-5.9         |
+| 2       | `/work/features/:featureId?tahap=plan`             | Tulis ide, jawab pertanyaan AI   | Pertanyaan/jawaban tersimpan; Plan terisi lengkap      | AC-5.1, AC-5.4         |
+| 3       | `…?tahap=prd`, `…?tahap=task`                      | Tinjau dan ubah draft            | Draft berversi tersimpan                               | AC-5.2, AC-5.5, AC-5.8 |
+| 4       | `…?tahap=apply`                                    | Centang tinjau, Terapkan         | Data dibuat dalam satu transaksi                       | AC-5.6                 |
+| 5       | `/my-tasks`                                        | Pilih item "Mulai dari sini"     | Detail kerjaan sesuai peran                            | AC-4.1–AC-4.4          |
+| 6       | `/projects/:projectId/tasks/:taskId`               | Developer cek AC, Kirim ke QA    | Item muncul di Tugas Saya QA                           | AC-2.4                 |
+| 7       | `/tests/cases/new`, `/tests/cases/:testCaseId/run` | QA tambah dan jalankan Test Case | Hasil + bukti tersimpan; gagal diteruskan ke Developer | AC-3.1–AC-3.6          |
+| 8       | `/releases/:releaseId`                             | QA verifikasi, PO terima         | Catatan rilis, verifikasi, penerimaan tersimpan        | AC-7.1–AC-7.3          |
+| 9       | `/releases/:releaseId/monitoring`                  | QA triage, PO tutup              | Bug Production tertaut; rilis ditutup                  | AC-8.1, AC-8.2         |
 
 ## 4. Wireframe per state
 
@@ -152,6 +152,7 @@ Desain Dark dan Phone dibuat sebelum slice 1 (keputusan Owner #7) dan ditautkan 
 | Pertanyaan                                                                                      | Memengaruhi AC | Status                                 |
 | ----------------------------------------------------------------------------------------------- | -------------- | -------------------------------------- |
 | Nama route final dan apakah `/projects/:projectId/tasks/:taskId` dipakai sebagai detail kerjaan | AC-2.3, AC-2.4 | Open — diputuskan di contracts.md      |
-| Skema pertanyaan AI v2 tetap kompatibel dengan modal AI lama selama transisi                    | AC-5.2         | Open — diputuskan di contracts.md      |
+| Skema pertanyaan AI v2 tetap kompatibel dengan modal AI lama selama transisi                    | AC-5.4         | Open — diputuskan di contracts.md      |
+| Daftar field wajib Plan, PRD, Task (ADR-036) cukup dan tidak berlebihan untuk AI dan pengguna   | AC-5.2         | Open — Owner meninjau di PR P5-0       |
 | Cara menandai komentar sebagai serah-terima (kolom baru vs tipe komentar)                       | AC-4.2         | Open — diputuskan di contracts.md      |
 | Isi cek teknis otomatis yang bisa dijalankan dari lokal                                         | AC-7.2         | Open — diputuskan di breakdown slice 7 |
