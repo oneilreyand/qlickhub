@@ -57,10 +57,15 @@ graph LR
    traceability; role-specific actions belong in `roles/`, while shared contract, authorization,
    and test evidence live in their dedicated files. A role document never replaces backend
    authorization or duplicates a global SSoT rule.
+10. Treat a private design canvas as a working file only. A `design/` folder under `docs/` holds
+    `README.md`, the canvas source as text in `source/`, and WebP exports of at most 300 KB each,
+    exported only when a design is approved and only for changed screens (`DOC-007`,
+    [ADR-037](adr/ADR-037-DESIGN-ASSET-WORKFLOW.md)).
 
 The automated gate verifies required entry points, local target-file links in the active SSoT,
 Policy Registry, deployment document, and Feature Cards; it also verifies unique Policy IDs,
-known policy references, Feature Card structure, CI integration, and unique ADR numbers/index entries.
+known policy references, Feature Card structure, CI integration, unique ADR numbers/index entries,
+and design folder structure (`DOC-007`).
 It does not validate fragment anchors, TODO status, report evidence, all ADR content, or semantic correctness. Human semantic review remains
 mandatory for product behavior, authorization, destructive migrations, and release policy.
 

@@ -35,6 +35,9 @@ Workspace → Folder → Feature / Story (root Task)
 
 ## Active work
 
+- [ ] **Todo** (Claude — 2026-10-29) — **WORK-VISIBILITY: Laporan Saya lintas workspace (tepat waktu/telat, bobot dan kewajaran waktu, irisan), Leader Hub pipeline SDLC dengan alasan hambatan dan beban kerja berbasis poin, serta Anggota & Akses lintas workspace dengan penataan Pengaturan Workspace.** Draft Tahap 0–1 menunggu G0/G1 Owner; keputusan D1–D10 terbuka. Dipecah menjadi WORK-FOUNDATION, MEMBER-ACCESS-HUB, MY-WORK-REPORT, dan LEADER-SDLC-HUB setelah G1. Plan: [WORK_VISIBILITY_PROGRAM_PLAN](docs/plans/WORK_VISIBILITY_PROGRAM_PLAN.md); desain: [work-visibility/design](docs/plans/work-visibility/design/README.md). Tidak ada perubahan kode, data, atau authorization pada tahap ini. Policies: `AUTH-001`, `AUTH-011`, `FLOW-007`, `DATA-001`, `UI-001`, `DOC-002`, `DOC-007`, `SDLC-001`.
+      Layer: PRD=Todo, BE=Todo, FE=Todo.
+
 - [ ] **In progress** (Claude — 2026-10-27) — **SIMPLE-UI-DELIVERY-FLOW: UI sederhana, alur Plan → PRD → Task → Apply dengan AI, Tugas Saya per peran dengan pesan serah-terima, halaman QA Test Case/run dengan bukti, serta verifikasi Production, penerimaan user, dan pemantauan pasca-rilis.** G0–G3 disetujui Owner 2026-10-27; ADR-035 Accepted (berlaku saat merge). P1 (shell sederhana) diterima G5 Owner 2026-10-27 di [PR #60](https://github.com/oneilreyand/qlickhub/pull/60) (base `docs/doc-portal-close`). P2a sampai P4c-8 sudah masuk `main` lewat [PR #72](https://github.com/oneilreyand/qlickhub/pull/72) dan [PR #74](https://github.com/oneilreyand/qlickhub/pull/74) (2026-10-28); verifier G5 untuk P2a–P4c-7 dan UAT yang tercatat di breakdown masih terbuka. Belum ada deploy. Folder: [SIMPLE-UI-DELIVERY-FLOW](docs/features/SIMPLE-UI-DELIVERY-FLOW/README.md). Policies: `UI-001`, `UI-002`, `UI-003`, `UI-004`, `UI-005`, `AUTH-001`, `CONTRACT-001`, `DATA-001`, `AI-013`, `RELEASE-001`, `RELEASE-002`, `SDLC-001`.
       Layer: PRD=Done, BE=Todo, FE=In progress.
 

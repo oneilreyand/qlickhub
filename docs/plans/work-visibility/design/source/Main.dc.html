@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Laporan Saya</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:#FBFCF7;color:#22201F}
+a{color:#3F6212}a:hover{color:#1A2E05}
+.nav a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:12px;color:#57534E;text-decoration:none;font-size:14px;font-weight:500}
+.nav a:hover{background:#F5F5F4;color:#141413}
+.nav a.on{background:#B1E743;color:#141413;font-weight:700}
+.card{background:#FFFFFF;border:1px solid #E7E5E4;border-radius:16px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.c-ok{background:#ECFDF5;color:#047857}
+.c-late-done{background:#FFF7ED;color:#C2410C}
+.c-late{background:#FEF2F2;color:#B91C1C}
+.c-risk{background:#FFFBEB;color:#B45309}
+.c-track{background:#F1F5F9;color:#334155}
+.c-none{background:#FFFFFF;color:#57534E;border:1px dashed #A8A29E}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;font:600 14px Inter,system-ui,sans-serif;cursor:pointer}
+.btn-ghost{background:#FFFFFF;border:1px solid #E7E5E4;color:#22201F}
+.btn-primary{background:#B1E743;border:1px solid #B1E743;color:#141413}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:600;color:#64748B;padding:12px 16px;border-bottom:1px solid #E7E5E4;white-space:nowrap}
+.tbl td{padding:14px 16px;border-bottom:1px solid #F0EFEC;vertical-align:middle}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: #FBFCF7">
+
+<nav class="nav" aria-label="Navigasi utama" style="flex: 1 1 240px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5E4; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px">
+<div style="width: 28px; height: 28px; border-radius: 8px; background: #B1E743; color: #141413; display: grid; place-items: center; font-weight: 800; font-size: 14px">Q</div>
+<span style="font-size: 15px; font-weight: 800; color: #141413">qlickHub</span>
+</div>
+<a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Ringkasan</a>
+<a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>Task Hub</a>
+<a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Tugas Saya</a>
+<a href="Main.dc.html" class="on" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>Laporan Saya</a>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #64748B; padding: 18px 12px 6px">Lainnya</div>
+<a href="LeaderHub.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18h18M4 8l4 4 4-7 4 7 4-4-2 10H6z"></path></svg>Leader Hub</a>
+<a href="AnggotaAkses.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"></path></svg>Anggota &amp; Akses</a>
+<a href="PengaturanWorkspace.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>Pengaturan Workspace</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 56px; display: flex; flex-direction: column; gap: 24px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div>
+<h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: #141413">Laporan Saya</h1>
+<p style="margin: 6px 0 0; font-size: 14px; color: #64748B">Semua kerjaan kamu di 3 workspace — Payment, Mobile App, Internal Tools</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" class="btn btn-ghost">27 Okt – 7 Nov ▾</button>
+<button type="button" class="btn btn-ghost">Semua workspace ▾</button>
+<button type="button" class="btn btn-ghost">Export CSV</button>
+</div>
+</header>
+
+<section aria-label="Ringkasan ketepatan waktu" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="6">
+<button type="button" class="card" style="text-align: left; padding: 16px; cursor: pointer; font-family: inherit; display: flex; flex-direction: column; gap: 10px">
+<span class="chip {{s.cls}}">{{s.label}}</span>
+<span style="font-size: 30px; font-weight: 800; color: #141413; line-height: 1">{{s.n}}</span>
+<span style="font-size: 12px; color: #64748B">{{s.hint}}</span>
+</button>
+</sc-for>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch">
+
+<section class="card" aria-labelledby="beban-h" style="flex: 3 1 560px; min-width: 0; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: baseline">
+<div>
+<h2 id="beban-h" style="margin: 0; font-size: 16px; font-weight: 700; color: #141413">Beban kerja harian</h2>
+<p style="margin: 4px 0 0; font-size: 13px; color: #64748B">Poin effort dibagi kapasitas kamu (15 poin/minggu). Garis = 100%.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #44403C">
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #0B1C30"></span>Payment</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #B1E743"></span>Mobile App</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #94A3B8"></span>Internal Tools</span>
+</div>
+</div>
+<div style="overflow-x: auto">
+<div style="position: relative; display: grid; grid-template-columns: repeat(10, minmax(48px, 1fr)); gap: 10px; min-width: 560px; padding-top: 8px">
+<div style="position: absolute; left: 0; right: 0; bottom: 177px; border-top: 2px dashed #B91C1C; opacity: 0.55"></div>
+<sc-for list="{{days}}" as="d" hint-placeholder-count="10">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+<span style="font-size: 12px; font-weight: 700; color: {{d.pctColor}}">{{d.pct}}</span>
+<div style="height: 170px; width: 100%; max-width: 44px; display: flex; flex-direction: column-reverse; border-radius: 8px; overflow: hidden; background: #F5F5F4">
+<div style="height: {{d.a}}px; background: #0B1C30"></div>
+<div style="height: {{d.b}}px; background: #B1E743"></div>
+<div style="height: {{d.c}}px; background: #94A3B8"></div>
+</div>
+<span style="font-size: 12px; color: #44403C; font-weight: 600">{{d.day}}</span>
+<span style="font-size: 11px; color: #64748B; height: 14px">{{d.date}}</span>
+<span style="font-size: 11px; font-weight: 700; color: #B91C1C; height: 14px">{{d.flag}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+<p style="margin: 0; font-size: 13px; color: #44403C; background: #FEF2F2; border-radius: 12px; padding: 10px 14px">Rab 29 &amp; Kam 30 Okt melebihi kapasitas karena 3 kerjaan dari 3 workspace berjalan bersamaan. <a href="#">Lihat penyebab</a></p>
+</section>
+
+<section class="card" aria-labelledby="perhatian-h" style="flex: 2 1 360px; min-width: 0; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="perhatian-h" style="margin: 0; font-size: 16px; font-weight: 700; color: #141413">Butuh perhatian</h2>
+<sc-for list="{{attention}}" as="t" hint-placeholder-count="4">
+<a href="#" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid #F0EFEC; border-radius: 12px; text-decoration: none; color: #22201F">
+<span style="display: flex; justify-content: space-between; gap: 8px; align-items: center">
+<span style="font-size: 14px; font-weight: 600">{{t.title}}</span>
+<span class="chip {{t.cls}}">{{t.status}}</span>
+</span>
+<span style="font-size: 12px; color: #64748B">{{t.ws}} · {{t.meta}}</span>
+<span style="font-size: 12px; color: #44403C">{{t.reason}}</span>
+</a>
+</sc-for>
+</section>
+</div>
+
+<section aria-labelledby="irisan-h" style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="irisan-h" style="margin: 0; font-size: 16px; font-weight: 700; color: #141413">Irisan lintas workspace</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px">
+<div class="card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 10px">
+<span class="chip c-late" style="align-self: flex-start">Jadwal bentrok · 29–30 Okt</span>
+<p style="margin: 0; font-size: 14px; color: #22201F">Beban puncak 135% dari kapasitas.</p>
+<ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #44403C; display: flex; flex-direction: column; gap: 4px">
+<li>Integrasi callback QRIS — Payment (L)</li>
+<li>Layar riwayat transaksi — Mobile App (M)</li>
+<li>Export audit log — Internal Tools (S)</li>
+</ul>
+</div>
+<div class="card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 10px">
+<span class="chip c-risk" style="align-self: flex-start">Saling bergantung</span>
+<p style="margin: 0; font-size: 14px; color: #22201F"><strong>API refund</strong> (Payment) memblokir <strong>Layar refund</strong> (Mobile App).</p>
+<p style="margin: 0; font-size: 13px; color: #64748B">API refund tenggat 4 Nov, Layar refund mulai 3 Nov — mulai sebelum dependency selesai.</p>
+</div>
+<div class="card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 10px">
+<span class="chip c-track" style="align-self: flex-start">Terkait</span>
+<p style="margin: 0; font-size: 14px; color: #22201F"><strong>Validasi nominal</strong> (Payment) terkait dengan <strong>Form top-up</strong> (Mobile App).</p>
+<p style="margin: 0; font-size: 13px; color: #64748B">Ditautkan oleh PO. Aturan validasi sama di kedua sisi.</p>
+</div>
+</div>
+</section>
+
+<section class="card" aria-labelledby="semua-h" style="padding: 0; display: flex; flex-direction: column">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; padding: 18px 20px 10px">
+<h2 id="semua-h" style="margin: 0; font-size: 16px; font-weight: 700; color: #141413">Semua kerjaan (22)</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" class="btn btn-ghost" style="min-height: 40px">Status: Semua ▾</button>
+<button type="button" class="btn btn-ghost" style="min-height: 40px">Kelompokkan: Workspace ▾</button>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table class="tbl" style="min-width: 860px">
+<thead><tr><th>Kerjaan</th><th>Workspace</th><th>Effort</th><th>Jadwal</th><th>Status</th><th>Ketepatan</th><th>Kewajaran waktu</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+<tr>
+<td><a href="#" style="font-weight: 600; color: #141413; text-decoration: none">{{r.title}}</a><div style="font-size: 12px; color: #64748B; margin-top: 2px">{{r.feature}}</div></td>
+<td style="color: #44403C">{{r.ws}}</td>
+<td><span style="display: inline-grid; place-items: center; min-width: 28px; height: 24px; border-radius: 6px; background: #F5F5F4; font-size: 12px; font-weight: 700; color: #44403C">{{r.effort}}</span></td>
+<td style="color: #44403C; white-space: nowrap">{{r.dates}}</td>
+<td style="color: #44403C">{{r.status}}</td>
+<td><span class="chip {{r.cls}}">{{r.timing}}</span></td>
+<td style="color: #44403C; white-space: nowrap">{{r.fit}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const scale = 170 / 150;
+    const raw = [
+      ['Sen', '27', 40, 20, 0], ['Sel', '28', 50, 30, 0], ['Rab', '29', 60, 45, 30], ['Kam', '30', 60, 45, 10], ['Jum', '31', 40, 20, 10],
+      ['Sen', '3', 30, 20, 0], ['Sel', '4', 30, 30, 0], ['Rab', '5', 40, 30, 0], ['Kam', '6', 20, 30, 0], ['Jum', '7', 20, 10, 0]
+    ];
+    const days = raw.map(([day, date, a, b, c]) => {
+      const total = a + b + c;
+      return {
+        day, date,
+        a: Math.round(a * scale), b: Math.round(b * scale), c: Math.round(c * scale),
+        pct: total + '%',
+        pctColor: total > 100 ? '#B91C1C' : '#44403C',
+        flag: total > 100 ? 'Bentrok' : ''
+      };
+    });
+    return {
+      days,
+      stats: [
+        { label: 'Selesai tepat waktu', n: 8, cls: 'c-ok', hint: 'Selesai sebelum tenggat' },
+        { label: 'Selesai telat', n: 2, cls: 'c-late-done', hint: 'Selesai lewat tenggat' },
+        { label: 'Telat', n: 2, cls: 'c-late', hint: 'Lewat tenggat, belum selesai' },
+        { label: 'Berisiko', n: 3, cls: 'c-risk', hint: 'Mepet tenggat atau ada hambatan' },
+        { label: 'Sesuai jadwal', n: 6, cls: 'c-track', hint: 'Berjalan normal' },
+        { label: 'Tanpa jadwal', n: 1, cls: 'c-none', hint: 'Belum ada tanggal' }
+      ],
+      attention: [
+        { title: 'Integrasi callback QRIS', status: 'Telat 1 hari', cls: 'c-late', ws: 'Payment', meta: 'Tenggat 28 Okt · Effort L', reason: 'Waktu terlalu ketat: 2 hari kerja untuk L (biasanya 5 hari).' },
+        { title: 'Layar riwayat transaksi', status: 'Berisiko', cls: 'c-risk', ws: 'Mobile App', meta: 'Tenggat 30 Okt · Effort M', reason: 'Masih "To do", sisa 1 hari kerja.' },
+        { title: 'API refund', status: 'Berisiko', cls: 'c-risk', ws: 'Payment', meta: 'Tenggat 4 Nov · Effort M', reason: 'Hambatan terbuka: menunggu akses sandbox bank.' },
+        { title: 'Export audit log', status: 'Telat 2 hari', cls: 'c-late', ws: 'Internal Tools', meta: 'Tenggat 27 Okt · Effort S', reason: 'Bentrok jadwal dengan 2 kerjaan lain.' }
+      ],
+      rows: [
+        { title: 'Integrasi callback QRIS', feature: 'Pembayaran QRIS', ws: 'Payment', effort: 'L', dates: '27 – 28 Okt', status: 'In progress', timing: 'Telat', cls: 'c-late', fit: 'Terlalu ketat (0,4×)' },
+        { title: 'API refund', feature: 'Refund otomatis', ws: 'Payment', effort: 'M', dates: '30 Okt – 4 Nov', status: 'In progress', timing: 'Berisiko', cls: 'c-risk', fit: 'Wajar' },
+        { title: 'Layar riwayat transaksi', feature: 'Riwayat v2', ws: 'Mobile App', effort: 'M', dates: '28 – 30 Okt', status: 'To do', timing: 'Berisiko', cls: 'c-risk', fit: 'Wajar' },
+        { title: 'Layar refund', feature: 'Refund otomatis', ws: 'Mobile App', effort: 'S', dates: '3 – 5 Nov', status: 'To do', timing: 'Sesuai jadwal', cls: 'c-track', fit: 'Longgar (1,8×)' },
+        { title: 'Export audit log', feature: 'Audit', ws: 'Internal Tools', effort: 'S', dates: '24 – 27 Okt', status: 'In review', timing: 'Telat', cls: 'c-late', fit: 'Wajar' },
+        { title: 'Validasi nominal', feature: 'Top-up', ws: 'Payment', effort: 'XS', dates: '21 – 22 Okt', status: 'Done', timing: 'Tepat waktu', cls: 'c-ok', fit: 'Wajar' },
+        { title: 'Perbaikan bug notifikasi', feature: 'Notifikasi', ws: 'Mobile App', effort: '—', dates: 'Belum dijadwalkan', status: 'To do', timing: 'Tanpa jadwal', cls: 'c-none', fit: 'Data belum cukup' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
