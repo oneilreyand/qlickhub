@@ -254,18 +254,16 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   };
 
   // "Mulai dari sini" (AC-4.1): satu item siap ditindak paling mendesak dari bucket kerja yang
-  // lolos filter, untuk Developer dan QA (PO menyusul di P4c). Tidak diulang di grupnya.
+  // lolos filter, untuk semua peran. Tidak diulang di grupnya.
   const startHere = useMemo(
     () =>
-      state.queue?.queueRole === 'planner'
-        ? null
-        : (sortQueueItems(
-            sections
-              .filter(({ bucket }) => bucket.code !== 'waiting_on_others')
-              .flatMap(({ items }) => items)
-              .filter((item) => item.workState === 'actionable'),
-          )[0] ?? null),
-    [sections, state.queue?.queueRole],
+      sortQueueItems(
+        sections
+          .filter(({ bucket }) => bucket.code !== 'waiting_on_others')
+          .flatMap(({ items }) => items)
+          .filter((item) => item.workState === 'actionable'),
+      )[0] ?? null,
+    [sections],
   );
 
   const renderItemCard = (item: WorkQueueItem) => {

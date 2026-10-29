@@ -540,7 +540,25 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
         'po_requirement_work',
         'po_release_decision',
         'po_timeline_work',
+        'waiting_on_others',
       ] satisfies WorkQueueBucketCode[],
+    );
+    const waiting = buckets.get('waiting_on_others')?.items ?? [];
+    const waitingDelivery = waiting.find((item) => item.subjectId === deliveryFeature.id);
+    assert.ok(waitingDelivery, 'Feature in Developer hands is listed as waiting');
+    assert.strictEqual(waitingDelivery.workState, 'read_only');
+    assert.strictEqual(waitingDelivery.nextAction.code, 'view_context');
+    assert.deepStrictEqual(waitingDelivery.waitingOn, {
+      role: 'developer',
+      label: 'Menunggu Developer',
+    });
+    assert.ok(
+      !waiting.some((item) => item.subjectId === requirementFeature.id),
+      'Feature with PO work is not duplicated as waiting',
+    );
+    assert.ok(
+      !waiting.some((item) => item.subjectId === releaseFeature.id),
+      'Feature with a pending Release Decision is not waiting',
     );
     assert.ok(
       buckets

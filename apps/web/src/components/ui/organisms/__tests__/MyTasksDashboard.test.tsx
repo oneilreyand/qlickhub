@@ -159,8 +159,8 @@ describe('MyTasksDashboard Organism', () => {
     );
 
     expect(screen.getByText('Feature Item 4')).toBeInTheDocument();
-    expect(screen.queryByText('Feature Item 5')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan 7 lagi' }));
+    expect(screen.queryByText('Feature Item 6')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Tampilkan 6 lagi' }));
     expect(screen.getByText('Feature Item 11')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Filter antrean kerja berdasarkan prioritas'), {
