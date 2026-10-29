@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TaskPrioritySchema } from './task.js';
 import { WorkspaceRoleSchema } from './workspace.js';
+import { TaskCommentHandoffKindSchema } from './comment.js';
 
 export const WorkQueueRoleSchema = z.enum(['planner', 'developer', 'qa']);
 export type WorkQueueRole = z.infer<typeof WorkQueueRoleSchema>;
@@ -45,6 +46,24 @@ export type WorkQueueNextActionCode = z.infer<typeof WorkQueueNextActionCodeSche
 export const WorkQueueItemStateSchema = z.enum(['actionable', 'blocked', 'read_only']);
 export type WorkQueueItemState = z.infer<typeof WorkQueueItemStateSchema>;
 
+/** Handoff sender and latest handoff message shown on a queue item (P4a, AC-4.2). */
+export const WorkQueueSenderSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1).max(255),
+});
+export type WorkQueueSender = z.infer<typeof WorkQueueSenderSchema>;
+
+export const WorkQueueLastMessageSchema = z.object({
+  /** Comment id when the message is a task comment; null for review notes on the task itself. */
+  id: z.string().uuid().nullable(),
+  /** Root comment to reply to (replies are limited to one level); null when not replyable. */
+  threadRootId: z.string().uuid().nullable(),
+  body: z.string().trim().min(1).max(5000),
+  kind: TaskCommentHandoffKindSchema.nullable(),
+  createdAt: z.string().datetime(),
+});
+export type WorkQueueLastMessage = z.infer<typeof WorkQueueLastMessageSchema>;
+
 export const WorkQueueItemSchema = z.object({
   id: z.string().trim().min(1).max(500),
   bucketCode: WorkQueueBucketCodeSchema,
@@ -62,6 +81,8 @@ export const WorkQueueItemSchema = z.object({
   priority: TaskPrioritySchema.nullable(),
   dueDate: z.string().date().nullable(),
   sourceUpdatedAt: z.string().datetime(),
+  sender: WorkQueueSenderSchema.optional(),
+  lastMessage: WorkQueueLastMessageSchema.optional(),
 });
 export type WorkQueueItem = z.infer<typeof WorkQueueItemSchema>;
 

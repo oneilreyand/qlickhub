@@ -1,4 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
+import type { TaskCommentHandoffKind } from '@qlick/contracts';
 import { sequelize } from '../sequelize.js';
 
 export interface TaskCommentAttributes {
@@ -7,6 +8,7 @@ export interface TaskCommentAttributes {
   taskId: string;
   authorId: string;
   parentCommentId?: string | null;
+  handoffKind?: TaskCommentHandoffKind | null;
   body: string;
   editedAt?: Date | null;
   deletedAt?: Date | null;
@@ -14,11 +16,10 @@ export interface TaskCommentAttributes {
   updatedAt?: Date;
 }
 
-export interface TaskCommentCreationAttributes
-  extends Optional<
-    TaskCommentAttributes,
-    'id' | 'parentCommentId' | 'editedAt' | 'deletedAt' | 'createdAt' | 'updatedAt'
-  > {}
+export interface TaskCommentCreationAttributes extends Optional<
+  TaskCommentAttributes,
+  'id' | 'parentCommentId' | 'handoffKind' | 'editedAt' | 'deletedAt' | 'createdAt' | 'updatedAt'
+> {}
 
 export class TaskCommentModel
   extends Model<TaskCommentAttributes, TaskCommentCreationAttributes>
@@ -29,6 +30,7 @@ export class TaskCommentModel
   declare taskId: string;
   declare authorId: string;
   declare parentCommentId: string | null;
+  declare handoffKind: TaskCommentHandoffKind | null;
   declare body: string;
   declare editedAt: Date | null;
   declare deletedAt: Date | null;
@@ -63,6 +65,11 @@ TaskCommentModel.init(
       allowNull: true,
       field: 'parent_comment_id',
     },
+    handoffKind: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+      field: 'handoff_kind',
+    },
     body: {
       type: DataTypes.TEXT,
       allowNull: false,
@@ -94,5 +101,5 @@ TaskCommentModel.init(
     timestamps: true,
     paranoid: true,
     underscored: true,
-  }
+  },
 );

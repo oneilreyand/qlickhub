@@ -102,6 +102,27 @@ describe('SubtaskWorkView', () => {
     expect(props.onSendToQa).toHaveBeenCalledTimes(1);
   });
 
+  it('sends the optional handoff message to QA together with Kirim ke QA', () => {
+    const props = setup({
+      canCheckCriteria: true,
+      acceptanceChecks: [check('a1'), check('a2')],
+    });
+    fireEvent.change(screen.getByLabelText('Pesan untuk QA (opsional)'), {
+      target: { value: '  Cek jejak audit pemulihan.  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim ke QA' }));
+    expect(props.onSendToQa).toHaveBeenCalledWith('Cek jejak audit pemulihan.');
+  });
+
+  it('sends without a message when the note is left empty', () => {
+    const props = setup({
+      canCheckCriteria: true,
+      acceptanceChecks: [check('a1'), check('a2')],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Kirim ke QA' }));
+    expect(props.onSendToQa).toHaveBeenCalledWith(undefined);
+  });
+
   it('shows checks read-only for someone who cannot check criteria', () => {
     setup({ canCheckCriteria: false, acceptanceChecks: [check('a1')] });
     const boxes = screen.getAllByRole('checkbox');

@@ -12,6 +12,8 @@ export interface MyTasksDashboardProps {
   queueState: RoleAwareWorkQueueViewState;
   onRefreshQueue: () => void;
   onOpenQueueItem: (item: WorkQueueItem) => void | Promise<void>;
+  currentUserId?: string | null;
+  onReplyQueueItem?: (item: WorkQueueItem, body: string) => Promise<void>;
   onCreateTaskClick: () => void;
 }
 
@@ -37,6 +39,8 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
   queueState,
   onRefreshQueue,
   onOpenQueueItem,
+  currentUserId,
+  onReplyQueueItem,
   onCreateTaskClick,
 }) => {
   const normalizedRole = userRole.toLowerCase();
@@ -72,6 +76,8 @@ export const MyTasksDashboard: React.FC<MyTasksDashboardProps> = ({
         selectedTaskId={selectedTaskId}
         onRefresh={onRefreshQueue}
         onOpenItem={onOpenQueueItem}
+        currentUserId={currentUserId}
+        onReplyItem={onReplyQueueItem}
       />
     </div>
   );
