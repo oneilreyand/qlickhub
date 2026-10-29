@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 03d (P3d) — Halaman kerjaan QA dan jalan masuk dari Tugas Saya
 
-**Status:** Dikerjakan
+**Status:** Dikerjakan — UAT lolos (2026-10-29)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.7, AC-3.8 (baru, diusulkan di bawah)
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -75,3 +75,7 @@ Atas permintaan Owner, antrean Tugas Saya untuk semua peran tidak lagi memakai t
 ## Catatan tambahan: tidak ada kartu ganda Persetujuan QA
 
 Audit Owner menemukan satu QA Subtask menghasilkan dua kartu di Tugas Saya: kartu subtask di "Pengujian dan Review" dan kartu Feature di "Persetujuan QA" yang tertahan dengan alasan "QA Subtask Anda harus diselesaikan". Antrean backend (`workQueueService.ts`) kini tidak membuat kartu Persetujuan QA selama QA Subtask belum `done`; kartu baru muncul setelah subtask selesai (siap dicatat, tertahan oleh syarat lain seperti bukti atau Bug terbuka, atau sudah tercatat). Tidak ada perubahan kontrak. Test integrasi antrean QA disesuaikan.
+
+## Hasil UAT (2026-10-29)
+
+Halaman kerja QA ("Uji subtask · QA") menampilkan kartu serah-terima dari Developer, Test Case per Requirement, panel Persetujuan QA, dan ringkasan di sisi; dibuka dari Tugas Saya.

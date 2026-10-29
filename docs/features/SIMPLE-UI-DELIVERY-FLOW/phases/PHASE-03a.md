@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 03a (P3a) — Tambah dan jalankan Test Case
 
-**Status:** Dikerjakan
+**Status:** Dikerjakan — UAT lolos (2026-10-29)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.1, AC-3.2, AC-3.3, AC-3.6
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -70,3 +70,7 @@
 ## Catatan perubahan (P3d): bukti hanya tautan
 
 Keputusan K1 diubah atas permintaan Owner: halaman jalankan Test Case tidak lagi menyediakan unggah file. Bukti hanya berupa **tautan https** dari Google Drive, Loom, YouTube, atau Vimeo, yang dicek lewat `isPreviewableEvidenceUrl` (`apps/web/src/lib/utils/evidenceLinks.ts`) agar sesuai aturan pratinjau backend. Tautan lain ditolak dengan pesan jelas. Hasil yang tersimpan menampilkan tiap tautan sebagai kartu bukti yang bisa dibuka di dalam aplikasi (`EvidencePreviewModal`). Tombol Simpan hasil tetap nonaktif sampai ada minimal satu tautan yang bisa dipratinjau. Lampiran lama (unggahan sebelumnya) tetap tampil sebagai nama berkas. Backend tidak berubah (`evidenceAttachmentIds` dikirim kosong).
+
+## Hasil UAT (2026-10-29)
+
+Form Test Case baru memberi "Judul wajib diisi" dan "Pilih minimal satu AC yang diuji"; halaman jalankan mewajibkan "Hasil aktual" dan bukti untuk Gagal, Simpan nonaktif sampai terisi; hasil Lulus tersimpan dan terkunci.

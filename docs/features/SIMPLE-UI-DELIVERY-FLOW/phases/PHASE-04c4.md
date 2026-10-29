@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 04c4 (P4c-4) — Lepas desk QA lama
 
-**Status:** Kandidat teruji — UAT menunggu (FE saja, tanpa migrasi)
+**Status:** Kandidat teruji — UAT menunggu (FE saja, tanpa migrasi) — UAT lolos (2026-10-29); menunggu verifier G5
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.14 (baru, di `product.md` setelah disetujui)
 **Applicable Policy IDs:** AI-009, AI-013, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -49,3 +49,7 @@
 - `QaSubtaskWorkView`: tombol Aktifkan pada baris draf (hanya QA yang ditugaskan); `QaSubtaskWorkSection` memuat ulang daftar setelah aktivasi dan menampilkan status Dikerjakan.
 
 **Pemeriksaan:** typecheck, eslint (0 error), vitest 8 shard lulus, `vite build`, `docs:check`, `theme:check`; test baru: tombol Aktifkan (ada/tidak ada), `startQaSubtaskIfTodo` (3 kasus), pengalihan `?desk=lengkap`.
+
+## Hasil UAT (2026-10-29)
+
+Desk lama sudah tidak ada: `?desk=lengkap` membuka halaman kerja QA baru; satu kartu "siap diuji" per Feature di antrean QA ("3 dari 3 subtask Developer siap diuji"); banner tahap "Sedang diuji". Tombol Aktifkan lolos: Test Case draf (dibuat lewat API tanpa lingkup subtask, meniru kegagalan di tengah alur Test Case Baru) tampil "Belum aktif — belum bisa dijalankan" dengan tombol Aktifkan dan Hapus; setelah diklik muncul toast "Test Case diaktifkan dan siap dijalankan" dan baris berubah menjadi Lulus/Gagal. Draf tidak muncul dari impor atau Test Case Baru yang berhasil, jadi tombol ini adalah jalur pemulihan.
