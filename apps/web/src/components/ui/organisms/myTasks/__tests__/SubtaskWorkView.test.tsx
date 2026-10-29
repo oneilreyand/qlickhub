@@ -163,4 +163,29 @@ describe('SubtaskWorkView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Kirim' }));
     await waitFor(() => expect(props.onPostComment).toHaveBeenCalledWith('Siap'));
   });
+
+  it('renders replies under their root message', () => {
+    const comments = [
+      {
+        id: 'c1',
+        authorId: 'u9',
+        authorName: 'Dewi',
+        body: 'Tolong cek alur simpan',
+        createdAt: '2026-10-02T00:00:00.000Z',
+        replies: [
+          {
+            id: 'c2',
+            authorId: 'u8',
+            authorName: 'Rani',
+            body: 'Sudah dicek, lanjut uji',
+            createdAt: '2026-10-02T01:00:00.000Z',
+          },
+        ],
+      },
+    ] as unknown as TaskComment[];
+    setup({ comments });
+    expect(screen.getByText('Tolong cek alur simpan')).toBeInTheDocument();
+    expect(screen.getByText('Sudah dicek, lanjut uji')).toBeInTheDocument();
+    expect(screen.getByText('Rani')).toBeInTheDocument();
+  });
 });
