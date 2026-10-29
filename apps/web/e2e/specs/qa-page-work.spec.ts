@@ -92,6 +92,90 @@ test('C: Tahap Uji records a result with evidence and starts the QA subtask', as
   await expect(page.getByText('Sedang diuji')).toBeVisible();
 });
 
+test('D: CSV import rejects an unknown Requirement, corrects it in the preview, and imports both rows', async ({
+  page,
+}) => {
+  await login(page, pageUsers.qa.email);
+  await page.goto(`/work/subtasks/${pageContext.importQaSubtaskId}`);
+
+  await page.getByRole('button', { name: 'Impor spreadsheet' }).click();
+  const csv = [
+    'Title,Requirement Code',
+    `${pageTitles.importValidCase},${pageContext.importRequirementCode}`,
+    `${pageTitles.importFixedCase},REQ-TIDAK-ADA`,
+  ].join('\n');
+  await page
+    .locator('input[type="file"]')
+    .setInputFiles({ name: 'e2e-impor.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+
+  // Preview: one valid row, one rejected for an unknown Requirement (AC-3.12).
+  await expect(page.getByRole('heading', { name: 'Pratinjau Simulasi Impor' })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByText('1 baris tidak akan diimpor.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Impor 1 Baris Valid' })).toBeVisible();
+
+  // Correct the Requirement in the preview (row 3 = second data row); the sheet is untouched.
+  await page
+    .getByLabel('Ganti Requirement baris 3')
+    .selectOption(pageContext.importRequirementCode);
+  await expect(page.getByRole('button', { name: 'Impor 2 Baris Valid' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Impor 2 Baris Valid' }).click();
+  await expect(page.getByText('Proses Impor Selesai')).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Selesai' }).click();
+
+  // Both Test Cases now appear on the QA work page.
+  await expect(page.getByText(pageTitles.importValidCase)).toBeVisible();
+  await expect(page.getByText(pageTitles.importFixedCase)).toBeVisible();
+});
+
+test('F: a Bug goes Developer resolve -> QA retest -> verified on the Bug work page', async ({
+  browser,
+}) => {
+  const bugPath = `/work/bugs/${pageContext.bugId}`;
+
+  // Developer starts the Bug and sends the fix.
+  const devContext = await browser.newContext();
+  const devPage = await devContext.newPage();
+  await login(devPage, pageUsers.dev.email);
+  await devPage.goto(bugPath);
+  await expect(devPage.getByRole('heading', { name: pageTitles.bug })).toBeVisible();
+  await devPage.getByRole('button', { name: 'Mulai dikerjakan' }).click();
+  await expect(devPage.getByText('Bug mulai dikerjakan')).toBeVisible();
+  await devPage.getByRole('button', { name: 'Kirim ke QA' }).click();
+  await devPage.getByLabel('Kandidat perbaikan').fill('commit:e2e-page-fix-884');
+  await devPage
+    .getByLabel('Catatan resolusi')
+    .fill('Menambahkan modal konfirmasi pada halaman pembayaran.');
+  await devPage.getByRole('button', { name: 'Kirim perbaikan', exact: true }).click();
+  await expect(devPage.getByText('Perbaikan dikirim ke QA untuk retest')).toBeVisible();
+  await devContext.close();
+
+  // QA retests from the Bug work page and records a passing result.
+  const qaContext = await browser.newContext();
+  const qaPage = await qaContext.newPage();
+  await login(qaPage, pageUsers.qa.email);
+  await qaPage.goto(bugPath);
+  await expect(qaPage.getByText('Menunggu retest').first()).toBeVisible();
+  await qaPage.getByRole('button', { name: 'Mulai retest' }).click();
+  await expect(qaPage).toHaveURL(/\/tests\/cases\/.+\/run/, { timeout: 30_000 });
+
+  await qaPage.getByRole('group', { name: 'Hasil' }).getByRole('button', { name: 'Lulus' }).click();
+  await qaPage
+    .getByLabel('Tautan bukti (mis. rekaman Loom)')
+    .fill('https://www.loom.com/share/e2epageretest123456');
+  await qaPage.getByRole('button', { name: 'Tambah tautan' }).click();
+  await qaPage.getByRole('button', { name: 'Simpan hasil' }).click();
+  await expect(qaPage.getByText('Retest lulus: Bug terverifikasi')).toBeVisible({
+    timeout: 30_000,
+  });
+
+  await qaPage.goto(bugPath);
+  await expect(qaPage.getByRole('button', { name: 'Buka kembali' })).toBeVisible();
+  await qaContext.close();
+});
+
 test('E: a Developer sees the QA work page read-only', async ({ page }) => {
   await login(page, pageUsers.dev.email);
   await page.goto(`/work/subtasks/${pageContext.prepareQaSubtaskId}`);

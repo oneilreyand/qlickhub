@@ -16,7 +16,7 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 ## Perubahan
 
 - File/path: `.github/workflows/ci.yml` (dua langkah di `verify`, job baru `e2e`),
-  `apps/web/e2e/support/qaDeskFlowSeed.ts` (batas tunggu 30 detik untuk heading pertama setelah login,
+  `apps/web/e2e/support/qaDeskFlowSeed.ts` (dihapus di P4c-8) (batas tunggu 30 detik untuk heading pertama setelah login,
   sama dengan budget `goto`; assertion tidak berubah), Quick Card ini.
 - Job `e2e`: PostgreSQL 16 disposable, `playwright install --with-deps chromium`, `npm run test:e2e`,
   laporan Playwright diunggah sebagai artifact bila gagal.

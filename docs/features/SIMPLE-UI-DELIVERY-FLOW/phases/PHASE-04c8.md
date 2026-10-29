@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 04c8 (P4c-8) — Tulis ulang e2e QA untuk halaman kerja QA
 
-**Status:** Disetujui Owner. Putaran 1 (alur A, B, C, E) ditulis; menunggu e2e lokal/CI. Alur D (impor CSV) dan F (Bug) menyusul setelah putaran 1 hijau
+**Status:** Selesai ditulis; e2e lokal hijau (12 lulus: alur A–F di desktop dan mobile). 8 deklarasi `test.fixme` dihapus; `qa-desk-flow-integration.spec.ts` dan `support/qaDeskFlowSeed.ts` dihapus karena seluruh isinya desk lama. Menunggu CI `e2e`
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** tidak ada AC baru; menambah bukti E4 otomatis untuk AC-3.7, AC-3.8, AC-3.9, AC-3.12, AC-3.14, AC-3.15, AC-3.16
 **Applicable Policy IDs:** AI-009, AI-013, TEST-001, UI-001, UI-002, UI-003, UI-004, UI-005

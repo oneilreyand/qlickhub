@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import {
   AcceptanceCriterionModel,
+  BugModel,
   FeatureReadinessBaselineModel,
   FeatureReadinessBaselineRequirementModel,
   QaDocumentModel,
@@ -13,6 +14,8 @@ import {
   TestCaseRequirementModel,
   TestCaseVersionAcceptanceCriterionModel,
   TestCaseVersionModel,
+  TestResultModel,
+  TestRunModel,
   UserModel,
   WorkspaceMemberModel,
   WorkspaceModel,
@@ -35,6 +38,13 @@ export const pageTitles = {
   testQaSubtask: 'E2E Uji Tahap Uji',
   draftCase: 'E2E Test Case draf',
   activeCase: 'E2E Test Case aktif',
+  importFeature: 'E2E Fitur Impor CSV',
+  importQaSubtask: 'E2E Uji Impor CSV',
+  importValidCase: 'E2E Kasus impor valid',
+  importFixedCase: 'E2E Kasus impor kode salah',
+  bugFeature: 'E2E Fitur Bug Retest',
+  bugQaSubtask: 'E2E Uji Bug Retest',
+  bug: 'E2E Bug konfirmasi pembayaran',
 };
 
 export const pageContext = {
@@ -42,6 +52,9 @@ export const pageContext = {
   prepareQaSubtaskId: '',
   testQaSubtaskId: '',
   activeCaseId: '',
+  importQaSubtaskId: '',
+  importRequirementCode: '',
+  bugId: '',
 };
 
 async function createCase(input: {
@@ -91,7 +104,7 @@ async function createCase(input: {
     mappingStatus: 'mapped',
     mappedBy: input.qaId,
   });
-  return testCase;
+  return { testCase, version };
 }
 
 /**
@@ -150,7 +163,7 @@ export async function seedQaPageWork() {
     title: string;
     qaTitle: string;
     code: string;
-    developerStatuses: Array<'in_review' | 'in_progress'>;
+    developerStatuses: Array<'in_review' | 'in_progress' | 'done'>;
   }) => {
     const feature = await TaskModel.create({
       workspaceId,
@@ -249,7 +262,7 @@ export async function seedQaPageWork() {
     title: pageTitles.activeCase,
     status: 'active',
   });
-  pageContext.activeCaseId = activeCase.id;
+  pageContext.activeCaseId = activeCase.testCase.id;
   await QaTestCycleModel.create({
     workspaceId,
     featureTaskId: test.feature.id,
@@ -261,4 +274,77 @@ export async function seedQaPageWork() {
     status: 'in_progress',
     ownerQaId: qa.id,
   });
+
+  // Feature for the CSV import flow (D): Developers are ready, no Test Case yet.
+  const importCode = `REQ-PAGE-D-${stamp}`;
+  const importFeature = await buildFeature({
+    title: pageTitles.importFeature,
+    qaTitle: pageTitles.importQaSubtask,
+    code: importCode,
+    developerStatuses: ['in_review'],
+  });
+  pageContext.importQaSubtaskId = importFeature.qaSubtask.id;
+  pageContext.importRequirementCode = importCode;
+
+  // Feature for the Bug flow (F): a failed Result with an open Bug assigned to the Developer.
+  const bugFeature = await buildFeature({
+    title: pageTitles.bugFeature,
+    qaTitle: pageTitles.bugQaSubtask,
+    code: `REQ-PAGE-F-${stamp}`,
+    developerStatuses: ['in_review'],
+  });
+  const bugCase = await createCase({
+    workspaceId,
+    qaId: qa.id,
+    requirementId: bugFeature.requirement.id,
+    acId: bugFeature.ac.id,
+    title: 'E2E Test Case untuk Bug',
+    status: 'active',
+  });
+  const bugCycle = await QaTestCycleModel.create({
+    workspaceId,
+    featureTaskId: bugFeature.feature.id,
+    qaSubtaskId: bugFeature.qaSubtask.id,
+    readinessBaselineId: bugFeature.baseline.id,
+    candidateFingerprint: 'candidate:origin-failing-build-staging',
+    build: 'origin-failing-build',
+    environment: 'staging',
+    status: 'in_progress',
+    ownerQaId: qa.id,
+  });
+  const failedRun = await TestRunModel.create({
+    workspaceId,
+    featureTaskId: bugFeature.feature.id,
+    qaSubtaskId: bugFeature.qaSubtask.id,
+    testCycleId: bugCycle.id,
+    testCaseId: bugCase.testCase.id,
+    testCaseVersionId: bugCase.version.id,
+    readinessBaselineId: bugFeature.baseline.id,
+    candidateFingerprint: bugCycle.candidateFingerprint,
+    build: 'origin-failing-build',
+    environment: 'staging',
+    status: 'completed',
+    executorId: qa.id,
+    completedAt: new Date(),
+  });
+  const failedResult = await TestResultModel.create({
+    workspaceId,
+    testRunId: failedRun.id,
+    status: 'failed',
+    executorId: qa.id,
+    actualResult: 'Modal konfirmasi tidak muncul.',
+  });
+  const bug = await BugModel.create({
+    workspaceId,
+    featureTaskId: bugFeature.feature.id,
+    requirementId: bugFeature.requirement.id,
+    testResultId: failedResult.id,
+    assigneeId: dev.id,
+    title: pageTitles.bug,
+    severity: 'high',
+    status: 'open',
+    reproductionDetails: 'Buka halaman pembayaran lalu konfirmasi pesanan.',
+    createdBy: qa.id,
+  });
+  pageContext.bugId = bug.id;
 }
