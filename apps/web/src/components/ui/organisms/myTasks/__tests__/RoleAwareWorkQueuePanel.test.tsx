@@ -166,7 +166,7 @@ describe('RoleAwareWorkQueuePanel "Mulai dari sini" dan "Menunggu orang lain" (A
     ).toBeInTheDocument();
   });
 
-  it('does not show the "Mulai dari sini" card for the Planner queue', () => {
+  it('promotes the most urgent actionable Feature to "Mulai dari sini" for the Planner queue', () => {
     const queue = createRoleAwareWorkQueueFixture('planner');
     render(
       <RoleAwareWorkQueuePanel
@@ -176,7 +176,42 @@ describe('RoleAwareWorkQueuePanel "Mulai dari sini" dan "Menunggu orang lain" (A
       />,
     );
 
-    expect(screen.queryByRole('region', { name: 'Mulai dari sini' })).not.toBeInTheDocument();
+    const startHere = screen.getByRole('region', { name: 'Mulai dari sini' });
+    expect(within(startHere).getByText('Checkout release')).toBeInTheDocument();
+    expect(screen.getAllByText('Checkout release')).toHaveLength(1);
+  });
+
+  it('shows Features held by Developer or QA under "Menunggu Orang Lain" for the Planner queue, never as the start item', () => {
+    const queue = createRoleAwareWorkQueueFixture('planner');
+    queue.buckets.push({
+      code: 'waiting_on_others',
+      label: 'Menunggu orang lain',
+      total: 1,
+      items: [
+        waitingItem({
+          subjectType: 'feature',
+          subjectId: '20000000-0000-4000-8000-0000000000bb',
+          title: 'Fitur laporan',
+          reason: '2 subtask belum selesai di tangan Developer.',
+          status: 'in_progress',
+          waitingOn: { role: 'developer', label: 'Menunggu Developer' },
+        }),
+      ],
+    });
+    render(
+      <RoleAwareWorkQueuePanel
+        state={{ queue, isLoading: false, error: null, permissionDenied: false }}
+        onRefresh={vi.fn()}
+        onOpenItem={vi.fn()}
+      />,
+    );
+
+    const waiting = screen.getByRole('region', { name: 'Menunggu Orang Lain' });
+    expect(within(waiting).getByText('Fitur laporan')).toBeInTheDocument();
+    expect(within(waiting).getByText('Menunggu Developer')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Mulai dari sini' })).queryByText('Fitur laporan'),
+    ).not.toBeInTheDocument();
   });
 
   it('lists held work under "Menunggu Orang Lain" with its position and no work action or reply', () => {

@@ -125,6 +125,7 @@ async function plannerBuckets(
       bucket('po_requirement_work', 'Requirement work', []),
       bucket('po_release_decision', 'Release decisions', []),
       bucket('po_timeline_work', 'Timeline work', []),
+      bucket('waiting_on_others', WAITING_BUCKET_LABEL, []),
     ];
   }
 
@@ -275,10 +276,57 @@ async function plannerBuckets(
     }
   }
 
+  // Menunggu orang lain (P4c-9, AC-4.3): Feature tanpa pekerjaan PO yang masih punya subtask
+  // belum selesai berada di tangan Developer atau QA.
+  const poWorkFeatureIds = new Set(
+    [...requirementItems, ...releaseItems, ...timelineItems].map((item) => item.subjectId),
+  );
+  const idleFeatures = features.filter((feature) => !poWorkFeatureIds.has(feature.id));
+  const waitingItems: WorkQueueItem[] = [];
+  if (idleFeatures.length > 0) {
+    const openSubtasks = await TaskModel.findAll({
+      where: {
+        workspaceId,
+        parentTaskId: { [Op.in]: idleFeatures.map((feature) => feature.id) },
+        status: { [Op.notIn]: ['done', 'canceled'] },
+      },
+      attributes: ['id', 'parentTaskId', 'deliveryArea'],
+      transaction,
+    });
+    const openSubtasksByFeatureId = new Map<string, TaskModel[]>();
+    for (const subtask of openSubtasks) {
+      const current = openSubtasksByFeatureId.get(subtask.parentTaskId!) || [];
+      current.push(subtask);
+      openSubtasksByFeatureId.set(subtask.parentTaskId!, current);
+    }
+    for (const feature of idleFeatures) {
+      const open = openSubtasksByFeatureId.get(feature.id);
+      if (!open || open.length === 0) continue;
+      const withDeveloper = open.some((subtask) => subtask.deliveryArea !== 'qa');
+      waitingItems.push(
+        waitingItem({
+          subjectType: 'feature',
+          subjectId: feature.id,
+          featureTaskId: feature.id,
+          title: feature.title,
+          reason: `${open.length} subtask belum selesai di tangan ${withDeveloper ? 'Developer' : 'QA'}.`,
+          status: feature.status,
+          priority: feature.priority,
+          dueDate: feature.dueDate,
+          sourceUpdatedAt: iso(feature.updatedAt),
+          waitingOn: withDeveloper
+            ? { role: 'developer', label: 'Menunggu Developer' }
+            : { role: 'qa', label: 'Menunggu QA' },
+        }),
+      );
+    }
+  }
+
   return [
     bucket('po_requirement_work', 'Requirement work', requirementItems),
     bucket('po_release_decision', 'Release decisions', releaseItems),
     bucket('po_timeline_work', 'Timeline work', timelineItems),
+    bucket('waiting_on_others', WAITING_BUCKET_LABEL, waitingItems),
   ];
 }
 
