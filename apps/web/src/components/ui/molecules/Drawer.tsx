@@ -19,6 +19,8 @@ export interface DrawerProps {
   headerActions?: React.ReactNode;
   toolbar?: React.ReactNode;
   preserveAppHeader?: boolean;
+  /** Di layar lg ke atas, biarkan Sidebar aplikasi (240px) terlihat; klik di atasnya meminta tutup. */
+  preserveAppSidebar?: boolean;
   closeOnEscape?: boolean;
 }
 
@@ -37,6 +39,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   headerActions,
   toolbar,
   preserveAppHeader = false,
+  preserveAppSidebar = false,
   closeOnEscape = true,
 }) => {
   const titleId = useId();
@@ -162,20 +165,30 @@ export const Drawer: React.FC<DrawerProps> = ({
     <div className={`fixed inset-0 overflow-hidden ${preserveAppHeader ? 'z-20' : 'z-50'}`}>
       {/* Backdrop */}
       <div
-        className={`fixed ${
-          preserveAppHeader ? 'top-20' : 'top-0'
-        } inset-x-0 bottom-0 bg-[#22201F]/40 backdrop-blur-xs transition-opacity duration-300 ease-in-out dark:bg-black/70 ${
+        className={`fixed ${preserveAppHeader ? 'top-20' : 'top-0'} inset-x-0 bottom-0 ${
+          preserveAppSidebar ? 'lg:left-60' : ''
+        } bg-[#22201F]/40 backdrop-blur-xs transition-opacity duration-300 ease-in-out dark:bg-black/70 ${
           isBackdropVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={handleInitiateClose}
         aria-hidden="true"
       />
 
+      {/* Area Sidebar tetap bagian dari overlay modal: klik di sana sama dengan klik backdrop. */}
+      {preserveAppSidebar && (
+        <div
+          data-testid="drawer-sidebar-cover"
+          className="fixed inset-y-0 left-0 hidden w-60 lg:block"
+          onClick={handleInitiateClose}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Container anchored to the right edge with justify-end so it extends strictly from right to left */}
       <div
-        className={`fixed ${
-          preserveAppHeader ? 'top-20' : 'inset-y-0'
-        } bottom-0 right-0 flex justify-end max-w-full pointer-events-none transition-[padding] duration-300 ease-in-out ${
+        className={`fixed ${preserveAppHeader ? 'top-20' : 'inset-y-0'} bottom-0 right-0 ${
+          preserveAppSidebar ? 'lg:left-60' : ''
+        } flex justify-end max-w-full pointer-events-none transition-[padding] duration-300 ease-in-out ${
           isFullScreen ? 'pl-0' : 'sm:pl-10 pl-0'
         }`}
       >
