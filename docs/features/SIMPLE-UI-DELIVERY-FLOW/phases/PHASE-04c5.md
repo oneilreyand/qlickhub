@@ -32,7 +32,7 @@
 
 - Dihapus: `DevWorkingDesk`, `devDeliverables.ts`, `PoTeamICardGrid`, `MyTaskFeatureContext`, `TestCaseFormModal`, dan test-nya; ekspor di `features/myTasks/index.ts` dirapikan.
 - Yatim turunan yang ikut dihapus (tidak punya referensi selain test-nya sendiri setelah desk QA dilepas di P4c-4): `QaWorkflowSummaryWidget`, `QaExecutionFilterToolbar`, `QaNextActionCard`.
-- Tidak dihapus: `ImageLightboxModal` (sudah yatim sebelum fase ini; dicatat untuk keputusan Owner).
+- `ImageLightboxModal` (yatim sebelum fase ini; penggantinya `MediaLightboxModal`) dihapus kemudian atas persetujuan Owner.
 - Pemeriksaan: pencarian impor nol referensi; typecheck; eslint 0 error; vitest 8 shard; build; `theme:check`; `docs:check`.
 
 ## 4. Perbaikan susulan: panel Persetujuan QA tidak ikut berubah
