@@ -6,7 +6,7 @@ import type {
   RoleAwareWorkQueue,
   WorkQueueBucketCode,
 } from '@qlick/contracts';
-import { RoleAwareWorkQueueSchema } from '@qlick/contracts';
+import { FeatureHandoffPageSchema, RoleAwareWorkQueueSchema } from '@qlick/contracts';
 import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
@@ -19,6 +19,7 @@ import {
   QaTestCycleModel,
   ReleaseDecisionModel,
   RequirementModel,
+  TaskCommentMentionModel,
   TaskCommentModel,
   TaskModel,
   TaskRequirementModel,
@@ -811,6 +812,101 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       await feedback.destroy({ force: true });
       await ready.destroy({ force: true });
       await untagged.destroy({ force: true });
+    }
+  });
+
+  test('lists the Feature handoff history newest first with pagination and "Untukmu" (AC-4.5)', async () => {
+    const at = (minute: number) => new Date(Date.UTC(2099, 0, 1, 0, minute));
+    const question = await TaskCommentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: assignedSubtask.id,
+      authorId: qa.id,
+      handoffKind: 'question',
+      body: 'Apakah token kedaluwarsa dicek?',
+      createdAt: at(1),
+    });
+    const ready = await TaskCommentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: reviewSubtask.id,
+      authorId: dev.id,
+      handoffKind: 'ready_for_qa',
+      body: 'Siap diuji.',
+      createdAt: at(2),
+    });
+    await TaskCommentMentionModel.create({
+      commentId: ready.id,
+      userId: qa.id,
+      workspaceId: workspaceA.id,
+    });
+    const answer = await TaskCommentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: reviewSubtask.id,
+      authorId: qa.id,
+      parentCommentId: ready.id,
+      handoffKind: 'answer',
+      body: 'Terima kasih, kucek sekarang.',
+      createdAt: at(3),
+    });
+    const untagged = await TaskCommentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: reviewSubtask.id,
+      authorId: dev.id,
+      body: 'Komentar biasa.',
+      createdAt: at(4),
+    });
+    const otherFeature = await TaskCommentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: releaseFeature.id,
+      authorId: qa.id,
+      handoffKind: 'question',
+      body: 'Feature lain.',
+      createdAt: at(5),
+    });
+    const fetchHandoffs = async (cookie: string, query = '', featureId = deliveryFeature.id) =>
+      fetch(`${baseUrl}/workspaces/${workspaceA.id}/features/${featureId}/handoffs${query}`, {
+        headers: { Cookie: cookie },
+      });
+    try {
+      const devResponse = await fetchHandoffs(devCookie);
+      assert.strictEqual(devResponse.status, 200);
+      const devPage = FeatureHandoffPageSchema.parse(await devResponse.json());
+      assert.deepStrictEqual(
+        devPage.items.map((item) => item.id),
+        [answer.id, ready.id, question.id],
+      );
+      assert.strictEqual(devPage.total, 3);
+      assert.deepStrictEqual(
+        devPage.items.map((item) => item.forYou),
+        [true, false, true],
+        'Developer: reply to own message and message on assigned subtask are for them',
+      );
+      assert.strictEqual(devPage.items[0].author.name, qa.name);
+      assert.strictEqual(devPage.items[0].taskTitle, reviewSubtask.title);
+
+      const qaPage = FeatureHandoffPageSchema.parse(await (await fetchHandoffs(qaCookie)).json());
+      assert.deepStrictEqual(
+        qaPage.items.map((item) => item.forYou),
+        [false, true, false],
+        'QA: only the mentioned message is for them',
+      );
+
+      const second = FeatureHandoffPageSchema.parse(
+        await (await fetchHandoffs(devCookie, '?page=2&limit=2')).json(),
+      );
+      assert.deepStrictEqual(
+        second.items.map((item) => item.id),
+        [question.id],
+      );
+      assert.strictEqual(second.total, 3);
+
+      assert.strictEqual((await fetchHandoffs(devCookie, '?limit=500')).status, 400);
+      assert.strictEqual((await fetchHandoffs(devCookie, '', assignedSubtask.id)).status, 404);
+      assert.strictEqual((await fetchHandoffs(outsiderCookie)).status, 403);
+    } finally {
+      await TaskCommentMentionModel.destroy({ where: { commentId: ready.id } });
+      for (const comment of [answer, ready, question, untagged, otherFeature]) {
+        await comment.destroy({ force: true });
+      }
     }
   });
 

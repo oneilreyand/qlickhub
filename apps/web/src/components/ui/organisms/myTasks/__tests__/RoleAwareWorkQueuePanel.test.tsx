@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkQueueItem } from '@qlick/contracts';
 import { RoleAwareWorkQueuePanel } from '../RoleAwareWorkQueuePanel';
 import { createRoleAwareWorkQueueFixture } from '../../../../../test/workQueueFixture';
+import { workQueueService } from '../../../../../lib/api/workQueueService';
+
+vi.mock('../../../../../lib/api/workQueueService', () => ({
+  workQueueService: { getFeatureHandoffs: vi.fn() },
+}));
 
 const SENDER_ID = '40000000-0000-4000-8000-000000000001';
 const COMMENT_ID = '50000000-0000-4000-8000-000000000001';
@@ -274,5 +279,35 @@ describe('RoleAwareWorkQueuePanel "Mulai dari sini" dan "Menunggu orang lain" (A
 
     expect(screen.queryByRole('region', { name: 'Mulai dari sini' })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Menunggu Orang Lain' })).toBeInTheDocument();
+  });
+});
+
+describe('RoleAwareWorkQueuePanel riwayat serah-terima (P4d, AC-4.5)', () => {
+  it('loads the Feature handoff history only when "Riwayat" is opened', async () => {
+    vi.mocked(workQueueService.getFeatureHandoffs).mockResolvedValue({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    });
+    const queue = createRoleAwareWorkQueueFixture('developer');
+    const item = queue.buckets.flatMap((bucket) => bucket.items)[0];
+    render(
+      <RoleAwareWorkQueuePanel
+        state={{ queue, isLoading: false, error: null, permissionDenied: false }}
+        onRefresh={vi.fn()}
+        onOpenItem={vi.fn()}
+      />,
+    );
+
+    expect(workQueueService.getFeatureHandoffs).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: `Riwayat serah-terima: ${item.title}` }));
+    expect(await screen.findByText(/Belum ada serah-terima/)).toBeInTheDocument();
+    expect(workQueueService.getFeatureHandoffs).toHaveBeenCalledWith(
+      queue.workspaceId,
+      item.featureTaskId,
+      1,
+      20,
+    );
   });
 });

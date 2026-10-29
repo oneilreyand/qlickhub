@@ -109,7 +109,35 @@ export const RoleAwareWorkQueueSchema = z.object({
   membershipRole: WorkspaceRoleSchema,
   queueRole: WorkQueueRoleSchema,
   generatedAt: z.string().datetime(),
-  // Planner has 3 buckets; developer and QA add "waiting_on_others" as a 4th (P4b).
+  // Every role has 3 work buckets plus "waiting_on_others" as a 4th (P4b, P4c-9).
   buckets: z.array(WorkQueueBucketSchema).min(3).max(4),
 });
 export type RoleAwareWorkQueue = z.infer<typeof RoleAwareWorkQueueSchema>;
+
+/** One handoff message in a Feature history (P4d, AC-4.5). `forYou` is a display label only. */
+export const FeatureHandoffItemSchema = z.object({
+  id: z.string().uuid(),
+  taskId: z.string().uuid(),
+  taskTitle: z.string(),
+  kind: TaskCommentHandoffKindSchema,
+  body: z.string(),
+  author: z.object({ id: z.string().uuid(), name: z.string() }),
+  parentCommentId: z.string().uuid().nullable(),
+  forYou: z.boolean(),
+  createdAt: z.string().datetime(),
+});
+export type FeatureHandoffItem = z.infer<typeof FeatureHandoffItemSchema>;
+
+export const FeatureHandoffQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type FeatureHandoffQuery = z.infer<typeof FeatureHandoffQuerySchema>;
+
+export const FeatureHandoffPageSchema = z.object({
+  items: z.array(FeatureHandoffItemSchema),
+  page: z.number().int().min(1),
+  limit: z.number().int().min(1).max(50),
+  total: z.number().int().min(0),
+});
+export type FeatureHandoffPage = z.infer<typeof FeatureHandoffPageSchema>;
