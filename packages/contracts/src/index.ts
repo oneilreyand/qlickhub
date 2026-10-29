@@ -17,6 +17,7 @@ export * from './releaseDecision.js';
 export * from './featureReadiness.js';
 export * from './requirementFinding.js';
 export * from './workQueue.js';
+export * from './featurePlan.js';
 export * from './problemDetail.js';
 export * from './notification.js';
 export * from './capacity.js';

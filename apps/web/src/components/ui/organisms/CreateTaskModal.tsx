@@ -68,6 +68,8 @@ interface CreateTaskModalProps {
   onClose: () => void;
   onCreated?: (newTaskId?: string) => void;
   onOpenAiGenerator?: () => void;
+  /** Planner saja (P5a-1): mulai dari ide dan simpan sebagai Plan. */
+  onOpenPlanCreator?: () => void;
   folders: FolderTreeNode[];
   defaultFolderId?: string | null;
 }
@@ -77,6 +79,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   onClose,
   onCreated,
   onOpenAiGenerator,
+  onOpenPlanCreator,
   folders,
   defaultFolderId,
 }) => {
@@ -276,6 +279,31 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               className="text-xs py-1 px-3 h-8 bg-[#B1E743] hover:bg-[#9ed438] text-stone-950 font-bold"
             >
               ✨ Buka AI
+            </Button>
+          </div>
+        )}
+
+        {onOpenPlanCreator && (
+          <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-900">
+            <div>
+              <p className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                Mulai dari ide (Plan)
+              </p>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                Simpan ide Feature dulu; PRD dan subtask menyusul.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                onClose();
+                onOpenPlanCreator();
+              }}
+              className="h-8 px-3 py-1 text-xs"
+            >
+              Tulis ide
             </Button>
           </div>
         )}

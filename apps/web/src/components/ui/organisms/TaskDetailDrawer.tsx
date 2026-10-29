@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HandoffTimeline } from './HandoffTimeline';
+import { FeaturePlanCard } from './FeaturePlanCard';
 import {
   CheckCircle2,
   RotateCcw,
@@ -1154,6 +1155,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     discussionBox
   ) : (
     <div className="space-y-6">
+      <FeaturePlanCard workspaceId={effectiveWorkspaceId} featureTaskId={task.id} />
       {discussionBox}
       <HandoffTimeline
         workspaceId={effectiveWorkspaceId}

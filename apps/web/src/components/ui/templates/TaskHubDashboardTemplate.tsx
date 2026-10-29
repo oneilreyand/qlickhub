@@ -8,6 +8,7 @@ import { TaskCollection, type TaskDeliveryTraceRowState } from '../organisms/Tas
 import { TaskDetailDrawer } from '../organisms/TaskDetailDrawer';
 import { CreateTaskModal } from '../organisms/CreateTaskModal';
 import { AiTaskGeneratorModal } from '../organisms/AiTaskGeneratorModal';
+import { FeaturePlanCreateModal } from '../organisms/FeaturePlanCreateModal';
 import { TaskHubKanbanBoard } from '../organisms/taskHub/TaskHubKanbanBoard';
 import { TaskHubSchedule } from '../organisms/taskHub/TaskHubSchedule';
 import { TaskHubHeader } from '../organisms/taskHub/TaskHubHeader';
@@ -97,6 +98,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const unfiledOnly = taskHubQueryState.unfiledOnly;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAiGeneratorModalOpen, setIsAiGeneratorModalOpen] = useState(false);
+  const [isPlanCreateModalOpen, setIsPlanCreateModalOpen] = useState(false);
   const [isMobileFolderDrawerOpen, setIsMobileFolderDrawerOpen] = useState(false);
   const [deliveryTraceStateByTaskId, setDeliveryTraceStateByTaskId] = useState<
     Record<string, TaskDeliveryTraceRowState>
@@ -541,8 +543,21 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onOpenAiGenerator={() => setIsAiGeneratorModalOpen(true)}
+        onOpenPlanCreator={() => setIsPlanCreateModalOpen(true)}
         folders={folders}
         defaultFolderId={selectedFolderId}
+      />
+
+      <FeaturePlanCreateModal
+        isOpen={isPlanCreateModalOpen}
+        onClose={() => setIsPlanCreateModalOpen(false)}
+        workspaceId={activeWorkspaceId}
+        folders={folders}
+        defaultFolderId={selectedFolderId}
+        onCreated={(featureTaskId) => {
+          void loadWorkspaceData();
+          navigate(`/work/features/${featureTaskId}?tahap=plan`);
+        }}
       />
 
       {/* AI Task Generator Modal (AI-001) */}

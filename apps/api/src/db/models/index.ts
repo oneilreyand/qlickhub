@@ -12,6 +12,7 @@ export * from './taskActivity.js';
 export * from './taskComment.js';
 export * from './taskCommentMention.js';
 export * from './subtaskAcceptanceCheck.js';
+export * from './featurePlan.js';
 export * from './requirement.js';
 export * from './acceptanceCriterion.js';
 export * from './taskRequirement.js';

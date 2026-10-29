@@ -18,6 +18,7 @@ import { attachmentRoutes } from './modules/attachments/attachmentRoutes.js';
 import { realtimeRoutes } from './modules/realtime/realtimeRoutes.js';
 import { metaRoutes } from './modules/meta/metaRoutes.js';
 import { workQueueRoutes } from './modules/workQueue/workQueueRoutes.js';
+import { featurePlanRoutes } from './modules/featurePlans/featurePlanRoutes.js';
 import { featureReadinessRoutes } from './modules/featureReadiness/featureReadinessRoutes.js';
 import { qrisSandboxRoutes } from './modules/qrisSandbox/qrisSandboxRoutes.js';
 import { capacityRoutes } from './modules/capacity/capacityRoutes.js';
@@ -70,6 +71,7 @@ export const createApp = () => {
   app.use('/v1', rejectArchivedWorkspaceMutation);
   app.use('/v1/auth', authRouter);
   app.use('/v1', workQueueRoutes);
+  app.use('/v1', featurePlanRoutes);
   app.use('/v1', featureReadinessRoutes);
   app.use('/v1', capacityRoutes);
   app.use('/v1', leaderRoutes);
