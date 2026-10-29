@@ -10,6 +10,8 @@ import {
   validateFeatureFolder,
   validateFeatureNavigation,
   validateAdrIndex,
+  validateDesignFolder,
+  designImageMaxBytes,
 } from './checkDocs.mjs';
 
 test('extractPolicyIds reads only registry table identifiers', () => {
@@ -154,4 +156,39 @@ test('feature folder template satisfies the required stage structure', async () 
       return statSync(full).isDirectory() ? walk(full) : [relative(root, full)];
     });
   assert.deepEqual(validateFeatureFolder(walk(root), 'docs/features/_template'), []);
+});
+
+test('validateDesignFolder accepts README, source, and small WebP exports', () => {
+  assert.deepEqual(
+    validateDesignFolder(
+      [
+        { name: 'README.md', size: 2000, isDirectory: false },
+        { name: 'source', size: 0, isDirectory: true },
+        { name: '01-screen.webp', size: designImageMaxBytes, isDirectory: false },
+      ],
+      3,
+      'docs/plans/x/design',
+    ),
+    [],
+  );
+});
+
+test('validateDesignFolder rejects missing README/source, non-WebP, and oversized images', () => {
+  assert.deepEqual(
+    validateDesignFolder(
+      [
+        { name: '01-screen.png', size: 1000, isDirectory: false },
+        { name: '02-screen.webp', size: designImageMaxBytes + 1, isDirectory: false },
+        { name: 'notes.txt', size: 10, isDirectory: false },
+      ],
+      0,
+      'docs/plans/x/design',
+    ),
+    [
+      'docs/plans/x/design is missing README.md (DOC-007).',
+      'docs/plans/x/design is missing a non-empty source/ folder (DOC-007).',
+      'docs/plans/x/design/01-screen.png must be exported as WebP (DOC-007).',
+      'docs/plans/x/design/02-screen.webp is 301 KB; the limit is 300 KB (DOC-007).',
+    ],
+  );
 });

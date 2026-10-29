@@ -68,6 +68,37 @@ const featureNavigationRequirements = {
   'docs/features/ROLE_FLOWS.md': ['## Owner / Admin', '## Product Owner', '## Developer', '## QA'],
 };
 
+// DOC-007 (ADR-036): design folders keep text source and small WebP exports.
+const legacyDesignFolders = new Set(['docs/features/SIMPLE-UI-DELIVERY-FLOW/design']);
+export const designImageMaxBytes = 300 * 1024;
+const rasterImagePattern = /\.(png|jpe?g|gif|bmp|tiff?|webp)$/i;
+
+/**
+ * @param {{ name: string, size: number, isDirectory: boolean }[]} entries top-level entries
+ * @param {number} sourceFileCount number of files inside `source/`
+ */
+export function validateDesignFolder(entries, sourceFileCount, relativeDirectory = 'design') {
+  const errors = [];
+  const names = new Set(entries.map((entry) => entry.name));
+  if (!names.has('README.md')) {
+    errors.push(`${relativeDirectory} is missing README.md (DOC-007).`);
+  }
+  if (sourceFileCount === 0) {
+    errors.push(`${relativeDirectory} is missing a non-empty source/ folder (DOC-007).`);
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory || !rasterImagePattern.test(entry.name)) continue;
+    if (!/\.webp$/i.test(entry.name)) {
+      errors.push(`${relativeDirectory}/${entry.name} must be exported as WebP (DOC-007).`);
+    } else if (entry.size > designImageMaxBytes) {
+      errors.push(
+        `${relativeDirectory}/${entry.name} is ${Math.ceil(entry.size / 1024)} KB; the limit is ${designImageMaxBytes / 1024} KB (DOC-007).`,
+      );
+    }
+  }
+  return errors;
+}
+
 export function extractPolicyIds(markdown) {
   return [...markdown.matchAll(/^\|\s*([A-Z]+-\d{3})\s*\|/gm)].map((match) => match[1]);
 }
@@ -351,6 +382,42 @@ function validateAdrDocuments(errors) {
   errors.push(...validateAdrIndex(adrFileNames, fs.readFileSync(indexPath, 'utf8')));
 }
 
+function collectDesignFolders(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    if (!entry.isDirectory() || entry.name === 'node_modules') return [];
+    const fullPath = path.join(directory, entry.name);
+    return entry.name === 'design' ? [fullPath] : collectDesignFolders(fullPath);
+  });
+}
+
+function countFiles(directory) {
+  if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) return 0;
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .reduce(
+      (total, entry) =>
+        total + (entry.isDirectory() ? countFiles(path.join(directory, entry.name)) : 1),
+      0,
+    );
+}
+
+function validateDesignFolders(errors) {
+  const docsDirectory = path.join(repositoryRoot, 'docs');
+  if (!fs.existsSync(docsDirectory)) return;
+  for (const folder of collectDesignFolders(docsDirectory)) {
+    const relativeDirectory = path.relative(repositoryRoot, folder).split(path.sep).join('/');
+    if (legacyDesignFolders.has(relativeDirectory)) continue;
+    const entries = fs.readdirSync(folder, { withFileTypes: true }).map((entry) => ({
+      name: entry.name,
+      isDirectory: entry.isDirectory(),
+      size: entry.isDirectory() ? 0 : fs.statSync(path.join(folder, entry.name)).size,
+    }));
+    errors.push(
+      ...validateDesignFolder(entries, countFiles(path.join(folder, 'source')), relativeDirectory),
+    );
+  }
+}
+
 function validateLocalLinks(errors) {
   const filesToCheck = [
     path.join(repositoryRoot, 'AGENTS.md'),
@@ -387,6 +454,7 @@ export function runDocumentationChecks() {
   validateQuickCards(errors);
   validateFeatureNavigationDocuments(errors);
   validateAdrDocuments(errors);
+  validateDesignFolders(errors);
   validateLocalLinks(errors);
   return errors;
 }
