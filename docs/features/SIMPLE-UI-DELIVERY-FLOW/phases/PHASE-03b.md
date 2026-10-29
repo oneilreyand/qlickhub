@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 03b (P3b) — Centang langkah dan browser/perangkat
 
-**Status:** Disetujui Owner; implementasi selesai, menunggu UAT dan verifier G5
+**Status:** Disetujui Owner; implementasi selesai, menunggu UAT dan verifier G5 — UAT lolos (2026-10-29)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.4
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -28,3 +28,7 @@
 | AC     | Bukti                                                                                                                                                                                                                                           |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AC-3.4 | Integration test API: hasil dengan `stepResults`, `browser`, `device` tersimpan dan dibaca ulang dari PostgreSQL, indeks ganda ditolak 400; test `TestCaseRunView` (centang dan lingkungan dikirim, tampil baca-saja saat terkunci); UAT lokal. |
+
+## Hasil UAT (2026-10-29)
+
+Centang langkah dan isian Browser/Perangkat tampil di halaman jalankan; Test Case "UAT P3b: centang langkah dan lingkungan" sudah lulus di data uji.

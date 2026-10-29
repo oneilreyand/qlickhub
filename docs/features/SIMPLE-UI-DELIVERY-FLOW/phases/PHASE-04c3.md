@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 04c3 (P4c-3) — Impor Test Case dari tautan Google Sheets dan format spreadsheet tim
 
-**Status:** Kandidat teruji — menunggu UAT Owner (tanpa migrasi; kontrak berubah)
+**Status:** Kandidat teruji — menunggu UAT Owner (tanpa migrasi; kontrak berubah) — UAT lolos (2026-10-29); menunggu verifier G5
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.13 (baru)
 **Applicable Policy IDs:** AI-009, AI-013, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -36,3 +36,7 @@ Atas arahan Owner ("ingin ada update manual untuk mengubah yang diperlukan"; lin
 - Wizard: baris yang ditolak karena Requirement punya dropdown berisi Requirement sah Feature ini; ada aksi "Terapkan ke N baris" untuk menggantinya sekaligus. Hitungan baris valid/tidak valid ikut diperbarui.
 - Perubahan hanya berlaku untuk sesi impor ini; mengambil ulang dari link membaca ulang sheet dan membatalkan koreksi.
 - Di luar scope: mengedit judul/prioritas/langkah di pratinjau, menulis balik ke Google Sheets.
+
+## Hasil UAT (2026-10-29)
+
+Wizard menyediakan kolom tautan Google Sheets dan riwayat audit impor. Impor nyata dari tautan Google Sheets (tab "Test Case" sheet tim) lolos: 49 baris terbaca, Requirement REQ-001/REQ-002 yang tidak ada di aplikasi ditolak dengan alasan jelas, lalu dipetakan massal ke REQ-9SQ1 lewat "Terapkan ke 49 baris"; impor membuat 49 Test Case (Dibuat 49, Diperbarui 0, Dilewati 0, Gagal 0). Dalam lingkup subtask QA, hasil impor langsung berstatus aktif (Lulus/Gagal tersedia).

@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 02 (P2a) — Detail Feature sebagai halaman
 
-**Status:** Kandidat teruji
+**Status:** Kandidat teruji — UAT lolos (2026-10-29)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-2.1, AC-2.2
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -87,3 +87,7 @@ Owner meminta audit dan penyederhanaan Plan, Brief, Requirement, dan edit Root t
 Pemeriksaan: test web 3 shard 750 lulus; typecheck, eslint `--max-warnings 0`, build, `theme:check` lulus. UAT lokal Light 1440 untuk Plan, editor Brief, Requirement, dan edit Root task.
 
 Deviasi: daftar Keputusan dan kolom "Catat keputusan" di desain belum ada (butuh penyimpanan baru; menyusul bersama alur pembuatan P5); Plan sementara memakai Ide awal + Diskusi. "Kesiapan Fitur & Review Mutu" tetap sebagai baris tertutup di bagian Requirement, belum dipindah ke tahap rilis. AC diketik di tempat lewat editor kriteria yang ada saat baris dibuka, bukan daftar input langsung. Status Root task tetap bisa diubah lewat "Folder dan status". Dark dan layar kecil belum diulang untuk perubahan ini.
+
+## Hasil UAT (2026-10-29)
+
+Stepper Plan · PRD · Task · Apply tampil dan mengikuti `?tahap=`; halaman Feature dibuka dari Tugas Saya, Task Hub, dan `/projects/:ws/tasks/:id`.

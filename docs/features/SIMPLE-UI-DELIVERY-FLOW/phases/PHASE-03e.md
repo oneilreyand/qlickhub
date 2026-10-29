@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 03e (P3e) — Halaman kerja Bug untuk Developer dan QA
 
-**Status:** Disetujui Owner; implementasi selesai, menunggu UAT dan verifier G5
+**Status:** Disetujui Owner; implementasi selesai, menunggu UAT dan verifier G5 — UAT lolos (2026-10-29)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.9 (baru, diusulkan di bawah)
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -46,3 +46,7 @@
 | AC     | Bukti                                                                                                                                                                                                                                                                              |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AC-3.9 | Component test `BugWorkView` (isi, aksi sesuai status, bukti dibuka di aplikasi); test halaman dan pengalih antrean (item Bug menuju `/work/bugs/:id` untuk semua peran, tautan lama `?bugId=` dialihkan; hasil retest di halaman jalankan memanggil percobaan retest); UAT lokal. |
+
+## Hasil UAT (2026-10-29)
+
+Halaman kerja Bug dipakai Developer (Mulai dikerjakan, Kirim perbaikan) dan QA (Mulai retest di halaman jalankan, hasil Lulus memverifikasi Bug) pada dua siklus.

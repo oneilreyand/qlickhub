@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 02b (P2b) — Pengalihan URL lama dan halaman kerja Developer
 
-**Status:** Selesai dikerjakan, menunggu G5 (Owner mencoba halaman)
+**Status:** Selesai dikerjakan, menunggu G5 (Owner mencoba halaman) — UAT lolos (2026-10-29)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-2.3, AC-2.4
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -42,3 +42,7 @@
 ## 4. Deviasi
 
 Tidak ada perubahan API, data, authorization, dependency, atau token. Centang kriteria tidak disimpan (sesuai rencana) dan hal ini dinyatakan di halaman. G5 untuk P2a dan P2b menunggu Owner mencoba halaman.
+
+## Hasil UAT (2026-10-29)
+
+`/my-tasks?taskId=` subtask dialihkan ke `/work/subtasks/:id`, Feature ke `/work/features/:id?tahap=task`, `/projects/:ws/tasks/:id` ke halaman Feature, id tidak dikenal tetap di Tugas Saya; Kirim ke QA dengan pesan dipakai pada UAT P4a.

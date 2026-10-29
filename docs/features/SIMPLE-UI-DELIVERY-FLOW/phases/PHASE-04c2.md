@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 04c2 (P4c-2) — Impor spreadsheet di halaman kerja QA
 
-**Status:** Kandidat teruji — UAT menunggu
+**Status:** Kandidat teruji — UAT menunggu — UAT lolos (2026-10-29)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.12 (baru)
 **Applicable Policy IDs:** AI-009, AI-013, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -18,3 +18,7 @@
 | Pemeriksaan yang akan dijalankan | typecheck, eslint, vitest, build, `docs:check`, UAT sebagai QA.                                                                                                                                                                                                      |
 | Risiko & recovery                | FE saja dan aditif. Rollback: revert commit.                                                                                                                                                                                                                         |
 | Disetujui                        | Owner (arahan di chat: lanjut ke impor spreadsheet)                                                                                                                                                                                                                  |
+
+## Hasil UAT (2026-10-29)
+
+Tombol "Impor spreadsheet" membuka wizard CSV/XLSX dengan template; Test Case TC-05 "UAT P4c-2 impor spreadsheet" hasil impor sudah ada dan lulus.

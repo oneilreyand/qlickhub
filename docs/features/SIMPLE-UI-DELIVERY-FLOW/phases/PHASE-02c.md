@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 4: Build Phase 02c (P2c) — Centang AC Developer tersimpan di server
 
-**Status:** Kandidat teruji — menunggu migrasi dan UAT Owner, lalu verifier G5
+**Status:** Kandidat teruji — menunggu migrasi dan UAT Owner, lalu verifier G5 — UAT lolos (2026-10-29)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-2.11 (baru); mengubah AC-2.4 (centang tidak lagi hanya state UI)
 **Applicable Policy IDs:** AI-009, AI-013, UI-001, UI-002, UI-003, UI-004, UI-005
@@ -34,3 +34,7 @@
 | AC      | Bukti                                                                                                                                                                                      |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AC-2.11 | Integration test API (assignee dan Owner boleh, Developer lain dan QA 403, kriteria tak tertaut 404, Feature 400, centang idempoten); test `SubtaskWorkView`/`SubtaskWorkPage`; UAT lokal. |
+
+## Hasil UAT (2026-10-29)
+
+Endpoint `acceptance-checks` aktif di DB dev (200); halaman kerja subtask Developer dimuat dari awal menampilkan "4 dari 4 dicek" dengan "Dicek oleh Mandor Reyand 01", tetap ada lintas sesi dan muat ulang. Toggle langsung dicoba (2026-10-29) sebagai Developer pada subtask Review QA: menghapus centang AC-4 menjadi "3 dari 4 dicek" dan tersimpan setelah muat ulang; mencentang lagi kembali "4 dari 4 dicek" dan tersimpan.
