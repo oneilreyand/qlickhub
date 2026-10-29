@@ -44,3 +44,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-033](ADR-033-DOCUMENTATION-COMPLETENESS-RATCHET.md)                      | Documentation completeness ratchet and local developer portal        |
 | [ADR-034](ADR-034-UI-THEME-CONTRACT-AND-COVERAGE-GATE.md)                     | Light/Dark theme contract and coverage gate                          |
 | [ADR-035](ADR-035-SIMPLIFIED-SHELL-AND-FEATURE-DETAIL-PAGE.md)                | Simplified shell and Feature detail as a page                        |
+| [ADR-036](ADR-036-FEATURE-SPEC-REQUIRED-FIELDS-AND-AGENT-READY-WRITES.md)     | Feature Spec, server-enforced required fields, agent-ready writes    |
