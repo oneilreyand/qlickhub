@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Undang anggota</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:#E7E5E4;color:#22201F}
+a{color:#3F6212}a:hover{color:#1A2E05}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:12px;font:600 14px Inter,system-ui,sans-serif;cursor:pointer;text-decoration:none;box-sizing:border-box}
+.btn-ghost{background:#FFFFFF;border:1px solid #E7E5E4;color:#22201F}
+.btn-primary{background:#B1E743;border:1px solid #B1E743;color:#141413}
+.lbl{font-size:13px;font-weight:600;color:#22201F}
+.in{min-height:44px;box-sizing:border-box;width:100%;padding:10px 14px;border:1px solid #D6D3D1;border-radius:12px;font:400 14px Inter,system-ui,sans-serif;background:#FFFFFF;color:#22201F}
+.sel{min-height:40px;padding:0 10px;border:1px solid #D6D3D1;border-radius:10px;font:500 13px Inter,system-ui,sans-serif;background:#FFFFFF;color:#22201F}
+.pill{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #D6D3D1;font:600 12px Inter,system-ui,sans-serif;background:#FFFFFF;color:#44403C;cursor:pointer}
+.pill.on{background:#141413;border-color:#141413;color:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 760px; height: 940px; box-sizing: border-box; padding: 32px; display: flex; align-items: flex-start; justify-content: center; background: #E7E5E4">
+<div role="dialog" aria-modal="true" aria-labelledby="dlg-h" style="width: 100%; background: #FFFFFF; border-radius: 20px; box-shadow: 0 12px 40px rgba(20,20,19,0.18); display: flex; flex-direction: column; overflow: hidden">
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 24px 28px 8px">
+<div>
+<h2 id="dlg-h" style="margin: 0; font-size: 20px; font-weight: 800; color: #141413">Undang anggota</h2>
+<p style="margin: 6px 0 0; font-size: 13px; color: #64748B">Satu undangan, langsung masuk ke workspace yang kamu pilih.</p>
+</div>
+<a href="AnggotaAkses.dc.html" aria-label="Tutup" style="display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; color: #57534E; text-decoration: none; font-size: 20px">✕</a>
+</div>
+
+<div style="padding: 12px 28px 20px; display: flex; flex-direction: column; gap: 20px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="em" class="lbl">Email</label>
+<textarea id="em" class="in" rows="2" style="resize: vertical">nadia@contoh.id, yoga@contoh.id</textarea>
+<span style="font-size: 12px; color: #64748B">Bisa lebih dari satu, pisahkan dengan koma. 2 email valid.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="tpl" class="lbl">Mulai dari template (opsional)</label>
+<select id="tpl" class="in"><option>QA standar — QA di 3 workspace</option><option>Backend Payment</option><option>Vendor sementara</option><option>Tanpa template</option></select>
+</div>
+
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+<legend class="lbl" style="padding: 0; margin-bottom: 10px">Workspace dan peran</legend>
+
+<div style="border: 1px solid #B1E743; background: #F7FBEA; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; min-height: 44px"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: #141413">Payment</label>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #44403C">Peran <select class="sel"><option>Developer</option><option>QA</option><option>Product Owner</option><option>Admin</option></select></label>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center"><span style="font-size: 12px; color: #64748B; margin-right: 4px">Spesialisasi</span><button type="button" class="pill">Frontend</button><button type="button" class="pill on" aria-pressed="true">Backend</button><button type="button" class="pill">Mobile</button><button type="button" class="pill">Fullstack</button></div>
+</div>
+
+<div style="border: 1px solid #B1E743; background: #F7FBEA; border-radius: 14px; padding: 14px 16px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; min-height: 44px"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: #141413">Mobile App</label>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #44403C">Peran <select class="sel"><option>QA</option><option>Developer</option><option>Product Owner</option><option>Admin</option></select></label>
+</div>
+
+<div style="border: 1px solid #E7E5E4; border-radius: 14px; padding: 14px 16px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; min-height: 44px; color: #57534E"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #141413">Internal Tools</label>
+<span style="font-size: 13px; color: #64748B">Tidak dipilih</span>
+</div>
+</fieldset>
+
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border-top: 1px solid #F0EFEC; padding-top: 16px">
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; min-height: 44px"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #141413">Akses sementara</label>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #64748B">Berakhir <input type="date" class="sel" disabled></label>
+</div>
+
+<p style="margin: 0; font-size: 13px; color: #44403C; background: #F5F5F4; border-radius: 12px; padding: 12px 14px">Email undangan berisi tautan untuk menyetel password. Status tampil sebagai <strong>Menunggu aktivasi</strong> sampai user masuk pertama kali.</p>
+</div>
+
+<div style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 28px 24px; border-top: 1px solid #F0EFEC">
+<a href="AnggotaAkses.dc.html" class="btn btn-ghost">Batal</a>
+<a href="AnggotaAkses.dc.html" class="btn btn-primary">Kirim undangan (2 orang · 2 workspace)</a>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":760,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
