@@ -594,11 +594,49 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       buckets.get('dev_bug_fix')?.items.map((item) => item.subjectId),
       [devBug.id],
     );
-    assert.ok(queue.buckets.every((entry) => entry.code.startsWith('dev_')));
+    assert.ok(
+      queue.buckets.every(
+        (entry) => entry.code.startsWith('dev_') || entry.code === 'waiting_on_others',
+      ),
+    );
     assert.ok(
       queue.buckets
         .flatMap((entry) => entry.items)
         .every((item) => item.title !== 'Foreign Workspace Subtask'),
+    );
+  });
+
+  test('lists Developer work held by QA under "waiting on others" without work actions (AC-4.3)', async () => {
+    const response = await fetchQueue(workspaceA.id, devCookie);
+    assert.strictEqual(response.status, 200);
+    const queue = RoleAwareWorkQueueSchema.parse(
+      ((await response.json()) as { queue: RoleAwareWorkQueue }).queue,
+    );
+    const waiting = bucketMap(queue).get('waiting_on_others');
+
+    assert.deepStrictEqual(
+      waiting?.items.map((item) => item.subjectId).sort(),
+      [reviewSubtask.id, resolvedBug.id, actionableRetestBug.id].sort(),
+    );
+    assert.ok(
+      waiting?.items.every(
+        (item) =>
+          item.workState === 'read_only' &&
+          item.nextAction.code === 'view_context' &&
+          item.waitingOn?.role === 'qa',
+      ),
+    );
+    assert.ok(
+      !waiting?.items.some(
+        (item) => item.subjectId === assignedSubtask.id || item.subjectId === blockedSubtask.id,
+      ),
+      'work the Developer still holds must stay in the work buckets',
+    );
+    const workBuckets = queue.buckets.filter((entry) => entry.code !== 'waiting_on_others');
+    assert.ok(
+      !workBuckets
+        .flatMap((entry) => entry.items)
+        .some((item) => item.subjectId === reviewSubtask.id),
     );
   });
 
@@ -636,6 +674,32 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     );
     assert.ok(
       queue.buckets.flatMap((entry) => entry.items).every((item) => Boolean(item.workState)),
+    );
+  });
+
+  test('lists QA work held by Developers under "waiting on others" without work actions (AC-4.3)', async () => {
+    const response = await fetchQueue(workspaceA.id, qaCookie);
+    assert.strictEqual(response.status, 200);
+    const queue = RoleAwareWorkQueueSchema.parse(
+      ((await response.json()) as { queue: RoleAwareWorkQueue }).queue,
+    );
+    const waiting = bucketMap(queue).get('waiting_on_others');
+
+    assert.deepStrictEqual(
+      waiting?.items.map((item) => item.subjectId).sort(),
+      [devBug.id, blockedSubtask.id].sort(),
+    );
+    assert.ok(
+      waiting?.items.every(
+        (item) =>
+          item.workState === 'read_only' &&
+          item.nextAction.code === 'view_context' &&
+          item.waitingOn?.role === 'developer',
+      ),
+    );
+    assert.ok(
+      !waiting?.items.some((item) => item.subjectId === resolvedBug.id),
+      'a resolved Bug is QA work (retest), not waiting',
     );
   });
 

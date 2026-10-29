@@ -43,7 +43,7 @@ flowchart LR
 | P3e   | Halaman kerja Bug (Developer dan QA), drawer Detail Bug dihapus, hasil retest memperbarui Bug                       | AC-3.9                         | 6/16 | P3c, P3d        | Kandidat teruji — menunggu UAT dan verifier G5 ([PHASE-03e](phases/PHASE-03e.md))                                   |
 | P3f   | Buka kembali Bug yang sudah Terverifikasi (QA) dengan alasan wajib untuk Developer                                  | AC-3.10                        | 5/16 | P3e             | Accepted with gaps (G5, 2026-10-28): E2/E3 lulus; UAT siklus kedua masih terbuka ([PHASE-03f](phases/PHASE-03f.md)) |
 | P4a   | Penanda serah-terima di komentar; pesan pengirim di antrean; balas langsung                                         | AC-4.2, AC-4.4                 | 8/16 | P2b             | Selesai — migrasi, tes, dan UAT Dev ↔ QA lolos ([PHASE-04a](phases/PHASE-04a.md))                                   |
-| P4b   | Tugas Saya Developer dan QA dengan "Mulai dari sini" dan "Menunggu orang lain"                                      | AC-4.1, AC-4.3                 | 8/16 | P4a             | Belum mulai                                                                                                         |
+| P4b   | Tugas Saya Developer dan QA dengan "Mulai dari sini" dan "Menunggu orang lain"                                      | AC-4.1, AC-4.3                 | 8/16 | P4a             | Kandidat — implementasi selesai; vitest, tes integrasi, dan UAT menunggu ([PHASE-04b](phases/PHASE-04b.md))         |
 | P2c   | Centang AC Developer tersimpan di server per subtask (migrasi + endpoint baru)                                      | AC-2.11                        | 5/16 | P2b             | Kandidat teruji — migrasi dan UAT menunggu ([PHASE-02c](phases/PHASE-02c.md))                                       |
 | P4c-1 | Persetujuan QA dipindah ke halaman kerja QA (langkah 1 pelepasan desk QA)                                           | AC-3.11                        | 3/16 | P3b             | Kandidat teruji — UAT menunggu ([PHASE-04c](phases/PHASE-04c.md))                                                   |
 | P4c-2 | Impor spreadsheet Test Case di halaman kerja QA (langkah 2 pelepasan desk QA)                                       | AC-3.12                        | 2/16 | P2c             | Kandidat teruji — UAT menunggu ([PHASE-04c2](phases/PHASE-04c2.md))                                                 |
@@ -145,13 +145,13 @@ WRA P4a: requirement 1 · lapisan 2 · data 1 · authorization 0 · contract 1 �
 
 ### Phase 4b, 4c, 4d — Tugas Saya per peran dan riwayat
 
-| Task ID  | Layer | Pekerjaan                                                                                              | AC             | Bukti selesai                 |
-| -------- | ----- | ------------------------------------------------------------------------------------------------------ | -------------- | ----------------------------- |
-| P4b-BE-1 | BE    | Bucket `waiting_on_others` per peran (kontrak aditif)                                                  | AC-4.3         | E3 per peran                  |
-| P4b-FE-1 | FE    | Halaman Tugas Saya Developer dan QA di balik feature flag                                              | AC-4.1, AC-4.3 | Component test + E4 per peran |
-| P4c-FE-1 | FE    | Halaman Tugas Saya PO; lepas `DevWorkingDesk`, `QaTestingDesk`, `PoTeamICardGrid` per peran setelah E4 | AC-4.1         | E4 per peran + regresi e2e QA |
-| P4d-BE-1 | BE    | Endpoint riwayat serah-terima per Feature dengan paginasi                                              | AC-4.5         | E3 + query count              |
-| P4d-FE-1 | FE    | `HandoffTimeline` di Tugas Saya dan detail Feature                                                     | AC-4.5         | Component test + E4           |
+| Task ID  | Layer | Pekerjaan                                                                                                     | AC             | Bukti selesai                 |
+| -------- | ----- | ------------------------------------------------------------------------------------------------------------- | -------------- | ----------------------------- |
+| P4b-BE-1 | BE    | Bucket `waiting_on_others` per peran (kontrak aditif)                                                         | AC-4.3         | E3 per peran                  |
+| P4b-FE-1 | FE    | Kartu "Mulai dari sini" dan grup "Menunggu orang lain" Developer dan QA (tanpa feature flag; lihat PHASE-04b) | AC-4.1, AC-4.3 | Component test + E4 per peran |
+| P4c-FE-1 | FE    | Halaman Tugas Saya PO; lepas `DevWorkingDesk`, `QaTestingDesk`, `PoTeamICardGrid` per peran setelah E4        | AC-4.1         | E4 per peran + regresi e2e QA |
+| P4d-BE-1 | BE    | Endpoint riwayat serah-terima per Feature dengan paginasi                                                     | AC-4.5         | E3 + query count              |
+| P4d-FE-1 | FE    | `HandoffTimeline` di Tugas Saya dan detail Feature                                                            | AC-4.5         | Component test + E4           |
 
 WRA P4b: 1 · 2 · 0 · 1 · 1 · 1 · 2 · 0 = **8/16**; P4c: 1 · 1 · 0 · 1 · 0 · 2 · 2 · 0 = **7/16**;
 P4d: 1 · 2 · 0 · 1 · 1 · 1 · 2 · 0 = **8/16**

@@ -42,7 +42,11 @@ describe('MyTasksDashboard Organism', () => {
 
     expect(screen.getByRole('heading', { name: 'Tugas Saya' })).toBeInTheDocument();
     expect(screen.getByText('Developer')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Pekerjaan yang Ditugaskan' })).toBeInTheDocument();
+    // Satu-satunya item di grup ini dipromosikan menjadi kartu "Mulai dari sini" (AC-4.1).
+    expect(screen.getByRole('region', { name: 'Mulai dari sini' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'Pekerjaan yang Ditugaskan' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Perbaikan Bug' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Perlu Perbaikan' })).not.toBeInTheDocument();
     expect(
