@@ -44,9 +44,9 @@ Matriks ini menilai setiap alur utama per role dengan kriteria yang sama. Role m
 | Developer     | Tandai siap diuji QA                           | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
 | Developer     | Perbaiki Bug dan minta retest                  | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
 | QA            | Susun Test Case dari Requirement dan AC        | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
-| QA            | Jalankan Test Run dan unggah evidence          | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | `qa-desk-flow-integration.spec.ts`       |
+| QA            | Jalankan Test Run dan unggah evidence          | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | `qa-page-work.spec.ts`                   |
 | QA            | Laporkan Bug ke Developer                      | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
-| QA            | Retest independen                              | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | `qa-desk-flow-integration.spec.ts`       |
+| QA            | Retest independen                              | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | `qa-page-work.spec.ts`                   |
 | QA            | QA sign-off ke PO                              | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Belum ada                                |
 | Product Owner | Plan dengan AI lalu Apply (ADR-035)            | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Desain: `SIMPLE-UI-DELIVERY-FLOW/design` |
 | Product Owner | Terima rilis dan tutup pemantauan              | Belum dinilai  | Belum dinilai   | Belum dinilai | Belum dinilai | Belum dinilai | Desain: `SIMPLE-UI-DELIVERY-FLOW/design` |

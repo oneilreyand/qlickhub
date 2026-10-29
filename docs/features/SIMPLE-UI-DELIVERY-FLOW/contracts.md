@@ -67,7 +67,7 @@ sumber inputnya dari body request menjadi `feature_drafts` versi tertentu, di da
   halaman rilis. Route lama dialihkan (AC-2.3).
 - **Backend:** modul `testManagement`, `workQueue`, `tasks` (komentar), `ai`, modul baru
   `featurePlans` dan `releases`, `bugs`.
-- **QA:** alur desk QA yang ada (`qa-desk-flow-integration.spec.ts`, `qa-role-isolation.spec.ts`) tetap
-  dijalankan sebagai regresi sampai halaman pengganti lulus E4.
+- **QA:** e2e desk lama diganti `qa-page-work.spec.ts` (alur A–F untuk halaman kerja QA, P4c-8);
+  `qa-role-isolation.spec.ts` tetap menjaga isolasi peran.
 - **Tidak terdampak:** autentikasi, `workspaces`/membership, folder, laporan kapasitas, leader hub,
   QRIS sandbox, notifikasi push (dipakai, tidak diubah), konfigurasi deploy Vercel.
