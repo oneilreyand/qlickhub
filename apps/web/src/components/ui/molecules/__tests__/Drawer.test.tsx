@@ -139,4 +139,35 @@ describe('Drawer', () => {
     expect(overlayRoot).toHaveClass('z-20');
     expect(overlayRoot).not.toHaveClass('z-50');
   });
+
+  it('keeps the application sidebar visible on desktop and treats a click on it as a close request', () => {
+    const onClose = vi.fn();
+    render(
+      <Drawer isOpen onClose={onClose} title="My task details" preserveAppSidebar defaultFullScreen>
+        <p>Drawer body</p>
+      </Drawer>,
+    );
+
+    const content = screen.getByRole('region', { name: 'My task details content' });
+    const overlayRoot = content.closest('.fixed.inset-0') as HTMLElement;
+    const backdrop = overlayRoot.firstElementChild;
+    const container = screen.getByRole('dialog').parentElement as HTMLElement;
+
+    expect(backdrop).toHaveClass('lg:left-60');
+    expect(container).toHaveClass('lg:left-60');
+
+    fireEvent.click(screen.getByTestId('drawer-sidebar-cover'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reserve the sidebar by default', () => {
+    render(
+      <Drawer isOpen onClose={vi.fn()} title="My task details">
+        <p>Drawer body</p>
+      </Drawer>,
+    );
+
+    expect(screen.queryByTestId('drawer-sidebar-cover')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog').parentElement).not.toHaveClass('lg:left-60');
+  });
 });

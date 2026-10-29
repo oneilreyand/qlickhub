@@ -170,6 +170,7 @@ const DetailFrame: React.FC<DetailFrameProps> = ({
       isOpen
       width="4xl"
       defaultFullScreen={true}
+      preserveAppSidebar
       allowFullScreen={true}
       closeOnEscape={closeOnEscape}
       subtitle={subtitle}
