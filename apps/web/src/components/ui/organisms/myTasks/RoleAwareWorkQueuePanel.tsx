@@ -36,6 +36,10 @@ export interface RoleAwareWorkQueuePanelProps {
   selectedTaskId?: string | null;
   onRefresh: () => void;
   onOpenItem: (item: WorkQueueItem) => void | Promise<void>;
+  /** Id pengguna aktif; pesan milik sendiri ditampilkan sebagai "Anda". */
+  currentUserId?: string | null;
+  /** Balas langsung pesan serah-terima (AC-4.4). Tanpa prop ini, kotak Balas tidak tampil. */
+  onReplyItem?: (item: WorkQueueItem, body: string) => Promise<void>;
 }
 
 const bucketIcons: Record<WorkQueueBucketCode, React.ReactNode> = {
@@ -178,6 +182,8 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   selectedTaskId,
   onRefresh,
   onOpenItem,
+  currentUserId,
+  onReplyItem,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -185,6 +191,10 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
+  const [replyingItemId, setReplyingItemId] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
   const debouncedSearchQuery = useDebounce(searchQuery, 250).trim().toLowerCase();
   const buckets = useMemo(() => state.queue?.buckets || [], [state.queue?.buckets]);
   const totalItems = useMemo(
@@ -221,6 +231,22 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
       await onOpenItem(item);
     } finally {
       setOpeningItemId(null);
+    }
+  };
+
+  const sendReply = async (item: WorkQueueItem) => {
+    const body = replyBody.trim();
+    if (!body || !onReplyItem || isSendingReply) return;
+    setIsSendingReply(true);
+    setReplyError(null);
+    try {
+      await onReplyItem(item, body);
+      setReplyBody('');
+      setReplyingItemId(null);
+    } catch (error) {
+      setReplyError(error instanceof Error ? error.message : 'Balasan gagal dikirim.');
+    } finally {
+      setIsSendingReply(false);
     }
   };
 
@@ -406,6 +432,81 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                                 {localizeReason(item.reason)}
                               </p>
                             </div>
+                            {item.lastMessage && (
+                              <div className="rounded-xl border border-stone-200/80 bg-stone-50 px-3 py-2 dark:border-stone-800 dark:bg-stone-900/40">
+                                <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                                  Pesan dari{' '}
+                                  {item.sender
+                                    ? item.sender.id === currentUserId
+                                      ? 'Anda'
+                                      : item.sender.name
+                                    : 'tim'}
+                                </p>
+                                <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-stone-800 dark:text-stone-200">
+                                  {item.lastMessage.body}
+                                </p>
+                                {onReplyItem && replyingItemId !== item.id && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="mt-1 -ml-2"
+                                    onClick={() => {
+                                      setReplyingItemId(item.id);
+                                      setReplyBody('');
+                                      setReplyError(null);
+                                    }}
+                                    aria-label={`Balas pesan: ${item.title}`}
+                                  >
+                                    Balas
+                                  </Button>
+                                )}
+                                {onReplyItem && replyingItemId === item.id && (
+                                  <div className="mt-2 space-y-2">
+                                    <label
+                                      htmlFor={`reply-${item.id}`}
+                                      className="sr-only"
+                                    >{`Balasan untuk ${item.title}`}</label>
+                                    <textarea
+                                      id={`reply-${item.id}`}
+                                      value={replyBody}
+                                      onChange={(event) => setReplyBody(event.target.value)}
+                                      rows={2}
+                                      maxLength={2000}
+                                      autoFocus
+                                      placeholder="Tulis balasan"
+                                      className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-stone-700 dark:bg-[#1C1A19] dark:text-stone-100"
+                                    />
+                                    {replyError && (
+                                      <p
+                                        role="alert"
+                                        className="text-xs text-rose-600 dark:text-rose-400"
+                                      >
+                                        {replyError}
+                                      </p>
+                                    )}
+                                    <div className="flex gap-2">
+                                      <Button
+                                        variant="primary"
+                                        size="sm"
+                                        isLoading={isSendingReply}
+                                        disabled={!replyBody.trim()}
+                                        onClick={() => void sendReply(item)}
+                                      >
+                                        Kirim balasan
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={isSendingReply}
+                                        onClick={() => setReplyingItemId(null)}
+                                      >
+                                        Batal
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {(item.priority || item.dueDate) && (
                               <div className="flex flex-wrap items-center gap-2">
                                 {item.priority && (

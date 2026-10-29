@@ -331,6 +331,14 @@ export const TestCaseRunPage: React.FC = () => {
       status: 'changes_requested',
       reviewNotes: values.notes,
     });
+    // Catatan yang sama disimpan sebagai pesan serah-terima agar tampil di Tugas Saya Developer.
+    await taskService
+      .createTaskComment(activeWorkspaceId, values.subtaskId, {
+        body: values.notes,
+        handoffKind: 'review_feedback',
+        mentionedUserIds: [],
+      })
+      .catch(() => undefined);
     dispatch(enqueueSnackbar('Permintaan perbaikan dikirim ke Developer', 'success'));
   };
 

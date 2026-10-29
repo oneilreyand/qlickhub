@@ -48,7 +48,8 @@ export interface SubtaskWorkViewProps {
   onBack: () => void;
   onOpenFeature: () => void;
   onStart: () => void;
-  onSendToQa: () => void;
+  /** `message` is an optional handoff note for QA, saved as a `ready_for_qa` comment (P4a). */
+  onSendToQa: (message?: string) => void;
   onPostComment: (body: string) => Promise<void> | void;
 }
 
@@ -101,6 +102,7 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
   const checkedCount = criteria.filter((criterion) => checkByCriterion.has(criterion.id)).length;
   const allChecked = criteria.length === 0 || checkedCount === criteria.length;
 
+  const [handoffMessage, setHandoffMessage] = useState('');
   const [reply, setReply] = useState('');
   const [isPosting, setIsPosting] = useState(false);
   const submitReply = async () => {
@@ -173,6 +175,19 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
         </ol>
         {(canStart || canSend) && (
           <div className="flex flex-col items-end gap-1.5 max-sm:w-full max-sm:items-stretch">
+            {canSend && (
+              <label className="flex w-full flex-col gap-1 text-xs font-semibold text-stone-700 dark:text-stone-300 sm:w-80">
+                Pesan untuk QA (opsional)
+                <textarea
+                  value={handoffMessage}
+                  onChange={(event) => setHandoffMessage(event.target.value)}
+                  rows={2}
+                  maxLength={1000}
+                  placeholder="Apa yang perlu QA tahu sebelum menguji?"
+                  className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm font-normal text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-stone-700 dark:bg-[#1C1A19] dark:text-stone-100"
+                />
+              </label>
+            )}
             {canStart ? (
               <Button variant="primary" isLoading={isUpdatingStatus} onClick={onStart}>
                 Mulai dikerjakan
@@ -182,7 +197,7 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
                 variant="primary"
                 isLoading={isUpdatingStatus}
                 disabled={!allChecked}
-                onClick={onSendToQa}
+                onClick={() => onSendToQa(handoffMessage.trim() || undefined)}
               >
                 Kirim ke QA
               </Button>

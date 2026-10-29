@@ -196,6 +196,23 @@ export const MyTasksPage: React.FC = () => {
     [activeWorkspaceId, currentUserId, dispatch, location.search, navigate],
   );
 
+  // Balas langsung (AC-4.4): komentar di task yang sama, membalas komentar pengirim bila ada,
+  // dan menyebut pengirim agar ia mendapat notifikasi diskusi yang sudah ada.
+  const handleReplyQueueItem = useCallback(
+    async (item: WorkQueueItem, body: string) => {
+      if (!activeWorkspaceId) return;
+      await taskService.createTaskComment(activeWorkspaceId, item.subjectId, {
+        body,
+        parentCommentId: item.lastMessage?.threadRootId ?? null,
+        handoffKind: String(userRole).toLowerCase() === 'qa' ? 'question' : 'answer',
+        mentionedUserIds: item.sender && item.sender.id !== currentUserId ? [item.sender.id] : [],
+      });
+      dispatch(enqueueSnackbar('Balasan terkirim', 'success'));
+      reloadWorkQueue();
+    },
+    [activeWorkspaceId, currentUserId, dispatch, reloadWorkQueue, userRole],
+  );
+
   if (!isWsInitialized || (isWsLoading && workspaces.length === 0)) {
     return (
       <div className="py-24 flex items-center justify-center" aria-label="Memuat workspace">
@@ -216,6 +233,8 @@ export const MyTasksPage: React.FC = () => {
         queueState={workQueueState}
         onRefreshQueue={reloadWorkQueue}
         onOpenQueueItem={handleOpenQueueItem}
+        currentUserId={currentUserId}
+        onReplyQueueItem={handleReplyQueueItem}
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
       />
 

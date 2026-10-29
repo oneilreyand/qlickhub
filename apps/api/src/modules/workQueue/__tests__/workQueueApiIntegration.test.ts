@@ -19,6 +19,7 @@ import {
   QaTestCycleModel,
   ReleaseDecisionModel,
   RequirementModel,
+  TaskCommentModel,
   TaskModel,
   TaskRequirementModel,
   TestCaseModel,
@@ -665,6 +666,83 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     } finally {
       await second.destroy({ force: true });
     }
+  });
+
+  test('shows the handoff sender and latest message on queue items for each role (AC-4.2)', async () => {
+    const feedback = await TaskCommentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: blockedSubtask.id,
+      authorId: qa.id,
+      handoffKind: 'review_feedback',
+      body: 'Pesan error server hilang di form.',
+    });
+    const ready = await TaskCommentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: reviewSubtask.id,
+      authorId: dev.id,
+      handoffKind: 'ready_for_qa',
+      body: 'Siap diuji; cek jejak audit pemulihan.',
+    });
+    const untagged = await TaskCommentModel.create({
+      workspaceId: workspaceA.id,
+      taskId: reviewSubtask.id,
+      authorId: dev.id,
+      body: 'Komentar biasa tanpa penanda.',
+    });
+    try {
+      const devQueue = RoleAwareWorkQueueSchema.parse(
+        (
+          (await (await fetchQueue(workspaceA.id, devCookie)).json()) as {
+            queue: RoleAwareWorkQueue;
+          }
+        ).queue,
+      );
+      const blocked = bucketMap(devQueue)
+        .get('dev_blocked_work')
+        ?.items.find((item) => item.subjectId === blockedSubtask.id);
+      assert.strictEqual(blocked?.sender?.id, qa.id);
+      assert.strictEqual(blocked?.sender?.name, qa.name);
+      assert.strictEqual(blocked?.lastMessage?.id, feedback.id);
+      assert.strictEqual(blocked?.lastMessage?.threadRootId, feedback.id);
+      assert.strictEqual(blocked?.lastMessage?.kind, 'review_feedback');
+      assert.strictEqual(blocked?.lastMessage?.body, 'Pesan error server hilang di form.');
+
+      const qaQueue = RoleAwareWorkQueueSchema.parse(
+        (
+          (await (await fetchQueue(workspaceA.id, qaCookie)).json()) as {
+            queue: RoleAwareWorkQueue;
+          }
+        ).queue,
+      );
+      const card = bucketMap(qaQueue)
+        .get('qa_test_work')
+        ?.items.find((item) => item.subjectId === reviewSubtask.id);
+      assert.strictEqual(card?.sender?.id, dev.id);
+      assert.strictEqual(card?.lastMessage?.id, ready.id);
+      assert.strictEqual(card?.lastMessage?.kind, 'ready_for_qa');
+      assert.notStrictEqual(
+        card?.lastMessage?.id,
+        untagged.id,
+        'untagged comments are not handoffs',
+      );
+    } finally {
+      await feedback.destroy({ force: true });
+      await ready.destroy({ force: true });
+      await untagged.destroy({ force: true });
+    }
+  });
+
+  test('falls back to the review notes when no tagged handoff comment exists', async () => {
+    const queue = RoleAwareWorkQueueSchema.parse(
+      ((await (await fetchQueue(workspaceA.id, devCookie)).json()) as { queue: RoleAwareWorkQueue })
+        .queue,
+    );
+    const blocked = bucketMap(queue)
+      .get('dev_blocked_work')
+      ?.items.find((item) => item.subjectId === blockedSubtask.id);
+    assert.strictEqual(blocked?.lastMessage?.id, null);
+    assert.strictEqual(blocked?.lastMessage?.kind, 'review_feedback');
+    assert.strictEqual(blocked?.lastMessage?.body, 'Preserve server validation messages.');
   });
 
   test('enforces membership before returning queue data and keeps Workspaces isolated', async () => {

@@ -173,6 +173,45 @@ describe('Persisted Task Discussion Integration Tests (ST4)', () => {
     assert.strictEqual(thread.comments[0].replies?.[0].id, replyComment.id);
   });
 
+  test('Stores a handoff kind label on a message and its reply, and rejects unknown kinds (AC-4.2, AC-4.4)', async () => {
+    const root = await taskDiscussionService.createTaskComment(
+      devMember.id,
+      workspace.id,
+      task.id,
+      CreateTaskCommentSchema.parse({
+        body: 'Siap diuji; cek jejak audit.',
+        handoffKind: 'ready_for_qa',
+      }),
+    );
+    assert.strictEqual(root.handoffKind, 'ready_for_qa');
+
+    const reply = await taskDiscussionService.createTaskComment(
+      qaMember.id,
+      workspace.id,
+      task.id,
+      CreateTaskCommentSchema.parse({
+        parentCommentId: root.id,
+        body: 'Apakah data uji sudah tersedia?',
+        handoffKind: 'question',
+        mentionedUserIds: [devMember.id],
+      }),
+    );
+    assert.strictEqual(reply.handoffKind, 'question');
+    assert.strictEqual(reply.parentCommentId, root.id);
+
+    const plain = await taskDiscussionService.createTaskComment(
+      devMember.id,
+      workspace.id,
+      task.id,
+      CreateTaskCommentSchema.parse({ body: 'Komentar biasa.' }),
+    );
+    assert.strictEqual(plain.handoffKind ?? null, null);
+
+    assert.throws(() =>
+      CreateTaskCommentSchema.parse({ body: 'Tidak valid.', handoffKind: 'approved' }),
+    );
+  });
+
   test('Rejects nested reply (reply to a reply)', async () => {
     const root = await taskDiscussionService.createTaskComment(
       devMember.id,

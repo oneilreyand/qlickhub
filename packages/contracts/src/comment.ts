@@ -7,6 +7,17 @@ export const TaskCommentMentionInfoSchema = z.object({
 
 export type TaskCommentMentionInfo = z.infer<typeof TaskCommentMentionInfoSchema>;
 
+/** Label only (P4a): marks a comment as a handoff message. It never grants permissions. */
+export const TaskCommentHandoffKindSchema = z.enum([
+  'review_feedback',
+  'question',
+  'ready_for_qa',
+  'fix_ready',
+  'answer',
+]);
+
+export type TaskCommentHandoffKind = z.infer<typeof TaskCommentHandoffKindSchema>;
+
 export type TaskComment = {
   id: string;
   workspaceId: string;
@@ -14,6 +25,7 @@ export type TaskComment = {
   authorId: string;
   authorName?: string;
   parentCommentId?: string | null;
+  handoffKind?: TaskCommentHandoffKind | null;
   body: string;
   editedAt?: string | null;
   deletedAt?: string | null;
@@ -31,6 +43,7 @@ export const TaskCommentSchema: z.ZodType<TaskComment> = z.lazy(() =>
     authorId: z.string().uuid(),
     authorName: z.string().optional(),
     parentCommentId: z.string().uuid().nullable().optional(),
+    handoffKind: TaskCommentHandoffKindSchema.nullable().optional(),
     body: z.string(),
     editedAt: z.string().nullable().optional(),
     deletedAt: z.string().nullable().optional(),
@@ -38,13 +51,14 @@ export const TaskCommentSchema: z.ZodType<TaskComment> = z.lazy(() =>
     updatedAt: z.string(),
     replies: z.array(TaskCommentSchema).optional(),
     mentions: z.array(TaskCommentMentionInfoSchema).optional(),
-  })
+  }),
 );
 
 export const CreateTaskCommentSchema = z.object({
   workspaceId: z.string().uuid().optional(),
   taskId: z.string().uuid().optional(),
   parentCommentId: z.string().uuid().nullable().optional(),
+  handoffKind: TaskCommentHandoffKindSchema.nullable().optional(),
   body: z.string().trim().min(1, 'Comment body is required').max(5000),
   mentionedUserIds: z.array(z.string().uuid()).optional().default([]),
 });
@@ -60,8 +74,14 @@ export type UpdateTaskCommentInput = z.infer<typeof UpdateTaskCommentSchema>;
 export const TaskCommentQuerySchema = z.object({
   workspaceId: z.string().uuid().optional(),
   taskId: z.string().uuid().optional(),
-  page: z.preprocess((val) => (val ? Number(val) : 1), z.number().int().min(1)).optional().default(1),
-  limit: z.preprocess((val) => (val ? Number(val) : 50), z.number().int().min(1).max(100)).optional().default(50),
+  page: z
+    .preprocess((val) => (val ? Number(val) : 1), z.number().int().min(1))
+    .optional()
+    .default(1),
+  limit: z
+    .preprocess((val) => (val ? Number(val) : 50), z.number().int().min(1).max(100))
+    .optional()
+    .default(50),
 });
 
 export type TaskCommentQuery = z.infer<typeof TaskCommentQuerySchema>;

@@ -156,7 +156,11 @@ export const SubtaskWorkPage: React.FC = () => {
     }
   };
 
-  const changeStatus = async (status: 'in_progress' | 'in_review', successMessage: string) => {
+  const changeStatus = async (
+    status: 'in_progress' | 'in_review',
+    successMessage: string,
+    handoffMessage?: string,
+  ) => {
     if (!activeWorkspaceId || !task) return;
     setIsUpdatingStatus(true);
     try {
@@ -164,6 +168,20 @@ export const SubtaskWorkPage: React.FC = () => {
         updateTask({ workspaceId: activeWorkspaceId, taskId: task.id, input: { status } }),
       ).unwrap();
       dispatch(enqueueSnackbar(successMessage, 'success'));
+      if (status === 'in_review' && handoffMessage) {
+        // Pesan serah-terima ke QA; kegagalan di sini tidak membatalkan pengiriman yang sudah berhasil.
+        try {
+          await taskService.createTaskComment(activeWorkspaceId, task.id, {
+            body: handoffMessage,
+            handoffKind: 'ready_for_qa',
+            mentionedUserIds: [],
+          });
+        } catch {
+          dispatch(
+            enqueueSnackbar('Subtask terkirim, tetapi pesan untuk QA gagal disimpan.', 'error'),
+          );
+        }
+      }
       reload();
     } catch (error) {
       dispatch(
@@ -268,7 +286,9 @@ export const SubtaskWorkPage: React.FC = () => {
           });
       }}
       onStart={() => void changeStatus('in_progress', 'Subtask mulai dikerjakan')}
-      onSendToQa={() => void changeStatus('in_review', 'Subtask dikirim ke QA untuk diverifikasi')}
+      onSendToQa={(message) =>
+        void changeStatus('in_review', 'Subtask dikirim ke QA untuk diverifikasi', message)
+      }
       onPostComment={postComment}
     />
   );

@@ -56,7 +56,13 @@ const {
   deleteTaskMock,
   listBugsMock,
   updateBugMock,
+  unmockedService,
 } = vi.hoisted(() => ({
+  unmockedService: (name: string) =>
+    new Proxy(
+      {},
+      { get: () => () => Promise.reject(new Error(`${name} tidak di-mock pada test ini.`)) },
+    ),
   getProductBriefMock: vi.fn(),
   upsertProductBriefMock: vi.fn(),
   listTaskActivitiesMock: vi.fn(),
@@ -72,6 +78,19 @@ const {
   deleteTaskMock: vi.fn(),
   listBugsMock: vi.fn(),
   updateBugMock: vi.fn(),
+}));
+
+// Layanan di bawah ini dipanggil oleh panel anak tetapi tidak dipakai oleh test ini. Tanpa mock
+// pemanggilan jatuh ke jaringan sungguhan (API lokal yang menjawab 401) dan memicu navigasi
+// ke /login yang tidak didukung jsdom. Gagal cepat dengan error biasa menjaga perilaku yang sama.
+vi.mock('../../../../lib/api/featureReadinessService', () => ({
+  featureReadinessService: unmockedService('featureReadinessService'),
+}));
+vi.mock('../../../../lib/api/releaseDecisionService', () => ({
+  releaseDecisionService: unmockedService('releaseDecisionService'),
+}));
+vi.mock('../../../../lib/api/testManagementService', () => ({
+  testManagementService: unmockedService('testManagementService'),
 }));
 
 vi.mock('../../../../lib/api/bugService', () => ({

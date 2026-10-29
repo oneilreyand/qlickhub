@@ -1,6 +1,7 @@
 import { Op, type Transaction } from 'sequelize';
 import type {
   RoleAwareWorkQueue,
+  TaskCommentHandoffKind,
   WorkQueueBucket,
   WorkQueueBucketCode,
   WorkQueueItem,
@@ -18,8 +19,10 @@ import {
   ReleaseDecisionCancellationModel,
   ReleaseDecisionModel,
   RequirementModel,
+  TaskCommentModel,
   TaskModel,
   TaskRequirementModel,
+  UserModel,
 } from '../../db/models/index.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import { bugService } from '../bugs/bugService.js';
@@ -596,6 +599,113 @@ async function qaBuckets(
   ];
 }
 
+const DEVELOPER_VISIBLE_KINDS: TaskCommentHandoffKind[] = ['review_feedback', 'question', 'answer'];
+const QA_VISIBLE_KINDS: TaskCommentHandoffKind[] = [
+  'ready_for_qa',
+  'fix_ready',
+  'question',
+  'answer',
+];
+
+/**
+ * P4a (AC-4.2): adds the handoff sender and the latest handoff message to subtask items.
+ * Three batched reads (comments, review notes, user names) regardless of the item count.
+ */
+async function attachHandoffMessages(
+  workspaceId: string,
+  queueRole: WorkQueueRole,
+  buckets: WorkQueueBucket[],
+  transaction: Transaction,
+): Promise<void> {
+  if (queueRole === 'planner') return;
+  const items = buckets
+    .flatMap((item) => item.items)
+    .filter((item) => item.subjectType === 'subtask');
+  const taskIds = Array.from(new Set(items.map((item) => item.subjectId)));
+  if (taskIds.length === 0) return;
+  const visibleKinds = queueRole === 'developer' ? DEVELOPER_VISIBLE_KINDS : QA_VISIBLE_KINDS;
+
+  const [comments, reviewTasks] = await Promise.all([
+    TaskCommentModel.findAll({
+      where: {
+        workspaceId,
+        taskId: { [Op.in]: taskIds },
+        handoffKind: { [Op.in]: visibleKinds },
+      },
+      attributes: [
+        'id',
+        'taskId',
+        'authorId',
+        'parentCommentId',
+        'handoffKind',
+        'body',
+        'createdAt',
+      ],
+      order: [['createdAt', 'DESC']],
+      transaction,
+    }),
+    TaskModel.findAll({
+      where: { workspaceId, id: { [Op.in]: taskIds }, status: 'changes_requested' },
+      attributes: ['id', 'reviewNotes', 'reviewedBy', 'updatedAt'],
+      transaction,
+    }),
+  ]);
+
+  const latestByTask = new Map<string, TaskCommentModel>();
+  for (const comment of comments) {
+    if (!latestByTask.has(comment.taskId)) latestByTask.set(comment.taskId, comment);
+  }
+  const reviewByTask = new Map(reviewTasks.map((task) => [task.id, task]));
+
+  const userIds = new Set<string>();
+  for (const comment of latestByTask.values()) userIds.add(comment.authorId);
+  for (const task of reviewTasks) if (task.reviewedBy) userIds.add(task.reviewedBy);
+  const users =
+    userIds.size > 0
+      ? await UserModel.findAll({
+          where: { id: { [Op.in]: Array.from(userIds) } },
+          attributes: ['id', 'name', 'email'],
+          transaction,
+        })
+      : [];
+  const nameById = new Map(users.map((user) => [user.id, user.name?.trim() || user.email]));
+
+  for (const item of items) {
+    const comment = latestByTask.get(item.subjectId);
+    if (comment) {
+      item.sender = {
+        id: comment.authorId,
+        name: nameById.get(comment.authorId) || 'Anggota tim',
+      };
+      item.lastMessage = {
+        id: comment.id,
+        threadRootId: comment.parentCommentId ?? comment.id,
+        body: comment.body,
+        kind: comment.handoffKind,
+        createdAt: iso(comment.createdAt),
+      };
+      continue;
+    }
+    const review = reviewByTask.get(item.subjectId);
+    const notes = review?.reviewNotes?.trim();
+    if (review && notes) {
+      if (review.reviewedBy) {
+        item.sender = {
+          id: review.reviewedBy,
+          name: nameById.get(review.reviewedBy) || 'Anggota tim',
+        };
+      }
+      item.lastMessage = {
+        id: null,
+        threadRootId: null,
+        body: notes,
+        kind: 'review_feedback',
+        createdAt: iso(review.updatedAt),
+      };
+    }
+  }
+}
+
 export class WorkQueueService {
   async getRoleAwareQueue(workspaceId: string, actorId: string): Promise<RoleAwareWorkQueue> {
     return sequelize.transaction(async (transaction) => {
@@ -607,6 +717,8 @@ export class WorkQueueService {
           : queueRole === 'developer'
             ? await developerBuckets(workspaceId, actorId, transaction)
             : await qaBuckets(workspaceId, actorId, transaction);
+
+      await attachHandoffMessages(workspaceId, queueRole, buckets, transaction);
 
       return RoleAwareWorkQueueSchema.parse({
         workspaceId,

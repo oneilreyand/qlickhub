@@ -261,14 +261,16 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
       .then((result) => {
         if (!isCurrent) return;
         const from = new Date(sentAt).getTime() - HANDOFF_LEAD_MS;
-        const latest = (result.comments || [])
-          .filter(
+        const byNewest = (result.comments || [])
+          .filter((comment) => comment.authorId === senderId && !comment.deletedAt)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        // Pesan bertanda serah-terima (P4a) didahulukan; tebakan berdasarkan waktu hanya
+        // untuk data lama yang belum punya penanda.
+        const latest =
+          byNewest.find(
             (comment) =>
-              comment.authorId === senderId &&
-              !comment.deletedAt &&
-              new Date(comment.createdAt).getTime() >= from,
-          )
-          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+              comment.handoffKind === 'ready_for_qa' || comment.handoffKind === 'fix_ready',
+          ) ?? byNewest.find((comment) => new Date(comment.createdAt).getTime() >= from);
         setHandoff(build(latest ? latest.body : null));
       })
       .catch(() => {
