@@ -1,6 +1,6 @@
 # QUICK — DETAIL-DRAWER-KEEP-SIDEBAR Detail task tidak menutupi Sidebar di desktop
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **WRA:** 4/16 — satu lapisan frontend (1), satu konsumen drawer detail lewat prop opt-in (1), unit test serta UAT lokal Light/Dark tiga viewport (2). Tidak ada perubahan API, kontrak, data, otorisasi, migrasi, atau dependensi eksternal.
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -49,8 +49,8 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Urutan aksi: test regresi → edit → test/typecheck/build/theme → UAT lokal baca-saja → quality review → commit → push dan PR baru ke `main`. Tier diperiksa; tidak ada deploy.
 - Masa berlaku dan stop condition: hanya posisi/lebar drawer detail terhadap Sidebar desktop; berhenti dan minta keputusan baru bila perlu mengubah router, struktur AppLayout/Sidebar, perilaku focus trap, drawer lain, token, API, data, atau RBAC.
 
-**Disetujui:** belum. Persetujuan 2026-10-27 untuk cakupan lama (dua konsumen, PR #58) tidak dipakai ulang; menunggu persetujuan Owner untuk cakupan yang direvisi.
+**Disetujui:** Owner, 2026-10-29, lewat pilihan "Setujui dan kerjakan" di chat untuk cakupan yang direvisi.
 
 ## Hasil
 
-- Belum dieksekusi.
+- Diimplementasikan: prop `preserveAppSidebar` di `Drawer`, aktif di `TaskDetailDrawer`; dua test unit baru. Menunggu vitest dan UAT lokal Owner (Light/Dark; 1440×900, 1024×768, 390×844).
