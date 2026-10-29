@@ -294,29 +294,36 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
             {comments.length === 0 ? (
               <p className="text-sm text-stone-500 dark:text-stone-400">Belum ada pesan.</p>
             ) : (
-              comments.map((comment) => {
-                const authorName =
-                  comment.authorName ?? resolveMemberName?.(comment.authorId) ?? 'Anggota tim';
-                return (
-                  <article key={comment.id} className="flex gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-stone-200 text-[11px] font-semibold text-stone-700 dark:bg-stone-700 dark:text-stone-200"
-                    >
-                      {authorName.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-xs text-stone-600 dark:text-stone-400">
-                        <strong className="text-stone-900 dark:text-stone-100">{authorName}</strong>
-                      </p>
-                      <FormattedText
-                        content={comment.body}
-                        className="text-sm text-stone-800 dark:text-stone-200"
-                      />
-                    </div>
-                  </article>
-                );
-              })
+              comments.flatMap((comment) =>
+                [
+                  { item: comment, isReply: false },
+                  ...(comment.replies ?? []).map((item) => ({ item, isReply: true })),
+                ].map(({ item, isReply }) => {
+                  const authorName =
+                    item.authorName ?? resolveMemberName?.(item.authorId) ?? 'Anggota tim';
+                  return (
+                    <article key={item.id} className={`flex gap-3 ${isReply ? 'ml-11' : ''}`}>
+                      <span
+                        aria-hidden="true"
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-stone-200 text-[11px] font-semibold text-stone-700 dark:bg-stone-700 dark:text-stone-200"
+                      >
+                        {authorName.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-xs text-stone-600 dark:text-stone-400">
+                          <strong className="text-stone-900 dark:text-stone-100">
+                            {authorName}
+                          </strong>
+                        </p>
+                        <FormattedText
+                          content={item.body}
+                          className="text-sm text-stone-800 dark:text-stone-200"
+                        />
+                      </div>
+                    </article>
+                  );
+                }),
+              )
             )}
             <div className="flex gap-2">
               <label htmlFor="subtask-reply" className="sr-only">
