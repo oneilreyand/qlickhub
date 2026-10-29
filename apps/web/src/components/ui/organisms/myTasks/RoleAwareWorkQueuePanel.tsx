@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   FileCheck2,
+  Hourglass,
   ListChecks,
   RefreshCw,
   ShieldCheck,
@@ -52,6 +53,7 @@ const bucketIcons: Record<WorkQueueBucketCode, React.ReactNode> = {
   qa_test_work: <ClipboardCheck className="h-4 w-4" aria-hidden="true" />,
   qa_retest_work: <Bug className="h-4 w-4" aria-hidden="true" />,
   qa_sign_off: <CheckCircle2 className="h-4 w-4" aria-hidden="true" />,
+  waiting_on_others: <Hourglass className="h-4 w-4" aria-hidden="true" />,
 };
 
 const priorityVariants = {
@@ -71,6 +73,7 @@ const bucketLabels: Record<WorkQueueBucketCode, string> = {
   qa_test_work: 'Pengujian dan Review',
   qa_retest_work: 'Pekerjaan Retest',
   qa_sign_off: 'Persetujuan QA',
+  waiting_on_others: 'Menunggu Orang Lain',
 };
 
 const termLabels: Record<string, string> = {
@@ -250,6 +253,168 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
     }
   };
 
+  // "Mulai dari sini" (AC-4.1): satu item siap ditindak paling mendesak dari bucket kerja yang
+  // lolos filter, untuk Developer dan QA (PO menyusul di P4c). Tidak diulang di grupnya.
+  const startHere = useMemo(
+    () =>
+      state.queue?.queueRole === 'planner'
+        ? null
+        : (sortQueueItems(
+            sections
+              .filter(({ bucket }) => bucket.code !== 'waiting_on_others')
+              .flatMap(({ items }) => items)
+              .filter((item) => item.workState === 'actionable'),
+          )[0] ?? null),
+    [sections, state.queue?.queueRole],
+  );
+
+  const renderItemCard = (item: WorkQueueItem) => {
+    const isSelected = item.subjectType !== 'bug' && item.subjectId === selectedTaskId;
+    const workState = workStateCopy[item.workState];
+    const isWaiting = item.bucketCode === 'waiting_on_others';
+    return (
+      <Card
+        key={item.id}
+        className={`p-4 transition-colors ${
+          isSelected ? 'border-[#B1E743] bg-[#B1E743]/5 ring-2 ring-[#B1E743]/20' : ''
+        }`}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 space-y-2">
+            <div>
+              <h4 className="break-words text-sm font-extrabold text-stone-900 dark:text-stone-100">
+                {item.title}
+              </h4>
+              <p className="mt-1 text-sm leading-relaxed text-stone-700 dark:text-stone-200">
+                {localizeReason(item.reason)}
+              </p>
+            </div>
+            {item.lastMessage && (
+              <div className="rounded-xl border border-stone-200/80 bg-stone-50 px-3 py-2 dark:border-stone-800 dark:bg-stone-900/40">
+                <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                  Pesan dari{' '}
+                  {item.sender
+                    ? item.sender.id === currentUserId
+                      ? 'Anda'
+                      : item.sender.name
+                    : 'tim'}
+                </p>
+                <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-stone-800 dark:text-stone-200">
+                  {item.lastMessage.body}
+                </p>
+                {onReplyItem && !isWaiting && replyingItemId !== item.id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-1 -ml-2"
+                    onClick={() => {
+                      setReplyingItemId(item.id);
+                      setReplyBody('');
+                      setReplyError(null);
+                    }}
+                    aria-label={`Balas pesan: ${item.title}`}
+                  >
+                    Balas
+                  </Button>
+                )}
+                {onReplyItem && !isWaiting && replyingItemId === item.id && (
+                  <div className="mt-2 space-y-2">
+                    <label
+                      htmlFor={`reply-${item.id}`}
+                      className="sr-only"
+                    >{`Balasan untuk ${item.title}`}</label>
+                    <textarea
+                      id={`reply-${item.id}`}
+                      value={replyBody}
+                      onChange={(event) => setReplyBody(event.target.value)}
+                      rows={2}
+                      maxLength={2000}
+                      autoFocus
+                      placeholder="Tulis balasan"
+                      className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-stone-700 dark:bg-[#1C1A19] dark:text-stone-100"
+                    />
+                    {replyError && (
+                      <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">
+                        {replyError}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        isLoading={isSendingReply}
+                        disabled={!replyBody.trim()}
+                        onClick={() => void sendReply(item)}
+                      >
+                        Kirim balasan
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isSendingReply}
+                        onClick={() => setReplyingItemId(null)}
+                      >
+                        Batal
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {(item.priority || item.dueDate) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {item.priority && (
+                  <Badge variant={priorityVariants[item.priority]} size="sm">
+                    Prioritas {localizeTerm(item.priority)}
+                  </Badge>
+                )}
+                {item.dueDate && (
+                  <Badge variant="neutral" size="sm">
+                    <Calendar className="mr-1 h-3 w-3 text-stone-400" aria-hidden="true" />
+                    Tenggat {item.dueDate}
+                  </Badge>
+                )}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
+              <span className="font-semibold text-stone-800 dark:text-stone-200">
+                {isWaiting
+                  ? (item.waitingOn?.label ?? 'Menunggu orang lain')
+                  : `Berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`}
+              </span>
+              <span className="text-stone-300 dark:text-stone-600">•</span>
+              <span>{localizeTerm(item.status)}</span>
+              {item.workState === 'blocked' && (
+                <>
+                  <span className="text-stone-300 dark:text-stone-600">•</span>
+                  <span className="font-semibold text-amber-600 dark:text-amber-400">
+                    Ada prasyarat
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <Button
+            variant={isWaiting ? 'outline' : 'primary'}
+            size="md"
+            className="w-full sm:w-auto"
+            isLoading={openingItemId === item.id}
+            disabled={openingItemId !== null && openingItemId !== item.id}
+            onClick={() => void openItem(item)}
+            rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
+            aria-label={
+              isWaiting
+                ? `${getQueueItemActionLabel(item, workState.action)}: ${item.title}. ${item.waitingOn?.label ?? 'Menunggu orang lain'}`
+                : `${getQueueItemActionLabel(item, workState.action)}: ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`
+            }
+          >
+            {getQueueItemActionLabel(item, workState.action)}
+          </Button>
+        </div>
+      </Card>
+    );
+  };
+
   if (state.isLoading) {
     return (
       <section className="space-y-4" aria-label="Memuat antrean kerja sesuai peran">
@@ -333,6 +498,19 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
         </Button>
       </div>
 
+      {startHere && (
+        <section aria-labelledby="start-here-title">
+          <h3
+            id="start-here-title"
+            className="mb-2 flex items-center gap-2 text-sm font-bold text-stone-900 dark:text-stone-100"
+          >
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            Mulai dari sini
+          </h3>
+          <div className="space-y-3">{renderItemCard(startHere)}</div>
+        </section>
+      )}
+
       {totalItems > 0 && (
         <div className="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <Select
@@ -396,7 +574,9 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
           {sections.map(({ bucket, items: allItems }) => {
             if (allItems.length === 0) return null;
             const isExpanded = expanded[bucket.code] === true;
-            const items = isExpanded ? allItems : allItems.slice(0, SECTION_LIMIT);
+            const listItems = allItems.filter((item) => item.id !== startHere?.id);
+            if (listItems.length === 0) return null;
+            const items = isExpanded ? listItems : listItems.slice(0, SECTION_LIMIT);
             return (
               <section key={bucket.code} aria-label={bucketLabels[bucket.code]}>
                 <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-stone-900 dark:text-stone-100">
@@ -408,158 +588,8 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                       : `${allItems.length} dari ${bucket.total}`}
                   </span>
                 </h3>
-                <div className="space-y-3">
-                  {items.map((item) => {
-                    const isSelected =
-                      item.subjectType !== 'bug' && item.subjectId === selectedTaskId;
-                    const workState = workStateCopy[item.workState];
-                    return (
-                      <Card
-                        key={item.id}
-                        className={`p-4 transition-colors ${
-                          isSelected
-                            ? 'border-[#B1E743] bg-[#B1E743]/5 ring-2 ring-[#B1E743]/20'
-                            : ''
-                        }`}
-                      >
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="min-w-0 space-y-2">
-                            <div>
-                              <h4 className="break-words text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                                {item.title}
-                              </h4>
-                              <p className="mt-1 text-sm leading-relaxed text-stone-700 dark:text-stone-200">
-                                {localizeReason(item.reason)}
-                              </p>
-                            </div>
-                            {item.lastMessage && (
-                              <div className="rounded-xl border border-stone-200/80 bg-stone-50 px-3 py-2 dark:border-stone-800 dark:bg-stone-900/40">
-                                <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-                                  Pesan dari{' '}
-                                  {item.sender
-                                    ? item.sender.id === currentUserId
-                                      ? 'Anda'
-                                      : item.sender.name
-                                    : 'tim'}
-                                </p>
-                                <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-stone-800 dark:text-stone-200">
-                                  {item.lastMessage.body}
-                                </p>
-                                {onReplyItem && replyingItemId !== item.id && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="mt-1 -ml-2"
-                                    onClick={() => {
-                                      setReplyingItemId(item.id);
-                                      setReplyBody('');
-                                      setReplyError(null);
-                                    }}
-                                    aria-label={`Balas pesan: ${item.title}`}
-                                  >
-                                    Balas
-                                  </Button>
-                                )}
-                                {onReplyItem && replyingItemId === item.id && (
-                                  <div className="mt-2 space-y-2">
-                                    <label
-                                      htmlFor={`reply-${item.id}`}
-                                      className="sr-only"
-                                    >{`Balasan untuk ${item.title}`}</label>
-                                    <textarea
-                                      id={`reply-${item.id}`}
-                                      value={replyBody}
-                                      onChange={(event) => setReplyBody(event.target.value)}
-                                      rows={2}
-                                      maxLength={2000}
-                                      autoFocus
-                                      placeholder="Tulis balasan"
-                                      className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-stone-700 dark:bg-[#1C1A19] dark:text-stone-100"
-                                    />
-                                    {replyError && (
-                                      <p
-                                        role="alert"
-                                        className="text-xs text-rose-600 dark:text-rose-400"
-                                      >
-                                        {replyError}
-                                      </p>
-                                    )}
-                                    <div className="flex gap-2">
-                                      <Button
-                                        variant="primary"
-                                        size="sm"
-                                        isLoading={isSendingReply}
-                                        disabled={!replyBody.trim()}
-                                        onClick={() => void sendReply(item)}
-                                      >
-                                        Kirim balasan
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={isSendingReply}
-                                        onClick={() => setReplyingItemId(null)}
-                                      >
-                                        Batal
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {(item.priority || item.dueDate) && (
-                              <div className="flex flex-wrap items-center gap-2">
-                                {item.priority && (
-                                  <Badge variant={priorityVariants[item.priority]} size="sm">
-                                    Prioritas {localizeTerm(item.priority)}
-                                  </Badge>
-                                )}
-                                {item.dueDate && (
-                                  <Badge variant="neutral" size="sm">
-                                    <Calendar
-                                      className="mr-1 h-3 w-3 text-stone-400"
-                                      aria-hidden="true"
-                                    />
-                                    Tenggat {item.dueDate}
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
-                              <span className="font-semibold text-stone-800 dark:text-stone-200">
-                                Berikutnya:{' '}
-                                {actionLabels[item.nextAction.code] || item.nextAction.label}
-                              </span>
-                              <span className="text-stone-300 dark:text-stone-600">•</span>
-                              <span>{localizeTerm(item.status)}</span>
-                              {item.workState === 'blocked' && (
-                                <>
-                                  <span className="text-stone-300 dark:text-stone-600">•</span>
-                                  <span className="font-semibold text-amber-600 dark:text-amber-400">
-                                    Ada prasyarat
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <Button
-                            variant="primary"
-                            size="md"
-                            className="w-full sm:w-auto"
-                            isLoading={openingItemId === item.id}
-                            disabled={openingItemId !== null && openingItemId !== item.id}
-                            onClick={() => void openItem(item)}
-                            rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
-                            aria-label={`${getQueueItemActionLabel(item, workState.action)}: ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`}
-                          >
-                            {getQueueItemActionLabel(item, workState.action)}
-                          </Button>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-                {allItems.length > SECTION_LIMIT && (
+                <div className="space-y-3">{items.map((item) => renderItemCard(item))}</div>
+                {listItems.length > SECTION_LIMIT && (
                   <div className="mt-2">
                     <Button
                       variant="ghost"
@@ -570,7 +600,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
                     >
                       {isExpanded
                         ? 'Tampilkan lebih sedikit'
-                        : `Tampilkan ${allItems.length - SECTION_LIMIT} lagi`}
+                        : `Tampilkan ${listItems.length - SECTION_LIMIT} lagi`}
                     </Button>
                   </div>
                 )}

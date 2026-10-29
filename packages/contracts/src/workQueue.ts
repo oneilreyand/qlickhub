@@ -16,6 +16,7 @@ export const WorkQueueBucketCodeSchema = z.enum([
   'qa_test_work',
   'qa_retest_work',
   'qa_sign_off',
+  'waiting_on_others',
 ]);
 export type WorkQueueBucketCode = z.infer<typeof WorkQueueBucketCodeSchema>;
 
@@ -64,6 +65,13 @@ export const WorkQueueLastMessageSchema = z.object({
 });
 export type WorkQueueLastMessage = z.infer<typeof WorkQueueLastMessageSchema>;
 
+/** Who currently holds work that appears in the "waiting on others" group (P4b, AC-4.3). */
+export const WorkQueueWaitingOnSchema = z.object({
+  role: z.enum(['developer', 'qa']),
+  label: z.string().trim().min(1).max(100),
+});
+export type WorkQueueWaitingOn = z.infer<typeof WorkQueueWaitingOnSchema>;
+
 export const WorkQueueItemSchema = z.object({
   id: z.string().trim().min(1).max(500),
   bucketCode: WorkQueueBucketCodeSchema,
@@ -83,6 +91,7 @@ export const WorkQueueItemSchema = z.object({
   sourceUpdatedAt: z.string().datetime(),
   sender: WorkQueueSenderSchema.optional(),
   lastMessage: WorkQueueLastMessageSchema.optional(),
+  waitingOn: WorkQueueWaitingOnSchema.optional(),
 });
 export type WorkQueueItem = z.infer<typeof WorkQueueItemSchema>;
 
@@ -100,6 +109,7 @@ export const RoleAwareWorkQueueSchema = z.object({
   membershipRole: WorkspaceRoleSchema,
   queueRole: WorkQueueRoleSchema,
   generatedAt: z.string().datetime(),
-  buckets: z.array(WorkQueueBucketSchema).length(3),
+  // Planner has 3 buckets; developer and QA add "waiting_on_others" as a 4th (P4b).
+  buckets: z.array(WorkQueueBucketSchema).min(3).max(4),
 });
 export type RoleAwareWorkQueue = z.infer<typeof RoleAwareWorkQueueSchema>;

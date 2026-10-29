@@ -66,6 +66,42 @@ function sortItems(items: WorkQueueItem[]): WorkQueueItem[] {
   });
 }
 
+const WAITING_BUCKET_LABEL = 'Menunggu orang lain';
+
+/**
+ * Item the actor is waiting on someone else for (P4b, AC-4.3): read-only, no work action,
+ * with a label naming who holds it. Never an authorization grant.
+ */
+function waitingItem(input: {
+  subjectType: WorkQueueItem['subjectType'];
+  subjectId: string;
+  featureTaskId: string;
+  title: string;
+  reason: string;
+  status: string;
+  priority: WorkQueueItem['priority'];
+  dueDate: string | null;
+  sourceUpdatedAt: string;
+  waitingOn: NonNullable<WorkQueueItem['waitingOn']>;
+}): WorkQueueItem {
+  return {
+    id: itemId('waiting_on_others', input.subjectType, input.subjectId),
+    bucketCode: 'waiting_on_others',
+    subjectType: input.subjectType,
+    subjectId: input.subjectId,
+    featureTaskId: input.featureTaskId,
+    title: input.title,
+    reason: boundedReason(input.reason),
+    nextAction: nextAction('view_context', 'Lihat konteks'),
+    status: input.status,
+    workState: 'read_only',
+    priority: input.priority,
+    dueDate: input.dueDate,
+    sourceUpdatedAt: input.sourceUpdatedAt,
+    waitingOn: input.waitingOn,
+  };
+}
+
 function bucket(code: WorkQueueBucketCode, label: string, items: WorkQueueItem[]): WorkQueueBucket {
   const sorted = sortItems(items);
   return { code, label, total: sorted.length, items: sorted.slice(0, BUCKET_LIMIT) };
@@ -329,10 +365,57 @@ async function developerBuckets(
     sourceUpdatedAt: iso(bug.updatedAt),
   }));
 
+  const [inReviewTasks, resolvedBugs] = await Promise.all([
+    TaskModel.findAll({
+      where: {
+        workspaceId,
+        assigneeId: actorId,
+        parentTaskId: { [Op.ne]: null },
+        status: 'in_review',
+      },
+      transaction,
+    }),
+    BugModel.findAll({
+      where: { workspaceId, assigneeId: actorId, status: 'resolved' },
+      transaction,
+    }),
+  ]);
+  const waitingItems = [
+    ...inReviewTasks.map((task) =>
+      waitingItem({
+        subjectType: 'subtask',
+        subjectId: task.id,
+        featureTaskId: task.parentTaskId!,
+        title: task.title,
+        reason: 'Subtask sudah dikirim ke QA dan sedang menunggu hasil review.',
+        status: task.status,
+        priority: task.priority,
+        dueDate: task.dueDate,
+        sourceUpdatedAt: iso(task.updatedAt),
+        waitingOn: { role: 'qa', label: 'Menunggu QA' },
+      }),
+    ),
+    ...resolvedBugs.map((bug) =>
+      waitingItem({
+        subjectType: 'bug',
+        subjectId: bug.id,
+        featureTaskId: bug.featureTaskId,
+        title: bug.title,
+        reason: 'Perbaikan Bug sudah dikirim dan menunggu verifikasi ulang QA.',
+        status: bug.status,
+        priority: bug.severity === 'critical' ? 'urgent' : bug.severity,
+        dueDate: null,
+        sourceUpdatedAt: iso(bug.updatedAt),
+        waitingOn: { role: 'qa', label: 'Menunggu verifikasi QA' },
+      }),
+    ),
+  ];
+
   return [
     bucket('dev_assigned_work', 'Assigned work', assignedItems),
     bucket('dev_blocked_work', 'Review feedback', blockedItems),
     bucket('dev_bug_fix', 'Bug fixes', bugItems),
+    bucket('waiting_on_others', WAITING_BUCKET_LABEL, waitingItems),
   ];
 }
 
@@ -592,10 +675,74 @@ async function qaBuckets(
     });
   }
 
+  const ownQaSubtasks = await TaskModel.findAll({
+    where: {
+      workspaceId,
+      assigneeId: actorId,
+      deliveryArea: 'qa',
+      parentTaskId: { [Op.ne]: null },
+    },
+    attributes: ['parentTaskId'],
+    transaction,
+  });
+  const ownFeatureIds = Array.from(new Set(ownQaSubtasks.map((task) => task.parentTaskId!)));
+  const [reportedBugs, returnedTasks] = await Promise.all([
+    BugModel.findAll({
+      where: {
+        workspaceId,
+        createdBy: actorId,
+        status: { [Op.in]: ['open', 'in_progress', 'reopened'] },
+      },
+      transaction,
+    }),
+    ownFeatureIds.length === 0
+      ? Promise.resolve([] as TaskModel[])
+      : TaskModel.findAll({
+          where: {
+            workspaceId,
+            parentTaskId: { [Op.in]: ownFeatureIds },
+            deliveryArea: { [Op.ne]: 'qa' },
+            status: 'changes_requested',
+          },
+          transaction,
+        }),
+  ]);
+  const waitingItems = [
+    ...returnedTasks.map((task) =>
+      waitingItem({
+        subjectType: 'subtask',
+        subjectId: task.id,
+        featureTaskId: task.parentTaskId!,
+        title: task.title,
+        reason: 'Subtask dikembalikan ke Developer dan menunggu revisi.',
+        status: task.status,
+        priority: task.priority,
+        dueDate: task.dueDate,
+        sourceUpdatedAt: iso(task.updatedAt),
+        waitingOn: { role: 'developer', label: 'Menunggu Developer merevisi' },
+      }),
+    ),
+    ...reportedBugs.map((bug) =>
+      waitingItem({
+        subjectType: 'bug',
+        subjectId: bug.id,
+        featureTaskId: bug.featureTaskId,
+        title: bug.title,
+        reason: 'Bug yang Anda laporkan sedang menunggu perbaikan Developer.',
+        status: bug.status,
+        priority: bug.severity === 'critical' ? 'urgent' : bug.severity,
+        dueDate: null,
+        sourceUpdatedAt: iso(bug.updatedAt),
+        waitingOn: { role: 'developer', label: 'Menunggu Developer memperbaiki' },
+      }),
+    ),
+  ];
+
   return [
     bucket('qa_test_work', 'Test and review work', testItems),
     bucket('qa_retest_work', 'Retest work', retestItems),
     bucket('qa_sign_off', 'QA Sign-off', signOffItems),
+    bucket('waiting_on_others', WAITING_BUCKET_LABEL, waitingItems),
   ];
 }
 

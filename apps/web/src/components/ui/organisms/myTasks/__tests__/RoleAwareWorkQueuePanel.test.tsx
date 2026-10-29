@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkQueueItem } from '@qlick/contracts';
 import { RoleAwareWorkQueuePanel } from '../RoleAwareWorkQueuePanel';
@@ -121,5 +121,123 @@ describe('RoleAwareWorkQueuePanel handoff message (AC-4.2, AC-4.4)', () => {
     );
 
     expect(screen.queryByText(/^Pesan dari/)).not.toBeInTheDocument();
+  });
+});
+
+function waitingItem(overrides: Partial<WorkQueueItem> = {}): WorkQueueItem {
+  return {
+    id: 'waiting_on_others:subtask:20000000-0000-4000-8000-0000000000aa',
+    bucketCode: 'waiting_on_others',
+    subjectType: 'subtask',
+    subjectId: '20000000-0000-4000-8000-0000000000aa',
+    featureTaskId: '20000000-0000-4000-8000-000000000001',
+    title: 'Form pembayaran',
+    reason: 'Subtask sudah dikirim ke QA dan sedang menunggu hasil review.',
+    nextAction: { code: 'view_context', label: 'Lihat konteks' },
+    status: 'in_review',
+    workState: 'read_only',
+    priority: 'urgent',
+    dueDate: '2026-08-01',
+    sourceUpdatedAt: '2026-08-22T10:00:00.000Z',
+    waitingOn: { role: 'qa', label: 'Menunggu QA' },
+    ...overrides,
+  };
+}
+
+describe('RoleAwareWorkQueuePanel "Mulai dari sini" dan "Menunggu orang lain" (AC-4.1, AC-4.3)', () => {
+  it('promotes the most urgent actionable item to one "Mulai dari sini" card without repeating it', () => {
+    const queue = createRoleAwareWorkQueueFixture('developer');
+    render(
+      <RoleAwareWorkQueuePanel
+        state={{ queue, isLoading: false, error: null, permissionDenied: false }}
+        onRefresh={vi.fn()}
+        onOpenItem={vi.fn()}
+      />,
+    );
+
+    const start = screen.getByRole('region', { name: 'Mulai dari sini' });
+    expect(within(start).getByText('Implement checkout summary')).toBeInTheDocument();
+    expect(screen.getAllByText('Implement checkout summary')).toHaveLength(1);
+    // Item lain tetap di grupnya.
+    expect(
+      within(screen.getByRole('region', { name: 'Perbaikan Bug' })).getByText(
+        'Checkout total mismatch',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('does not show the "Mulai dari sini" card for the Planner queue', () => {
+    const queue = createRoleAwareWorkQueueFixture('planner');
+    render(
+      <RoleAwareWorkQueuePanel
+        state={{ queue, isLoading: false, error: null, permissionDenied: false }}
+        onRefresh={vi.fn()}
+        onOpenItem={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('region', { name: 'Mulai dari sini' })).not.toBeInTheDocument();
+  });
+
+  it('lists held work under "Menunggu Orang Lain" with its position and no work action or reply', () => {
+    const queue = createRoleAwareWorkQueueFixture('developer');
+    queue.buckets.push({
+      code: 'waiting_on_others',
+      label: 'Menunggu orang lain',
+      total: 1,
+      items: [
+        waitingItem({
+          sender: { id: SENDER_ID, name: 'Bima QA' },
+          lastMessage: {
+            id: COMMENT_ID,
+            threadRootId: COMMENT_ID,
+            body: 'Sedang dicek, hasil besok.',
+            kind: 'answer',
+            createdAt: '2026-10-29T01:00:00.000Z',
+          },
+        }),
+      ],
+    });
+    render(
+      <RoleAwareWorkQueuePanel
+        state={{ queue, isLoading: false, error: null, permissionDenied: false }}
+        onRefresh={vi.fn()}
+        onOpenItem={vi.fn()}
+        onReplyItem={vi.fn()}
+      />,
+    );
+
+    const waiting = screen.getByRole('region', { name: 'Menunggu Orang Lain' });
+    expect(within(waiting).getByText('Form pembayaran')).toBeInTheDocument();
+    expect(within(waiting).getByText('Menunggu QA')).toBeInTheDocument();
+    expect(
+      within(waiting).getByRole('button', {
+        name: 'Lihat konteks: Form pembayaran. Menunggu QA',
+      }),
+    ).toBeInTheDocument();
+    expect(within(waiting).queryByRole('button', { name: /Balas pesan/ })).not.toBeInTheDocument();
+    expect(within(waiting).queryByText(/Berikutnya:/)).not.toBeInTheDocument();
+  });
+
+  it('never picks a waiting item as the "Mulai dari sini" card', () => {
+    const queue = createRoleAwareWorkQueueFixture('qa');
+    queue.buckets = [
+      {
+        code: 'waiting_on_others',
+        label: 'Menunggu orang lain',
+        total: 1,
+        items: [waitingItem({ workState: 'actionable' })],
+      },
+    ];
+    render(
+      <RoleAwareWorkQueuePanel
+        state={{ queue, isLoading: false, error: null, permissionDenied: false }}
+        onRefresh={vi.fn()}
+        onOpenItem={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('region', { name: 'Mulai dari sini' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Menunggu Orang Lain' })).toBeInTheDocument();
   });
 });
