@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HandoffTimeline } from './HandoffTimeline';
-import { FeaturePlanCard } from './FeaturePlanCard';
+import { FeaturePlanStatusBadge } from './FeaturePlanStatusBadge';
 import {
   CheckCircle2,
   RotateCcw,
@@ -1155,7 +1155,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     discussionBox
   ) : (
     <div className="space-y-6">
-      <FeaturePlanCard workspaceId={effectiveWorkspaceId} featureTaskId={task.id} />
       {discussionBox}
       <HandoffTimeline
         workspaceId={effectiveWorkspaceId}
@@ -1665,6 +1664,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     }
                   }}
                   discussion={discussionWithHandoffs}
+                  statusBadge={
+                    task.parentTaskId ? null : (
+                      <FeaturePlanStatusBadge
+                        workspaceId={effectiveWorkspaceId}
+                        featureTaskId={task.id}
+                      />
+                    )
+                  }
                 />
               }
               rail={

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ParentTaskDeliveryTrace, Task } from '@qlick/contracts';
 import {
+  FeaturePlanSummary,
   FeaturePrdRail,
   FeaturePrdSummary,
   FeatureTaskRail,
@@ -200,5 +201,38 @@ describe('FeatureTaskRail', () => {
     } as unknown as ParentTaskDeliveryTrace;
     render(<FeatureTaskRail trace={partial} />);
     expect(screen.getByText('1 requirement belum punya subtask.')).toBeInTheDocument();
+  });
+});
+
+describe('FeaturePlanSummary status badge (P5a-1)', () => {
+  const planFeature = { ...feature, description: 'Ide awal Feature' } as unknown as Task;
+
+  it('shows the idea once with the Plan status next to the "Ide awal" title', () => {
+    render(
+      <FeaturePlanSummary
+        task={planFeature}
+        canEdit={false}
+        messageCount={0}
+        onSaveIdea={vi.fn()}
+        discussion={<div>Isi diskusi</div>}
+        statusBadge={<span>Plan: Menyusun pertanyaan</span>}
+      />,
+    );
+    expect(screen.getAllByText('Ide awal Feature')).toHaveLength(1);
+    expect(screen.getByText('Plan: Menyusun pertanyaan')).toBeInTheDocument();
+  });
+
+  it('renders without a status badge', () => {
+    render(
+      <FeaturePlanSummary
+        task={planFeature}
+        canEdit={false}
+        messageCount={0}
+        onSaveIdea={vi.fn()}
+        discussion={<div>Isi diskusi</div>}
+      />,
+    );
+    expect(screen.getByText('Ide awal Feature')).toBeInTheDocument();
+    expect(screen.queryByText(/Plan:/)).not.toBeInTheDocument();
   });
 });

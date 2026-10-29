@@ -52,6 +52,8 @@ export interface FeaturePlanSummaryProps {
   onSaveIdea: (description: string | null) => Promise<void>;
   /** Isi diskusi tim; ditampilkan di bagian yang bisa dibuka-tutup. */
   discussion: React.ReactNode;
+  /** Lencana status Plan tersimpan (P5a-1), di samping judul "Ide awal". */
+  statusBadge?: React.ReactNode;
 }
 
 /** Tahap Plan untuk Feature tersimpan: ide awal, lalu diskusi tim (tertutup secara default). */
@@ -61,6 +63,7 @@ export const FeaturePlanSummary: React.FC<FeaturePlanSummaryProps> = ({
   messageCount,
   onSaveIdea,
   discussion,
+  statusBadge,
 }) => {
   const [isDiscussionOpen, setIsDiscussionOpen] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
@@ -85,9 +88,12 @@ export const FeaturePlanSummary: React.FC<FeaturePlanSummaryProps> = ({
     <>
       <section aria-labelledby="feature-plan-idea" className={`${cardClass} p-5`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 id="feature-plan-idea" className={cardTitleClass}>
-            Ide awal
-          </h2>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h2 id="feature-plan-idea" className={cardTitleClass}>
+              Ide awal
+            </h2>
+            {statusBadge}
+          </div>
           {canEdit && !isEditing && (
             <Button size="sm" variant="outline" onClick={startEditing}>
               Ubah
