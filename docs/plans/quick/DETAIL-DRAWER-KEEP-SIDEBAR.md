@@ -1,6 +1,6 @@
 # QUICK — DETAIL-DRAWER-KEEP-SIDEBAR Detail task tidak menutupi Sidebar di desktop
 
-**Status:** Disetujui
+**Status:** Selesai
 **WRA:** 4/16 — satu lapisan frontend (1), satu konsumen drawer detail lewat prop opt-in (1), unit test serta UAT lokal Light/Dark tiga viewport (2). Tidak ada perubahan API, kontrak, data, otorisasi, migrasi, atau dependensi eksternal.
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -53,4 +53,6 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 
 ## Hasil
 
-- Diimplementasikan: prop `preserveAppSidebar` di `Drawer`, aktif di `TaskDetailDrawer`; dua test unit baru. Menunggu vitest dan UAT lokal Owner (Light/Dark; 1440×900, 1024×768, 390×844).
+- Diimplementasikan: prop `preserveAppSidebar` di `Drawer`, aktif di `TaskDetailDrawer`; dua test unit baru; vitest lolos.
+- UAT lokal di browser (2026-10-29): AC-1 Sidebar tetap terlihat saat drawer terbuka di 1440×900, Light dan Dark. AC-2 klik Sidebar tanpa perubahan menutup drawer lewat jalur tutup yang sama (URL kembali ke Task Hub); dengan draf deskripsi belum disimpan muncul dialog "Perubahan belum disimpan", "Tetap Mengedit" mempertahankan teks, "Buang Perubahan" menutup drawer tanpa menyimpan. AC-3 di bawah 1024px Sidebar menjadi menu hamburger dan drawer memenuhi layar (1024×768 dan 390×844, Dark) tanpa overflow horizontal. AC-4 Light dan Dark memakai token yang ada.
+- Tidak diuji: viewport 768×1024 secara terpisah (perilakunya sama dengan di bawah 1024px).
