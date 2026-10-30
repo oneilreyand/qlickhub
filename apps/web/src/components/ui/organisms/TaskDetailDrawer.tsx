@@ -61,6 +61,8 @@ import {
   FeaturePrdSummary,
   FeaturePlanRail,
   FeaturePlanSummary,
+  FeatureSpecPlanPanel,
+  FeatureSpecPlanRail,
   FeaturePrdRail,
   FeatureTaskSummary,
   FeatureTaskRail,
@@ -78,10 +80,13 @@ import { enqueueSnackbar, addInAppNotification } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
 import { selectCurrentUserId } from '../../../store/authSlice';
 import { taskService } from '../../../lib/api/taskService';
+import type { FeatureSpecPlan } from '@qlick/contracts';
 import { qaDocumentService } from '../../../lib/api/qaDocumentService';
 import { requirementService } from '../../../lib/api/requirementService';
 import { traceabilityService } from '../../../lib/api/traceabilityService';
 import { bugService } from '../../../lib/api/bugService';
+import { featureSpecService } from '../../../lib/api/featureSpecService';
+import { useFeatureSpec } from '../../../lib/hooks/useFeatureSpec';
 import { fetchMembers } from '../../../store/workspaceSlice';
 import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
 import type { ReleaseReadinessViewState } from '../../../lib/hooks/useReleaseReadinessMap';
@@ -228,6 +233,15 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role),
   );
   const userWorkspaceRole = (activeWorkspace?.role || '').toLowerCase();
+  // Feature Spec (P5a): hanya untuk Feature utama; Feature lama tanpa Spec memakai tampilan lama.
+  const {
+    spec: featureSpec,
+    setSpec: setFeatureSpec,
+    reload: reloadFeatureSpec,
+  } = useFeatureSpec(
+    layout === 'page' ? effectiveWorkspaceId : undefined,
+    layout === 'page' && task && !task.parentTaskId ? task.id : null,
+  );
 
   const [activeTab, setActiveTab] = useState<string>(initialTab ?? 'overview');
   const [title, setTitle] = useState('');
@@ -1091,6 +1105,63 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     (activeTab === 'overview' && taskDraftIsDirty) ||
     (activeTab === 'brief' && isProductBriefDirty);
 
+  /** Simpan bagian Plan Feature Spec. 409 memuat ulang Spec; 400 membawa `missingFields`. */
+  const handleSaveFeatureSpecPlan = async (content: FeatureSpecPlan, complete: boolean) => {
+    if (!featureSpec || !effectiveWorkspaceId) return;
+    try {
+      const next = await featureSpecService.saveSection(
+        effectiveWorkspaceId,
+        featureSpec.id,
+        'plan',
+        { version: featureSpec.version, content, complete },
+      );
+      setFeatureSpec(next);
+      dispatch(
+        enqueueSnackbar(
+          complete ? 'Plan lengkap, tahap PRD terbuka' : 'Draf Plan disimpan',
+          'success',
+        ),
+      );
+      onDataChanged?.();
+    } catch (err) {
+      const status = (err as { status?: number }).status;
+      const missing = (err as { missingFields?: string[] }).missingFields;
+      if (status === 409) {
+        reloadFeatureSpec();
+        dispatch(
+          enqueueSnackbar(
+            'Spec sudah diubah orang lain dan dimuat ulang. Periksa lalu simpan lagi.',
+            'error',
+          ),
+        );
+      } else if (missing && missing.length > 0) {
+        dispatch(enqueueSnackbar(`${missing.length} field wajib belum terisi`, 'error'));
+      } else {
+        dispatch(
+          enqueueSnackbar(err instanceof Error ? err.message : 'Plan gagal disimpan', 'error'),
+        );
+      }
+      throw err;
+    }
+  };
+
+  // Feature Spec: tahap tersimpan menentukan stepper. Tahap yang sedang dikerjakan tidak diberi centang.
+  const specStage: FeatureStageParam | null = featureSpec
+    ? featureSpec.status === 'plan'
+      ? 'plan'
+      : featureSpec.status === 'prd'
+        ? 'prd'
+        : 'task'
+    : null;
+  const STAGE_ORDER: FeatureStageParam[] = ['plan', 'prd', 'task'];
+  const stepperStage: FeatureStageParam =
+    specStage && STAGE_ORDER.indexOf(specStage) > STAGE_ORDER.indexOf(derivedStage)
+      ? specStage
+      : derivedStage;
+  const stepperStageInProgress = Boolean(
+    featureSpec && featureSpec.status !== 'applied' && stepperStage === specStage,
+  );
+
   const handleTabChange = (tabId: string) => {
     if (tabId === activeTab) return;
     if (activeSectionIsDirty) {
@@ -1315,7 +1386,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         toolbar={
           layout === 'page' ? (
             <FeatureStageStepper
-              currentStage={derivedStage}
+              currentStage={stepperStage}
+              currentStageInProgress={stepperStageInProgress}
               selectedStage={stageForTab(activeTab)}
               summaries={stageSummaries}
               disabledStages={['apply']}
@@ -1636,44 +1708,61 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           {layout === 'page' && activeTab === 'discussion' && (
             <FeatureStageLayout
               main={
-                <FeaturePlanSummary
-                  task={task}
-                  canEdit={canEditTask && !task.parentTaskId}
-                  messageCount={commentsTotal}
-                  onSaveIdea={async (nextDescription) => {
-                    if (!activeWorkspaceId) return;
-                    try {
-                      await dispatch(
-                        updateTask({
-                          workspaceId: activeWorkspaceId,
-                          taskId: task.id,
-                          input: { description: nextDescription },
-                        }),
-                      ).unwrap();
-                      dispatch(enqueueSnackbar('Ide awal disimpan', 'success'));
-                      onDataChanged?.();
-                    } catch (err) {
-                      dispatch(
-                        enqueueSnackbar(
-                          err instanceof Error ? err.message : 'Ide awal gagal disimpan',
-                          'error',
-                        ),
-                      );
-                      throw err;
-                    }
-                  }}
-                  discussion={discussionWithHandoffs}
-                />
+                <>
+                  {featureSpec && (
+                    <FeatureSpecPlanPanel
+                      spec={featureSpec}
+                      canEdit={canPlan}
+                      onSave={handleSaveFeatureSpecPlan}
+                    />
+                  )}
+                  <FeaturePlanSummary
+                    hideIdea={Boolean(featureSpec)}
+                    task={task}
+                    canEdit={canEditTask && !task.parentTaskId}
+                    messageCount={commentsTotal}
+                    onSaveIdea={async (nextDescription) => {
+                      if (!activeWorkspaceId) return;
+                      try {
+                        await dispatch(
+                          updateTask({
+                            workspaceId: activeWorkspaceId,
+                            taskId: task.id,
+                            input: { description: nextDescription },
+                          }),
+                        ).unwrap();
+                        dispatch(enqueueSnackbar('Ide awal disimpan', 'success'));
+                        onDataChanged?.();
+                      } catch (err) {
+                        dispatch(
+                          enqueueSnackbar(
+                            err instanceof Error ? err.message : 'Ide awal gagal disimpan',
+                            'error',
+                          ),
+                        );
+                        throw err;
+                      }
+                    }}
+                    discussion={discussionWithHandoffs}
+                  />
+                </>
               }
               rail={
-                <FeaturePlanRail
-                  hasIdea={Boolean(task.description?.trim())}
-                  messageCount={commentsTotal}
-                  requirementCount={traceRequirements.length}
-                  subtaskCount={subtasks.length}
-                  isDone={derivedStage === 'task'}
-                  onContinue={() => handleTabChange('prd-summary')}
-                />
+                featureSpec ? (
+                  <FeatureSpecPlanRail
+                    spec={featureSpec}
+                    onOpenPrd={() => handleTabChange('prd-summary')}
+                  />
+                ) : (
+                  <FeaturePlanRail
+                    hasIdea={Boolean(task.description?.trim())}
+                    messageCount={commentsTotal}
+                    requirementCount={traceRequirements.length}
+                    subtaskCount={subtasks.length}
+                    isDone={derivedStage === 'task'}
+                    onContinue={() => handleTabChange('prd-summary')}
+                  />
+                )
               }
             />
           )}

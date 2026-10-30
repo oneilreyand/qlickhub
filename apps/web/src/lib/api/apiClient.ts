@@ -236,6 +236,7 @@ async function sendRequest<T>(
     let errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
     let errorCode = '';
     let validationErrors: any[] | undefined = undefined;
+    let missingFields: string[] | undefined = undefined;
 
     try {
       const errorData = await response.json();
@@ -253,6 +254,9 @@ async function sendRequest<T>(
 
       if (Array.isArray(errorData.errors)) {
         validationErrors = errorData.errors;
+      }
+      if (Array.isArray(errorData.missingFields)) {
+        missingFields = errorData.missingFields;
       }
     } catch {
       // JSON parsing failed, use default message
@@ -288,6 +292,9 @@ async function sendRequest<T>(
     error.code = errorCode || undefined;
     if (validationErrors) {
       error.errors = validationErrors;
+    }
+    if (missingFields) {
+      error.missingFields = missingFields;
     }
     if (response.status === 429) {
       error.rateLimit = rateLimit ?? { remaining: 0 };

@@ -7,6 +7,7 @@ import { FolderTree } from '../organisms/FolderTree';
 import { TaskCollection, type TaskDeliveryTraceRowState } from '../organisms/TaskCollection';
 import { TaskDetailDrawer } from '../organisms/TaskDetailDrawer';
 import { CreateTaskModal } from '../organisms/CreateTaskModal';
+import { FeatureSpecCreateModal } from '../organisms/FeatureSpecCreateModal';
 import { AiTaskGeneratorModal } from '../organisms/AiTaskGeneratorModal';
 import { TaskHubKanbanBoard } from '../organisms/taskHub/TaskHubKanbanBoard';
 import { TaskHubSchedule } from '../organisms/taskHub/TaskHubSchedule';
@@ -96,6 +97,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
   const kanbanFeatureId = taskHubQueryState.kanbanFeatureId;
   const unfiledOnly = taskHubQueryState.unfiledOnly;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isIdeaModalOpen, setIsIdeaModalOpen] = useState(false);
   const [isAiGeneratorModalOpen, setIsAiGeneratorModalOpen] = useState(false);
   const [isMobileFolderDrawerOpen, setIsMobileFolderDrawerOpen] = useState(false);
   const [deliveryTraceStateByTaskId, setDeliveryTraceStateByTaskId] = useState<
@@ -421,6 +423,7 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         workspaceName={activeWorkspace?.name || 'Workspace'}
         canCreateTask={canCreateTask}
         onCreateTask={() => setIsCreateModalOpen(true)}
+        onWriteIdea={() => setIsIdeaModalOpen(true)}
         onOpenMobileFolders={() => setIsMobileFolderDrawerOpen(true)}
       />
 
@@ -543,6 +546,21 @@ export const TaskHubDashboardTemplate: React.FC = () => {
         onOpenAiGenerator={() => setIsAiGeneratorModalOpen(true)}
         folders={folders}
         defaultFolderId={selectedFolderId}
+      />
+
+      {/* Tulis ide: Feature Spec versi 1 (P5a, AC-5.1) */}
+      <FeatureSpecCreateModal
+        isOpen={isIdeaModalOpen}
+        workspaceId={activeWorkspaceId}
+        folderId={selectedFolderId}
+        onClose={() => setIsIdeaModalOpen(false)}
+        onCreated={(spec) => {
+          setIsIdeaModalOpen(false);
+          void loadWorkspaceData();
+          navigate(`/work/features/${spec.featureTaskId}?tahap=plan`, {
+            state: { returnTo: `${location.pathname}${location.search}` },
+          });
+        }}
       />
 
       {/* AI Task Generator Modal (AI-001) */}
