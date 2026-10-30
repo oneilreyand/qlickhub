@@ -34,19 +34,19 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5">
-          {canCreateTask && onWriteIdea && (
-            <Button variant="outline" size="md" onClick={onWriteIdea}>
-              Tulis ide
+          {canCreateTask && (
+            <Button variant="outline" size="md" onClick={onCreateTask}>
+              Buat Feature manual
             </Button>
           )}
-          {canCreateTask && (
+          {canCreateTask && onWriteIdea && (
             <Button
               variant="primary"
               size="md"
-              onClick={onCreateTask}
+              onClick={onWriteIdea}
               leftIcon={<Plus className="h-5 w-5" />}
             >
-              Buat Feature
+              Tulis ide
             </Button>
           )}
         </div>
