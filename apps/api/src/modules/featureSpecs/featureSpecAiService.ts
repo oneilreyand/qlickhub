@@ -1,13 +1,19 @@
 import {
   AiFeatureSpecPlanOutputSchema,
+  AiFeatureSpecPrdOutput,
+  AiFeatureSpecPrdOutputSchema,
   AiFeatureSpecQuestionsOutputSchema,
   AnswerFeatureSpecQuestionInput,
   FEATURE_SPEC_PLAN_AI_FIELDS,
+  evaluateFeatureSpecSection,
   FeatureSpecGeneratePlanResponse,
+  FeatureSpecGeneratePrdResponse,
   FeatureSpecPlan,
   FeatureSpecPlanAiField,
   FeatureSpecQuestion,
+  FeatureSpecPrd,
   GenerateFeatureSpecPlanInput,
+  GenerateFeatureSpecPrdInput,
   getTaskScheduleValidationIssue,
 } from '@qlick/contracts';
 import { FeatureSpecModel, FeatureSpecQuestionModel } from '../../db/models/index.js';
@@ -74,8 +80,75 @@ const PLAN_RESPONSE_SCHEMA = {
   required: ['problem', 'targetUsers', 'goal', 'successMeasure', 'targetPlatform', 'priority'],
 };
 
+const PRD_RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    brief: {
+      type: 'OBJECT',
+      properties: {
+        context: { type: 'STRING' },
+        inScope: { type: 'STRING' },
+        outScope: { type: 'STRING' },
+      },
+      required: ['inScope', 'outScope'],
+    },
+    requirements: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          title: { type: 'STRING' },
+          description: { type: 'STRING' },
+          acceptanceCriteria: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                given: { type: 'STRING' },
+                when: { type: 'STRING' },
+                then: { type: 'STRING' },
+              },
+              required: ['given', 'when', 'then'],
+            },
+          },
+        },
+        required: ['title', 'description', 'acceptanceCriteria'],
+      },
+    },
+  },
+  required: ['brief', 'requirements'],
+};
+
 function isBlank(value: unknown): boolean {
   return value === null || value === undefined || (typeof value === 'string' && !value.trim());
+}
+
+function hasPrdContent(prd: FeatureSpecPrd | null | undefined): boolean {
+  if (!prd) return false;
+  const brief = prd.brief ?? {};
+  return (
+    !isBlank(brief.context) ||
+    !isBlank(brief.inScope) ||
+    !isBlank(brief.outScope) ||
+    (prd.requirements ?? []).length > 0
+  );
+}
+
+/** Builds the stored PRD from the validated AI output; the server assigns the keys R1…Rn. */
+function toPrd(output: AiFeatureSpecPrdOutput): FeatureSpecPrd {
+  return {
+    brief: {
+      ...(output.brief.context ? { context: output.brief.context } : {}),
+      inScope: output.brief.inScope,
+      outScope: output.brief.outScope,
+    },
+    requirements: output.requirements.map((requirement, index) => ({
+      key: `R${index + 1}`,
+      title: requirement.title,
+      description: requirement.description,
+      acceptanceCriteria: requirement.acceptanceCriteria,
+    })),
+  };
 }
 
 function toQuestionResource(row: FeatureSpecQuestionModel): FeatureSpecQuestion {
@@ -285,5 +358,68 @@ export const featureSpecAiService = {
       { type: 'user', id: actorId, via: 'ai' },
     );
     return { featureSpec, aiFilledFields: filled };
+  },
+  /**
+   * AC-5.5: drafts the PRD (Product Brief and Requirements with Given/When/Then criteria) from a
+   * complete Plan. Requirement keys are assigned here (R1…Rn), never by the AI. The result is
+   * validated again, then saved as a draft through the normal save path, so version conflicts
+   * (409) and the actor trail still apply. An existing PRD is replaced only with `replace: true`.
+   */
+  async generatePrd(
+    actorId: string,
+    input: GenerateFeatureSpecPrdInput,
+  ): Promise<FeatureSpecGeneratePrdResponse> {
+    const spec = await loadSpecForAiWrite(input.workspaceId, input.specId, actorId);
+    if (input.version !== spec.version) {
+      throw new Error(
+        'CONFLICT: The Feature Spec changed since you opened it. Reload and try again.',
+      );
+    }
+    if (spec.status === 'plan' || !evaluateFeatureSpecSection('plan', spec.plan).complete) {
+      throw new Error('BAD_REQUEST: Complete the Plan before asking the AI to write the PRD.');
+    }
+    if (hasPrdContent(spec.prd) && !input.replace) {
+      throw new Error(
+        'CONFLICT: The PRD already has content. Confirm replacing it to generate a new one.',
+      );
+    }
+
+    const questions = await FeatureSpecQuestionModel.findAll({
+      where: { specId: input.specId, workspaceId: input.workspaceId },
+      order: [['position', 'ASC']],
+    });
+    const answers = questions
+      .filter((q) => !isBlank(q.answer))
+      .map((q) => `- ${q.text}\n  Jawaban: ${q.answer}`)
+      .join('\n');
+    const plan = spec.plan;
+    const output = await callAi(
+      {
+        system: SYSTEM_INSTRUCTION,
+        prompt: `Feature: "${plan.title ?? ''}"\nIde: ${plan.idea ?? '-'}\n\nPlan:\n- Masalah: ${plan.problem}\n- Pengguna sasaran: ${plan.targetUsers}\n- Tujuan: ${plan.goal}\n- Ukuran keberhasilan: ${plan.successMeasure}\n- Platform: ${plan.targetPlatform}\n- Prioritas: ${plan.priority}\n\nJawaban klarifikasi:\n${answers || '(tidak ada)'}\n\nSusun PRD: Product Brief (konteks singkat, hal yang masuk scope, hal yang tidak masuk scope) dan 3 sampai 10 Requirement. Tiap Requirement punya judul, deskripsi, dan 1 sampai 5 acceptance criteria dalam format Given/When/Then yang bisa diuji. Jangan menulis kunci Requirement.`,
+        responseSchema: PRD_RESPONSE_SCHEMA,
+      },
+      (raw) => {
+        const parsed = AiFeatureSpecPrdOutputSchema.parse(raw);
+        const prd = toPrd(parsed);
+        // Defence in depth: the PRD must satisfy the same required-field rules as a person's PRD.
+        if (!evaluateFeatureSpecSection('prd', prd).complete) throw new Error('INVALID_PRD');
+        return prd;
+      },
+    );
+
+    const featureSpec = await featureSpecService.saveSection(
+      actorId,
+      {
+        workspaceId: input.workspaceId,
+        specId: input.specId,
+        section: 'prd',
+        version: input.version,
+        content: output,
+        complete: false,
+      },
+      { type: 'user', id: actorId, via: 'ai' },
+    );
+    return { featureSpec, requirementCount: output.requirements?.length ?? 0 };
   },
 };

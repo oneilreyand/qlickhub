@@ -29,6 +29,7 @@ describe('Feature Spec route wiring (guards against a handler landing on the wro
   test('AI routes add the user and workspace rate limiters after the member check', () => {
     assert.strictEqual(handlerCount('post', `${base}/:specId/questions`), 4);
     assert.strictEqual(handlerCount('post', `${base}/:specId/generate/plan`), 4);
+    assert.strictEqual(handlerCount('post', `${base}/:specId/generate/prd`), 4);
   });
 
   test('write routes run the planner check and one handler', () => {
