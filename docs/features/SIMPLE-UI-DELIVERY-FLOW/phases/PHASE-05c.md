@@ -41,3 +41,14 @@
 | 2       | `generatePrd` di servis AI, controller, rute, tes servis dan tes susunan rute        | Tes servis hijau; integrasi dijalankan Owner |
 | 3       | Dokumen: `contracts.md`, `product.md`, `breakdown.md`                                | `docs:check`, `docs:completeness`            |
 | 4       | Uji Gemini asli lewat API sebagai PO, 403 sebagai Developer; catat di `breakdown.md` | Catatan UAT                                  |
+
+## 4. Hasil UAT (2026-10-31)
+
+UAT dengan Gemini asli lewat panggilan API dari browser pada workspace dev, memakai Spec uji "UAT P5c checkout satu halaman". Sebagai Owner (hak tulis Spec sama dengan Admin dan PO):
+
+- Plan belum lengkap: `generate/prd` dijawab 400 dan AI tidak dipanggil.
+- Plan lengkap: `generate/prd` menghasilkan 4 Requirement berkunci `R1` sampai `R4`, tiap Requirement punya 1 sampai 2 AC Given/When/Then; kelengkapan PRD 33 dari 33 cek; status Spec tetap `prd`.
+- PRD sudah berisi, tanpa `replace`: 409. Versi usang: 409. Dengan `replace: true`: PRD diganti menjadi 5 Requirement (`R1` sampai `R5`) dengan judul berbeda.
+- Riwayat versi: v1 dan v2 `via=web`, v3 dan v4 `via=ai` dengan `actor_type=user`.
+
+Sebagai Developer: membaca Spec berhasil (200), `generate/prd` dijawab 403 `FORBIDDEN`, dan versi Spec tidak berubah.
