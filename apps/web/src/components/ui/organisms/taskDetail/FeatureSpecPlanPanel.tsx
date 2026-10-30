@@ -7,6 +7,7 @@ import {
 } from '@qlick/contracts';
 import { Button } from '../../atoms/Button';
 import { ProgressBar } from '../../atoms/ProgressBar';
+import { FeatureSpecAiAssistant, type FeatureSpecAiAssistantProps } from './FeatureSpecAiAssistant';
 
 const cardClass =
   'rounded-2xl border border-stone-200/80 bg-white dark:border-stone-800 dark:bg-[#1C1A19]';
@@ -59,11 +60,24 @@ function RequiredBadge() {
   );
 }
 
+function AiBadge() {
+  return (
+    <span className="rounded-full bg-[#ECF9C8] px-2 py-0.5 text-[11px] font-semibold text-[#3F6212] dark:bg-lime-900/30 dark:text-lime-200">
+      Diisi AI
+    </span>
+  );
+}
+
 export interface FeatureSpecPlanPanelProps {
   spec: FeatureSpec;
   canEdit: boolean;
   /** Simpan bagian Plan. `complete: true` meminta server memeriksa field wajib. Melempar bila gagal. */
   onSave: (content: FeatureSpecPlan, complete: boolean) => Promise<void>;
+  /** Bantuan AI (AC-5.4). Tanpa prop ini, panel berjalan seperti P5a. */
+  ai?: Pick<
+    FeatureSpecAiAssistantProps,
+    'questions' | 'busy' | 'onGenerateQuestions' | 'onAnswer' | 'onGeneratePlan'
+  >;
 }
 
 /** Layar Plan Feature Spec (AC-5.1 sampai AC-5.3): 11 field wajib, simpan draf, lalu lanjut. */
@@ -71,6 +85,7 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
   spec,
   canEdit,
   onSave,
+  ai,
 }) => {
   const [draft, setDraft] = React.useState<FeatureSpecPlan>(spec.plan);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -89,8 +104,17 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
     showErrors && evaluation.missingFields.includes(`plan.${key}`) ? 'Wajib diisi.' : undefined;
   const fieldClass = (key: string) =>
     `${inputClass} ${errorFor(key) ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/20' : 'border-stone-300 dark:border-stone-700'}`;
+  // Menyunting field yang diisi AI menghapus penanda "Diisi AI" pada field itu: isinya kini milik PO.
   const setField = <K extends keyof FeatureSpecPlan>(key: K, value: FeatureSpecPlan[K]) =>
-    setDraft((current) => ({ ...current, [key]: value }));
+    setDraft((current) => {
+      const next = { ...current, [key]: value };
+      if (current.aiFilledFields?.some((field) => field === key)) {
+        next.aiFilledFields = current.aiFilledFields.filter((field) => field !== key);
+      }
+      return next;
+    });
+  const aiBadge = (key: string) =>
+    draft.aiFilledFields?.some((field) => field === key) ? <AiBadge /> : null;
 
   const save = async (complete: boolean) => {
     setIsSaving(true);
@@ -139,6 +163,15 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
           />
         </div>
 
+        {canEdit && ai && spec.status === 'plan' && (
+          <FeatureSpecAiAssistant
+            {...ai}
+            hasIdea={Boolean((draft.idea ?? '').trim())}
+            planHasUnsavedChanges={isDirty}
+            onGenerateQuestions={ai.onGenerateQuestions}
+          />
+        )}
+
         {TEXT_FIELDS.map((field) => {
           const error = errorFor(field.key);
           const id = `spec-${field.key}`;
@@ -148,7 +181,7 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
                 htmlFor={id}
                 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-100"
               >
-                {field.label} <RequiredBadge />
+                {field.label} <RequiredBadge /> {aiBadge(field.key)}
               </label>
               {field.rows === 1 ? (
                 <input
@@ -193,7 +226,7 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
               htmlFor="spec-targetPlatform"
               className="flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-100"
             >
-              Platform target <RequiredBadge />
+              Platform target <RequiredBadge /> {aiBadge('targetPlatform')}
             </label>
             <select
               id="spec-targetPlatform"
@@ -224,7 +257,7 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
               htmlFor="spec-priority"
               className="flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-100"
             >
-              Prioritas <RequiredBadge />
+              Prioritas <RequiredBadge /> {aiBadge('priority')}
             </label>
             <select
               id="spec-priority"
@@ -256,7 +289,7 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
                 htmlFor={`spec-${key}`}
                 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-100"
               >
-                {key === 'startDate' ? 'Tanggal mulai' : 'Tenggat'} <RequiredBadge />
+                {key === 'startDate' ? 'Tanggal mulai' : 'Tenggat'} <RequiredBadge /> {aiBadge(key)}
               </label>
               <input
                 id={`spec-${key}`}

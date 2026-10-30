@@ -1,5 +1,9 @@
 import type { CreateFeatureSpecInput, FeatureSpec, FeatureSpecSection } from '@qlick/contracts';
-import { FeatureSpecSchema } from '@qlick/contracts';
+import {
+  FeatureSpecQuestionSchema,
+  FeatureSpecSchema,
+  type FeatureSpecQuestion,
+} from '@qlick/contracts';
 import { apiClient } from './apiClient';
 
 export const featureSpecService = {
@@ -37,5 +41,51 @@ export const featureSpecService = {
       { method: 'PUT', body: JSON.stringify(input) },
     );
     return FeatureSpecSchema.parse(response.featureSpec);
+  },
+
+  /** AC-5.4: pertanyaan klarifikasi AI yang tersimpan untuk satu Spec. */
+  async listQuestions(workspaceId: string, specId: string): Promise<FeatureSpecQuestion[]> {
+    const response = await apiClient<{ questions: unknown[] }>(
+      `/workspaces/${workspaceId}/feature-specs/${specId}/questions`,
+    );
+    return response.questions.map((question) => FeatureSpecQuestionSchema.parse(question));
+  },
+
+  /** AC-5.4: meminta AI membuat pertanyaan klarifikasi (menggantikan pertanyaan sebelumnya). */
+  async generateQuestions(workspaceId: string, specId: string): Promise<FeatureSpecQuestion[]> {
+    const response = await apiClient<{ questions: unknown[] }>(
+      `/workspaces/${workspaceId}/feature-specs/${specId}/questions`,
+      { method: 'POST', body: JSON.stringify({}) },
+    );
+    return response.questions.map((question) => FeatureSpecQuestionSchema.parse(question));
+  },
+
+  async answerQuestion(
+    workspaceId: string,
+    specId: string,
+    questionId: string,
+    answer: string,
+  ): Promise<FeatureSpecQuestion> {
+    const response = await apiClient<{ question: unknown }>(
+      `/workspaces/${workspaceId}/feature-specs/${specId}/questions/${questionId}`,
+      { method: 'PATCH', body: JSON.stringify({ answer }) },
+    );
+    return FeatureSpecQuestionSchema.parse(response.question);
+  },
+
+  /** AC-5.4: AI mengisi Plan dari ide dan jawaban; server memvalidasi lalu menyimpan sebagai draf. */
+  async generatePlan(
+    workspaceId: string,
+    specId: string,
+    version: number,
+  ): Promise<{ featureSpec: FeatureSpec; aiFilledFields: string[] }> {
+    const response = await apiClient<{ featureSpec: unknown; aiFilledFields: string[] }>(
+      `/workspaces/${workspaceId}/feature-specs/${specId}/generate/plan`,
+      { method: 'POST', body: JSON.stringify({ version }) },
+    );
+    return {
+      featureSpec: FeatureSpecSchema.parse(response.featureSpec),
+      aiFilledFields: response.aiFilledFields,
+    };
   },
 };

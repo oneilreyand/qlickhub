@@ -152,10 +152,10 @@ Desain Dark dan Phone dibuat sebelum slice 1 (keputusan Owner #7) dan ditautkan 
 
 ## 7. Unknown yang tersisa
 
-| Pertanyaan                                                                                      | Memengaruhi AC | Status                                 |
-| ----------------------------------------------------------------------------------------------- | -------------- | -------------------------------------- |
-| Nama route final dan apakah `/projects/:projectId/tasks/:taskId` dipakai sebagai detail kerjaan | AC-2.3, AC-2.4 | Open — diputuskan di contracts.md      |
-| Skema pertanyaan AI v2 tetap kompatibel dengan modal AI lama selama transisi                    | AC-5.4         | Open — diputuskan di contracts.md      |
-| Daftar field wajib Plan, PRD, Task (ADR-036) cukup dan tidak berlebihan untuk AI dan pengguna   | AC-5.2         | Open — Owner meninjau di PR P5-0       |
-| Cara menandai komentar sebagai serah-terima (kolom baru vs tipe komentar)                       | AC-4.2         | Open — diputuskan di contracts.md      |
-| Isi cek teknis otomatis yang bisa dijalankan dari lokal                                         | AC-7.2         | Open — diputuskan di breakdown slice 7 |
+| Pertanyaan                                                                                      | Memengaruhi AC | Status                                                         |
+| ----------------------------------------------------------------------------------------------- | -------------- | -------------------------------------------------------------- |
+| Nama route final dan apakah `/projects/:projectId/tasks/:taskId` dipakai sebagai detail kerjaan | AC-2.3, AC-2.4 | Open — diputuskan di contracts.md                              |
+| Skema pertanyaan AI v2 tetap kompatibel dengan modal AI lama selama transisi                    | AC-5.4         | Selesai — v2 berdampingan, modal lama tidak diubah (PHASE-05b) |
+| Daftar field wajib Plan, PRD, Task (ADR-036) cukup dan tidak berlebihan untuk AI dan pengguna   | AC-5.2         | Open — Owner meninjau di PR P5-0                               |
+| Cara menandai komentar sebagai serah-terima (kolom baru vs tipe komentar)                       | AC-4.2         | Open — diputuskan di contracts.md                              |
+| Isi cek teknis otomatis yang bisa dijalankan dari lokal                                         | AC-7.2         | Open — diputuskan di breakdown slice 7                         |

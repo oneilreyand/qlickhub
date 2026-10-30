@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { HandoffTimeline } from './HandoffTimeline';
 import {
   CheckCircle2,
@@ -87,6 +87,7 @@ import { traceabilityService } from '../../../lib/api/traceabilityService';
 import { bugService } from '../../../lib/api/bugService';
 import { featureSpecService } from '../../../lib/api/featureSpecService';
 import { useFeatureSpec } from '../../../lib/hooks/useFeatureSpec';
+import { useFeatureSpecAi } from '../../../lib/hooks/useFeatureSpecAi';
 import { fetchMembers } from '../../../store/workspaceSlice';
 import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
 import type { ReleaseReadinessViewState } from '../../../lib/hooks/useReleaseReadinessMap';
@@ -242,6 +243,20 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     layout === 'page' ? effectiveWorkspaceId : undefined,
     layout === 'page' && task && !task.parentTaskId ? task.id : null,
   );
+
+  const notifyFeatureSpec = useCallback(
+    (message: string, kind: 'success' | 'error') => {
+      dispatch(enqueueSnackbar(message, kind));
+    },
+    [dispatch],
+  );
+  const featureSpecAi = useFeatureSpecAi({
+    workspaceId: effectiveWorkspaceId,
+    spec: canPlan ? featureSpec : null,
+    onSpecChange: setFeatureSpec,
+    onStale: reloadFeatureSpec,
+    notify: notifyFeatureSpec,
+  });
 
   const [activeTab, setActiveTab] = useState<string>(initialTab ?? 'overview');
   const [title, setTitle] = useState('');
@@ -1714,6 +1729,13 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                       spec={featureSpec}
                       canEdit={canPlan}
                       onSave={handleSaveFeatureSpecPlan}
+                      ai={{
+                        questions: featureSpecAi.questions,
+                        busy: featureSpecAi.busy,
+                        onGenerateQuestions: () => void featureSpecAi.generateQuestions(),
+                        onAnswer: featureSpecAi.answerQuestion,
+                        onGeneratePlan: () => void featureSpecAi.generatePlan(),
+                      }}
                     />
                   )}
                   <FeaturePlanSummary
