@@ -28,7 +28,6 @@ featureSpecRoutes.post(
 featureSpecRoutes.get(
   '/workspaces/:workspaceId/feature-specs',
   requireWorkspaceMember(),
-  listFeatureSpecQuestions,
   listFeatureSpecs,
 );
 featureSpecRoutes.get(
