@@ -9,6 +9,7 @@ import {
   answerFeatureSpecQuestion,
   createFeatureSpec,
   generateFeatureSpecPlan,
+  generateFeatureSpecPrd,
   generateFeatureSpecQuestions,
   getFeatureSpec,
   listFeatureSpecQuestions,
@@ -65,4 +66,13 @@ featureSpecRoutes.post(
   featureSpecAiUserRateLimiter,
   featureSpecAiWorkspaceRateLimiter,
   generateFeatureSpecPlan,
+);
+
+// P5c (AC-5.5): AI PRD, same two-layer rate limit as the AI Plan.
+featureSpecRoutes.post(
+  '/workspaces/:workspaceId/feature-specs/:specId/generate/prd',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  featureSpecAiUserRateLimiter,
+  featureSpecAiWorkspaceRateLimiter,
+  generateFeatureSpecPrd,
 );
