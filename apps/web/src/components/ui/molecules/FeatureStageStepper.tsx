@@ -16,6 +16,11 @@ export interface FeatureStageStepperProps {
   disabledStages?: FeatureStage[];
   /** Feature sudah tersimpan penuh, jadi Apply ikut ditandai selesai. */
   applied?: boolean;
+  /**
+   * Tahap saat ini masih dikerjakan (mis. Plan di Feature Spec belum lengkap), jadi tidak diberi
+   * centang; hanya tahap sebelumnya yang selesai.
+   */
+  currentStageInProgress?: boolean;
   className?: string;
 }
 
@@ -26,6 +31,7 @@ export const FeatureStageStepper: React.FC<FeatureStageStepperProps> = ({
   summaries = {},
   disabledStages = [],
   applied = false,
+  currentStageInProgress = false,
   className = '',
 }) => {
   const currentIndex = ORDER.indexOf(currentStage);
@@ -36,7 +42,10 @@ export const FeatureStageStepper: React.FC<FeatureStageStepperProps> = ({
         {ORDER.map((stage, index) => {
           const isDisabled = disabledStages.includes(stage);
           const isSelected = selectedStage === stage;
-          const isDone = index <= currentIndex || (stage === 'apply' && applied);
+          const isDone =
+            index < currentIndex ||
+            (index === currentIndex && !currentStageInProgress) ||
+            (stage === 'apply' && applied);
           const isCurrent = index === currentIndex;
           const tone = isSelected
             ? 'border-2 border-stone-900 bg-white dark:border-[#B1E743] dark:bg-stone-900'

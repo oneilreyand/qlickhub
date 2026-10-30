@@ -52,6 +52,8 @@ export interface FeaturePlanSummaryProps {
   onSaveIdea: (description: string | null) => Promise<void>;
   /** Isi diskusi tim; ditampilkan di bagian yang bisa dibuka-tutup. */
   discussion: React.ReactNode;
+  /** Sembunyikan kartu ide awal karena Feature Spec sudah menampilkannya (hindari tampil dua kali). */
+  hideIdea?: boolean;
 }
 
 /** Tahap Plan untuk Feature tersimpan: ide awal, lalu diskusi tim (tertutup secara default). */
@@ -61,6 +63,7 @@ export const FeaturePlanSummary: React.FC<FeaturePlanSummaryProps> = ({
   messageCount,
   onSaveIdea,
   discussion,
+  hideIdea = false,
 }) => {
   const [isDiscussionOpen, setIsDiscussionOpen] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
@@ -83,56 +86,58 @@ export const FeaturePlanSummary: React.FC<FeaturePlanSummaryProps> = ({
   };
   return (
     <>
-      <section aria-labelledby="feature-plan-idea" className={`${cardClass} p-5`}>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 id="feature-plan-idea" className={cardTitleClass}>
-            Ide awal
-          </h2>
-          {canEdit && !isEditing && (
-            <Button size="sm" variant="outline" onClick={startEditing}>
-              Ubah
-            </Button>
-          )}
-        </div>
-        {isEditing ? (
-          <div className="space-y-3">
-            <textarea
-              aria-label="Ide awal"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              rows={6}
-              className="w-full rounded-xl border border-stone-300 bg-white p-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-stone-700 dark:bg-[#141413] dark:text-stone-100"
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={isSaving}
-                onClick={() => setIsEditing(false)}
-              >
-                Batal
+      {!hideIdea && (
+        <section aria-labelledby="feature-plan-idea" className={`${cardClass} p-5`}>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h2 id="feature-plan-idea" className={cardTitleClass}>
+              Ide awal
+            </h2>
+            {canEdit && !isEditing && (
+              <Button size="sm" variant="outline" onClick={startEditing}>
+                Ubah
               </Button>
-              <Button
-                size="sm"
-                variant="primary"
-                isLoading={isSaving}
-                onClick={() => void saveIdea()}
-              >
-                Simpan
-              </Button>
-            </div>
+            )}
           </div>
-        ) : task.description?.trim() ? (
-          <FormattedText
-            content={task.description}
-            className="text-sm text-stone-700 dark:text-stone-300"
-          />
-        ) : (
-          <p className="text-sm text-stone-500 dark:text-stone-400">
-            Belum ada ide yang ditulis untuk Feature ini.
-          </p>
-        )}
-      </section>
+          {isEditing ? (
+            <div className="space-y-3">
+              <textarea
+                aria-label="Ide awal"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                rows={6}
+                className="w-full rounded-xl border border-stone-300 bg-white p-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-stone-700 dark:bg-[#141413] dark:text-stone-100"
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isSaving}
+                  onClick={() => setIsEditing(false)}
+                >
+                  Batal
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  isLoading={isSaving}
+                  onClick={() => void saveIdea()}
+                >
+                  Simpan
+                </Button>
+              </div>
+            </div>
+          ) : task.description?.trim() ? (
+            <FormattedText
+              content={task.description}
+              className="text-sm text-stone-700 dark:text-stone-300"
+            />
+          ) : (
+            <p className="text-sm text-stone-500 dark:text-stone-400">
+              Belum ada ide yang ditulis untuk Feature ini.
+            </p>
+          )}
+        </section>
+      )}
       <section className={cardClass}>
         <button
           type="button"

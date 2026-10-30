@@ -247,242 +247,258 @@ async function persistTaskAssignmentNotification(params: {
 // Create task / subtask
 // ---------------------------------------------------------------------------
 
-export async function createTaskImpl(actorId: string, input: CreateTaskInput): Promise<Task> {
-  const createdResult = await sequelize.transaction(async (transaction) => {
-    const {
-      workspaceId,
-      folderId,
-      parentTaskId,
-      deliveryArea,
-      title,
-      description,
-      status,
-      priority,
-      assigneeId,
-      startDate,
-      dueDate,
-      requirementIds,
-    } = input;
-    const membership = await getActorMembership(workspaceId, actorId, transaction);
+/** Result of creating a Task inside a caller-owned transaction (P5a: Feature Spec creates its root Feature atomically). */
+export interface CreatedTaskResult {
+  formatted: Task;
+  assigneeId: string | null;
+  title: string;
+  id: string;
+}
 
-    let hasSpecialPermission = false;
-    if (!parentTaskId && !isPlanner(membership.role)) {
-      const perm = await TaskCreationPermissionModel.findOne({
-        where: {
-          workspaceId,
-          userId: actorId,
-          [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }],
-        },
-        transaction,
-      });
-      hasSpecialPermission = Boolean(perm);
-    }
+export async function createTaskInTransaction(
+  actorId: string,
+  input: CreateTaskInput,
+  transaction: Transaction,
+): Promise<CreatedTaskResult> {
+  const {
+    workspaceId,
+    folderId,
+    parentTaskId,
+    deliveryArea,
+    title,
+    description,
+    status,
+    priority,
+    assigneeId,
+    startDate,
+    dueDate,
+    requirementIds,
+  } = input;
+  const membership = await getActorMembership(workspaceId, actorId, transaction);
 
-    assertCanCreateTask(membership.role, actorId, assigneeId, parentTaskId, hasSpecialPermission);
-
-    let targetFolderId = folderId || null;
-
-    // Parent tasks have no individual assignee (unassigned feature container owned by reporter/PO)
-    // Subtasks hold the designated execution assignee (FE / BE / QA)
-    const resolvedAssigneeId = parentTaskId ? assigneeId || null : null;
-
-    let parentTaskRecord: TaskModel | null = null;
-    if (parentTaskId) {
-      parentTaskRecord = await TaskModel.findOne({
-        where: { id: parentTaskId, workspaceId },
-        transaction,
-      });
-
-      if (!parentTaskRecord) {
-        throw new Error('NOT_FOUND: Parent task not found in this workspace.');
-      }
-
-      if (parentTaskRecord.parentTaskId) {
-        throw new Error('BAD_REQUEST: Cannot create subtask under another subtask.');
-      }
-
-      targetFolderId = parentTaskRecord.folderId;
-    }
-
-    if (targetFolderId) {
-      const folder = await WorkFolderModel.findOne({
-        where: { id: targetFolderId, workspaceId },
-        transaction,
-      });
-
-      if (!folder) {
-        throw new Error('NOT_FOUND: Folder not found in this workspace.');
-      }
-
-      if (folder.archivedAt !== null) {
-        throw new Error('BAD_REQUEST: Cannot create task in an archived folder.');
-      }
-    }
-
-    await assertAssigneeBelongsToWorkspace(workspaceId, resolvedAssigneeId, transaction);
-
-    // Validate delivery area vs assignee role
-    const roleCheck = await assertRoleMatchesDeliveryArea(
-      workspaceId,
-      resolvedAssigneeId,
-      deliveryArea,
-      input.allowRoleMismatch,
-      input.roleMismatchReason,
-      membership.role,
-      transaction,
-    );
-
-    const completedAt = status === 'done' ? new Date() : null;
-
-    let selectedRequirements: RequirementModel[] = [];
-    if (requirementIds && requirementIds.length > 0) {
-      if (!parentTaskId) {
-        throw new Error('BAD_REQUEST: Requirement selection is allowed only for Subtasks.');
-      }
-
-      selectedRequirements = await RequirementModel.findAll({
-        where: {
-          workspaceId,
-          id: { [Op.in]: requirementIds },
-          status: 'active',
-        },
-        transaction,
-      });
-
-      if (selectedRequirements.length !== requirementIds.length) {
-        throw new Error(
-          'BAD_REQUEST: Every selected Requirement must be active and belong to this Workspace.',
-        );
-      }
-
-      const parentRequirementLinkCount = await TaskRequirementModel.count({
-        where: {
-          workspaceId,
-          taskId: parentTaskId,
-          requirementId: { [Op.in]: requirementIds },
-        },
-        transaction,
-      });
-
-      if (parentRequirementLinkCount !== requirementIds.length) {
-        throw new Error(
-          'BAD_REQUEST: Every selected Requirement must already be linked to the parent Feature.',
-        );
-      }
-    }
-
-    const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
-    if (scheduleIssue) {
-      throw new Error(`BAD_REQUEST: ${scheduleIssue.message}`);
-    }
-
-    const task = await TaskModel.create(
-      {
+  let hasSpecialPermission = false;
+  if (!parentTaskId && !isPlanner(membership.role)) {
+    const perm = await TaskCreationPermissionModel.findOne({
+      where: {
         workspaceId,
-        folderId: targetFolderId,
-        parentTaskId: parentTaskId || null,
-        deliveryArea: deliveryArea || null,
-        title,
-        description: description || null,
-        status: status || 'todo',
-        priority: priority || 'medium',
-        assigneeId: resolvedAssigneeId || null,
-        reporterId: actorId,
-        startDate: startDate || null,
-        dueDate: dueDate || null,
-        completedAt,
+        userId: actorId,
+        [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }],
       },
+      transaction,
+    });
+    hasSpecialPermission = Boolean(perm);
+  }
+
+  assertCanCreateTask(membership.role, actorId, assigneeId, parentTaskId, hasSpecialPermission);
+
+  let targetFolderId = folderId || null;
+
+  // Parent tasks have no individual assignee (unassigned feature container owned by reporter/PO)
+  // Subtasks hold the designated execution assignee (FE / BE / QA)
+  const resolvedAssigneeId = parentTaskId ? assigneeId || null : null;
+
+  let parentTaskRecord: TaskModel | null = null;
+  if (parentTaskId) {
+    parentTaskRecord = await TaskModel.findOne({
+      where: { id: parentTaskId, workspaceId },
+      transaction,
+    });
+
+    if (!parentTaskRecord) {
+      throw new Error('NOT_FOUND: Parent task not found in this workspace.');
+    }
+
+    if (parentTaskRecord.parentTaskId) {
+      throw new Error('BAD_REQUEST: Cannot create subtask under another subtask.');
+    }
+
+    targetFolderId = parentTaskRecord.folderId;
+  }
+
+  if (targetFolderId) {
+    const folder = await WorkFolderModel.findOne({
+      where: { id: targetFolderId, workspaceId },
+      transaction,
+    });
+
+    if (!folder) {
+      throw new Error('NOT_FOUND: Folder not found in this workspace.');
+    }
+
+    if (folder.archivedAt !== null) {
+      throw new Error('BAD_REQUEST: Cannot create task in an archived folder.');
+    }
+  }
+
+  await assertAssigneeBelongsToWorkspace(workspaceId, resolvedAssigneeId, transaction);
+
+  // Validate delivery area vs assignee role
+  const roleCheck = await assertRoleMatchesDeliveryArea(
+    workspaceId,
+    resolvedAssigneeId,
+    deliveryArea,
+    input.allowRoleMismatch,
+    input.roleMismatchReason,
+    membership.role,
+    transaction,
+  );
+
+  const completedAt = status === 'done' ? new Date() : null;
+
+  let selectedRequirements: RequirementModel[] = [];
+  if (requirementIds && requirementIds.length > 0) {
+    if (!parentTaskId) {
+      throw new Error('BAD_REQUEST: Requirement selection is allowed only for Subtasks.');
+    }
+
+    selectedRequirements = await RequirementModel.findAll({
+      where: {
+        workspaceId,
+        id: { [Op.in]: requirementIds },
+        status: 'active',
+      },
+      transaction,
+    });
+
+    if (selectedRequirements.length !== requirementIds.length) {
+      throw new Error(
+        'BAD_REQUEST: Every selected Requirement must be active and belong to this Workspace.',
+      );
+    }
+
+    const parentRequirementLinkCount = await TaskRequirementModel.count({
+      where: {
+        workspaceId,
+        taskId: parentTaskId,
+        requirementId: { [Op.in]: requirementIds },
+      },
+      transaction,
+    });
+
+    if (parentRequirementLinkCount !== requirementIds.length) {
+      throw new Error(
+        'BAD_REQUEST: Every selected Requirement must already be linked to the parent Feature.',
+      );
+    }
+  }
+
+  const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
+  if (scheduleIssue) {
+    throw new Error(`BAD_REQUEST: ${scheduleIssue.message}`);
+  }
+
+  const task = await TaskModel.create(
+    {
+      workspaceId,
+      folderId: targetFolderId,
+      parentTaskId: parentTaskId || null,
+      deliveryArea: deliveryArea || null,
+      title,
+      description: description || null,
+      status: status || 'todo',
+      priority: priority || 'medium',
+      assigneeId: resolvedAssigneeId || null,
+      reporterId: actorId,
+      startDate: startDate || null,
+      dueDate: dueDate || null,
+      completedAt,
+    },
+    { transaction },
+  );
+
+  if (selectedRequirements.length > 0) {
+    await TaskRequirementModel.bulkCreate(
+      selectedRequirements.map((requirement) => ({
+        workspaceId,
+        taskId: task.id,
+        requirementId: requirement.id,
+        linkedBy: actorId,
+      })),
       { transaction },
     );
 
-    if (selectedRequirements.length > 0) {
-      await TaskRequirementModel.bulkCreate(
-        selectedRequirements.map((requirement) => ({
+    await Promise.all(
+      selectedRequirements.map((requirement) =>
+        logActivity(
           workspaceId,
-          taskId: task.id,
-          requirementId: requirement.id,
-          linkedBy: actorId,
-        })),
-        { transaction },
-      );
-
-      await Promise.all(
-        selectedRequirements.map((requirement) =>
-          logActivity(
-            workspaceId,
-            task.id,
-            actorId,
-            'requirement_linked',
-            {
-              requirementId: requirement.id,
-              code: requirement.code,
-              title: requirement.title,
-              url: requirement.url || null,
-            },
-            transaction,
-          ),
+          task.id,
+          actorId,
+          'requirement_linked',
+          {
+            requirementId: requirement.id,
+            code: requirement.code,
+            title: requirement.title,
+            url: requirement.url || null,
+          },
+          transaction,
         ),
-      );
-
-      const featureTaskId = task.parentTaskId || task.id;
-      await ensureAutoBaseline(workspaceId, featureTaskId, actorId, { transaction });
-    }
-
-    // If parent task is already done, adding an incomplete subtask reopens the parent task
-    if (
-      parentTaskRecord &&
-      parentTaskRecord.status === 'done' &&
-      status !== 'done' &&
-      status !== 'canceled'
-    ) {
-      parentTaskRecord.status = 'in_progress';
-      parentTaskRecord.completedAt = null;
-      await parentTaskRecord.save({ transaction });
-      await logActivity(
-        workspaceId,
-        parentTaskRecord.id,
-        actorId,
-        'task.reopened',
-        { reason: `Incomplete subtask "${title}" added` },
-        transaction,
-      );
-    }
-
-    // Record Activity audit event
-    const action = parentTaskId ? 'subtask.created' : 'task.created';
-    await logActivity(
-      workspaceId,
-      task.id,
-      actorId,
-      action,
-      {
-        title,
-        deliveryArea: deliveryArea || null,
-        parentTaskId: parentTaskId || null,
-        folderId: targetFolderId,
-        status: status || 'todo',
-        priority: priority || 'medium',
-        assigneeId: assigneeId || null,
-        ...(roleCheck.isMismatch
-          ? {
-              roleMismatchOverride: true,
-              roleMismatchReason: input.roleMismatchReason,
-              assigneeRole: roleCheck.assigneeRole,
-              assigneeSpecialties: roleCheck.assigneeSpecialties,
-              deliveryArea,
-            }
-          : {}),
-      },
-      transaction,
+      ),
     );
 
-    return {
-      formatted: formatTask(task),
-      assigneeId: task.assigneeId,
-      title: task.title,
-      id: task.id,
-    };
-  });
+    const featureTaskId = task.parentTaskId || task.id;
+    await ensureAutoBaseline(workspaceId, featureTaskId, actorId, { transaction });
+  }
+
+  // If parent task is already done, adding an incomplete subtask reopens the parent task
+  if (
+    parentTaskRecord &&
+    parentTaskRecord.status === 'done' &&
+    status !== 'done' &&
+    status !== 'canceled'
+  ) {
+    parentTaskRecord.status = 'in_progress';
+    parentTaskRecord.completedAt = null;
+    await parentTaskRecord.save({ transaction });
+    await logActivity(
+      workspaceId,
+      parentTaskRecord.id,
+      actorId,
+      'task.reopened',
+      { reason: `Incomplete subtask "${title}" added` },
+      transaction,
+    );
+  }
+
+  // Record Activity audit event
+  const action = parentTaskId ? 'subtask.created' : 'task.created';
+  await logActivity(
+    workspaceId,
+    task.id,
+    actorId,
+    action,
+    {
+      title,
+      deliveryArea: deliveryArea || null,
+      parentTaskId: parentTaskId || null,
+      folderId: targetFolderId,
+      status: status || 'todo',
+      priority: priority || 'medium',
+      assigneeId: assigneeId || null,
+      ...(roleCheck.isMismatch
+        ? {
+            roleMismatchOverride: true,
+            roleMismatchReason: input.roleMismatchReason,
+            assigneeRole: roleCheck.assigneeRole,
+            assigneeSpecialties: roleCheck.assigneeSpecialties,
+            deliveryArea,
+          }
+        : {}),
+    },
+    transaction,
+  );
+
+  return {
+    formatted: formatTask(task),
+    assigneeId: task.assigneeId,
+    title: task.title,
+    id: task.id,
+  };
+}
+
+export async function createTaskImpl(actorId: string, input: CreateTaskInput): Promise<Task> {
+  const createdResult = await sequelize.transaction((transaction) =>
+    createTaskInTransaction(actorId, input, transaction),
+  );
 
   // Trigger 1: User di-assign task on creation
   if (createdResult.assigneeId && createdResult.assigneeId !== actorId) {

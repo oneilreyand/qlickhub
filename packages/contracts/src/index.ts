@@ -15,6 +15,7 @@ export * from './qrisSandbox.js';
 export * from './bug.js';
 export * from './releaseDecision.js';
 export * from './featureReadiness.js';
+export * from './featureSpec.js';
 export * from './requirementFinding.js';
 export * from './workQueue.js';
 export * from './problemDetail.js';

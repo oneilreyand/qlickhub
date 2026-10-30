@@ -34,10 +34,11 @@ empty, and subtasks are assigned only by the creator.
 2. **Required fields, enforced by the server.** A section cannot be saved as complete, a stage cannot
    advance, and Apply cannot run while a required field is empty. The server answers 400 with a
    machine-readable `missingFields` list. The rule is identical for the UI, the AI, and agents.
-   - **Plan:** title, problem or background, target users, goal, success measure, in-scope, out-of-scope,
-     target platform, priority, start date, and due date.
-   - **PRD:** Product Brief context, in-scope, and out-of-scope; each Requirement has a title, a
-     description, and at least one Given/When/Then Acceptance Criterion.
+   - **Plan** (nine fields): title, problem or background, target users, goal, success measure,
+     target platform, priority, start date, and due date. Scope is deliberately not part of the Plan.
+   - **PRD:** Product Brief in-scope and out-of-scope (scope lives only here); each Requirement has a
+     title, a description, and at least one Given/When/Then Acceptance Criterion. The Brief context is
+     optional: when blank, Apply uses the Plan's problem or background, so it is written once.
    - **Task:** each subtask has a title, description, delivery area, priority, schedule, at least one
      linked Requirement, and an **assignment mode**; every Requirement has an implementing subtask.
 3. **Two assignment modes.** `assigned`: the product team names the assignee (the assignee is
@@ -91,3 +92,11 @@ empty, and subtasks are assigned only by the creator.
   versions, idempotency) is built now and the server later.
 - **Assignee always required at draft time** — rejected: the AI can propose an area and a role, not a
   person, and teams also want self-claimed work.
+
+## Amendment — 2026-10-30 (P5a audit)
+
+Owner decision in chat: the Plan and the PRD Brief overlapped (scope listed in both; Plan problem
+and Brief context were the same text). Scope now lives only in the PRD and the Brief context comes
+from the Plan, so the Plan has nine required fields and the PRD Brief requires only in-scope and
+out-of-scope. The Plan's priority and schedule are also written to the root Feature so Task Hub
+matches the Plan. Decision 2 above reflects the amended lists.

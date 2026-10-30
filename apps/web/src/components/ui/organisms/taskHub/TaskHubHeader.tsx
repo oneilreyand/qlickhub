@@ -6,6 +6,8 @@ interface TaskHubHeaderProps {
   workspaceName: string;
   canCreateTask: boolean;
   onCreateTask: () => void;
+  /** Entri satu langkah Feature Spec (AC-5.1); tersembunyi bila tidak diberikan. */
+  onWriteIdea?: () => void;
   onOpenMobileFolders: () => void;
 }
 
@@ -13,6 +15,7 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
   workspaceName,
   canCreateTask,
   onCreateTask,
+  onWriteIdea,
   onOpenMobileFolders,
 }) => {
   return (
@@ -31,6 +34,11 @@ export const TaskHubHeader: React.FC<TaskHubHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5">
+          {canCreateTask && onWriteIdea && (
+            <Button variant="outline" size="md" onClick={onWriteIdea}>
+              Tulis ide
+            </Button>
+          )}
           {canCreateTask && (
             <Button
               variant="primary"

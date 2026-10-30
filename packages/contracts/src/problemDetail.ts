@@ -21,7 +21,14 @@ export const ProblemDetailSchema = z.object({
   detail: z.string().optional().describe('Detailed explanation specific to this occurrence'),
   instance: z.string().optional().describe('URI reference identifying specific occurrence'),
   code: z.string().optional().describe('Application-specific error code'),
-  errors: z.array(ValidationErrorDetailSchema).optional().describe('Validation error list if applicable'),
+  errors: z
+    .array(ValidationErrorDetailSchema)
+    .optional()
+    .describe('Validation error list if applicable'),
+  missingFields: z
+    .array(z.string())
+    .optional()
+    .describe('Required fields that are still empty (Feature Spec, ADR-036)'),
 });
 
 export type ProblemDetail = z.infer<typeof ProblemDetailSchema>;

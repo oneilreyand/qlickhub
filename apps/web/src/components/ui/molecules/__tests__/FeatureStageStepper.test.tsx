@@ -58,4 +58,28 @@ describe('FeatureStageStepper', () => {
     );
     expect(screen.getByText('Diterapkan')).toBeInTheDocument();
   });
+
+  it('tidak memberi centang pada tahap yang sedang dikerjakan, hanya tahap sebelumnya', () => {
+    const { rerender } = render(
+      <FeatureStageStepper
+        currentStage="plan"
+        currentStageInProgress
+        selectedStage="plan"
+        onSelect={vi.fn()}
+      />,
+    );
+    // Plan masih dikerjakan: menampilkan nomor 1, bukan centang.
+    expect(screen.getByRole('button', { name: /Plan/ })).toHaveTextContent('1');
+
+    rerender(
+      <FeatureStageStepper
+        currentStage="prd"
+        currentStageInProgress
+        selectedStage="prd"
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /Plan/ })).not.toHaveTextContent('1');
+    expect(screen.getByRole('button', { name: /PRD/ })).toHaveTextContent('2');
+  });
 });
