@@ -30,6 +30,18 @@ export type FeatureSpecActorType = z.infer<typeof FeatureSpecActorTypeSchema>;
 // Section content (drafts may be incomplete; completeness is evaluated separately)
 // ---------------------------------------------------------------------------
 
+export const FEATURE_SPEC_PLAN_AI_FIELDS = [
+  'problem',
+  'targetUsers',
+  'goal',
+  'successMeasure',
+  'targetPlatform',
+  'priority',
+  'startDate',
+  'dueDate',
+] as const;
+export type FeatureSpecPlanAiField = (typeof FEATURE_SPEC_PLAN_AI_FIELDS)[number];
+
 export const FeatureSpecPlanSchema = z.object({
   idea: LongTextSchema.optional(),
   title: ShortTextSchema.optional(),
@@ -41,6 +53,8 @@ export const FeatureSpecPlanSchema = z.object({
   priority: TaskPrioritySchema.nullable().optional(),
   startDate: DateOnlySchema.nullable().optional(),
   dueDate: DateOnlySchema.nullable().optional(),
+  /** Plan fields last filled by the AI (P5b); the UI shows "Diisi AI" and drops a field once a person edits it. */
+  aiFilledFields: z.array(z.enum(FEATURE_SPEC_PLAN_AI_FIELDS)).max(20).optional(),
 });
 export type FeatureSpecPlan = z.infer<typeof FeatureSpecPlanSchema>;
 

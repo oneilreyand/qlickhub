@@ -155,6 +155,7 @@
       ],
       "Task & kolaborasi": [
         "FeatureSpecModel",
+        "FeatureSpecQuestionModel",
         "FeatureSpecVersionModel",
         "FolderActivityModel",
         "SubtaskAcceptanceCheckModel",

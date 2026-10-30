@@ -14,6 +14,7 @@ export * from './taskCommentMention.js';
 export * from './subtaskAcceptanceCheck.js';
 export * from './featureSpec.js';
 export * from './featureSpecVersion.js';
+export * from './featureSpecQuestion.js';
 export * from './requirement.js';
 export * from './acceptanceCriterion.js';
 export * from './taskRequirement.js';
