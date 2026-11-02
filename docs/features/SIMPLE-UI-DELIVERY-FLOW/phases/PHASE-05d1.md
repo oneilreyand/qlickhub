@@ -159,6 +159,19 @@ Regresi final seluruh modul setelah penolakan duplikat:
 dengan `TEST_DATABASE_URL` diarahkan ke database disposable di atas: **exit 0, 58 pass, 0 fail/skip**.
 `npm --prefix apps/api run build` sesudah perbaikan duplikat: **exit 0**.
 
+Validasi final sesudah perbaikan duplikat: `npm run validate && npm --prefix packages/contracts run test`
+**exit 0**; docs 12/12, docsys 29/29, env 5/5, SDLC 10/10, agent 22/22, tier 5/5,
+kontrak 108/108; 0 fail/skip. Theme check, lint, dan typecheck ketiga workspace lulus;
+lint tetap 15 warning frontend lama, 0 error. Scoped `prettier --check` dan `git diff --check`
+lulus. Pre-commit menjalankan Prettier dan ESLint atas file yang di-stage, lulus.
+
+Publication: [PR #95](https://github.com/oneilreyand/qlickhub/pull/95), implementasi `6d3cc5d`
+di branch `feat/simple-ui-p5d1-ai-tasks`; auto-merge **SQUASH** diaktifkan sesuai `AI-020`.
+Tier 2 tepat satu file `packages/contracts/package.json` (daftar test, bukan dependency).
+`owner-gate` menolak karena belum ada label Owner; ini hasil gate yang diharapkan, bukan
+tes produk gagal. CI `verify` masih berjalan saat catatan ini dibuat. **Jangan pasang label
+sebelum UAT ulang/G5 selesai**. Status tetap kandidat/Blocked pada gate, belum merge/deploy.
+
 | Dimensi             | Metode, hasil, dan tindak lanjut                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Reuse/DRY           | Inspeksi imports/callers: reuse schema tanggal, rate limiter, klien Gemini, dan transaksi saveSection; tidak membuat jalur Apply baru |
