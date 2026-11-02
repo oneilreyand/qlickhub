@@ -1,0 +1,15 @@
+{
+  "readBack": true,
+  "specId": "90f2b188-1b07-454f-a3ad-5d911a9b14e4",
+  "version": 3,
+  "stage": "task",
+  "tasks": {},
+  "recentVersion": {
+    "version": 3,
+    "actorType": "user",
+    "actorId": "e2143e16-0800-40cb-b8e3-4217cd5a0a88",
+    "actorName": "Stigma O'Neil",
+    "via": "web",
+    "createdAt": "2026-11-02T07:31:20.465Z"
+  }
+}

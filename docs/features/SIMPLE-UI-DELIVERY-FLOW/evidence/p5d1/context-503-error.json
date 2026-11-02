@@ -1,0 +1,10 @@
+{
+  "status": 502,
+  "data": {
+    "type": "https://tools.ietf.org/html/rfc9457",
+    "title": "Bad Gateway",
+    "status": 502,
+    "detail": "The AI service returned status 503.",
+    "code": "FEATURE_SPEC_AI_UNAVAILABLE"
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "status": 200,
+  "elapsedMs": 16206,
+  "specId": "90f2b188-1b07-454f-a3ad-5d911a9b14e4",
+  "version": 4,
+  "stage": "task",
+  "subtaskCount": 8,
+  "assigneeProposedCount": 8,
+  "assigneeEmptyCount": 0,
+  "requirementKeys": ["R1", "R2", "R3"],
+  "coveredKeys": ["R1", "R2", "R3"],
+  "tasks": [
+    {
+      "key": "T1",
+      "title": "Desain Skema Database Permintaan Bantuan",
+      "description": "Merancang tabel database untuk menyimpan detail permintaan bantuan internal (judul, deskripsi, status, dll.).",
+      "deliveryArea": "backend",
+      "priority": "high",
+      "startDate": "2026-11-03",
+      "dueDate": "2026-11-05",
+      "requirementKeys": ["R1"],
+      "assignmentMode": "assigned",
+      "assigneeId": "ac7b54f0-5015-4a83-bd3a-6fed6030d079"
+    },
+    {
+      "key": "T2",
+      "title": "Implementasi API Simpan Permintaan Bantuan",
+      "description": "Membuat endpoint API (POST /requests) untuk menerima dan menyimpan data permintaan bantuan baru, termasuk validasi dasar.",
+      "deliveryArea": "backend",
+      "priority": "high",
+      "startDate": "2026-11-06",
+      "dueDate": "2026-11-10",
+      "requirementKeys": ["R1", "R2"],
+      "assignmentMode": "assigned",
+      "assigneeId": "ac7b54f0-5015-4a83-bd3a-6fed6030d079"
+    },
+    {
+      "key": "T3",
+      "title": "Implementasi API Baca Daftar Permintaan Bantuan",
+      "description": "Membuat endpoint API (GET /requests) untuk mengambil daftar semua permintaan bantuan yang tersimpan.",
+      "deliveryArea": "backend",
+      "priority": "medium",
+      "startDate": "2026-11-11",
+      "dueDate": "2026-11-13",
+      "requirementKeys": ["R3"],
+      "assignmentMode": "assigned",
+      "assigneeId": "ac7b54f0-5015-4a83-bd3a-6fed6030d079"
+    },
+    {
+      "key": "T4",
+      "title": "Pengembangan UI Form Permintaan Bantuan",
+      "description": "Membuat antarmuka pengguna untuk form pengajuan permintaan bantuan, termasuk input judul dan deskripsi.",
+      "deliveryArea": "frontend",
+      "priority": "high",
+      "startDate": "2026-11-06",
+      "dueDate": "2026-11-10",
+      "requirementKeys": ["R1"],
+      "assignmentMode": "assigned",
+      "assigneeId": "1bc606c0-1c51-4389-bae3-262311b9f29d"
+    },
+    {
+      "key": "T5",
+      "title": "Implementasi Validasi Form dan Logika Kirim",
+      "description": "Menambahkan validasi sisi klien untuk judul wajib dan logika pengiriman data form ke API backend.",
+      "deliveryArea": "frontend",
+      "priority": "high",
+      "startDate": "2026-11-11",
+      "dueDate": "2026-11-15",
+      "requirementKeys": ["R1", "R2"],
+      "assignmentMode": "assigned",
+      "assigneeId": "1bc606c0-1c51-4389-bae3-262311b9f29d"
+    },
+    {
+      "key": "T6",
+      "title": "Pengembangan UI Daftar Permintaan Bantuan",
+      "description": "Membuat antarmuka pengguna untuk menampilkan daftar permintaan bantuan yang telah tersimpan.",
+      "deliveryArea": "frontend",
+      "priority": "medium",
+      "startDate": "2026-11-16",
+      "dueDate": "2026-11-18",
+      "requirementKeys": ["R3"],
+      "assignmentMode": "assigned",
+      "assigneeId": "1bc606c0-1c51-4389-bae3-262311b9f29d"
+    },
+    {
+      "key": "T7",
+      "title": "Pengujian Fungsionalitas Simpan Permintaan Bantuan",
+      "description": "Melakukan pengujian end-to-end untuk proses pengiriman form, penyimpanan data, dan validasi judul wajib.",
+      "deliveryArea": "qa",
+      "priority": "high",
+      "startDate": "2026-11-16",
+      "dueDate": "2026-11-18",
+      "requirementKeys": ["R1", "R2"],
+      "assignmentMode": "assigned",
+      "assigneeId": "3efae1f8-d137-48f9-bdce-3f71e5c3a915"
+    },
+    {
+      "key": "T8",
+      "title": "Pengujian Fungsionalitas Baca Daftar Permintaan Bantuan",
+      "description": "Melakukan pengujian end-to-end untuk memastikan daftar permintaan bantuan dapat dibaca dan ditampilkan dengan benar.",
+      "deliveryArea": "qa",
+      "priority": "medium",
+      "startDate": "2026-11-19",
+      "dueDate": "2026-11-20",
+      "requirementKeys": ["R3"],
+      "assignmentMode": "assigned",
+      "assigneeId": "3efae1f8-d137-48f9-bdce-3f71e5c3a915"
+    }
+  ],
+  "recentVersion": {
+    "version": 4,
+    "actorType": "user",
+    "actorId": "e2143e16-0800-40cb-b8e3-4217cd5a0a88",
+    "actorName": "Stigma O'Neil",
+    "via": "ai",
+    "createdAt": "2026-11-02T09:32:25.879Z"
+  }
+}

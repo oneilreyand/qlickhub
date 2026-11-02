@@ -53,3 +53,21 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT. Pada fase ini E4 = UAT lokal (batas
 | P2a   | Belum — menunggu Owner                                  | Bukti P2a ada di [phases/PHASE-02.md](phases/PHASE-02.md) §3: 735 test lulus, UAT Light/Dark, 8 bagian lama terbuka | Menunggu | Pelaksana dan UAT oleh Claude; G5 butuh verifier independen |
 
 Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).
+
+## 6. P5d-1 — kandidat teruji 2026-11-02
+
+Bukti, perintah, outcome gagal/lulus, WRA, AC mapping, quality review, dan blocker berada sekali
+di [PHASE-05d1 §4](phases/PHASE-05d1.md#4-verifikasi-lanjutan-2026-11-02).
+Tes HTTP/PostgreSQL membuktikan AC-5.6 bagian penyusunan draf dan AC-5.7; bagian Apply tetap P5d-2.
+UAT Gemini Owner sebelum perbaikan menemukan duplikat; Owner menyetujui penolakannya dan tes
+regresi lulus. Browser Developer membuktikan 403; UAT Owner pascaperbaikan menghasilkan 10 subtask
+tanpa duplikat dan readback versi 4. CI awal lulus. Review awal menemukan dua gap; Owner kemudian
+memilih melengkapi konteks AI dan menerima duplikasi predicate sementara. Perbaikan konteks lulus
+59 tes PostgreSQL, validasi Node 24, dan dua review delta **Accepted**. Setelah empat kegagalan
+availability/network, Owner melaporkan UAT manual prompt terbaru HTTP 200/16,206 ms dengan
+8 subtask tanpa duplikat; GET readback cocok versi 4/snapshot via AI. Provenance salinan Owner
+dicatat dalam evidence. CI runtime head `12643d5` lulus (603 API, 108 kontrak, 777 web, 18 E2E).
+Salinan payload lengkap diperiksa konsistensinya; CI head dokumentasi dan Tier 2 masih terbuka.
+Review ulang evidence tidak selesai karena batas alat dan tidak diklaim sebagai acceptance baru;
+detail ada di phase tertaut.
+Tidak menganggap test fixture sebagai bukti Production dan tidak menutup Feature induk.

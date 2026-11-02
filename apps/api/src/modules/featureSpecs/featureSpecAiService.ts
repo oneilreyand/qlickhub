@@ -3,20 +3,34 @@ import {
   AiFeatureSpecPrdOutput,
   AiFeatureSpecPrdOutputSchema,
   AiFeatureSpecQuestionsOutputSchema,
+  AiFeatureSpecTasksOutputSchema,
   AnswerFeatureSpecQuestionInput,
   FEATURE_SPEC_PLAN_AI_FIELDS,
   evaluateFeatureSpecSection,
   FeatureSpecGeneratePlanResponse,
   FeatureSpecGeneratePrdResponse,
+  FeatureSpecGenerateTasksResponse,
   FeatureSpecPlan,
   FeatureSpecPlanAiField,
   FeatureSpecQuestion,
   FeatureSpecPrd,
+  FeatureSpecSubtask,
+  FeatureSpecTasks,
   GenerateFeatureSpecPlanInput,
   GenerateFeatureSpecPrdInput,
+  GenerateFeatureSpecTasksInput,
+  DeliveryArea,
+  DateStringSchema,
   getTaskScheduleValidationIssue,
 } from '@qlick/contracts';
-import { FeatureSpecModel, FeatureSpecQuestionModel } from '../../db/models/index.js';
+import { Op } from 'sequelize';
+import {
+  FeatureSpecModel,
+  FeatureSpecQuestionModel,
+  TaskModel,
+  WorkspaceMemberModel,
+  WorkspaceMemberSpecialtyModel,
+} from '../../db/models/index.js';
 import { sequelize } from '../../db/sequelize.js';
 import { assertCanWriteFeatureSpec } from '../../policies/featureSpecPolicy.js';
 import { getActorMembership, logActivity } from '../tasks/internal/taskLifecycle.js';
@@ -118,6 +132,90 @@ const PRD_RESPONSE_SCHEMA = {
   },
   required: ['brief', 'requirements'],
 };
+
+const TASKS_RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    subtasks: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          title: { type: 'STRING' },
+          description: { type: 'STRING' },
+          deliveryArea: {
+            type: 'STRING',
+            enum: ['frontend', 'backend', 'mobile', 'fullstack', 'qa'],
+          },
+          priority: { type: 'STRING', enum: ['low', 'medium', 'high', 'urgent'] },
+          startDate: { type: 'STRING' },
+          dueDate: { type: 'STRING' },
+          requirementKeys: { type: 'ARRAY', items: { type: 'STRING' } },
+          assigneeId: { type: 'STRING' },
+        },
+        required: ['title', 'description', 'deliveryArea', 'priority', 'requirementKeys'],
+      },
+    },
+  },
+  required: ['subtasks'],
+};
+
+const ACTIVE_SUBTASK_STATUSES = ['todo', 'in_progress', 'in_review', 'changes_requested'];
+
+interface AssigneeCandidate {
+  userId: string;
+  role: 'dev' | 'qa';
+  specialties: string[];
+  activeSubtasks: number;
+}
+
+/**
+ * Same rule as the manual assignment guardrail: a Developer fits a development area when no
+ * specialty is configured yet or the area is one of the specialties; QA fits only the `qa` area.
+ */
+function candidateFitsArea(candidate: AssigneeCandidate, area: DeliveryArea): boolean {
+  if (area === 'qa') return candidate.role === 'qa';
+  return (
+    candidate.role === 'dev' &&
+    (candidate.specialties.length === 0 || candidate.specialties.includes(area))
+  );
+}
+
+function isValidDate(value: string | null | undefined): value is string {
+  return DateStringSchema.safeParse(value).success;
+}
+
+/** Developers and QA of the workspace with their specialties and current active subtask count. */
+async function loadAssigneeCandidates(workspaceId: string): Promise<AssigneeCandidate[]> {
+  const members = await WorkspaceMemberModel.findAll({
+    where: { workspaceId, role: { [Op.in]: ['dev', 'qa'] } },
+    include: [{ model: WorkspaceMemberSpecialtyModel, as: 'specialties', required: false }],
+  });
+  if (members.length === 0) return [];
+  // Aggregate in PostgreSQL: return one count per member, not every active subtask.
+  const counts = await TaskModel.count({
+    where: {
+      workspaceId,
+      parentTaskId: { [Op.ne]: null },
+      assigneeId: { [Op.in]: members.map((m) => m.userId) },
+      status: { [Op.in]: ACTIVE_SUBTASK_STATUSES },
+    },
+    group: ['assigneeId'],
+  });
+  const load = new Map(counts.map((row) => [String(row.assigneeId), Number(row.count)]));
+  return members.map((member) => ({
+    userId: member.userId,
+    role: member.role as 'dev' | 'qa',
+    specialties: (
+      (member as unknown as { specialties?: WorkspaceMemberSpecialtyModel[] }).specialties ?? []
+    ).map((row) => row.specialty),
+    activeSubtasks: load.get(member.userId) ?? 0,
+  }));
+}
+
+function hasTasksContent(tasks: FeatureSpecTasks | null | undefined): boolean {
+  return (tasks?.subtasks ?? []).length > 0;
+}
 
 function isBlank(value: unknown): boolean {
   return value === null || value === undefined || (typeof value === 'string' && !value.trim());
@@ -421,5 +519,146 @@ export const featureSpecAiService = {
       { type: 'user', id: actorId, via: 'ai' },
     );
     return { featureSpec, requirementCount: output.requirements?.length ?? 0 };
+  },
+  /**
+   * AC-5.6 (P5d-1): drafts the subtasks from a complete PRD. Keys `T1…Tn` are assigned here, never
+   * by the AI. Every Requirement must be covered by at least one subtask, otherwise the whole answer
+   * is rejected and nothing is saved. A wrong schedule falls back to the Plan dates, and a proposed
+   * assignee is kept only when that member fits the delivery area (the assignment guardrail); the
+   * rest are left empty for the PO. The result is saved as a draft through the normal save path.
+   */
+  async generateTasks(
+    actorId: string,
+    input: GenerateFeatureSpecTasksInput,
+  ): Promise<FeatureSpecGenerateTasksResponse> {
+    const spec = await loadSpecForAiWrite(input.workspaceId, input.specId, actorId);
+    if (input.version !== spec.version) {
+      throw new Error(
+        'CONFLICT: The Feature Spec changed since you opened it. Reload and try again.',
+      );
+    }
+    if (spec.status !== 'task' || !evaluateFeatureSpecSection('prd', spec.prd).complete) {
+      throw new Error('BAD_REQUEST: Complete the PRD before asking the AI to write the Tasks.');
+    }
+    if (hasTasksContent(spec.tasks) && !input.replace) {
+      throw new Error(
+        'CONFLICT: The Tasks already have content. Confirm replacing them to generate new ones.',
+      );
+    }
+
+    const candidates = await loadAssigneeCandidates(input.workspaceId);
+    const byId = new Map(candidates.map((candidate) => [candidate.userId, candidate]));
+    const plan = spec.plan;
+    const requirements = spec.prd.requirements ?? [];
+    const requirementKeys = new Set(requirements.map((requirement) => requirement.key));
+    const requirementText = requirements
+      .map(
+        (requirement) =>
+          `- ${requirement.key}: ${requirement.title}\n  ${requirement.description}\n` +
+          (requirement.acceptanceCriteria ?? [])
+            .map((ac) => `  AC: Given ${ac.given}; When ${ac.when}; Then ${ac.then}`)
+            .join('\n'),
+      )
+      .join('\n');
+    const memberText = candidates.length
+      ? candidates
+          .map(
+            (candidate) =>
+              `- id ${candidate.userId}: peran ${candidate.role}, spesialisasi ${
+                candidate.specialties.join(', ') || '(belum diatur)'
+              }, subtask aktif ${candidate.activeSubtasks}`,
+          )
+          .join('\n')
+      : '(tidak ada anggota yang dapat ditugaskan)';
+
+    const planStart = plan.startDate ?? null;
+    const planDue = plan.dueDate ?? null;
+    const tasks = await callAi(
+      {
+        system: SYSTEM_INSTRUCTION,
+        prompt: `Feature: "${plan.title ?? ''}"\nIde awal: ${plan.idea ?? ''}\nMasalah/latar belakang: ${plan.problem}\nPengguna sasaran: ${plan.targetUsers}\nTujuan: ${plan.goal}\nUkuran keberhasilan: ${plan.successMeasure}\nPlatform: ${plan.targetPlatform}\nPrioritas Plan: ${plan.priority}\nJadwal Plan: ${planStart} sampai ${planDue}\n\nProduct Brief:\n- Konteks: ${spec.prd.brief?.context ?? ''}\n- Masuk scope: ${spec.prd.brief?.inScope}\n- Di luar scope: ${spec.prd.brief?.outScope}\n\nRequirement:\n${requirementText}\n\nAnggota yang dapat ditugaskan:\n${memberText}\n\nSusun 3 sampai 30 subtask yang melaksanakan semua Requirement. Tiap subtask punya judul, deskripsi, area pengerjaan (frontend, backend, mobile, fullstack, atau qa), prioritas, tanggal mulai dan tenggat (YYYY-MM-DD, di dalam jadwal Plan, tenggat tidak sebelum mulai), kunci Requirement yang dilaksanakan (pakai kunci di atas), dan assigneeId yang dipilih dari daftar anggota hanya bila peran dan spesialisasinya cocok dengan area dan bebannya wajar. Pastikan setiap Requirement dilaksanakan oleh minimal satu subtask. Jangan menulis kunci subtask.`,
+        responseSchema: TASKS_RESPONSE_SCHEMA,
+      },
+      (raw) => {
+        const parsed = AiFeatureSpecTasksOutputSchema.parse(raw);
+        const covered = new Set<string>();
+        const identities = new Set<string>();
+        const subtasks: FeatureSpecSubtask[] = parsed.subtasks.map((item, index) => {
+          const keys = [...new Set(item.requirementKeys.filter((key) => requirementKeys.has(key)))];
+          if (keys.length === 0) throw new Error('NO_KNOWN_REQUIREMENT');
+          keys.forEach((key) => covered.add(key));
+
+          let startDate = isValidDate(item.startDate) ? item.startDate : null;
+          let dueDate = isValidDate(item.dueDate) ? item.dueDate : null;
+          const outsidePlan =
+            (planStart && startDate && startDate < planStart) ||
+            (planDue && dueDate && dueDate > planDue);
+          if (
+            !startDate ||
+            !dueDate ||
+            getTaskScheduleValidationIssue(startDate, dueDate) ||
+            outsidePlan
+          ) {
+            startDate = planStart;
+            dueDate = planDue;
+          }
+
+          const proposed = item.assigneeId ? byId.get(item.assigneeId) : undefined;
+          const assigneeId =
+            proposed && candidateFitsArea(proposed, item.deliveryArea) ? proposed.userId : null;
+          // Compare the effective draft after repairing dates, links and assignees; the
+          // server-assigned key must not make two otherwise identical tasks appear distinct.
+          const identity = JSON.stringify([
+            item.title,
+            item.description,
+            item.deliveryArea,
+            item.priority,
+            startDate,
+            dueDate,
+            assigneeId,
+            [...keys].sort(),
+          ]);
+          if (identities.has(identity)) throw new Error('DUPLICATE_SUBTASK');
+          identities.add(identity);
+          return {
+            key: `T${index + 1}`,
+            title: item.title,
+            description: item.description,
+            deliveryArea: item.deliveryArea,
+            priority: item.priority,
+            startDate,
+            dueDate,
+            requirementKeys: keys,
+            assignmentMode: 'assigned' as const,
+            assigneeId,
+          };
+        });
+        if (requirements.some((requirement) => !covered.has(requirement.key))) {
+          throw new Error('REQUIREMENT_NOT_COVERED');
+        }
+        return { subtasks } satisfies FeatureSpecTasks;
+      },
+    );
+
+    const featureSpec = await featureSpecService.saveSection(
+      actorId,
+      {
+        workspaceId: input.workspaceId,
+        specId: input.specId,
+        section: 'tasks',
+        version: input.version,
+        content: tasks,
+        complete: false,
+      },
+      { type: 'user', id: actorId, via: 'ai' },
+    );
+    const all = tasks.subtasks ?? [];
+    const withAssignee = all.filter((subtask) => subtask.assigneeId).length;
+    return {
+      featureSpec,
+      subtaskCount: all.length,
+      assigneeProposedCount: withAssignee,
+      assigneeEmptyCount: all.length - withAssignee,
+    };
   },
 };

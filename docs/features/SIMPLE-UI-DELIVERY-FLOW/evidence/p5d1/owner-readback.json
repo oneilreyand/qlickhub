@@ -1,0 +1,138 @@
+{
+  "readBack": true,
+  "specId": "8d35f2dc-017f-4469-bf24-22dba3203b39",
+  "version": 4,
+  "stage": "task",
+  "tasks": {
+    "subtasks": [
+      {
+        "key": "T1",
+        "title": "Desain Skema DB Permintaan Bantuan",
+        "dueDate": "2026-11-04",
+        "priority": "high",
+        "startDate": "2026-11-03",
+        "assigneeId": "ac7b54f0-5015-4a83-bd3a-6fed6030d079",
+        "description": "Merancang tabel dan relasi database untuk menyimpan data permintaan bantuan.",
+        "deliveryArea": "backend",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R1", "R3"]
+      },
+      {
+        "key": "T2",
+        "title": "Implementasi API Simpan Permintaan",
+        "dueDate": "2026-11-08",
+        "priority": "high",
+        "startDate": "2026-11-05",
+        "assigneeId": "ac7b54f0-5015-4a83-bd3a-6fed6030d079",
+        "description": "Membuat endpoint API untuk menerima dan menyimpan data permintaan bantuan ke database, termasuk logika validasi.",
+        "deliveryArea": "backend",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R1", "R2"]
+      },
+      {
+        "key": "T3",
+        "title": "Implementasi API Baca Daftar Permintaan",
+        "dueDate": "2026-11-10",
+        "priority": "high",
+        "startDate": "2026-11-09",
+        "assigneeId": "ac7b54f0-5015-4a83-bd3a-6fed6030d079",
+        "description": "Membuat endpoint API untuk mengambil daftar permintaan bantuan dari database.",
+        "deliveryArea": "backend",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R3"]
+      },
+      {
+        "key": "T4",
+        "title": "Pengembangan Form Permintaan Bantuan",
+        "dueDate": "2026-11-08",
+        "priority": "high",
+        "startDate": "2026-11-05",
+        "assigneeId": "1bc606c0-1c51-4389-bae3-262311b9f29d",
+        "description": "Membuat antarmuka pengguna untuk form pengisian permintaan bantuan.",
+        "deliveryArea": "frontend",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R1", "R2"]
+      },
+      {
+        "key": "T5",
+        "title": "Implementasi Validasi Form Judul",
+        "dueDate": "2026-11-10",
+        "priority": "high",
+        "startDate": "2026-11-09",
+        "assigneeId": "1bc606c0-1c51-4389-bae3-262311b9f29d",
+        "description": "Menambahkan logika validasi di sisi klien untuk memastikan judul permintaan tidak kosong.",
+        "deliveryArea": "frontend",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R2"]
+      },
+      {
+        "key": "T6",
+        "title": "Integrasi API Simpan Permintaan",
+        "dueDate": "2026-11-12",
+        "priority": "high",
+        "startDate": "2026-11-11",
+        "assigneeId": "1bc606c0-1c51-4389-bae3-262311b9f29d",
+        "description": "Menghubungkan form permintaan dengan API backend untuk menyimpan data.",
+        "deliveryArea": "frontend",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R1"]
+      },
+      {
+        "key": "T7",
+        "title": "Pengembangan Tampilan Daftar Permintaan",
+        "dueDate": "2026-11-12",
+        "priority": "high",
+        "startDate": "2026-11-11",
+        "assigneeId": "1bc606c0-1c51-4389-bae3-262311b9f29d",
+        "description": "Membuat antarmuka pengguna untuk menampilkan daftar permintaan bantuan yang sudah tersimpan.",
+        "deliveryArea": "frontend",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R3"]
+      },
+      {
+        "key": "T8",
+        "title": "Integrasi API Baca Daftar Permintaan",
+        "dueDate": "2026-11-16",
+        "priority": "high",
+        "startDate": "2026-11-15",
+        "assigneeId": "1bc606c0-1c51-4389-bae3-262311b9f29d",
+        "description": "Menghubungkan tampilan daftar dengan API backend untuk mengambil dan menampilkan data permintaan.",
+        "deliveryArea": "frontend",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R3"]
+      },
+      {
+        "key": "T9",
+        "title": "Pengujian Fungsionalitas Simpan Permintaan",
+        "dueDate": "2026-11-16",
+        "priority": "high",
+        "startDate": "2026-11-15",
+        "assigneeId": "3efae1f8-d137-48f9-bdce-3f71e5c3a915",
+        "description": "Melakukan pengujian untuk memastikan form dapat dikirim, validasi judul berfungsi, dan permintaan tersimpan dengan benar.",
+        "deliveryArea": "qa",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R1", "R2"]
+      },
+      {
+        "key": "T10",
+        "title": "Pengujian Fungsionalitas Baca Daftar Permintaan",
+        "dueDate": "2026-11-18",
+        "priority": "high",
+        "startDate": "2026-11-17",
+        "assigneeId": "3efae1f8-d137-48f9-bdce-3f71e5c3a915",
+        "description": "Melakukan pengujian untuk memastikan daftar permintaan dapat dimuat dan ditampilkan dengan benar.",
+        "deliveryArea": "qa",
+        "assignmentMode": "assigned",
+        "requirementKeys": ["R3"]
+      }
+    ]
+  },
+  "recentVersion": {
+    "version": 4,
+    "actorType": "user",
+    "actorId": "e2143e16-0800-40cb-b8e3-4217cd5a0a88",
+    "actorName": "Stigma O'Neil",
+    "via": "ai",
+    "createdAt": "2026-11-02T07:20:05.624Z"
+  }
+}
