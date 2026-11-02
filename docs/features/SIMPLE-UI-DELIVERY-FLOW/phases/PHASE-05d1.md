@@ -48,7 +48,8 @@
 ### Stage Card
 
 **Feature:** SIMPLE-UI-DELIVERY-FLOW · **Task:** SIMPLE-UI-P5d-1 · **Tahap:** 5/6 Test & Review.
-**Jalur:** Penuh untuk program, slice WRA 7/16. **Status:** Kandidat teruji; G5 belum diterima.
+**Jalur:** Penuh untuk program, slice WRA 7/16. **Status:** UAT lulus; review terpisah
+`Accepted with gaps`; penerimaan gap oleh Owner dan gate Tier 2 masih terbuka.
 **Baseline:** `8decbe891f748092302a7981e856b839072277a3` ditambah perubahan P5d-1 lokal milik
 pelaksana sebelumnya. Owner menyetujui kelanjutan review, perbaikan, tes, UAT, dan PR lewat pesan
 `ok jalankan`; window fase di §2 tetap berlaku sampai merge atau dibatalkan. Semua perubahan
@@ -76,10 +77,11 @@ berada dalam path §2. P5d-2, UI P5e, policy/RBAC, dependency, migrasi, dan Prod
 
 ### Work readiness, impact, dan pilihan
 
-WRA tetap **7/16** (1,1,0,0,1,0,2,2). Bukti E2/E3 tersedia; penerimaan G5 masih **Blocked** pada
-UAT browser pascaperbaikan dan verifier/CI. Agent dapat mengubah kode, menjalankan Node 24 dan
-PostgreSQL lokal; browser sempat tersedia untuk UAT Owner, kemudian mengembalikan
-`Local browser use is disabled in Work settings`. Batas itu tidak dibypass.
+WRA tetap **7/16** (1,1,0,0,1,0,2,2). Bukti E2/E3/E4 tersedia; CI dan review terpisah selesai.
+Penerimaan dua gap nonblocking oleh Owner masih terbuka. Kontrol browser sempat mengembalikan
+`Local browser use is disabled in Work settings`; akses pulih setelah restart aplikasi.
+API dan web lokal dihidupkan kembali, lalu UAT Developer dan Owner berhasil. Batas akses
+tidak dibypass dan konfigurasi keamanan tidak dilonggarkan oleh agent.
 
 Change Impact Map: **Cross-boundary change**, endpoint baru aditif → controller → AI service →
 kontrak bersama → `saveSection` yang sudah ada. Frontend produksi tidak berubah (UI P5e terpisah).
@@ -98,14 +100,14 @@ di bawah. Rollback melalui revert commit P5d-1; tanpa perubahan schema dan tanpa
 
 ### AC → evidence
 
-| Target                                                                                   | Bukti primer                                                                        | Hasil / batas                                                  |
-| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| AC-5.6: susun 3–30 subtask, coverage Requirement, kunci server, validasi assignee/jadwal | Kontrak dan PostgreSQL service tests, termasuk jadwal kalender dan beban            | E2/E3 lulus; Apply belum menjadi scope fase ini                |
-| AC-5.3: versi/snapshot/audit dan konflik, termasuk panggilan serentak                    | Dua generate versi sama → satu tersimpan, satu konflik; snapshot/audit diverifikasi | E3 lulus                                                       |
-| AC-5.7: autentikasi dan authorization                                                    | HTTP 401 tanpa sesi; 403 Developer, QA, nonmember; AI tidak dipanggil               | E3 lulus; uji browser Developer tertunda                       |
-| 502 untuk keluaran tak valid, coverage hilang, dan duplikat                              | HTTP nyata → 502; versi, snapshot, audit tetap                                      | E3 lulus                                                       |
-| Gemini asli sebagai Owner                                                                | Browser pada localhost, fixture persisten di bawah                                  | E4 sebelum validasi duplikat; hasil berkualitas belum diterima |
-| Verifikasi pascaperbaikan dan G5                                                         | CI/verifier, UAT Owner ulang dan Developer                                          | Belum tersedia; tidak diklaim Done                             |
+| Target                                                                                   | Bukti primer                                                                        | Hasil / batas                                           |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| AC-5.6: susun 3–30 subtask, coverage Requirement, kunci server, validasi assignee/jadwal | Kontrak dan PostgreSQL service tests, termasuk jadwal kalender dan beban            | E2/E3 lulus; Apply belum menjadi scope fase ini         |
+| AC-5.3: versi/snapshot/audit dan konflik, termasuk panggilan serentak                    | Dua generate versi sama → satu tersimpan, satu konflik; snapshot/audit diverifikasi | E3 lulus                                                |
+| AC-5.7: autentikasi dan authorization                                                    | HTTP 401 tanpa sesi; 403 Developer, QA, nonmember; AI tidak dipanggil               | E3 lulus; browser Developer 403, readback tetap versi 4 |
+| 502 untuk keluaran tak valid, coverage hilang, dan duplikat                              | HTTP nyata → 502; versi, snapshot, audit tetap                                      | E3 lulus                                                |
+| Gemini asli sebagai Owner                                                                | Browser pada localhost, fixture persisten baru dan readback di bawah                | E4 pascaperbaikan lulus; 10 subtask tanpa duplikat      |
+| Verifikasi pascaperbaikan dan G5                                                         | CI sukses; dua reviewer terpisah memeriksa diff dan evidence                        | Accepted with gaps; penerimaan gap Owner masih terbuka  |
 
 ### Perintah dan outcome
 
@@ -145,12 +147,31 @@ terautentikasi (Feature + Plan lengkap + PRD lengkap), tanpa penulisan DB langsu
 - `GET …/feature-specs/:specId` dari browser mengembalikan versi 4 dan 10 subtask yang sama.
   T1 dan T2 identik: hasil ini membuktikan jalur runtime, **bukan** penerimaan mutu draf.
 - Owner menyetujui aturan duplikat di atas. Versi 4 dipertahankan sebagai evidence historis;
-  tidak dihapus atau diubah untuk menyembunyikan temuan. Pengujian Gemini pascaperbaikan belum
-  dijalankan karena browser dinonaktifkan; 403 browser Developer juga belum tersedia.
+  tidak dihapus atau diubah untuk menyembunyikan temuan. UAT ulang memakai fixture baru di bawah.
 - User melaporkan `Failed to fetch` pada login sesudah restart API. Diagnosis baca-saja:
   API `/v1/health` HTTP 200 database connected, web `/login` 200, OPTIONS login 204 dengan
   origin `http://localhost:3000` dan credentials diizinkan. Error browser belum dapat direproduksi
   karena kontrol browser nonaktif; tidak menyimpulkan password/sesi sebagai penyebab.
+
+UAT lanjutan pada 2026-11-02 setelah kontrol browser pulih:
+
+- **Developer:** user login sendiri; onboarding menampilkan peran Software Developer.
+  Workspace dan Spec historis dapat dibaca lewat HTTP terautentikasi. Tombol generate pada
+  harness mengembalikan **403 `FORBIDDEN`**, detail `Role 'dev' does not have permission for this action.`
+  Readback setelah penolakan tetap versi 4, 10 subtask, dan snapshot AI lama. Bukti:
+  [screenshot Developer](../evidence/p5d1/developer-403.jpg).
+- **Owner:** user mengganti sesi sendiri. Fixture baru berlabel `UAT fixture P5d-1` dibuat melalui
+  endpoint terautentikasi; Workspace sama, Spec `8d35f2dc-017f-4469-bf24-22dba3203b39`, root Feature
+  `cc839a86-0f4d-475c-ae2b-cd965e7d6b67`, versi awal 3, stage `task`.
+- **Gemini asli pascaperbaikan:** HTTP **200**, **26,328 ms**, versi **3 → 4**, stage tetap `task`;
+  **10 subtask berbeda**, 10 usulan assignee diterima, 0 kosong, Requirement R1–R3 tercakup.
+  Seluruh jadwal dalam rentang Plan. Snapshot `actorType=user`, `via=ai`,
+  `createdAt=2026-11-02T07:20:05.624Z`. Bukti:
+  [screenshot hasil](../evidence/p5d1/owner-generated.jpg).
+- Tombol Read persisted Spec melakukan GET terautentikasi baru dan mengembalikan versi 4 serta
+  10 subtask yang sama. [JSON readback](../evidence/p5d1/owner-readback.json) diekstrak dari
+  snapshot UI lengkap hasil GET tersebut; ini rekaman fixture UAT lokal persisten, bukan data
+  Production atau fixture pengganti backend. Tidak melakukan Apply, penghapusan, atau retry otomatis.
 
 ### Quality review dan handoff
 
@@ -165,25 +186,46 @@ kontrak 108/108; 0 fail/skip. Theme check, lint, dan typecheck ketiga workspace 
 lint tetap 15 warning frontend lama, 0 error. Scoped `prettier --check` dan `git diff --check`
 lulus. Pre-commit menjalankan Prettier dan ESLint atas file yang di-stage, lulus.
 
+Delta laporan UAT/review berikutnya hanya dokumentasi dan artefak bukti; runtime tidak berubah.
+`npm run docs:check && npm run docs:completeness`: exit 0, 12 pass, 0 fail/skip,
+88 gap baseline, 0 gap baru. Prettier atas file dokumentasi/JSON terkait dan `git diff --check`
+lulus. Suite runtime tidak diulang untuk perubahan bukti ini.
+
 Publication: [PR #95](https://github.com/oneilreyand/qlickhub/pull/95), implementasi `6d3cc5d`
 di branch `feat/simple-ui-p5d1-ai-tasks`; auto-merge **SQUASH** diaktifkan sesuai `AI-020`.
 Tier 2 tepat satu file `packages/contracts/package.json` (daftar test, bukan dependency).
 `owner-gate` menolak karena belum ada label Owner; ini hasil gate yang diharapkan, bukan
-tes produk gagal. CI `verify` masih berjalan saat catatan ini dibuat. **Jangan pasang label
-sebelum UAT ulang/G5 selesai**. Status tetap kandidat/Blocked pada gate, belum merge/deploy.
+tes produk gagal. [CI run 41391529595](https://github.com/oneilreyand/qlickhub/actions/runs/41391529595)
+pada head `313bf03` selesai sukses: `verify` dan `e2e`. Perintah CI `test:integration` API:
+602 pass, 0 fail/skip; kontrak: 108 pass, 0 fail/skip; web: 777 pass/131 file; E2E: 18 pass.
+`validate`, migrasi PostgreSQL test, quality/SDLC check, dan build web lulus. CI docsys 25 pass,
+4 skip (lokal sebelumnya 29 pass, 0 skip); lint 15 warning lama, 0 error. Build mencatat warning
+ukuran chunk dan runner mencatat deprecation action Node 20. Tidak mengklaim tes yang di-skip
+sebagai lulus. **Jangan pasang label sebelum Owner menerima gap review dan gate selesai**.
+Belum merge/deploy; head yang berubah tetap harus melewati CI kembali.
 
-| Dimensi             | Metode, hasil, dan tindak lanjut                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Reuse/DRY           | Inspeksi imports/callers: reuse schema tanggal, rate limiter, klien Gemini, dan transaksi saveSection; tidak membuat jalur Apply baru |
-| Duplikasi/overlap   | Ditemukan duplikat nyata di UAT; penolakan eksplisit disetujui Owner dan diuji HTTP tanpa partial writes                              |
-| Usang/tidak dipakai | Ekspor kontrak dan skrip test merujuk file baru; handler dipakai route generate/tasks; regex tanggal lokal diganti schema kanonikal   |
-| Boundary            | Prompt hanya mengusulkan, stage tidak maju, backend memverifikasi izin/versi; tidak menambah RBAC atau bypass Owner                   |
-| Regresi             | Tes seluruh modul sebelum aturan duplikat dan tes terarah sesudahnya lulus; hasil final tambahan dicatat saat tersedia                |
+| Dimensi             | Metode, hasil, dan tindak lanjut                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reuse/DRY           | Reuse schema tanggal, rate limiter, klien Gemini, dan transaksi saveSection; predicate kecocokan assignment disalin setara, belum diekstrak |
+| Duplikasi/overlap   | Duplikat nyata UAT ditolak lewat aturan yang disetujui Owner; review menemukan duplikasi predicate assignment nonblocking, dicatat di bawah |
+| Usang/tidak dipakai | Ekspor kontrak dan skrip test merujuk file baru; handler dipakai route generate/tasks; regex tanggal lokal diganti schema kanonikal         |
+| Boundary            | Prompt hanya mengusulkan, stage tidak maju, backend memverifikasi izin/versi; tidak menambah RBAC atau bypass Owner                         |
+| Regresi             | Tes seluruh modul sebelum aturan duplikat dan tes terarah sesudahnya lulus; hasil final tambahan dicatat saat tersedia                      |
 
-Agent penerus memeriksa diff dan output primer, lalu mengembalikan Accepted / Accepted with gaps /
-Rejected / Blocked sesuai §2A.F. Saat ini kode belum diterima G5. UI responsif/Atomic produk N/A
-karena server-only; HTML test support bukan halaman produksi. Klaim performa skala besar, biaya
-token, UAT pascaperbaikan, dan browser Developer tetap unverified. Tier PR **2** karena
+Review terpisah melalui skill `review` membandingkan `git diff 8decbe8...HEAD` dan sumber primer:
+
+| Reviewer                | Hasil              | Temuan                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `p5d1_standards_review` | Accepted with gaps | Tidak ada pelanggaran keras auth/persistensi/kontrak. `candidateFitsArea` menduplikasi predicate role/specialty di `taskLifecycle`; setara untuk kandidat dev/QA saat ini. Ekstraksi menyentuh path di luar window.                     |
+| `p5d1_spec_review`      | Accepted with gaps | Prompt memakai judul/tujuan/platform/jadwal Plan dan inScope/outScope Brief, tetapi belum mengirim brief.context, problem, targetUsers, successMeasure, priority Plan. Ini keterbatasan konteks; tidak ditemukan kegagalan AC keluaran. |
+
+Kedua gap **nonblocking menurut reviewer**, tetapi belum diterima Owner. Tidak mengubah strategi
+prompt atau memperluas path refactor diam-diam; keputusan menerima gap atau memperbaikinya tetap
+terbuka. Reviewer Standards juga membaca hasil CI primer dan artefak UAT; reviewer Spec membaca
+diff, kontrak, tes, SSoT/ADR, dan readback lengkap, tanpa mengklaim menjalankan ulang tes.
+
+UI responsif/Atomic produk N/A karena server-only; HTML test support bukan halaman produksi.
+Klaim performa skala besar dan biaya token tetap unverified. Tier PR **2** karena
 `packages/contracts/package.json` mengubah daftar test; dependency tidak berubah. Agent tidak
 memasang label `owner-approved`. Catatan hasil publication/CI tersedia di PR ketika dibuat;
 task induk SIMPLE-UI-DELIVERY-FLOW tetap In progress dan tidak ditutup.

@@ -60,6 +60,8 @@ Bukti, perintah, outcome gagal/lulus, WRA, AC mapping, quality review, dan block
 di [PHASE-05d1 §4](phases/PHASE-05d1.md#4-verifikasi-lanjutan-2026-11-02).
 Tes HTTP/PostgreSQL membuktikan AC-5.6 bagian penyusunan draf dan AC-5.7; bagian Apply tetap P5d-2.
 UAT Gemini Owner sebelum perbaikan menemukan duplikat; Owner menyetujui penolakannya dan tes
-regresi lulus. **Hasil G5: Blocked** — browser Developer dan UAT Gemini pascaperbaikan belum
-dapat dijalankan karena Local browser use nonaktif; hasil CI/verifier masih menunggu.
+regresi lulus. Browser Developer membuktikan 403; UAT Owner pascaperbaikan menghasilkan 10 subtask
+tanpa duplikat dan readback versi 4. CI lulus. Dua review terpisah menyatakan **Accepted with gaps**:
+predicate assignment duplikat dan sebagian konteks Plan/Brief belum dikirim ke AI. Penerimaan gap
+oleh Owner dan gate Tier 2 masih terbuka; detail dan artefak primer ada di phase yang ditautkan.
 Tidak menganggap test fixture sebagai bukti Production dan tidak menutup Feature induk.
