@@ -28,6 +28,23 @@ tercakup (lihat ADR-029 butir 5).
 | Gap yang diterima  | <daftar + siapa menyetujui>  |
 | Rollback plan      | <cara + siapa>               |
 
+### P5d-1 — gap yang diterima Owner, 2026-11-02
+
+Owner memilih **"Lengkapi konteks AI; terima duplikasi sementara"** di chat. Persetujuan ini
+menerima sementara duplikasi predicate kecocokan role/specialty assignee antara AI draft dan
+penugasan manual, yang saat review setara untuk kandidat Developer/QA. Tidak menerima gap
+konteks prompt: gap tersebut harus diperbaiki dan diuji sebelum kandidat fase diterima.
+
+Definisi gap, hasil reviewer, bukti perbaikan, dan tindak lanjut berada di
+[PHASE-05d1 §4](phases/PHASE-05d1.md#4-verifikasi-lanjutan-2026-11-02).
+Ekstraksi predicate bersama memerlukan scope/path baru karena menyentuh `taskLifecycle`;
+tidak dilakukan dalam P5d-1. Risiko pemeliharaan: dua predicate dapat berbeda saat aturan
+penugasan berubah, sehingga perubahan selanjutnya harus memeriksa keduanya.
+
+Ini penerimaan gap fase, bukan rilis seluruh Feature. PR #95 tetap Tier 2 karena
+`packages/contracts/package.json`; label `owner-approved` harus dipasang sendiri oleh Owner
+setelah gate selesai, dan agent tidak mengubah label. Belum ada klaim merge atau deploy.
+
 ## 4. Metrik sukses (dari problem.md)
 
 | Metrik | Baseline | Target | Hasil setelah rilis | Kapan diukur ulang |

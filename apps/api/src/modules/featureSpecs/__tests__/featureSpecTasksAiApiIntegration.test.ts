@@ -259,6 +259,38 @@ describe('Feature Spec AI Tasks service (P5d-1: AC-5.6, AC-5.7)', () => {
     assert.strictEqual(await TaskModel.count({ where: { parentTaskId: spec.featureTaskId } }), 0);
   });
 
+  test('AI receives the complete persisted Plan and Product Brief together with Requirements and AC', async () => {
+    const spec = await createSpec();
+    const brief = {
+      ...prd.brief,
+      context: 'Checkout harus ramah pembaca layar dan koneksi lambat.',
+    };
+    const updated = await featureSpecService.saveSection(po.id, {
+      workspaceId: workspace.id,
+      specId: spec.id,
+      section: 'prd',
+      version: spec.version,
+      content: { ...prd, brief },
+      complete: true,
+    });
+    await featureSpecAiService.generateTasks(po.id, input(updated.id, updated.version));
+    const prompt = lastRequest?.prompt ?? '';
+    for (const value of [...Object.values(completePlan), ...Object.values(brief)]) {
+      assert.ok(
+        prompt.includes(value),
+        `Persisted planning context missing from AI input: ${value}`,
+      );
+    }
+    for (const requirement of prd.requirements) {
+      for (const value of [requirement.key, requirement.title, requirement.description]) {
+        assert.ok(prompt.includes(value));
+      }
+      for (const ac of requirement.acceptanceCriteria) {
+        for (const value of Object.values(ac)) assert.ok(prompt.includes(value));
+      }
+    }
+  });
+
   test('HTTP: unauthenticated, Developer, QA, and nonmember calls cannot invoke AI', async () => {
     const spec = await createSpec();
     const url = `${baseUrl}/workspaces/${workspace.id}/feature-specs/${spec.id}/generate/tasks`;

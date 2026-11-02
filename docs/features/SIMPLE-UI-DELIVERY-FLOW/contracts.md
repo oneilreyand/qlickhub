@@ -68,6 +68,12 @@ P5d-1 validates calendar dates with the shared `DateStringSchema` and rejects id
 subtasks before saving. The approved duplicate definition, failure contract, and evidence are in
 [PHASE-05d1 §4](phases/PHASE-05d1.md#4-verifikasi-lanjutan-2026-11-02).
 
+The Tasks prompt includes all nine required Plan fields plus its optional idea, Product Brief
+context/inScope/outScope, and each Requirement with its key and acceptance criteria. Optional
+idea/context is sent as empty text when absent. Member context remains limited to IDs, roles,
+specialties, and active workload counts; names and email addresses are excluded. Owner approved
+completing this context on 2026-11-02; the regression test uses persisted Plan/PRD records.
+
 - **Frontend:** shell (`AppLayout`, `Sidebar`, `Header`), detail Feature (`TaskDetailDrawer` dan tab
   `taskDetail/*` dipecah ke halaman), Tugas Saya (`DevWorkingDesk`, `QaTestingDesk`,
   `PoTeamICardGrid`, `RoleAwareWorkQueuePanel` diganti di balik flag per peran), halaman Test Case,

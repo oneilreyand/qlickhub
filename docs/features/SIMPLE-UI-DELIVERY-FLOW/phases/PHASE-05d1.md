@@ -48,8 +48,8 @@
 ### Stage Card
 
 **Feature:** SIMPLE-UI-DELIVERY-FLOW · **Task:** SIMPLE-UI-P5d-1 · **Tahap:** 5/6 Test & Review.
-**Jalur:** Penuh untuk program, slice WRA 7/16. **Status:** UAT lulus; review terpisah
-`Accepted with gaps`; penerimaan gap oleh Owner dan gate Tier 2 masih terbuka.
+**Jalur:** Penuh untuk program, slice WRA 7/16. **Status:** Perbaikan konteks diterima reviewer;
+gap duplikasi diterima Owner. UAT sukses prompt terbaru masih tertunda pada Gemini; Tier 2 terbuka.
 **Baseline:** `8decbe891f748092302a7981e856b839072277a3` ditambah perubahan P5d-1 lokal milik
 pelaksana sebelumnya. Owner menyetujui kelanjutan review, perbaikan, tes, UAT, dan PR lewat pesan
 `ok jalankan`; window fase di §2 tetap berlaku sampai merge atau dibatalkan. Semua perubahan
@@ -77,8 +77,9 @@ berada dalam path §2. P5d-2, UI P5e, policy/RBAC, dependency, migrasi, dan Prod
 
 ### Work readiness, impact, dan pilihan
 
-WRA tetap **7/16** (1,1,0,0,1,0,2,2). Bukti E2/E3/E4 tersedia; CI dan review terpisah selesai.
-Penerimaan dua gap nonblocking oleh Owner masih terbuka. Kontrol browser sempat mengembalikan
+WRA tetap **7/16** (1,1,0,0,1,0,2,2). Bukti E2/E3/E4 tersedia; CI dan review awal selesai.
+Owner menerima gap duplikasi dan meminta perbaikan konteks; hasil lanjutan dicatat di bawah.
+Kontrol browser sempat mengembalikan
 `Local browser use is disabled in Work settings`; akses pulih setelah restart aplikasi.
 API dan web lokal dihidupkan kembali, lalu UAT Developer dan Owner berhasil. Batas akses
 tidak dibypass dan konfigurasi keamanan tidak dilonggarkan oleh agent.
@@ -107,7 +108,7 @@ di bawah. Rollback melalui revert commit P5d-1; tanpa perubahan schema dan tanpa
 | AC-5.7: autentikasi dan authorization                                                    | HTTP 401 tanpa sesi; 403 Developer, QA, nonmember; AI tidak dipanggil               | E3 lulus; browser Developer 403, readback tetap versi 4 |
 | 502 untuk keluaran tak valid, coverage hilang, dan duplikat                              | HTTP nyata → 502; versi, snapshot, audit tetap                                      | E3 lulus                                                |
 | Gemini asli sebagai Owner                                                                | Browser pada localhost, fixture persisten baru dan readback di bawah                | E4 pascaperbaikan lulus; 10 subtask tanpa duplikat      |
-| Verifikasi pascaperbaikan dan G5                                                         | CI sukses; dua reviewer terpisah memeriksa diff dan evidence                        | Accepted with gaps; penerimaan gap Owner masih terbuka  |
+| Verifikasi pascaperbaikan dan G5                                                         | CI/review awal sukses; perbaikan konteks dan tes lanjutan di bawah                  | UAT sukses prompt terbaru dan CI head terbaru tertunda  |
 
 ### Perintah dan outcome
 
@@ -219,9 +220,9 @@ Review terpisah melalui skill `review` membandingkan `git diff 8decbe8...HEAD` d
 | `p5d1_standards_review` | Accepted with gaps | Tidak ada pelanggaran keras auth/persistensi/kontrak. `candidateFitsArea` menduplikasi predicate role/specialty di `taskLifecycle`; setara untuk kandidat dev/QA saat ini. Ekstraksi menyentuh path di luar window.                     |
 | `p5d1_spec_review`      | Accepted with gaps | Prompt memakai judul/tujuan/platform/jadwal Plan dan inScope/outScope Brief, tetapi belum mengirim brief.context, problem, targetUsers, successMeasure, priority Plan. Ini keterbatasan konteks; tidak ditemukan kegagalan AC keluaran. |
 
-Kedua gap **nonblocking menurut reviewer**, tetapi belum diterima Owner. Tidak mengubah strategi
-prompt atau memperluas path refactor diam-diam; keputusan menerima gap atau memperbaikinya tetap
-terbuka. Reviewer Standards juga membaca hasil CI primer dan artefak UAT; reviewer Spec membaca
+Pada review awal kedua gap **nonblocking menurut reviewer** dan belum diterima Owner. Keputusan
+Owner sesudahnya serta perbaikan konteks dicatat di bagian berikut. Reviewer Standards juga membaca
+hasil CI primer dan artefak UAT; reviewer Spec membaca
 diff, kontrak, tes, SSoT/ADR, dan readback lengkap, tanpa mengklaim menjalankan ulang tes.
 
 UI responsif/Atomic produk N/A karena server-only; HTML test support bukan halaman produksi.
@@ -229,3 +230,49 @@ Klaim performa skala besar dan biaya token tetap unverified. Tier PR **2** karen
 `packages/contracts/package.json` mengubah daftar test; dependency tidak berubah. Agent tidak
 memasang label `owner-approved`. Catatan hasil publication/CI tersedia di PR ketika dibuat;
 task induk SIMPLE-UI-DELIVERY-FLOW tetap In progress dan tidak ditutup.
+
+### Kelanjutan yang disetujui Owner — konteks Plan/Brief
+
+Owner menjawab **"Lengkapi konteks AI; terima duplikasi sementara"** pada 2026-11-02. Window P5d-1
+tetap berlaku; baseline kelanjutan `4685b181e9a4db2dd5ddc3298c130a58649d26e2`. Scope: service AI,
+tes/harness modul, dan dokumen Feature. WRA tetap 7/16; interface HTTP, schema, RBAC, provider/model,
+kunci, timeout, retry, dan jalur simpan tidak berubah. Tidak menyentuh `taskLifecycle`.
+
+Decision Snapshot: menerima konteks terbatas menghindari tambahan token tetapi dapat menghilangkan
+latar belakang; melengkapi masukan menjaga kesetiaan Plan/Brief dengan tambahan panjang prompt.
+Owner memilih melengkapi konteks dan menerima duplikasi predicate sementara. Risiko pemeliharaan
+gap dan penerimaannya dicatat di [release.md](../release.md#p5d-1--gap-yang-diterima-owner-2026-11-02).
+Rollback tetap revert perubahan P5d-1; tanpa migrasi atau penghapusan data.
+
+- Prompt kini menyertakan seluruh sembilan field Plan wajib, optional idea, dan Brief
+  context/inScope/outScope; Requirement beserta kunci/AC dan masukan anggota tetap ada. Metadata
+  `aiFilledFields` tidak dikirim; data anggota tetap tanpa nama/email. Optional idea/context kosong
+  dikirim sebagai teks kosong. Ini perbaikan input, bukan strategi model/retry baru.
+- Tes regresi menyimpan Plan/PRD melalui service PostgreSQL lalu memeriksa nilai yang benar-benar
+  mencapai seam Gemini, termasuk Brief context berbeda dari Plan problem, seluruh Requirement/AC.
+  Awalnya gagal pada konteks yang hilang; sesudah perbaikan lulus. Tes lama tanpa optional context
+  serta perlindungan identitas anggota tetap lulus.
+- Delta diterima terpisah oleh `p5d1_spec_review` (**Accepted**, gap konteks terselesaikan) dan
+  `p5d1_standards_review` (**Accepted**, duplikasi tetap sesuai keputusan Owner). Mereka memeriksa
+  diff service/test/harness dan log primer; tidak mengklaim menjalankan ulang tes.
+
+| Perintah / environment                                                                                                                                  | Hasil                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Tes awal dari shell default Node 20.12.2                                                                                                                | Exit 1, 20 pass/1 fail konteks; bukan evidence runtime final karena engine repo Node 24                                             |
+| Node 24.15.0: `NODE_ENV=test node --import tsx --test apps/api/src/modules/featureSpecs/__tests__/featureSpecTasksAiApiIntegration.test.ts` sebelum fix | Exit 1, 20 pass/1 fail/0 skip; pesan missing persisted planning context                                                             |
+| Node 24.15.0: lima suite Feature Spec dengan daftar path pada perintah regresi di atas, sesudah fix                                                     | Exit 0, 59 pass/0 fail/skip; TEST_DATABASE_URL eksplisit ke database disposable yang sama                                           |
+| Node 24.15.0: `npm run validate`                                                                                                                        | Exit 0; docs 12, docsys 29, env 5, SDLC 10, agent 22, tier 5 pass; 0 fail/skip; theme/lint/typecheck lulus, 15 warning lama/0 error |
+| Node 24.15.0: `npm --prefix apps/api run build`                                                                                                         | Exit 0                                                                                                                              |
+
+API pengembangan dijalankan ulang pada Node 24 sebelum UAT berikutnya. Fixture baru berlabel UAT
+mencakup Brief context eksplisit; Workspace sama, Spec `90f2b188-1b07-454f-a3ad-5d911a9b14e4`,
+root Feature `b1f4fcb1-a51d-4cd8-809a-583d8e334b9d`, versi 3, stage `task`.
+Percobaan pertama HTTP 502 `FEATURE_SPEC_AI_UNAVAILABLE`, detail publik "The AI service did not
+respond. Try again."; alasan penyedia vs validasi tidak dapat disimpulkan. Readback tetap versi 3,
+Task kosong, snapshot terbaru `via=web`. Satu pengulangan manual berikutnya juga HTTP 502,
+dengan detail **"The AI service returned status 503."**; GET kembali membuktikan versi 3 dan Task
+kosong. Sesudah jeda pengerjaan laporan, satu percobaan manual ketiga masih mengembalikan status
+503 penyedia (backend 502); GET tetap versi 3/Task kosong. Bukti kegagalan dan readback ada di
+[folder evidence](../evidence/p5d1/README.md). Tidak mengklaim UAT sukses untuk prompt terbaru;
+tidak menambah retry otomatis atau mengubah provider/model. UAT sukses sebelumnya tetap bukti
+historis terpisah. **G5 Blocked** pada UAT sukses pascaperbaikan konteks dan CI head terbaru.

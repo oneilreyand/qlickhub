@@ -61,7 +61,9 @@ di [PHASE-05d1 §4](phases/PHASE-05d1.md#4-verifikasi-lanjutan-2026-11-02).
 Tes HTTP/PostgreSQL membuktikan AC-5.6 bagian penyusunan draf dan AC-5.7; bagian Apply tetap P5d-2.
 UAT Gemini Owner sebelum perbaikan menemukan duplikat; Owner menyetujui penolakannya dan tes
 regresi lulus. Browser Developer membuktikan 403; UAT Owner pascaperbaikan menghasilkan 10 subtask
-tanpa duplikat dan readback versi 4. CI lulus. Dua review terpisah menyatakan **Accepted with gaps**:
-predicate assignment duplikat dan sebagian konteks Plan/Brief belum dikirim ke AI. Penerimaan gap
-oleh Owner dan gate Tier 2 masih terbuka; detail dan artefak primer ada di phase yang ditautkan.
+tanpa duplikat dan readback versi 4. CI awal lulus. Review awal menemukan dua gap; Owner kemudian
+memilih melengkapi konteks AI dan menerima duplikasi predicate sementara. Perbaikan konteks lulus
+59 tes PostgreSQL, validasi Node 24, dan dua review delta **Accepted**. UAT prompt terbaru masih
+tertunda: Gemini mengembalikan 503 (backend 502), readback tetap versi 3/Task kosong. CI head terbaru
+dan Tier 2 masih terbuka; detail dan artefak primer ada di phase yang ditautkan.
 Tidak menganggap test fixture sebagai bukti Production dan tidak menutup Feature induk.
