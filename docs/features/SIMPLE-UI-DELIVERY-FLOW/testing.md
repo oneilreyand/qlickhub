@@ -53,3 +53,13 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT. Pada fase ini E4 = UAT lokal (batas
 | P2a   | Belum — menunggu Owner                                  | Bukti P2a ada di [phases/PHASE-02.md](phases/PHASE-02.md) §3: 735 test lulus, UAT Light/Dark, 8 bagian lama terbuka | Menunggu | Pelaksana dan UAT oleh Claude; G5 butuh verifier independen |
 
 Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).
+
+## 6. P5d-1 — kandidat teruji 2026-11-02
+
+Bukti, perintah, outcome gagal/lulus, WRA, AC mapping, quality review, dan blocker berada sekali
+di [PHASE-05d1 §4](phases/PHASE-05d1.md#4-verifikasi-lanjutan-2026-11-02).
+Tes HTTP/PostgreSQL membuktikan AC-5.6 bagian penyusunan draf dan AC-5.7; bagian Apply tetap P5d-2.
+UAT Gemini Owner sebelum perbaikan menemukan duplikat; Owner menyetujui penolakannya dan tes
+regresi lulus. **Hasil G5: Blocked** — browser Developer dan UAT Gemini pascaperbaikan belum
+dapat dijalankan karena Local browser use nonaktif; hasil CI/verifier masih menunggu.
+Tidak menganggap test fixture sebagai bukti Production dan tidak menutup Feature induk.

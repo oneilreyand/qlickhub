@@ -18,6 +18,7 @@ export * from './featureReadiness.js';
 export * from './featureSpec.js';
 export * from './featureSpecQuestions.js';
 export * from './featureSpecPrdAi.js';
+export * from './featureSpecTasksAi.js';
 export * from './requirementFinding.js';
 export * from './workQueue.js';
 export * from './problemDetail.js';

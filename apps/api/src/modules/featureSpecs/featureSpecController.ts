@@ -7,6 +7,7 @@ import {
   FEATURE_SPEC_QUESTIONS_UNANSWERED_CODE,
   GenerateFeatureSpecPlanSchema,
   GenerateFeatureSpecPrdSchema,
+  GenerateFeatureSpecTasksSchema,
   SaveFeatureSpecSectionSchema,
 } from '@qlick/contracts';
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
@@ -168,6 +169,20 @@ export async function generateFeatureSpecPrd(req: AuthenticatedRequest, res: Res
       specId: req.params.specId,
     });
     const result = await featureSpecAiService.generatePrd(req.user!.userId, input);
+    return res.status(200).json(result);
+  } catch (error) {
+    return sendError(res, error);
+  }
+}
+
+export async function generateFeatureSpecTasks(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = GenerateFeatureSpecTasksSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+      specId: req.params.specId,
+    });
+    const result = await featureSpecAiService.generateTasks(req.user!.userId, input);
     return res.status(200).json(result);
   } catch (error) {
     return sendError(res, error);

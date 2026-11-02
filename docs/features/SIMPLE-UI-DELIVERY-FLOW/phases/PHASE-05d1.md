@@ -1,6 +1,6 @@
 # SIMPLE-UI-DELIVERY-FLOW — Tahap 5: Phase 05d-1 (P5d-1) — AI menyusun Task dari PRD
 
-**Status:** Menunggu persetujuan Owner (Approval Window di bagian 2)
+**Status:** Disetujui Owner (chat, 2026-10-31); sedang dikerjakan
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **ADR:** [ADR-036](../../../adr/ADR-036-FEATURE-SPEC-REQUIRED-FIELDS-AND-AGENT-READY-WRITES.md)
 **AC phase ini:** AC-5.6 (bagian menyusun subtask; bagian Apply ada di P5d-2)
@@ -32,7 +32,7 @@
 | Risiko & recovery                | Risiko: (a) AI menugaskan orang yang sudah penuh beban; mitigasi: beban kerja jadi masukan AI, aturan penjaga tetap berlaku, PO meninjau dan dapat mengganti di P5e. (b) AI tidak menutup semua Requirement; mitigasi: validasi server menolak seluruh hasil tanpa simpan parsial, PO mengulang. (c) Task yang ditulis PO tertimpa; mitigasi: wajib `replace: true` dan versi lama tetap di riwayat. (d) Data anggota keluar ke penyedia AI; mitigasi: hanya id, peran, spesialisasi, dan jumlah beban, tanpa nama atau email. Recovery: revert PR; tidak ada perubahan skema DB.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | WRA                              | 7/16 (requirement 1, lapisan 1, data 0, otorisasi 0, kontrak 1, ketersinggungan 0, validasi 2, eksternal 2).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Masa berlaku                     | Sampai P5d-1 di-merge atau dibatalkan Owner.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| Disetujui                        | _Menunggu pilihan Owner di chat._                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Disetujui                        | Owner, chat, 2026-10-31 ("setuju").                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ## 3. Urutan kerja
 
@@ -42,3 +42,135 @@
 | 2       | `generateTasks` di servis AI (kandidat anggota, validasi, simpan draf), controller, rute, tes servis dan tes susunan rute | Tes servis hijau; integrasi dijalankan Owner |
 | 3       | Dokumen: `contracts.md`, `breakdown.md`                                                                                   | `docs:check`, `docs:completeness`            |
 | 4       | Uji Gemini asli lewat API sebagai PO/Owner, 403 sebagai Developer; catat di `PHASE-05d1.md` dan `breakdown.md`            | Catatan UAT                                  |
+
+## 4. Verifikasi lanjutan — 2026-11-02
+
+### Stage Card
+
+**Feature:** SIMPLE-UI-DELIVERY-FLOW · **Task:** SIMPLE-UI-P5d-1 · **Tahap:** 5/6 Test & Review.
+**Jalur:** Penuh untuk program, slice WRA 7/16. **Status:** Kandidat teruji; G5 belum diterima.
+**Baseline:** `8decbe891f748092302a7981e856b839072277a3` ditambah perubahan P5d-1 lokal milik
+pelaksana sebelumnya. Owner menyetujui kelanjutan review, perbaikan, tes, UAT, dan PR lewat pesan
+`ok jalankan`; window fase di §2 tetap berlaku sampai merge atau dibatalkan. Semua perubahan
+berada dalam path §2. P5d-2, UI P5e, policy/RBAC, dependency, migrasi, dan Production tetap di luar scope.
+**Policies:** `AI-001`, `AI-009`, `AI-013`, `AI-020`, `AUTH-001`, `CONTRACT-001`, `DATA-001`,
+`TEST-001`, `DOC-003`, `DOC-004`, `SDLC-001`, `SDLC-002`.
+
+### Keputusan tambahan dan perbaikan
+
+- UAT Gemini asli mengembalikan dua subtask identik. Owner menyetujui rekomendasi
+  `Setuju, tolak subtask identik (Rekomendasi)` pada 2026-11-02. **Identik** berarti seluruh
+  field efektif sama setelah normalisasi yang sudah disetujui: judul/deskripsi yang sudah di-trim,
+  delivery area, priority, tanggal yang sudah diperbaiki, assignee yang sudah diverifikasi, serta
+  himpunan Requirement valid (urutan/duplikasi kunci tidak membedakan). Kunci server `Tn` diabaikan.
+  Hasil tersebut ditolak seluruhnya dengan 502 `FEATURE_SPEC_AI_UNAVAILABLE`; tidak ada draf,
+  versi, atau audit parsial yang disimpan. Judul mirip dengan lingkup berbeda tetap diterima.
+- Tanggal berformat benar tetapi kalender tidak valid diperbaiki ke tanggal Plan melalui
+  `DateStringSchema` kanonikal. Tes regresi mula-mula gagal (15/16), lalu lulus setelah perbaikan.
+- Beban anggota dihitung dengan agregasi `TaskModel.count({ group: ['assigneeId'] })`, sehingga
+  hasil query per anggota dan tidak memuat setiap subtask aktif ke memori. Scope Workspace,
+  filter status aktif, dan paranoid soft-delete tetap berlaku. Tidak menambah indeks/migrasi.
+- Handler, dua rate limiter, policy Planner, klien Gemini, `saveSection`, lock versi, snapshot,
+  dan `task_activity` yang sudah ada dipakai ulang. Tidak mengubah model, kunci, retry, timeout,
+  atau strategi prompt Gemini yang sudah disetujui di §2.
+
+### Work readiness, impact, dan pilihan
+
+WRA tetap **7/16** (1,1,0,0,1,0,2,2). Bukti E2/E3 tersedia; penerimaan G5 masih **Blocked** pada
+UAT browser pascaperbaikan dan verifier/CI. Agent dapat mengubah kode, menjalankan Node 24 dan
+PostgreSQL lokal; browser sempat tersedia untuk UAT Owner, kemudian mengembalikan
+`Local browser use is disabled in Work settings`. Batas itu tidak dibypass.
+
+Change Impact Map: **Cross-boundary change**, endpoint baru aditif → controller → AI service →
+kontrak bersama → `saveSection` yang sudah ada. Frontend produksi tidak berubah (UI P5e terpisah).
+Relasi: Spec dimiliki Workspace dan root Feature; satu Spec/root; snapshot per versi dan audit
+dibuat bersama mutasi dalam transaksi yang sudah ada. Membership/specialty dan task hanya dibaca,
+foreign key serta lifecycle penghapusan tidak berubah. Otorisasi ditegakkan backend. Risiko
+migrasi N/A. Query kandidat satu eager load dan satu agregasi, bukan query per anggota; ukuran
+daftar kandidat dan token model masih mengikuti jumlah anggota Workspace, tanpa klaim skala besar.
+
+Decision Snapshot: pertahankan draf duplikat (lebih toleran tetapi pekerjaan dapat tumpang tindih)
+vs tolak seluruh jawaban (data lebih konsisten tetapi PO mungkin perlu mencoba lagi). Owner memilih
+penolakan; tidak ada deduplikasi diam-diam atau retry otomatis yang dapat mengurangi coverage.
+Provider tetap Gemini, data yang dikirim mengikuti §2; id/peran/spesialisasi/beban saja untuk anggota,
+tanpa nama/email. Biaya token dan kualitas lintas skenario belum diukur; latency satu UAT tercatat
+di bawah. Rollback melalui revert commit P5d-1; tanpa perubahan schema dan tanpa menghapus data UAT.
+
+### AC → evidence
+
+| Target                                                                                   | Bukti primer                                                                        | Hasil / batas                                                  |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| AC-5.6: susun 3–30 subtask, coverage Requirement, kunci server, validasi assignee/jadwal | Kontrak dan PostgreSQL service tests, termasuk jadwal kalender dan beban            | E2/E3 lulus; Apply belum menjadi scope fase ini                |
+| AC-5.3: versi/snapshot/audit dan konflik, termasuk panggilan serentak                    | Dua generate versi sama → satu tersimpan, satu konflik; snapshot/audit diverifikasi | E3 lulus                                                       |
+| AC-5.7: autentikasi dan authorization                                                    | HTTP 401 tanpa sesi; 403 Developer, QA, nonmember; AI tidak dipanggil               | E3 lulus; uji browser Developer tertunda                       |
+| 502 untuk keluaran tak valid, coverage hilang, dan duplikat                              | HTTP nyata → 502; versi, snapshot, audit tetap                                      | E3 lulus                                                       |
+| Gemini asli sebagai Owner                                                                | Browser pada localhost, fixture persisten di bawah                                  | E4 sebelum validasi duplikat; hasil berkualitas belum diterima |
+| Verifikasi pascaperbaikan dan G5                                                         | CI/verifier, UAT Owner ulang dan Developer                                          | Belum tersedia; tidak diklaim Done                             |
+
+### Perintah dan outcome
+
+Environment: macOS, Node v24.15.0, npm 11.12.1. Database disposable
+`qlickhub_p5d1_test_20261102`, host loopback PostgreSQL; tidak memakai database Production.
+Tes integrasi memalsukan hanya seam klien Gemini sesuai ADR-036; Sequelize, policy, HTTP auth,
+snapshot, dan audit dijalankan nyata. Fixture pabrik hanya ada di test support.
+
+| Perintah / tahap                                                                                                                                                                                                | Hasil                                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm --prefix packages/contracts run build`                                                                                                                                                                     | Exit 0                                                                                                                                                                 |
+| `npm --prefix packages/contracts run test`                                                                                                                                                                      | Exit 0, 108 pass, 0 fail/skip                                                                                                                                          |
+| `npm --prefix apps/api run typecheck`                                                                                                                                                                           | Exit 0 setelah memperbaiki tipe `response.json()` pada tes baru dengan schema                                                                                          |
+| Migrasi clean: `NODE_ENV=test npm --prefix apps/api run db:migrate:test` (TEST_DATABASE_URL diarahkan secara eksplisit ke database di atas)                                                                     | Exit 0, 77 migrasi diterapkan, terakhir `20261030000093-create-feature-spec-questions.cjs`                                                                             |
+| `NODE_ENV=test node --import tsx --test apps/api/src/modules/featureSpecs/__tests__/featureSpec{,Ai,PrdAi,TasksAi}ApiIntegration.test.ts apps/api/src/modules/featureSpecs/__tests__/featureSpecRoutes.test.ts` | Sebelum aturan duplikat: exit 0, 56 pass, 0 fail/skip; shell brace di sini menuliskan lima path yang dieksekusi                                                        |
+| `NODE_ENV=test node --import tsx --test apps/api/src/modules/featureSpecs/__tests__/featureSpecTasksAiApiIntegration.test.ts apps/api/src/modules/featureSpecs/__tests__/featureSpecRoutes.test.ts`             | Sesudah aturan duplikat: exit 0, 24 pass, 0 fail/skip                                                                                                                  |
+| `npm run validate` (di luar sandbox)                                                                                                                                                                            | Exit 0 sebelum aturan duplikat: docs 12/12, docsys 29/29, env 5/5, SDLC 10/10, agent 22/22, tier 5/5; lint 0 error, 15 warning lama, typecheck seluruh workspace lulus |
+| `npm run docs:completeness`                                                                                                                                                                                     | Exit 0, 88 gap lama di baseline, 0 baru                                                                                                                                |
+| `EXPLAIN (ANALYZE, BUFFERS)` agregasi di database test sesudah cleanup                                                                                                                                          | Scan 0 baris, execution 0.117 ms; bukan bukti performa data representatif, tidak dipakai sebagai klaim skala                                                           |
+
+Awal tes kontrak terkena `tsx` IPC EPERM di sandbox; rerun di luar sandbox lulus. Awal `validate`
+gagal 4 tes portal karena server tidak dapat start di sandbox; rerun lengkap di luar sandbox lulus
+29/29 docsys. Tidak ada tes yang dihapus, dilemahkan, atau dilewati untuk memperoleh hasil hijau.
+
+### UAT Gemini asli dan temuan kualitas
+
+Browser Owner yang login sendiri: `localhost:3000`; test harness
+`apps/api/src/modules/featureSpecs/__tests__/support/p5d1-uat.html` disajikan Vite melalui `/@fs/`
+dan memakai cookie sesi yang sama. Fixture diberi label `UAT fixture P5d-1`; dibuat melalui HTTP
+terautentikasi (Feature + Plan lengkap + PRD lengkap), tanpa penulisan DB langsung pada alur manual.
+
+- Workspace `be7a75e8-6578-4f77-9368-575048942866`; Spec
+  `f8a02cf7-fd93-41fb-993d-453d67cbfd57`; root Feature
+  `014cccc9-48d5-4028-b569-2e71512f2971`.
+- `POST …/generate/tasks`: HTTP 200, 24,074 ms, versi 3 → 4, stage tetap `task`,
+  10 subtask, 10 usulan assignee diterima, R1–R3 tercakup. Snapshot `via=ai`, actor `user`.
+- `GET …/feature-specs/:specId` dari browser mengembalikan versi 4 dan 10 subtask yang sama.
+  T1 dan T2 identik: hasil ini membuktikan jalur runtime, **bukan** penerimaan mutu draf.
+- Owner menyetujui aturan duplikat di atas. Versi 4 dipertahankan sebagai evidence historis;
+  tidak dihapus atau diubah untuk menyembunyikan temuan. Pengujian Gemini pascaperbaikan belum
+  dijalankan karena browser dinonaktifkan; 403 browser Developer juga belum tersedia.
+- User melaporkan `Failed to fetch` pada login sesudah restart API. Diagnosis baca-saja:
+  API `/v1/health` HTTP 200 database connected, web `/login` 200, OPTIONS login 204 dengan
+  origin `http://localhost:3000` dan credentials diizinkan. Error browser belum dapat direproduksi
+  karena kontrol browser nonaktif; tidak menyimpulkan password/sesi sebagai penyebab.
+
+### Quality review dan handoff
+
+Regresi final seluruh modul setelah penolakan duplikat:
+`NODE_ENV=test node --import tsx --test apps/api/src/modules/featureSpecs/__tests__/featureSpec{,Ai,PrdAi,TasksAi}ApiIntegration.test.ts apps/api/src/modules/featureSpecs/__tests__/featureSpecRoutes.test.ts`
+dengan `TEST_DATABASE_URL` diarahkan ke database disposable di atas: **exit 0, 58 pass, 0 fail/skip**.
+`npm --prefix apps/api run build` sesudah perbaikan duplikat: **exit 0**.
+
+| Dimensi             | Metode, hasil, dan tindak lanjut                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Reuse/DRY           | Inspeksi imports/callers: reuse schema tanggal, rate limiter, klien Gemini, dan transaksi saveSection; tidak membuat jalur Apply baru |
+| Duplikasi/overlap   | Ditemukan duplikat nyata di UAT; penolakan eksplisit disetujui Owner dan diuji HTTP tanpa partial writes                              |
+| Usang/tidak dipakai | Ekspor kontrak dan skrip test merujuk file baru; handler dipakai route generate/tasks; regex tanggal lokal diganti schema kanonikal   |
+| Boundary            | Prompt hanya mengusulkan, stage tidak maju, backend memverifikasi izin/versi; tidak menambah RBAC atau bypass Owner                   |
+| Regresi             | Tes seluruh modul sebelum aturan duplikat dan tes terarah sesudahnya lulus; hasil final tambahan dicatat saat tersedia                |
+
+Agent penerus memeriksa diff dan output primer, lalu mengembalikan Accepted / Accepted with gaps /
+Rejected / Blocked sesuai §2A.F. Saat ini kode belum diterima G5. UI responsif/Atomic produk N/A
+karena server-only; HTML test support bukan halaman produksi. Klaim performa skala besar, biaya
+token, UAT pascaperbaikan, dan browser Developer tetap unverified. Tier PR **2** karena
+`packages/contracts/package.json` mengubah daftar test; dependency tidak berubah. Agent tidak
+memasang label `owner-approved`. Catatan hasil publication/CI tersedia di PR ketika dibuat;
+task induk SIMPLE-UI-DELIVERY-FLOW tetap In progress dan tidak ditutup.

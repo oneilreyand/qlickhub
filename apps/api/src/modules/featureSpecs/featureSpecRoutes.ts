@@ -10,6 +10,7 @@ import {
   createFeatureSpec,
   generateFeatureSpecPlan,
   generateFeatureSpecPrd,
+  generateFeatureSpecTasks,
   generateFeatureSpecQuestions,
   getFeatureSpec,
   listFeatureSpecQuestions,
@@ -75,4 +76,13 @@ featureSpecRoutes.post(
   featureSpecAiUserRateLimiter,
   featureSpecAiWorkspaceRateLimiter,
   generateFeatureSpecPrd,
+);
+
+// P5d-1 (AC-5.6): AI Tasks, same two-layer rate limit as the AI Plan and PRD.
+featureSpecRoutes.post(
+  '/workspaces/:workspaceId/feature-specs/:specId/generate/tasks',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  featureSpecAiUserRateLimiter,
+  featureSpecAiWorkspaceRateLimiter,
+  generateFeatureSpecTasks,
 );

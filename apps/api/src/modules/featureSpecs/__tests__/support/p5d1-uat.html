@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="id">
+  <meta charset="utf-8" />
+  <title>P5d-1 — Local API UAT fixture</title>
+  <body>
+    <h1>P5d-1 — Local API UAT fixture</h1>
+    <p>Test support only. Uses the existing local login and authenticated backend; no Apply.</p>
+    <label
+      >Workspace
+      <select id="workspace"></select
+    ></label>
+    <button id="load">Load workspaces</button>
+    <button id="prepare" disabled>Create labelled UAT fixture</button>
+    <label>Existing Spec ID <input id="specId" /></label>
+    <button id="existing">Load existing Spec</button>
+    <label><input type="checkbox" id="replace" /> Confirm replacing existing draft Tasks</label>
+    <button id="generate" disabled>Generate Tasks with real Gemini</button>
+    <button id="read" disabled>Read persisted Spec</button>
+    <pre id="result" aria-live="polite">Ready</pre>
+    <script type="module">
+      // Contract-valid UAT factory. All records are written/read through authenticated HTTP.
+      const api = 'http://localhost:4000/v1';
+      const output = document.querySelector('#result');
+      const workspace = document.querySelector('#workspace');
+      let spec;
+      const show = (data) => {
+        output.textContent = JSON.stringify(data, null, 2);
+      };
+      async function request(path, method = 'GET', body) {
+        const response = await fetch(api + path, {
+          method,
+          credentials: 'include',
+          headers: body ? { 'Content-Type': 'application/json' } : {},
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(JSON.stringify({ status: response.status, data }));
+        return data;
+      }
+      function handle(id, action) {
+        document.querySelector(id).onclick = async () => {
+          document.querySelector(id).disabled = true;
+          try {
+            await action();
+          } catch (error) {
+            show({ error: String(error) });
+          } finally {
+            document.querySelector(id).disabled = false;
+          }
+        };
+      }
+      handle('#load', async () => {
+        const data = await request('/workspaces');
+        const rows = data.workspaces ?? data.data?.workspaces ?? data.data ?? [];
+        workspace.replaceChildren(
+          ...rows.map((row) => {
+            const option = document.createElement('option');
+            option.value = row.id;
+            option.textContent = row.name;
+            return option;
+          }),
+        );
+        document.querySelector('#prepare').disabled = rows.length === 0;
+        show({ workspaceCount: rows.length });
+      });
+      handle('#prepare', async () => {
+        const base = `/workspaces/${workspace.value}/feature-specs`;
+        const stamp = new Date().toISOString();
+        spec = (
+          await request(base, 'POST', {
+            title: `UAT fixture P5d-1 ${stamp}`,
+            idea: 'Form permintaan bantuan internal dengan status dan validasi.',
+          })
+        ).featureSpec;
+        const plan = {
+          title: spec.plan.title,
+          idea: spec.plan.idea,
+          problem: 'Permintaan bantuan belum tercatat konsisten.',
+          targetUsers: 'Tim internal',
+          goal: 'Permintaan tercatat dan dapat ditinjau.',
+          successMeasure: 'Setiap permintaan valid tersimpan dan terbaca ulang.',
+          targetPlatform: 'web',
+          priority: 'medium',
+          startDate: '2026-11-03',
+          dueDate: '2026-11-20',
+        };
+        spec = (
+          await request(`${base}/${spec.id}/sections/plan`, 'PUT', {
+            version: spec.version,
+            content: plan,
+            complete: true,
+          })
+        ).featureSpec;
+        const requirement = (key, title, then) => ({
+          key,
+          title,
+          description: title,
+          acceptanceCriteria: [{ given: 'Anggota sudah masuk', when: 'Form dikirim', then }],
+        });
+        const prd = {
+          brief: {
+            inScope: 'Form, validasi, simpan dan baca permintaan.',
+            outScope: 'Pembayaran dan notifikasi eksternal.',
+          },
+          requirements: [
+            requirement('R1', 'Simpan permintaan bantuan', 'Permintaan tersimpan'),
+            requirement('R2', 'Validasi judul wajib', 'Judul kosong ditolak'),
+            requirement('R3', 'Baca daftar permintaan', 'Permintaan yang tersimpan terbaca'),
+          ],
+        };
+        spec = (
+          await request(`${base}/${spec.id}/sections/prd`, 'PUT', {
+            version: spec.version,
+            content: prd,
+            complete: true,
+          })
+        ).featureSpec;
+        document.querySelector('#generate').disabled = false;
+        document.querySelector('#read').disabled = false;
+        show({
+          fixture: true,
+          workspaceId: spec.workspaceId,
+          specId: spec.id,
+          featureTaskId: spec.featureTaskId,
+          version: spec.version,
+          status: spec.status,
+        });
+      });
+      handle('#existing', async () => {
+        const id = document.querySelector('#specId').value.trim();
+        if (!workspace.value || !id) throw new Error('Choose a workspace and enter its Spec ID.');
+        spec = (
+          await request(`/workspaces/${workspace.value}/feature-specs/${encodeURIComponent(id)}`)
+        ).featureSpec;
+        document.querySelector('#generate').disabled = false;
+        document.querySelector('#read').disabled = false;
+        show({ specId: spec.id, version: spec.version, stage: spec.status, tasks: spec.tasks });
+      });
+      handle('#generate', async () => {
+        const started = performance.now();
+        const result = await request(
+          `/workspaces/${spec.workspaceId}/feature-specs/${spec.id}/generate/tasks`,
+          'POST',
+          { version: spec.version, replace: document.querySelector('#replace').checked },
+        );
+        spec = result.featureSpec;
+        show({
+          status: 200,
+          elapsedMs: Math.round(performance.now() - started),
+          specId: spec.id,
+          version: spec.version,
+          stage: spec.status,
+          subtaskCount: result.subtaskCount,
+          assigneeProposedCount: result.assigneeProposedCount,
+          assigneeEmptyCount: result.assigneeEmptyCount,
+          requirementKeys: spec.prd.requirements.map((row) => row.key),
+          coveredKeys: [...new Set(spec.tasks.subtasks.flatMap((row) => row.requirementKeys))],
+          tasks: spec.tasks.subtasks,
+          recentVersion: spec.recentVersions[0],
+        });
+      });
+      handle('#read', async () => {
+        const result = await request(`/workspaces/${spec.workspaceId}/feature-specs/${spec.id}`);
+        show({
+          readBack: true,
+          specId: result.featureSpec.id,
+          version: result.featureSpec.version,
+          stage: result.featureSpec.status,
+          tasks: result.featureSpec.tasks,
+          recentVersion: result.featureSpec.recentVersions[0],
+        });
+      });
+    </script>
+  </body>
+</html>
