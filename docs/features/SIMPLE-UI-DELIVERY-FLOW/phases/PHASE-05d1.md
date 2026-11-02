@@ -49,7 +49,7 @@
 
 **Feature:** SIMPLE-UI-DELIVERY-FLOW · **Task:** SIMPLE-UI-P5d-1 · **Tahap:** 5/6 Test & Review.
 **Jalur:** Penuh untuk program, slice WRA 7/16. **Status:** Perbaikan konteks diterima reviewer;
-gap duplikasi diterima Owner. UAT sukses prompt terbaru masih tertunda pada Gemini; Tier 2 terbuka.
+gap duplikasi diterima Owner. UAT manual prompt terbaru berhasil, readback cocok; Tier 2 terbuka.
 **Baseline:** `8decbe891f748092302a7981e856b839072277a3` ditambah perubahan P5d-1 lokal milik
 pelaksana sebelumnya. Owner menyetujui kelanjutan review, perbaikan, tes, UAT, dan PR lewat pesan
 `ok jalankan`; window fase di §2 tetap berlaku sampai merge atau dibatalkan. Semua perubahan
@@ -108,7 +108,7 @@ di bawah. Rollback melalui revert commit P5d-1; tanpa perubahan schema dan tanpa
 | AC-5.7: autentikasi dan authorization                                                    | HTTP 401 tanpa sesi; 403 Developer, QA, nonmember; AI tidak dipanggil               | E3 lulus; browser Developer 403, readback tetap versi 4 |
 | 502 untuk keluaran tak valid, coverage hilang, dan duplikat                              | HTTP nyata → 502; versi, snapshot, audit tetap                                      | E3 lulus                                                |
 | Gemini asli sebagai Owner                                                                | Browser pada localhost, fixture persisten baru dan readback di bawah                | E4 pascaperbaikan lulus; 10 subtask tanpa duplikat      |
-| Verifikasi pascaperbaikan dan G5                                                         | CI/review awal sukses; perbaikan konteks dan tes lanjutan di bawah                  | UAT sukses prompt terbaru dan CI head terbaru tertunda  |
+| Verifikasi pascaperbaikan dan G5                                                         | Review konteks Accepted, CI runtime sukses, UAT manual Owner dan GET cocok          | UAT terpenuhi; CI dokumentasi aktual dan Tier 2 terbuka |
 
 ### Perintah dan outcome
 
@@ -275,4 +275,35 @@ kosong. Sesudah jeda pengerjaan laporan, satu percobaan manual ketiga masih meng
 503 penyedia (backend 502); GET tetap versi 3/Task kosong. Bukti kegagalan dan readback ada di
 [folder evidence](../evidence/p5d1/README.md). Tidak mengklaim UAT sukses untuk prompt terbaru;
 tidak menambah retry otomatis atau mengubah provider/model. UAT sukses sebelumnya tetap bukti
-historis terpisah. **G5 Blocked** pada UAT sukses pascaperbaikan konteks dan CI head terbaru.
+historis terpisah. Saat percobaan tersebut **G5 Blocked**; kelanjutan di bawah mencatat hasil baru.
+
+### UAT manual Owner berhasil dan CI final
+
+CI [run 41407984647](https://github.com/oneilreyand/qlickhub/actions/runs/41407984647) pada head
+`12643d5dcfb6b8d9a4b1f792fa71f6eb793368ef` selesai sukses (`verify`, `e2e`): API **603 pass**, kontrak
+**108 pass**, frontend **777 pass/131 file**, E2E **18 pass**. API/kontrak 0 fail/skip. CI docsys
+25 pass/4 skip; lint 15 warning lama/0 error. Watcher CLI sempat exit 1 karena API jobs GitHub
+HTTP 500; query status baru dan log lengkap membuktikan run sukses. Ini tidak dihitung sebagai
+tes produk gagal. CI commit dokumentasi selanjutnya tetap harus hijau pada head aktual.
+
+Owner kemudian menjalankan UAT manual dari sesi login sendiri dan menyalin hasil generate serta
+GET readback ke chat. Bukti [owner-context-manual.md](../evidence/p5d1/owner-context-manual.md)
+menyebut provenance dan batas observasi secara eksplisit: bukan pengambilan browser oleh agent.
+Spec yang sama berhasil HTTP **200**, **16,206 ms**, versi **3 → 4**, stage tetap `task`,
+**8 subtask tanpa duplikat**, 8 usulan assignee diterima, R1–R3 tercakup, seluruh jadwal dalam Plan.
+GET berikutnya mengembalikan versi 4 dengan delapan subtask yang sama serta snapshot `via=ai`,
+actor `user`, waktu **2026-11-02T09:32:25.879Z**. Tidak menjalankan Apply atau mengganti draf lagi.
+
+UAT sukses prompt terbaru tidak lagi tertunda pada availability penyedia. Keempat percobaan gagal
+sebelumnya tetap dicatat; galat "did not respond" berasal dari catch network/timeout adapter,
+sebelum validasi output, tanpa menyimpulkan penyebab jaringan yang lebih spesifik.
+AC-5.6 penyusunan draf, AC-5.3 readback versi/audit, dan AC-5.7 Developer 403 mempunyai evidence
+lokal yang dibutuhkan. Gap predicate diterima Owner di release.md; tidak ada gap baru yang diterima
+diam-diam. Pemeriksaan konsistensi berkas (`node --input-type=module` dengan assert) membandingkan
+seluruh field delapan Task dan snapshot pada kedua payload: exit 0, cocok, 8 identitas efektif
+berbeda, R1–R3 tercakup, jadwal valid. Ini pemeriksaan salinan hasil Owner, bukan panggilan HTTP/DB baru.
+Review kode terpisah sebelumnya tetap Accepted; reviewer evidence meminta payload lengkap dan
+baris status konsisten, keduanya dipenuhi. Reviewer tidak menyelesaikan pemeriksaan ulang akhir
+karena batas penggunaan alat; tidak dicatat sebagai acceptance baru oleh reviewer.
+CI dokumentasi head aktual dan label Owner Tier 2 tetap dibedakan dari penyelesaian kode/UAT.
+Parent Feature tidak ditutup dan belum ada klaim merge/deploy.

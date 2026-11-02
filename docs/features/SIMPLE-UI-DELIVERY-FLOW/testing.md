@@ -63,7 +63,11 @@ UAT Gemini Owner sebelum perbaikan menemukan duplikat; Owner menyetujui penolaka
 regresi lulus. Browser Developer membuktikan 403; UAT Owner pascaperbaikan menghasilkan 10 subtask
 tanpa duplikat dan readback versi 4. CI awal lulus. Review awal menemukan dua gap; Owner kemudian
 memilih melengkapi konteks AI dan menerima duplikasi predicate sementara. Perbaikan konteks lulus
-59 tes PostgreSQL, validasi Node 24, dan dua review delta **Accepted**. UAT prompt terbaru masih
-tertunda: Gemini mengembalikan 503 (backend 502), readback tetap versi 3/Task kosong. CI head terbaru
-dan Tier 2 masih terbuka; detail dan artefak primer ada di phase yang ditautkan.
+59 tes PostgreSQL, validasi Node 24, dan dua review delta **Accepted**. Setelah empat kegagalan
+availability/network, Owner melaporkan UAT manual prompt terbaru HTTP 200/16,206 ms dengan
+8 subtask tanpa duplikat; GET readback cocok versi 4/snapshot via AI. Provenance salinan Owner
+dicatat dalam evidence. CI runtime head `12643d5` lulus (603 API, 108 kontrak, 777 web, 18 E2E).
+Salinan payload lengkap diperiksa konsistensinya; CI head dokumentasi dan Tier 2 masih terbuka.
+Review ulang evidence tidak selesai karena batas alat dan tidak diklaim sebagai acceptance baru;
+detail ada di phase tertaut.
 Tidak menganggap test fixture sebagai bukti Production dan tidak menutup Feature induk.

@@ -3,6 +3,11 @@
 Rekaman test support menggunakan sesi browser yang user login sendiri dan backend lokal nyata.
 Fixture berlabel UAT disimpan/dibaca melalui HTTP terautentikasi; bukan data Production.
 
+- `owner-context-manual.md`: hasil generate sukses dan GET readback pascaperbaikan konteks yang
+  Owner salin ke chat, 8 subtask/versi 4. Provenance dibedakan dari observasi browser oleh agent.
+- `owner-context-generate.json` dan `owner-context-readback.json`: dua payload Owner tersebut
+  lengkap, diserialisasi ulang tanpa mengubah nilai; bukan fixture input atau fetch oleh agent.
+
 - `developer-403.jpg`: screenshot asli penolakan generate untuk peran `dev`.
 - `owner-generated.jpg`: screenshot asli hasil Gemini sesudah perbaikan, HTTP 200,
   26,328 ms, 10 subtask. Lebar browser saat perekaman 555 px; JSON panjang melampaui viewport.
