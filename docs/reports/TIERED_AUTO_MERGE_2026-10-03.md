@@ -127,6 +127,8 @@ pre-merge required check.
   overlap 0, validation 2, external dependency 2. GitHub primary evidence is readable; local
   dependency-free tier and documentation checks are executable.
 - **User plan approval:** Owner said `ok jalankan` on 2026-11-02 after the bounded closure plan.
+  Owner then explicitly approved `Ya, gunakan main 2daefb4 untuk PR penutupan`, authorizing
+  the publishing baseline `2daefb45f8947199595f541c73047f32073ba3a2`.
 - **Approval Window:** task `TIERED-AUTO-MERGE`; approved baseline
   `8decbe891f748092302a7981e856b839072277a3`; allowed paths are `TODO.md`, this report,
   `docs/plans/TIERED_AUTO_MERGE_PLAN.md`, and `docs/archive/TODO_COMPLETED_2026-11-02.md`.
@@ -137,8 +139,9 @@ pre-merge required check.
   isolated worktree, and run Node 24.15.0/npm 11.12.1 checks. Production data, application role
   accounts, and deployment validation are not needed for this documentation slice.
 - **Isolation:** candidate prepared in `/private/tmp/qlickhub-auto-merge-close.ZyTSh3`, branch
-  `codex/close-tiered-auto-merge`. Existing uncommitted P5d-1 files remain in the original
-  worktree and are excluded from this task.
+  `codex/close-tiered-auto-merge`, then its four-file closure commit was cherry-picked onto
+  `codex/close-tiered-auto-merge-main` from the explicitly approved `main` baseline. Existing
+  uncommitted P5d-1 files remain in the original worktree and are excluded from this task.
 
 | Acceptance criterion                                                                | Required / achieved evidence | Primary evidence                                                                                                                                                                                                | Verification status |
 | ----------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
@@ -168,7 +171,8 @@ pre-merge required check.
 - **Independent verification:** author of this closure did not implement the original gate or
   PR #58. Re-read primary GitHub evidence and canonical matcher, not only another agent's
   summary. Existing GitHub CI independently executed `owner-gate` and `verify` for PR #58.
-  Closure PR publication/CI outcome is recorded below when available.
+  This report records the verified closure candidate; final publication/CI/merge status is
+  available on its closure PR rather than asserted before that CI runs.
 - **Cross-layer gates:** N/A — no UI, query, persistence, performance, AI technology, dependency,
   authorization, or migration change.
 
@@ -224,16 +228,18 @@ Final npm commands explicitly prefix
 
 ### Publication boundary
 
-The approved baseline is one commit ahead of `main`:
+The original approved baseline was one commit ahead of `main`:
 `8decbe8` contains P5d-1 documentation, while `main` is
 `2daefb45f8947199595f541c73047f32073ba3a2` (PR #93). Publishing this branch directly to `main`
-would include two out-of-scope P5d-1 documentation files. The closure candidate is prepared
-and checked at the approved baseline; publication waits for the Owner's explicit answer to
-the requested change of publishing base to `2daefb4` (`AI-013`). The proposed publication applies
-only this four-file closure commit on that main commit, preserving P5d-1 work.
+would include two out-of-scope P5d-1 documentation files. The Owner explicitly approved changing
+the publishing base to `2daefb4` on 2026-11-02 (`AI-013`). Only the four-file closure commit was
+cherry-picked onto that main commit, preserving P5d-1 work. The closure diff against main is
+Tier 1 with zero matched Tier 2 files.
 
-No PR has been created and auto-merge has not been requested at this checkpoint. This is a
-publication blocker, not missing acceptance evidence for the implemented tiered gate.
+The authorized next steps are push the closure branch, create its PR, and enable squash
+auto-merge under ADR-028. Required CI and merge outcomes must be read from the PR; this report
+does not pre-claim those future results. No baseline or product decision remains unresolved
+within this closure slice.
 
 Primary inspection commands (read-only):
 
@@ -257,8 +263,8 @@ application Production health or other Claude task is certified by the historica
 ### Human decision summary
 
 The last outstanding acceptance criterion has actual Tier 1 runtime evidence. The task is
-eligible for closure; the approved publication sequence is subject to the baseline clarification
-and required CI. This closure does not accept unresolved product decisions for other tasks.
+eligible for closure; the publishing baseline is explicitly approved and publication remains
+subject to required CI. This closure does not accept unresolved product decisions for other tasks.
 
 ### TODO update
 
