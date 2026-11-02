@@ -1,10 +1,15 @@
 # Tiered Auto-Merge Plan
 
-**Status:** Approved by Owner 2026-10-03 (D1, D2, D4 as recommended; D3 confirmed: Vercel deploys `main` to Production automatically; kept as-is) — implementation in review
+**Status:** Implemented; closure verified 2026-11-02. Tier 2 evidence: PR #17; Tier 1 evidence: PR #58. See the [closure evidence](../reports/TIERED_AUTO_MERGE_2026-10-03.md#closure-verification-2026-11-02).
 **Task:** `TIERED-AUTO-MERGE`
 **Policy boundaries:** `AI-013`, `AI-014`, `DOC-002`, `DOC-004`
 **Baseline:** `origin/main` `3b27715` (2026-10-03)
-**Decision record (to be created):** ADR-028 — Tiered auto-merge for agent pull requests
+**Decision record:** [ADR-028](../adr/ADR-028-TIERED-AUTO-MERGE.md) — Accepted
+
+The sections below preserve the original 2026-10-03 proposal and its then-current facts, unknowns,
+file list, and rollout steps. They are historical context, not outstanding work or the current
+Tier 2 path registry. Current rules remain in ADR-028 and `quality/tier2-paths.txt`; observed
+post-merge results and the approved closure scope are recorded in the linked report.
 
 ## Goal
 
