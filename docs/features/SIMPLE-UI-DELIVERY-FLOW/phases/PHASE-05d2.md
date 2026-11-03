@@ -7,7 +7,9 @@
 **PR:** [#96](https://github.com/oneilreyand/qlickhub/pull/96), branch `codex/simple-ui-p5d2-apply`.
 Kandidat runtime `1e8e9d5`; working tree bersih sesudah commit. Tier **1** (17 file, tidak ada
 matched Tier 2 path). G5: review kode/Spec **Accepted**, pemeriksaan lokal lulus; CI remote belum
-diklaim. G6: **Blocked** menunggu persetujuan deployment Production; auto-merge belum diaktifkan.
+diklaim. G6: Owner menyetujui auto-merge dan deploy Production **setelah seluruh CI hijau**
+(chat, 2026-11-03); tidak lagi blocked oleh persetujuan deployment. Status CI/merge/deploy terbaru
+dan link bukti remote dicatat di PR #96 tanpa mengubah kandidat runtime.
 **Policies:** AI-001, AI-013, AI-020, AUTH-001, AUTH-002, DOMAIN-002, DOMAIN-003, DOMAIN-004,
 DATA-001, DATA-006, CONTRACT-001, TEST-001, DOC-003, SDLC-001, SDLC-002.
 
@@ -195,5 +197,10 @@ Production (workflow CI, [deployment guide §6](../../../DEPLOYMENT_AND_ENVIRONM
 status Vercel pada commit main `fbb1308`: Deployment has completed). Window fase ini mengecualikan
 deployment Production. [ADR-029 butir 5](../../../adr/ADR-029-STAGED-FEATURE-SDLC.md) mempertahankan
 keputusan Owner terpisah bila Tier 1 auto-merge juga deploy Production; Agent Guidelines §2A.A.1
-melarang mengasumsikan persetujuan. Karena itu commit/push/PR dan CI dapat diselesaikan, tetapi
-auto-merge ditahan sampai Owner menyetujui dampak deployment untuk PR konkret yang ditinjau.
+melarang mengasumsikan persetujuan. Auto-merge sempat ditahan hingga PR konkret tersedia.
+
+**Stop condition terselesaikan:** Owner menjawab "Setujui auto-merge dan deploy setelah CI hijau"
+untuk PR #96 (chat, 2026-11-03). Perluasan window hanya mencakup auto-merge PR ini setelah seluruh
+CI hijau dan deployment Production otomatis melalui Git integration, beserta smoke baca-saja.
+Tidak mencakup Apply/mutasi data Production, perubahan environment, migrasi, atau rilis fase lain.
+Keputusan ini dicatat sebelum auto-merge; tidak ada perubahan runtime setelah kandidat `1e8e9d5`.
