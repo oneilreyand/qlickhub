@@ -375,6 +375,23 @@ export class NotificationService {
     let dispatchedCount = 0;
     const suppressionThreshold = new Date(Date.now() - 20 * 60 * 60 * 1000); // 20 hours ago
 
+    // Anti-spam check, batched: which (task, user) pairs already got a deadline notification in
+    // the last 20 hours? One query for all scanned tasks instead of one per task and recipient.
+    const recentlyNotified = new Set<string>();
+    if (tasks.length > 0) {
+      const recent = await NotificationModel.findAll({
+        where: {
+          taskId: { [Op.in]: tasks.map((task) => task.id) },
+          type: 'deadline',
+          createdAt: {
+            [Op.gte]: suppressionThreshold,
+          },
+        },
+        attributes: ['userId', 'taskId'],
+      });
+      for (const notif of recent) recentlyNotified.add(`${notif.taskId}:${notif.userId}`);
+    }
+
     for (const task of tasks) {
       const recipientIds: string[] = [];
       if (task.assigneeId) recipientIds.push(task.assigneeId);
@@ -383,19 +400,7 @@ export class NotificationService {
       }
 
       for (const recipientId of recipientIds) {
-        // Anti-spam check: has a deadline notification for this task & user been sent in the last 20 hours?
-        const existingNotif = await NotificationModel.findOne({
-          where: {
-            userId: recipientId,
-            taskId: task.id,
-            type: 'deadline',
-            createdAt: {
-              [Op.gte]: suppressionThreshold,
-            },
-          },
-        });
-
-        if (!existingNotif) {
+        if (!recentlyNotified.has(`${task.id}:${recipientId}`)) {
           await fcmService.sendDeadlineApproachingNotification({
             recipientUserIds: [recipientId],
             taskTitle: task.title,

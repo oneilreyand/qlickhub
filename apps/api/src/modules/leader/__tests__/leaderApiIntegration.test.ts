@@ -3,6 +3,7 @@ import { after, before, describe, test } from 'node:test';
 import type { Server } from 'node:http';
 import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
+import { captureSql } from '../../../db/__tests__/captureSql.js';
 import {
   TaskModel,
   UserModel,
@@ -27,6 +28,7 @@ describe('Leader Executive Dashboard API Integration', () => {
   let leaderUser: UserModel;
   let devUser: UserModel;
   let outsiderUser: UserModel;
+  let qaUser: UserModel;
 
   let workspaceA: WorkspaceModel;
   let workspaceB: WorkspaceModel;
@@ -66,6 +68,13 @@ describe('Leader Executive Dashboard API Integration', () => {
       email: `dev-${Date.now()}@example.com`,
       passwordHash: 'hashed_password_placeholder',
       role: 'dev',
+    });
+
+    qaUser = await UserModel.create({
+      name: 'QA Member',
+      email: `qa-${Date.now()}@example.com`,
+      passwordHash: 'hashed_password_placeholder',
+      role: 'qa',
     });
 
     outsiderUser = await UserModel.create({
@@ -147,6 +156,35 @@ describe('Leader Executive Dashboard API Integration', () => {
       dueDate: '2026-10-16',
     });
 
+    // Second delivery member in another workspace: proves the batched timeline query keeps each
+    // member's subtasks separate.
+    await WorkspaceMemberModel.create({
+      workspaceId: workspaceB.id,
+      userId: qaUser.id,
+      role: 'qa',
+    });
+
+    const rootTaskB = await TaskModel.create({
+      workspaceId: workspaceB.id,
+      title: 'Root Feature Beta',
+      status: 'in_progress',
+      priority: 'medium',
+      reporterId: leaderUser.id,
+    });
+
+    await TaskModel.create({
+      workspaceId: workspaceB.id,
+      parentTaskId: rootTaskB.id,
+      title: 'Regression Test Pass',
+      status: 'todo',
+      priority: 'medium',
+      deliveryArea: 'qa',
+      assigneeId: qaUser.id,
+      reporterId: leaderUser.id,
+      startDate: '2026-10-20',
+      dueDate: '2026-10-22',
+    });
+
     const req = await RequirementModel.create({
       workspaceId: workspaceA.id,
       code: `REQ-LEAD-${Date.now()}`,
@@ -214,7 +252,9 @@ describe('Leader Executive Dashboard API Integration', () => {
       where: { workspaceId: [workspaceA.id, workspaceB.id] },
     });
     await WorkspaceModel.destroy({ where: { id: [workspaceA.id, workspaceB.id] } });
-    await UserModel.destroy({ where: { id: [leaderUser.id, devUser.id, outsiderUser.id] } });
+    await UserModel.destroy({
+      where: { id: [leaderUser.id, devUser.id, qaUser.id, outsiderUser.id] },
+    });
   });
 
   test('GET /v1/leader/workspaces returns workspaces led by user', async () => {
@@ -255,6 +295,38 @@ describe('Leader Executive Dashboard API Integration', () => {
     // Overlapping dates (10-15 and 12-16) should trigger conflict
     assert.strictEqual(devMember.conflictCount, 2);
     assert.strictEqual(devMember.capacityStatus, 'overloaded');
+  });
+
+  test("GET /v1/leader/timeline loads all members' subtasks in one query, kept per member", async () => {
+    const { result: res, statements } = await captureSql(() =>
+      fetch(`${baseUrl}/v1/leader/timeline?startDate=2026-10-01&endDate=2026-10-31`, {
+        headers: { Cookie: leaderCookie },
+      }),
+    );
+    assert.strictEqual(res.status, 200);
+    const data = (await res.json()) as LeaderTimelineResponse;
+
+    const devMember = data.members.find((m) => m.id === devUser.id);
+    const qaMember = data.members.find((m) => m.id === qaUser.id);
+    assert(devMember && qaMember);
+    assert.deepStrictEqual(
+      devMember.tasks.map((t) => t.title),
+      ['Backend API Implementation', 'Database Optimization'],
+    );
+    assert.deepStrictEqual(
+      qaMember.tasks.map((t) => t.title),
+      ['Regression Test Pass'],
+    );
+    assert.strictEqual(qaMember.tasks[0].parentTaskTitle, 'Root Feature Beta');
+    assert.strictEqual(qaMember.conflictCount, 0);
+    assert.strictEqual(qaMember.capacityStatus, 'balanced');
+    assert.strictEqual(data.totalActiveSubtasks, 3);
+
+    // Exactly one subtask query for every member (previously one query per member).
+    const subtaskQueries = statements.filter(
+      (sql) => /FROM "tasks"/.test(sql) && /"assignee_id" (IN|=)/.test(sql),
+    );
+    assert.strictEqual(subtaskQueries.length, 1, subtaskQueries.join('\n'));
   });
 
   test('GET /v1/leader/quality calculates staging vs prod bugs and defect escape rate', async () => {
