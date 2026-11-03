@@ -56,7 +56,7 @@ pemilik tabel, terbukti dari health dan pemeriksaan Owner.
 
 1. Pengecekan otomatis migrasi tertinggal sebelum merge ke `main` (sudah dua kali terjadi; butuh
    keputusan Owner soal akses read-only CI ke database Production).
-2. Smoke test Ambil/Lepas di Production dengan anggota Developer berspesialisasi dan QA.
+2. ~~Smoke test Ambil/Lepas di Production~~ — selesai 2026-11-03 di workspace `essential` (Feature uji "[UJI P5g] Checkout terbuka"): Owner melepas lewat UI (panel tetap terbuka, label Terbuka); Owner klaim 403; Developer Fullstack melihat BE+FE, mengambil Backend (assignee tersimpan, status tetap `todo`, audit `task.claimed`); Developer klaim QA 403; QA hanya melihat subtask QA, mengambil lewat UI (audit `task.claimed`); QA klaim Frontend 403.
 3. Label "Unassigned" lain di luar daftar subtask belum ditinjau untuk mode `open`.
 
 ## Source of truth and impact
