@@ -123,3 +123,63 @@ test('draft design remains usable at phone, tablet and desktop widths in both th
         }
       }
 });
+
+test('Task Hub presents authenticated backend stages at all widths and themes', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60_000);
+  await login(page);
+  for (const width of [390, 768, 1440])
+    for (const dark of [false, true]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto('/work?tab=tasks');
+      await page.evaluate(
+        (value) => document.documentElement.classList.toggle('dark', value),
+        dark,
+      );
+      const collection =
+        width < 640 ? page.locator('div.sm\\:hidden') : page.locator('table:visible');
+      for (const label of ['Plan', 'PRD', 'Task', 'Diterapkan'])
+        await expect(collection.getByText(label, { exact: true }).first()).toBeVisible();
+      if (width >= 640)
+        await expect(page.getByRole('columnheader', { name: 'Tahap', exact: true })).toBeVisible();
+      if (width >= 640) {
+        const region = page.getByRole('region', { name: 'Daftar Feature', exact: true });
+        await region.focus();
+        await expect(region).toBeFocused();
+        const detail = region.getByRole('button', {
+          name: 'Lihat detail Stage Plan fixture',
+          exact: true,
+        });
+        await detail.scrollIntoViewIfNeeded();
+        await detail.focus();
+        await expect(detail).toBeFocused();
+        await region.focus();
+        await region.evaluate((element) => {
+          element.scrollLeft = 0;
+        });
+      }
+      const bounds = await page.evaluate(() => {
+        const table = document.querySelector('table');
+        const ancestors = [];
+        let element = table?.parentElement;
+        while (element) {
+          const style = getComputedStyle(element);
+          ancestors.push({
+            tag: element.tagName,
+            class: element.className,
+            width: element.clientWidth,
+            scroll: element.scrollWidth,
+            overflow: style.overflowX,
+          });
+          element = element.parentElement;
+        }
+        return { width: innerWidth, scroll: document.documentElement.scrollWidth, ancestors };
+      });
+      expect(bounds.scroll, JSON.stringify(bounds)).toBeLessThanOrEqual(bounds.width);
+      await page.screenshot({
+        path: testInfo.outputPath(`hub-stage-${width}-${dark ? 'dark' : 'light'}.png`),
+        fullPage: true,
+      });
+    }
+});

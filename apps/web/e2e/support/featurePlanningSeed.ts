@@ -93,5 +93,35 @@ export async function seedFeaturePlanning() {
     content: { subtasks: source.tasks.subtasks!.map((row) => ({ ...row, assigneeId: dev.id })) },
     complete: false,
   });
-  return { workspace, po, dev, qa, password, spec, preview, taskPreview };
+  const stagePlan = await featureSpecService.create(po.id, {
+    workspaceId: workspace.id,
+    title: 'Stage Plan fixture',
+    idea: 'Belum dirinci.',
+  });
+  let stageApplied = await featureSpecService.create(po.id, {
+    workspaceId: workspace.id,
+    title: 'Stage Apply fixture',
+    idea: 'Readback Tahap pada Task Hub.',
+  });
+  for (const section of ['plan', 'prd', 'tasks'] as const)
+    stageApplied = await featureSpecService.saveSection(po.id, {
+      workspaceId: workspace.id,
+      specId: stageApplied.id,
+      version: stageApplied.version,
+      section,
+      content:
+        section === 'tasks'
+          ? { subtasks: source.tasks.subtasks!.map((row) => ({ ...row, assigneeId: dev.id })) }
+          : source[section],
+      complete: section !== 'tasks',
+    });
+  stageApplied = (
+    await featureSpecService.apply(po.id, {
+      workspaceId: workspace.id,
+      specId: stageApplied.id,
+      version: stageApplied.version,
+      idempotencyKey: `fixture-${stageApplied.id}`,
+    })
+  ).featureSpec;
+  return { workspace, po, dev, qa, password, spec, preview, taskPreview, stagePlan, stageApplied };
 }

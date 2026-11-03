@@ -48,16 +48,10 @@ export function firstTabForStage(stage: FeatureStageParam): string {
   return FEATURE_STAGE_TABS[stage][0];
 }
 
-/**
- * Tahap sementara dihitung dari data yang sudah ada sampai tahap tersimpan
- * tersedia (P5a): ada subtask → Task; ada brief atau requirement → PRD; selain itu Plan.
- */
-export function deriveFeatureStage(input: {
-  subtaskCount: number;
-  hasProductBrief: boolean;
-  requirementCount: number;
-}): FeatureStageParam {
-  if (input.subtaskCount > 0) return 'task';
-  if (input.hasProductBrief || input.requirementCount > 0) return 'prd';
-  return 'plan';
+/** Presentation-only mapping: applied delivery opens the Task view. Missing metadata stays unknown. */
+export function stageViewForPlanningStage(
+  stage: 'plan' | 'prd' | 'task' | 'applied' | null | undefined,
+): FeatureStageParam | null {
+  if (!stage) return null;
+  return stage === 'applied' ? 'task' : stage;
 }

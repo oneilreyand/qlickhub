@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { DeliveryAreaSchema, TaskPrioritySchema, TaskSchema } from './task.js';
+import {
+  DeliveryAreaSchema,
+  TaskPrioritySchema,
+  TaskSchema,
+  FeaturePlanningStageSchema,
+} from './task.js';
 
 /**
  * Feature Spec (ADR-036, P5a): one versioned specification per root Feature with three sections
@@ -14,7 +19,7 @@ const LongTextSchema = z.string().max(5000);
 export const FeatureSpecSectionSchema = z.enum(['plan', 'prd', 'tasks']);
 export type FeatureSpecSection = z.infer<typeof FeatureSpecSectionSchema>;
 
-export const FeatureSpecStatusSchema = z.enum(['plan', 'prd', 'task', 'applied']);
+export const FeatureSpecStatusSchema = FeaturePlanningStageSchema;
 export type FeatureSpecStatus = z.infer<typeof FeatureSpecStatusSchema>;
 
 export const FeatureSpecTargetPlatformSchema = z.enum(['web', 'mobile', 'web_mobile', 'api']);

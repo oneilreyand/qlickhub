@@ -38,7 +38,7 @@ import { DropdownMenu } from '../molecules/DropdownMenu';
 import {
   FEATURE_STAGE_TABS,
   FEATURE_SUMMARY_TAB,
-  deriveFeatureStage,
+  stageViewForPlanningStage,
   stageForTab,
   type FeatureStageParam,
 } from '../../../lib/utils/featureStages';
@@ -718,11 +718,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     onTabChangeRef.current?.(activeTab);
   }, [activeTab, layout]);
 
-  const derivedStage: FeatureStageParam = deriveFeatureStage({
-    subtaskCount: subtasks.length,
-    hasProductBrief: Boolean(productBrief),
-    requirementCount: featureEligibleRequirements?.length ?? 0,
-  });
+  const derivedStage = stageViewForPlanningStage(task?.featureStage);
 
   // Tanpa tahap di URL, halaman Feature dibuka pada tahap Feature saat ini
   // setelah datanya selesai dimuat (sekali per halaman).
@@ -746,7 +742,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             ? 'prd'
             : 'task'
         : derivedStage;
-    const tabs = FEATURE_STAGE_TABS[current];
+    const tabs = current ? FEATURE_STAGE_TABS[current] : ['overview'];
     const next = task?.parentTaskId ? tabs.find((id) => id !== 'brief') : tabs[0];
     if (next) setActiveTab(next);
   }, [
@@ -1199,8 +1195,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         : 'task'
     : null;
   const STAGE_ORDER: FeatureStageParam[] = ['plan', 'prd', 'task'];
-  const stepperStage: FeatureStageParam =
-    specStage && STAGE_ORDER.indexOf(specStage) > STAGE_ORDER.indexOf(derivedStage)
+  const stepperStage =
+    specStage &&
+    (!derivedStage || STAGE_ORDER.indexOf(specStage) > STAGE_ORDER.indexOf(derivedStage))
       ? specStage
       : derivedStage;
   const stepperStageInProgress = Boolean(
@@ -1336,7 +1333,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         ? `${traceRequirements.length} requirement · ${totalAcceptanceCriteria} AC`
         : 'Brief + Requirement + AC',
     task: subtasks.length > 0 ? `${subtasks.length} subtask` : 'Root task + subtask',
-    apply: derivedStage === 'task' ? 'Diterapkan' : 'Terapkan eksplisit',
+    apply:
+      featureSpec?.status === 'applied' || task.featureStage === 'applied'
+        ? 'Diterapkan'
+        : 'Terapkan eksplisit',
   };
   const personInCharge = members.find(
     (member) => member.userId === (task.assigneeId || task.reporterId),
@@ -1431,29 +1431,38 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         subtitle={`ID Task: ${task.id.substring(0, 8)} • Dibuat ${new Date(task.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}${task.deliveryArea ? ` • Area Delivery: ${task.deliveryArea.toUpperCase()}` : ''}`}
         toolbar={
           layout === 'page' ? (
-            <FeatureStageStepper
-              currentStage={stepperStage}
-              currentStageInProgress={stepperStageInProgress}
-              selectedStage={stageForTab(activeTab)}
-              summaries={stageSummaries}
-              disabledStages={
-                featureSpec
-                  ? featureSpec.status === 'plan'
-                    ? ['prd', 'task', 'apply']
-                    : featureSpec.status === 'prd'
-                      ? ['task', 'apply']
-                      : []
-                  : ['apply']
-              }
-              applied={featureSpec ? featureSpec.status === 'applied' : false}
-              onSelect={(stage) => {
-                if (stage === 'apply') {
-                  handleTabChange('task-summary');
-                  return;
+            stepperStage ? (
+              <FeatureStageStepper
+                currentStage={stepperStage}
+                currentStageInProgress={stepperStageInProgress}
+                selectedStage={stageForTab(activeTab)}
+                summaries={stageSummaries}
+                disabledStages={
+                  featureSpec
+                    ? featureSpec.status === 'plan'
+                      ? ['prd', 'task', 'apply']
+                      : featureSpec.status === 'prd'
+                        ? ['task', 'apply']
+                        : []
+                    : ['apply']
                 }
-                handleTabChange(FEATURE_SUMMARY_TAB[stage]);
-              }}
-            />
+                applied={featureSpec ? featureSpec.status === 'applied' : false}
+                onSelect={(stage) => {
+                  if (stage === 'apply') {
+                    handleTabChange('task-summary');
+                    return;
+                  }
+                  handleTabChange(FEATURE_SUMMARY_TAB[stage]);
+                }}
+              />
+            ) : (
+              <Alert>
+                Tahap belum tersedia dari server.{' '}
+                <Button variant="outline" onClick={() => onDataChanged?.()}>
+                  Muat ulang Feature
+                </Button>
+              </Alert>
+            )
           ) : (
             <Tabs
               tabs={detailTabs}

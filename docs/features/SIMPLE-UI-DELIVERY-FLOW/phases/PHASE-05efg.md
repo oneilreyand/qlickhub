@@ -101,3 +101,33 @@ dihapus; regressions dan docs diperbarui. Contoh E4 fixture persisted:
 `npm --prefix apps/web run test`: **789 pass /0 fail**,134files,34.1detik; warning React act()
 pada TaskTimelineView yang sudah ada dicatat, bukan dihapus/dinonaktifkan. P5e lokal **Accepted**
 oleh kedua reviewer; tahap berikutnya P5f Build. Tidak ada klaim CI remote atau rilis.
+
+### P5f — Test & Review, 2026-11-03
+
+Task list/detail mengembalikan `featureStage` dan `featureStageSource` untuk root yang telah
+diotorisasi. Spec menjadi sumber utama; legacy memakai keberadaan subtask aktif, Brief utama
+atau Requirement, tanpa menyatakan Apply historis. Maksimal empat pembacaan batched/grouped
+per halaman, semuanya scoped Workspace dan root yang sudah lolos akses. Badge dan drawer hanya
+memetakan metadata backend; metadata hilang menampilkan keadaan belum tersedia dan muat ulang.
+Tidak ada kolom stage, perubahan role, atau migrasi pada slice ini.
+
+`NODE_ENV=test node --import tsx --test apps/api/src/modules/featureSpecs/__tests__/featureSpecApplyApiIntegration.test.ts`:
+**19/19 pass,0 skip** di PostgreSQL16 disposable `qlickhub_p5d2_test_20261102`,77 migrasi.
+Rerun `--test-name-pattern='Task Hub'` setelah query dikelompokkan: **1/1 pass**;
+delapan pasangan list/detail HTTP sekitar16–50ms pada fixture kecil, bukan bukti kapasitas produksi.
+`npm --prefix apps/web run test -- --run` untuk TaskDetailDrawer, featureStages,
+FeaturePlanningStageBadge dan TaskCollection: **54/54 pass**,4files.
+Web typecheck dan `npm run docs:check`: exit0 (docs12/12).
+`BROWSER_TEST_WEB_PORT=3100 BROWSER_TEST_API_PORT=4101 npm --prefix apps/web run test:e2e -- feature-planning.spec.ts --project=desktop-chromium --grep='Task Hub presents'`:
+**1/1 pass**,12.6detik, persisted disposable PostgreSQL dengan canonical migrations;
+Plan/PRD/Task/Diterapkan pada390/768/1440 Light/Dark, keyboard dan akses kolom aksi.
+Node24.15.0 untuk seluruh perintah; environment koneksi dibaca dari konfigurasi test tanpa dicetak.
+
+Uji browser awal menemukan overflow tablet. Diagnosis membuktikan tabel sudah scrollable,
+tetapi heading aksi sr-only yang absolute tidak memiliki containing block. Wrapper `relative`
+memperbaikinya tanpa menyembunyikan kolom; region diberi accessible name/fokus keyboard.
+React classifier legacy yang tumpang tindih juga dihapus setelah review. Warning NO_COLOR/
+FORCE_COLOR tetap dicatat. Quality review: reuse Badge/collection/stepper, stage kanonis backend,
+classifier usang dihapus, HTTP/PG/UI/browser mencakup perubahan, kontrak dan katalog Atomic diperbarui.
+Spec dan Standards re-review **Accepted**, tidak ada temuan actionable tersisa.
+P5f lokal diterima; lanjut P5g-1 Build. Tidak ada klaim merge/deploy.

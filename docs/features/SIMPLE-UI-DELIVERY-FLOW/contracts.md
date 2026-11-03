@@ -32,6 +32,16 @@ Dipakai ulang tanpa perubahan: `tasks` (root Feature + subtask), `requirements`,
 
 ## API and executable contract
 
+### P5f — Tahap sebagai read model
+
+Respons Task root pada GET detail dan daftar menyertakan `featureStage` dan `featureStageSource`
+melalui shared `TaskSchema`. Label UI memakai `FEATURE_PLANNING_STAGE_LABELS`; field kompatibel
+opsional untuk pemanggil lama, bukan kolom baru. Spec status adalah sumber utama. Feature legacy
+tanpa Spec memakai konten persisted: subtask aktif→Task, Brief primer/Requirement tertaut→PRD,
+selainnya Plan. Status selesai suatu Task lama tidak dipakai untuk mengarang bukti Apply.
+Source `legacy` ditandai dalam tooltip. Query ter-scope Workspace dan dibatch menurut root pada
+halaman yang telah diotorisasi (maksimal empat query tambahan per halaman, bukan per row).
+
 ### P5d-2 — Apply Feature Spec
 
 `POST /v1/workspaces/:workspaceId/feature-specs/:specId/apply` memakai

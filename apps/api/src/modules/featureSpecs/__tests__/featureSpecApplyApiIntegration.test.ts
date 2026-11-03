@@ -10,6 +10,7 @@ import {
   FeatureSpecSchema,
   ProductBriefSchema,
   TaskSchema,
+  TaskListResponseSchema,
   type FeatureSpec,
   type FeatureSpecPrd,
   type FeatureSpecTasks,
@@ -383,6 +384,94 @@ describe('Feature Spec Apply HTTP/PostgreSQL (P5d-2)', () => {
           complete: false,
         }),
       /read-only/,
+    );
+  });
+
+  test('Task Hub reads planning stages from Spec and legacy persisted content without a stage column', async () => {
+    const headers = { cookie: cookies.get(po.id)! };
+    const timings: number[] = [];
+    async function stageFor(id: string, expected: string, source = 'spec') {
+      const started = performance.now();
+      const detail = await fetch(`${base}/workspaces/${workspace.id}/tasks/${id}`, { headers });
+      assert.equal(detail.status, 200);
+      const task = z.object({ data: TaskSchema }).parse(await detail.json()).data;
+      assert.equal(task.featureStage, expected);
+      assert.equal(task.featureStageSource, source);
+      const listed = await fetch(
+        `${base}/workspaces/${workspace.id}/tasks?rootOnly=true&limit=100`,
+        { headers },
+      );
+      assert.equal(listed.status, 200);
+      const rows = z.object({ data: TaskListResponseSchema }).parse(await listed.json()).data;
+      assert.equal(rows.tasks.find((row) => row.id === id)?.featureStage, expected);
+      timings.push(performance.now() - started);
+    }
+    let spec = await featureSpecService.create(po.id, {
+      workspaceId: workspace.id,
+      title: plan.title,
+      idea: plan.idea,
+    });
+    await stageFor(spec.featureTaskId, 'plan');
+    spec = await featureSpecService.saveSection(po.id, {
+      workspaceId: workspace.id,
+      specId: spec.id,
+      version: spec.version,
+      section: 'plan',
+      content: plan,
+      complete: true,
+    });
+    await stageFor(spec.featureTaskId, 'prd');
+    spec = await featureSpecService.saveSection(po.id, {
+      workspaceId: workspace.id,
+      specId: spec.id,
+      version: spec.version,
+      section: 'prd',
+      content: prd,
+      complete: true,
+    });
+    await stageFor(spec.featureTaskId, 'task');
+    spec = await featureSpecService.saveSection(po.id, {
+      workspaceId: workspace.id,
+      specId: spec.id,
+      version: spec.version,
+      section: 'tasks',
+      content: tasks(),
+      complete: false,
+    });
+    assert.equal((await request(spec)).status, 200);
+    await stageFor(spec.featureTaskId, 'applied');
+    const legacy = await TaskModel.create({
+      workspaceId: workspace.id,
+      title: 'Legacy stage fixture',
+      reporterId: po.id,
+      status: 'done',
+    });
+    await stageFor(legacy.id, 'plan', 'legacy');
+    await qaDocumentService.upsertProductBrief(workspace.id, legacy.id, po.id, {
+      title: 'Legacy Brief fixture',
+      contentMarkdown: 'Existing persisted Brief',
+      inScope: [],
+      outScope: [],
+      acceptanceCriteria: [],
+      status: 'draft',
+    });
+    await stageFor(legacy.id, 'prd', 'legacy');
+    const child = await TaskModel.create({
+      workspaceId: workspace.id,
+      parentTaskId: legacy.id,
+      title: 'Legacy child fixture',
+      deliveryArea: 'backend',
+      reporterId: po.id,
+    });
+    await stageFor(legacy.id, 'task', 'legacy');
+    await child.destroy();
+    await stageFor(legacy.id, 'prd', 'legacy');
+    const denied = await fetch(`${base}/workspaces/${otherWorkspace.id}/tasks/${legacy.id}`, {
+      headers: { cookie: cookies.get(owner.id)! },
+    });
+    assert.equal(denied.status, 404);
+    console.info(
+      `P5f local authenticated detail+list: ${timings.length} fixture samples, ${Math.round(Math.min(...timings))}–${Math.round(Math.max(...timings))}ms; not a scale benchmark.`,
     );
   });
 

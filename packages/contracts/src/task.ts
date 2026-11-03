@@ -12,6 +12,16 @@ export const TaskStatusSchema = z.enum([
 
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
+/** Planning stage is an authenticated read model, not a separately persisted Task column. */
+export const FeaturePlanningStageSchema = z.enum(['plan', 'prd', 'task', 'applied']);
+export type FeaturePlanningStage = z.infer<typeof FeaturePlanningStageSchema>;
+export const FEATURE_PLANNING_STAGE_LABELS: Record<FeaturePlanningStage, string> = {
+  plan: 'Plan',
+  prd: 'PRD',
+  task: 'Task',
+  applied: 'Diterapkan',
+};
+
 /**
  * Schedule health is evaluated by the authenticated backend read model.  Clients
  * present this value and must not derive lateness from their own clock.
@@ -116,6 +126,8 @@ export const TaskSchemaBase = z.object({
   workspaceId: z.string().uuid(),
   folderId: z.string().uuid().nullable().optional(),
   parentTaskId: z.string().uuid().nullable().optional(),
+  featureStage: FeaturePlanningStageSchema.nullable().optional(),
+  featureStageSource: z.enum(['spec', 'legacy']).nullable().optional(),
   deliveryArea: DeliveryAreaSchema.nullable().optional(),
   title: z.string().trim().min(1, 'Task title is required').max(200),
   description: z.string().nullable().optional(),
