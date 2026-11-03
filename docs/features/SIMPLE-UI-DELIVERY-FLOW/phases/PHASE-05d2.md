@@ -3,6 +3,11 @@
 **Status:** Disetujui Owner (chat, 2026-11-02, "setuju"); kandidat Test & Review, 2026-11-03.
 **Feature:** SIMPLE-UI-DELIVERY-FLOW · **Tahap:** 5/6 Test & Review · **Jalur:** Penuh untuk program.
 **AC:** AC-5.6 Apply, AC-5.2 kelengkapan, AC-5.3 versi/audit, AC-5.7 izin.
+
+**PR:** [#96](https://github.com/oneilreyand/qlickhub/pull/96), branch `codex/simple-ui-p5d2-apply`.
+Kandidat runtime `1e8e9d5`; working tree bersih sesudah commit. Tier **1** (17 file, tidak ada
+matched Tier 2 path). G5: review kode/Spec **Accepted**, pemeriksaan lokal lulus; CI remote belum
+diklaim. G6: **Blocked** menunggu persetujuan deployment Production; auto-merge belum diaktifkan.
 **Policies:** AI-001, AI-013, AI-020, AUTH-001, AUTH-002, DOMAIN-002, DOMAIN-003, DOMAIN-004,
 DATA-001, DATA-006, CONTRACT-001, TEST-001, DOC-003, SDLC-001, SDLC-002.
 
@@ -123,6 +128,11 @@ ada memakai external seam test yang sudah tersedia, bukan bukti Gemini asli baru
 `npm run validate` final: exit 0; docs 12, docsys 29, env 5, SDLC 10, agent policy 22, tier 5
 seluruhnya pass/0 fail/0 skip. Theme/typecheck lulus; lint 0 error, 15 warning di luar diff.
 `npm run docs:completeness`: exit 0; 88 gap baseline, 0 gap baru.
+`npm run quality:check -- --base fbb1308d5e8083d1f5f052902eef14c494259ac7`: exit 0,
+17 file, evidence coverage lengkap. `npm run sdlc:check -- --base
+fbb1308d5e8083d1f5f052902eef14c494259ac7`: exit 0, runtime diotorisasi Feature Breakdown.
+`node scripts/checkTier.mjs --base fbb1308d5e8083d1f5f052902eef14c494259ac7`: Tier 1,
+tidak ada match Tier 2. Hook commit menjalankan Prettier/ESLint pada file yang di-stage, lulus.
 
 Outcome gagal tidak dihapus: uji pertama 12/14 gagal karena tes membaca status dari version Brief
 (status sebenarnya di document) dan factory subtask manual tidak menyertakan folder root.
