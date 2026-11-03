@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { describe, test } from 'node:test';
 import {
+  ApplyFeatureSpecSchema,
   CreateFeatureSpecSchema,
   evaluateFeatureSpecSection,
   FEATURE_SPEC_PLAN_REQUIRED_FIELDS,
@@ -49,6 +50,23 @@ const completeTasks = {
 };
 
 describe('Feature Spec required fields (ADR-036)', () => {
+  test('Apply accepts only a persisted version and bounded nonblank idempotency key', () => {
+    const input = {
+      workspaceId: '00000000-0000-4000-8000-000000000001',
+      specId: '00000000-0000-4000-8000-000000000002',
+      version: 4,
+      idempotencyKey: ' reviewed-version-4 ',
+    };
+    assert.strictEqual(ApplyFeatureSpecSchema.parse(input).idempotencyKey, 'reviewed-version-4');
+    for (const invalid of [
+      { ...input, version: 0 },
+      { ...input, idempotencyKey: '  ' },
+      { ...input, idempotencyKey: 'a'.repeat(129) },
+      { ...input, tasks: completeTasks },
+    ]) {
+      assert.strictEqual(ApplyFeatureSpecSchema.safeParse(invalid).success, false);
+    }
+  });
   test('plan: an empty draft reports all nine required fields', () => {
     const result = evaluateFeatureSpecSection('plan', {});
     assert.strictEqual(result.total, FEATURE_SPEC_PLAN_REQUIRED_FIELDS.length);

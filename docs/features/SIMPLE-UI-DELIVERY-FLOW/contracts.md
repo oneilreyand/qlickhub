@@ -32,6 +32,33 @@ Dipakai ulang tanpa perubahan: `tasks` (root Feature + subtask), `requirements`,
 
 ## API and executable contract
 
+### P5d-2 — Apply Feature Spec
+
+`POST /v1/workspaces/:workspaceId/feature-specs/:specId/apply` memakai
+`ApplyFeatureSpecSchema` dan `ApplyFeatureSpecResponseSchema` di
+`packages/contracts/src/featureSpec.ts`. Planner mengirim versi yang telah ditinjau dan kunci
+idempoten; payload draft tambahan ditolak. HTTP 200 mengembalikan receipt hasil Apply beserta Spec.
+Versi sumber N menjadi status `applied`, versi N+1; root Feature yang ada dipakai kembali.
+
+Plan, PRD, dan Task divalidasi ulang. Brief tetap draft; context kosong memakai Plan problem.
+Scope panjang dibagi menjadi butir berurutan sesuai batas kontrak Brief, tanpa membuang isi teks
+(keputusan Owner 2026-11-03); whitespace pada batas butir dinormalisasi oleh service Brief.
+Requirement/AC dan tautan setiap subtask mengikuti kunci Spec; mode `open` belum didukung sampai
+P5g. Validasi anggota, peran, spesialisasi, folder, dan jadwal memakai jalur Task yang ada.
+
+Pengulangan versi sumber/kunci yang sama mengembalikan receipt tersimpan (`replayed: true`) tanpa
+menulis ulang delivery atau audit. Versi/kunci lain setelah Apply, versi usang, atau root yang sudah
+memiliki Brief primer, tautan Requirement, atau subtask manual (termasuk yang dapat dipulihkan)
+mendapat 409 tanpa menimpa data. Input/section/jadwal/assignee tidak valid mendapat 400; field wajib
+kosong menyertakan `FEATURE_SPEC_INCOMPLETE` dan `missingFields`. Izin diperiksa sebelum replay:
+401 tanpa autentikasi, 403 bagi peran yang tidak diizinkan, 404 bagi Spec di luar scope Workspace.
+
+Delivery, fingerprint SHA-256, snapshot/receipt, versi dan audit `feature_spec.applied` berada
+dalam satu transaksi PostgreSQL. Tidak ada migrasi; receipt memakai JSONB snapshot yang sudah ada.
+Penulis transaksi dipakai bersama Apply modal lama; bentuk respons, filter subtask dinonaktifkan,
+dan tautan semua-ke-semua milik jalur lama dipertahankan. Kode Requirement baru memakai UUID
+agar dua Apply serentak tidak berbenturan pada kode berbasis waktu.
+
 Endpoint yang ada dan dipakai ulang (sumber kontrak di `packages/contracts/src`):
 
 | Kebutuhan                              | Endpoint yang ada                                                                                                                           | Kontrak                                |

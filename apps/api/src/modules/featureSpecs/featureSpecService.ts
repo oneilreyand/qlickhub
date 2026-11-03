@@ -1,10 +1,21 @@
 import { Op, Transaction } from 'sequelize';
+import { createHash } from 'node:crypto';
 import {
+  ApplyFeatureSpecInput,
+  ApplyFeatureSpecResponse,
+  ApplyFeatureSpecSchema,
+  DateStringSchema,
   CreateFeatureSpecInput,
   FEATURE_SPEC_SECTION_SCHEMAS,
   FeatureSpec,
   FeatureSpecActorType,
   FeatureSpecPlan,
+  FeatureSpecPlanSchema,
+  FeatureSpecPrdSchema,
+  FeatureSpecTasksSchema,
+  FeatureSpecApplyReceipt,
+  FeatureSpecApplyReceiptSchema,
+  ProductBriefScopeItemInputSchema,
   SaveFeatureSpecSectionInput,
   evaluateFeatureSpecSection,
   getTaskScheduleValidationIssue,
@@ -14,6 +25,8 @@ import {
   FeatureSpecModel,
   FeatureSpecVersionModel,
   TaskModel,
+  TaskDocumentModel,
+  TaskRequirementModel,
   UserModel,
 } from '../../db/models/index.js';
 import { assertCanWriteFeatureSpec } from '../../policies/featureSpecPolicy.js';
@@ -22,6 +35,11 @@ import {
   getActorMembership,
   logActivity,
 } from '../tasks/internal/taskLifecycle.js';
+import { formatTask } from '../tasks/internal/taskQuery.js';
+import {
+  persistReviewedDraftInTransaction,
+  type ReviewedDraftContents,
+} from '../ai/aiTaskDraftPersistence.js';
 
 /** Who made a write. Web requests are always `user`/`web`; AI (P5b+) and agents (P9) pass their own. */
 export interface FeatureSpecActor {
@@ -86,19 +104,111 @@ async function writeVersion(
   spec: FeatureSpecModel,
   actor: FeatureSpecActor,
   transaction: Transaction,
+  applyResult?: FeatureSpecApplyReceipt,
 ): Promise<void> {
   await FeatureSpecVersionModel.create(
     {
       specId: spec.id,
       workspaceId: spec.workspaceId,
       version: spec.version,
-      snapshot: { status: spec.status, plan: spec.plan, prd: spec.prd, tasks: spec.tasks },
+      snapshot: {
+        status: spec.status,
+        plan: spec.plan,
+        prd: spec.prd,
+        tasks: spec.tasks,
+        ...(applyResult ? { applyResult } : {}),
+      },
       actorType: actor.type,
       actorId: actor.id,
       via: actor.via,
     },
     { transaction },
   );
+}
+
+/** Keep all scope content, using ordered Brief items within the canonical per-item limit. */
+function briefScopeItems(text: string): string[] {
+  const limit = ProductBriefScopeItemInputSchema.shape.text.maxLength ?? text.length;
+  const items: string[] = [];
+  let remaining = text.trim();
+  while (remaining.length > limit) {
+    const candidate = remaining.slice(0, limit + 1);
+    const whitespace = candidate.search(/\s+\S*$/);
+    let end = whitespace > 0 ? whitespace : limit;
+    // A long word can cross the limit; keep UTF-16 surrogate pairs intact.
+    if (/[\uD800-\uDBFF]/.test(remaining[end - 1])) end -= 1;
+    items.push(remaining.slice(0, end).trim());
+    remaining = remaining.slice(end).trim();
+  }
+  if (remaining) items.push(remaining);
+  return items;
+}
+
+/** Validate the stored version again at Apply time; a previously complete draft may have changed. */
+function reviewedDraftForApply(spec: FeatureSpecModel): ReviewedDraftContents {
+  const plan = FeatureSpecPlanSchema.parse(spec.plan);
+  const prd = FeatureSpecPrdSchema.parse(spec.prd);
+  const tasks = FeatureSpecTasksSchema.parse(spec.tasks);
+  const missingFields = [
+    ...evaluateFeatureSpecSection('plan', plan).missingFields,
+    ...evaluateFeatureSpecSection('prd', prd).missingFields,
+    ...evaluateFeatureSpecSection('tasks', tasks, { prd }).missingFields,
+  ];
+  if (missingFields.length) throw new FeatureSpecIncompleteError(missingFields);
+
+  const planStart = DateStringSchema.parse(plan.startDate);
+  const planDue = DateStringSchema.parse(plan.dueDate);
+  if (getTaskScheduleValidationIssue(planStart, planDue)) {
+    throw new Error('BAD_REQUEST: The Plan schedule is invalid.');
+  }
+  const requirements = prd.requirements!;
+  const subtasks = tasks.subtasks!;
+  if (new Set(requirements.map((row) => row.key)).size !== requirements.length) {
+    throw new Error('BAD_REQUEST: Requirement keys must be unique.');
+  }
+  if (new Set(subtasks.map((row) => row.key)).size !== subtasks.length) {
+    throw new Error('BAD_REQUEST: Subtask keys must be unique.');
+  }
+  return {
+    source: 'feature_spec',
+    productBrief: {
+      context: prd.brief?.context?.trim() || plan.problem!.trim(),
+      inScope: briefScopeItems(prd.brief!.inScope!),
+      outScope: briefScopeItems(prd.brief!.outScope!),
+    },
+    requirements: requirements.map((row) => ({
+      key: row.key,
+      title: row.title!.trim(),
+      description: row.description!.trim(),
+      acceptanceCriteria: row.acceptanceCriteria!.map(
+        (ac) => `Given ${ac.given!.trim()}\nWhen ${ac.when!.trim()}\nThen ${ac.then!.trim()}`,
+      ),
+    })),
+    subtasks: subtasks.map((row) => {
+      if (row.assignmentMode !== 'assigned') {
+        throw new Error('BAD_REQUEST: Open assignment is not supported by this Apply phase.');
+      }
+      const startDate = DateStringSchema.parse(row.startDate);
+      const dueDate = DateStringSchema.parse(row.dueDate);
+      if (
+        getTaskScheduleValidationIssue(startDate, dueDate) ||
+        startDate < planStart ||
+        dueDate > planDue
+      ) {
+        throw new Error('BAD_REQUEST: Every subtask schedule must fit within the Plan.');
+      }
+      return {
+        title: row.title!.trim(),
+        description: row.description!.trim(),
+        deliveryArea: row.deliveryArea!,
+        priority: row.priority!,
+        startDate,
+        dueDate,
+        assigneeId: row.assigneeId,
+        requirementKeys: [...new Set(row.requirementKeys!)],
+      };
+    }),
+  };
 }
 
 /**
@@ -137,6 +247,110 @@ async function syncPlanToFeature(
 }
 
 export const featureSpecService = {
+  /** AC-5.6: a reviewed persisted version is applied once, into its existing root Feature. */
+  async apply(
+    actorId: string,
+    rawInput: ApplyFeatureSpecInput,
+    actor: FeatureSpecActor = { type: 'user', id: actorId, via: 'web' },
+  ): Promise<ApplyFeatureSpecResponse> {
+    const input = ApplyFeatureSpecSchema.parse(rawInput);
+    const fingerprint = createHash('sha256')
+      .update(
+        JSON.stringify([input.workspaceId, input.specId, input.version, input.idempotencyKey]),
+      )
+      .digest('hex');
+    return sequelize.transaction(async (transaction) => {
+      const membership = await getActorMembership(input.workspaceId, actorId, transaction);
+      assertCanWriteFeatureSpec(membership.role);
+      const spec = await FeatureSpecModel.findOne({
+        where: { id: input.specId, workspaceId: input.workspaceId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!spec) throw new Error('NOT_FOUND: Feature Spec not found in this workspace.');
+      if (spec.status === 'applied') {
+        if (spec.applyFingerprint !== fingerprint) {
+          throw new Error('CONFLICT: This Spec has already been applied with another version/key.');
+        }
+        const applied = await FeatureSpecVersionModel.findOne({
+          where: { specId: spec.id, workspaceId: spec.workspaceId, version: spec.version },
+          transaction,
+        });
+        const receipt = FeatureSpecApplyReceiptSchema.parse(applied?.snapshot.applyResult);
+        return { ...receipt, featureSpec: await toResource(spec, transaction), replayed: true };
+      }
+      if (spec.version !== input.version) {
+        throw new Error('CONFLICT: The Feature Spec changed. Reload and review it before Apply.');
+      }
+      if (spec.status !== 'task') {
+        throw new Error('BAD_REQUEST: Complete the Plan and PRD before Apply.');
+      }
+      const draft = reviewedDraftForApply(spec);
+      const rootTask = await TaskModel.findOne({
+        where: { id: spec.featureTaskId, workspaceId: spec.workspaceId, parentTaskId: null },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!rootTask) throw new Error('NOT_FOUND: Root Feature not found in this Workspace.');
+      // One PostgreSQL transaction uses one connection; do not queue concurrent queries on it.
+      const briefCount = await TaskDocumentModel.count({
+        where: { workspaceId: spec.workspaceId, taskId: rootTask.id, linkType: 'primary_prd' },
+        transaction,
+      });
+      const requirementCount = await TaskRequirementModel.count({
+        where: { workspaceId: spec.workspaceId, taskId: rootTask.id },
+        transaction,
+      });
+      const subtaskCount = await TaskModel.count({
+        where: { workspaceId: spec.workspaceId, parentTaskId: rootTask.id },
+        // A recoverable manual subtask must not be replaced by a fresh Apply either.
+        paranoid: false,
+        transaction,
+      });
+      if (briefCount || requirementCount || subtaskCount) {
+        throw new Error(
+          'CONFLICT: This Feature already has delivery content. Nothing was replaced.',
+        );
+      }
+      await syncPlanToFeature(spec, spec.plan, transaction);
+      await rootTask.reload({ transaction });
+      const persisted = await persistReviewedDraftInTransaction(
+        spec.workspaceId,
+        actorId,
+        rootTask,
+        draft,
+        transaction,
+      );
+      await rootTask.reload({ transaction });
+      const receipt: FeatureSpecApplyReceipt = {
+        ...persisted,
+        appliedVersion: input.version,
+        task: formatTask(rootTask),
+      };
+      spec.status = 'applied';
+      spec.version += 1;
+      spec.applyFingerprint = fingerprint;
+      spec.updatedBy = actorId;
+      await spec.save({ transaction });
+      await writeVersion(spec, actor, transaction, receipt);
+      await logActivity(
+        spec.workspaceId,
+        spec.featureTaskId,
+        actorId,
+        'feature_spec.applied',
+        {
+          specId: spec.id,
+          appliedVersion: input.version,
+          version: spec.version,
+          createdRequirementCount: receipt.createdRequirementCount,
+          createdSubtaskCount: receipt.createdSubtaskCount,
+          via: actor.via,
+        },
+        transaction,
+      );
+      return { ...receipt, featureSpec: await toResource(spec, transaction), replayed: false };
+    });
+  },
   /** AC-5.1: the root Feature and Spec version 1 are created in one transaction. */
   async create(
     actorId: string,

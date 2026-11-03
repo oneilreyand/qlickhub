@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import {
   AnswerFeatureSpecQuestionSchema,
+  ApplyFeatureSpecSchema,
   CreateFeatureSpecSchema,
   FEATURE_SPEC_AI_UNAVAILABLE_CODE,
   FEATURE_SPEC_INCOMPLETE_CODE,
@@ -101,6 +102,19 @@ export async function saveFeatureSpecSection(req: AuthenticatedRequest, res: Res
     });
     const featureSpec = await featureSpecService.saveSection(req.user!.userId, input);
     return res.status(200).json({ featureSpec });
+  } catch (error) {
+    return sendError(res, error);
+  }
+}
+
+export async function applyFeatureSpec(req: AuthenticatedRequest, res: Response) {
+  try {
+    const input = ApplyFeatureSpecSchema.parse({
+      ...req.body,
+      workspaceId: req.params.workspaceId,
+      specId: req.params.specId,
+    });
+    return res.status(200).json(await featureSpecService.apply(req.user!.userId, input));
   } catch (error) {
     return sendError(res, error);
   }

@@ -13,6 +13,10 @@
 Bila merge ke `main` otomatis men-deploy Production, catat di sini dan pastikan persetujuan deploy
 tercakup (lihat ADR-029 butir 5).
 
+P5d-2: merge runtime ke `main` memicu deployment Production melalui Git integration. Approval
+Window implementasi mengecualikan deployment; auto-merge menunggu keputusan Owner atas PR konkret.
+Hasil tes/review, batas verifikasi, rollback dan status fase ada di [PHASE-05d2](phases/PHASE-05d2.md).
+
 ## 2. Verifikasi di environment target
 
 | AC     | Environment          | Observasi / perintah | Level | Hasil |

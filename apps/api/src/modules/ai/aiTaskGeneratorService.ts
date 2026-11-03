@@ -1,15 +1,8 @@
 import { sequelize } from '../../db/sequelize.js';
-import {
-  TaskModel,
-  TaskActivityModel,
-  RequirementModel,
-  AcceptanceCriterionModel,
-  TaskRequirementModel,
-  WorkFolderModel,
-} from '../../db/models/index.js';
+import { TaskModel, TaskActivityModel, WorkFolderModel } from '../../db/models/index.js';
 import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
 import { assertCanCreateTask } from '../../policies/taskPolicy.js';
-import { qaDocumentService } from '../qaDocuments/qaDocumentService.js';
+import { persistReviewedDraftInTransaction } from './aiTaskDraftPersistence.js';
 import { geminiClient } from './geminiClient.js';
 import {
   GenerateTaskDraftInput,
@@ -158,140 +151,28 @@ export class AiTaskGeneratorService {
         { transaction },
       );
 
-      // 2. Create Requirements and Acceptance Criteria if present
-      let createdRequirementCount = 0;
-      const createdRequirementIds: string[] = [];
-      if (validatedInput.requirements && validatedInput.requirements.length > 0) {
-        for (let i = 0; i < validatedInput.requirements.length; i++) {
-          const reqDraft = validatedInput.requirements[i];
-          const codeCandidate = `REQ-${Date.now().toString(36).slice(-3).toUpperCase()}${i + 1}`;
-
-          const req = await RequirementModel.create(
-            {
-              workspaceId,
-              code: codeCandidate,
-              title: reqDraft.title.trim(),
-              description: reqDraft.description ? reqDraft.description.trim() : null,
-              status: 'active',
-              createdBy: actorId,
-            },
-            { transaction },
-          );
-          createdRequirementIds.push(req.id);
-
-          // Link Requirement to the root Task
-          await TaskRequirementModel.create(
-            {
-              workspaceId,
-              taskId: rootTask.id,
-              requirementId: req.id,
-              linkedBy: actorId,
-            },
-            { transaction },
-          );
-
-          // Create Acceptance Criteria
-          if (reqDraft.acceptanceCriteria && reqDraft.acceptanceCriteria.length > 0) {
-            for (let seq = 1; seq <= reqDraft.acceptanceCriteria.length; seq++) {
-              const acText = reqDraft.acceptanceCriteria[seq - 1];
-              if (acText && acText.trim()) {
-                await AcceptanceCriterionModel.create(
-                  {
-                    workspaceId,
-                    requirementId: req.id,
-                    sequence: seq,
-                    text: acText.trim(),
-                    status: 'active',
-                    createdBy: actorId,
-                  },
-                  { transaction },
-                );
-              }
-            }
-          }
-
-          createdRequirementCount++;
-        }
-      }
-
-      // 3. Create Subtasks if present
-      let createdSubtaskCount = 0;
-      if (validatedInput.subtasks && validatedInput.subtasks.length > 0) {
-        for (const sub of validatedInput.subtasks) {
-          // If explicitly marked as enabled: false, skip
-          if (sub.enabled === false) continue;
-
-          const createdSub = await TaskModel.create(
-            {
-              workspaceId,
-              parentTaskId: rootTask.id,
-              folderId: validatedInput.folderId || null,
-              deliveryArea: sub.deliveryArea,
-              title: sub.title.trim(),
-              description: sub.description ? sub.description.trim() : null,
-              priority: sub.priority,
-              status: 'todo',
-              reporterId: actorId,
-            },
-            { transaction },
-          );
-
-          // Auto-link subtask to the feature's requirements for initial traceability
-          if (createdRequirementIds.length > 0) {
-            for (const requirementId of createdRequirementIds) {
-              await TaskRequirementModel.create(
-                {
-                  workspaceId,
-                  taskId: createdSub.id,
-                  requirementId,
-                  linkedBy: actorId,
-                },
-                { transaction },
-              );
-            }
-          }
-
-          await TaskActivityModel.create(
-            {
-              workspaceId,
-              taskId: createdSub.id,
-              actorId,
-              action: 'subtask_created',
-              metadataJson: {
-                parentTaskId: rootTask.id,
-                deliveryArea: sub.deliveryArea,
-                title: createdSub.title,
-                source: 'ai_generator',
-              },
-            },
-            { transaction },
-          );
-
-          createdSubtaskCount++;
-        }
-      }
-
-      // 4. Product Brief is mandatory and participates in this same transaction.
-      await qaDocumentService.upsertProductBrief(
+      const requirementKeys = validatedInput.requirements.map((_, index) => `R${index + 1}`);
+      const persisted = await persistReviewedDraftInTransaction(
         workspaceId,
-        rootTask.id,
         actorId,
+        rootTask,
         {
-          title: `Brief Produk: ${validatedInput.task.title}`,
-          contentMarkdown: validatedInput.productBrief.context || '',
-          // Ids are assigned by the Brief service; invented ids break the Brief contract on re-save.
-          inScope: (validatedInput.productBrief.inScope || []).map((item, idx) => ({
-            position: idx,
-            text: item,
+          source: 'ai_generator',
+          productBrief: validatedInput.productBrief,
+          requirements: validatedInput.requirements.map((requirement, index) => ({
+            ...requirement,
+            key: requirementKeys[index],
           })),
-          outScope: (validatedInput.productBrief.outScope || []).map((item, idx) => ({
-            position: idx,
-            text: item,
-          })),
-          acceptanceCriteria: [],
-          status: 'draft',
+          subtasks: validatedInput.subtasks
+            .filter((subtask) => subtask.enabled !== false)
+            .map((subtask) => ({
+              ...subtask,
+              description: subtask.description ?? '',
+              // Preserve legacy all-to-all traceability; Spec Apply supplies exact per-task keys.
+              requirementKeys,
+            })),
         },
-        { transaction },
+        transaction,
       );
 
       const loadedTask = await TaskModel.findByPk(rootTask.id, { transaction });
@@ -301,9 +182,7 @@ export class AiTaskGeneratorService {
 
       return {
         task: formatTask(loadedTask),
-        createdSubtaskCount,
-        createdRequirementCount,
-        hasProductBrief: true,
+        ...persisted,
       };
     });
   }

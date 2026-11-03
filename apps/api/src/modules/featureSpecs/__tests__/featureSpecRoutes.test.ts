@@ -35,6 +35,7 @@ describe('Feature Spec route wiring (guards against a handler landing on the wro
 
   test('write routes run the planner check and one handler', () => {
     assert.strictEqual(handlerCount('post', base), 2);
+    assert.strictEqual(handlerCount('post', `${base}/:specId/apply`), 2);
     assert.strictEqual(handlerCount('put', `${base}/:specId/sections/:section`), 2);
     assert.strictEqual(handlerCount('patch', `${base}/:specId/questions/:questionId`), 2);
   });

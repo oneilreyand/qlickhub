@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DeliveryAreaSchema, TaskPrioritySchema } from './task.js';
+import { DeliveryAreaSchema, TaskPrioritySchema, TaskSchema } from './task.js';
 
 /**
  * Feature Spec (ADR-036, P5a): one versioned specification per root Feature with three sections
@@ -289,5 +289,32 @@ export const SaveFeatureSpecSectionSchema = z.object({
   complete: z.boolean().optional().default(false),
 });
 export type SaveFeatureSpecSectionInput = z.infer<typeof SaveFeatureSpecSectionSchema>;
+
+/** Explicit Planner Apply of a persisted version, never a second draft supplied by the caller. */
+export const ApplyFeatureSpecSchema = z
+  .object({
+    workspaceId: z.string().uuid(),
+    specId: z.string().uuid(),
+    version: z.number().int().positive(),
+    idempotencyKey: z.string().trim().min(1).max(128),
+  })
+  .strict();
+export type ApplyFeatureSpecInput = z.infer<typeof ApplyFeatureSpecSchema>;
+
+/** Immutable receipt stored with the applied snapshot, so replay does not inspect mutable delivery. */
+export const FeatureSpecApplyReceiptSchema = z.object({
+  task: TaskSchema,
+  appliedVersion: z.number().int().positive(),
+  createdSubtaskCount: z.number().int().nonnegative(),
+  createdRequirementCount: z.number().int().nonnegative(),
+  hasProductBrief: z.literal(true),
+});
+export type FeatureSpecApplyReceipt = z.infer<typeof FeatureSpecApplyReceiptSchema>;
+
+export const ApplyFeatureSpecResponseSchema = FeatureSpecApplyReceiptSchema.extend({
+  featureSpec: FeatureSpecSchema,
+  replayed: z.boolean(),
+});
+export type ApplyFeatureSpecResponse = z.infer<typeof ApplyFeatureSpecResponseSchema>;
 
 export const FEATURE_SPEC_INCOMPLETE_CODE = 'FEATURE_SPEC_INCOMPLETE';
