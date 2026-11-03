@@ -45,7 +45,17 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Bukti red, kode lama + test baru: leader test 4 gagal `2 !== 1` (2 anggota = 2 query); notifications §6 test 2 gagal `8 !== 1` (8 lookup anti-spam).
 - Seluruh test integrasi API (`node --test` atas semua `dist/**/__tests__/*.test.js`, PostgreSQL disposable yang sama) — exit 0 — **636/636 pass**, 0 skip.
 - `npm run validate` — exit 0 (docs governance pass, docs:completeness 0 gap baru, lint 0 error/15 warning lama, typecheck); `sdlc:check --base origin/main` lulus dengan Quick Card ini; `quality:check` lengkap (scope dataAccess, performance).
-- PR dan tier: Tier 1 (tidak menyentuh path Tier 2). Belum di-merge.
-- Gap:
+- PR dan tier: [PR #100](https://github.com/oneilreyand/qlickhub/pull/100) (Tier 1) dan, untuk region, [PR #101](https://github.com/oneilreyand/qlickhub/pull/101) (Tier 2, `vercel.json`); keduanya di-merge Owner dan ter-deploy ke Production dari `15d0506` (status Vercel "Deployment has completed").
+- Verifikasi Production (E4, browser di Jakarta, 8 request per endpoint setelah deploy siap; beberapa request pertama 3–5 detik adalah cold start deployment baru):
+
+  | Ukuran                        | Sebelum (`6e4e4c3`) | Sesudah (`15d0506`) |
+  | ----------------------------- | ------------------- | ------------------- |
+  | Region fungsi (`x-vercel-id`) | `sin1::iad1`        | `sin1::hnd1`        |
+  | `/v1` (tanpa database)        | ±290 ms             | ±140–150 ms         |
+  | `/v1/health` (2 query)        | ±590 ms             | ±145–210 ms         |
+
+  Timeline Leader dan cek deadline belum diukur di Production (perlu sesi login Owner/Admin).
+
+- Gap (dilacak sebagai PROD-LATENCY-FOLLOWUP di `TODO.md`):
   - Cek deadline tetap memindai semua task belum `done` dengan `dueDate <= besok` (termasuk yang sudah lama overdue) dan tetap boleh dipanggil tanpa `workspaceId`; perlu keputusan produk apakah overdue lama tetap diberi pengingat.
   - Pengiriman notifikasi yang lolos anti-spam tetap berurutan per penerima, sama seperti sebelumnya.
