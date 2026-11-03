@@ -213,3 +213,15 @@ quality review sendiri: reuse `logActivity`, `assertRoleMatchesDeliveryArea`, at
 satu matcher bersama; tidak ada endpoint/kontrak paralel; kode usang tidak ditemukan; `reassign`
 belum punya tombol UI terpisah karena pemilihan assignee lewat form detail yang ada sudah menugaskan.
 P5g-2 diterima lokal sebagai kandidat; Feature induk tetap In progress, tanpa merge/deploy.
+
+#### P5g-2 — perbaikan UX dari demo lokal, 2026-11-03
+
+Demo lokal (PR #97) menemukan dua hal kecil. (1) Daftar subtask menampilkan "Unassigned" baik untuk
+subtask terbuka maupun yang belum ditugaskan; kini `SubtaskSummaryRow` dan ringkasan Feature
+menampilkan **Terbuka** (ikon tangan) untuk `assignmentMode=open` dan "Belum ditugaskan" untuk yang
+lain. (2) Setelah Planner menyimpan/melepas subtask, halaman Feature kembali ke ringkasan karena
+`useTaskWithParent.reload()` mengosongkan task dan menampilkan skeleton sehingga drawer di-mount ulang;
+reload untuk task yang sama kini menyegarkan di latar belakang (navigasi ke task lain tetap memuat
+penuh). Bukti: `useTaskWithParent.test.tsx` 2/2, `SubtaskSummaryRowAssignment.test.tsx` 2/2, suite web
+**805/805**; E2E `open-claim` + `feature-planning` desktop **7/7** (PO melihat "Penugasan terbuka" dan
+label Terbuka tanpa membuka ulang panel). Tanpa perubahan API, kontrak, data, atau izin.

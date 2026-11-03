@@ -9,6 +9,7 @@ import {
   FileText,
   Calendar,
   AlertCircle,
+  Hand,
   User,
 } from 'lucide-react';
 import type { Task, DeliveryArea } from '@qlick/contracts';
@@ -36,6 +37,8 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
 }) => {
   const isCompleted = subtask.status === 'done';
   const isChangesRequested = subtask.status === 'changes_requested';
+  // ADR-038: open work has no assignee yet but is claimable, unlike plain unassigned work.
+  const isOpenAssignment = !assigneeName && subtask.assignmentMode === 'open';
   const hasDescription = Boolean(subtask.description && subtask.description.trim().length > 0);
 
   const scheduleHealth = React.useMemo(() => {
@@ -179,14 +182,24 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
         {/* Assignee Avatar / Name */}
         <div
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-stone-100/80 dark:bg-stone-800/70 text-xs text-stone-700 dark:text-stone-300"
-          title={`Penanggung jawab: ${assigneeName || 'Belum ditugaskan'}`}
+          title={
+            assigneeName
+              ? `Penanggung jawab: ${assigneeName}`
+              : isOpenAssignment
+                ? 'Penugasan terbuka: Developer/QA yang cocok dapat mengambilnya'
+                : 'Penanggung jawab: Belum ditugaskan'
+          }
         >
           {assigneeName ? (
             <Avatar name={assigneeName} size="sm" className="h-4.5 w-4.5 text-xs" />
+          ) : isOpenAssignment ? (
+            <Hand className="h-3.5 w-3.5 text-stone-500 dark:text-stone-400" aria-hidden="true" />
           ) : (
-            <User className="h-3.5 w-3.5 text-stone-400" />
+            <User className="h-3.5 w-3.5 text-stone-400" aria-hidden="true" />
           )}
-          <span className="max-w-[120px] truncate font-medium">{assigneeName || 'Unassigned'}</span>
+          <span className="max-w-[120px] truncate font-medium">
+            {assigneeName || (isOpenAssignment ? 'Terbuka' : 'Belum ditugaskan')}
+          </span>
         </div>
 
         {/* Static Status Badge (Read-Only) */}

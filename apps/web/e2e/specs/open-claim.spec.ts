@@ -131,6 +131,15 @@ test('QA claims open QA work; PO releases assigned work back to the open queue',
   expect(released.assigneeId).toBeNull();
   expect(released.assignmentMode).toBe('open');
   expect(released.status).toBe('todo');
+  // The open subtask panel stays where the PO is working and now shows the open state.
+  await expect(poPage.getByText('Penugasan terbuka', { exact: true })).toBeVisible();
+  await expect(poPage.getByRole('button', { name: 'Lepas ke antrean terbuka' })).toHaveCount(0);
+  await expect(
+    poPage
+      .getByRole('button', { name: /API refund ditugaskan/ })
+      .first()
+      .getByText('Terbuka'),
+  ).toBeVisible();
   await poContext.close();
 });
 

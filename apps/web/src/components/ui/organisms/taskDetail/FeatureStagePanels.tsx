@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, ChevronDown, Circle } from 'lucide-react';
+import { Check, ChevronDown, Circle, Hand } from 'lucide-react';
 import type { ParentTaskDeliveryTrace, ProductBrief, Requirement, Task } from '@qlick/contracts';
 import { Button } from '../../atoms/Button';
 import { FormattedText } from '../../atoms/FormattedText';
@@ -520,12 +520,22 @@ export const FeatureTaskSummary: React.FC<FeatureTaskSummaryProps> = ({
                       <span className="w-28 shrink-0 text-xs text-stone-500 dark:text-stone-400">
                         {formatDateRange(subtask.startDate, subtask.dueDate)}
                       </span>
-                      <span
-                        title={assignee ?? 'Belum ada assignee'}
-                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-700 dark:bg-stone-700 dark:text-stone-200"
-                      >
-                        {getInitials(assignee)}
-                      </span>
+                      {!assignee && subtask.assignmentMode === 'open' ? (
+                        <span
+                          title="Terbuka — tersedia untuk diambil"
+                          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-stone-200 px-2 text-[11px] font-bold text-stone-700 dark:bg-stone-700 dark:text-stone-200"
+                        >
+                          <Hand className="h-3.5 w-3.5" aria-hidden="true" />
+                          Terbuka
+                        </span>
+                      ) : (
+                        <span
+                          title={assignee ?? 'Belum ada assignee'}
+                          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-700 dark:bg-stone-700 dark:text-stone-200"
+                        >
+                          {getInitials(assignee)}
+                        </span>
+                      )}
                     </button>
                   </li>
                 );

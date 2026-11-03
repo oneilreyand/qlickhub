@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Task } from '@qlick/contracts';
 import { taskService } from '../api/taskService';
 
@@ -33,6 +33,9 @@ export function useTaskWithParent(
   const [isParentTaskLoading, setIsParentTaskLoading] = useState(false);
   const [failure, setFailure] = useState<TaskRouteFailure | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  // Key of the task currently shown. Reloading the same task refreshes it in the background so
+  // the page (and its open tabs/panels) stays mounted instead of flashing back to a skeleton.
+  const shownKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -44,16 +47,23 @@ export function useTaskWithParent(
     }
 
     let isCancelled = false;
-    setTask(null);
-    setParentTask(null);
-    setFailure(null);
-    setIsTaskLoading(true);
-    setIsParentTaskLoading(false);
+    const key = `${workspaceId}:${taskId}`;
+    const isBackgroundRefresh = shownKeyRef.current === key;
+    if (!isBackgroundRefresh) {
+      shownKeyRef.current = null;
+      setTask(null);
+      setParentTask(null);
+      setFailure(null);
+      setIsTaskLoading(true);
+      setIsParentTaskLoading(false);
+    }
 
     void taskService
       .getTask(workspaceId, taskId)
       .then(async (loadedTask) => {
         if (isCancelled) return;
+        shownKeyRef.current = key;
+        setFailure(null);
         setTask(loadedTask);
         setIsTaskLoading(false);
 
@@ -68,6 +78,7 @@ export function useTaskWithParent(
       })
       .catch((error: unknown) => {
         if (isCancelled) return;
+        shownKeyRef.current = null;
         setFailure(getFailure(error));
         setIsTaskLoading(false);
         setIsParentTaskLoading(false);
