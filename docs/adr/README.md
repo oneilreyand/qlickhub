@@ -47,3 +47,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-036](ADR-036-FEATURE-SPEC-REQUIRED-FIELDS-AND-AGENT-READY-WRITES.md)     | Feature Spec, server-enforced required fields, agent-ready writes    |
 | [ADR-037](ADR-037-DESIGN-ASSET-WORKFLOW.md)                                   | Design asset workflow: canvas source and WebP exports                |
 | [ADR-038](ADR-038-FULLSTACK-ASSIGNMENT-AND-OPEN-CLAIM.md)                     | Fullstack assignment and atomic open claims                          |
+| [ADR-039](ADR-039-PRODUCTION-MIGRATION-GATE.md)                               | Production migration gate via the public health check                |
