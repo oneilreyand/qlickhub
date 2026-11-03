@@ -185,8 +185,8 @@ function reviewedDraftForApply(spec: FeatureSpecModel): ReviewedDraftContents {
       ),
     })),
     subtasks: subtasks.map((row) => {
-      if (row.assignmentMode !== 'assigned') {
-        throw new Error('BAD_REQUEST: Open assignment is not supported by this Apply phase.');
+      if (row.assignmentMode === 'open' && row.assigneeId) {
+        throw new Error('BAD_REQUEST: An open subtask cannot name an assignee.');
       }
       const startDate = DateStringSchema.parse(row.startDate);
       const dueDate = DateStringSchema.parse(row.dueDate);
@@ -205,6 +205,7 @@ function reviewedDraftForApply(spec: FeatureSpecModel): ReviewedDraftContents {
         startDate,
         dueDate,
         assigneeId: row.assigneeId,
+        assignmentMode: row.assignmentMode!,
         requirementKeys: [...new Set(row.requirementKeys!)],
       };
     }),

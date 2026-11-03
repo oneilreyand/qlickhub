@@ -46,6 +46,15 @@ function setup(
 }
 describe('Feature Spec PRD/Tasks workflow (P5e)', () => {
   beforeEach(() => vi.clearAllMocks());
+  it('offers explicit open assignment without requiring or retaining an assignee', async () => {
+    setup('tasks');
+    fireEvent.change(screen.getByLabelText('Penugasan · Wajib'), { target: { value: 'open' } });
+    expect(screen.queryByLabelText('Penanggung jawab · Wajib')).not.toBeInTheDocument();
+    expect(screen.getByText(/Tanpa penanggung jawab sampai/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tinjau dan Terapkan' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Penugasan · Wajib'), { target: { value: 'assigned' } });
+    expect(screen.getByLabelText('Penanggung jawab · Wajib')).toHaveValue('');
+  });
   it('does not advance or invoke AI when a previously completed Plan became incomplete', () => {
     const spec = featureSpecFixture('prd');
     spec.plan.goal = '';

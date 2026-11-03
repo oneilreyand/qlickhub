@@ -54,6 +54,7 @@ export function formatTask(t: TaskModel): Task {
     status: json.status,
     priority: json.priority,
     assigneeId: json.assigneeId || null,
+    assignmentMode: json.assignmentMode,
     reporterId: json.reporterId,
     reviewedBy: json.reviewedBy || null,
     reviewNotes: json.reviewNotes || null,

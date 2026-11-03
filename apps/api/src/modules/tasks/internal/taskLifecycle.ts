@@ -46,6 +46,7 @@ import {
   WorkspaceRole,
   DeveloperSpecialty,
   getTaskScheduleValidationIssue,
+  type TaskAssignmentMode,
 } from '@qlick/contracts';
 import { formatTask } from './taskQuery.js';
 import { assertQaCompletionGate } from '../../releaseDecisions/qaEvidenceCompletionGate.js';
@@ -259,6 +260,7 @@ export async function createTaskInTransaction(
   actorId: string,
   input: CreateTaskInput,
   transaction: Transaction,
+  assignmentMode: TaskAssignmentMode = 'assigned',
 ): Promise<CreatedTaskResult> {
   const {
     workspaceId,
@@ -296,6 +298,9 @@ export async function createTaskInTransaction(
   // Parent tasks have no individual assignee (unassigned feature container owned by reporter/PO)
   // Subtasks hold the designated execution assignee (FE / BE / QA)
   const resolvedAssigneeId = parentTaskId ? assigneeId || null : null;
+  if (assignmentMode === 'open' && (!parentTaskId || resolvedAssigneeId)) {
+    throw new Error('BAD_REQUEST: Open assignment requires an unassigned subtask.');
+  }
 
   let parentTaskRecord: TaskModel | null = null;
   if (parentTaskId) {
@@ -398,6 +403,7 @@ export async function createTaskInTransaction(
       status: status || 'todo',
       priority: priority || 'medium',
       assigneeId: resolvedAssigneeId || null,
+      assignmentMode,
       reporterId: actorId,
       startDate: startDate || null,
       dueDate: dueDate || null,
@@ -474,6 +480,7 @@ export async function createTaskInTransaction(
       status: status || 'todo',
       priority: priority || 'medium',
       assigneeId: assigneeId || null,
+      assignmentMode,
       ...(roleCheck.isMismatch
         ? {
             roleMismatchOverride: true,

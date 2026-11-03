@@ -49,6 +49,14 @@ test('PO reviews Plan → PRD → Tasks and explicitly applies a persisted versi
   await requirement.focus();
   await requirement.press('Space');
   await expect(requirement).toBeChecked();
+  await page.getByRole('button', { name: 'Tambah Subtask', exact: true }).click();
+  await page.getByLabel('Judul subtask · Wajib').nth(1).fill('QA checkout terbuka');
+  await page.getByLabel('Deskripsi subtask · Wajib').nth(1).fill('Uji hasil checkout tersimpan.');
+  await page.getByLabel('Area delivery · Wajib').nth(1).selectOption('qa');
+  await page.getByLabel('Penugasan · Wajib').nth(1).selectOption('open');
+  const qaRequirement = page.getByRole('checkbox', { name: /Simpan checkout/ }).nth(1);
+  await qaRequirement.focus();
+  await qaRequirement.press('Space');
   await page.getByRole('button', { name: 'Simpan draf Task', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Tinjau dan Terapkan' })).toBeEnabled();
   await page.getByRole('button', { name: 'Tinjau dan Terapkan' }).click();
@@ -62,12 +70,17 @@ test('PO reviews Plan → PRD → Tasks and explicitly applies a persisted versi
   expect(read.status()).toBe(200);
   const result = FeatureSpecSchema.parse((await read.json()).featureSpec);
   expect(result.status).toBe('applied');
-  expect(result.tasks.subtasks).toHaveLength(1);
+  expect(result.tasks.subtasks).toHaveLength(2);
   const delivery = await page.request.get(
     `${api}/workspaces/${fixture.workspace.id}/tasks/${fixture.spec.featureTaskId}/subtasks`,
   );
   expect(delivery.status()).toBe(200);
-  expect(TaskListResponseSchema.parse((await delivery.json()).data).tasks).toHaveLength(1);
+  const persistedTasks = TaskListResponseSchema.parse((await delivery.json()).data).tasks;
+  expect(persistedTasks).toHaveLength(2);
+  expect(persistedTasks.find((row) => row.assignmentMode === 'open')?.assigneeId).toBeNull();
+  expect(persistedTasks.find((row) => row.assignmentMode === 'assigned')?.assigneeId).toBe(
+    fixture.dev.id,
+  );
 });
 
 test('draft design remains usable at phone, tablet and desktop widths in both themes', async ({

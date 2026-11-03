@@ -143,20 +143,27 @@ export function FeatureSpecTasksEditor({
           >
             <option value="">Pilih mode</option>
             <option value="assigned">Tentukan penanggung jawab</option>
+            <option value="open">Terbuka untuk diambil</option>
           </Select>
-          <Select
-            id={`tasks-subtasks-${index}--assigneeId`}
-            label="Penanggung jawab · Wajib"
-            value={row.assigneeId ?? ''}
-            onChange={(event) => update(index, { assigneeId: event.target.value || null })}
-          >
-            <option value="">Pilih anggota</option>
-            {members.map((member) => (
-              <option key={member.userId} value={member.userId}>
-                {member.user?.name ?? member.user?.email ?? member.userId} · {member.role}
-              </option>
-            ))}
-          </Select>
+          {row.assignmentMode === 'open' ? (
+            <p className="text-sm text-stone-600 dark:text-stone-400">
+              Tanpa penanggung jawab sampai Developer/QA yang cocok mengambil tugas ini.
+            </p>
+          ) : (
+            <Select
+              id={`tasks-subtasks-${index}--assigneeId`}
+              label="Penanggung jawab · Wajib"
+              value={row.assigneeId ?? ''}
+              onChange={(event) => update(index, { assigneeId: event.target.value || null })}
+            >
+              <option value="">Pilih anggota</option>
+              {members.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.user?.name ?? member.user?.email ?? member.userId} · {member.role}
+                </option>
+              ))}
+            </Select>
+          )}
           <fieldset id={`tasks-subtasks-${index}--requirementKeys`} className="space-y-2">
             <legend className="mb-2 text-sm font-semibold">Requirement terkait · Wajib</legend>
             {(spec.prd.requirements ?? []).map((requirement) => (

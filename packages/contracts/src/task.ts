@@ -13,6 +13,8 @@ export const TaskStatusSchema = z.enum([
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
 /** Planning stage is an authenticated read model, not a separately persisted Task column. */
+export const TaskAssignmentModeSchema = z.enum(['assigned', 'open']);
+export type TaskAssignmentMode = z.infer<typeof TaskAssignmentModeSchema>;
 export const FeaturePlanningStageSchema = z.enum(['plan', 'prd', 'task', 'applied']);
 export type FeaturePlanningStage = z.infer<typeof FeaturePlanningStageSchema>;
 export const FEATURE_PLANNING_STAGE_LABELS: Record<FeaturePlanningStage, string> = {
@@ -134,6 +136,7 @@ export const TaskSchemaBase = z.object({
   status: TaskStatusSchema,
   priority: TaskPrioritySchema,
   assigneeId: z.string().uuid().nullable().optional(),
+  assignmentMode: TaskAssignmentModeSchema.optional(),
   reporterId: z.string().uuid(),
   reviewedBy: z.string().uuid().nullable().optional(),
   reviewNotes: z.string().nullable().optional(),

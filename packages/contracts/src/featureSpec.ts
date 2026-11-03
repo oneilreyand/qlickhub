@@ -4,6 +4,7 @@ import {
   TaskPrioritySchema,
   TaskSchema,
   FeaturePlanningStageSchema,
+  TaskAssignmentModeSchema,
 } from './task.js';
 
 /**
@@ -25,7 +26,7 @@ export type FeatureSpecStatus = z.infer<typeof FeatureSpecStatusSchema>;
 export const FeatureSpecTargetPlatformSchema = z.enum(['web', 'mobile', 'web_mobile', 'api']);
 export type FeatureSpecTargetPlatform = z.infer<typeof FeatureSpecTargetPlatformSchema>;
 
-export const FeatureSpecAssignmentModeSchema = z.enum(['assigned', 'open']);
+export const FeatureSpecAssignmentModeSchema = TaskAssignmentModeSchema;
 export type FeatureSpecAssignmentMode = z.infer<typeof FeatureSpecAssignmentModeSchema>;
 
 export const FeatureSpecActorTypeSchema = z.enum(['user', 'agent']);

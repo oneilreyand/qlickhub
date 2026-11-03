@@ -131,3 +131,37 @@ FORCE_COLOR tetap dicatat. Quality review: reuse Badge/collection/stepper, stage
 classifier usang dihapus, HTTP/PG/UI/browser mencakup perubahan, kontrak dan katalog Atomic diperbarui.
 Spec dan Standards re-review **Accepted**, tidak ada temuan actionable tersisa.
 P5f lokal diterima; lanjut P5g-1 Build. Tidak ada klaim merge/deploy.
+
+### P5g-1 — Build, 2026-11-03
+
+Assignment mode diperkenalkan pada jalur Spec/Apply yang sudah meminta pilihan eksplisit.
+CreateTask legacy tetap kompatibel: default penyimpanan assigned termasuk assignee kosong;
+input lama tidak otomatis menjadi open atau claimable. Ini menjaga batas ADR-036 tentang Task
+Spec tanpa memaksakan perubahan breaking pada API manual lama. Planner dapat melepas pekerjaan
+melalui operasi eksplisit P5g-2. Shared Task mode optional untuk pembaca/client lama, backend
+selalu mengembalikannya. Mode Spec memakai enum shared yang sama.
+
+Migrasi94 aditif memakai varchar+CHECK assigned/open dan open hanya untuk subtask tanpa assignee,
+serta partial index queue scoped Workspace/area/tenggat. Default tidak mengubah assignee/status
+legacy. Risiko rollback: drop kolom menghilangkan pilihan mode, sehingga down hanya disposable;
+rilis kelak memakai revert kode/forward recovery dengan ekspor mode sebelum rollback schema.
+Tidak ada migrasi pada database pengguna/Production. AC evidence: clean migrations+CHECK/index,
+Apply campuran assigned/open+readback+replay/rollback, UI pilihan mode tanpa assignee, pool1.
+
+Hasil P5g-1: Node24.15.0 `npm --prefix packages/contracts run build`, `npm run typecheck`:
+exit0; `npm --prefix apps/web run test -- --run src/components/ui/organisms/taskDetail/__tests__/FeatureSpecDraftPanel.test.tsx`:
+**9/9 pass**; `npm run docs:check`: exit0,12/12.
+`NODE_ENV=test node --import tsx --test apps/api/src/modules/featureSpecs/__tests__/featureSpecApplyApiIntegration.test.ts`:
+**21/21 pass,0 skip**,28.2detik, PostgreSQL16 disposable `qlickhub_p5g_test_77806`
+(nama per proses),78 canonical migrations. Suite membuktikan mode, root/open/assignee CHECK,
+index, readback HTTP dan replay; regresi rollback dan pool1 tetap lulus.
+`BROWSER_TEST_WEB_PORT=3100 BROWSER_TEST_API_PORT=4101 npm --prefix apps/web run test:e2e -- feature-planning.spec.ts --project=desktop-chromium`:
+**3/3 pass**,20.3detik, database disposable; mixed assigned/open Apply/readback dan matriks
+PRD/Task/Apply/TaskHub pada390/768/1440 Light/Dark. Warning NO_COLOR/FORCE_COLOR.
+Rerun PG pertama sempat gagal karena package contracts dist belum dibangun sehingga parser
+readback menghapus field baru; build package dan rerun menyelesaikan kegagalan, tanpa melemahkan
+assertion. Typecheck awal juga menemukan envelope unknown yang kemudian diparse dengan Zod.
+Quality review: satu enum mode, reuse writer kanonis dan atoms; tidak ada API manual paralel,
+rejection open yang obsolete diganti menjadi open+assignee invalid sesuai ADR-036; tes dan docs
+disesuaikan bersama. Review Spec dan Standards **Accepted**, tidak ada temuan actionable.
+P5g-1 diterima lokal; lanjut P5g-2 Build.

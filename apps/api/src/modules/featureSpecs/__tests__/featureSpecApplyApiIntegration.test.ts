@@ -675,10 +675,99 @@ describe('Feature Spec Apply HTTP/PostgreSQL (P5d-2)', () => {
     await unchanged(spec, initial);
   });
 
-  test('open assignment, invalid calendar/schedule and unknown/duplicate keys are refused', async () => {
+  test('explicit open assignment persists alongside assigned work and replays without duplication', async () => {
+    const content = tasks();
+    content.subtasks![0].assignmentMode = 'open';
+    content.subtasks![0].assigneeId = null;
+    const spec = await readySpec({ tasks: content });
+    const response = await request(spec);
+    assert.equal(response.status, 200);
+    const receipt = ApplyFeatureSpecResponseSchema.parse(await response.json());
+    const children = await TaskModel.findAll({
+      where: { workspaceId: workspace.id, parentTaskId: spec.featureTaskId },
+      order: [['title', 'ASC']],
+    });
+    assert.equal(children.length, 2);
+    assert.equal(
+      children.filter((row) => row.assignmentMode === 'open' && row.assigneeId === null).length,
+      1,
+    );
+    assert.equal(
+      children.filter((row) => row.assignmentMode === 'assigned' && row.assigneeId === qa.id)
+        .length,
+      1,
+    );
+    const { data: read } = z
+      .object({ data: TaskListResponseSchema })
+      .parse(
+        await (
+          await fetch(
+            `${base}/workspaces/${workspace.id}/tasks?parentTaskId=${spec.featureTaskId}`,
+            { headers: { cookie: cookies.get(owner.id)! } },
+          )
+        ).json(),
+      );
+    assert.equal(read.tasks.find((row) => row.assignmentMode === 'open')?.assigneeId, null);
+    assert.equal(receipt.createdSubtaskCount, 2);
+    assert.equal((await request(spec)).status, 200);
+    assert.equal(
+      await TaskModel.count({
+        where: { workspaceId: workspace.id, parentTaskId: spec.featureTaskId },
+      }),
+      2,
+    );
+  });
+
+  test('assignment storage preserves legacy null assignees and rejects invalid open rows', async () => {
+    const spec = await readySpec();
+    const legacy = await TaskModel.create({
+      workspaceId: workspace.id,
+      parentTaskId: spec.featureTaskId,
+      folderId: folder.id,
+      deliveryArea: 'backend',
+      title: 'Legacy unassigned fixture',
+      reporterId: po.id,
+    });
+    assert.equal((await legacy.reload()).assignmentMode, 'assigned');
+    assert.equal(legacy.assigneeId, null);
+    await assert.rejects(
+      sequelize.transaction(async (transaction) => {
+        await sequelize.query("UPDATE tasks SET assignment_mode='open' WHERE id=:id", {
+          replacements: { id: spec.featureTaskId },
+          transaction,
+        });
+      }),
+      /tasks_open_subtask_unassigned/,
+    );
+    await assert.rejects(
+      sequelize.transaction(async (transaction) => {
+        await sequelize.query(
+          "UPDATE tasks SET assignment_mode='open',assignee_id=:assignee WHERE id=:id",
+          { replacements: { id: legacy.id, assignee: dev.id }, transaction },
+        );
+      }),
+      /tasks_open_subtask_unassigned/,
+    );
+    await assert.rejects(
+      sequelize.transaction(async (transaction) => {
+        await sequelize.query("UPDATE tasks SET assignment_mode='unknown' WHERE id=:id", {
+          replacements: { id: legacy.id },
+          transaction,
+        });
+      }),
+      /tasks_assignment_mode_valid/,
+    );
+    assert.equal((await legacy.reload()).assignmentMode, 'assigned');
+    const [indexes] = await sequelize.query(
+      "SELECT indexname FROM pg_indexes WHERE tablename='tasks' AND indexname='idx_tasks_open_claim_queue'",
+    );
+    assert.equal(indexes.length, 1);
+  });
+
+  test('open with assignee, invalid calendar/schedule and unknown/duplicate keys are refused', async () => {
     const variants: FeatureSpecTasks[] = [];
     for (const change of [
-      { assignmentMode: 'open' as const, assigneeId: null },
+      { assignmentMode: 'open' as const, assigneeId: dev.id },
       { startDate: '2026-11-31' },
       { startDate: '2026-11-10', dueDate: '2026-11-04' },
       { dueDate: '2026-11-21' },
