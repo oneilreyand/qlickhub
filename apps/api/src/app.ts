@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { env } from './config/env.js';
 import { checkDatabaseConnection } from './db/sequelize.js';
+import { getAppliedMigrationStatus } from './db/migrationStatus.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { workspaceRoutes } from './modules/workspaces/workspaceRoutes.js';
 import { folderRoutes } from './modules/folders/folderRoutes.js';
@@ -45,6 +46,8 @@ export const createApp = () => {
   app.get(['/health', '/v1/health'], async (_req: Request, res: Response) => {
     const dbHealth = await checkDatabaseConnection();
     const statusCode = dbHealth.connected ? 200 : 503;
+    // ADR-039: latest applied migration name only, so CI can compare it with `main`.
+    const migrations = dbHealth.connected ? await getAppliedMigrationStatus() : null;
 
     res.status(statusCode).json({
       status: dbHealth.connected ? 'ok' : 'degraded',
@@ -53,6 +56,7 @@ export const createApp = () => {
       database: {
         status: dbHealth.connected ? 'connected' : 'disconnected',
         ...(env.NODE_ENV !== 'production' && dbHealth.message && { error: dbHealth.message }),
+        ...(migrations && { migrations }),
       },
     });
   });

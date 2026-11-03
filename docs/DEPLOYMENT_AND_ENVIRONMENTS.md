@@ -179,6 +179,13 @@ schema tidak drift:
 Migrasi tidak dijalankan otomatis dari `vercel.json`; ini disengaja agar build web/API tidak
 diam-diam mengubah schema. Utamakan migrasi additive/backward-compatible sebelum deploy kode.
 
+**Gate migrasi ([ADR-039](adr/ADR-039-PRODUCTION-MIGRATION-GATE.md)).** `/v1/health` melaporkan
+`database.migrations.latest` (nama migrasi terakhir di `SequelizeMeta`) dan `applied`. Langkah
+terakhir CI `verify` pada PR ke `main` menjalankan `npm run migrations:prod:check`, yang gagal bila
+tree PR memuat migrasi yang lebih baru dari Production. Jalankan migrasi tersebut di Production
+(langkah 3–5), lalu jalankan ulang CI sebelum merge. Bila health Production tidak terbaca, CI hanya
+memberi peringatan. Cek lokal: `PRODUCTION_HEALTH_URL=<url health> npm run migrations:prod:check`.
+
 ## 7. URL Production dan custom domain
 
 URL Production kanonikal saat ini adalah `https://qlickhub.vercel.app`. Jika custom domain
