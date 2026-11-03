@@ -215,6 +215,61 @@ describe('Feature Spec service (P5a: AC-5.1, AC-5.2, AC-5.3, AC-5.7)', () => {
     assert.strictEqual(String(feature?.dueDate).slice(0, 10), '2026-11-20');
   });
 
+  test('AC-5.2: a later section cannot complete after an earlier Plan is edited back into an incomplete draft', async () => {
+    let spec = await createSpec('Prior stage regression');
+    spec = await featureSpecService.saveSection(po.id, {
+      workspaceId: workspace.id,
+      specId: spec.id,
+      version: spec.version,
+      section: 'plan',
+      content: completePlan,
+      complete: true,
+    });
+    spec = await featureSpecService.saveSection(po.id, {
+      workspaceId: workspace.id,
+      specId: spec.id,
+      version: spec.version,
+      section: 'plan',
+      content: { ...completePlan, goal: '' },
+      complete: false,
+    });
+    const activityBefore = await TaskActivityModel.count({ where: { taskId: spec.featureTaskId } });
+    await assert.rejects(
+      () =>
+        featureSpecService.saveSection(po.id, {
+          workspaceId: workspace.id,
+          specId: spec.id,
+          version: spec.version,
+          section: 'prd',
+          content: {
+            brief: { inScope: 'Simpan', outScope: 'Bayar' },
+            requirements: [
+              {
+                key: 'R1',
+                title: 'Simpan',
+                description: 'Persisten',
+                acceptanceCriteria: [{ given: 'Input', when: 'Simpan', then: 'Terbaca' }],
+              },
+            ],
+          },
+          complete: true,
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof FeatureSpecIncompleteError);
+        assert.ok(error.missingFields.includes('plan.goal'));
+        return true;
+      },
+    );
+    const persisted = await featureSpecService.getById(workspace.id, spec.id, po.id);
+    assert.strictEqual(persisted.version, spec.version);
+    assert.strictEqual(persisted.status, 'prd');
+    assert.deepStrictEqual(persisted.prd, {});
+    assert.strictEqual(
+      await TaskActivityModel.count({ where: { taskId: spec.featureTaskId } }),
+      activityBefore,
+    );
+  });
+
   test('a Plan with the due date before the start date is rejected and nothing is saved', async () => {
     const spec = await createSpec('Jadwal terbalik');
     await assert.rejects(

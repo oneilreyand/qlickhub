@@ -92,6 +92,14 @@ vi.mock('../../../../lib/api/releaseDecisionService', () => ({
 vi.mock('../../../../lib/api/testManagementService', () => ({
   testManagementService: unmockedService('testManagementService'),
 }));
+// These legacy-detail factories have no Feature Spec. A failed fetch is now an explicit error,
+// so declare the absent persisted Spec rather than accidentally depending on network failure.
+vi.mock('../../../../lib/api/featureSpecService', () => ({
+  featureSpecService: {
+    getByFeature: vi.fn().mockResolvedValue(null),
+    listQuestions: vi.fn().mockResolvedValue([]),
+  },
+}));
 
 vi.mock('../../../../lib/api/bugService', () => ({
   bugService: {

@@ -537,7 +537,11 @@ export const featureSpecAiService = {
         'CONFLICT: The Feature Spec changed since you opened it. Reload and try again.',
       );
     }
-    if (spec.status !== 'task' || !evaluateFeatureSpecSection('prd', spec.prd).complete) {
+    if (
+      spec.status !== 'task' ||
+      !evaluateFeatureSpecSection('plan', spec.plan).complete ||
+      !evaluateFeatureSpecSection('prd', spec.prd).complete
+    ) {
       throw new Error('BAD_REQUEST: Complete the PRD before asking the AI to write the Tasks.');
     }
     if (hasTasksContent(spec.tasks) && !input.replace) {

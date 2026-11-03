@@ -73,6 +73,7 @@ export interface FeatureSpecPlanPanelProps {
   canEdit: boolean;
   /** Simpan bagian Plan. `complete: true` meminta server memeriksa field wajib. Melempar bila gagal. */
   onSave: (content: FeatureSpecPlan, complete: boolean) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
   /** Bantuan AI (AC-5.4). Tanpa prop ini, panel berjalan seperti P5a. */
   ai?: Pick<
     FeatureSpecAiAssistantProps,
@@ -80,11 +81,12 @@ export interface FeatureSpecPlanPanelProps {
   >;
 }
 
-/** Layar Plan Feature Spec (AC-5.1 sampai AC-5.3): 11 field wajib, simpan draf, lalu lanjut. */
+/** Layar Plan Feature Spec: sembilan field wajib, simpan draf, lalu lanjut. */
 export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
   spec,
   canEdit,
   onSave,
+  onDirtyChange,
   ai,
 }) => {
   const [draft, setDraft] = React.useState<FeatureSpecPlan>(spec.plan);
@@ -97,6 +99,10 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
 
   const evaluation = React.useMemo(() => evaluateFeatureSpecSection('plan', draft), [draft]);
   const isDirty = JSON.stringify(draft) !== JSON.stringify(spec.plan);
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty, onDirtyChange]);
   const planIsDone = spec.status !== 'plan';
   const disabled = !canEdit || isSaving;
 
@@ -129,7 +135,7 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
   };
 
   const lockReason = planIsDone
-    ? 'Plan sudah lengkap. Layar PRD disiapkan di phase berikutnya.'
+    ? 'Plan sudah lengkap. Buka PRD untuk meninjau atau melanjutkan.'
     : evaluation.complete
       ? null
       : `Terkunci: ${evaluation.missingFields.length} field wajib belum terisi.`;
@@ -391,7 +397,7 @@ export const FeatureSpecPlanRail: React.FC<{
       )}
       {planIsDone && (
         <Button variant="outline" size="sm" onClick={onOpenPrd}>
-          Lihat PRD (tampilan saat ini)
+          Lihat PRD
         </Button>
       )}
       <div className="border-t border-stone-200/80 pt-3 dark:border-stone-800">

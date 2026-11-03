@@ -469,7 +469,14 @@ export const featureSpecService = {
       const prd = input.section === 'prd' ? content : spec.prd;
       if (input.complete) {
         const evaluation = evaluateFeatureSpecSection(input.section, content, { prd });
-        if (!evaluation.complete) throw new FeatureSpecIncompleteError(evaluation.missingFields);
+        const missingFields = [...evaluation.missingFields];
+        // Previous stages can be edited back into incomplete drafts after advancing. Re-check
+        // their persisted contents before certifying a later section, not just its status flag.
+        if (input.section !== 'plan')
+          missingFields.push(...evaluateFeatureSpecSection('plan', spec.plan).missingFields);
+        if (input.section === 'tasks')
+          missingFields.push(...evaluateFeatureSpecSection('prd', spec.prd).missingFields);
+        if (missingFields.length) throw new FeatureSpecIncompleteError(missingFields);
       }
 
       spec[input.section] = content as never;

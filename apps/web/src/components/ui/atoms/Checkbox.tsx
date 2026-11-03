@@ -5,14 +5,24 @@ export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputE
   label?: string;
 }
 
-export const Checkbox: React.FC<CheckboxProps> = ({ label, checked, onChange, disabled, className = '', id, ...props }) => {
+export const Checkbox: React.FC<CheckboxProps> = ({
+  label,
+  checked,
+  onChange,
+  disabled,
+  className = '',
+  id,
+  ...props
+}) => {
   const checkboxId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
   return (
     <label
       htmlFor={checkboxId}
       className={`inline-flex min-h-[44px] cursor-pointer items-center gap-2.5 text-sm font-medium text-stone-700 select-none dark:text-stone-300 ${
-        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-stone-900 dark:hover:text-stone-100'
+        disabled
+          ? 'opacity-50 cursor-not-allowed'
+          : 'hover:text-stone-900 dark:hover:text-stone-100'
       } ${className}`}
     >
       <div className="relative">
@@ -22,11 +32,11 @@ export const Checkbox: React.FC<CheckboxProps> = ({ label, checked, onChange, di
           checked={checked}
           onChange={onChange}
           disabled={disabled}
-          className="sr-only"
+          className="peer sr-only"
           {...props}
         />
         <div
-          className={`grid h-5 w-5 place-items-center rounded-md border transition-all ${
+          className={`grid h-5 w-5 place-items-center rounded-md border transition-all peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-stone-900 dark:peer-focus-visible:outline-brand-500 ${
             checked
               ? 'border-[#B1E743] bg-[#B1E743] text-[#141413] dark:border-[#B1E743] dark:bg-[#B1E743] dark:text-[#141413]'
               : 'border-stone-300 bg-white hover:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:hover:border-stone-600'
@@ -49,7 +59,9 @@ export interface SwitchProps {
 
 export const ToggleSwitch: React.FC<SwitchProps> = ({ checked, onChange, label, disabled }) => {
   return (
-    <label className={`inline-flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-stone-700 select-none dark:text-stone-300 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+    <label
+      className={`inline-flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-stone-700 select-none dark:text-stone-300 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
       <button
         type="button"
         role="switch"

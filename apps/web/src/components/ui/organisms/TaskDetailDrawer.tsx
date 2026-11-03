@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { HandoffTimeline } from './HandoffTimeline';
+import { FeatureSpecDraftPanel } from './taskDetail/FeatureSpecDraftPanel';
+import { Alert } from '../atoms/Alert';
 import {
   CheckCircle2,
   RotateCcw,
@@ -239,6 +241,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     spec: featureSpec,
     setSpec: setFeatureSpec,
     reload: reloadFeatureSpec,
+    isLoading: isLoadingFeatureSpec,
+    error: featureSpecError,
   } = useFeatureSpec(
     layout === 'page' ? effectiveWorkspaceId : undefined,
     layout === 'page' && task && !task.parentTaskId ? task.id : null,
@@ -259,6 +263,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   });
 
   const [activeTab, setActiveTab] = useState<string>(initialTab ?? 'overview');
+  const [specDraftIsDirty, setSpecDraftIsDirty] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
@@ -271,7 +276,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [isProductBriefDirty, setIsProductBriefDirty] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<
-    { type: 'tab'; tabId: string } | { type: 'close' } | null
+    { type: 'tab'; tabId: string } | { type: 'close' } | { type: 'reloadSpec' } | null
   >(null);
 
   // Persisted Product Brief remains available to read-only schedule context.
@@ -695,14 +700,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   );
 
   useEffect(() => {
-    if (!taskDraftIsDirty && !isProductBriefDirty) return;
+    if (!taskDraftIsDirty && !isProductBriefDirty && !specDraftIsDirty) return;
     const protectBrowserNavigation = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = '';
     };
     window.addEventListener('beforeunload', protectBrowserNavigation);
     return () => window.removeEventListener('beforeunload', protectBrowserNavigation);
-  }, [taskDraftIsDirty, isProductBriefDirty]);
+  }, [taskDraftIsDirty, isProductBriefDirty, specDraftIsDirty]);
 
   const hasPickedInitialStage = useRef(Boolean(initialTab));
   const onTabChangeRef = useRef(onTabChange);
@@ -724,12 +729,35 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const isDetailReady =
     Boolean(task) && loadedTaskKey === `${effectiveWorkspaceId || task?.workspaceId}:${task?.id}`;
   useEffect(() => {
-    if (layout !== 'page' || hasPickedInitialStage.current || !isDetailReady) return;
+    if (
+      layout !== 'page' ||
+      hasPickedInitialStage.current ||
+      !isDetailReady ||
+      isLoadingFeatureSpec ||
+      featureSpecError
+    )
+      return;
     hasPickedInitialStage.current = true;
-    const tabs = FEATURE_STAGE_TABS[derivedStage];
+    const current =
+      featureSpec && featureSpec.status !== 'applied'
+        ? featureSpec.status === 'plan'
+          ? 'plan'
+          : featureSpec.status === 'prd'
+            ? 'prd'
+            : 'task'
+        : derivedStage;
+    const tabs = FEATURE_STAGE_TABS[current];
     const next = task?.parentTaskId ? tabs.find((id) => id !== 'brief') : tabs[0];
     if (next) setActiveTab(next);
-  }, [layout, isDetailReady, derivedStage, task?.parentTaskId]);
+  }, [
+    layout,
+    isDetailReady,
+    derivedStage,
+    task?.parentTaskId,
+    isLoadingFeatureSpec,
+    featureSpecError,
+    featureSpec,
+  ]);
 
   if (!task) {
     if (!pendingTaskId) return null;
@@ -1117,6 +1145,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   };
 
   const activeSectionIsDirty =
+    specDraftIsDirty ||
     (activeTab === 'overview' && taskDraftIsDirty) ||
     (activeTab === 'brief' && isProductBriefDirty);
 
@@ -1131,6 +1160,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         { version: featureSpec.version, content, complete },
       );
       setFeatureSpec(next);
+      if (complete) commitTabChange('prd-summary');
       dispatch(
         enqueueSnackbar(
           complete ? 'Plan lengkap, tahap PRD terbuka' : 'Draf Plan disimpan',
@@ -1212,6 +1242,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     if (activeTab === 'brief') setIsProductBriefDirty(false);
 
     if (pending.type === 'close') onClose();
+    else if (pending.type === 'reloadSpec') reloadFeatureSpec();
     else commitTabChange(pending.tabId);
   };
 
@@ -1405,10 +1436,21 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               currentStageInProgress={stepperStageInProgress}
               selectedStage={stageForTab(activeTab)}
               summaries={stageSummaries}
-              disabledStages={['apply']}
-              applied={derivedStage === 'task'}
+              disabledStages={
+                featureSpec
+                  ? featureSpec.status === 'plan'
+                    ? ['prd', 'task', 'apply']
+                    : featureSpec.status === 'prd'
+                      ? ['task', 'apply']
+                      : []
+                  : ['apply']
+              }
+              applied={featureSpec ? featureSpec.status === 'applied' : false}
               onSelect={(stage) => {
-                if (stage === 'apply') return;
+                if (stage === 'apply') {
+                  handleTabChange('task-summary');
+                  return;
+                }
                 handleTabChange(FEATURE_SUMMARY_TAB[stage]);
               }}
             />
@@ -1496,299 +1538,341 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               : 'space-y-4'
           }
         >
-          {layout === 'page' && editorSummaryTab && (
-            <Button
-              variant="ghost"
-              size="sm"
-              leftIcon={<ChevronLeft className="h-3.5 w-3.5" />}
-              onClick={() => handleTabChange(editorSummaryTab)}
-            >
-              Kembali ke ringkasan
-            </Button>
-          )}
-          {(layout !== 'page' || task.parentTaskId) && (
-            <TaskHierarchyBreadcrumb
-              task={task}
-              parentTask={parentTask}
-              isParentTaskLoading={isParentTaskLoading}
-              onNavigateToTask={onNavigateToTask}
-            />
-          )}
-
-          {/* HALAMAN FEATURE: RINGKASAN PRD DAN TASK */}
-          {layout === 'page' && activeTab === 'prd-summary' && (
-            <FeatureStageLayout
-              main={
-                <FeaturePrdSummary
-                  productBrief={productBrief}
-                  briefError={productBriefError}
-                  trace={traceForPage}
-                  fallbackRequirements={featureEligibleRequirements}
-                  showBrief={!task.parentTaskId}
-                  onEditBrief={() => handleTabChange('brief')}
-                  onManageRequirements={() => handleTabChange('prd')}
-                />
-              }
-              rail={
-                <FeaturePrdRail
-                  productBrief={productBrief}
-                  trace={traceForPage}
-                  showBrief={!task.parentTaskId}
-                  onContinue={() => handleTabChange('task-summary')}
-                />
-              }
-            />
-          )}
-          {layout === 'page' && activeTab === 'task-summary' && (
-            <FeatureStageLayout
-              main={
-                <FeatureTaskSummary
+          {featureSpecError ? (
+            <Alert tone="error">
+              Spec tidak dapat dimuat. {featureSpecError.message}
+              <Button variant="outline" onClick={reloadFeatureSpec}>
+                Coba lagi
+              </Button>
+            </Alert>
+          ) : isLoadingFeatureSpec ? (
+            <Skeleton className="h-72 w-full rounded-2xl" />
+          ) : (
+            <>
+              {layout === 'page' && editorSummaryTab && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<ChevronLeft className="h-3.5 w-3.5" />}
+                  onClick={() => handleTabChange(editorSummaryTab)}
+                >
+                  Kembali ke ringkasan
+                </Button>
+              )}
+              {(layout !== 'page' || task.parentTaskId) && (
+                <TaskHierarchyBreadcrumb
                   task={task}
+                  parentTask={parentTask}
+                  isParentTaskLoading={isParentTaskLoading}
+                  onNavigateToTask={onNavigateToTask}
+                />
+              )}
+
+              {/* HALAMAN FEATURE: RINGKASAN PRD DAN TASK */}
+              {layout === 'page' &&
+                featureSpec &&
+                featureSpec.status !== 'applied' &&
+                (activeTab === 'prd-summary' || activeTab === 'task-summary') && (
+                  <FeatureSpecDraftPanel
+                    key={`${featureSpec.id}:${activeTab}`}
+                    spec={featureSpec}
+                    section={activeTab === 'prd-summary' ? 'prd' : 'tasks'}
+                    canEdit={canPlan}
+                    members={members}
+                    onChange={setFeatureSpec}
+                    onReload={() =>
+                      specDraftIsDirty
+                        ? setPendingNavigation({ type: 'reloadSpec' })
+                        : reloadFeatureSpec()
+                    }
+                    onApplied={() => {
+                      void loadSubtasks();
+                      onDataChanged?.();
+                    }}
+                    onContinue={() => commitTabChange('task-summary')}
+                    onDirtyChange={setSpecDraftIsDirty}
+                  />
+                )}
+              {layout === 'page' &&
+                (!featureSpec || featureSpec.status === 'applied') &&
+                activeTab === 'prd-summary' && (
+                  <FeatureStageLayout
+                    main={
+                      <FeaturePrdSummary
+                        productBrief={productBrief}
+                        briefError={productBriefError}
+                        trace={traceForPage}
+                        fallbackRequirements={featureEligibleRequirements}
+                        showBrief={!task.parentTaskId}
+                        onEditBrief={() => handleTabChange('brief')}
+                        onManageRequirements={() => handleTabChange('prd')}
+                      />
+                    }
+                    rail={
+                      <FeaturePrdRail
+                        productBrief={productBrief}
+                        trace={traceForPage}
+                        showBrief={!task.parentTaskId}
+                        onContinue={() => handleTabChange('task-summary')}
+                      />
+                    }
+                  />
+                )}
+              {layout === 'page' &&
+                (!featureSpec || featureSpec.status === 'applied') &&
+                activeTab === 'task-summary' && (
+                  <FeatureStageLayout
+                    main={
+                      <FeatureTaskSummary
+                        task={task}
+                        subtasks={subtasks}
+                        trace={traceForPage}
+                        members={members}
+                        isSubtask={isSubtask}
+                        canPlan={canPlan && !task.parentTaskId}
+                        onEditTask={() => handleTabChange('overview')}
+                        onOpenSubtask={(subtaskId) => onNavigateToTask?.(subtaskId)}
+                        onManageSubtasks={() => handleTabChange('subtasks')}
+                        onAddSubtask={() => {
+                          setPlannedRequirementIds([]);
+                          setIsSubtaskModalOpen(true);
+                        }}
+                      />
+                    }
+                    rail={isSubtask ? undefined : <FeatureTaskRail trace={traceForPage} />}
+                  />
+                )}
+
+              {/* TAB 1: OVERVIEW */}
+              {activeTab === 'overview' && (
+                <TaskDetailOverviewTab
+                  task={task}
+                  description={description}
+                  onDescriptionChange={setDescription}
+                  status={status}
+                  onStatusChange={setStatus}
+                  priority={priority}
+                  onPriorityChange={setPriority}
+                  folderId={folderId}
+                  onFolderIdChange={setFolderId}
+                  startDate={startDate}
+                  onStartDateChange={setStartDate}
+                  dueDate={dueDate}
+                  onDueDateChange={setDueDate}
+                  flatFolders={flatFolders}
+                  canEditTask={canEditTask}
+                  canEditStatus={canEditStatus}
+                  canPlan={canPlan}
+                  canEditPlanning={canEditPlanning}
+                  isAssignedExecutor={isAssignedExecutor}
+                  releaseReadinessState={releaseReadinessState}
+                  productBrief={productBrief}
                   subtasks={subtasks}
-                  trace={traceForPage}
                   members={members}
-                  isSubtask={isSubtask}
+                  onSelectTab={handleTabChange}
+                  simple={layout === 'page'}
+                  title={title}
+                  onTitleChange={setTitle}
+                  onSave={handleSave}
+                  onCancel={() => handleTabChange('task-summary')}
+                  isSaving={isSaving}
+                  isDirty={taskDraftIsDirty}
+                />
+              )}
+
+              {/* FEATURE-LEVEL PRODUCT BRIEF */}
+              {activeTab === 'brief' && !task.parentTaskId && (
+                <TaskDetailProductBriefTab
+                  task={task}
+                  workspaceId={activeWorkspaceId || task.workspaceId}
+                  userRole={userWorkspaceRole}
+                  productBrief={productBrief}
+                  loadError={productBriefError}
+                  onReload={() => void loadProductBrief()}
+                  onSaved={(brief) => {
+                    setProductBrief(brief);
+                    setIsProductBriefDirty(false);
+                    void loadActivity(1);
+                    if (layout === 'page' && editorSummaryTab) commitTabChange(editorSummaryTab);
+                  }}
+                  onDirtyChange={setIsProductBriefDirty}
+                  simple={layout === 'page'}
+                  onCancel={() => {
+                    setIsProductBriefDirty(false);
+                    if (layout === 'page' && editorSummaryTab) commitTabChange(editorSummaryTab);
+                  }}
+                />
+              )}
+
+              {/* REQUIREMENTS AND ACCEPTANCE CRITERIA */}
+              {activeTab === 'prd' && (
+                <TaskDetailSpecsTab
+                  task={task}
+                  activeWorkspaceId={activeWorkspaceId}
+                  userRole={userWorkspaceRole}
+                  onRequirementChanged={() => loadActivity(1)}
+                  simple={layout === 'page'}
+                  onPlanSubtask={
+                    canPlan && !task.parentTaskId
+                      ? (requirement: Requirement) => {
+                          setPlannedRequirementIds([requirement.id]);
+                          setIsSubtaskModalOpen(true);
+                        }
+                      : undefined
+                  }
+                  requirementInitialState={requirementInitialState}
+                />
+              )}
+
+              {/* TAB 3: DELIVERY TRACE */}
+              {activeTab === 'trace' && (
+                <TaskDeliveryTracePanel
+                  workspaceId={activeWorkspaceId || task.workspaceId}
+                  taskId={task.id}
+                  initialState={deliveryTraceInitialState}
+                />
+              )}
+
+              {/* TAB 4: BUGS */}
+              {activeTab === 'bugs' && (
+                <BugExperiencePanel
+                  workspaceId={activeWorkspaceId || task.workspaceId}
+                  userRole={userWorkspaceRole}
+                  mode="feature"
+                  featureTaskId={task.parentTaskId || task.id}
+                  initialState={bugInitialState}
+                />
+              )}
+
+              {/* TAB 5: SUBTASKS */}
+              {activeTab === 'subtasks' && (
+                <SubtaskList
+                  subtasks={subtasks}
+                  parentTask={task}
+                  productBrief={productBrief}
+                  workspaceId={activeWorkspaceId || ''}
+                  currentUserId={currentUserId || undefined}
+                  eligibleRequirements={featureEligibleRequirements}
+                  members={members}
+                  isLoading={isLoadingSubtasks}
+                  error={subtasksError}
                   canPlan={canPlan && !task.parentTaskId}
-                  onEditTask={() => handleTabChange('overview')}
-                  onOpenSubtask={(subtaskId) => onNavigateToTask?.(subtaskId)}
-                  onManageSubtasks={() => handleTabChange('subtasks')}
-                  onAddSubtask={() => {
+                  canMutate={Boolean(
+                    activeWorkspace &&
+                    ['owner', 'admin', 'po', 'dev', 'qa'].includes(activeWorkspace.role),
+                  )}
+                  unreadCommentMap={unreadSubtaskCommentMap}
+                  onClearSubtaskUnread={(subtaskId) => {
+                    setUnreadSubtaskCommentMap((prev) => {
+                      const updated = { ...prev };
+                      delete updated[subtaskId];
+                      return updated;
+                    });
+                  }}
+                  onOpenCreateModal={() => {
                     setPlannedRequirementIds([]);
                     setIsSubtaskModalOpen(true);
                   }}
+                  onRetry={() => void loadSubtasks()}
+                  onSubtaskUpdated={(updated) => {
+                    setSubtasks((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+                    void loadDeliveryTrace();
+                    onDataChanged?.();
+                  }}
+                  onSubtaskDeleted={(subtaskId) => {
+                    setSubtasks((prev) => prev.filter((item) => item.id !== subtaskId));
+                    void loadActivity(1);
+                    onDataChanged?.();
+                  }}
                 />
-              }
-              rail={isSubtask ? undefined : <FeatureTaskRail trace={traceForPage} />}
-            />
-          )}
-
-          {/* TAB 1: OVERVIEW */}
-          {activeTab === 'overview' && (
-            <TaskDetailOverviewTab
-              task={task}
-              description={description}
-              onDescriptionChange={setDescription}
-              status={status}
-              onStatusChange={setStatus}
-              priority={priority}
-              onPriorityChange={setPriority}
-              folderId={folderId}
-              onFolderIdChange={setFolderId}
-              startDate={startDate}
-              onStartDateChange={setStartDate}
-              dueDate={dueDate}
-              onDueDateChange={setDueDate}
-              flatFolders={flatFolders}
-              canEditTask={canEditTask}
-              canEditStatus={canEditStatus}
-              canPlan={canPlan}
-              canEditPlanning={canEditPlanning}
-              isAssignedExecutor={isAssignedExecutor}
-              releaseReadinessState={releaseReadinessState}
-              productBrief={productBrief}
-              subtasks={subtasks}
-              members={members}
-              onSelectTab={handleTabChange}
-              simple={layout === 'page'}
-              title={title}
-              onTitleChange={setTitle}
-              onSave={handleSave}
-              onCancel={() => handleTabChange('task-summary')}
-              isSaving={isSaving}
-              isDirty={taskDraftIsDirty}
-            />
-          )}
-
-          {/* FEATURE-LEVEL PRODUCT BRIEF */}
-          {activeTab === 'brief' && !task.parentTaskId && (
-            <TaskDetailProductBriefTab
-              task={task}
-              workspaceId={activeWorkspaceId || task.workspaceId}
-              userRole={userWorkspaceRole}
-              productBrief={productBrief}
-              loadError={productBriefError}
-              onReload={() => void loadProductBrief()}
-              onSaved={(brief) => {
-                setProductBrief(brief);
-                setIsProductBriefDirty(false);
-                void loadActivity(1);
-                if (layout === 'page' && editorSummaryTab) commitTabChange(editorSummaryTab);
-              }}
-              onDirtyChange={setIsProductBriefDirty}
-              simple={layout === 'page'}
-              onCancel={() => {
-                setIsProductBriefDirty(false);
-                if (layout === 'page' && editorSummaryTab) commitTabChange(editorSummaryTab);
-              }}
-            />
-          )}
-
-          {/* REQUIREMENTS AND ACCEPTANCE CRITERIA */}
-          {activeTab === 'prd' && (
-            <TaskDetailSpecsTab
-              task={task}
-              activeWorkspaceId={activeWorkspaceId}
-              userRole={userWorkspaceRole}
-              onRequirementChanged={() => loadActivity(1)}
-              simple={layout === 'page'}
-              onPlanSubtask={
-                canPlan && !task.parentTaskId
-                  ? (requirement: Requirement) => {
-                      setPlannedRequirementIds([requirement.id]);
-                      setIsSubtaskModalOpen(true);
-                    }
-                  : undefined
-              }
-              requirementInitialState={requirementInitialState}
-            />
-          )}
-
-          {/* TAB 3: DELIVERY TRACE */}
-          {activeTab === 'trace' && (
-            <TaskDeliveryTracePanel
-              workspaceId={activeWorkspaceId || task.workspaceId}
-              taskId={task.id}
-              initialState={deliveryTraceInitialState}
-            />
-          )}
-
-          {/* TAB 4: BUGS */}
-          {activeTab === 'bugs' && (
-            <BugExperiencePanel
-              workspaceId={activeWorkspaceId || task.workspaceId}
-              userRole={userWorkspaceRole}
-              mode="feature"
-              featureTaskId={task.parentTaskId || task.id}
-              initialState={bugInitialState}
-            />
-          )}
-
-          {/* TAB 5: SUBTASKS */}
-          {activeTab === 'subtasks' && (
-            <SubtaskList
-              subtasks={subtasks}
-              parentTask={task}
-              productBrief={productBrief}
-              workspaceId={activeWorkspaceId || ''}
-              currentUserId={currentUserId || undefined}
-              eligibleRequirements={featureEligibleRequirements}
-              members={members}
-              isLoading={isLoadingSubtasks}
-              error={subtasksError}
-              canPlan={canPlan && !task.parentTaskId}
-              canMutate={Boolean(
-                activeWorkspace &&
-                ['owner', 'admin', 'po', 'dev', 'qa'].includes(activeWorkspace.role),
               )}
-              unreadCommentMap={unreadSubtaskCommentMap}
-              onClearSubtaskUnread={(subtaskId) => {
-                setUnreadSubtaskCommentMap((prev) => {
-                  const updated = { ...prev };
-                  delete updated[subtaskId];
-                  return updated;
-                });
-              }}
-              onOpenCreateModal={() => {
-                setPlannedRequirementIds([]);
-                setIsSubtaskModalOpen(true);
-              }}
-              onRetry={() => void loadSubtasks()}
-              onSubtaskUpdated={(updated) => {
-                setSubtasks((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-                void loadDeliveryTrace();
-                onDataChanged?.();
-              }}
-              onSubtaskDeleted={(subtaskId) => {
-                setSubtasks((prev) => prev.filter((item) => item.id !== subtaskId));
-                void loadActivity(1);
-                onDataChanged?.();
-              }}
-            />
-          )}
 
-          {/* TAB 6: ACTIVITY AUDIT */}
-          {activeTab === 'activity' && (
-            <TaskDetailActivityTab
-              activities={activities}
-              activityTotal={activityTotal}
-              activityPage={activityPage}
-              isLoadingActivity={isLoadingActivity}
-              activityError={activityError}
-              onLoadActivity={(page, append) => void loadActivity(page, append)}
-              pageSize={PAGE_SIZE}
-            />
-          )}
+              {/* TAB 6: ACTIVITY AUDIT */}
+              {activeTab === 'activity' && (
+                <TaskDetailActivityTab
+                  activities={activities}
+                  activityTotal={activityTotal}
+                  activityPage={activityPage}
+                  isLoadingActivity={isLoadingActivity}
+                  activityError={activityError}
+                  onLoadActivity={(page, append) => void loadActivity(page, append)}
+                  pageSize={PAGE_SIZE}
+                />
+              )}
 
-          {/* TAB 7: DISCUSSION */}
-          {layout === 'page' && activeTab === 'discussion' && (
-            <FeatureStageLayout
-              main={
-                <>
-                  {featureSpec && (
-                    <FeatureSpecPlanPanel
-                      spec={featureSpec}
-                      canEdit={canPlan}
-                      onSave={handleSaveFeatureSpecPlan}
-                      ai={{
-                        questions: featureSpecAi.questions,
-                        busy: featureSpecAi.busy,
-                        onGenerateQuestions: () => void featureSpecAi.generateQuestions(),
-                        onAnswer: featureSpecAi.answerQuestion,
-                        onGeneratePlan: () => void featureSpecAi.generatePlan(),
-                      }}
-                    />
-                  )}
-                  <FeaturePlanSummary
-                    hideIdea={Boolean(featureSpec)}
-                    task={task}
-                    canEdit={canEditTask && !task.parentTaskId}
-                    messageCount={commentsTotal}
-                    onSaveIdea={async (nextDescription) => {
-                      if (!activeWorkspaceId) return;
-                      try {
-                        await dispatch(
-                          updateTask({
-                            workspaceId: activeWorkspaceId,
-                            taskId: task.id,
-                            input: { description: nextDescription },
-                          }),
-                        ).unwrap();
-                        dispatch(enqueueSnackbar('Ide awal disimpan', 'success'));
-                        onDataChanged?.();
-                      } catch (err) {
-                        dispatch(
-                          enqueueSnackbar(
-                            err instanceof Error ? err.message : 'Ide awal gagal disimpan',
-                            'error',
-                          ),
-                        );
-                        throw err;
-                      }
-                    }}
-                    discussion={discussionWithHandoffs}
-                  />
-                </>
-              }
-              rail={
-                featureSpec ? (
-                  <FeatureSpecPlanRail
-                    spec={featureSpec}
-                    onOpenPrd={() => handleTabChange('prd-summary')}
-                  />
-                ) : (
-                  <FeaturePlanRail
-                    hasIdea={Boolean(task.description?.trim())}
-                    messageCount={commentsTotal}
-                    requirementCount={traceRequirements.length}
-                    subtaskCount={subtasks.length}
-                    isDone={derivedStage === 'task'}
-                    onContinue={() => handleTabChange('prd-summary')}
-                  />
-                )
-              }
-            />
+              {/* TAB 7: DISCUSSION */}
+              {layout === 'page' && activeTab === 'discussion' && (
+                <FeatureStageLayout
+                  main={
+                    <>
+                      {featureSpec && (
+                        <FeatureSpecPlanPanel
+                          spec={featureSpec}
+                          canEdit={canPlan && featureSpec.status !== 'applied'}
+                          onSave={handleSaveFeatureSpecPlan}
+                          onDirtyChange={setSpecDraftIsDirty}
+                          ai={{
+                            questions: featureSpecAi.questions,
+                            busy: featureSpecAi.busy,
+                            onGenerateQuestions: () => void featureSpecAi.generateQuestions(),
+                            onAnswer: featureSpecAi.answerQuestion,
+                            onGeneratePlan: () => void featureSpecAi.generatePlan(),
+                          }}
+                        />
+                      )}
+                      <FeaturePlanSummary
+                        hideIdea={Boolean(featureSpec)}
+                        task={task}
+                        canEdit={canEditTask && !task.parentTaskId}
+                        messageCount={commentsTotal}
+                        onSaveIdea={async (nextDescription) => {
+                          if (!activeWorkspaceId) return;
+                          try {
+                            await dispatch(
+                              updateTask({
+                                workspaceId: activeWorkspaceId,
+                                taskId: task.id,
+                                input: { description: nextDescription },
+                              }),
+                            ).unwrap();
+                            dispatch(enqueueSnackbar('Ide awal disimpan', 'success'));
+                            onDataChanged?.();
+                          } catch (err) {
+                            dispatch(
+                              enqueueSnackbar(
+                                err instanceof Error ? err.message : 'Ide awal gagal disimpan',
+                                'error',
+                              ),
+                            );
+                            throw err;
+                          }
+                        }}
+                        discussion={discussionWithHandoffs}
+                      />
+                    </>
+                  }
+                  rail={
+                    featureSpec ? (
+                      <FeatureSpecPlanRail
+                        spec={featureSpec}
+                        onOpenPrd={() => handleTabChange('prd-summary')}
+                      />
+                    ) : (
+                      <FeaturePlanRail
+                        hasIdea={Boolean(task.description?.trim())}
+                        messageCount={commentsTotal}
+                        requirementCount={traceRequirements.length}
+                        subtaskCount={subtasks.length}
+                        isDone={derivedStage === 'task'}
+                        onContinue={() => handleTabChange('prd-summary')}
+                      />
+                    )
+                  }
+                />
+              )}
+              {layout !== 'page' && activeTab === 'discussion' && discussionWithHandoffs}
+            </>
           )}
-          {layout !== 'page' && activeTab === 'discussion' && discussionWithHandoffs}
         </div>
       </DetailFrame>
 
