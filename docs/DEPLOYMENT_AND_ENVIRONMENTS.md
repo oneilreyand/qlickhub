@@ -2,7 +2,7 @@
 
 **Status:** Active operational guide  
 **Owner:** Engineering  
-**Last reviewed:** 2026-09-02  
+**Last reviewed:** 2026-11-03  
 **Applicable Policy IDs:** `DOC-001`, `DOC-004`, `DATA-001`
 
 Panduan ini adalah pintu masuk operasional untuk menjalankan Qlick Hub secara lokal serta
@@ -100,6 +100,13 @@ atau akun layanan Production untuk Preview.
 Untuk Vercel serverless, `DATABASE_URL` harus memakai Supabase Transaction Pooler dan
 `DATABASE_POOL_MAX=1`. `DATABASE_SSL=true` wajib di Production. Gunakan origin HTTPS eksplisit
 pada `CORS_ORIGIN`; wildcard dilarang.
+
+Region fungsi API dikunci di `vercel.json` (`"regions": ["hnd1"]`, Tokyo) agar sama dengan region
+database Supabase Production (`ap-northeast-1`). Tanpa pengaturan ini Vercel memakai default `iad1`
+(AS Timur) dan setiap query menyeberangi Pasifik: pada 2026-11-03, dari browser di Jakarta, `/v1`
+tanpa database ±290 ms dan `/v1/health` dengan dua query ±590 ms (±150 ms per query). Pengaturan
+ini juga berlaku untuk Preview. Bila database Production dipindah ke region lain, ubah `regions`
+di rilis yang sama, lalu pastikan header `x-vercel-id` pada `/v1/health` berakhiran region baru.
 
 Preview dan Production wajib memakai database masing-masing dan secret identifier terpisah.
 Default Production/Preview adalah PostgreSQL; jangan mengaktifkannya sebelum migrasi 65.
