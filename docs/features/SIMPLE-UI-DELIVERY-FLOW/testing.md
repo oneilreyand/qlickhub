@@ -71,3 +71,11 @@ Salinan payload lengkap diperiksa konsistensinya; CI head dokumentasi dan Tier 2
 Review ulang evidence tidak selesai karena batas alat dan tidak diklaim sebagai acceptance baru;
 detail ada di phase tertaut.
 Tidak menganggap test fixture sebagai bukti Production dan tidak menutup Feature induk.
+
+## 7. P5d-2 — Apply atomik
+
+Kandidat dan bukti E2/E3 untuk AC-5.6 Apply, AC-5.2, AC-5.3, dan AC-5.7 dicatat di
+[PHASE-05d2](phases/PHASE-05d2.md). Tes menggunakan HTTP terautentikasi, PostgreSQL disposable
+dengan migrasi kanonis, readback persisten, permintaan serentak, dan kegagalan penyimpanan nyata.
+Tidak ada UAT browser, panggilan Gemini, Apply Production, atau perubahan UI dalam fase ini.
+Penerimaan review dan hasil CI dicatat di phase tersebut; Feature induk tetap berjalan.

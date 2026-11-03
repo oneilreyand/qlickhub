@@ -7,6 +7,7 @@ import {
 } from './featureSpecAiRateLimit.js';
 import {
   answerFeatureSpecQuestion,
+  applyFeatureSpec,
   createFeatureSpec,
   generateFeatureSpecPlan,
   generateFeatureSpecPrd,
@@ -41,6 +42,11 @@ featureSpecRoutes.put(
   '/workspaces/:workspaceId/feature-specs/:specId/sections/:section',
   requireWorkspaceMember(['owner', 'admin', 'po']),
   saveFeatureSpecSection,
+);
+featureSpecRoutes.post(
+  '/workspaces/:workspaceId/feature-specs/:specId/apply',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  applyFeatureSpec,
 );
 
 // P5b (AC-5.4): AI Plan. AI calls are rate limited per user and per workspace.

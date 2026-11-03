@@ -28,3 +28,8 @@ test tolak (403) di integration test.
 
 UI visibility is not authorization. Tombol yang disembunyikan di UI tetap ditolak di backend bila
 dipanggil langsung; setiap slice mencatat test izin dan test tolak di [testing.md](testing.md).
+
+P5d-2 memakai `requireWorkspaceMember(['owner', 'admin', 'po'])` pada route Apply dan
+`assertCanWriteFeatureSpec` setelah membaca membership di service. Replay idempoten melewati
+pemeriksaan izin yang sama; receipt tidak memberi akses tambahan. Spec/root dibatasi Workspace,
+assignee diperiksa ulang oleh jalur Task. Tidak ada perubahan policy atau perluasan izin.
