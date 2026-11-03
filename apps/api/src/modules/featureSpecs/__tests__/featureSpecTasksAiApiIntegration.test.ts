@@ -230,6 +230,27 @@ describe('Feature Spec AI Tasks service (P5d-1: AC-5.6, AC-5.7)', () => {
     })}`;
   }
 
+  test('a subsequently incomplete Plan blocks Task generation before calling AI', async () => {
+    const spec = await createSpec();
+    const draft = await featureSpecService.saveSection(po.id, {
+      workspaceId: workspace.id,
+      specId: spec.id,
+      version: spec.version,
+      section: 'plan',
+      content: { ...completePlan, goal: '' },
+      complete: false,
+    });
+    const beforeCalls = calls;
+    await assert.rejects(
+      () => featureSpecAiService.generateTasks(po.id, input(draft.id, draft.version)),
+      /BAD_REQUEST/,
+    );
+    assert.strictEqual(calls, beforeCalls);
+    const saved = await featureSpecService.getById(workspace.id, spec.id, po.id);
+    assert.strictEqual(saved.version, draft.version);
+    assert.deepStrictEqual(saved.tasks, {});
+  });
+
   test('HTTP: generated Tasks persist, read back through the API, and record audit without applying', async () => {
     const spec = await createSpec();
     const cookie = await cookieFor(po);

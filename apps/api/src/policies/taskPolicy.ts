@@ -1,7 +1,26 @@
-import { WorkspaceRole, UpdateTaskInput, TaskStatus, DeliveryArea } from '@qlick/contracts';
+import {
+  WorkspaceRole,
+  UpdateTaskInput,
+  TaskStatus,
+  DeliveryArea,
+  DEVELOPER_DELIVERY_AREAS,
+  developerSupportsDeliveryArea,
+} from '@qlick/contracts';
 import { isPlanner } from './shared.js';
 
 export { isPlanner };
+
+/** ADR-038. Shared by the available queue and claim; legacy unclassified cannot self-claim. */
+export function claimableDeliveryAreas(
+  role: WorkspaceRole,
+  specialties: readonly string[],
+): DeliveryArea[] {
+  if (role === 'qa') return ['qa'];
+  if (role !== 'dev') return [];
+  return DEVELOPER_DELIVERY_AREAS.filter((area) =>
+    developerSupportsDeliveryArea(specialties, area),
+  );
+}
 
 /**
  * Applies the Work Hub task policy to task / subtask creation.

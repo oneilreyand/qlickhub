@@ -17,6 +17,8 @@ export const WorkQueueBucketCodeSchema = z.enum([
   'qa_retest_work',
   'qa_sign_off',
   'waiting_on_others',
+  /** P5g-2 (ADR-038): open subtasks matching the actor's area; claim is the only action. */
+  'available_to_claim',
 ]);
 export type WorkQueueBucketCode = z.infer<typeof WorkQueueBucketCodeSchema>;
 
@@ -37,6 +39,7 @@ export const WorkQueueNextActionCodeSchema = z.enum([
   'verify_bug_fix',
   'record_qa_sign_off',
   'view_context',
+  'claim_subtask',
 ]);
 export type WorkQueueNextActionCode = z.infer<typeof WorkQueueNextActionCodeSchema>;
 
@@ -109,8 +112,9 @@ export const RoleAwareWorkQueueSchema = z.object({
   membershipRole: WorkspaceRoleSchema,
   queueRole: WorkQueueRoleSchema,
   generatedAt: z.string().datetime(),
-  // Every role has 3 work buckets plus "waiting_on_others" as a 4th (P4b, P4c-9).
-  buckets: z.array(WorkQueueBucketSchema).min(3).max(4),
+  // Every role has 3 work buckets plus "waiting_on_others" (P4b, P4c-9); Developer/QA also
+  // receive "available_to_claim" (P5g-2, ADR-038).
+  buckets: z.array(WorkQueueBucketSchema).min(3).max(5),
 });
 export type RoleAwareWorkQueue = z.infer<typeof RoleAwareWorkQueueSchema>;
 

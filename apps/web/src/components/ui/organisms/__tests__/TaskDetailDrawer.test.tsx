@@ -92,6 +92,14 @@ vi.mock('../../../../lib/api/releaseDecisionService', () => ({
 vi.mock('../../../../lib/api/testManagementService', () => ({
   testManagementService: unmockedService('testManagementService'),
 }));
+// These legacy-detail factories have no Feature Spec. A failed fetch is now an explicit error,
+// so declare the absent persisted Spec rather than accidentally depending on network failure.
+vi.mock('../../../../lib/api/featureSpecService', () => ({
+  featureSpecService: {
+    getByFeature: vi.fn().mockResolvedValue(null),
+    listQuestions: vi.fn().mockResolvedValue([]),
+  },
+}));
 
 vi.mock('../../../../lib/api/bugService', () => ({
   bugService: {
@@ -152,6 +160,8 @@ vi.mock('../../../../lib/api/taskService', () => ({
 }));
 
 const mockTask: Task = {
+  featureStage: 'task',
+  featureStageSource: 'legacy',
   id: 'task-12345678-aaaa-bbbb-cccc-ddddeeeeffff',
   workspaceId: 'ws-11111111-2222-3333-4444-555555555555',
   folderId: null,
@@ -1414,6 +1424,24 @@ describe('TaskDetailDrawer UI Component', () => {
           .getAllByRole('button')
           .some((button) => button.getAttribute('aria-current') === 'step'),
       ).toBe(false);
+    });
+
+    test('missing backend stage stays unavailable instead of guessing from subtask summary', async () => {
+      const onDataChanged = vi.fn();
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          task={{ ...mockTask, featureStage: undefined, featureStageSource: undefined }}
+          folders={[]}
+          onClose={vi.fn()}
+          onDataChanged={onDataChanged}
+        />,
+        'po',
+      );
+      const refresh = await screen.findByRole('button', { name: 'Muat ulang Feature' });
+      expect(screen.queryByRole('navigation', { name: 'Tahap Feature' })).not.toBeInTheDocument();
+      fireEvent.click(refresh);
+      expect(onDataChanged).toHaveBeenCalledOnce();
     });
 
     test('tombol kembali memakai onClose', async () => {

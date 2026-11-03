@@ -90,6 +90,15 @@ graph TB
 
 ## 4. Diagram Relasi Entitas & Hierarki Data
 
+Penugasan Spec mengikuti [ADR-036](adr/ADR-036-FEATURE-SPEC-REQUIRED-FIELDS-AND-AGENT-READY-WRITES.md).
+`tasks.assignment_mode` menyimpan `assigned` (default kompatibilitas) atau `open`.
+CHECK database membatasi open pada subtask tanpa assignee; root selalu assigned. Data/API manual
+lama dengan assignee kosong tetap assigned dan tidak otomatis tersedia untuk klaim. Spec baru
+memilih mode secara eksplisit: assigned memerlukan anggota, open tanpa anggota. Status eksekusi
+dan mode penugasan merupakan dua hal terpisah; perubahan mode tidak menyatakan penyelesaian QA.
+Index parsial `idx_tasks_open_claim_queue` membatasi antrean pada open aktif, belum ditugaskan,
+tidak terhapus dan nonterminal, dengan Workspace sebagai kolom pertama.
+
 ```mermaid
 erDiagram
     WORKSPACE ||--o{ FOLDER : "contains (max depth 2)"

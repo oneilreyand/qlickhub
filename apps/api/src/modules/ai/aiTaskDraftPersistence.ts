@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Transaction } from 'sequelize';
-import type { ApplyTaskDraftInput, CreateTaskInput } from '@qlick/contracts';
+import type { ApplyTaskDraftInput, CreateTaskInput, TaskAssignmentMode } from '@qlick/contracts';
 import {
   AcceptanceCriterionModel,
   RequirementModel,
@@ -23,6 +23,7 @@ export interface ReviewedDraftContents {
     priority: CreateTaskInput['priority'];
     requirementKeys: string[];
     assigneeId?: string | null;
+    assignmentMode?: TaskAssignmentMode;
     startDate?: string | null;
     dueDate?: string | null;
   }[];
@@ -99,6 +100,7 @@ export async function persistReviewedDraftInTransaction(
           requirementIds: linkedIds,
         },
         transaction,
+        item.assignmentMode,
       );
     } else {
       // Compatibility: legacy preview Apply has no assignee/schedule fields or per-task key map.

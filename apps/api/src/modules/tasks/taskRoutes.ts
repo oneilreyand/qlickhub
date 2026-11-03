@@ -81,3 +81,19 @@ taskRoutes.post(
   requireWorkspaceMember(['owner', 'admin', 'po', 'dev', 'qa']),
   (req, res, next) => taskController.completeTask(req, res, next),
 );
+
+// ADR-038 (P5g-2): claim is Developer/QA only; release and reassign are Planner only.
+// The route guard narrows roles; taskAssignment enforces area, specialty, and state.
+taskRoutes.post('/:taskId/claim', requireWorkspaceMember(['dev', 'qa']), (req, res, next) =>
+  taskController.claimTask(req, res, next),
+);
+taskRoutes.post(
+  '/:taskId/release',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  (req, res, next) => taskController.releaseTask(req, res, next),
+);
+taskRoutes.post(
+  '/:taskId/reassign',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  (req, res, next) => taskController.reassignTask(req, res, next),
+);

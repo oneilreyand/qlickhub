@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const webPort = Number(process.env.BROWSER_TEST_WEB_PORT || 3000);
+const apiPort = Number(process.env.BROWSER_TEST_API_PORT || 4100);
+
 export default defineConfig({
   testDir: './specs',
   outputDir: 'test-results/browser-e2e',
@@ -12,7 +15,7 @@ export default defineConfig({
   retries: 0,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: `http://localhost:${webPort}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -24,13 +27,13 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm --prefix ../../api run start',
-      url: 'http://localhost:4100/v1/health',
+      url: `http://localhost:${apiPort}/v1/health`,
       timeout: 60_000,
       reuseExistingServer: false,
     },
     {
-      command: 'npm --prefix .. run dev -- --host localhost',
-      url: 'http://localhost:3000',
+      command: `npm --prefix .. run dev -- --host localhost --port ${webPort} --strictPort`,
+      url: `http://localhost:${webPort}`,
       timeout: 60_000,
       reuseExistingServer: false,
     },

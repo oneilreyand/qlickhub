@@ -23,6 +23,8 @@ import {
   TaskListResponse,
   TaskActivityQuery,
   TaskActivityListResponse,
+  TaskAssignmentMutation,
+  ReassignTaskInput,
   WorkspaceRole,
 } from '@qlick/contracts';
 
@@ -39,6 +41,7 @@ import {
   completeTaskImpl,
 } from './internal/taskLifecycle.js';
 import { deleteTaskImpl } from './internal/taskDeletion.js';
+import { claimTaskImpl, reassignTaskImpl, releaseTaskImpl } from './internal/taskAssignment.js';
 
 export class TaskService {
   /**
@@ -133,6 +136,36 @@ export class TaskService {
     input: CompleteTaskInput,
   ): Promise<Task> {
     return completeTaskImpl(actorId, workspaceId, taskId, input);
+  }
+
+  /** ADR-038: Developer/QA claims a matching open subtask atomically (409 when already taken). */
+  async claimTask(
+    actorId: string,
+    workspaceId: string,
+    taskId: string,
+    input: TaskAssignmentMutation,
+  ): Promise<Task> {
+    return claimTaskImpl(actorId, workspaceId, taskId, input);
+  }
+
+  /** ADR-038: Planner returns an assigned subtask to the open queue; status is preserved. */
+  async releaseTask(
+    actorId: string,
+    workspaceId: string,
+    taskId: string,
+    input: TaskAssignmentMutation,
+  ): Promise<Task> {
+    return releaseTaskImpl(actorId, workspaceId, taskId, input);
+  }
+
+  /** ADR-038: Planner assigns or moves a subtask to a matching member; status is preserved. */
+  async reassignTask(
+    actorId: string,
+    workspaceId: string,
+    taskId: string,
+    input: ReassignTaskInput,
+  ): Promise<Task> {
+    return reassignTaskImpl(actorId, workspaceId, taskId, input);
   }
 }
 

@@ -59,7 +59,8 @@ function getActivityIcon(action: string) {
   if (action.includes('status'))
     return <Clock className="h-3.5 w-3.5 text-stone-700 dark:text-[#B1E743]" />;
   if (action.includes('priority')) return <AlertCircle className="h-3.5 w-3.5 text-amber-500" />;
-  if (action.includes('assignee')) return <User className="h-3.5 w-3.5 text-blue-500" />;
+  if (action.includes('assignee') || /^task\.(claimed|released|reassigned)$/.test(action))
+    return <User className="h-3.5 w-3.5 text-blue-500" />;
   if (action.includes('date') || action.includes('schedule'))
     return <Calendar className="h-3.5 w-3.5 text-purple-500" />;
   if (action.includes('moved') || action.includes('folder'))
@@ -120,6 +121,25 @@ function renderHumanActivityDescription(act: TaskActivity) {
             Override QA
           </span>
         )}
+      </span>
+    );
+  }
+
+  // ADR-038 (P5g-2): open assignment audit rows.
+  if (action === 'task.claimed') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">mengambil Subtask terbuka ini</span>
+    );
+  }
+  if (action === 'task.released') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">melepas Subtask ke antrean terbuka</span>
+    );
+  }
+  if (action === 'task.reassigned') {
+    return (
+      <span className="text-stone-700 dark:text-stone-300">
+        mengalihkan penanggung jawab Subtask
       </span>
     );
   }

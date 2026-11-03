@@ -226,6 +226,10 @@ regresi, bukan pengganti inspeksi kontras dan browser pada kedua tema.
 
 ### 🟡 Molecules
 
+Komponen perencanaan Feature memakai `FeatureSpecRequiredChecklist` (checklist draf dari evaluator
+shared, tautan ke field dan target44px) dan `FeaturePlanningStageBadge` (label Tahap dari respons
+backend; tidak menghitung tahap di React). Keduanya memakai atom/theme yang ada.
+
 | Komponen                   | File Path                                | Penggunaan                                                                                                              |
 | :------------------------- | :--------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
 | `TaskStatusBadge`          | `molecules/TaskStatusBadge.tsx`          | Status task: `todo`, `in_progress`, `in_review`, `changes_requested`, `done`, `canceled`; juga state QA presentasional. |
@@ -248,6 +252,11 @@ regresi, bukan pengganti inspeksi kontras dan browser pada kedua tema.
 | `QaExecutionFilterToolbar` | `molecules/QaExecutionFilterToolbar.tsx` | Toolbar filter eksekusi Test Case (Quick Progress Bar, Status Tabs Lulus/Gagal/Terblokir, Toggle Split/List View).      |
 
 ### 🟣 Organisms
+
+`taskDetail/FeatureSpecDraftPanel` mengorkestrasi editor `FeatureSpecPrdEditor` dan
+`FeatureSpecTasksEditor`, draft berversi, konfirmasi AI replacement dan Apply. Operasi API berada
+di hook `useFeatureSpecActions`; page tetap mengomposisi routing/data/izin. Preview responsif
+PRD/Task/Apply tercatat di phase P5e–P5g Feature SIMPLE-UI-DELIVERY-FLOW.
 
 | Komponen                    | File Path                                            | Penggunaan                                                                                                                                                                                                                     |
 | :-------------------------- | :--------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

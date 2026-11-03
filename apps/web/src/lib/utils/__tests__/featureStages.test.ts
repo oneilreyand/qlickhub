@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  deriveFeatureStage,
+  stageViewForPlanningStage,
   firstTabForStage,
   isFeatureStageParam,
   stageForTab,
@@ -27,19 +27,12 @@ describe('featureStages', () => {
     expect(firstTabForStage('task')).toBe('task-summary');
   });
 
-  it('menghitung tahap sementara dari data yang ada', () => {
-    expect(
-      deriveFeatureStage({ subtaskCount: 0, hasProductBrief: false, requirementCount: 0 }),
-    ).toBe('plan');
-    expect(
-      deriveFeatureStage({ subtaskCount: 0, hasProductBrief: true, requirementCount: 0 }),
-    ).toBe('prd');
-    expect(
-      deriveFeatureStage({ subtaskCount: 0, hasProductBrief: false, requirementCount: 2 }),
-    ).toBe('prd');
-    expect(
-      deriveFeatureStage({ subtaskCount: 3, hasProductBrief: true, requirementCount: 2 }),
-    ).toBe('task');
+  it('maps backend stage to a view without reconstructing stage from browser data', () => {
+    expect(stageViewForPlanningStage('plan')).toBe('plan');
+    expect(stageViewForPlanningStage('prd')).toBe('prd');
+    expect(stageViewForPlanningStage('task')).toBe('task');
+    expect(stageViewForPlanningStage('applied')).toBe('task');
+    expect(stageViewForPlanningStage(undefined)).toBeNull();
   });
 
   it('hanya menerima plan, prd, dan task di URL', () => {

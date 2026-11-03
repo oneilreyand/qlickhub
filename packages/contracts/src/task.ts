@@ -12,6 +12,18 @@ export const TaskStatusSchema = z.enum([
 
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
+/** Planning stage is an authenticated read model, not a separately persisted Task column. */
+export const TaskAssignmentModeSchema = z.enum(['assigned', 'open']);
+export type TaskAssignmentMode = z.infer<typeof TaskAssignmentModeSchema>;
+export const FeaturePlanningStageSchema = z.enum(['plan', 'prd', 'task', 'applied']);
+export type FeaturePlanningStage = z.infer<typeof FeaturePlanningStageSchema>;
+export const FEATURE_PLANNING_STAGE_LABELS: Record<FeaturePlanningStage, string> = {
+  plan: 'Plan',
+  prd: 'PRD',
+  task: 'Task',
+  applied: 'Diterapkan',
+};
+
 /**
  * Schedule health is evaluated by the authenticated backend read model.  Clients
  * present this value and must not derive lateness from their own clock.
@@ -86,6 +98,27 @@ function refineCompleteTaskSchedule(
 }
 
 export const DeliveryAreaSchema = z.enum(['frontend', 'backend', 'mobile', 'fullstack', 'qa']);
+/** ADR-038: classification matching only; server policy still owns authorization. */
+export const DEVELOPER_DELIVERY_AREAS = ['frontend', 'backend', 'mobile', 'fullstack'] as const;
+export function developerSupportsDeliveryArea(
+  specialties: readonly string[],
+  area: string,
+): boolean {
+  return (
+    (DEVELOPER_DELIVERY_AREAS as readonly string[]).includes(area) &&
+    (specialties.includes(area) || specialties.includes('fullstack'))
+  );
+}
+
+/** Assignment writes use the persisted Task timestamp as an optimistic version. */
+export const TaskAssignmentMutationSchema = z
+  .object({ expectedUpdatedAt: z.string().datetime() })
+  .strict();
+export const ReassignTaskSchema = TaskAssignmentMutationSchema.extend({
+  assigneeId: z.string().uuid(),
+}).strict();
+export type TaskAssignmentMutation = z.infer<typeof TaskAssignmentMutationSchema>;
+export type ReassignTaskInput = z.infer<typeof ReassignTaskSchema>;
 
 export type DeliveryArea = z.infer<typeof DeliveryAreaSchema>;
 
@@ -116,12 +149,15 @@ export const TaskSchemaBase = z.object({
   workspaceId: z.string().uuid(),
   folderId: z.string().uuid().nullable().optional(),
   parentTaskId: z.string().uuid().nullable().optional(),
+  featureStage: FeaturePlanningStageSchema.nullable().optional(),
+  featureStageSource: z.enum(['spec', 'legacy']).nullable().optional(),
   deliveryArea: DeliveryAreaSchema.nullable().optional(),
   title: z.string().trim().min(1, 'Task title is required').max(200),
   description: z.string().nullable().optional(),
   status: TaskStatusSchema,
   priority: TaskPrioritySchema,
   assigneeId: z.string().uuid().nullable().optional(),
+  assignmentMode: TaskAssignmentModeSchema.optional(),
   reporterId: z.string().uuid(),
   reviewedBy: z.string().uuid().nullable().optional(),
   reviewNotes: z.string().nullable().optional(),

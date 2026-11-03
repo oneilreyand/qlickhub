@@ -11,6 +11,8 @@ import {
   UpdateTaskCommentSchema,
   UpdateTaskStatusSchema,
   SetSubtaskAcceptanceCheckSchema,
+  TaskAssignmentMutationSchema,
+  ReassignTaskSchema,
 } from '@qlick/contracts';
 import { taskService } from './taskService.js';
 import { taskDiscussionService } from './taskDiscussionService.js';
@@ -341,6 +343,52 @@ export class TaskController {
       const input = UpdateTaskStatusSchema.parse(req.body);
 
       const task = await taskService.updateTask(req.user!.userId, workspaceId, taskId, input);
+      res.status(200).json({ data: task });
+    } catch (err) {
+      formatProblemDetails(err, res);
+    }
+  }
+
+  /** ADR-038: claim, release, and reassign share the optimistic-version contract. */
+  async claimTask(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+    try {
+      const input = TaskAssignmentMutationSchema.parse(req.body);
+      const task = await taskService.claimTask(
+        req.user!.userId,
+        req.params.workspaceId,
+        req.params.taskId,
+        input,
+      );
+      res.status(200).json({ data: task });
+    } catch (err) {
+      formatProblemDetails(err, res);
+    }
+  }
+
+  async releaseTask(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+    try {
+      const input = TaskAssignmentMutationSchema.parse(req.body);
+      const task = await taskService.releaseTask(
+        req.user!.userId,
+        req.params.workspaceId,
+        req.params.taskId,
+        input,
+      );
+      res.status(200).json({ data: task });
+    } catch (err) {
+      formatProblemDetails(err, res);
+    }
+  }
+
+  async reassignTask(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
+    try {
+      const input = ReassignTaskSchema.parse(req.body);
+      const task = await taskService.reassignTask(
+        req.user!.userId,
+        req.params.workspaceId,
+        req.params.taskId,
+        input,
+      );
       res.status(200).json({ data: task });
     } catch (err) {
       formatProblemDetails(err, res);

@@ -10,6 +10,10 @@ const repositoryRoot = resolve(import.meta.dirname, '../../..');
 const apiDirectory = resolve(repositoryRoot, 'apps/api');
 const testConfig = require(resolve(apiDirectory, 'src/config/database.cjs')).test;
 const databaseName = `qa_management_browser_e2e_${process.pid}_${Date.now()}`;
+const webPort = process.env.BROWSER_TEST_WEB_PORT || '3000';
+const apiPort = process.env.BROWSER_TEST_API_PORT || '4100';
+assert.match(webPort, /^\d{4,5}$/);
+assert.match(apiPort, /^\d{4,5}$/);
 
 assert.match(databaseName, /^[a-z0-9_]+$/);
 
@@ -45,11 +49,11 @@ try {
   const environment = {
     ...process.env,
     NODE_ENV: 'test',
-    PORT: '4100',
-    CORS_ORIGIN: 'http://localhost:3000',
-    APP_URL: 'http://localhost:3000',
+    PORT: apiPort,
+    CORS_ORIGIN: `http://localhost:${webPort}`,
+    APP_URL: `http://localhost:${webPort}`,
     TEST_DATABASE_URL: databaseUrl(databaseName),
-    VITE_API_URL: 'http://localhost:4100/v1',
+    VITE_API_URL: `http://localhost:${apiPort}/v1`,
   };
 
   run('npx', ['sequelize-cli', 'db:migrate', '--env', 'test'], {

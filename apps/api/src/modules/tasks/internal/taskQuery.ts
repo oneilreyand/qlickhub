@@ -35,6 +35,7 @@ import {
   WorkspaceRole,
 } from '@qlick/contracts';
 import { getTaskScheduleHealth } from './taskScheduleHealth.js';
+import { attachPlanningStages } from './taskPlanningStage.js';
 
 // ---------------------------------------------------------------------------
 // Formatting helper
@@ -53,6 +54,7 @@ export function formatTask(t: TaskModel): Task {
     status: json.status,
     priority: json.priority,
     assigneeId: json.assigneeId || null,
+    assignmentMode: json.assignmentMode,
     reporterId: json.reporterId,
     reviewedBy: json.reviewedBy || null,
     reviewNotes: json.reviewNotes || null,
@@ -322,7 +324,7 @@ export async function listTasksImpl(
     offset,
   });
 
-  let tasks = rows.map(formatTask);
+  let tasks = await attachPlanningStages(workspaceId, rows.map(formatTask));
 
   if (query.includeSubtaskSummary) {
     tasks = await attachSubtaskSummaries(workspaceId, tasks);
@@ -379,7 +381,7 @@ export async function getTaskImpl(
     assertCanAccessTask(actorRole, actorId, task, hasAssignedSubtask);
   }
 
-  return formatTask(task);
+  return (await attachPlanningStages(workspaceId, [formatTask(task)]))[0];
 }
 
 // ---------------------------------------------------------------------------

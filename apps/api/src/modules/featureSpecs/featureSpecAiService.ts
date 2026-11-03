@@ -22,6 +22,7 @@ import {
   DeliveryArea,
   DateStringSchema,
   getTaskScheduleValidationIssue,
+  developerSupportsDeliveryArea,
 } from '@qlick/contracts';
 import { Op } from 'sequelize';
 import {
@@ -170,14 +171,16 @@ interface AssigneeCandidate {
 }
 
 /**
- * Same rule as the manual assignment guardrail: a Developer fits a development area when no
- * specialty is configured yet or the area is one of the specialties; QA fits only the `qa` area.
+ * Same rule as the manual assignment guardrail (ADR-038): a Developer fits a development area
+ * when no specialty is configured yet or a specialty supports it (Fullstack supports frontend,
+ * backend, mobile and fullstack); QA fits only the `qa` area.
  */
 function candidateFitsArea(candidate: AssigneeCandidate, area: DeliveryArea): boolean {
   if (area === 'qa') return candidate.role === 'qa';
   return (
     candidate.role === 'dev' &&
-    (candidate.specialties.length === 0 || candidate.specialties.includes(area))
+    (candidate.specialties.length === 0 ||
+      developerSupportsDeliveryArea(candidate.specialties, area))
   );
 }
 
@@ -537,7 +540,11 @@ export const featureSpecAiService = {
         'CONFLICT: The Feature Spec changed since you opened it. Reload and try again.',
       );
     }
-    if (spec.status !== 'task' || !evaluateFeatureSpecSection('prd', spec.prd).complete) {
+    if (
+      spec.status !== 'task' ||
+      !evaluateFeatureSpecSection('plan', spec.plan).complete ||
+      !evaluateFeatureSpecSection('prd', spec.prd).complete
+    ) {
       throw new Error('BAD_REQUEST: Complete the PRD before asking the AI to write the Tasks.');
     }
     if (hasTasksContent(spec.tasks) && !input.replace) {

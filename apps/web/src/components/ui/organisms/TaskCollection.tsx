@@ -1,4 +1,5 @@
 import React from 'react';
+import { FeaturePlanningStageBadge } from '../molecules/FeaturePlanningStageBadge';
 import { ChevronDown, ChevronRight, Calendar, Folder, ChevronsUpDown } from 'lucide-react';
 import type { Task, FolderTreeNode, TaskStatus, ParentTaskDeliveryTrace } from '@qlick/contracts';
 import { Button } from '../atoms/Button';
@@ -180,7 +181,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 max-w-full space-y-3">
       {/* Collapse / Expand All Toolbar */}
       {!isLoading && !error && tasks.length > 0 && groupedTasks.length > 0 && (
         <div className="flex items-center justify-between border-b border-stone-200/80 pb-2 dark:border-stone-800/80">
@@ -264,6 +265,10 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                             {task.title}
                           </p>
                           {renderSubtaskSummary(task.subtaskSummary)}
+                          <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400">
+                            <span>Tahap</span>
+                            <FeaturePlanningStageBadge task={task} />
+                          </div>
                           <DeliveryTraceSignal
                             trace={deliveryTraceState?.trace}
                             isLoading={!deliveryTraceState || deliveryTraceState.isLoading}
@@ -309,7 +314,12 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
       </div>
 
       {/* Desktop Data Table View */}
-      <div className="hidden overflow-x-auto sm:block">
+      <div
+        role="region"
+        aria-label="Daftar Feature"
+        tabIndex={0}
+        className="relative hidden w-full max-w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-stone-900 dark:focus-visible:outline-brand-500 sm:block"
+      >
         <table className="w-full text-left text-sm min-w-[650px]">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50/50 text-xs font-bold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:bg-stone-950/60 dark:text-stone-300">
@@ -318,6 +328,9 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
               </th>
               <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
                 Tanggal
+              </th>
+              <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
+                Tahap
               </th>
               <th scope="col" className="py-3.5 px-3.5 whitespace-nowrap">
                 Delivery &amp; Rilis
@@ -334,7 +347,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
             {isLoading
               ? [1, 2, 3, 4].map((id) => (
                   <tr key={id}>
-                    <td className="p-3.5" colSpan={5}>
+                    <td className="p-3.5" colSpan={6}>
                       <Skeleton variant="text" className="h-5 w-full" />
                     </td>
                   </tr>
@@ -405,6 +418,9 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                                 <span className="text-xs text-stone-400">—</span>
                               )}
                             </td>
+                            <td className="py-3.5 px-3.5">
+                              <FeaturePlanningStageBadge task={task} />
+                            </td>
                             <td className="space-y-2 py-3.5 px-3.5 min-w-[190px]">
                               <DeliveryTraceSignal
                                 trace={deliveryTraceState?.trace}
@@ -447,7 +463,7 @@ export const TaskCollection: React.FC<TaskCollectionProps> = ({
                       key={`${group.status}-header`}
                       className="bg-stone-50/70 dark:bg-stone-900/70"
                     >
-                      <td colSpan={5} className="p-0">
+                      <td colSpan={6} className="p-0">
                         <button
                           type="button"
                           className="flex min-h-11 w-full items-center justify-between px-3.5 text-left text-xs font-bold text-stone-700 dark:text-stone-200"

@@ -46,6 +46,8 @@ import {
   WorkspaceRole,
   DeveloperSpecialty,
   getTaskScheduleValidationIssue,
+  type TaskAssignmentMode,
+  developerSupportsDeliveryArea,
 } from '@qlick/contracts';
 import { formatTask } from './taskQuery.js';
 import { assertQaCompletionGate } from '../../releaseDecisions/qaEvidenceCompletionGate.js';
@@ -95,7 +97,7 @@ export async function getActorMembership(
   return membership;
 }
 
-async function assertAssigneeBelongsToWorkspace(
+export async function assertAssigneeBelongsToWorkspace(
   workspaceId: string,
   assigneeId: string | null | undefined,
   transaction: Transaction,
@@ -112,7 +114,7 @@ async function assertAssigneeBelongsToWorkspace(
   }
 }
 
-async function assertRoleMatchesDeliveryArea(
+export async function assertRoleMatchesDeliveryArea(
   workspaceId: string,
   assigneeId: string | null | undefined,
   deliveryArea: string | null | undefined,
@@ -155,7 +157,7 @@ async function assertRoleMatchesDeliveryArea(
     // strictly matched to their configured delivery areas.
     isMismatch =
       targetRole !== 'dev' ||
-      (specialties.length > 0 && !specialties.includes(deliveryArea as DeveloperSpecialty));
+      (specialties.length > 0 && !developerSupportsDeliveryArea(specialties, deliveryArea));
   } else if (isQa && targetRole !== 'qa' && !isPlannerRole) {
     isMismatch = true;
   }
@@ -217,7 +219,7 @@ async function moveDirectSubtasksToFolder(
   );
 }
 
-async function persistTaskAssignmentNotification(params: {
+export async function persistTaskAssignmentNotification(params: {
   assigneeId: string;
   actorId: string;
   taskTitle: string;
@@ -259,6 +261,7 @@ export async function createTaskInTransaction(
   actorId: string,
   input: CreateTaskInput,
   transaction: Transaction,
+  assignmentMode: TaskAssignmentMode = 'assigned',
 ): Promise<CreatedTaskResult> {
   const {
     workspaceId,
@@ -296,6 +299,9 @@ export async function createTaskInTransaction(
   // Parent tasks have no individual assignee (unassigned feature container owned by reporter/PO)
   // Subtasks hold the designated execution assignee (FE / BE / QA)
   const resolvedAssigneeId = parentTaskId ? assigneeId || null : null;
+  if (assignmentMode === 'open' && (!parentTaskId || resolvedAssigneeId)) {
+    throw new Error('BAD_REQUEST: Open assignment requires an unassigned subtask.');
+  }
 
   let parentTaskRecord: TaskModel | null = null;
   if (parentTaskId) {
@@ -398,6 +404,7 @@ export async function createTaskInTransaction(
       status: status || 'todo',
       priority: priority || 'medium',
       assigneeId: resolvedAssigneeId || null,
+      assignmentMode,
       reporterId: actorId,
       startDate: startDate || null,
       dueDate: dueDate || null,
@@ -474,6 +481,7 @@ export async function createTaskInTransaction(
       status: status || 'todo',
       priority: priority || 'medium',
       assigneeId: assigneeId || null,
+      assignmentMode,
       ...(roleCheck.isMismatch
         ? {
             roleMismatchOverride: true,
@@ -635,6 +643,12 @@ export async function updateTaskImpl(
       if (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) {
         changes['assigneeId'] = { old: task.assigneeId, new: input.assigneeId };
         task.assigneeId = input.assigneeId;
+        // ADR-038: a Planner naming an assignee on an open subtask assigns it; the open queue
+        // never holds a named assignee (tasks_open_subtask_unassigned).
+        if (input.assigneeId && task.assignmentMode === 'open') {
+          changes['assignmentMode'] = { old: 'open', new: 'assigned' };
+          task.assignmentMode = 'assigned';
+        }
       }
     }
 

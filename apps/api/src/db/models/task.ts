@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../sequelize.js';
-import { TaskStatus, TaskPriority, DeliveryArea } from '@qlick/contracts';
+import { TaskStatus, TaskPriority, DeliveryArea, TaskAssignmentMode } from '@qlick/contracts';
 
 export interface TaskAttributes {
   id: string;
@@ -13,6 +13,7 @@ export interface TaskAttributes {
   status: TaskStatus;
   priority: TaskPriority;
   assigneeId?: string | null;
+  assignmentMode?: TaskAssignmentMode;
   reporterId: string;
   reviewedBy?: string | null;
   reviewNotes?: string | null;
@@ -24,11 +25,25 @@ export interface TaskAttributes {
   deletedAt?: Date | null;
 }
 
-export interface TaskCreationAttributes
-  extends Optional<
-    TaskAttributes,
-    'id' | 'folderId' | 'parentTaskId' | 'deliveryArea' | 'description' | 'status' | 'priority' | 'assigneeId' | 'reviewedBy' | 'reviewNotes' | 'startDate' | 'dueDate' | 'completedAt' | 'createdAt' | 'updatedAt' | 'deletedAt'
-  > {}
+export interface TaskCreationAttributes extends Optional<
+  TaskAttributes,
+  | 'id'
+  | 'folderId'
+  | 'parentTaskId'
+  | 'deliveryArea'
+  | 'description'
+  | 'status'
+  | 'priority'
+  | 'assigneeId'
+  | 'reviewedBy'
+  | 'reviewNotes'
+  | 'startDate'
+  | 'dueDate'
+  | 'completedAt'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'deletedAt'
+> {}
 
 export class TaskModel
   extends Model<TaskAttributes, TaskCreationAttributes>
@@ -44,6 +59,7 @@ export class TaskModel
   declare status: TaskStatus;
   declare priority: TaskPriority;
   declare assigneeId: string | null;
+  declare assignmentMode: TaskAssignmentMode;
   declare reporterId: string;
   declare reviewedBy: string | null;
   declare reviewNotes: string | null;
@@ -97,7 +113,14 @@ TaskModel.init(
       allowNull: true,
     },
     status: {
-      type: DataTypes.ENUM('todo', 'in_progress', 'in_review', 'changes_requested', 'done', 'canceled'),
+      type: DataTypes.ENUM(
+        'todo',
+        'in_progress',
+        'in_review',
+        'changes_requested',
+        'done',
+        'canceled',
+      ),
       allowNull: false,
       defaultValue: 'todo',
     },
@@ -110,6 +133,13 @@ TaskModel.init(
       type: DataTypes.UUID,
       allowNull: true,
       field: 'assignee_id',
+    },
+    assignmentMode: {
+      type: DataTypes.STRING(16),
+      allowNull: false,
+      defaultValue: 'assigned',
+      field: 'assignment_mode',
+      validate: { isIn: [['assigned', 'open']] },
     },
     reporterId: {
       type: DataTypes.UUID,
@@ -204,5 +234,5 @@ TaskModel.init(
         fields: ['workspace_id', 'folder_id', 'parent_task_id'],
       },
     ],
-  }
+  },
 );

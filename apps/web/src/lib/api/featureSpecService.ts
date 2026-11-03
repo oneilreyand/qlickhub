@@ -2,11 +2,35 @@ import type { CreateFeatureSpecInput, FeatureSpec, FeatureSpecSection } from '@q
 import {
   FeatureSpecQuestionSchema,
   FeatureSpecSchema,
+  ApplyFeatureSpecResponseSchema,
   type FeatureSpecQuestion,
 } from '@qlick/contracts';
 import { apiClient } from './apiClient';
 
 export const featureSpecService = {
+  async generatePrd(workspaceId: string, specId: string, version: number, replace = false) {
+    const response = await apiClient<{ featureSpec: unknown }>(
+      `/workspaces/${workspaceId}/feature-specs/${specId}/generate/prd`,
+      { method: 'POST', body: JSON.stringify({ version, replace }) },
+    );
+    return FeatureSpecSchema.parse(response.featureSpec);
+  },
+
+  async generateTasks(workspaceId: string, specId: string, version: number, replace = false) {
+    const response = await apiClient<{ featureSpec: unknown }>(
+      `/workspaces/${workspaceId}/feature-specs/${specId}/generate/tasks`,
+      { method: 'POST', body: JSON.stringify({ version, replace }) },
+    );
+    return FeatureSpecSchema.parse(response.featureSpec);
+  },
+
+  async apply(workspaceId: string, specId: string, version: number, idempotencyKey: string) {
+    const response = await apiClient<unknown>(
+      `/workspaces/${workspaceId}/feature-specs/${specId}/apply`,
+      { method: 'POST', body: JSON.stringify({ version, idempotencyKey }) },
+    );
+    return ApplyFeatureSpecResponseSchema.parse(response);
+  },
   /** AC-5.1: membuat root Feature dan Feature Spec versi 1 dari judul + ide. */
   async create(
     workspaceId: string,

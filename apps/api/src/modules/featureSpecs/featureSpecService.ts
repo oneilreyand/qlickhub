@@ -185,8 +185,8 @@ function reviewedDraftForApply(spec: FeatureSpecModel): ReviewedDraftContents {
       ),
     })),
     subtasks: subtasks.map((row) => {
-      if (row.assignmentMode !== 'assigned') {
-        throw new Error('BAD_REQUEST: Open assignment is not supported by this Apply phase.');
+      if (row.assignmentMode === 'open' && row.assigneeId) {
+        throw new Error('BAD_REQUEST: An open subtask cannot name an assignee.');
       }
       const startDate = DateStringSchema.parse(row.startDate);
       const dueDate = DateStringSchema.parse(row.dueDate);
@@ -205,6 +205,7 @@ function reviewedDraftForApply(spec: FeatureSpecModel): ReviewedDraftContents {
         startDate,
         dueDate,
         assigneeId: row.assigneeId,
+        assignmentMode: row.assignmentMode!,
         requirementKeys: [...new Set(row.requirementKeys!)],
       };
     }),
@@ -469,7 +470,14 @@ export const featureSpecService = {
       const prd = input.section === 'prd' ? content : spec.prd;
       if (input.complete) {
         const evaluation = evaluateFeatureSpecSection(input.section, content, { prd });
-        if (!evaluation.complete) throw new FeatureSpecIncompleteError(evaluation.missingFields);
+        const missingFields = [...evaluation.missingFields];
+        // Previous stages can be edited back into incomplete drafts after advancing. Re-check
+        // their persisted contents before certifying a later section, not just its status flag.
+        if (input.section !== 'plan')
+          missingFields.push(...evaluateFeatureSpecSection('plan', spec.plan).missingFields);
+        if (input.section === 'tasks')
+          missingFields.push(...evaluateFeatureSpecSection('prd', spec.prd).missingFields);
+        if (missingFields.length) throw new FeatureSpecIncompleteError(missingFields);
       }
 
       spec[input.section] = content as never;
