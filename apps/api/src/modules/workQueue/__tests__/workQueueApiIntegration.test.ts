@@ -613,9 +613,13 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       buckets.get('dev_bug_fix')?.items.map((item) => item.subjectId),
       [devBug.id],
     );
+    // ADR-038 (P5g-2) adds the Developer/QA "available_to_claim" bucket; no planner/QA bucket leaks.
     assert.ok(
       queue.buckets.every(
-        (entry) => entry.code.startsWith('dev_') || entry.code === 'waiting_on_others',
+        (entry) =>
+          entry.code.startsWith('dev_') ||
+          entry.code === 'waiting_on_others' ||
+          entry.code === 'available_to_claim',
       ),
     );
     assert.ok(

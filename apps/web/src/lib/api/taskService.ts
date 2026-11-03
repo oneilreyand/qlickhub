@@ -15,6 +15,8 @@ import {
   TaskComment,
   TaskAttachment,
   SubtaskAcceptanceChecksResponse,
+  TaskAssignmentMutation,
+  ReassignTaskInput,
 } from '@qlick/contracts';
 
 export const taskService = {
@@ -124,6 +126,41 @@ export const taskService = {
       method: 'PATCH',
       body: JSON.stringify(input),
     });
+    return res.data;
+  },
+
+  /** ADR-038: Developer/QA claims a matching open subtask; 409 when taken or changed. */
+  async claimTask(
+    workspaceId: string,
+    taskId: string,
+    input: TaskAssignmentMutation,
+  ): Promise<Task> {
+    const res = await apiClient<{ data: Task }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/claim`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return res.data;
+  },
+
+  /** ADR-038: Planner returns an assigned subtask to the open queue; status is kept. */
+  async releaseTask(
+    workspaceId: string,
+    taskId: string,
+    input: TaskAssignmentMutation,
+  ): Promise<Task> {
+    const res = await apiClient<{ data: Task }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/release`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return res.data;
+  },
+
+  /** ADR-038: Planner assigns or moves a subtask to a matching member with a version check. */
+  async reassignTask(workspaceId: string, taskId: string, input: ReassignTaskInput): Promise<Task> {
+    const res = await apiClient<{ data: Task }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/reassign`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
     return res.data;
   },
 

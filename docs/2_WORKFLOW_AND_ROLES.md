@@ -130,6 +130,15 @@ Sesuai **ADR-002**, peran otorisasi sistem untuk developer tetap satu, yaitu `de
 - `mobile` — Aplikasi iOS / Android.
 - `fullstack` — Delivery menyeluruh lintas komponen.
 
+[ADR-038](adr/ADR-038-FULLSTACK-ASSIGNMENT-AND-OPEN-CLAIM.md) menegaskan bahwa Fullstack
+mendukung Frontend, Backend, Mobile dan Fullstack pada penugasan, kandidat AI, perubahan
+spesialisasi dan klaim. Spesialisasi lainnya cocok dengan area persis. Developer tanpa klasifikasi
+tetap memakai kompatibilitas assignment lama, tetapi perlu klasifikasi sebelum klaim baru.
+Developer/QA mengambil subtask open yang cocok melalui aksi atomik; Owner/Admin/PO hanya
+menugaskan, melepas atau mengalihkan. Klaim/lepas/alih mempertahankan status eksekusi dan tidak
+melewati gate QA. Bucket “Tersedia untuk diambil” hanya memuat pekerjaan yang cocok dan aktif;
+klaim kedua atau versi stale mendapat409. Tidak memberi akses baca umum sebelum klaim.
+
 ```mermaid
 graph LR
     Subtask["Subtask Delivery Area"] --> AreaMatch{"Validasi Spesialisasi Member"}

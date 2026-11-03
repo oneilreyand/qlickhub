@@ -1,5 +1,6 @@
 import type { Transaction } from 'sequelize';
 import { WorkspaceMemberModel } from '../models/workspaceMember.js';
+import { WorkspaceMemberSpecialtyModel } from '../models/workspaceMemberSpecialty.js';
 
 /**
  * Looks up the active WorkspaceMember record for `actorId` within `workspaceId`.
@@ -26,4 +27,21 @@ export async function requireActiveMember(
     throw new Error('FORBIDDEN: You are not a member of this workspace.');
   }
   return membership;
+}
+
+/**
+ * Persisted Developer specialties of one membership (ADR-038 claim matching).
+ * QA and other roles have none; an unclassified Developer returns an empty list.
+ */
+export async function listMemberSpecialties(
+  membership: WorkspaceMemberModel,
+  transaction?: Transaction,
+): Promise<string[]> {
+  if (membership.role !== 'dev') return [];
+  const rows = await WorkspaceMemberSpecialtyModel.findAll({
+    where: { workspaceId: membership.workspaceId, workspaceMemberId: membership.id },
+    attributes: ['specialty'],
+    transaction,
+  });
+  return rows.map((row) => row.specialty);
 }

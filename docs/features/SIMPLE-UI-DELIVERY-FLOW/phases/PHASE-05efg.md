@@ -165,3 +165,51 @@ Quality review: satu enum mode, reuse writer kanonis dan atoms; tidak ada API ma
 rejection open yang obsolete diganti menjadi open+assignee invalid sesuai ADR-036; tes dan docs
 disesuaikan bersama. Review Spec dan Standards **Accepted**, tidak ada temuan actionable.
 P5g-1 diterima lokal; lanjut P5g-2 Build.
+
+### P5g-2 — Test & Review, 2026-11-03 (dilanjutkan Claude dari WIP Codex)
+
+Codex berhenti setelah menulis ADR-038, helper kontrak `developerSupportsDeliveryArea` /
+`TaskAssignmentMutationSchema` / `ReassignTaskSchema`, `claimableDeliveryAreas`, dan perubahan
+matcher assignment; belum ada service/route/UI/tes. Claude melanjutkan dalam Approval Window yang
+sama tanpa memperluas scope (tanpa migrasi baru, merge, atau deploy).
+
+Implementasi: `tasks/internal/taskAssignment.ts` (claim/release/reassign) dengan `SELECT … FOR
+UPDATE`, cek `expectedUpdatedAt`, status dipertahankan, satu baris `task_activity`
+(`task.claimed`/`task.released`/`task.reassigned`, metadata channel/from/to/status) dalam transaksi
+yang sama. Route `POST …/tasks/:taskId/claim` (dev/qa), `…/release` dan `…/reassign` (owner/admin/po).
+Klaim memakai matcher ADR-038 yang sama dengan bucket antrean; Developer tanpa spesialisasi tidak
+bisa klaim. Reassign tidak memberi override implisit; notifikasi assignment memakai seam lama.
+PATCH Planner yang menamai assignee pada subtask `open` kini mengubah mode ke `assigned` (sebelumnya
+akan melanggar CHECK `tasks_open_subtask_unassigned`). Matcher Fullstack diselaraskan pada kandidat
+AI (`featureSpecAiService`), integritas edit spesialisasi (`workspaceMembership`), dan filter assignee
+UI. Antrean Developer/QA menambah bucket `available_to_claim` (aksi `claim_subtask`, maks 5 bucket),
+tanpa pesan serah-terima sebelum klaim. UI: seksi "Tersedia untuk Diambil" dengan tombol Ambil (409 →
+notifikasi dan muat ulang), tombol Planner "Lepas ke antrean terbuka" di detail subtask, label
+aktivitas. `authorization.md` diselaraskan ke ADR-038: Owner/Admin menugaskan, tidak mengklaim.
+
+| Pemeriksaan aktual                                                                                   | Environment                                            | Outcome                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `node --import tsx --test apps/api/src/modules/tasks/__tests__/taskAssignmentApiIntegration.test.ts` | Node22, PostgreSQL16.15 disposable, 78 migrasi kanonis | **7/7 pass, 0 skip**: 401/403 (non-member, Planner, area, QA, Developer tanpa spesialisasi), Fullstack klaim FE, dua klaim bersamaan 200/409 dengan satu audit, versi usang/closed 409 tanpa tulis, bucket hanya pekerjaan cocok tanpa pesan, release/reassign + audit + 403/409, PATCH open→assigned, edit spesialisasi 409 |
+| Uji mutasi: `lock` dihapus sementara di salinan scratch                                              | sama                                                   | Tes klaim bersamaan **gagal** (bukti tes mendeteksi race); lock dikembalikan                                                                                                                                                                                                                                                 |
+| `featureSpecApplyApiIntegration.test.ts` dengan WIP                                                  | sama                                                   | **21/21 pass**                                                                                                                                                                                                                                                                                                               |
+| `npx vitest run` (apps/web)                                                                          | jsdom                                                  | **801/801 pass**, 137 file (termasuk 7 tes baru claim/release)                                                                                                                                                                                                                                                               |
+| `npm --prefix apps/api run test` (seluruh suite API)                                                 | Node22, PostgreSQL16 disposable                        | 633 tes: 624 pass; 1 gagal = ekspektasi usang `workQueueApiIntegration` (bucket Developer kini boleh `available_to_claim`, dikoreksi sesuai ADR-038); 8 dibatalkan karena guard nama DB rate-limit wajib memuat `test`. Rerun kedua file di DB `qlick_api_test_rerun`: **18/18 pass**                                        |
+| `npm run validate`                                                                                   | Node22                                                 | exit 0 (docs 12/12, docs:completeness 0 gap baru, lint 0 error, typecheck)                                                                                                                                                                                                                                                   |
+| `npm run typecheck` (contracts/api/web), `eslint`                                                    | Node22                                                 | exit 0; lint 0 error (15 warning lama)                                                                                                                                                                                                                                                                                       |
+| `npm --prefix apps/web run test:e2e -- --project=desktop-chromium`                                   | Chromium, DB disposable, login UI                      | **15/16**; satu gagal karena `qa-role-isolation` meng-hardcode port 4100 sementara run memakai 4101; rerun port bawaan **3/3 pass**                                                                                                                                                                                          |
+| `open-claim.spec.ts --project=mobile-chromium`                                                       | iPhone 13                                              | **4/4 pass**                                                                                                                                                                                                                                                                                                                 |
+
+E4 `open-claim.spec.ts`: Developer Backend mengambil dari Tugas Saya dan readback API
+(assignee, mode, status tetap); kartu usang menerima pesan konflik setelah anggota lain mengambil
+lewat sesi terautentikasinya, dan Task terbuka yang belum diklaim tetap 403 untuk dibaca langsung;
+QA mengambil pekerjaan QA; PO melepas pekerjaan dari detail subtask dan readback mode `open`;
+matriks 390/768/1440 Light/Dark tanpa overflow, fokus keyboard, target ≥44px. Bukti:
+[phone Dark](../evidence/p5efg/p5g2-claim-phone-dark.webp),
+[desktop Light](../evidence/p5efg/p5g2-claim-desktop-light.webp).
+
+Gap jujur: tes dijalankan di Linux (Node22) karena binary native Mac tidak bisa dipakai dari sesi
+ini; CI remote belum dijalankan sampai draft PR dibuat. Tidak ada review terpisah oleh agent lain;
+quality review sendiri: reuse `logActivity`, `assertRoleMatchesDeliveryArea`, atoms Button/Alert,
+satu matcher bersama; tidak ada endpoint/kontrak paralel; kode usang tidak ditemukan; `reassign`
+belum punya tombol UI terpisah karena pemilihan assignee lewat form detail yang ada sudah menugaskan.
+P5g-2 diterima lokal sebagai kandidat; Feature induk tetap In progress, tanpa merge/deploy.

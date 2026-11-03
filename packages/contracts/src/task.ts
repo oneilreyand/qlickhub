@@ -98,6 +98,27 @@ function refineCompleteTaskSchedule(
 }
 
 export const DeliveryAreaSchema = z.enum(['frontend', 'backend', 'mobile', 'fullstack', 'qa']);
+/** ADR-038: classification matching only; server policy still owns authorization. */
+export const DEVELOPER_DELIVERY_AREAS = ['frontend', 'backend', 'mobile', 'fullstack'] as const;
+export function developerSupportsDeliveryArea(
+  specialties: readonly string[],
+  area: string,
+): boolean {
+  return (
+    (DEVELOPER_DELIVERY_AREAS as readonly string[]).includes(area) &&
+    (specialties.includes(area) || specialties.includes('fullstack'))
+  );
+}
+
+/** Assignment writes use the persisted Task timestamp as an optimistic version. */
+export const TaskAssignmentMutationSchema = z
+  .object({ expectedUpdatedAt: z.string().datetime() })
+  .strict();
+export const ReassignTaskSchema = TaskAssignmentMutationSchema.extend({
+  assigneeId: z.string().uuid(),
+}).strict();
+export type TaskAssignmentMutation = z.infer<typeof TaskAssignmentMutationSchema>;
+export type ReassignTaskInput = z.infer<typeof ReassignTaskSchema>;
 
 export type DeliveryArea = z.infer<typeof DeliveryAreaSchema>;
 

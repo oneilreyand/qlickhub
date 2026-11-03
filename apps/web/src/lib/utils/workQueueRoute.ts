@@ -26,6 +26,7 @@ const actionFocusTarget: Record<WorkQueueNextActionCode, WorkQueueFocusTarget> =
   verify_bug_fix: 'test_cases',
   record_qa_sign_off: 'qa_sign_off',
   view_context: null,
+  claim_subtask: null,
 };
 
 const supportedActionCodes = new Set<WorkQueueNextActionCode>(

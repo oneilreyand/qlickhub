@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   FileCheck2,
+  Hand,
   Hourglass,
   ListChecks,
   RefreshCw,
@@ -42,6 +43,8 @@ export interface RoleAwareWorkQueuePanelProps {
   currentUserId?: string | null;
   /** Balas langsung pesan serah-terima (AC-4.4). Tanpa prop ini, kotak Balas tidak tampil. */
   onReplyItem?: (item: WorkQueueItem, body: string) => Promise<void>;
+  /** Ambil subtask terbuka (AC-5.10). Tanpa prop ini, kartu Tersedia hanya bisa dilihat. */
+  onClaimItem?: (item: WorkQueueItem) => Promise<void>;
 }
 
 const bucketIcons: Record<WorkQueueBucketCode, React.ReactNode> = {
@@ -55,6 +58,7 @@ const bucketIcons: Record<WorkQueueBucketCode, React.ReactNode> = {
   qa_retest_work: <Bug className="h-4 w-4" aria-hidden="true" />,
   qa_sign_off: <CheckCircle2 className="h-4 w-4" aria-hidden="true" />,
   waiting_on_others: <Hourglass className="h-4 w-4" aria-hidden="true" />,
+  available_to_claim: <Hand className="h-4 w-4" aria-hidden="true" />,
 };
 
 const priorityVariants = {
@@ -75,6 +79,7 @@ const bucketLabels: Record<WorkQueueBucketCode, string> = {
   qa_retest_work: 'Pekerjaan Retest',
   qa_sign_off: 'Persetujuan QA',
   waiting_on_others: 'Menunggu Orang Lain',
+  available_to_claim: 'Tersedia untuk Diambil',
 };
 
 const termLabels: Record<string, string> = {
@@ -111,6 +116,7 @@ const actionLabels: Record<string, string> = {
   verify_bug_fix: 'Verifikasi Perbaikan Bug',
   record_qa_sign_off: 'Catat Persetujuan QA',
   view_context: 'Lihat konteks',
+  claim_subtask: 'Ambil Subtask',
 };
 
 const workStateCopy = {
@@ -174,6 +180,10 @@ function localizeReason(reason: string) {
       'Subtask QA ditugaskan kepada Anda dan berstatus $1.',
     )
     .replace(
+      /^This open (.+) subtask matches your role and can be claimed\.$/,
+      'Subtask $1 ini terbuka dan cocok dengan peran Anda; ambil untuk mulai mengerjakan.',
+    )
+    .replace(
       /^(.+) Bug is resolved and requires independent QA verification\.$/,
       'Bug dengan tingkat $1 telah diperbaiki dan memerlukan verifikasi independen dari QA.',
     );
@@ -188,6 +198,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   onOpenItem,
   currentUserId,
   onReplyItem,
+  onClaimItem,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -195,6 +206,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
+  const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
   const [historyItemId, setHistoryItemId] = useState<string | null>(null);
   const [replyingItemId, setReplyingItemId] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
@@ -239,6 +251,17 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
     }
   };
 
+  // Kegagalan klaim (409/403) ditangani halaman lewat notifikasi dan muat ulang antrean.
+  const claimItem = async (item: WorkQueueItem) => {
+    if (!onClaimItem || claimingItemId) return;
+    setClaimingItemId(item.id);
+    try {
+      await onClaimItem(item);
+    } finally {
+      setClaimingItemId(null);
+    }
+  };
+
   const sendReply = async (item: WorkQueueItem) => {
     const body = replyBody.trim();
     if (!body || !onReplyItem || isSendingReply) return;
@@ -261,7 +284,10 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
     () =>
       sortQueueItems(
         sections
-          .filter(({ bucket }) => bucket.code !== 'waiting_on_others')
+          .filter(
+            ({ bucket }) =>
+              bucket.code !== 'waiting_on_others' && bucket.code !== 'available_to_claim',
+          )
           .flatMap(({ items }) => items)
           .filter((item) => item.workState === 'actionable'),
       )[0] ?? null,
@@ -272,6 +298,7 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
     const isSelected = item.subjectType !== 'bug' && item.subjectId === selectedTaskId;
     const workState = workStateCopy[item.workState];
     const isWaiting = item.bucketCode === 'waiting_on_others';
+    const isAvailable = item.bucketCode === 'available_to_claim';
     return (
       <Card
         key={item.id}
@@ -394,24 +421,39 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
               )}
             </div>
           </div>
-          <Button
-            variant={isWaiting ? 'outline' : 'primary'}
-            size="md"
-            className="w-full sm:w-auto"
-            isLoading={openingItemId === item.id}
-            disabled={openingItemId !== null && openingItemId !== item.id}
-            onClick={() => void openItem(item)}
-            rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
-            aria-label={
-              isWaiting
-                ? `${getQueueItemActionLabel(item, workState.action)}: ${item.title}. ${item.waitingOn?.label ?? 'Menunggu orang lain'}`
-                : `${getQueueItemActionLabel(item, workState.action)}: ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`
-            }
-          >
-            {getQueueItemActionLabel(item, workState.action)}
-          </Button>
+          {isAvailable ? (
+            <Button
+              variant="primary"
+              size="md"
+              className="w-full sm:w-auto"
+              isLoading={claimingItemId === item.id}
+              disabled={!onClaimItem || (claimingItemId !== null && claimingItemId !== item.id)}
+              onClick={() => void claimItem(item)}
+              leftIcon={<Hand className="h-4 w-4" aria-hidden="true" />}
+              aria-label={`Ambil: ${item.title}`}
+            >
+              Ambil
+            </Button>
+          ) : (
+            <Button
+              variant={isWaiting ? 'outline' : 'primary'}
+              size="md"
+              className="w-full sm:w-auto"
+              isLoading={openingItemId === item.id}
+              disabled={openingItemId !== null && openingItemId !== item.id}
+              onClick={() => void openItem(item)}
+              rightIcon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}
+              aria-label={
+                isWaiting
+                  ? `${getQueueItemActionLabel(item, workState.action)}: ${item.title}. ${item.waitingOn?.label ?? 'Menunggu orang lain'}`
+                  : `${getQueueItemActionLabel(item, workState.action)}: ${item.title}. Tindakan berikutnya: ${actionLabels[item.nextAction.code] || item.nextAction.label}`
+              }
+            >
+              {getQueueItemActionLabel(item, workState.action)}
+            </Button>
+          )}
         </div>
-        {state.queue && (
+        {state.queue && !isAvailable && (
           <div className="mt-3 border-t border-stone-100 pt-2 dark:border-stone-800">
             <Button
               variant="ghost"

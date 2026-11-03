@@ -5,6 +5,7 @@ import {
   type Requirement,
   type DeliveryArea,
   type TaskPriority,
+  developerSupportsDeliveryArea,
 } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
 import { Input } from '../atoms/Input';
@@ -128,7 +129,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         deliveryArea === 'mobile' ||
         deliveryArea === 'fullstack'
       ) {
-        return m.role === 'dev' && (m.specialties || []).includes(deliveryArea);
+        return m.role === 'dev' && developerSupportsDeliveryArea(m.specialties || [], deliveryArea);
       }
       if (deliveryArea === 'qa') {
         return m.role === 'qa';

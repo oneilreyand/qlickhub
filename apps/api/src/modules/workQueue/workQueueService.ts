@@ -24,7 +24,12 @@ import {
   TaskRequirementModel,
   UserModel,
 } from '../../db/models/index.js';
-import { requireActiveMember } from '../../db/repositories/workspaceMemberRepository.js';
+import {
+  listMemberSpecialties,
+  requireActiveMember,
+} from '../../db/repositories/workspaceMemberRepository.js';
+import type { WorkspaceMemberModel } from '../../db/models/index.js';
+import { claimableDeliveryAreas } from '../../policies/taskPolicy.js';
 import { bugService } from '../bugs/bugService.js';
 import { evaluateQaCompletionGate } from '../releaseDecisions/qaEvidenceCompletionGate.js';
 import { iso } from '../../utils/dateUtils.js';
@@ -105,6 +110,63 @@ function waitingItem(input: {
 function bucket(code: WorkQueueBucketCode, label: string, items: WorkQueueItem[]): WorkQueueBucket {
   const sorted = sortItems(items);
   return { code, label, total: sorted.length, items: sorted.slice(0, BUCKET_LIMIT) };
+}
+
+const AVAILABLE_BUCKET_LABEL = 'Tersedia untuk diambil';
+
+/**
+ * P5g-2 (ADR-038, AC-5.10): open subtasks whose delivery area matches the actor's role and
+ * persisted specialty, using the same matcher as the claim mutation. Cards expose only the
+ * subtask summary needed to decide; they grant no other read access before the claim.
+ */
+async function availableToClaimBucket(
+  membership: WorkspaceMemberModel,
+  transaction: Transaction,
+): Promise<WorkQueueBucket> {
+  const areas = claimableDeliveryAreas(
+    membership.role,
+    await listMemberSpecialties(membership, transaction),
+  );
+  if (areas.length === 0) {
+    return { code: 'available_to_claim', label: AVAILABLE_BUCKET_LABEL, total: 0, items: [] };
+  }
+  const { rows, count } = await TaskModel.findAndCountAll({
+    where: {
+      workspaceId: membership.workspaceId,
+      assignmentMode: 'open',
+      assigneeId: null,
+      parentTaskId: { [Op.ne]: null },
+      deliveryArea: { [Op.in]: areas },
+      status: { [Op.notIn]: ['done', 'canceled'] },
+    },
+    order: [
+      ['dueDate', 'ASC NULLS LAST'],
+      ['id', 'ASC'],
+    ],
+    limit: BUCKET_LIMIT,
+    transaction,
+  });
+  const items = rows.map<WorkQueueItem>((task) => ({
+    id: itemId('available_to_claim', 'subtask', task.id),
+    bucketCode: 'available_to_claim',
+    subjectType: 'subtask',
+    subjectId: task.id,
+    featureTaskId: task.parentTaskId!,
+    title: task.title,
+    reason: `This open ${task.deliveryArea} subtask matches your role and can be claimed.`,
+    nextAction: nextAction('claim_subtask', 'Claim'),
+    status: task.status,
+    workState: 'actionable',
+    priority: task.priority,
+    dueDate: task.dueDate,
+    sourceUpdatedAt: iso(task.updatedAt),
+  }));
+  return {
+    code: 'available_to_claim',
+    label: AVAILABLE_BUCKET_LABEL,
+    total: count,
+    items: sortItems(items),
+  };
 }
 
 async function plannerBuckets(
@@ -813,7 +875,9 @@ async function attachHandoffMessages(
   transaction: Transaction,
 ): Promise<void> {
   if (queueRole === 'planner') return;
+  // Open work is not the actor's yet: no handoff messages before a claim (ADR-038).
   const items = buckets
+    .filter((item) => item.code !== 'available_to_claim')
     .flatMap((item) => item.items)
     .filter((item) => item.subjectType === 'subtask');
   const taskIds = Array.from(new Set(items.map((item) => item.subjectId)));
@@ -912,6 +976,9 @@ export class WorkQueueService {
           : queueRole === 'developer'
             ? await developerBuckets(workspaceId, actorId, transaction)
             : await qaBuckets(workspaceId, actorId, transaction);
+      if (queueRole !== 'planner') {
+        buckets.push(await availableToClaimBucket(membership, transaction));
+      }
 
       await attachHandoffMessages(workspaceId, queueRole, buckets, transaction);
 

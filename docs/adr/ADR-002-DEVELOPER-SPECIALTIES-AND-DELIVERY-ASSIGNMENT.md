@@ -1,5 +1,8 @@
 # ADR-002 — Developer specialties and delivery-area assignment
 
+**Clarification:** [ADR-038](ADR-038-FULLSTACK-ASSIGNMENT-AND-OPEN-CLAIM.md) expands Fullstack
+matching to frontend/backend/mobile and defines classified open claims; the other decisions remain.
+
 - **Status:** Accepted
 - **Date:** 2026-08-24
 - **Decision owner:** Workspace Owner (approved by the user for implementation)

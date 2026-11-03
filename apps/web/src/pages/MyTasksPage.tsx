@@ -213,6 +213,35 @@ export const MyTasksPage: React.FC = () => {
     [activeWorkspaceId, currentUserId, dispatch, reloadWorkQueue, userRole],
   );
 
+  // Ambil (AC-5.10, ADR-038): klaim atomik dengan versi kartu. 409 berarti sudah diambil anggota
+  // lain atau kartu usang; antrean selalu dimuat ulang agar kartu tidak menyesatkan.
+  const handleClaimQueueItem = useCallback(
+    async (item: WorkQueueItem) => {
+      if (!activeWorkspaceId) return;
+      try {
+        await taskService.claimTask(activeWorkspaceId, item.subjectId, {
+          expectedUpdatedAt: item.sourceUpdatedAt,
+        });
+        dispatch(enqueueSnackbar(`Subtask "${item.title}" sekarang milik Anda.`, 'success'));
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        dispatch(
+          enqueueSnackbar(
+            status === 409
+              ? 'Subtask ini sudah diambil anggota lain atau baru berubah. Antrean dimuat ulang.'
+              : error instanceof Error
+                ? error.message
+                : 'Subtask tidak dapat diambil.',
+            status === 409 ? 'info' : 'error',
+          ),
+        );
+      } finally {
+        reloadWorkQueue();
+      }
+    },
+    [activeWorkspaceId, dispatch, reloadWorkQueue],
+  );
+
   if (!isWsInitialized || (isWsLoading && workspaces.length === 0)) {
     return (
       <div className="py-24 flex items-center justify-center" aria-label="Memuat workspace">
@@ -235,6 +264,7 @@ export const MyTasksPage: React.FC = () => {
         onOpenQueueItem={handleOpenQueueItem}
         currentUserId={currentUserId}
         onReplyQueueItem={handleReplyQueueItem}
+        onClaimQueueItem={handleClaimQueueItem}
         onCreateTaskClick={() => setIsCreateModalOpen(true)}
       />
 

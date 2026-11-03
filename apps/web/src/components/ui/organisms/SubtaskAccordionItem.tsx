@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FileText, MessageSquare, Settings, AlertCircle, Trash2 } from 'lucide-react';
+import { FileText, MessageSquare, Settings, AlertCircle, Trash2, Undo2 } from 'lucide-react';
 import type {
   Task,
   TaskPriority,
@@ -8,7 +8,7 @@ import type {
   DeveloperSpecialty,
   Requirement,
 } from '@qlick/contracts';
-import { getTaskScheduleValidationIssue } from '@qlick/contracts';
+import { developerSupportsDeliveryArea, getTaskScheduleValidationIssue } from '@qlick/contracts';
 import {
   AccordionItem,
   AccordionTrigger,
@@ -203,6 +203,42 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   const [reviewNotes, setReviewNotes] = useState(subtask.reviewNotes || '');
   const [deliveryArea, setDeliveryArea] = useState<DeliveryArea | ''>(subtask.deliveryArea || '');
   const [isSavingMeta, setIsSavingMeta] = useState(false);
+  const [isReleasing, setIsReleasing] = useState(false);
+  // ADR-038: open work waits in the matching Developer/QA queue; Planner may return work there.
+  const isOpenAssignment = subtask.assignmentMode === 'open';
+  const canRelease =
+    canMutate &&
+    isPlanner &&
+    !isOpenAssignment &&
+    Boolean(subtask.deliveryArea) &&
+    subtask.status !== 'done' &&
+    subtask.status !== 'canceled';
+
+  const handleRelease = async () => {
+    setIsReleasing(true);
+    try {
+      const updated = await taskService.releaseTask(workspaceId, subtask.id, {
+        expectedUpdatedAt: subtask.updatedAt,
+      });
+      setAssigneeId('');
+      onSubtaskUpdated?.(updated);
+      dispatch(enqueueSnackbar('Subtask dilepas ke antrean terbuka.', 'success'));
+    } catch (error) {
+      const status = (error as { status?: number }).status;
+      dispatch(
+        enqueueSnackbar(
+          status === 409
+            ? 'Subtask baru berubah atau sudah terbuka. Muat ulang lalu coba lagi.'
+            : error instanceof Error
+              ? error.message
+              : 'Subtask tidak dapat dilepas.',
+          'error',
+        ),
+      );
+    } finally {
+      setIsReleasing(false);
+    }
+  };
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [isDeletingSubtask, setIsDeletingSubtask] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -259,7 +295,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       const planner = ['owner', 'admin', 'po'].includes(m.role);
       if (planner) return true;
       if (area === 'frontend' || area === 'backend' || area === 'mobile' || area === 'fullstack') {
-        return m.role === 'dev' && (m.specialties || []).includes(area);
+        return m.role === 'dev' && developerSupportsDeliveryArea(m.specialties || [], area);
       }
       if (area === 'qa') return m.role === 'qa';
       return true;
@@ -663,7 +699,9 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                       onChange={(e) => setAssigneeId(e.target.value)}
                       disabled={!canMutate || !isPlanner}
                     >
-                      <option value="">Belum ditugaskan</option>
+                      <option value="">
+                        {isOpenAssignment ? 'Terbuka — tersedia untuk diambil' : 'Belum ditugaskan'}
+                      </option>
                       {filteredMembers.map((m) => (
                         <option key={m.userId} value={m.userId}>
                           {m.user?.name || m.user?.email || m.userId} ({m.role.toUpperCase()})
@@ -829,6 +867,13 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                   )}
                 </div>
 
+                {isOpenAssignment && (
+                  <Alert tone="info" title="Penugasan terbuka">
+                    Developer atau QA yang cocok dengan area ini dapat mengambilnya dari Tugas Saya.
+                    {isPlanner && ' Pilih assignee lalu simpan untuk menugaskan langsung.'}
+                  </Alert>
+                )}
+
                 {canMutate && isPlanner && (
                   <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:items-center sm:justify-between">
                     {canPlan && (
@@ -842,14 +887,29 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                         Hapus Subtask
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      onClick={handleSaveMeta}
-                      isLoading={isSavingMeta}
-                    >
-                      Simpan Detail
-                    </Button>
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                      {canRelease && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void handleRelease()}
+                          isLoading={isReleasing}
+                          disabled={isSavingMeta}
+                          leftIcon={<Undo2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                        >
+                          Lepas ke antrean terbuka
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={handleSaveMeta}
+                        isLoading={isSavingMeta}
+                        disabled={isReleasing}
+                      >
+                        Simpan Detail
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

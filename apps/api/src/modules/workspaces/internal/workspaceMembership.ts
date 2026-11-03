@@ -12,6 +12,7 @@ import {
   AddWorkspaceMemberInput,
   AssignableWorkspaceRole,
   DeveloperSpecialty,
+  developerSupportsDeliveryArea,
   UpdateMemberRoleInput,
   WorkspaceMemberAssignment,
 } from '@qlick/contracts';
@@ -414,7 +415,7 @@ export async function updateMemberRole(
         (task) =>
           requestedRole !== 'dev' ||
           !task.deliveryArea ||
-          !nextSpecialties.includes(task.deliveryArea as DeveloperSpecialty),
+          !developerSupportsDeliveryArea(nextSpecialties, task.deliveryArea),
       );
       if (unsupported.length > 0) {
         throw new Error(
