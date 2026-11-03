@@ -17,6 +17,8 @@ P5d-2: merge runtime ke `main` memicu deployment Production melalui Git integrat
 Window awal mengecualikan deployment. Owner kemudian menyetujui **auto-merge PR #96 dan deploy
 Production setelah seluruh CI hijau** (chat, 2026-11-03). Tidak termasuk Apply/mutasi data Production.
 Hasil tes/review, batas verifikasi, rollback dan status fase ada di [PHASE-05d2](phases/PHASE-05d2.md).
+Sebelum rilis ditemukan kegagalan Apply pada pool satu koneksi. Owner menyetujui perbaikan transaksi
+Brief dan regresinya dalam PR yang sama; merge/deploy tetap menunggu seluruh CI terbaru hijau.
 
 ## 2. Verifikasi di environment target
 

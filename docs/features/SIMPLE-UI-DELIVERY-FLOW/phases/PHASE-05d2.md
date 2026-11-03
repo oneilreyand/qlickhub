@@ -5,8 +5,9 @@
 **AC:** AC-5.6 Apply, AC-5.2 kelengkapan, AC-5.3 versi/audit, AC-5.7 izin.
 
 **PR:** [#96](https://github.com/oneilreyand/qlickhub/pull/96), branch `codex/simple-ui-p5d2-apply`.
-Kandidat runtime `1e8e9d5`; working tree bersih sesudah commit. Tier **1** (17 file, tidak ada
-matched Tier 2 path). G5: review kode/Spec **Accepted**, pemeriksaan lokal lulus; CI remote belum
+Kandidat runtime awal `1e8e9d5`; delta pool satu koneksi dicatat di bagian terakhir. Tier **1**
+(18 file setelah perluasan scope, tidak ada matched Tier 2 path). G5: review kode/Spec **Accepted**,
+pemeriksaan lokal lulus; CI remote belum
 diklaim. G6: Owner menyetujui auto-merge dan deploy Production **setelah seluruh CI hijau**
 (chat, 2026-11-03); tidak lagi blocked oleh persetujuan deployment. Status CI/merge/deploy terbaru
 dan link bukti remote dicatat di PR #96 tanpa mengubah kandidat runtime.
@@ -203,4 +204,43 @@ melarang mengasumsikan persetujuan. Auto-merge sempat ditahan hingga PR konkret 
 untuk PR #96 (chat, 2026-11-03). Perluasan window hanya mencakup auto-merge PR ini setelah seluruh
 CI hijau dan deployment Production otomatis melalui Git integration, beserta smoke baca-saja.
 Tidak mencakup Apply/mutasi data Production, perubahan environment, migrasi, atau rilis fase lain.
-Keputusan ini dicatat sebelum auto-merge; tidak ada perubahan runtime setelah kandidat `1e8e9d5`.
+Keputusan ini dicatat sebelum auto-merge; perbaikan runtime berikutnya mendapat perluasan scope
+tersendiri sebagaimana tercatat di bawah.
+
+## Perluasan scope — perbaikan transaksi Brief pada pool satu koneksi
+
+Audit sebelum rilis menemukan default pool Vercel Production hanya satu koneksi
+(`apps/api/src/db/sequelizePool.ts`). Reproduksi PostgreSQL dengan `DATABASE_POOL_MAX=1`
+menunjukkan Apply gagal HTTP 500 setelah sekitar 30 detik: `SequelizeConnectionAcquireTimeoutError`
+di `qaDocumentService.upsertProductBrief`, saat pemeriksaan actor meminta koneksi di luar transaksi
+Apply yang sudah memegang satu-satunya koneksi. Ini merupakan counterexample terhadap hasil pool
+lokal default, sehingga PR ditahan walaupun pemeriksaan default dapat lulus.
+
+Owner menyetujui perluasan scope ke `apps/api/src/modules/qaDocuments/qaDocumentService.ts`, regresi
+pool satu koneksi, dan pengulangan tes/review/CI (chat, 2026-11-03: "Setujui perbaikan transaksi dan
+regresi pool satu koneksi"). Persetujuan merge/deploy tetap bersyarat seluruh pemeriksaan terbaru
+hijau. Baseline delta `6322be4`; identitas task tetap `SIMPLE-UI-P5d-2`, WRA tetap **8/16**.
+Tidak ada perubahan pool, role policy, dependency, schema, atau izin Product Brief.
+
+Perubahan konkret: transaksi pemanggil diteruskan ke query membership actor dan owner Brief.
+Query tetap memakai Workspace/user dan policy yang sama; pemanggil tanpa transaksi mempertahankan
+perilaku sebelumnya. Menambah koneksi pool ditolak karena akan melawan batas koneksi serverless;
+memakai transaksi yang sama memperbaiki penyebab dan konsistensi tanpa mengubah konfigurasi.
+
+Regresi permanen menjalankan proses Node terpisah dengan pool satu koneksi dan hanya memilih tes
+Apply/readback persisten yang sudah ada, tanpa ORM mock. Filter nama mencegah rekursi; environment
+Node test context dibersihkan; setup/cleanup tetap memakai Workspace fixture ter-scope. Ini bukti
+E3 PostgreSQL lokal dengan konfigurasi pool Production, bukan mutasi atau UAT data Production.
+
+| Perintah (database disposable yang sama)                                                                                                                                                                            | Outcome                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `NODE_ENV=test DATABASE_POOL_MAX=1 node --import tsx --test --test-name-pattern='Apply persists into the same root' apps/api/src/modules/featureSpecs/__tests__/featureSpecApplyApiIntegration.test.ts` sebelum fix | Exit 1; 0 pass / 1 fail / 0 skip, HTTP 500, timeout 30 detik                           |
+| `NODE_ENV=test DATABASE_POOL_MAX=1 node --import tsx --test apps/api/src/modules/featureSpecs/__tests__/featureSpecApplyApiIntegration.test.ts` setelah fix                                                         | Exit 0; **18 pass / 0 fail / 0 skip**, termasuk child process satu koneksi; 26.8 detik |
+| `npm --prefix apps/api run typecheck`                                                                                                                                                                               | Exit 0                                                                                 |
+
+Reviewer Standards dan Spec memeriksa diff delta, konfigurasi pool, log gagal, dan log **18/18**
+yang sudah diperbaiki; keduanya **Accepted**, 0 temuan actionable (2026-11-03). Quality review
+delta: memakai kembali helper membership/transaction yang ada, tanpa duplikasi, import usang,
+penggantian policy atau fake data. Full API/build/validate/CI terbaru dicatat di PR #96 sebelum merge.
+Run CI lama yang digantikan dibatalkan; cancellation bukan evidence pass. Pernyataan kandidat
+awal di atas bersifat historis dan tidak menutupi counterexample pool ini.

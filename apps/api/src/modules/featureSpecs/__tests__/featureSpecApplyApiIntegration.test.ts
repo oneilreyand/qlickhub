@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import type { Server } from 'node:http';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import {
   ApplyFeatureSpecResponseSchema,
@@ -712,4 +715,29 @@ describe('Feature Spec Apply HTTP/PostgreSQL (P5d-2)', () => {
       'Explicit reviewed context',
     );
   });
+
+  test(
+    'Apply completes with a single-connection PostgreSQL pool (Production configuration)',
+    { timeout: 60_000 },
+    async () => {
+      // Use a separate real process so Sequelize starts with the actual Production pool limit.
+      // Select only the persistence/readback case, preventing this wrapper from spawning itself.
+      const childEnv: NodeJS.ProcessEnv = { ...process.env, DATABASE_POOL_MAX: '1' };
+      delete childEnv.NODE_TEST_CONTEXT;
+      const loader = import.meta.url.endsWith('.ts') ? ['--import', 'tsx'] : [];
+      const { stdout } = await promisify(execFile)(
+        process.execPath,
+        [
+          ...loader,
+          '--test',
+          '--test-reporter=tap',
+          '--test-name-pattern=Apply persists into the same root',
+          fileURLToPath(import.meta.url),
+        ],
+        { env: childEnv, timeout: 55_000, maxBuffer: 2 * 1024 * 1024 },
+      );
+      assert.match(stdout, /# pass 1(?:\r?\n|$)/);
+      assert.match(stdout, /# fail 0(?:\r?\n|$)/);
+    },
+  );
 });

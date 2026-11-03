@@ -120,9 +120,14 @@ function normalizeScopeItems(
   }));
 }
 
-async function assertOwnerIsWorkspaceMember(workspaceId: string, ownerId: string): Promise<void> {
+async function assertOwnerIsWorkspaceMember(
+  workspaceId: string,
+  ownerId: string,
+  transaction?: Transaction,
+): Promise<void> {
   const ownerMembership = await WorkspaceMemberModel.findOne({
     where: { workspaceId, userId: ownerId },
+    transaction,
   });
   if (!ownerMembership) {
     throw new Error('BAD_REQUEST: Product Brief owner must be a member of this workspace.');
@@ -349,7 +354,7 @@ export class QaDocumentService {
     input: Omit<UpsertProductBriefInput, 'workspaceId' | 'taskId'>,
     options: { transaction?: Transaction } = {},
   ): Promise<ProductBrief> {
-    const member = await requireActiveMember(workspaceId, actorId);
+    const member = await requireActiveMember(workspaceId, actorId, options.transaction);
     assertCanManageProductBrief(member.role);
 
     const task = await TaskModel.findOne({
@@ -361,7 +366,7 @@ export class QaDocumentService {
     }
 
     const ownerId = input.ownerId || task.reporterId || actorId;
-    await assertOwnerIsWorkspaceMember(workspaceId, ownerId);
+    await assertOwnerIsWorkspaceMember(workspaceId, ownerId, options.transaction);
     const inScope = normalizeScopeItems(input.inScope);
     const outScope = normalizeScopeItems(input.outScope);
     const acceptanceCriteria = normalizeScopeItems(input.acceptanceCriteria);
