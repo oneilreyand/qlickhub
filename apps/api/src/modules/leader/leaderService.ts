@@ -186,15 +186,18 @@ export class LeaderService {
 
     const timelineMembers: LeaderTimelineMember[] = [];
 
-    for (const [userId, info] of uniqueMemberMap.entries()) {
-      if (query.specialty && query.specialty !== 'all' && info.specialty !== query.specialty) {
-        continue;
-      }
+    const selectedMembers = Array.from(uniqueMemberMap.entries()).filter(
+      ([, info]) =>
+        !query.specialty || query.specialty === 'all' || info.specialty === query.specialty,
+    );
 
-      // Fetch all active subtasks for this member across authorized workspaces
-      const subtasks = await TaskModel.findAll({
+    // One query for every selected member's active subtasks (previously one query per member).
+    // Ordering per member is unchanged: startDate, then dueDate; id only breaks exact ties.
+    const subtasksByAssignee = new Map<string, TaskModel[]>();
+    if (selectedMembers.length > 0) {
+      const allSubtasks = await TaskModel.findAll({
         where: {
-          assigneeId: userId,
+          assigneeId: { [Op.in]: selectedMembers.map(([userId]) => userId) },
           parentTaskId: { [Op.ne]: null },
           status: { [Op.in]: ACTIVE_TASK_STATUSES },
           workspaceId: { [Op.in]: targetWorkspaceIds },
@@ -210,8 +213,19 @@ export class LeaderService {
         order: [
           ['startDate', 'ASC'],
           ['dueDate', 'ASC'],
+          ['id', 'ASC'],
         ],
       });
+      for (const task of allSubtasks) {
+        if (!task.assigneeId) continue;
+        const list = subtasksByAssignee.get(task.assigneeId);
+        if (list) list.push(task);
+        else subtasksByAssignee.set(task.assigneeId, [task]);
+      }
+    }
+
+    for (const [userId, info] of selectedMembers) {
+      const subtasks = subtasksByAssignee.get(userId) ?? [];
 
       // Detect schedule overlaps
       let memberConflicts = 0;

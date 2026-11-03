@@ -36,6 +36,9 @@ Workspace → Folder → Feature / Story (root Task)
 
 ## Active work
 
+- [ ] **In progress** (Claude — 2026-11-03) — **PROD-LATENCY: Kurangi latensi API Production — hapus N+1 pada timeline Leader Hub dan cek deadline notifikasi; region fungsi Vercel `hnd1` (sama dengan database Tokyo) di branch terpisah.** Branch `perf/prod-latency` (Tier 1, test E3 PostgreSQL 24/24) dan `perf/api-region-hnd1` (Tier 2, butuh label `owner-approved`) menunggu PR dan keputusan merge Owner; efek region diverifikasi setelah deploy. Tidak ada migrasi, kontrak, atau perubahan authorization. [Quick Card](docs/plans/quick/PROD-LATENCY.md). Policies: `DATA-001`, `TEST-001`, `SDLC-002`.
+      Layer: PRD=N/A, BE=In progress, FE=N/A.
+
 - [ ] **Todo** (Claude — 2026-10-29) — **WORK-VISIBILITY: Laporan Saya lintas workspace (tepat waktu/telat, bobot dan kewajaran waktu, irisan), Leader Hub pipeline SDLC dengan alasan hambatan dan beban kerja berbasis poin, serta Anggota & Akses lintas workspace dengan penataan Pengaturan Workspace.** Draft Tahap 0–1 menunggu G0/G1 Owner; keputusan D1–D10 terbuka. Dipecah menjadi WORK-FOUNDATION, MEMBER-ACCESS-HUB, MY-WORK-REPORT, dan LEADER-SDLC-HUB setelah G1. Plan: [WORK_VISIBILITY_PROGRAM_PLAN](docs/plans/WORK_VISIBILITY_PROGRAM_PLAN.md); desain: [work-visibility/design](docs/plans/work-visibility/design/README.md). Tidak ada perubahan kode, data, atau authorization pada tahap ini. Policies: `AUTH-001`, `AUTH-011`, `FLOW-007`, `DATA-001`, `UI-001`, `DOC-002`, `DOC-007`, `SDLC-001`.
       Layer: PRD=Todo, BE=Todo, FE=Todo.
 

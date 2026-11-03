@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { describe, test, before, after } from 'node:test';
 import { createApp } from '../../../app.js';
+import { captureSql } from '../../../db/__tests__/captureSql.js';
 import {
   UserModel,
   WorkspaceModel,
@@ -645,6 +646,68 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
       assert.strictEqual(res2.status, 200);
       const json2 = (await res2.json()) as any;
       assert.strictEqual(json2.data.dispatchedCount, 0);
+    });
+
+    test('checks anti-spam for every scanned task and recipient with one notification query', async () => {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const parentTask = await taskService.createTask(
+        ownerUser.id,
+        CreateTaskSchema.parse({ workspaceId: workspace.id, title: 'Batch Deadline Parent' }),
+      );
+      const titles = ['Batch Deadline A', 'Batch Deadline B', 'Batch Deadline C'];
+      const subtasks = [];
+      for (const [index, title] of titles.entries()) {
+        subtasks.push(
+          await taskService.createTask(
+            ownerUser.id,
+            CreateTaskSchema.parse({
+              workspaceId: workspace.id,
+              parentTaskId: parentTask.id,
+              deliveryArea: index === 2 ? 'qa' : 'backend',
+              title,
+              startDate: todayStr,
+              dueDate: todayStr,
+              assigneeId: index === 2 ? qaUser.id : devUser.id,
+            }),
+          ),
+        );
+      }
+
+      // Pre-existing recent alert for task A → dev must stay suppressed for that pair only.
+      await NotificationModel.create({
+        userId: devUser.id,
+        workspaceId: workspace.id,
+        taskId: subtasks[0].id,
+        actorId: null,
+        type: 'deadline',
+        title: '⏰ Batas Waktu Mendekati',
+        message: 'Existing alert',
+      });
+
+      const { result: res, statements } = await captureSql(() =>
+        fetch(`${baseUrl}/notifications/check-deadlines?workspaceId=${workspace.id}`, {
+          method: 'POST',
+          headers: { Cookie: ownerCookie },
+        }),
+      );
+      assert.strictEqual(res.status, 200);
+
+      const antiSpamLookups = statements.filter(
+        // Each recipient's created alert is read back by id; only the anti-spam lookup filters
+        // recent deadline alerts.
+        (sql) => /FROM "notifications"/.test(sql) && /"type" = 'deadline'/.test(sql),
+      );
+      assert.strictEqual(antiSpamLookups.length, 1, antiSpamLookups.join('\n'));
+
+      const countFor = (userId: string, taskId: string) =>
+        NotificationModel.count({ where: { userId, taskId, type: 'deadline' } });
+      assert.strictEqual(await countFor(devUser.id, subtasks[0].id), 1); // suppressed, not duplicated
+      assert.strictEqual(await countFor(devUser.id, subtasks[1].id), 1);
+      assert.strictEqual(await countFor(qaUser.id, subtasks[2].id), 1);
+      // The owner is the reporter of each subtask and is notified once per task as well.
+      for (const subtask of subtasks) {
+        assert.strictEqual(await countFor(ownerUser.id, subtask.id), 1);
+      }
     });
   });
 });
