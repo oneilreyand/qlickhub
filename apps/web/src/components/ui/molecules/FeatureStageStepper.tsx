@@ -60,9 +60,11 @@ export const FeatureStageStepper: React.FC<FeatureStageStepperProps> = ({
                 aria-current={isSelected ? 'step' : undefined}
                 title={
                   isDisabled
-                    ? applied && stage === 'apply'
-                      ? 'Sudah diterapkan'
-                      : 'Tersedia di pembaruan berikutnya'
+                    ? stage === 'apply'
+                      ? applied
+                        ? 'Sudah diterapkan'
+                        : 'Apply hanya untuk Feature dari Tulis ide (Plan → PRD → Task)'
+                      : 'Lengkapi tahap sebelumnya dulu'
                     : undefined
                 }
                 onClick={() => onSelect(stage)}

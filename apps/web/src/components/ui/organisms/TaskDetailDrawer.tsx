@@ -1648,7 +1648,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         }}
                       />
                     }
-                    rail={isSubtask ? undefined : <FeatureTaskRail trace={traceForPage} />}
+                    rail={
+                      isSubtask ? undefined : (
+                        <FeatureTaskRail
+                          trace={traceForPage}
+                          specApplied={featureSpec?.status === 'applied'}
+                        />
+                      )
+                    }
                   />
                 )}
 

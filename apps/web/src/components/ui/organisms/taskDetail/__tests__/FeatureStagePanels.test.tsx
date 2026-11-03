@@ -185,13 +185,22 @@ describe('FeatureTaskSummary', () => {
 });
 
 describe('FeatureTaskRail', () => {
-  it('merangkum cakupan dan menonaktifkan Tinjau & Apply', () => {
+  it('merangkum cakupan tanpa tombol Apply mati dan menjelaskan jalur Tulis ide', () => {
     render(<FeatureTaskRail trace={trace} />);
     const rail = within(screen.getByRole('complementary', { name: 'Cakupan requirement' }));
     expect(rail.getByText('1 subtask')).toBeInTheDocument();
     expect(rail.getByText('2 subtask')).toBeInTheDocument();
     expect(rail.getByText('Semua requirement punya subtask.')).toBeInTheDocument();
-    expect(rail.getByRole('button', { name: 'Tinjau & Apply' })).toBeDisabled();
+    // Expectation changed (Owner, 2026-11-03): the permanently disabled button confused users.
+    expect(rail.queryByRole('button', { name: /Apply/ })).toBeNull();
+    expect(
+      rail.getByText(/Apply hanya tersedia untuk Feature yang dibuat lewat Tulis ide/),
+    ).toBeInTheDocument();
+  });
+
+  it('menyebut Feature yang sudah diterapkan dari Feature Spec', () => {
+    render(<FeatureTaskRail trace={trace} specApplied />);
+    expect(screen.getByText(/sudah diterapkan dari Plan → PRD → Task/)).toBeInTheDocument();
   });
 
   it('memberi tahu requirement yang belum punya subtask', () => {

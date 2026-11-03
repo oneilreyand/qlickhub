@@ -554,9 +554,11 @@ export const FeatureTaskSummary: React.FC<FeatureTaskSummaryProps> = ({
 
 export interface FeatureTaskRailProps {
   trace: ParentTaskDeliveryTrace | null;
+  /** The Feature's Spec has been applied (Plan → PRD → Task → Apply). */
+  specApplied?: boolean;
 }
 
-export const FeatureTaskRail: React.FC<FeatureTaskRailProps> = ({ trace }) => {
+export const FeatureTaskRail: React.FC<FeatureTaskRailProps> = ({ trace, specApplied = false }) => {
   const nodes = trace?.requirements ?? [];
   const uncovered = nodes.filter((node) => node.totalImplementingSubtasks === 0).length;
 
@@ -597,14 +599,12 @@ export const FeatureTaskRail: React.FC<FeatureTaskRailProps> = ({ trace }) => {
       ) : (
         <p className="text-sm text-stone-500 dark:text-stone-400">Belum ada requirement tertaut.</p>
       )}
-      <Button
-        variant="primary"
-        className="mt-4 w-full"
-        disabled
-        title="Tersedia di pembaruan berikutnya"
-      >
-        Tinjau &amp; Apply
-      </Button>
+      {/* Apply belongs to the Feature Spec flow only (ADR-036); never offer a dead button here. */}
+      <p className="mt-4 border-t border-stone-100 pt-3 text-xs leading-5 text-stone-500 dark:border-stone-800 dark:text-stone-400">
+        {specApplied
+          ? 'Feature ini sudah diterapkan dari Plan → PRD → Task. Ubah subtask lewat Kelola.'
+          : 'Feature ini dikelola langsung lewat subtask. Apply hanya tersedia untuk Feature yang dibuat lewat Tulis ide di Task Hub (Plan → PRD → Task).'}
+      </p>
     </RailCard>
   );
 };

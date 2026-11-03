@@ -82,4 +82,19 @@ describe('FeatureStageStepper', () => {
     expect(screen.getByRole('button', { name: /Plan/ })).not.toHaveTextContent('1');
     expect(screen.getByRole('button', { name: /PRD/ })).toHaveTextContent('2');
   });
+
+  it('menjelaskan kenapa tahap terkunci, bukan menjanjikan pembaruan', () => {
+    render(
+      <FeatureStageStepper
+        currentStage="task"
+        selectedStage="task"
+        onSelect={vi.fn()}
+        disabledStages={['apply']}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /Apply/ })).toHaveAttribute(
+      'title',
+      'Apply hanya untuk Feature dari Tulis ide (Plan → PRD → Task)',
+    );
+  });
 });
