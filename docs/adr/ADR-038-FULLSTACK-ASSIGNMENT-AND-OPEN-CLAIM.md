@@ -4,6 +4,9 @@
 - **Date:** 2026-11-03
 - **Decision owner:** Owner, chat: “Fullstack boleh klaim FE/BE/Mobile juga; sesuaikan aturan dan service”
 - **Scope:** P5g; clarifies ADR-002 Decision4 and ADR-036 assignment matching.
+- **Reconfirmed:** Owner, 2026-11-03 (chat with Claude, P5g-2 audit): Fullstack supports
+  frontend/backend/mobile/fullstack, and only Developer/QA claim; Owner/Admin/PO assign, release or
+  reassign. This supersedes the older SIMPLE-UI authorization row that let Owner/Admin claim.
 
 ## Decision
 
