@@ -1447,6 +1447,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     : ['apply']
                 }
                 applied={featureSpec ? featureSpec.status === 'applied' : false}
+                hasSpec={Boolean(featureSpec)}
                 onSelect={(stage) => {
                   if (stage === 'apply') {
                     handleTabChange('task-summary');
@@ -1648,7 +1649,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         }}
                       />
                     }
-                    rail={isSubtask ? undefined : <FeatureTaskRail trace={traceForPage} />}
+                    rail={
+                      isSubtask ? undefined : (
+                        <FeatureTaskRail
+                          trace={traceForPage}
+                          specApplied={featureSpec?.status === 'applied'}
+                        />
+                      )
+                    }
                   />
                 )}
 
