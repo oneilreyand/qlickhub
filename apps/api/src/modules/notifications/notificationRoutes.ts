@@ -3,6 +3,7 @@ import { authenticate } from '../../http/middleware/authenticate.js';
 import { notificationController } from './notificationController.js';
 import { notificationRateLimiter } from '../../http/middleware/rateLimit.js';
 import { authorize } from '../../http/middleware/authorize.js';
+import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import { opportunisticOutboxDispatch } from './opportunisticOutboxDispatch.js';
 
 export const notificationRoutes = Router();
@@ -17,11 +18,13 @@ notificationRoutes.delete('/notifications/fcm-token', authenticate, (req, res, n
   notificationController.unregisterToken(req as any, res, next),
 );
 
-// Check approaching deadlines & dispatch notifications (admin/owner only, rate-limited)
+// Manual deadline-reminder run for one Workspace (Workspace admin/owner only, rate-limited).
+// The scheduled run for every Workspace is POST /v1/cron/deadline-reminders (ADR-040).
 notificationRoutes.post(
   '/notifications/check-deadlines',
   authenticate,
   authorize('admin', 'owner'),
+  requireWorkspaceMember(['owner', 'admin']),
   notificationRateLimiter,
   (req, res, next) => notificationController.checkDeadlines(req as any, res, next),
 );

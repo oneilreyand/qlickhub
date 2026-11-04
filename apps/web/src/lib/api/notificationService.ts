@@ -100,19 +100,4 @@ export const notificationService = {
     });
     return res.data;
   },
-
-  /**
-   * Triggers an approaching deadlines scan across tasks in the workspace.
-   */
-  async checkApproachingDeadlines(
-    workspaceId?: string,
-  ): Promise<{ success: boolean; dispatchedCount: number; checkedTasksCount: number }> {
-    const params = workspaceId ? `?workspaceId=${workspaceId}` : '';
-    const res = await apiClient<{
-      data: { success: boolean; dispatchedCount: number; checkedTasksCount: number };
-    }>(`/notifications/check-deadlines${params}`, {
-      method: 'POST',
-    });
-    return res.data;
-  },
 };

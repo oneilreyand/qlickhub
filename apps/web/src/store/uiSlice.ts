@@ -107,22 +107,6 @@ export const clearInAppNotificationsThunk = createAsyncThunk(
   },
 );
 
-/** Triggers background scan for tasks approaching their deadline */
-export const checkApproachingDeadlinesThunk = createAsyncThunk(
-  'ui/checkApproachingDeadlines',
-  async (workspaceId: string | undefined, { dispatch }) => {
-    try {
-      const data = await notificationService.checkApproachingDeadlines(workspaceId);
-      if (data && data.dispatchedCount > 0) {
-        dispatch(fetchInAppNotifications({ workspaceId }));
-      }
-      return data;
-    } catch {
-      return { success: false, dispatchedCount: 0, checkedTasksCount: 0 };
-    }
-  },
-);
-
 /** Demonstrates the standard thunk lifecycle for future API-backed UI actions. */
 export const runUiDemoAction = createAsyncThunk('ui/runDemoAction', async (label: string) => {
   await new Promise<void>((resolve) => window.setTimeout(resolve, 650));

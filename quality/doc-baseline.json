@@ -263,11 +263,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:POST /v1/notifications/check-deadlines",
-      "file": "apps/api/src/modules/notifications/notificationRoutes.ts:20"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:POST /v1/notifications/read-all",
       "file": "apps/api/src/modules/notifications/notificationRoutes.ts:29"
     },

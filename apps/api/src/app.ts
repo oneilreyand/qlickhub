@@ -15,6 +15,7 @@ import { testManagementRoutes } from './modules/testManagement/testManagementRou
 import { bugRoutes } from './modules/bugs/bugRoutes.js';
 import { releaseDecisionRoutes } from './modules/releaseDecisions/releaseDecisionRoutes.js';
 import { notificationRoutes } from './modules/notifications/notificationRoutes.js';
+import { cronRoutes } from './modules/cron/cronRoutes.js';
 import { attachmentRoutes } from './modules/attachments/attachmentRoutes.js';
 import { realtimeRoutes } from './modules/realtime/realtimeRoutes.js';
 import { metaRoutes } from './modules/meta/metaRoutes.js';
@@ -40,6 +41,9 @@ export const createApp = () => {
   app.use(helmet({ referrerPolicy: { policy: 'no-referrer' } }));
   app.use(cors(corsOptions));
   app.use(express.json({ limit: '100kb' }));
+  // ADR-040: scheduler routes authenticate with CRON_SECRET and have no browser origin, so they
+  // are mounted before the origin check. Every other state-changing route stays behind it.
+  app.use('/v1', cronRoutes);
   app.use(enforceTrustedOrigin);
 
   // Health Check Endpoint (Includes PostgreSQL DB Check)
