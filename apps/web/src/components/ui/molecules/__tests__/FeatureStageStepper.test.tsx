@@ -97,4 +97,24 @@ describe('FeatureStageStepper', () => {
       'Apply hanya untuk Feature dari Tulis ide (Plan → PRD → Task)',
     );
   });
+
+  it('Feature dari Tulis ide: Apply terkunci sampai Plan dan PRD selesai, dengan alasan yang benar', () => {
+    render(
+      <FeatureStageStepper
+        currentStage="plan"
+        selectedStage="plan"
+        onSelect={vi.fn()}
+        disabledStages={['prd', 'task', 'apply']}
+        hasSpec
+      />,
+    );
+    expect(screen.getByRole('button', { name: /Apply/ })).toHaveAttribute(
+      'title',
+      'Lengkapi Plan dan PRD dulu, lalu terapkan dari tahap Task',
+    );
+    expect(screen.getByRole('button', { name: /PRD/ })).toHaveAttribute(
+      'title',
+      'Lengkapi tahap sebelumnya dulu',
+    );
+  });
 });

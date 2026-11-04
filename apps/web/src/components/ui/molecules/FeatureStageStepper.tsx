@@ -16,6 +16,8 @@ export interface FeatureStageStepperProps {
   disabledStages?: FeatureStage[];
   /** Feature sudah tersimpan penuh, jadi Apply ikut ditandai selesai. */
   applied?: boolean;
+  /** Feature dibuat lewat Tulis ide (punya Feature Spec), jadi Apply tersedia setelah Plan dan PRD. */
+  hasSpec?: boolean;
   /**
    * Tahap saat ini masih dikerjakan (mis. Plan di Feature Spec belum lengkap), jadi tidak diberi
    * centang; hanya tahap sebelumnya yang selesai.
@@ -31,6 +33,7 @@ export const FeatureStageStepper: React.FC<FeatureStageStepperProps> = ({
   summaries = {},
   disabledStages = [],
   applied = false,
+  hasSpec = false,
   currentStageInProgress = false,
   className = '',
 }) => {
@@ -63,7 +66,9 @@ export const FeatureStageStepper: React.FC<FeatureStageStepperProps> = ({
                     ? stage === 'apply'
                       ? applied
                         ? 'Sudah diterapkan'
-                        : 'Apply hanya untuk Feature dari Tulis ide (Plan → PRD → Task)'
+                        : hasSpec
+                          ? 'Lengkapi Plan dan PRD dulu, lalu terapkan dari tahap Task'
+                          : 'Apply hanya untuk Feature dari Tulis ide (Plan → PRD → Task)'
                       : 'Lengkapi tahap sebelumnya dulu'
                     : undefined
                 }

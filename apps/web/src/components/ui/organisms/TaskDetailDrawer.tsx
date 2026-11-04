@@ -1447,6 +1447,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     : ['apply']
                 }
                 applied={featureSpec ? featureSpec.status === 'applied' : false}
+                hasSpec={Boolean(featureSpec)}
                 onSelect={(stage) => {
                   if (stage === 'apply') {
                     handleTabChange('task-summary');
