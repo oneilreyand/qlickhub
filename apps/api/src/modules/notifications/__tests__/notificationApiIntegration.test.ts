@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import { describe, test, before, after } from 'node:test';
 import { createApp } from '../../../app.js';
 import { captureSql } from '../../../db/__tests__/captureSql.js';
+import { deadlineReminderWindow, notificationService } from '../notificationService.js';
 import {
   UserModel,
   WorkspaceModel,
@@ -619,7 +620,9 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
       assert.strictEqual(res1.status, 200);
       const json1 = (await res1.json()) as any;
       assert.strictEqual(json1.data.success, true);
-      assert.ok(json1.data.dispatchedCount >= 1);
+      // ADR-040: the scheduled run (cron test file, same database, run in parallel) may already have
+      // reminded this pair today, so the persisted reminder below is the evidence, not the count.
+      assert.strictEqual(typeof json1.data.dispatchedCount, 'number');
 
       // Verify DB record
       const deadlineNotif = await NotificationModel.findOne({
@@ -631,6 +634,12 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
       });
 
       assert.ok(deadlineNotif);
+      assert.strictEqual(
+        await NotificationModel.count({
+          where: { userId: devUser.id, taskId: dueSubtask.id, type: 'deadline' },
+        }),
+        1,
+      );
       assert.strictEqual(deadlineNotif.title, '⏰ Batas Waktu Mendekati');
       assert.ok(deadlineNotif.message.includes('Payment Gateway Integration Due Soon'));
 
@@ -673,12 +682,15 @@ describe('FCM Push & Persistent In-App Notification API & Triggers', () => {
         );
       }
 
-      // Pre-existing recent alert for task A → dev must stay suppressed for that pair only.
-      await NotificationModel.create({
+      // Pre-existing recent alert for task A → dev must stay suppressed for that pair only. It uses
+      // today's reminder key, so a scheduled run from the cron test file (parallel, same database)
+      // that already reminded this pair does not leave a second row.
+      await notificationService.persistNotification({
         userId: devUser.id,
         workspaceId: workspace.id,
         taskId: subtasks[0].id,
         actorId: null,
+        idempotencyKey: `deadline:${subtasks[0].id}:${devUser.id}:${deadlineReminderWindow(new Date()).today}`,
         type: 'deadline',
         title: '⏰ Batas Waktu Mendekati',
         message: 'Existing alert',

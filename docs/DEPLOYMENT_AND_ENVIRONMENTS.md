@@ -89,6 +89,7 @@ atau akun layanan Production untuk Preview.
 - Storage/email: `ATTACHMENT_STORAGE_PROVIDER`, `GOOGLE_DRIVE_ROOT_FOLDER_ID`,
   `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`,
   `SMTP_PASS`, `SMTP_FROM`.
+- Scheduler: `CRON_SECRET` (minimal 32 karakter; lihat bagian Scheduler di bawah).
 - Backend notifications: `FIREBASE_PROJECT_ID` dan salah satu credential service-account yang
   didukung.
 - Distributed link-preview limit: `LINK_PREVIEW_RATE_LIMIT_STORE=postgres` dan
@@ -139,6 +140,63 @@ yang sama. Lihat
 
 Semua `VITE_*` tertanam di JavaScript browser. Jangan pernah memakai prefix itu untuk database
 URL, password, private key, JWT secret, atau service-account JSON.
+
+### Scheduler: Supabase Cron (pengingat deadline)
+
+Pekerjaan terjadwal Production dijalankan Supabase Cron di database Production, bukan Vercel Cron
+atau browser (`AUTH-012`, [ADR-040](adr/ADR-040-SCHEDULED-JOBS-VIA-SUPABASE-CRON.md)). Satu-satunya
+job saat ini memanggil `POST /v1/cron/deadline-reminders` sekali sehari. Setup dilakukan Owner sekali;
+bukan migrasi kanonikal karena database lokal/test tidak memiliki `pg_cron`/`pg_net`.
+
+1. Buat secret acak minimal 32 karakter (misalnya `openssl rand -hex 32`). Simpan sebagai
+   `CRON_SECRET` di **Vercel → Environment Variables → Production**, lalu redeploy. Tanpa variabel ini
+   route menjawab `503` dan tidak menjalankan apa pun. Jangan menyimpan nilainya di Git, chat,
+   laporan, atau variabel `VITE_*`.
+2. Di Supabase Production: aktifkan extension `pg_cron` dan `pg_net` (Integrations → Cron, atau
+   Database → Extensions).
+3. Di SQL Editor Supabase Production, simpan URL dan secret di Vault (sekali):
+
+   ```sql
+   select vault.create_secret('https://qlickhub.vercel.app/v1/cron/deadline-reminders', 'qlickhub_deadline_reminders_url');
+   select vault.create_secret('<nilai CRON_SECRET yang sama dengan Vercel>', 'qlickhub_cron_secret');
+   ```
+
+4. Jadwalkan job harian 08:05 WIB (`5 1 * * *` UTC):
+
+   ```sql
+   select cron.schedule(
+     'qlickhub-deadline-reminders',
+     '5 1 * * *',
+     $$
+     select net.http_post(
+       url := (select decrypted_secret from vault.decrypted_secrets where name = 'qlickhub_deadline_reminders_url'),
+       headers := jsonb_build_object(
+         'Content-Type', 'application/json',
+         'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'qlickhub_cron_secret')
+       ),
+       body := '{}'::jsonb,
+       timeout_milliseconds := 30000
+     );
+     $$
+   );
+   ```
+
+5. Verifikasi sekali tanpa menunggu jadwal: jalankan isi `$$ … $$` di atas secara manual, lalu
+   periksa hasilnya. `status_code` harus `200`; `401` berarti secret Vault berbeda dengan Vercel,
+   `503` berarti `CRON_SECRET` belum ter-deploy.
+
+   ```sql
+   select status_code, timed_out, error_msg, created
+   from net._http_response order by created desc limit 5;
+   select status, return_message, start_time
+   from cron.job_run_details order by start_time desc limit 5;
+   ```
+
+Catatan operasional: `pg_net` tidak mengulang request gagal dan menyimpan respons sekitar 6 jam;
+job idempoten, sehingga run berikutnya menyusul. Log API mencatat event `cron.deadline_reminders`
+dengan jumlah task dan pengingat. `cron.job_run_details` tidak dibersihkan otomatis; hapus baris lama
+secara berkala. Untuk rotasi secret, perbarui Vercel dan Vault bersamaan (`vault.update_secret`).
+Untuk menonaktifkan: `select cron.unschedule('qlickhub-deadline-reminders');`.
 
 ### Release-only dan test-only
 

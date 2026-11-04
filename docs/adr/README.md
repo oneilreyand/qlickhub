@@ -48,3 +48,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-037](ADR-037-DESIGN-ASSET-WORKFLOW.md)                                   | Design asset workflow: canvas source and WebP exports                |
 | [ADR-038](ADR-038-FULLSTACK-ASSIGNMENT-AND-OPEN-CLAIM.md)                     | Fullstack assignment and atomic open claims                          |
 | [ADR-039](ADR-039-PRODUCTION-MIGRATION-GATE.md)                               | Production migration gate via the public health check                |
+| [ADR-040](ADR-040-SCHEDULED-JOBS-VIA-SUPABASE-CRON.md)                        | Scheduled jobs via Supabase Cron and a backend-only bearer secret    |

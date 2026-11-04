@@ -382,49 +382,6 @@ export class FcmService {
   }
 
   /**
-   * Helper: Trigger 4 — Approaching Deadline Notification
-   * Delegates DB persistence to NotificationService and dispatches FCM multicast push.
-   */
-  async sendDeadlineApproachingNotification(params: {
-    recipientUserIds: string[];
-    taskTitle: string;
-    taskId: string;
-    workspaceId: string;
-    dueDate: string;
-  }): Promise<void> {
-    const { recipientUserIds, taskTitle, taskId, workspaceId, dueDate } = params;
-    const notifTitle = '⏰ Batas Waktu Mendekati';
-    const notifBody = `Tugas "${taskTitle}" jatuh tempo pada ${dueDate}. Segera selesaikan sebelum terlambat!`;
-
-    // 1. Persist via NotificationService (no actorId for system-generated deadline alerts)
-    try {
-      const { notificationService } =
-        await import('../modules/notifications/notificationService.js');
-      await notificationService.createBulkNotifications(
-        recipientUserIds.map((userId) => ({
-          userId,
-          workspaceId,
-          taskId: taskId || null,
-          actorId: null,
-          type: 'deadline' as const,
-          title: notifTitle,
-          message: notifBody,
-        })),
-        false, // sendFcm handled below
-      );
-    } catch (err) {
-      console.warn('⚠️ Failed to save in-app deadline notification in DB:', err);
-    }
-
-    // 2. Dispatch FCM multicast push
-    await this.sendToUsers(recipientUserIds, {
-      title: notifTitle,
-      body: notifBody,
-      data: { type: 'deadline', taskId, workspaceId },
-    });
-  }
-
-  /**
    * Helper: Trigger 5 — Bug Lifecycle Notification
    */
   async sendBugNotification(params: {

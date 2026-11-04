@@ -334,6 +334,13 @@ Keputusan ini dijelaskan dalam
 - Runtime Vercel mengatur Express untuk mempercayai tepat satu proxy hop. Vercel menimpa `X-Forwarded-For` dengan IP klien sebelum fungsi dipanggil; konfigurasi permisif `trust proxy = true` dilarang karena dapat melemahkan limiter berbasis IP.
 - Vercel WAF dapat ditambahkan sebagai pertahanan IP di edge, tetapi tidak menggantikan enforcement per pengguna ini. Pilihan PostgreSQL dan aturan cutover tercatat di [ADR-006](adr/ADR-006-POSTGRESQL-LINK-PREVIEW-RATE-LIMIT.md), menggantikan pilihan provider wajib dalam [ADR-003](adr/ADR-003-DISTRIBUTED-LINK-PREVIEW-RATE-LIMIT.md). Saat beralih provider, drain/pause traffic link-preview sekurangnya 60 detik; deployment dengan provider berbeda tidak boleh diklaim berbagi counter.
 
+### Pekerjaan Terjadwal (Scheduler)
+
+- Pekerjaan terjadwal Production dijalankan oleh Supabase Cron (`pg_cron` + `pg_net`) di database Production yang memanggil route API `/v1/cron/*` (`AUTH-012`). Saat ini hanya ada satu job: pengingat deadline harian `POST /v1/cron/deadline-reminders`.
+- Route `/v1/cron/*` hanya menerima `Authorization: Bearer <CRON_SECRET>` dengan perbandingan waktu-konstan. Secret hanya ada di runtime backend dan Supabase Vault; tidak boleh masuk Git, variabel `VITE_*`, browser, atau log. Tanpa secret, route menjawab `503` dan tidak menjalankan apa pun.
+- Route ini dipasang sebelum pemeriksaan origin browser karena pemanggilnya bukan browser; semua route lain yang mengubah state tetap melewati pemeriksaan origin. Route tidak membawa identitas pengguna dan tidak menerima parameter scope.
+- Job wajib idempoten: pengiriman scheduler bisa ganda atau terlewat. Pengingat deadline memakai `idempotency_key` unik per task, penerima, dan tanggal. Keputusan dan aturan pengingat tercatat di [ADR-040](adr/ADR-040-SCHEDULED-JOBS-VIA-SUPABASE-CRON.md).
+
 ### Batas Privasi Kapasitas Lintas Workspace
 
 - Deteksi beban kerja anggota tim yang mencakup beberapa Workspace wajib menjaga kerahasiaan data proyek asal (`AUTH-011`).

@@ -9,6 +9,7 @@ import {
 import { notificationService } from './notificationService.js';
 import { fcmService } from '../../services/fcmService.js';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
+import type { WorkspaceRequest } from '../../policies/workspacePolicy.js';
 import { formatProblemDetails } from '../../http/problemDetails.js';
 
 export class NotificationController {
@@ -142,12 +143,18 @@ export class NotificationController {
   }
 
   /**
-   * POST /v1/notifications/check-deadlines
-   * Scans for approaching deadlines and dispatches notifications.
+   * POST /v1/notifications/check-deadlines?workspaceId=
+   * Manual deadline-reminder run for one Workspace. The scope is the Workspace whose owner/admin
+   * membership `requireWorkspaceMember` verified, never a second, unchecked copy of the ID.
    */
-  async checkDeadlines(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async checkDeadlines(req: WorkspaceRequest, res: Response, next: NextFunction) {
     try {
-      const workspaceId = (req.query.workspaceId as string) || req.body?.workspaceId;
+      const workspaceId = req.workspaceMembership?.workspaceId;
+      if (!workspaceId) {
+        return res.status(400).json({
+          error: { code: 'BAD_REQUEST', message: 'A single workspaceId is required.' },
+        });
+      }
       const result =
         await notificationService.checkAndDispatchApproachingDeadlineNotifications(workspaceId);
       return res.status(200).json({ data: result });

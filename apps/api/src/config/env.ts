@@ -61,6 +61,9 @@ const envSchema = z.object({
   KV_REST_API_URL: z.string().url().optional(),
   KV_REST_API_TOKEN: z.string().min(1).optional(),
   RATE_LIMIT_KEY_SECRET: z.string().min(32).optional(),
+  // ADR-040: shared secret the Supabase Cron job sends as `Authorization: Bearer <secret>`.
+  // Unset disables the scheduled endpoint (503) without blocking startup.
+  CRON_SECRET: z.string().min(32).optional(),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
 });
