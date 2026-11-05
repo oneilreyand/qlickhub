@@ -9,6 +9,7 @@ import {
   downloadTestCaseTemplate,
   getTaskTestExecutions,
   getQaWorkflowSummary,
+  getDeveloperReadiness,
   getTestCase,
   listTestCaseVersionCoverage,
   getTestCaseImportErrorsCsv,
@@ -38,6 +39,11 @@ testManagementRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/test-executions',
   requireWorkspaceMember(),
   getTaskTestExecutions,
+);
+testManagementRoutes.get(
+  '/workspaces/:workspaceId/tasks/:taskId/developer-readiness',
+  requireWorkspaceMember(),
+  getDeveloperReadiness,
 );
 testManagementRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/qa-workflow-summary',

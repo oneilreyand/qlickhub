@@ -33,6 +33,41 @@ describe('apiClient error metadata', () => {
     });
   });
 
+  it('reads the code of RFC 9457 problem details so specific copy is shown (E2E-SDLC-FLOW)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            type: 'https://tools.ietf.org/html/rfc9457',
+            title: 'Conflict',
+            status: 409,
+            detail:
+              'A persisted Feature Readiness Baseline is required before creating a scoped Test Cycle.',
+            code: 'CONFLICT',
+          }),
+          { status: 409, statusText: 'Conflict', headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+
+    await expect(apiClient('/workspaces/w/qa-test-cycles')).rejects.toMatchObject({
+      message: expect.stringMatching(/Product Owner menyetujui Brief Produk/),
+      status: 409,
+      code: 'CONFLICT',
+    });
+  });
+
+  it('explains a Test Result refused because Developer work is not ready', () => {
+    expect(
+      getHumanReadableApiErrorMessage(
+        409,
+        'CONFLICT',
+        'Developer work is not ready to test (1 of 2 Developer subtasks in review or done). Waiting for: API.',
+      ),
+    ).toMatch(/subtask Developer untuk requirement ini belum dikirim ke QA/);
+  });
+
   it('explains bukti QA permanen and deletion blockers without exposing backend detail', () => {
     expect(
       getHumanReadableApiErrorMessage(

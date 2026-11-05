@@ -317,6 +317,8 @@ describe('Feature Spec Apply HTTP/PostgreSQL (P5d-2)', () => {
     assert.equal(brief?.document.status, 'draft');
     const requirements = await RequirementModel.findAll({ where: { workspaceId: workspace.id } });
     const byTitle = new Map(requirements.map((row) => [row.title, row.id]));
+    // E2E-SDLC-FLOW P5 (K4): Apply names Requirements with short sequential codes.
+    for (const row of requirements) assert.match(row.code, /^REQ-\d{3,}$/);
     const children = await TaskModel.findAll({ where: { parentTaskId: spec.featureTaskId } });
     assert.equal(children.length, 2);
     for (const child of children) {
@@ -492,6 +494,27 @@ describe('Feature Spec Apply HTTP/PostgreSQL (P5d-2)', () => {
         where: { taskId: spec.featureTaskId, action: 'feature_spec.applied' },
       }),
       1,
+    );
+  });
+
+  test('concurrent Applies of different Features get distinct sequential REQ codes (E2E-SDLC-FLOW P5)', async () => {
+    const [first, second] = [await readySpec(), await readySpec()];
+    const responses = await Promise.all([request(first), request(second)]);
+    assert.deepEqual(
+      responses.map((r) => r.status),
+      [200, 200],
+    );
+    const codes = (
+      await RequirementModel.findAll({ where: { workspaceId: workspace.id }, attributes: ['code'] })
+    ).map((row) => row.code);
+    assert.equal(new Set(codes).size, codes.length);
+    const numbers = codes
+      .map((code) => Number(/^REQ-(\d+)$/.exec(code)?.[1]))
+      .sort((a, b) => a - b);
+    assert.ok(numbers.every(Number.isInteger));
+    assert.deepEqual(
+      numbers,
+      numbers.map((_, index) => numbers[0] + index),
     );
   });
 

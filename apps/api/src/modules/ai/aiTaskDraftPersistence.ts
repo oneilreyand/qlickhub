@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type { Transaction } from 'sequelize';
 import type { ApplyTaskDraftInput, CreateTaskInput, TaskAssignmentMode } from '@qlick/contracts';
 import {
@@ -10,6 +9,7 @@ import {
 } from '../../db/models/index.js';
 import { qaDocumentService } from '../qaDocuments/qaDocumentService.js';
 import { createTaskInTransaction } from '../tasks/internal/taskLifecycle.js';
+import { nextRequirementCodes } from '../requirements/requirementCodes.js';
 
 /** Internal normalized write shape; HTTP callers still use their own strict shared contracts. */
 export interface ReviewedDraftContents {
@@ -45,12 +45,13 @@ export async function persistReviewedDraftInTransaction(
   }
 
   const requirementIds = new Map<string, string>();
-  for (const item of draft.requirements) {
+  const codes = await nextRequirementCodes(workspaceId, draft.requirements.length, transaction);
+  for (const [index, item] of draft.requirements.entries()) {
     const requirement = await RequirementModel.create(
       {
         workspaceId,
-        // UUID-based codes fit varchar(50) and do not collide for concurrent Applies.
-        code: `REQ-${randomUUID()}`,
+        // E2E-SDLC-FLOW P5: short sequential codes (REQ-001) under a per-Workspace lock.
+        code: codes[index],
         title: item.title.trim(),
         description: item.description?.trim() || null,
         status: 'active',

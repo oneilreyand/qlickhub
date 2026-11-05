@@ -300,6 +300,15 @@ stateDiagram-v2
 - Setiap Run baru akan menyimpan root Feature, QA Subtask, Test Cycle/kandidat, versi Test Case,
   baseline, build, dan environment. Record lama tanpa scope ini berstatus legacy/unverified dan
   tidak dapat memenuhi evidence gate baru tanpa bukti deterministik.
+- **Kesiapan Developer per Requirement (`QA-010`, ADR-041).** Run baru hanya dibuat bila setiap
+  subtask Developer (non-QA, tidak dibatalkan) yang menerapkan salah satu Requirement subtask QA
+  berstatus `in_review` atau `done`; tanpa tautan Requirement, seluruh subtask Developer Feature
+  dihitung. API menolak dengan `409`; halaman QA dan Tugas Saya hanya menampilkan statusnya.
+- **Satu siklus terbuka per subtask QA.** Siklus uji baru menandai siklus `planned`/`in_progress`
+  lama milik subtask QA yang sama sebagai `superseded`; hasilnya tetap menjadi riwayat.
+- **Menutup eksekusi QA.** Setelah gerbang penyelesaian QA terpenuhi, QA yang ditugaskan
+  menyetujui subtask Developer `in_review` yang sudah diujinya (`in_review → done`), lalu
+  menyelesaikan subtask QA; QA Sign-off mengikuti §7.
 
 ### C. Alur Wizard Impor Spreadsheet (CSV / XLSX)
 
@@ -359,6 +368,10 @@ graph TD
     class AssignFix,DevResolve,IndependentRetest,ReopenBug action;
     class CloseBug done;
 ```
+
+Hasil retest kontekstual dan Retest Attempt-nya (Bug `verified` atau `reopened`) disimpan dalam satu
+transaksi (ADR-041), sehingga retest tidak dapat tertinggal setengah jadi. Hanya QA yang ditugaskan
+pada subtask QA asal Bug yang dapat memulai retest.
 
 Setiap Bug menampilkan timeline tanpa menyalin ulang blob evidence: Result asal → evidence triage →
 Resolution Event Developer → Retest Attempt 1..n. Retest Attempt wajib menunjuk Result baru dalam

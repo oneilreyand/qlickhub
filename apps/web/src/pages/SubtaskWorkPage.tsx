@@ -13,8 +13,8 @@ import { SubtaskWorkView } from '../components/ui/organisms/myTasks/SubtaskWorkV
 import { useTaskWithParent } from '../lib/hooks/useTaskWithParent';
 import { taskService } from '../lib/api/taskService';
 import { traceabilityService } from '../lib/api/traceabilityService';
-import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
-import { fetchMembers } from '../store/workspaceSlice';
+import { selectCurrentUserId } from '../store/authSlice';
+import { fetchMembers, selectActiveWorkspaceRole } from '../store/workspaceSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { updateTask } from '../store/taskSlice';
@@ -29,7 +29,7 @@ export const SubtaskWorkPage: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const currentUserId = useAppSelector(selectCurrentUserId);
-  const userRole = useAppSelector(selectCurrentUserRole) || '';
+  const userRole = useAppSelector(selectActiveWorkspaceRole) || '';
   const { activeWorkspaceId, isInitialized, members } = useAppSelector((state) => state.workspace);
   const isReady = isInitialized && Boolean(activeWorkspaceId);
 

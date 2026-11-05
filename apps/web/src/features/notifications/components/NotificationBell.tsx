@@ -11,6 +11,7 @@ import {
 import { useDismissableLayer } from '../../../hooks/useDismissableLayer';
 import { useFcmNotifications } from '../../../hooks/useFcmNotifications';
 import { NotificationDropdown } from './NotificationDropdown';
+import { getBugWorkPath } from '../../../lib/utils/taskRoutes';
 
 interface NotificationBellProps {
   className?: string;
@@ -41,12 +42,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className = 
 
   const handleNotificationClick = (notif: InAppNotification) => {
     dispatch(markNotificationAsReadThunk(notif.id));
-    if (notif.taskId) {
+    const returnState = { state: { returnTo: `${location.pathname}${location.search}` } };
+    if (notif.bugId) {
+      // E2E-SDLC-FLOW P6: a Bug notification opens the Bug work page.
+      navigate(getBugWorkPath(notif.bugId), returnState);
+    } else if (notif.taskId) {
       // Open the task through its deep link so it works even when the task is not in the
       // current My Tasks list; closing the drawer returns to where the user was.
-      navigate(`/projects/${notif.workspaceId}/tasks/${notif.taskId}`, {
-        state: { returnTo: `${location.pathname}${location.search}` },
-      });
+      navigate(`/projects/${notif.workspaceId}/tasks/${notif.taskId}`, returnState);
     }
     setShowNotifications(false);
   };

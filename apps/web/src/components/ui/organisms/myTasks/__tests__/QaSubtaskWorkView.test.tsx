@@ -129,7 +129,7 @@ describe('QaSubtaskWorkView (desain 08)', () => {
     const props = setup({ preparing: { ready: 1, total: 3 } });
     const banner = screen.getByRole('region', { name: 'Tahap Siapkan Test Case' });
     expect(within(banner).getByText('Siapkan Test Case')).toBeInTheDocument();
-    expect(banner).toHaveTextContent('Menunggu Developer: 1 dari 3 subtask siap diuji');
+    expect(banner).toHaveTextContent('Menunggu Developer: 1 dari 3 subtask Developer siap diuji');
     // TC-01 sudah punya hasil (tombol hasil); hanya pasangan Lulus/Gagal TC-02 yang dikunci.
     expect(screen.getByRole('button', { name: 'Gagal' })).toBeDisabled();
     expect(screen.getAllByRole('button', { name: 'Lulus' })[1]).toBeDisabled();

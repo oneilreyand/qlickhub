@@ -177,6 +177,9 @@ export const BugWithContextSchema = BugSchema.extend({
         testCaseId: z.string().uuid(),
         build: NonBlankTextSchema.max(100),
         environment: NonBlankTextSchema.max(100),
+        /** QA subtask of the originating Run; its assignee is the only QA who may retest. */
+        qaSubtaskId: z.string().uuid().nullable().optional(),
+        qaAssigneeId: z.string().uuid().nullable().optional(),
       }),
     })
     .nullable()

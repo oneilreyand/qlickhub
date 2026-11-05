@@ -57,8 +57,10 @@ export interface QaSubtaskWorkViewProps {
   handoff: QaHandoff | null;
   /** Selain QA yang ditugaskan hanya melihat. */
   canExecute: boolean;
+  /** Kenapa pengguna ini hanya melihat (bukan QA yang ditugaskan); tombol tidak hilang diam-diam. */
+  readOnlyReason?: string | null;
   /** Tahap Siapkan: Developer belum selesai, jadi Lulus/Gagal dinonaktifkan (AC-3.15). */
-  preparing?: { ready: number; total: number } | null;
+  preparing?: { ready: number; total: number; scope?: 'requirement' | 'feature' } | null;
   onBack: () => void;
   onOpenFeature: () => void;
   onOpenActivity: () => void;
@@ -75,6 +77,18 @@ export interface QaSubtaskWorkViewProps {
   onImportSpreadsheet?: () => void;
   /** Panel Persetujuan QA (hanya QA); ditampilkan di bawah daftar Test Case. */
   signOffSlot?: React.ReactNode;
+  /**
+   * E2E-SDLC-FLOW P5: every Test Case passed with evidence and no Bug waits for retest, so QA can
+   * close its QA subtask; QA Sign-off needs the subtask done.
+   */
+  completeExecution?: {
+    onComplete: () => void;
+    isBusy: boolean;
+    /** Developer subtasks still in review: QA approves them before closing its QA subtask. */
+    pendingReviews: Array<{ id: string; title: string; assigneeName?: string }>;
+    onApprove: (subtaskId: string) => void;
+    approvingId: string | null;
+  } | null;
 }
 
 function formatHandoffTime(value: string): string {
@@ -111,6 +125,7 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
   developerNames,
   handoff,
   canExecute,
+  readOnlyReason = null,
   preparing = null,
   onBack,
   onOpenFeature,
@@ -124,6 +139,7 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
   activatingTestCaseId,
   onImportSpreadsheet,
   signOffSlot,
+  completeExecution = null,
 }) => {
   const requirementNodes = useMemo(
     () =>
@@ -209,6 +225,17 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
         </p>
       </header>
 
+      {!canExecute && readOnlyReason && (
+        <section
+          aria-label="Mode baca"
+          role="status"
+          className="mb-5 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+        >
+          <p className="font-semibold">Hanya melihat</p>
+          <p>{readOnlyReason}</p>
+        </section>
+      )}
+
       {preparing && (
         <section
           aria-label="Tahap Siapkan Test Case"
@@ -216,9 +243,10 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
         >
           <p className="font-semibold">Siapkan Test Case</p>
           <p>
-            Menunggu Developer: {preparing.ready} dari {preparing.total} subtask siap diuji. Anda
-            dapat menambah, mengimpor, dan mengaktifkan Test Case sekarang; Lulus dan Gagal aktif
-            setelah semua subtask Developer siap diuji.
+            Menunggu Developer: {preparing.ready} dari {preparing.total} subtask Developer
+            {preparing.scope === 'requirement' ? ' untuk requirement subtask QA ini' : ''} siap
+            diuji. Anda dapat menambah, mengimpor, dan mengaktifkan Test Case sekarang; Lulus dan
+            Gagal aktif setelah subtask Developer itu dikirim ke QA.
           </p>
         </section>
       )}
@@ -400,6 +428,64 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
               </section>
             );
           })}
+          {completeExecution && (
+            <section
+              aria-label="Selesaikan eksekusi QA"
+              className={`${cardClass} space-y-3 px-5 py-4`}
+            >
+              <p className="text-sm text-stone-700 dark:text-stone-300">
+                Semua Test Case lulus dengan bukti dan tidak ada Bug yang menunggu retest.
+                {completeExecution.pendingReviews.length > 0
+                  ? ' Setujui pekerjaan Developer yang sudah Anda uji, lalu selesaikan subtask QA ini.'
+                  : ' Selesaikan subtask QA ini, lalu catat Persetujuan QA.'}
+              </p>
+              {completeExecution.pendingReviews.length > 0 && (
+                <ul className="divide-y divide-stone-100 dark:divide-stone-800">
+                  {completeExecution.pendingReviews.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex flex-wrap items-center justify-between gap-2 py-2"
+                    >
+                      <span className="text-sm text-stone-900 dark:text-stone-100">
+                        {item.title}
+                        {item.assigneeName ? (
+                          <span className="text-stone-500 dark:text-stone-400">
+                            {` · ${item.assigneeName}`}
+                          </span>
+                        ) : null}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-label={`Setujui ${item.title}`}
+                        isLoading={completeExecution.approvingId === item.id}
+                        disabled={completeExecution.approvingId !== null}
+                        onClick={() => completeExecution.onApprove(item.id)}
+                      >
+                        Setujui
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex justify-end">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  isLoading={completeExecution.isBusy}
+                  disabled={completeExecution.pendingReviews.length > 0}
+                  title={
+                    completeExecution.pendingReviews.length > 0
+                      ? 'Setujui dulu pekerjaan Developer di atas'
+                      : undefined
+                  }
+                  onClick={completeExecution.onComplete}
+                >
+                  Selesaikan Eksekusi QA
+                </Button>
+              </div>
+            </section>
+          )}
           {signOffSlot && (
             <section
               aria-label="Persetujuan QA"

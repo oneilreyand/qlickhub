@@ -10,6 +10,7 @@ export interface NotificationAttributes {
   userId: string;
   workspaceId: string;
   taskId?: string | null;
+  bugId?: string | null;
   actorId?: string | null;
   idempotencyKey?: string | null;
   type: NotificationType;
@@ -23,7 +24,15 @@ export interface NotificationAttributes {
 
 export interface NotificationCreationAttributes extends Optional<
   NotificationAttributes,
-  'id' | 'taskId' | 'actorId' | 'idempotencyKey' | 'isRead' | 'readAt' | 'createdAt' | 'updatedAt'
+  | 'id'
+  | 'taskId'
+  | 'bugId'
+  | 'actorId'
+  | 'idempotencyKey'
+  | 'isRead'
+  | 'readAt'
+  | 'createdAt'
+  | 'updatedAt'
 > {}
 
 export class NotificationModel
@@ -34,6 +43,7 @@ export class NotificationModel
   declare userId: string;
   declare workspaceId: string;
   declare taskId: string | null;
+  declare bugId: string | null;
   declare actorId: string | null;
   declare idempotencyKey: string | null;
   declare type: NotificationType;
@@ -71,6 +81,12 @@ NotificationModel.init(
       type: DataTypes.UUID,
       allowNull: true,
       field: 'task_id',
+    },
+    // E2E-SDLC-FLOW P6: a Bug notification opens the Bug work page.
+    bugId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'bug_id',
     },
     actorId: {
       type: DataTypes.UUID,

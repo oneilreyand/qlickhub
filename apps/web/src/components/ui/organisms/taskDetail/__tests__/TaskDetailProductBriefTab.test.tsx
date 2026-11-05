@@ -274,4 +274,32 @@ describe('TaskDetailProductBriefTab', () => {
     expect(screen.getByRole('button', { name: 'Simpan Versi Baru' })).toBeDisabled();
     expect(onDirtyChange).toHaveBeenCalledWith(false);
   });
+
+  test('lets the PO approve the Brief from the simple Feature page editor (E2E-SDLC-FLOW)', async () => {
+    render(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="po"
+        productBrief={brief}
+        loadError={null}
+        onReload={vi.fn()}
+        simple
+      />,
+    );
+
+    expect(screen.getByText(/QA baru bisa memulai siklus uji/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Status Brief Produk'), {
+      target: { value: 'approved' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+
+    await waitFor(() =>
+      expect(upsertProductBriefMock).toHaveBeenCalledWith(
+        task.workspaceId,
+        task.id,
+        expect.objectContaining({ status: 'approved' }),
+      ),
+    );
+  });
 });

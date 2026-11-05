@@ -310,7 +310,18 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
           <div className="min-w-0 space-y-2">
             <div>
               <h4 className="break-words text-sm font-extrabold text-stone-900 dark:text-stone-100">
-                {item.title}
+                {isAvailable ? (
+                  item.title
+                ) : (
+                  <button
+                    type="button"
+                    className="text-left underline-offset-2 hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7CB518] disabled:cursor-not-allowed"
+                    disabled={openingItemId !== null}
+                    onClick={() => void openItem(item)}
+                  >
+                    {item.title}
+                  </button>
+                )}
               </h4>
               <p className="mt-1 text-sm leading-relaxed text-stone-700 dark:text-stone-200">
                 {localizeReason(item.reason)}

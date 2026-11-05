@@ -1,3 +1,4 @@
+import type { WorkspaceItem } from '../../lib/api/workspaceService';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -11,6 +12,7 @@ import taskReducer from '../../store/taskSlice';
 import uiReducer from '../../store/uiSlice';
 
 const mocks = vi.hoisted(() => ({
+  getDeveloperReadiness: vi.fn(),
   getTask: vi.fn(),
   listTaskComments: vi.fn(),
   listTaskActivity: vi.fn(),
@@ -21,6 +23,8 @@ const mocks = vi.hoisted(() => ({
   listVersions: vi.fn(),
   listMappings: vi.fn(),
   deleteTestCase: vi.fn(),
+  getQaWorkflowSummary: vi.fn(),
+  updateTask: vi.fn(),
 }));
 
 vi.mock('../../lib/api/taskService', () => ({
@@ -29,18 +33,24 @@ vi.mock('../../lib/api/taskService', () => ({
     listTaskComments: (...a: unknown[]) => mocks.listTaskComments(...a),
     listTaskActivity: (...a: unknown[]) => mocks.listTaskActivity(...a),
     listSubtasks: (...a: unknown[]) => mocks.listSubtasks(...a),
+    updateTask: (...a: unknown[]) => mocks.updateTask(...a),
   },
+}));
+vi.mock('../../components/ui/organisms/ReleaseAssurancePanel', () => ({
+  ReleaseAssurancePanel: () => <div>Panel Persetujuan QA</div>,
 }));
 vi.mock('../../lib/api/traceabilityService', () => ({
   traceabilityService: { getParentTaskDeliveryTrace: (...a: unknown[]) => mocks.getTrace(...a) },
 }));
 vi.mock('../../lib/api/testManagementService', () => ({
   testManagementService: {
+    getDeveloperReadiness: (...a: unknown[]) => mocks.getDeveloperReadiness(...a),
     getTaskTestExecutions: (...a: unknown[]) => mocks.getExecutions(...a),
     listQaTestCycles: (...a: unknown[]) => mocks.listCycles(...a),
     listTestCaseVersionCoverage: (...a: unknown[]) => mocks.listVersions(...a),
     listTestCaseVersionAcceptanceCriteria: (...a: unknown[]) => mocks.listMappings(...a),
     deleteTestCase: (...a: unknown[]) => mocks.deleteTestCase(...a),
+    getQaWorkflowSummary: (...a: unknown[]) => mocks.getQaWorkflowSummary(...a),
   },
 }));
 
@@ -78,7 +88,7 @@ function RunProbe() {
   return <div>run:{`${location.pathname}${location.search}`}</div>;
 }
 
-function renderPage(role = 'qa', userId = qaId) {
+function renderPage(role = 'qa', userId = qaId, accountRole: string = role) {
   const store = configureStore({
     reducer: { auth: authReducer, workspace: workspaceReducer, task: taskReducer, ui: uiReducer },
     preloadedState: {
@@ -87,7 +97,7 @@ function renderPage(role = 'qa', userId = qaId) {
           id: userId,
           email: 'qa@example.test',
           name: 'QA',
-          role,
+          role: accountRole,
           onboardingCompletedAt: '2026-08-23T00:00:00.000Z',
         },
         isAuthenticated: true,
@@ -96,7 +106,8 @@ function renderPage(role = 'qa', userId = qaId) {
         error: null,
       },
       workspace: {
-        workspaces: [],
+        // The page authorises by the active Workspace role (E2E-SDLC-FLOW P1).
+        workspaces: [{ id: workspaceId, name: 'Workspace', role } as unknown as WorkspaceItem],
         activeWorkspaceId: workspaceId,
         members: [
           { userId: devId, user: { name: 'Bima', email: 'bima@example.test' } },
@@ -126,6 +137,13 @@ function renderPage(role = 'qa', userId = qaId) {
 describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
   beforeEach(() => {
     Object.values(mocks).forEach((m) => m.mockReset());
+    mocks.getDeveloperReadiness.mockResolvedValue({
+      scope: 'feature',
+      total: 1,
+      ready: 1,
+      isReadyToTest: true,
+      pending: [],
+    });
     mocks.getTask.mockImplementation((_w: string, id: string) =>
       Promise.resolve(id === qaSubtaskId ? qaSubtask : parent),
     );
@@ -178,6 +196,41 @@ describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
       mappings: [{ acceptanceCriterionId: 'ac-1', mappingStatus: 'mapped' }],
     });
     mocks.listTaskActivity.mockResolvedValue({ activities: [], total: 0, page: 1 });
+    mocks.getQaWorkflowSummary.mockResolvedValue({
+      qaSubtaskId,
+      nextAction: { code: 'execute_test_cases', label: 'Jalankan Test Case' },
+    });
+  });
+
+  it('lets QA approve tested Developer work, then complete the QA subtask (E2E-SDLC-FLOW)', async () => {
+    mocks.getQaWorkflowSummary.mockResolvedValue({
+      qaSubtaskId,
+      nextAction: { code: 'complete_qa_subtask', label: 'Selesaikan Eksekusi QA' },
+    });
+    mocks.updateTask.mockImplementation((_w: string, id: string, input: { status: string }) =>
+      Promise.resolve({ ...(id === qaSubtaskId ? qaSubtask : devSubtask), status: input.status }),
+    );
+    renderPage();
+
+    const complete = await screen.findByRole('button', { name: 'Selesaikan Eksekusi QA' });
+    expect(complete).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Setujui Form pembayaran' }));
+    await waitFor(() =>
+      expect(mocks.updateTask).toHaveBeenCalledWith(workspaceId, devSubtaskId, { status: 'done' }),
+    );
+    await waitFor(() => expect(complete).toBeEnabled());
+    fireEvent.click(complete);
+    await waitFor(() =>
+      expect(mocks.updateTask).toHaveBeenCalledWith(workspaceId, qaSubtaskId, { status: 'done' }),
+    );
+  });
+
+  it('hides the completion action until the QA gate allows it', async () => {
+    renderPage();
+    expect(await screen.findByText('Bayar dengan kartu')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Selesaikan Eksekusi QA' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the QA work page with handoff, Test Cases, AC codes, and status panel', async () => {
@@ -200,11 +253,20 @@ describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
         { ...devSubtask, id: 'dev-2', status: 'in_progress', title: 'UI pembayaran' },
       ],
     });
+    mocks.getDeveloperReadiness.mockResolvedValue({
+      scope: 'requirement',
+      total: 2,
+      ready: 1,
+      isReadyToTest: false,
+      pending: [{ id: 'dev-2', title: 'UI pembayaran', status: 'in_progress' }],
+    });
     renderPage();
     expect(await screen.findByText('Bayar dengan kartu')).toBeInTheDocument();
     expect(
-      await screen.findByText(/Menunggu Developer: 1 dari 2 subtask siap diuji/),
+      await screen.findByText(/Menunggu Developer: 1 dari 2 subtask Developer/),
     ).toBeInTheDocument();
+    expect(screen.getByText(/untuk requirement subtask QA ini/)).toBeInTheDocument();
+    expect(mocks.getDeveloperReadiness).toHaveBeenCalledWith(workspaceId, qaSubtaskId);
     expect(screen.getByRole('button', { name: 'Gagal' })).toBeDisabled();
   });
 
@@ -224,6 +286,22 @@ describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
     expect(
       await screen.findByText(`run:/tests/cases/new?subtaskId=${qaSubtaskId}`),
     ).toBeInTheDocument();
+  });
+
+  it('follows the Workspace role, not the account role, for the assigned QA', async () => {
+    renderPage('qa', qaId, 'dev');
+    expect(await screen.findByText('Bayar dengan kartu')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ Test Case' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Impor spreadsheet' })).toBeInTheDocument();
+    expect(screen.queryByText('Hanya melihat')).not.toBeInTheDocument();
+  });
+
+  it('explains why a non-QA viewer only reads the QA work page', async () => {
+    renderPage('dev', 'someone-else', 'qa');
+    expect(await screen.findByText('Bayar dengan kartu')).toBeInTheDocument();
+    expect(screen.getByText('Hanya melihat')).toBeInTheDocument();
+    expect(screen.getByText(/Peran Anda di workspace ini bukan QA/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '+ Test Case' })).not.toBeInTheDocument();
   });
 
   it('opens the spreadsheet import wizard on the QA work page', async () => {

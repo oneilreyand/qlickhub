@@ -162,6 +162,17 @@ export function getHumanReadableApiErrorMessage(
     return 'Product, Development, dan QA masing-masing harus mencatat posisi sebelum Owner atau Admin menyelesaikan perbedaan pendapat.';
   }
 
+  if (
+    normalizedCode === 'CONFLICT' &&
+    normalizedServerMessage.includes('developer work is not ready to test')
+  ) {
+    return 'Hasil uji belum bisa dicatat: subtask Developer untuk requirement ini belum dikirim ke QA.';
+  }
+
+  if (normalizedServerMessage.includes('cannot mark qa subtask as done until all development')) {
+    return 'Subtask QA belum bisa diselesaikan: masih ada subtask Developer di Feature ini yang belum disetujui atau belum selesai. Setujui pekerjaan Developer yang sudah diuji, atau tunggu Developer menyelesaikannya.';
+  }
+
   if (normalizedCode === 'FORBIDDEN' || status === 403) {
     return 'Anda tidak memiliki izin untuk melakukan tindakan ini.';
   }
@@ -242,6 +253,9 @@ async function sendRequest<T>(
       const errorData = await response.json();
       if (errorData.error?.code) {
         errorCode = errorData.error.code;
+      } else if (typeof errorData.code === 'string') {
+        // RFC 9457 problem details (`sendProblemDetails`) carry `code` at the top level.
+        errorCode = errorData.code;
       }
 
       if (errorData.detail) {

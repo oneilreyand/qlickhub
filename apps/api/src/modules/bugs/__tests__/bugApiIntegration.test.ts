@@ -1,6 +1,9 @@
 import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 import type { Server } from 'node:http';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
@@ -29,12 +32,14 @@ import {
   TestRunModel,
   UserModel,
   NotificationOutboxModel,
+  NotificationModel,
   WorkspaceMemberModel,
   WorkspaceModel,
 } from '../../../db/models/index.js';
 import { accessTokenCookieName, signToken } from '../../auth/jwt.js';
 import { sessionManager } from '../../auth/sessionManager.js';
 import { taskService } from '../../tasks/taskService.js';
+import { reliableNotificationOutboxService } from '../../notifications/reliableNotificationOutboxService.js';
 
 describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', () => {
   let server: Server;
@@ -350,6 +355,66 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     assert.strictEqual(persisted?.assigneeId, assignedDev.id);
     assert.strictEqual(unchangedFeature?.reviewNotes, null);
     assert.strictEqual(await BugActivityModel.count({ where: { bugId } }), 2);
+
+    // E2E-SDLC-FLOW P6: the assigned Developer's notification carries the Bug id end to end.
+    // Delivery is asynchronous (outbox); wait for the row the request already queued.
+    let persistedNotification: NotificationModel | null = null;
+    for (let attempt = 0; attempt < 30 && !persistedNotification; attempt += 1) {
+      await reliableNotificationOutboxService.dispatchDue(50);
+      persistedNotification = await NotificationModel.findOne({
+        where: { userId: assignedDev.id, workspaceId: workspaceA.id, bugId },
+      });
+      if (!persistedNotification) await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    assert.ok(persistedNotification, 'notification row stores bug_id');
+    const listed = await fetch(`${baseUrl}/notifications?workspaceId=${workspaceA.id}`, {
+      headers: { Cookie: assignedDevCookie },
+    });
+    assert.strictEqual(listed.status, 200);
+    const listedBody = (await listed.json()) as {
+      data: { notifications: Array<{ id: string; bugId?: string | null; type: string }> };
+    };
+    assert.strictEqual(
+      listedBody.data.notifications.find((item) => item.id === persistedNotification!.id)?.bugId,
+      bugId,
+    );
+  });
+
+  test('migration backfill links an older Bug notification from its outbox payload (E2E-SDLC-FLOW P6)', async () => {
+    const migrationFile = '20261105000096-add-notification-bug-id.cjs';
+    const migrationPath = [
+      path.resolve(process.cwd(), 'src/db/migrations', migrationFile),
+      path.resolve(process.cwd(), 'apps/api/src/db/migrations', migrationFile),
+    ].find((candidate) => fs.existsSync(candidate));
+    assert.ok(migrationPath, 'migration file found');
+    const { BACKFILL_SQL } = createRequire(import.meta.url)(migrationPath!) as {
+      BACKFILL_SQL: string;
+    };
+    const linked = await NotificationModel.findOne({
+      where: { userId: assignedDev.id, workspaceId: workspaceA.id, bugId },
+    });
+    assert.ok(linked);
+    // Simulate a notification delivered before the column existed.
+    await linked!.update({ bugId: null });
+    await sequelize.query(BACKFILL_SQL);
+    await linked!.reload();
+    assert.strictEqual(linked!.bugId, bugId);
+  });
+
+  test('PostgreSQL keeps a notification Bug link inside its Workspace (E2E-SDLC-FLOW P6)', async () => {
+    const foreignBug = await BugModel.findOne({ where: { workspaceId: workspaceA.id } });
+    assert.ok(foreignBug);
+    await assert.rejects(
+      NotificationModel.create({
+        userId: outsider.id,
+        workspaceId: workspaceB.id,
+        bugId: foreignBug!.id,
+        type: 'bug_created',
+        title: 'Lintas workspace',
+        message: 'Tidak boleh tersimpan',
+      }),
+      /fk_notifications_bug_workspace/,
+    );
   });
 
   test('keeps Product Owner read-only and Developer access assignment-scoped', async () => {
@@ -1094,6 +1159,48 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     };
     assert.strictEqual(repeatedRetest.retestRun.reused, true);
     assert.strictEqual(repeatedRetest.retestRun.testRun.id, startedRetest.retestRun.testRun.id);
+
+    // E2E-SDLC-FLOW P3: recording the retest Result also records its Retest Attempt.
+    const retestRunRow = await TestRunModel.findByPk(startedRetest.retestRun.testRun.id);
+    assert.ok(retestRunRow);
+    const recordResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${retestRunRow!.testCaseId}/runs/${retestRunRow!.id}/results`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({
+          status: 'failed',
+          actualResult: 'Checkout mapping still wrong after the repair.',
+          evidenceAttachmentIds: [],
+          evidenceLinks: [{ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', label: 'Retest' }],
+        }),
+      },
+    );
+    const recordText = await recordResponse.text();
+    assert.strictEqual(recordResponse.status, 201, recordText);
+    const recordedResultId = (JSON.parse(recordText) as { testRun: { result: { id: string } } })
+      .testRun.result.id;
+    const atomicAttempt = await BugRetestAttemptModel.findOne({
+      where: { workspaceId: workspaceA.id, bugId: contextualBugId },
+    });
+    assert.strictEqual(atomicAttempt?.testResultId, recordedResultId);
+    assert.strictEqual(atomicAttempt?.outcome, 'reopened');
+    assert.strictEqual((await BugModel.findByPk(contextualBugId))?.status, 'reopened');
+
+    // The explicit endpoint stays idempotent for the same Result.
+    const finalizeAgain = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${contextualBugId}/retest-attempts`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ testResultId: recordedResultId }),
+      },
+    );
+    assert.strictEqual(finalizeAgain.status, 201);
+    assert.strictEqual(
+      ((await finalizeAgain.json()) as { retestAttempt: { id: string } }).retestAttempt.id,
+      atomicAttempt?.id,
+    );
   });
 
   test('QA reopens a verified Bug with a required reason that the assigned Developer can read', async () => {

@@ -39,7 +39,8 @@ test(
   () => {
     const file = 'apps/api/src/modules/testManagement/testManagementRoutes.ts';
     const extracted = data.endpoints.filter((endpoint) => endpoint.file === file);
-    assert.equal(extracted.length, 26);
+    // 27 since E2E-SDLC-FLOW added GET …/tasks/:taskId/developer-readiness.
+    assert.equal(extracted.length, 27);
     assert.equal(extracted.length, literalRouteCount(file));
     assert.ok(
       extracted.every((endpoint) => endpoint.path.startsWith('/v1/workspaces/:workspaceId/')),

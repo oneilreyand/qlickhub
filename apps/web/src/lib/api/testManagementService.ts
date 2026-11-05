@@ -22,6 +22,7 @@ import type {
   TestCaseVersionAcceptanceCriterionMapping,
   QaTestCycle,
   QaWorkflowSummary,
+  DeveloperReadiness,
   UpdateTestCaseInput,
 } from '@qlick/contracts';
 import { apiClient } from './apiClient';
@@ -42,6 +43,17 @@ export const testManagementService = {
       `/workspaces/${workspaceId}/tasks/${qaSubtaskId}/qa-workflow-summary`,
     );
     return response.summary;
+  },
+
+  /** E2E-SDLC-FLOW P3 (ADR-041): Developer readiness for a QA subtask, computed by the API. */
+  async getDeveloperReadiness(
+    workspaceId: string,
+    qaSubtaskId: string,
+  ): Promise<DeveloperReadiness> {
+    const response = await apiClient<{ readiness: DeveloperReadiness }>(
+      `/workspaces/${workspaceId}/tasks/${qaSubtaskId}/developer-readiness`,
+    );
+    return response.readiness;
   },
 
   async listTestCases(workspaceId: string, query?: ListTestCasesQuery): Promise<TestCase[]> {

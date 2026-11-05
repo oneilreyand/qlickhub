@@ -24,17 +24,19 @@ async function login(page: Page, email: string) {
   await expect(page.getByRole('heading', { name: 'Tugas Saya' })).toBeVisible({ timeout: 30_000 });
 }
 
-test('A: Tugas Saya QA shows one ready-to-test card per Feature and opens the QA work page', async ({
+test('A: Tugas Saya QA shows one card per own QA subtask with Developer readiness and opens it', async ({
   page,
 }) => {
   await login(page, pageUsers.qa.email);
 
-  // The Feature has two Developer subtasks in review: one card, not two (AC-3.16).
-  await expect(page.getByText('2 dari 3 subtask Developer siap diuji.')).toHaveCount(1);
-  await expect(page.getByText(pageTitles.prepareFeature, { exact: true })).toHaveCount(1);
+  // E2E-SDLC-FLOW P2: the card is the QA subtask itself, with the readiness reason (ADR-041).
+  await expect(
+    page.getByText('Menunggu Developer: 2 dari 3 subtask Developer siap diuji.'),
+  ).toHaveCount(1);
+  await expect(page.getByText(pageTitles.prepareQaSubtask, { exact: true })).toHaveCount(1);
 
   const card = page
-    .getByText(pageTitles.prepareFeature, { exact: true })
+    .getByText(pageTitles.prepareQaSubtask, { exact: true })
     .locator('xpath=ancestor::*[.//button[contains(., "Buka pekerjaan")]][1]');
   await card.getByRole('button', { name: /Buka pekerjaan/ }).click();
 
@@ -50,7 +52,7 @@ test('B: Tahap Siapkan shows the waiting banner, locks Lulus/Gagal, and activate
 
   const banner = page.getByRole('region', { name: 'Tahap Siapkan Test Case' });
   await expect(banner).toBeVisible();
-  await expect(banner).toContainText('Menunggu Developer: 2 dari 3 subtask siap diuji');
+  await expect(banner).toContainText('Menunggu Developer: 2 dari 3 subtask Developer siap diuji');
 
   // Preparing is still allowed: add and activate Test Cases.
   await expect(page.getByRole('button', { name: '+ Test Case' }).first()).toBeEnabled();

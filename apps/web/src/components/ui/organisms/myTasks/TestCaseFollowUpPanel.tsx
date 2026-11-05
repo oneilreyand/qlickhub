@@ -192,7 +192,8 @@ export const TestCaseFollowUpPanel: React.FC<TestCaseFollowUpPanelProps> = ({
           </div>
           {developers.length === 0 && (
             <p className="text-xs text-stone-600 dark:text-stone-400">
-              Belum ada Developer yang ditugaskan pada Requirement ini.
+              Belum ada Developer di Workspace ini. Minta Owner atau Admin menambahkan anggota
+              dengan peran Developer.
             </p>
           )}
           <Textarea

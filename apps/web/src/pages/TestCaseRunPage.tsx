@@ -25,12 +25,16 @@ import {
 } from '../components/ui/organisms/myTasks/TestCaseFollowUpPanel';
 import { bugService } from '../lib/api/bugService';
 import { taskService } from '../lib/api/taskService';
-import { useDeveloperReadiness } from '../lib/hooks/useDeveloperReadiness';
+import {
+  describeDeveloperReadiness,
+  useDeveloperReadiness,
+} from '../lib/hooks/useDeveloperReadiness';
 import { startQaSubtaskIfTodo } from '../lib/utils/startQaSubtask';
 import { traceabilityService } from '../lib/api/traceabilityService';
 import { testManagementService } from '../lib/api/testManagementService';
 import { getTestCaseRunPath } from '../lib/utils/taskRoutes';
-import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
+import { selectCurrentUserId } from '../store/authSlice';
+import { selectActiveWorkspaceRole } from '../store/workspaceSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
 
@@ -70,7 +74,7 @@ export const TestCaseRunPage: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const currentUserId = useAppSelector(selectCurrentUserId);
-  const userRole = useAppSelector(selectCurrentUserRole) || '';
+  const userRole = useAppSelector(selectActiveWorkspaceRole) || '';
   const { activeWorkspaceId, isInitialized, members } = useAppSelector((state) => state.workspace);
   const isReady = isInitialized && Boolean(activeWorkspaceId);
 
@@ -182,7 +186,7 @@ export const TestCaseRunPage: React.FC = () => {
     return result && (result.status === 'failed' || result.status === 'blocked') ? result.id : null;
   }, [data, activeCycle]);
   const followUpFeatureId = data?.subtask.parentTaskId ?? null;
-  const readiness = useDeveloperReadiness(activeWorkspaceId ?? undefined, followUpFeatureId);
+  const readiness = useDeveloperReadiness(activeWorkspaceId ?? undefined, data?.subtask.id);
 
   useEffect(() => {
     if (!activeWorkspaceId || !failedResultId || !followUpFeatureId) {
@@ -288,12 +292,10 @@ export const TestCaseRunPage: React.FC = () => {
       });
       await startQaSubtaskIfTodo(ws, data.subtask, currentUserId);
       let message = 'Hasil pengujian tersimpan dan terkunci';
+      // The API records the Retest Attempt in the same write as the Result (E2E-SDLC-FLOW P3).
       if (run.retestBugId && recorded.result) {
-        const attempt = await bugService.createRetestAttempt(ws, run.retestBugId, {
-          testResultId: recorded.result.id,
-        });
         message =
-          attempt.outcome === 'verified'
+          recorded.result.status === 'passed'
             ? 'Retest lulus: Bug terverifikasi'
             : 'Retest tidak lulus: Bug dibuka kembali untuk Developer';
       }
@@ -425,10 +427,25 @@ export const TestCaseRunPage: React.FC = () => {
       }
     }
   }
+  // E2E-SDLC-FLOW P3: the Bug goes to a Developer of this Requirement; if none is assigned yet,
+  // QA may pick any Developer of the Workspace (the API accepts any `dev` member).
+  const bugDevelopers: Array<{ userId: string; name: string }> = [];
+  for (const item of followUpDevelopers) {
+    const userId = item.assigneeId as string;
+    if (!bugDevelopers.some((developer) => developer.userId === userId)) {
+      bugDevelopers.push({ userId, name: memberName(userId) });
+    }
+  }
+  if (bugDevelopers.length === 0) {
+    for (const member of members) {
+      if ((member.role || '').toLowerCase() !== 'dev') continue;
+      bugDevelopers.push({ userId: member.userId, name: memberName(member.userId) });
+    }
+  }
 
   let blockedReason: string | null = null;
   if (readiness && !readiness.isReadyToTest && readiness.total > 0) {
-    blockedReason = `Tahap Siapkan Test Case. Menunggu Developer: ${readiness.ready} dari ${readiness.total} subtask siap diuji. Hasil uji dapat disimpan setelah semua subtask Developer siap diuji.`;
+    blockedReason = `Tahap Siapkan Test Case. ${describeDeveloperReadiness(readiness)} Hasil uji dapat disimpan setelah subtask Developer itu dikirim ke QA.`;
   } else if (data.testCase.status !== 'active') {
     blockedReason =
       'Test Case ini belum aktif, jadi belum dapat dijalankan. Aktifkan dulu atau tunggu review Product Owner.';
@@ -482,10 +499,7 @@ export const TestCaseRunPage: React.FC = () => {
               status: currentRun?.result?.status ?? 'failed',
               actualResult: currentRun?.result?.actualResult ?? null,
             }}
-            developers={followUpDevelopers.map((item) => ({
-              userId: item.assigneeId as string,
-              name: memberName(item.assigneeId as string),
-            }))}
+            developers={bugDevelopers}
             reviewTargets={followUpDevelopers
               .filter((item) => item.status === 'in_review')
               .map((item) => ({

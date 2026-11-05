@@ -13,7 +13,8 @@ import { startQaSubtaskIfTodo } from '../lib/utils/startQaSubtask';
 import { testManagementService } from '../lib/api/testManagementService';
 import { traceabilityService } from '../lib/api/traceabilityService';
 import { getTestCaseRunPath } from '../lib/utils/taskRoutes';
-import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
+import { selectCurrentUserId } from '../store/authSlice';
+import { selectActiveWorkspaceRole } from '../store/workspaceSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
 
@@ -40,7 +41,7 @@ export const TestCaseNewPage: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const currentUserId = useAppSelector(selectCurrentUserId);
-  const userRole = useAppSelector(selectCurrentUserRole) || '';
+  const userRole = useAppSelector(selectActiveWorkspaceRole) || '';
   const { activeWorkspaceId, isInitialized } = useAppSelector((state) => state.workspace);
   const isReady = isInitialized && Boolean(activeWorkspaceId);
 

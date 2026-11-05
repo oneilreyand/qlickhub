@@ -180,6 +180,7 @@ const uiSlice = createSlice({
         taskId?: string,
         actorName?: string,
         workspaceId?: string,
+        bugId?: string,
       ) => ({
         payload: {
           id: createId(),
@@ -189,6 +190,7 @@ const uiSlice = createSlice({
           message,
           type,
           taskId,
+          bugId,
           actorName,
           createdAt: new Date().toISOString(),
           isRead: false,

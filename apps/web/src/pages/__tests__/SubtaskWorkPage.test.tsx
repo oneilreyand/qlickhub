@@ -1,3 +1,4 @@
+import type { WorkspaceItem } from '../../lib/api/workspaceService';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -81,7 +82,8 @@ function renderPage(role = 'dev') {
         error: null,
       },
       workspace: {
-        workspaces: [],
+        // The page authorises by the active Workspace role (E2E-SDLC-FLOW P1).
+        workspaces: [{ id: workspaceId, name: 'Workspace', role } as unknown as WorkspaceItem],
         activeWorkspaceId: workspaceId,
         members: [],
         isLoading: false,

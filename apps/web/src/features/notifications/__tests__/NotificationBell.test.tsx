@@ -180,4 +180,65 @@ describe('NotificationBell Feature Component', () => {
       '/projects/ws-1/tasks/00000000-0000-4000-8000-000000000042|/reports?range=week',
     );
   });
+
+  it('opens a Bug notification on the Bug work page, not the Feature (E2E-SDLC-FLOW P6)', async () => {
+    const user = userEvent.setup();
+    const store = configureStore({
+      reducer: {
+        auth: authReducer,
+        ui: uiReducer,
+        workspace: workspaceReducer,
+        folder: folderReducer,
+        task: taskReducer,
+      },
+      preloadedState: {
+        ui: {
+          error: null,
+          notifications: [],
+          inAppNotifications: [
+            {
+              ...sampleNotification,
+              title: 'Bug Baru Ditugaskan',
+              type: 'bug_created' as const,
+              taskId: '00000000-0000-4000-8000-000000000042',
+              bugId: '00000000-0000-4000-8000-000000000077',
+            },
+          ],
+          unreadNotificationCount: 1,
+          isNotificationsLoading: false,
+          pendingOperations: [],
+          mobileSidebarOpen: false,
+        },
+      },
+    });
+    const Probe = () => {
+      const location = useLocation();
+      return (
+        <p data-testid="destination">
+          {location.pathname}|{(location.state as { returnTo?: string } | null)?.returnTo}
+        </p>
+      );
+    };
+
+    render(
+      <Provider store={store}>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/my-tasks']}>
+            <NotificationBell />
+            <Routes>
+              <Route path="/work/bugs/:bugId" element={<Probe />} />
+              <Route path="*" element={null} />
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </Provider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Notifikasi' }));
+    await user.click(screen.getByText('Bug Baru Ditugaskan'));
+
+    expect(screen.getByTestId('destination')).toHaveTextContent(
+      '/work/bugs/00000000-0000-4000-8000-000000000077|/my-tasks',
+    );
+  });
 });
