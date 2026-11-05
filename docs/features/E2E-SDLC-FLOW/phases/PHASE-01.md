@@ -47,7 +47,7 @@ Hasil lengkap di [testing.md](../testing.md) §2.
 
 ## 5. Hasil
 
-- PR: dibuat Owner dari branch `feat/e2e-sdlc-flow` — Tier 2 — file Tier 2 yang cocok: migrasi
+- PR: [#105](https://github.com/oneilreyand/qlickhub/pull/105), di-merge Owner 2026-11-05 (`f521444`) — Tier 2 — file Tier 2 yang cocok: migrasi
   `apps/api/src/db/migrations/**`, `docs/adr/**`, `docs/POLICY_REGISTRY.md`,
   `docs/2_WORKFLOW_AND_ROLES.md`, `quality/doc-baseline.json` (bila berubah).
 - Lanjut ke [testing.md](../testing.md) untuk tahap 5.

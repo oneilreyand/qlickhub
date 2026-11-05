@@ -1,6 +1,6 @@
 # E2E-SDLC-FLOW — Tahap 5: Test & Review
 
-**Status:** Berjalan
+**Status:** Accepted with gaps
 **Gerbang:** G5 — verifier independen atau CI yang mencakup seluruh AC
 **Applicable Policy IDs:** AI-003, AI-004, AI-008, AI-010, TEST-001, DOC-005, QA-010
 
@@ -53,8 +53,8 @@ UI saja di desktop. Layar lain diuji di desktop dan mobile oleh suite yang sama.
 
 ## 5. Hasil verifier
 
-| Phase | Verifier (bukan pelaksana) | Bukti primer yang dicek ulang | Hasil    | AC terdampak / gap                          |
-| ----- | -------------------------- | ----------------------------- | -------- | ------------------------------------------- |
-| P1–P6 | CI PR (menunggu)           | Diff, suite API/web/E2E       | Berjalan | AC-9 dan AC-10 di Production setelah deploy |
+| Phase | Verifier (bukan pelaksana)                                                             | Bukti primer yang dicek ulang                       | Hasil              | AC terdampak / gap                                                                                 |
+| ----- | -------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------- |
+| P1–P6 | CI PR #105 (`verify` hijau setelah migrasi Production; syarat merge) dan Owner (merge) | Diff, suite API/web/E2E, gerbang migrasi Production | Accepted with gaps | AC-9 dan AC-10 belum diuji manual di Production (E4); AC-8 terbukti di Production (5 kode diganti) |
 
 Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).

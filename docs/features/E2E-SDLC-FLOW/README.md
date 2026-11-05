@@ -1,6 +1,6 @@
 # E2E-SDLC-FLOW — Feature Overview
 
-**Status:** Draft
+**Status:** Active
 **Owner:** reyand (Owner)
 **Last reviewed:** 2026-11-05
 **Applicable Policy IDs:** DOC-005, SDLC-001, SDLC-002, QA-004, QA-008, QA-010, RELEASE-001, TEST-001
@@ -14,16 +14,16 @@
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status               | Gerbang         | Disetujui oleh / tanggal  | Catatan                                        |
-| ----------------- | -------------------------------------------------------------------------------------- | -------------------- | --------------- | ------------------------- | ---------------------------------------------- |
-| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui            | G0              | reyand (Owner) 2026-11-05 | Audit Production + rencana perbaikan           |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui            | G1              | reyand (Owner) 2026-11-05 | ADR di solution.md; K1–K5 diputuskan           |
-| 2 PRD             | [product.md](product.md)                                                               | Disetujui            | G2              | reyand (Owner) 2026-11-05 | G0–G2 disetujui sekaligus dari rencana         |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui            | G3              | reyand (Owner) 2026-11-05 | P1–P5 dalam satu putaran atas permintaan Owner |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui            | bagian G2       | reyand (Owner) 2026-11-05 |                                                |
-| 4 Build           | [phases/](phases/)                                                                     | Selesai              | dalam window G3 | reyand (Owner) 2026-11-05 | Kandidat teruji                                |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Menunggu persetujuan | G5              | —                         | Verifier: CI PR + ulang manual Production      |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai          | G6              | —                         | Migrasi diterapkan ke Production sebelum merge |
+| Tahap             | Dokumen                                                                                | Status    | Gerbang         | Disetujui oleh / tanggal               | Catatan                                                      |
+| ----------------- | -------------------------------------------------------------------------------------- | --------- | --------------- | -------------------------------------- | ------------------------------------------------------------ |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui | G0              | reyand (Owner) 2026-11-05              | Audit Production + rencana perbaikan                         |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui | G1              | reyand (Owner) 2026-11-05              | ADR di solution.md; K1–K5 diputuskan                         |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui | G2              | reyand (Owner) 2026-11-05              | G0–G2 disetujui sekaligus dari rencana                       |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui | G3              | reyand (Owner) 2026-11-05              | P1–P5 dalam satu putaran atas permintaan Owner               |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui | bagian G2       | reyand (Owner) 2026-11-05              |                                                              |
+| 4 Build           | [phases/](phases/)                                                                     | Selesai   | dalam window G3 | reyand (Owner) 2026-11-05              | PR #105 di-merge (`f521444`)                                 |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Selesai   | G5              | CI PR #105 + reyand (Owner) 2026-11-05 | Accepted with gaps: uji manual Production (E4) menyusul      |
+| 6 Release & Close | [release.md](release.md)                                                               | Draft     | G6              | —                                      | Released 2026-11-05; menunggu uji manual dan keputusan rilis |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 (Ini terpisah dari **Status** kartu di atas, yang tetap `Draft` / `Active` / `Superseded` / `Archived`.)

@@ -1,6 +1,6 @@
 # E2E-SDLC-FLOW — Tahap 6: Release & Close
 
-**Status:** Belum mulai
+**Status:** Released
 **Gerbang:** G6 — keputusan rilis oleh PO; label `owner-approved` oleh Owner untuk Tier 2
 **Applicable Policy IDs:** AI-013, AI-020, RELEASE-001, RELEASE-002, DOC-003, QA-010
 
@@ -15,26 +15,33 @@ Urutan wajib, karena merge langsung men-deploy Production:
    kolom `notifications.bug_id` ada.
 3. Beri label `owner-approved`, merge, tunggu deploy selesai.
 
-| Phase | PR           | Tier | File Tier 2                             | Merge commit | Memicu deploy Production? | Deployment ID / waktu |
-| ----- | ------------ | ---- | --------------------------------------- | ------------ | ------------------------- | --------------------- |
-| P1–P6 | belum dibuat | 2    | lihat [PHASE-01](phases/PHASE-01.md) §5 | —            | ya                        | —                     |
+Pelaksanaan 2026-11-05: `npm run db:migrate:prod` tidak dipakai (connection string belum tersedia
+di Terminal). Owner menerapkan 095 dan 096 lewat Supabase SQL Editor dengan satu script transaksi
+("Run and enable RLS") yang skemanya diuji identik dengan migrasi kanonis. Percobaan pertama ditolak
+editor karena tanda `$` di pola regex; versi kedua memakai `\Z` dan berhasil. Setelah itu CI
+`verify` di-re-run dan PR di-merge.
+
+| Phase | PR                                                       | Tier | File Tier 2                             | Merge commit                     | Memicu deploy Production? | Deployment ID / waktu                                             |
+| ----- | -------------------------------------------------------- | ---- | --------------------------------------- | -------------------------------- | ------------------------- | ----------------------------------------------------------------- |
+| P1–P6 | [#105](https://github.com/oneilreyand/qlickhub/pull/105) | 2    | lihat [PHASE-01](phases/PHASE-01.md) §5 | `f521444` (2026-11-05 15:54 WIB) | ya                        | Vercel otomatis dari `f521444`; health dicek 2026-11-05 08:55 UTC |
 
 ## 2. Verifikasi di environment target
 
-| AC    | Environment | Observasi / perintah                                                                                                                       | Level | Hasil |
-| ----- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----- | ----- |
-| AC-8  | Production  | Requirement lama tampil `REQ-001` dst.; `SELECT count(*) FROM requirement_code_renames`                                                    | E4    | —     |
-| AC-10 | Production  | Developer mengklik notifikasi Bug di lonceng → halaman Bug; `SELECT count(*) FROM notifications WHERE bug_id IS NOT NULL` setelah backfill | E4    | —     |
-| AC-9  | Production  | Ulangi skenario E2E manual dengan satu Feature uji, rekam bukti                                                                            | E4    | —     |
+| AC    | Environment | Observasi / perintah                                                                                                             | Level | Hasil                                                       |
+| ----- | ----------- | -------------------------------------------------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------- |
+| —     | Production  | `GET /v1/health` → `status: ok`, database `connected`, `migrations.latest` = `20261105000096-add-notification-bug-id.cjs` (80)   | E4    | Passed                                                      |
+| AC-8  | Production  | Supabase SQL Editor: `SELECT count(*) FROM requirement_code_renames` = 5; `SequelizeMeta` sampai `20261105000096`                | E4    | Passed (data); tampilan `REQ-00x` di UI menyusul uji manual |
+| AC-10 | Production  | Backfill `bug_notifications_linked` = 0 (belum ada notifikasi Bug lama yang bisa ditautkan); klik lonceng → halaman Bug          | E4    | Menunggu uji manual                                         |
+| AC-9  | Production  | Bundle Production memuat UI baru (chunk `SubtaskWorkPage` berisi "Selesaikan Eksekusi QA"); skenario E2E manual satu Feature uji | E4    | Menunggu uji manual                                         |
 
 ## 3. QA sign-off dan keputusan rilis
 
-| Item               | Isi                                                                                                |
-| ------------------ | -------------------------------------------------------------------------------------------------- |
-| QA sign-off        | Belum                                                                                              |
-| Keputusan rilis PO | Belum                                                                                              |
-| Gap yang diterima  | Belum ada                                                                                          |
-| Rollback plan      | Revert PR; bila perlu `down` migrasi `20261105000096` lalu `20261105000095` (kode lama dipulihkan) |
+| Item               | Isi                                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| QA sign-off        | Belum                                                                                                       |
+| Keputusan rilis PO | Belum                                                                                                       |
+| Gap yang diterima  | Uji manual Production (AC-9, AC-10) dilakukan setelah rilis; PO "Fitur Pendaftaran Pasien" menyetujui Brief |
+| Rollback plan      | Revert PR; bila perlu `down` migrasi `20261105000096` lalu `20261105000095` (kode lama dipulihkan)          |
 
 ## 4. Metrik sukses (dari problem.md)
 
@@ -46,9 +53,9 @@ Urutan wajib, karena merge langsung men-deploy Production:
 
 ## 5. Checklist penutupan
 
-- [ ] Report di `docs/reports/` memakai `AGENT_REPORT_TEMPLATE.md`
-- [ ] Stage Tracker di [README.md](README.md) diperbarui
-- [ ] `docs/features/FEATURE_CATALOG.md` diperbarui
-- [ ] SSoT/ADR terdampak sudah sesuai implementasi
+- [x] Report di `docs/reports/` memakai `AGENT_REPORT_TEMPLATE.md` ([laporan rilis](../../reports/E2E_SDLC_FLOW_RELEASE_2026-11-05.md))
+- [x] Stage Tracker di [README.md](README.md) diperbarui
+- [x] `docs/features/FEATURE_CATALOG.md` diperbarui
+- [x] SSoT/ADR terdampak sudah sesuai implementasi (ADR-041, Workflow §5–§6, `QA-010`)
 - [ ] `TODO.md` → Done dan dipindah ke arsip
 - [ ] Follow-up/Bug tertaut, tidak dibiarkan di catatan bebas
