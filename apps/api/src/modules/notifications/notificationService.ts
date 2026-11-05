@@ -13,6 +13,7 @@ export interface CreateNotificationParams {
   userId: string;
   workspaceId: string;
   taskId?: string | null;
+  bugId?: string | null;
   actorId?: string | null;
   idempotencyKey?: string | null;
   type: NotificationType;
@@ -31,6 +32,7 @@ function formatNotification(record: NotificationModel): InAppNotification {
     userId: record.userId,
     workspaceId: record.workspaceId,
     taskId: record.taskId || undefined,
+    bugId: record.bugId || undefined,
     actorId: record.actorId || undefined,
     actorName,
     type: record.type,
@@ -82,11 +84,13 @@ export class NotificationService {
   async persistNotification(
     params: Omit<CreateNotificationParams, 'sendFcm'>,
   ): Promise<{ record: NotificationModel; created: boolean }> {
-    const { userId, workspaceId, taskId, actorId, idempotencyKey, type, title, message } = params;
+    const { userId, workspaceId, taskId, bugId, actorId, idempotencyKey, type, title, message } =
+      params;
     const values = {
       userId,
       workspaceId,
       taskId: taskId || null,
+      bugId: bugId || null,
       actorId: actorId || null,
       idempotencyKey: idempotencyKey || null,
       type,
@@ -118,6 +122,7 @@ export class NotificationService {
       userId,
       workspaceId,
       taskId,
+      bugId,
       actorId,
       idempotencyKey,
       type,
@@ -130,6 +135,7 @@ export class NotificationService {
       userId,
       workspaceId,
       taskId,
+      bugId,
       actorId,
       idempotencyKey,
       type,
@@ -153,6 +159,7 @@ export class NotificationService {
           data: {
             type,
             taskId: taskId || '',
+            bugId: bugId || '',
             workspaceId,
             notificationId: record.id,
           },

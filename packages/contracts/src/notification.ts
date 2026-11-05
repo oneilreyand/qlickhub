@@ -48,6 +48,8 @@ export const InAppNotificationSchema = z.object({
   userId: z.string().uuid(),
   workspaceId: z.string().uuid(),
   taskId: z.string().uuid().nullable().optional(),
+  /** E2E-SDLC-FLOW P6: set for Bug notifications; the client opens the Bug page. */
+  bugId: z.string().uuid().nullable().optional(),
   actorId: z.string().uuid().nullable().optional(),
   actorName: z.string().nullable().optional(),
   type: NotificationTypeSchema,

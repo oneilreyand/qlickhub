@@ -13,11 +13,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:DELETE /v1/notifications",
-      "file": "apps/api/src/modules/notifications/notificationRoutes.ts:39"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:DELETE /v1/notifications/:id",
       "file": "apps/api/src/modules/notifications/notificationRoutes.ts:49"
     },
@@ -80,11 +75,6 @@
       "rule": "DS-R01",
       "key": "endpoint:GET /v1/leader/workspaces",
       "file": "apps/api/src/modules/leader/leaderRoutes.ts:14"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:GET /v1/notifications",
-      "file": "apps/api/src/modules/notifications/notificationRoutes.ts:34"
     },
     {
       "rule": "DS-R01",

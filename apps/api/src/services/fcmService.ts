@@ -168,9 +168,11 @@ export class FcmService {
             badge: '/favicon.svg',
           },
           fcmOptions: {
-            link: payload.data?.taskId
-              ? `/work?tab=tasks&taskId=${payload.data.taskId}`
-              : '/my-tasks',
+            link: payload.data?.bugId
+              ? `/work/bugs/${payload.data.bugId}`
+              : payload.data?.taskId
+                ? `/work?tab=tasks&taskId=${payload.data.taskId}`
+                : '/my-tasks',
           },
         },
       };

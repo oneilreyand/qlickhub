@@ -53,6 +53,10 @@ nor complete its QA subtask from the QA work page; and the PO had no Release Dec
    under a transaction-scoped advisory lock. Migration `20261105000095` renames existing
    `REQ-<uuid>` codes and keeps the old codes in `requirement_code_renames`; immutable
    `requirement_findings.requirement_code` snapshots keep their original label.
+10. **Bug notifications open the Bug (K6).** `notifications.bug_id` (FK inside the Workspace,
+    cleared when the Bug is deleted) carries the Bug id that every Bug event already stores in the
+    outbox payload; the bell and push open `/work/bugs/:id`. Migration `20261105000096` backfills
+    older Bug notifications from the outbox.
 
 ## Consequences
 
@@ -60,8 +64,8 @@ nor complete its QA subtask from the QA work page; and the PO had no Release Dec
   API, not the browser, enforces it.
 - Completing the QA subtask still requires every Developer subtask of the Feature to be done (the
   existing completion rule); the QA page explains which work is left.
-- The migration is Tier 2 data change and must be applied to Production before merge
+- The migrations are a Tier 2 data change and must be applied to Production before merge
   ([ADR-039](ADR-039-PRODUCTION-MIGRATION-GATE.md)). Rollback: `down` restores old codes from
   `requirement_code_renames`.
-- Known gap: in-app notifications still open the Feature rather than the Bug, because the
-  `notifications` table has no Bug reference; tracked as a follow-up.
+- Two additive migrations (`20261105000095`, `20261105000096`) ship in the same PR and are applied
+  to Production in that order before merge.

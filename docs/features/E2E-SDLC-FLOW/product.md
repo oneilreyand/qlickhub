@@ -14,17 +14,18 @@ buntu, dengan alasan yang terlihat setiap kali sebuah aksi dikunci. Metrik: [pro
 
 ## 2. Requirement dan Acceptance Criteria
 
-| Req ID | Requirement                   | AC ID | Acceptance Criterion (Given / When / Then)                                                                                                                                                         | Role  | Bukti minimum (E-level) |
-| ------ | ----------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ----------------------- |
-| REQ-1  | Aksi mengikuti role Workspace | AC-1  | Given akun global `dev` dengan role Workspace `qa` yang ditugaskan, when membuka halaman kerja QA, then tombol Test Case aktif; non-QA melihat alasan "hanya melihat"                              | QA    | E2 unit + E4 E2E        |
-| REQ-2  | Tugas Saya jujur              | AC-2  | Given QA, when membuka Tugas Saya, then hanya kartu subtask QA miliknya, dengan alasan kesiapan Developer; setiap kartu membuka halaman yang boleh dibuka                                          | QA    | E3 + E4                 |
-| REQ-3  | Gerbang uji di server         | AC-3  | Given subtask Developer untuk Requirement subtask QA belum Review/Selesai, when QA membuat Test Run, then API `409` menyebut subtask itu; tanpa tautan Requirement, seluruh Feature dihitung       | QA    | E3                      |
-| REQ-3  | Retest satu transaksi         | AC-4  | Given run retest kontekstual, when QA mencatat hasil, then Retest Attempt dan status Bug tersimpan dalam penulisan yang sama                                                                       | QA    | E3                      |
-| REQ-3  | Satu siklus terbuka           | AC-5  | Given siklus uji terbuka, when siklus baru dibuat untuk subtask QA yang sama, then siklus lama `superseded`                                                                                        | QA    | E3                      |
-| REQ-3  | Bug ke Developer yang benar   | AC-6  | Given Requirement tanpa Developer, when QA mengirim Bug, then semua anggota `dev` Workspace bisa dipilih; hanya QA subtask asal yang melihat "Mulai retest"                                        | QA    | E2                      |
-| REQ-4  | Keputusan Rilis di Feature    | AC-7  | Given QA Sign-off tercatat, when PO membuka kartu "Catat Keputusan Rilis", then panel rilis di halaman Feature terbuka dan keputusan tersimpan; QA tidak melihat panel                             | PO    | E2 + E4                 |
-| REQ-5  | Kode Requirement pendek       | AC-8  | Given Apply, then Requirement bernama `REQ-001`, … per Workspace tanpa bentrok saat Apply paralel; kode UUID lama diganti lewat migrasi                                                            | PO    | E3                      |
-| REQ-6  | Seluruh alur lewat UI         | AC-9  | Given hanya akun dan Workspace, when PO, Developer, dan QA menjalankan alur, then ide → Apply → Brief disetujui → uji → Bug → retest gagal → retest lulus → selesai QA → sign-off → rilis berhasil | Semua | E4 Playwright           |
+| Req ID | Requirement                   | AC ID | Acceptance Criterion (Given / When / Then)                                                                                                                                                                                                                           | Role          | Bukti minimum (E-level) |
+| ------ | ----------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ----------------------- |
+| REQ-1  | Aksi mengikuti role Workspace | AC-1  | Given akun global `dev` dengan role Workspace `qa` yang ditugaskan, when membuka halaman kerja QA, then tombol Test Case aktif; non-QA melihat alasan "hanya melihat"                                                                                                | QA            | E2 unit + E4 E2E        |
+| REQ-2  | Tugas Saya jujur              | AC-2  | Given QA, when membuka Tugas Saya, then hanya kartu subtask QA miliknya, dengan alasan kesiapan Developer; setiap kartu membuka halaman yang boleh dibuka                                                                                                            | QA            | E3 + E4                 |
+| REQ-3  | Gerbang uji di server         | AC-3  | Given subtask Developer untuk Requirement subtask QA belum Review/Selesai, when QA membuat Test Run, then API `409` menyebut subtask itu; tanpa tautan Requirement, seluruh Feature dihitung                                                                         | QA            | E3                      |
+| REQ-3  | Retest satu transaksi         | AC-4  | Given run retest kontekstual, when QA mencatat hasil, then Retest Attempt dan status Bug tersimpan dalam penulisan yang sama                                                                                                                                         | QA            | E3                      |
+| REQ-3  | Satu siklus terbuka           | AC-5  | Given siklus uji terbuka, when siklus baru dibuat untuk subtask QA yang sama, then siklus lama `superseded`                                                                                                                                                          | QA            | E3                      |
+| REQ-3  | Bug ke Developer yang benar   | AC-6  | Given Requirement tanpa Developer, when QA mengirim Bug, then semua anggota `dev` Workspace bisa dipilih; hanya QA subtask asal yang melihat "Mulai retest"                                                                                                          | QA            | E2                      |
+| REQ-4  | Keputusan Rilis di Feature    | AC-7  | Given QA Sign-off tercatat, when PO membuka kartu "Catat Keputusan Rilis", then panel rilis di halaman Feature terbuka dan keputusan tersimpan; QA tidak melihat panel                                                                                               | PO            | E2 + E4                 |
+| REQ-5  | Kode Requirement pendek       | AC-8  | Given Apply, then Requirement bernama `REQ-001`, … per Workspace tanpa bentrok saat Apply paralel; kode UUID lama diganti lewat migrasi                                                                                                                              | PO            | E3                      |
+| REQ-7  | Notifikasi Bug ke halaman Bug | AC-10 | Given notifikasi Bug (dibuat, perbaikan dikirim, retest, dibuka kembali, status), when penerima mengklik di lonceng atau push, then halaman Bug itu terbuka; notifikasi lama ikut ditautkan dari outbox (K6); Bug dihapus atau notifikasi non-Bug tetap membuka task | Developer, QA | E3 + E4                 |
+| REQ-6  | Seluruh alur lewat UI         | AC-9  | Given hanya akun dan Workspace, when PO, Developer, dan QA menjalankan alur, then ide → Apply → Brief disetujui → uji → Bug → retest gagal → retest lulus → selesai QA → sign-off → rilis berhasil                                                                   | Semua         | E4 Playwright           |
 
 ## 3. User flow
 
@@ -97,13 +98,13 @@ flowchart TD
 
 ## 6. Di luar scope
 
-- Notifikasi in-app yang membuka halaman Bug (butuh kolom Bug di `notifications`).
 - Klaim terbuka QA untuk Feature tanpa subtask QA.
 
 ## 7. Unknown yang tersisa
 
-| Pertanyaan                               | Memengaruhi AC | Status                               |
-| ---------------------------------------- | -------------- | ------------------------------------ |
-| Gerbang per Feature atau per Requirement | AC-3           | Diputuskan: per Requirement (K2)     |
-| Nasib siklus lama                        | AC-5           | Diputuskan: ditandai digantikan (K3) |
-| Kode UUID lama                           | AC-8           | Diputuskan: diganti semua (K4)       |
+| Pertanyaan                               | Memengaruhi AC | Status                                    |
+| ---------------------------------------- | -------------- | ----------------------------------------- |
+| Gerbang per Feature atau per Requirement | AC-3           | Diputuskan: per Requirement (K2)          |
+| Nasib siklus lama                        | AC-5           | Diputuskan: ditandai digantikan (K3)      |
+| Kode UUID lama                           | AC-8           | Diputuskan: diganti semua (K4)            |
+| Notifikasi Bug lama ikut ditautkan       | AC-10          | Diputuskan: ya, backfill dari outbox (K6) |

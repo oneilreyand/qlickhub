@@ -1,6 +1,9 @@
 import assert from 'node:assert';
 import { after, before, describe, test } from 'node:test';
 import type { Server } from 'node:http';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import {
@@ -29,12 +32,14 @@ import {
   TestRunModel,
   UserModel,
   NotificationOutboxModel,
+  NotificationModel,
   WorkspaceMemberModel,
   WorkspaceModel,
 } from '../../../db/models/index.js';
 import { accessTokenCookieName, signToken } from '../../auth/jwt.js';
 import { sessionManager } from '../../auth/sessionManager.js';
 import { taskService } from '../../tasks/taskService.js';
+import { reliableNotificationOutboxService } from '../../notifications/reliableNotificationOutboxService.js';
 
 describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', () => {
   let server: Server;
@@ -350,6 +355,66 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     assert.strictEqual(persisted?.assigneeId, assignedDev.id);
     assert.strictEqual(unchangedFeature?.reviewNotes, null);
     assert.strictEqual(await BugActivityModel.count({ where: { bugId } }), 2);
+
+    // E2E-SDLC-FLOW P6: the assigned Developer's notification carries the Bug id end to end.
+    // Delivery is asynchronous (outbox); wait for the row the request already queued.
+    let persistedNotification: NotificationModel | null = null;
+    for (let attempt = 0; attempt < 30 && !persistedNotification; attempt += 1) {
+      await reliableNotificationOutboxService.dispatchDue(50);
+      persistedNotification = await NotificationModel.findOne({
+        where: { userId: assignedDev.id, workspaceId: workspaceA.id, bugId },
+      });
+      if (!persistedNotification) await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    assert.ok(persistedNotification, 'notification row stores bug_id');
+    const listed = await fetch(`${baseUrl}/notifications?workspaceId=${workspaceA.id}`, {
+      headers: { Cookie: assignedDevCookie },
+    });
+    assert.strictEqual(listed.status, 200);
+    const listedBody = (await listed.json()) as {
+      data: { notifications: Array<{ id: string; bugId?: string | null; type: string }> };
+    };
+    assert.strictEqual(
+      listedBody.data.notifications.find((item) => item.id === persistedNotification!.id)?.bugId,
+      bugId,
+    );
+  });
+
+  test('migration backfill links an older Bug notification from its outbox payload (E2E-SDLC-FLOW P6)', async () => {
+    const migrationFile = '20261105000096-add-notification-bug-id.cjs';
+    const migrationPath = [
+      path.resolve(process.cwd(), 'src/db/migrations', migrationFile),
+      path.resolve(process.cwd(), 'apps/api/src/db/migrations', migrationFile),
+    ].find((candidate) => fs.existsSync(candidate));
+    assert.ok(migrationPath, 'migration file found');
+    const { BACKFILL_SQL } = createRequire(import.meta.url)(migrationPath!) as {
+      BACKFILL_SQL: string;
+    };
+    const linked = await NotificationModel.findOne({
+      where: { userId: assignedDev.id, workspaceId: workspaceA.id, bugId },
+    });
+    assert.ok(linked);
+    // Simulate a notification delivered before the column existed.
+    await linked!.update({ bugId: null });
+    await sequelize.query(BACKFILL_SQL);
+    await linked!.reload();
+    assert.strictEqual(linked!.bugId, bugId);
+  });
+
+  test('PostgreSQL keeps a notification Bug link inside its Workspace (E2E-SDLC-FLOW P6)', async () => {
+    const foreignBug = await BugModel.findOne({ where: { workspaceId: workspaceA.id } });
+    assert.ok(foreignBug);
+    await assert.rejects(
+      NotificationModel.create({
+        userId: outsider.id,
+        workspaceId: workspaceB.id,
+        bugId: foreignBug!.id,
+        type: 'bug_created',
+        title: 'Lintas workspace',
+        message: 'Tidak boleh tersimpan',
+      }),
+      /fk_notifications_bug_workspace/,
+    );
   });
 
   test('keeps Product Owner read-only and Developer access assignment-scoped', async () => {

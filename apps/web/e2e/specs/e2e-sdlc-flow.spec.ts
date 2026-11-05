@@ -81,9 +81,20 @@ async function developerSendsToQa(browser: Browser, email: string, title: string
   await dev.close();
 }
 
-async function developerFixesBug(browser: Browser, candidate: string) {
+async function developerFixesBug(
+  browser: Browser,
+  candidate: string,
+  via: 'queue' | 'bell' = 'queue',
+) {
   const dev = await signIn(browser, fixture.devBe.email);
-  await openQueueCard(dev.page, titles.bug);
+  if (via === 'bell') {
+    // P6: the Bug notification in the bell opens the Bug work page, not the Feature.
+    await dev.page.goto('/my-tasks');
+    await dev.page.getByRole('button', { name: 'Notifikasi' }).click();
+    await dev.page.getByText(`Bug baru "${titles.bug}" perlu ditangani.`).first().click();
+  } else {
+    await openQueueCard(dev.page, titles.bug);
+  }
   await expect(dev.page).toHaveURL(/\/work\/bugs\//);
   await dev.page.getByRole('button', { name: 'Mulai dikerjakan' }).click();
   await expect(dev.page.getByText('Bug mulai dikerjakan')).toBeVisible();
@@ -266,7 +277,7 @@ test('one Feature runs from idea to Release Decision through the UI (E2E-SDLC-FL
   });
 
   await test.step('6. Developer fixes, QA retest fails (reopened), fixes again, retest passes', async () => {
-    await developerFixesBug(browser, 'commit:pasien-fix-1');
+    await developerFixesBug(browser, 'commit:pasien-fix-1', 'bell');
     await qaRetests(browser, 'Gagal');
     await developerFixesBug(browser, 'commit:pasien-fix-2');
     await qaRetests(browser, 'Lulus');

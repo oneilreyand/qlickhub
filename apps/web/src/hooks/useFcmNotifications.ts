@@ -174,7 +174,8 @@ export function useFcmNotifications() {
         const message =
           payload.notification?.body || payload.data?.body || 'Ada pembaruan pada workspace Anda.';
         const typeRaw = payload.data?.type || 'system';
-        const taskId = payload.data?.taskId;
+        const taskId = payload.data?.taskId || undefined;
+        const bugId = payload.data?.bugId || undefined;
 
         const supportedTypes: NotificationType[] = [
           'mention',
@@ -196,7 +197,17 @@ export function useFcmNotifications() {
           : 'system';
 
         // Add to Redux in-app notification list
-        dispatch(addInAppNotification(title, message, notifType, taskId));
+        dispatch(
+          addInAppNotification(
+            title,
+            message,
+            notifType,
+            taskId,
+            undefined,
+            payload.data?.workspaceId,
+            bugId,
+          ),
+        );
 
         // Show toast alert in UI
         dispatch(enqueueSnackbar(`${title}: ${message}`, 'info'));

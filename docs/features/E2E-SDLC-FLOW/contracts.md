@@ -17,6 +17,11 @@ new_code, renamed_at)` for audit and `down`. `requirement_findings.requirement_c
 - Apply (`persistReviewedDraftInTransaction`) takes `pg_advisory_xact_lock` per Workspace and
   assigns the next numbers (`apps/api/src/modules/requirements/requirementCodes.ts`).
 
+- Migration `20261105000096-add-notification-bug-id` (P6) adds nullable `notifications.bug_id`,
+  FK `(workspace_id, bug_id)` → `bugs(workspace_id, id)` `ON DELETE SET NULL (bug_id)`, and a
+  partial index; it backfills older Bug notifications from `notification_outbox.payload_json.bugId`
+  where `idempotency_key = event_key:recipient_user_id`.
+
 ## API and executable contract
 
 | Endpoint                                                                      | Change                                                                                                                           |
@@ -28,7 +33,9 @@ new_code, renamed_at)` for audit and `down`. `requirement_findings.requirement_c
 | `GET /v1/workspaces/:workspaceId/my-work-queue`                               | QA items: one per own open QA subtask; reason from readiness.                                                                    |
 | Bug context (`BugWithContextSchema`)                                          | `originatingTestResult.testRun.qaSubtaskId` and `qaAssigneeId` (optional).                                                       |
 
-Sources: `packages/contracts/src/testManagement.ts` (`DeveloperReadinessSchema`),
+| `GET /v1/notifications` and realtime/push (`InAppNotificationSchema`) | `bugId` (optional) on Bug notifications; push `data.bugId` and link `/work/bugs/:id`. |
+
+Sources: `packages/contracts/src/notification.ts` (`bugId`), `packages/contracts/src/testManagement.ts` (`DeveloperReadinessSchema`),
 `packages/contracts/src/bug.ts`.
 
 ## Boundary notes
@@ -37,4 +44,4 @@ Sources: `packages/contracts/src/testManagement.ts` (`DeveloperReadinessSchema`)
   `workQueueService.ts`, `aiTaskDraftPersistence.ts`, `requirementCodes.ts`.
 - Frontend: QA work page, Test Case run page, Bug page, Feature page, Tugas Saya, Brief editor,
   API client error copy.
-- Unaffected: authentication, Workspace membership management, notifications schema.
+- Unaffected: authentication, Workspace membership management.

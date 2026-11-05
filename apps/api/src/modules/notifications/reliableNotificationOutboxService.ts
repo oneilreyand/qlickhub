@@ -89,6 +89,8 @@ export class ReliableNotificationOutboxService {
           userId: row.recipientUserId,
           workspaceId: row.workspaceId,
           taskId: row.taskId,
+          // E2E-SDLC-FLOW P6: every Bug event already carries its Bug id in the payload.
+          bugId: typeof row.payloadJson?.bugId === 'string' ? row.payloadJson.bugId : null,
           actorId: row.actorId,
           idempotencyKey: `${row.eventKey}:${row.recipientUserId}`,
           type: row.notificationType,

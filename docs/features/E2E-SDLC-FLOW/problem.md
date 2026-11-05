@@ -49,7 +49,6 @@ Keputusan Rilis dan bukti QA tidak dapat dipercaya.
 ## 6. Batasan dan di luar scope
 
 - Bug dari pengguna akhir dan SLA (program BUG_INTAKE_SLA).
-- Notifikasi in-app yang membuka halaman Bug (butuh kolom baru; follow-up).
 - Klaim terbuka QA untuk Feature tanpa subtask QA (K5 = tidak ditampilkan).
 
 ## 7. Unknown
