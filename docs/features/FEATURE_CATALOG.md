@@ -90,7 +90,7 @@ utama membantu navigasi saja; hak akses dan urutan kerja tetap mengikuti
 | [UI-WORKSPACE-REFRESH](UI-WORKSPACE-REFRESH/README.md)       | Semua role             | Refresh terpadu Ringkasan, Task Hub, Tugas Saya, dan Laporan.                                           | Draft — G0–G2 disetujui            |
 | [SIMPLE-UI-DELIVERY-FLOW](SIMPLE-UI-DELIVERY-FLOW/README.md) | Semua role             | UI sederhana, alur Plan → PRD → Task → Apply, Tugas Saya per peran, dan rilis Production terverifikasi. | Draft — G0/G1 menunggu persetujuan |
 | [DEADLINE-REMINDER-CRON](DEADLINE-REMINDER-CRON/README.md)   | Owner/Admin, Developer | Pengingat deadline harian dari Supabase Cron, bukan browser.                                            | Draft                              |
-| [E2E-SDLC-FLOW](E2E-SDLC-FLOW/README.md)                     | PO, Developer, QA      | Satu Feature berjalan dari ide sampai Keputusan Rilis lewat UI; gerbang uji per Requirement di API.     | Draft                              |
+| [E2E-SDLC-FLOW](E2E-SDLC-FLOW/README.md)                     | PO, Developer, QA      | Satu Feature berjalan dari ide sampai Keputusan Rilis lewat UI; gerbang uji per Requirement di API.     | Active                             |
 
 ## Format Feature ke depan
 
