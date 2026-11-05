@@ -1167,4 +1167,139 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
       manifestsBefore,
     );
   });
+  test('gates Test Runs on Developer readiness per Requirement, falling back to the Feature (ADR-041)', async () => {
+    const devA = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: task.id,
+      deliveryArea: 'backend',
+      title: 'Saved card API',
+      priority: 'high',
+      status: 'in_progress',
+      reporterId: po.id,
+      assigneeId: dev.id,
+    });
+    const devB = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: task.id,
+      deliveryArea: 'frontend',
+      title: 'Payment confirmation screen',
+      priority: 'high',
+      status: 'in_review',
+      reporterId: po.id,
+      assigneeId: dev.id,
+    });
+    const readinessUrl = `${baseUrl}/workspaces/${workspaceA.id}/tasks/${qaSubtask.id}/developer-readiness`;
+    const readinessOf = async (cookie = qaCookie) => {
+      const response = await fetch(readinessUrl, { headers: { Cookie: cookie } });
+      assert.strictEqual(response.status, 200);
+      return ((await response.json()) as { readiness: Record<string, unknown> }).readiness;
+    };
+    const tryRun = async (label: string) => {
+      const candidate = `commit:readiness-${label}`;
+      const cycle = await createScopedCycle(`checkout-web-readiness-${label}`, candidate);
+      const input = await scopedRunInput(
+        cycle.testCycle.id,
+        `checkout-web-readiness-${label}`,
+        candidate,
+      );
+      return fetch(`${baseUrl}/workspaces/${workspaceA.id}/test-cases/${testCaseId}/runs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify(input),
+      });
+    };
+    try {
+      await TaskRequirementModel.bulkCreate([
+        {
+          workspaceId: workspaceA.id,
+          taskId: devA.id,
+          requirementId: requirementA.id,
+          linkedBy: po.id,
+        },
+        {
+          workspaceId: workspaceA.id,
+          taskId: devB.id,
+          requirementId: requirementB.id,
+          linkedBy: po.id,
+        },
+      ]);
+
+      // No Requirement on the QA subtask → every Developer subtask of the Feature counts.
+      const featureWide = await readinessOf();
+      assert.strictEqual(featureWide.scope, 'feature');
+      assert.strictEqual(featureWide.total, 2);
+      assert.strictEqual(featureWide.ready, 1);
+      assert.strictEqual(featureWide.isReadyToTest, false);
+      const runsBefore = await TestRunModel.count({ where: { workspaceId: workspaceA.id } });
+      const blocked = await tryRun('feature');
+      assert.strictEqual(blocked.status, 409);
+      assert.match(JSON.stringify(await blocked.json()), /Saved card API/);
+      assert.strictEqual(
+        await TestRunModel.count({ where: { workspaceId: workspaceA.id } }),
+        runsBefore,
+      );
+
+      // QA subtask for requirement B only waits for the Developer subtask of requirement B.
+      await TaskRequirementModel.create({
+        workspaceId: workspaceA.id,
+        taskId: qaSubtask.id,
+        requirementId: requirementB.id,
+        linkedBy: po.id,
+      });
+      const scoped = await readinessOf();
+      assert.strictEqual(scoped.scope, 'requirement');
+      assert.strictEqual(scoped.total, 1);
+      assert.strictEqual(scoped.isReadyToTest, true);
+      assert.strictEqual((await tryRun('requirement-b')).status, 201);
+
+      // Adding requirement A brings its unfinished Developer subtask back into scope.
+      await TaskRequirementModel.create({
+        workspaceId: workspaceA.id,
+        taskId: qaSubtask.id,
+        requirementId: requirementA.id,
+        linkedBy: po.id,
+      });
+      const both = await readinessOf();
+      assert.strictEqual(both.total, 2);
+      assert.deepStrictEqual(
+        (both.pending as Array<{ id: string }>).map((item) => item.id),
+        [devA.id],
+      );
+      assert.strictEqual((await tryRun('requirement-ab')).status, 409);
+
+      // Canceled Developer subtasks never block QA.
+      await devA.update({ status: 'canceled' });
+      assert.strictEqual((await readinessOf()).isReadyToTest, true);
+
+      const notQa = await fetch(
+        `${baseUrl}/workspaces/${workspaceA.id}/tasks/${task.id}/developer-readiness`,
+        { headers: { Cookie: qaCookie } },
+      );
+      assert.strictEqual(notQa.status, 400);
+      const outsiderResponse = await fetch(readinessUrl, { headers: { Cookie: outsiderCookie } });
+      assert.strictEqual(outsiderResponse.status, 403);
+    } finally {
+      await TaskRequirementModel.destroy({
+        where: { workspaceId: workspaceA.id, taskId: [devA.id, devB.id, qaSubtask.id] },
+      });
+      await TaskModel.destroy({ where: { id: [devA.id, devB.id] } });
+    }
+  });
+
+  test('a new QA cycle supersedes the older open cycle of the same QA subtask (E2E-SDLC-FLOW K3)', async () => {
+    const older = await createScopedCycle('checkout-web-k3-1', 'commit:k3-1');
+    const newer = await createScopedCycle('checkout-web-k3-2', 'commit:k3-2');
+    const [olderRow, newerRow] = await Promise.all([
+      QaTestCycleModel.findByPk(older.testCycle.id),
+      QaTestCycleModel.findByPk(newer.testCycle.id),
+    ]);
+    assert.strictEqual(olderRow?.status, 'superseded');
+    assert.strictEqual(newerRow?.status, 'in_progress');
+    assert.strictEqual(
+      await QaTestCycleModel.count({
+        where: { workspaceId: workspaceA.id, qaSubtaskId: qaSubtask.id, status: 'in_progress' },
+      }),
+      1,
+    );
+  });
 });

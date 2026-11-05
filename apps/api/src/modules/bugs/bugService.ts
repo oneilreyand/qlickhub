@@ -254,6 +254,8 @@ function formatBugWithContext(bug: ContextualBugModel): BugWithContext {
               testCaseId: testRun?.testCaseId || '00000000-0000-0000-0000-000000000000',
               build: testRun?.build || 'N/A',
               environment: testRun?.environment || bug.environment || 'staging',
+              qaSubtaskId: testRun?.qaSubtaskId || null,
+              qaAssigneeId: null,
             },
           }
         : null,
@@ -280,6 +282,25 @@ async function formatBugsWithContext(
   transaction?: Transaction,
 ): Promise<BugWithContext[]> {
   const formatted = bugs.map(formatBugWithContext);
+  const originQaSubtaskIds = [
+    ...new Set(
+      formatted
+        .map((bug) => bug.originatingTestResult?.testRun.qaSubtaskId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (originQaSubtaskIds.length > 0) {
+    const qaSubtasks = await TaskModel.findAll({
+      where: { id: originQaSubtaskIds },
+      attributes: ['id', 'assigneeId'],
+      transaction,
+    });
+    const assigneeBySubtask = new Map(qaSubtasks.map((task) => [task.id, task.assigneeId]));
+    for (const bug of formatted) {
+      const run = bug.originatingTestResult?.testRun;
+      if (run?.qaSubtaskId) run.qaAssigneeId = assigneeBySubtask.get(run.qaSubtaskId) || null;
+    }
+  }
   const versionIds = formatted
     .map((bug) => bug.originatingTestCase?.versionId)
     .filter((versionId): versionId is string => Boolean(versionId));
@@ -612,16 +633,21 @@ export class BugService {
         },
         { transaction },
       );
-      const stakeholderMembers = await WorkspaceMemberModel.findAll({
-        where: { workspaceId: input.workspaceId },
-        attributes: ['userId', 'role'],
+      // E2E-SDLC-FLOW P2: only QA who can open this Feature (reporter + assigned QA subtasks),
+      // not every QA in the Workspace, who would land on a page they may not read.
+      const featureQaSubtasks = await TaskModel.findAll({
+        where: {
+          workspaceId: input.workspaceId,
+          parentTaskId: bug.featureTaskId,
+          deliveryArea: 'qa',
+          assigneeId: { [Op.ne]: null },
+        },
+        attributes: ['assigneeId'],
         transaction,
       });
       const recipients = [
         bug.createdBy,
-        ...stakeholderMembers
-          .filter((member) => member.role === 'qa')
-          .map((member) => member.userId),
+        ...featureQaSubtasks.map((task) => task.assigneeId),
       ].filter((recipientId): recipientId is string =>
         Boolean(recipientId && recipientId !== actorId),
       );
@@ -697,7 +723,7 @@ export class BugService {
           }
           if (existingRun.status !== 'in_progress') {
             throw new Error(
-              'CONFLICT: The contextual retest Result is already recorded. Finalize its Retest Attempt from the QA Desk.',
+              'CONFLICT: The contextual retest Result for this resolution is already recorded.',
             );
           }
           return {
@@ -910,192 +936,204 @@ export class BugService {
     actorId: string,
     input: CreateBugRetestAttemptInput,
   ): Promise<BugRetestAttempt> {
-    const result = await sequelize.transaction(async (transaction) => {
-      const member = await requireActiveMember(input.workspaceId, actorId, transaction);
-      if (member.role !== 'qa') {
-        throw new Error('FORBIDDEN: Only QA may create a Bug Retest Attempt.');
-      }
-      const bug = await BugModel.findOne({
-        where: { id: input.bugId, workspaceId: input.workspaceId },
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
-      const resolution = await BugResolutionEventModel.findOne({
-        where: { workspaceId: input.workspaceId, bugId: bug.id },
-        order: [['sequence', 'DESC']],
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (!resolution) throw new Error('CONFLICT: Bug has no Resolution Event to retest.');
-      const existingAttempt = await BugRetestAttemptModel.findOne({
-        where: {
-          workspaceId: input.workspaceId,
-          bugId: bug.id,
-          resolutionEventId: resolution.id,
-        },
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (existingAttempt) {
-        if (existingAttempt.testResultId !== input.testResultId) {
-          throw new Error('CONFLICT: This Resolution Event already has a different Retest Result.');
-        }
-        return {
-          id: existingAttempt.id,
-          workspaceId: existingAttempt.workspaceId,
-          bugId: existingAttempt.bugId,
-          resolutionEventId: existingAttempt.resolutionEventId,
-          testResultId: existingAttempt.testResultId,
-          outcome: existingAttempt.outcome,
-          attemptedBy: existingAttempt.attemptedBy,
-          attemptedAt: iso(existingAttempt.createdAt),
-        };
-      }
-      if (bug.status !== 'resolved') {
-        throw new Error('CONFLICT: Bug must have a pending Developer resolution before retest.');
-      }
-      const result = await TestResultModel.findOne({
-        where: { id: input.testResultId, workspaceId: input.workspaceId },
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      const run = result
-        ? await TestRunModel.findOne({
-            where: { id: result.testRunId, workspaceId: input.workspaceId },
-            transaction,
-            lock: transaction.LOCK.UPDATE,
-          })
-        : null;
-      if (
-        !result ||
-        !run ||
-        !run.testCycleId ||
-        !run.qaSubtaskId ||
-        run.featureTaskId !== bug.featureTaskId ||
-        run.candidateFingerprint !== resolution.candidateFingerprint
-      ) {
-        throw new Error(
-          'CONFLICT: Retest Result must be a scoped Result for this Feature and resolution candidate.',
-        );
-      }
-      if (run.retestBugId !== bug.id || run.retestResolutionEventId !== resolution.id) {
-        throw new Error(
-          'CONFLICT: Retest Result must come from the contextual Run created for this Bug resolution.',
-        );
-      }
-      const qaSubtask = await TaskModel.findOne({
-        where: {
-          id: run.qaSubtaskId,
-          workspaceId: input.workspaceId,
-          parentTaskId: bug.featureTaskId,
-          deliveryArea: 'qa',
-          assigneeId: actorId,
-        },
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (!qaSubtask || result.executorId !== actorId) {
-        throw new Error(
-          'FORBIDDEN: Only the assigned QA executor of the Retest Result may finalize this attempt.',
-        );
-      }
-      const manifest = await TestResultEvidenceManifestModel.findOne({
-        where: {
-          workspaceId: input.workspaceId,
-          testResultId: result.id,
-          kind: 'initial',
-        },
-        transaction,
-      });
-      if (!manifest || manifest.readyCount < 1 || manifest.imageCount + manifest.videoCount < 1) {
-        throw new Error('CONFLICT: Retest Result requires a sealed previewable Evidence Manifest.');
-      }
-      if (result.status === 'skipped') {
-        throw new Error('BAD_REQUEST: A skipped Result cannot determine a Bug Retest Attempt.');
-      }
-      const outcome = result.status === 'passed' ? 'verified' : 'reopened';
-      const attempt = await BugRetestAttemptModel.create(
-        {
-          workspaceId: input.workspaceId,
-          bugId: bug.id,
-          resolutionEventId: resolution.id,
-          testResultId: result.id,
-          outcome,
-          attemptedBy: actorId,
-        },
-        { transaction },
-      );
-      await bug.update(
-        {
-          status: outcome,
-          verifiedAt: outcome === 'verified' ? new Date() : null,
-          resolvedAt: outcome === 'reopened' ? null : bug.resolvedAt,
-        },
-        { transaction },
-      );
-      await BugActivityModel.create(
-        {
-          workspaceId: input.workspaceId,
-          bugId: bug.id,
-          actorId,
-          action: outcome === 'verified' ? 'bug_verified' : 'bug_reopened',
-          fromStatus: 'resolved',
-          toStatus: outcome,
-          metadata: {
-            retestAttemptId: attempt.id,
-            testResultId: result.id,
-            resolutionEventId: resolution.id,
-          },
-        },
-        { transaction },
-      );
-      const stakeholderMembers = await WorkspaceMemberModel.findAll({
-        where: { workspaceId: input.workspaceId },
-        attributes: ['userId', 'role'],
-        transaction,
-      });
-      const recipients = [
-        bug.assigneeId,
-        bug.createdBy,
-        ...(outcome === 'reopened' && (bug.severity === 'critical' || bug.severity === 'high')
-          ? stakeholderMembers
-              .filter((member) => ['po', 'owner', 'admin'].includes(member.role))
-              .map((member) => member.userId)
-          : []),
-      ].filter((recipientId): recipientId is string =>
-        Boolean(recipientId && recipientId !== actorId),
-      );
-      await reliableNotificationOutboxService.enqueue(
-        `bug-retest:${attempt.id}`,
-        [...new Set(recipients)].map((userId) => ({
-          userId,
-          workspaceId: input.workspaceId,
-          taskId: bug.featureTaskId,
-          actorId,
-          type: 'bug_status_change',
-          title: outcome === 'verified' ? 'Bug Terverifikasi QA' : 'Bug Dibuka Kembali QA',
-          message:
-            outcome === 'verified'
-              ? `QA memverifikasi bug "${bug.title}" sebagai selesai.`
-              : `QA membuka kembali bug "${bug.title}" setelah retest gagal/terblokir.`,
-          payload: { bugId: bug.id, retestAttemptId: attempt.id, status: outcome },
-        })),
-        transaction,
-      );
-      return {
-        id: attempt.id,
-        workspaceId: attempt.workspaceId,
-        bugId: attempt.bugId,
-        resolutionEventId: attempt.resolutionEventId,
-        testResultId: attempt.testResultId,
-        outcome: attempt.outcome,
-        attemptedBy: attempt.attemptedBy,
-        attemptedAt: iso(attempt.createdAt),
-      };
-    });
+    const result = await sequelize.transaction((transaction) =>
+      this.applyRetestAttempt(actorId, input, transaction),
+    );
     void reliableNotificationOutboxService.dispatchDue(50);
     return result;
+  }
+
+  /**
+   * E2E-SDLC-FLOW P3: also called by `recordTestResult` inside its own transaction, so a contextual
+   * retest Result and its Retest Attempt (Bug verified/reopened) are stored together or not at all.
+   */
+  async applyRetestAttempt(
+    actorId: string,
+    input: CreateBugRetestAttemptInput,
+    transaction: Transaction,
+  ): Promise<BugRetestAttempt> {
+    const member = await requireActiveMember(input.workspaceId, actorId, transaction);
+    if (member.role !== 'qa') {
+      throw new Error('FORBIDDEN: Only QA may create a Bug Retest Attempt.');
+    }
+    const bug = await BugModel.findOne({
+      where: { id: input.bugId, workspaceId: input.workspaceId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!bug) throw new Error('NOT_FOUND: Bug not found in this workspace.');
+    const resolution = await BugResolutionEventModel.findOne({
+      where: { workspaceId: input.workspaceId, bugId: bug.id },
+      order: [['sequence', 'DESC']],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!resolution) throw new Error('CONFLICT: Bug has no Resolution Event to retest.');
+    const existingAttempt = await BugRetestAttemptModel.findOne({
+      where: {
+        workspaceId: input.workspaceId,
+        bugId: bug.id,
+        resolutionEventId: resolution.id,
+      },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (existingAttempt) {
+      if (existingAttempt.testResultId !== input.testResultId) {
+        throw new Error('CONFLICT: This Resolution Event already has a different Retest Result.');
+      }
+      return {
+        id: existingAttempt.id,
+        workspaceId: existingAttempt.workspaceId,
+        bugId: existingAttempt.bugId,
+        resolutionEventId: existingAttempt.resolutionEventId,
+        testResultId: existingAttempt.testResultId,
+        outcome: existingAttempt.outcome,
+        attemptedBy: existingAttempt.attemptedBy,
+        attemptedAt: iso(existingAttempt.createdAt),
+      };
+    }
+    if (bug.status !== 'resolved') {
+      throw new Error('CONFLICT: Bug must have a pending Developer resolution before retest.');
+    }
+    const result = await TestResultModel.findOne({
+      where: { id: input.testResultId, workspaceId: input.workspaceId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    const run = result
+      ? await TestRunModel.findOne({
+          where: { id: result.testRunId, workspaceId: input.workspaceId },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        })
+      : null;
+    if (
+      !result ||
+      !run ||
+      !run.testCycleId ||
+      !run.qaSubtaskId ||
+      run.featureTaskId !== bug.featureTaskId ||
+      run.candidateFingerprint !== resolution.candidateFingerprint
+    ) {
+      throw new Error(
+        'CONFLICT: Retest Result must be a scoped Result for this Feature and resolution candidate.',
+      );
+    }
+    if (run.retestBugId !== bug.id || run.retestResolutionEventId !== resolution.id) {
+      throw new Error(
+        'CONFLICT: Retest Result must come from the contextual Run created for this Bug resolution.',
+      );
+    }
+    const qaSubtask = await TaskModel.findOne({
+      where: {
+        id: run.qaSubtaskId,
+        workspaceId: input.workspaceId,
+        parentTaskId: bug.featureTaskId,
+        deliveryArea: 'qa',
+        assigneeId: actorId,
+      },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!qaSubtask || result.executorId !== actorId) {
+      throw new Error(
+        'FORBIDDEN: Only the assigned QA executor of the Retest Result may finalize this attempt.',
+      );
+    }
+    const manifest = await TestResultEvidenceManifestModel.findOne({
+      where: {
+        workspaceId: input.workspaceId,
+        testResultId: result.id,
+        kind: 'initial',
+      },
+      transaction,
+    });
+    if (!manifest || manifest.readyCount < 1 || manifest.imageCount + manifest.videoCount < 1) {
+      throw new Error('CONFLICT: Retest Result requires a sealed previewable Evidence Manifest.');
+    }
+    if (result.status === 'skipped') {
+      throw new Error('BAD_REQUEST: A skipped Result cannot determine a Bug Retest Attempt.');
+    }
+    const outcome = result.status === 'passed' ? 'verified' : 'reopened';
+    const attempt = await BugRetestAttemptModel.create(
+      {
+        workspaceId: input.workspaceId,
+        bugId: bug.id,
+        resolutionEventId: resolution.id,
+        testResultId: result.id,
+        outcome,
+        attemptedBy: actorId,
+      },
+      { transaction },
+    );
+    await bug.update(
+      {
+        status: outcome,
+        verifiedAt: outcome === 'verified' ? new Date() : null,
+        resolvedAt: outcome === 'reopened' ? null : bug.resolvedAt,
+      },
+      { transaction },
+    );
+    await BugActivityModel.create(
+      {
+        workspaceId: input.workspaceId,
+        bugId: bug.id,
+        actorId,
+        action: outcome === 'verified' ? 'bug_verified' : 'bug_reopened',
+        fromStatus: 'resolved',
+        toStatus: outcome,
+        metadata: {
+          retestAttemptId: attempt.id,
+          testResultId: result.id,
+          resolutionEventId: resolution.id,
+        },
+      },
+      { transaction },
+    );
+    const stakeholderMembers = await WorkspaceMemberModel.findAll({
+      where: { workspaceId: input.workspaceId },
+      attributes: ['userId', 'role'],
+      transaction,
+    });
+    const recipients = [
+      bug.assigneeId,
+      bug.createdBy,
+      ...(outcome === 'reopened' && (bug.severity === 'critical' || bug.severity === 'high')
+        ? stakeholderMembers
+            .filter((member) => ['po', 'owner', 'admin'].includes(member.role))
+            .map((member) => member.userId)
+        : []),
+    ].filter((recipientId): recipientId is string =>
+      Boolean(recipientId && recipientId !== actorId),
+    );
+    await reliableNotificationOutboxService.enqueue(
+      `bug-retest:${attempt.id}`,
+      [...new Set(recipients)].map((userId) => ({
+        userId,
+        workspaceId: input.workspaceId,
+        taskId: bug.featureTaskId,
+        actorId,
+        type: 'bug_status_change',
+        title: outcome === 'verified' ? 'Bug Terverifikasi QA' : 'Bug Dibuka Kembali QA',
+        message:
+          outcome === 'verified'
+            ? `QA memverifikasi bug "${bug.title}" sebagai selesai.`
+            : `QA membuka kembali bug "${bug.title}" setelah retest gagal/terblokir.`,
+        payload: { bugId: bug.id, retestAttemptId: attempt.id, status: outcome },
+      })),
+      transaction,
+    );
+    return {
+      id: attempt.id,
+      workspaceId: attempt.workspaceId,
+      bugId: attempt.bugId,
+      resolutionEventId: attempt.resolutionEventId,
+      testResultId: attempt.testResultId,
+      outcome: attempt.outcome,
+      attemptedBy: attempt.attemptedBy,
+      attemptedAt: iso(attempt.createdAt),
+    };
   }
   async listBugs(
     workspaceId: string,

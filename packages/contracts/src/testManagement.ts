@@ -288,6 +288,19 @@ export const QaWorkflowNextActionCodeSchema = z.enum([
 ]);
 export type QaWorkflowNextActionCode = z.infer<typeof QaWorkflowNextActionCodeSchema>;
 
+/** E2E-SDLC-FLOW P3 (ADR-041): Developer readiness for one QA subtask, computed by the API. */
+export const DeveloperReadinessSchema = z.object({
+  /** `requirement`: Developer subtasks sharing a Requirement with the QA subtask; else the Feature. */
+  scope: z.enum(['requirement', 'feature']),
+  total: z.number().int().nonnegative(),
+  ready: z.number().int().nonnegative(),
+  isReadyToTest: z.boolean(),
+  pending: z.array(
+    z.object({ id: z.string().uuid(), title: z.string(), status: z.string().min(1).max(50) }),
+  ),
+});
+export type DeveloperReadiness = z.infer<typeof DeveloperReadinessSchema>;
+
 export const QaWorkflowSummarySchema = z.object({
   workspaceId: z.string().uuid(),
   featureTaskId: z.string().uuid(),

@@ -26,7 +26,7 @@ export interface TaskDetailProductBriefTabProps {
   onReload: () => void;
   onSaved?: (brief: ProductBrief) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  /** Tampilan sederhana (halaman Feature): satu kolom, tanpa judul/status, teks biasa dulu. */
+  /** Tampilan sederhana (halaman Feature): satu kolom, tanpa judul, teks biasa dulu. */
   simple?: boolean;
   onCancel?: () => void;
 }
@@ -393,6 +393,25 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {renderSimpleScope('in', 'Dalam scope', 'Item scope', inScope)}
           {renderSimpleScope('out', 'Di luar scope', 'Item di luar scope', outScope)}
+        </div>
+        {/* E2E-SDLC-FLOW P5: QA can only start a Test Cycle once the Brief is approved, so the
+            Feature page must let the PO approve it here too. */}
+        <div className="max-w-xs">
+          <Select
+            label="Status Brief Produk"
+            value={status}
+            onChange={(event) => setStatus(event.target.value as ProductBriefStatus)}
+            disabled={!canPlan || isSaving}
+          >
+            <option value="draft">Draf</option>
+            <option value="in_review">Dalam Review</option>
+            <option value="approved">Disetujui</option>
+          </Select>
+          {status !== 'approved' && (
+            <p className="mt-1.5 text-xs text-stone-600 dark:text-stone-400">
+              QA baru bisa memulai siklus uji setelah Brief disetujui.
+            </p>
+          )}
         </div>
         {canPlan && (
           <div className="flex justify-end gap-2 border-t border-stone-100 pt-4 dark:border-stone-800">

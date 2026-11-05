@@ -3,12 +3,18 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { ErrorBoundaryFallback } from '../components/ui/organisms/ErrorBoundary';
+import { ReleaseAssurancePanel } from '../components/ui/organisms/ReleaseAssurancePanel';
 import { TaskDetailDrawer } from '../components/ui/organisms/TaskDetailDrawer';
 import { useReleaseReadinessMap } from '../lib/hooks/useReleaseReadinessMap';
 import { useTaskWithParent } from '../lib/hooks/useTaskWithParent';
 import { firstTabForStage, isFeatureStageParam, stageForTab } from '../lib/utils/featureStages';
 import { fetchFolderTree } from '../store/folderSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectCurrentUserId } from '../store/authSlice';
+import { selectActiveWorkspaceRole } from '../store/workspaceSlice';
+
+/** Peran Workspace yang mencatat Keputusan Rilis (sama dengan aturan API). */
+const RELEASE_DECIDER_ROLES = new Set(['owner', 'admin', 'po']);
 
 /**
  * Halaman detail Feature (ADR-035): tampil di area konten dengan Sidebar tetap terlihat,
@@ -22,6 +28,8 @@ export const FeatureDetailPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const folders = useAppSelector((state) => state.folder.folders);
   const { activeWorkspaceId, isInitialized } = useAppSelector((state) => state.workspace);
+  const workspaceRole = useAppSelector(selectActiveWorkspaceRole);
+  const currentUserId = useAppSelector(selectCurrentUserId);
 
   const isReady = isInitialized && Boolean(activeWorkspaceId);
 
@@ -122,20 +130,41 @@ export const FeatureDetailPage: React.FC = () => {
     );
   }
 
+  // E2E-SDLC-FLOW P4: Keputusan Rilis dicatat di halaman Feature, tujuan kartu antrean
+  // "Catat Keputusan Rilis" (`?fokus=rilis`).
+  const showRelease =
+    !task.parentTaskId && Boolean(activeWorkspaceId) && RELEASE_DECIDER_ROLES.has(workspaceRole);
+  const releasePanel = showRelease ? (
+    <section className="mx-auto mt-6 w-full max-w-6xl" aria-label="Keputusan rilis">
+      <ReleaseAssurancePanel
+        workspaceId={activeWorkspaceId!}
+        featureTaskId={task.id}
+        currentUserId={currentUserId ?? undefined}
+        userRole={workspaceRole}
+        mode="release"
+        focusWhenReady={searchParams.get('fokus') === 'rilis'}
+        onDataChanged={handleDataChanged}
+      />
+    </section>
+  ) : null;
+
   return (
-    <TaskDetailDrawer
-      layout="page"
-      backLabel="Task Hub"
-      initialTab={initialTab}
-      onTabChange={handleTabChange}
-      task={task}
-      folders={folders}
-      parentTask={parentTask}
-      isParentTaskLoading={isParentTaskLoading}
-      releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
-      onClose={handleClose}
-      onNavigateToTask={handleNavigateToTask}
-      onDataChanged={handleDataChanged}
-    />
+    <>
+      <TaskDetailDrawer
+        layout="page"
+        backLabel="Task Hub"
+        initialTab={initialTab}
+        onTabChange={handleTabChange}
+        task={task}
+        folders={folders}
+        parentTask={parentTask}
+        isParentTaskLoading={isParentTaskLoading}
+        releaseReadinessState={releaseReadinessStateByFeatureId[featureTaskId!]}
+        onClose={handleClose}
+        onNavigateToTask={handleNavigateToTask}
+        onDataChanged={handleDataChanged}
+      />
+      {releasePanel}
+    </>
   );
 };

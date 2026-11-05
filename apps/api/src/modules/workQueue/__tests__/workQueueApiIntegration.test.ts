@@ -672,15 +672,24 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     const buckets = bucketMap(queue);
 
     assert.strictEqual(queue.queueRole, 'qa');
-    const qaTaskIds = buckets.get('qa_test_work')?.items.map((item) => item.subjectId) || [];
+    // E2E-SDLC-FLOW P2 (K5): QA work is only the QA's own QA subtasks, each opening itself; a
+    // Developer subtask in review is no longer a separate card that redirects elsewhere.
+    const qaItems = buckets.get('qa_test_work')?.items || [];
+    const qaTaskIds = qaItems.map((item) => item.subjectId);
     assert.ok(qaTaskIds.includes(qaSubtask.id));
-    assert.ok(qaTaskIds.includes(reviewSubtask.id));
-    const readyCard = buckets
-      .get('qa_test_work')
-      ?.items.find((item) => item.subjectId === reviewSubtask.id);
-    assert.strictEqual(readyCard?.title, deliveryFeature.title);
-    assert.strictEqual(readyCard?.featureTaskId, deliveryFeature.id);
-    assert.strictEqual(readyCard?.reason, '1 dari 3 subtask Developer siap diuji.');
+    assert.ok(!qaTaskIds.includes(reviewSubtask.id));
+    const ownQaSubtasks = await TaskModel.findAll({
+      where: { workspaceId: workspaceA.id, assigneeId: qa.id, deliveryArea: 'qa' },
+    });
+    assert.ok(qaTaskIds.every((id) => ownQaSubtasks.some((task) => task.id === id)));
+    const qaCard = qaItems.find((item) => item.subjectId === qaSubtask.id);
+    assert.strictEqual(qaCard?.title, qaSubtask.title);
+    assert.strictEqual(qaCard?.featureTaskId, deliveryFeature.id);
+    // ADR-041: no Requirement links on these subtasks, so readiness covers the whole Feature.
+    assert.strictEqual(
+      qaCard?.reason,
+      'Menunggu Developer: 1 dari 3 subtask Developer siap diuji.',
+    );
     assert.deepStrictEqual(
       buckets.get('qa_retest_work')?.items.map((item) => item.subjectId),
       [actionableRetestBug.id],
@@ -726,7 +735,7 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
     );
   });
 
-  test('shows one ready-to-test card per Feature even with several in-review Developer subtasks (AC-3.16)', async () => {
+  test('shows Developer readiness on the QA subtask card: Feature-wide, then per Requirement (ADR-041)', async () => {
     const second = await TaskModel.create({
       workspaceId: workspaceA.id,
       parentTaskId: deliveryFeature.id,
@@ -739,18 +748,49 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
       startDate: '2099-01-13',
       dueDate: '2099-01-13',
     });
-    try {
+    const scopedRequirement = await RequirementModel.create({
+      workspaceId: workspaceA.id,
+      code: `REQ-SCOPE-${Date.now()}`,
+      title: 'Recovery screen only',
+      status: 'active',
+      createdBy: po.id,
+    });
+    const qaCardReason = async () => {
       const response = await fetchQueue(workspaceA.id, qaCookie);
       const queue = RoleAwareWorkQueueSchema.parse(
         ((await response.json()) as { queue: RoleAwareWorkQueue }).queue,
       );
       const cards = (bucketMap(queue).get('qa_test_work')?.items ?? []).filter(
-        (item) => item.featureTaskId === deliveryFeature.id && item.status === 'in_review',
+        (item) => item.featureTaskId === deliveryFeature.id,
       );
-      assert.strictEqual(cards.length, 1);
-      assert.strictEqual(cards[0].title, deliveryFeature.title);
-      assert.strictEqual(cards[0].reason, '2 dari 4 subtask Developer siap diuji.');
+      assert.deepStrictEqual(
+        cards.map((item) => item.subjectId),
+        [qaSubtask.id],
+      );
+      return cards[0].reason;
+    };
+    try {
+      assert.strictEqual(
+        await qaCardReason(),
+        'Menunggu Developer: 2 dari 4 subtask Developer siap diuji.',
+      );
+      // Link the QA subtask and one in-review Developer subtask to the same Requirement: the QA
+      // subtask no longer waits for unrelated Developer work.
+      await TaskRequirementModel.bulkCreate(
+        [qaSubtask.id, second.id].map((taskId) => ({
+          workspaceId: workspaceA.id,
+          taskId,
+          requirementId: scopedRequirement.id,
+          linkedBy: po.id,
+        })),
+      );
+      assert.strictEqual(
+        await qaCardReason(),
+        'Siap diuji: 1 dari 1 subtask Developer untuk requirement subtask ini sudah dikirim ke QA.',
+      );
     } finally {
+      await TaskRequirementModel.destroy({ where: { requirementId: scopedRequirement.id } });
+      await scopedRequirement.destroy({ force: true });
       await second.destroy({ force: true });
     }
   });
@@ -801,12 +841,15 @@ describe('Role-aware My Tasks queue HTTP/PostgreSQL integration (AGY-6.1)', () =
           }
         ).queue,
       );
+      // The QA card is the QA subtask; the Developer's "ready for QA" message on a sibling
+      // subtask is shown on it as a fresh thread (E2E-SDLC-FLOW P2).
       const card = bucketMap(qaQueue)
         .get('qa_test_work')
-        ?.items.find((item) => item.subjectId === reviewSubtask.id);
+        ?.items.find((item) => item.subjectId === qaSubtask.id);
       assert.strictEqual(card?.sender?.id, dev.id);
       assert.strictEqual(card?.lastMessage?.id, ready.id);
       assert.strictEqual(card?.lastMessage?.kind, 'ready_for_qa');
+      assert.strictEqual(card?.lastMessage?.threadRootId, null);
       assert.notStrictEqual(
         card?.lastMessage?.id,
         untagged.id,

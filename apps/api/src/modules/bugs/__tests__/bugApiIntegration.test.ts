@@ -1094,6 +1094,48 @@ describe('First-class Bug and queue HTTP API Integration Tests (AGY-4.1/4.2)', (
     };
     assert.strictEqual(repeatedRetest.retestRun.reused, true);
     assert.strictEqual(repeatedRetest.retestRun.testRun.id, startedRetest.retestRun.testRun.id);
+
+    // E2E-SDLC-FLOW P3: recording the retest Result also records its Retest Attempt.
+    const retestRunRow = await TestRunModel.findByPk(startedRetest.retestRun.testRun.id);
+    assert.ok(retestRunRow);
+    const recordResponse = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/test-cases/${retestRunRow!.testCaseId}/runs/${retestRunRow!.id}/results`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({
+          status: 'failed',
+          actualResult: 'Checkout mapping still wrong after the repair.',
+          evidenceAttachmentIds: [],
+          evidenceLinks: [{ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', label: 'Retest' }],
+        }),
+      },
+    );
+    const recordText = await recordResponse.text();
+    assert.strictEqual(recordResponse.status, 201, recordText);
+    const recordedResultId = (JSON.parse(recordText) as { testRun: { result: { id: string } } })
+      .testRun.result.id;
+    const atomicAttempt = await BugRetestAttemptModel.findOne({
+      where: { workspaceId: workspaceA.id, bugId: contextualBugId },
+    });
+    assert.strictEqual(atomicAttempt?.testResultId, recordedResultId);
+    assert.strictEqual(atomicAttempt?.outcome, 'reopened');
+    assert.strictEqual((await BugModel.findByPk(contextualBugId))?.status, 'reopened');
+
+    // The explicit endpoint stays idempotent for the same Result.
+    const finalizeAgain = await fetch(
+      `${baseUrl}/workspaces/${workspaceA.id}/bugs/${contextualBugId}/retest-attempts`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: qaCookie },
+        body: JSON.stringify({ testResultId: recordedResultId }),
+      },
+    );
+    assert.strictEqual(finalizeAgain.status, 201);
+    assert.strictEqual(
+      ((await finalizeAgain.json()) as { retestAttempt: { id: string } }).retestAttempt.id,
+      atomicAttempt?.id,
+    );
   });
 
   test('QA reopens a verified Bug with a required reason that the assigned Developer can read', async () => {

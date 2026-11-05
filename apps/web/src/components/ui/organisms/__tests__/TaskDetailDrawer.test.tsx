@@ -1390,7 +1390,7 @@ describe('TaskDetailDrawer UI Component', () => {
       );
     });
 
-    test('editor Brief Produk sederhana tanpa judul dan status', async () => {
+    test('editor Brief Produk sederhana tanpa judul, dengan status persetujuan', async () => {
       renderWithRedux(
         <TaskDetailDrawer
           layout="page"
@@ -1405,7 +1405,9 @@ describe('TaskDetailDrawer UI Component', () => {
         await screen.findByLabelText(/Konteks: kenapa Feature ini perlu ada/),
       ).toBeInTheDocument();
       expect(screen.queryByLabelText('Judul Brief Produk')).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Status Brief Produk')).not.toBeInTheDocument();
+      // E2E-SDLC-FLOW P5: the status stays because approving the Brief is what lets QA start
+      // a Test Cycle; without it the Feature page had no way to approve.
+      expect(screen.getByLabelText('Status Brief Produk')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Simpan' })).toBeDisabled();
     });
 

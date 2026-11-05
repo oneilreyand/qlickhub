@@ -27,6 +27,16 @@ vi.mock('../../lib/hooks/useReleaseReadinessMap', () => ({
   useReleaseReadinessMap: () => ({ stateByFeatureTaskId: {}, reload: vi.fn() }),
 }));
 
+vi.mock('../../components/ui/organisms/ReleaseAssurancePanel', () => ({
+  ReleaseAssurancePanel: ({ mode, focusWhenReady }: { mode: string; focusWhenReady?: boolean }) => (
+    <div
+      data-testid="release-panel"
+      data-mode={mode}
+      data-focus={String(Boolean(focusWhenReady))}
+    />
+  ),
+}));
+
 vi.mock('../../components/ui/organisms/TaskDetailDrawer', () => ({
   TaskDetailDrawer: ({
     task,
@@ -69,7 +79,7 @@ const feature: Task = {
   updatedAt: '2026-10-01T00:00:00.000Z',
 };
 
-function createStore() {
+function createStore(role?: string) {
   return configureStore({
     reducer: {
       auth: authReducer,
@@ -79,7 +89,7 @@ function createStore() {
     },
     preloadedState: {
       workspace: {
-        workspaces: [],
+        workspaces: role ? [{ id: workspaceId, name: 'Workspace', role } as never] : [],
         activeWorkspaceId: workspaceId,
         members: [],
         isLoading: false,
@@ -96,9 +106,12 @@ const LocationProbe = () => {
   return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
 };
 
-function renderPage(entry: string | { pathname: string; search?: string; state?: unknown }) {
+function renderPage(
+  entry: string | { pathname: string; search?: string; state?: unknown },
+  role?: string,
+) {
   return render(
-    <Provider store={createStore()}>
+    <Provider store={createStore(role)}>
       <MemoryRouter initialEntries={[entry]}>
         <LocationProbe />
         <Routes>
@@ -175,5 +188,27 @@ describe('FeatureDetailPage', () => {
     getTaskMock.mockRejectedValue(Object.assign(new Error('forbidden'), { status: 403 }));
     renderPage(`/work/features/${featureId}`);
     expect(await screen.findByText('Akses Feature dibatasi')).toBeInTheDocument();
+  });
+
+  it('shows the release decision panel to Workspace PO, Owner, and Admin only (E2E-SDLC-FLOW P4)', async () => {
+    getTaskMock.mockResolvedValue(feature);
+    const { unmount } = renderPage(`/work/features/${featureId}?fokus=rilis`, 'po');
+    const panel = await screen.findByTestId('release-panel');
+    expect(panel).toHaveAttribute('data-mode', 'release');
+    expect(panel).toHaveAttribute('data-focus', 'true');
+    unmount();
+
+    renderPage(`/work/features/${featureId}`, 'qa');
+    await screen.findByTestId('feature-page');
+    expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
+  });
+
+  it('does not show the release panel on a subtask', async () => {
+    getTaskMock.mockImplementation(async (_ws: string, id: string) =>
+      id === featureId ? feature : { ...feature, id: 'sub-1', parentTaskId: featureId },
+    );
+    renderPage('/work/features/sub-1', 'owner');
+    await screen.findAllByTestId('feature-page');
+    expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
   });
 });

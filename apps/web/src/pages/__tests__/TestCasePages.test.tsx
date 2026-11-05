@@ -1,3 +1,4 @@
+import type { WorkspaceItem } from '../../lib/api/workspaceService';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -11,6 +12,7 @@ import workspaceReducer from '../../store/workspaceSlice';
 import uiReducer from '../../store/uiSlice';
 
 const m = vi.hoisted(() => ({
+  getDeveloperReadiness: vi.fn(),
   getTask: vi.fn(),
   listSubtasks: vi.fn(),
   getTrace: vi.fn(),
@@ -50,6 +52,7 @@ vi.mock('../../lib/api/traceabilityService', () => ({
 }));
 vi.mock('../../lib/api/testManagementService', () => ({
   testManagementService: {
+    getDeveloperReadiness: (...a: unknown[]) => m.getDeveloperReadiness(...a),
     getTestCase: (...a: unknown[]) => m.getTestCase(...a),
     validateTestCaseScope: (...a: unknown[]) => m.validateScope(...a),
     getTaskTestExecutions: (...a: unknown[]) => m.getExecutions(...a),
@@ -100,7 +103,7 @@ function Probe() {
   return <div data-testid="at">{location.pathname + location.search}</div>;
 }
 
-function renderAt(path: string, role = 'qa') {
+function renderAt(path: string, role = 'qa', members: unknown[] = []) {
   const store = configureStore({
     reducer: { auth: authReducer, workspace: workspaceReducer, ui: uiReducer },
     preloadedState: {
@@ -118,9 +121,10 @@ function renderAt(path: string, role = 'qa') {
         error: null,
       },
       workspace: {
-        workspaces: [],
+        // The page authorises by the active Workspace role (E2E-SDLC-FLOW P1).
+        workspaces: [{ id: ws, name: 'Workspace', role } as unknown as WorkspaceItem],
         activeWorkspaceId: ws,
-        members: [],
+        members: members as never[],
         isLoading: false,
         isMembersLoading: false,
         isInitialized: true,
@@ -153,6 +157,14 @@ beforeEach(() => {
   }
   Object.values(m).forEach((fn) => fn.mockReset());
   m.listSubtasks.mockResolvedValue({ tasks: [], total: 0, page: 1, limit: 100 });
+  // ADR-041: readiness comes from the API; no Developer subtasks = not blocked.
+  m.getDeveloperReadiness.mockResolvedValue({
+    scope: 'feature',
+    total: 0,
+    ready: 0,
+    isReadyToTest: false,
+    pending: [],
+  });
   m.getTask.mockResolvedValue(qaSubtask);
   m.getTrace.mockResolvedValue(trace);
   m.getTestCase.mockResolvedValue(testCase);
@@ -336,7 +348,46 @@ describe('TestCaseRunPage', () => {
     expect(await screen.findByText(/Bug dikirim ke/)).toBeInTheDocument();
   });
 
-  it('completes a bug retest from the run page and records the attempt', async () => {
+  it('lets QA pick any Workspace Developer when the Requirement has none yet (E2E-SDLC-FLOW P3)', async () => {
+    m.getTrace.mockResolvedValue({
+      requirements: [{ ...trace.requirements[0], implementingSubtasks: [qaSubtask] }],
+    });
+    m.listCycles.mockResolvedValue([cycle]);
+    m.getExecutions.mockResolvedValue({
+      executions: [
+        {
+          testCase,
+          latestRun: null,
+          testRuns: [
+            {
+              id: 'run-1',
+              testCycleId: 'cycle-1',
+              result: {
+                id: 'result-1',
+                status: 'failed',
+                actualResult: 'Halaman 2 kosong',
+                notes: null,
+                evidence: [],
+                evidenceLinks: [],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    m.listBugs.mockResolvedValue([]);
+    renderAt(`/tests/cases/${testCase.id}/run?subtaskId=${qaSubtask.id}`, 'qa', [
+      { userId: 'dev-9', role: 'dev', user: { name: 'Dev Sembilan', email: 'd9@x.id' } },
+      { userId: 'po-1', role: 'po', user: { name: 'PO Satu', email: 'po@x.id' } },
+    ]);
+
+    expect(await screen.findByRole('heading', { name: 'Tindak lanjut' })).toBeInTheDocument();
+    const select = screen.getByLabelText('Developer penerima');
+    expect(select).toHaveTextContent('Dev Sembilan');
+    expect(select).not.toHaveTextContent('PO Satu');
+  });
+
+  it('completes a bug retest from the run page in one write', async () => {
     m.listCycles.mockResolvedValue([cycle]);
     m.getExecutions.mockResolvedValue({
       executions: [
@@ -347,8 +398,7 @@ describe('TestCaseRunPage', () => {
         },
       ],
     });
-    m.recordResult.mockResolvedValue({ result: { id: 'res-1' } });
-    m.createRetestAttempt.mockResolvedValue({ outcome: 'verified' });
+    m.recordResult.mockResolvedValue({ result: { id: 'res-1', status: 'passed' } });
     renderAt(`/tests/cases/${testCase.id}/run?subtaskId=${qaSubtask.id}`);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Lulus' }));
@@ -358,9 +408,9 @@ describe('TestCaseRunPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tambah tautan' }));
     fireEvent.click(screen.getByRole('button', { name: 'Simpan hasil' }));
 
-    await waitFor(() =>
-      expect(m.createRetestAttempt).toHaveBeenCalledWith(ws, 'bug-9', { testResultId: 'res-1' }),
-    );
+    await waitFor(() => expect(m.recordResult).toHaveBeenCalled());
+    // The API records the Retest Attempt together with the Result (E2E-SDLC-FLOW P3).
+    expect(m.createRetestAttempt).not.toHaveBeenCalled();
     expect(m.createRun).not.toHaveBeenCalled();
   });
 
@@ -429,10 +479,18 @@ describe('TestCaseRunPage', () => {
       page: 1,
       limit: 100,
     });
+    m.getDeveloperReadiness.mockResolvedValue({
+      scope: 'feature',
+      total: 2,
+      ready: 1,
+      isReadyToTest: false,
+      pending: [{ id: 'dev-1', title: 'API', status: 'in_progress' }],
+    });
     renderAt(`/tests/cases/${testCase.id}/run?subtaskId=${qaSubtask.id}`);
     expect(
-      await screen.findByText(/Menunggu Developer: 1 dari 2 subtask siap diuji/),
+      await screen.findByText(/Menunggu Developer: 1 dari 2 subtask Developer siap diuji/),
     ).toBeInTheDocument();
+    expect(m.getDeveloperReadiness).toHaveBeenCalledWith(ws, qaSubtask.id);
     expect(screen.getByRole('button', { name: 'Simpan hasil' })).toBeDisabled();
   });
 

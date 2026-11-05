@@ -30,6 +30,7 @@ import {
 } from '../../db/repositories/workspaceMemberRepository.js';
 import type { WorkspaceMemberModel } from '../../db/models/index.js';
 import { claimableDeliveryAreas } from '../../policies/taskPolicy.js';
+import { developerReadinessFor, describeReadiness } from '../testManagement/developerReadiness.js';
 import { bugService } from '../bugs/bugService.js';
 import { evaluateQaCompletionGate } from '../releaseDecisions/qaEvidenceCompletionGate.js';
 import { iso } from '../../utils/dateUtils.js';
@@ -534,24 +535,19 @@ async function qaBuckets(
   actorId: string,
   transaction: Transaction,
 ): Promise<WorkQueueBucket[]> {
+  // E2E-SDLC-FLOW P2 (K5): QA sees only its own QA subtasks. A Feature without a QA subtask
+  // assigned to this QA never appears, so every card opens a page the QA may read.
   const tasks = await TaskModel.findAll({
     where: {
       workspaceId,
       parentTaskId: { [Op.ne]: null },
-      [Op.or]: [
-        {
-          status: 'in_review',
-          [Op.or]: [{ deliveryArea: { [Op.ne]: 'qa' } }, { assigneeId: actorId }],
-        },
-        {
-          assigneeId: actorId,
-          deliveryArea: 'qa',
-          status: { [Op.in]: ['todo', 'in_progress', 'changes_requested'] },
-        },
-      ],
+      assigneeId: actorId,
+      deliveryArea: 'qa',
+      status: { [Op.in]: ['todo', 'in_progress', 'changes_requested', 'in_review'] },
     },
     transaction,
   });
+  const readinessByQaSubtask = await developerReadinessFor(workspaceId, tasks, transaction);
   // Keep the compact queue on the exact same persisted scope as the Bug endpoint.
   // The endpoint checks origin QA ownership, the latest Resolution Event, and final Attempts.
   const bugs = await bugService.listBugs(workspaceId, actorId, { queue: 'retest' }, transaction);
@@ -609,94 +605,42 @@ async function qaBuckets(
     }
   }
 
-  // AC-3.16: subtask Developer yang siap diuji dikelompokkan menjadi satu kartu per Feature,
-  // karena subtask QA, pengujian, dan Persetujuan QA bersifat per Feature.
-  const readyDeveloperTasks = tasks.filter(
-    (task) => task.status === 'in_review' && task.deliveryArea !== 'qa',
-  );
-  const readyFeatureIds = [...new Set(readyDeveloperTasks.map((task) => task.parentTaskId!))];
-  const readyFeatures = readyFeatureIds.length
-    ? await TaskModel.findAll({
-        where: { workspaceId, id: { [Op.in]: readyFeatureIds }, parentTaskId: null },
-        transaction,
-      })
-    : [];
-  const readyFeatureById = new Map(readyFeatures.map((feature) => [feature.id, feature]));
-  const featureDeveloperTasks = readyFeatureIds.length
-    ? await TaskModel.findAll({
-        where: {
-          workspaceId,
-          parentTaskId: { [Op.in]: readyFeatureIds },
-          deliveryArea: { [Op.or]: [{ [Op.ne]: 'qa' }, { [Op.is]: null }] },
-          status: { [Op.ne]: 'canceled' },
-        },
-        transaction,
-      })
-    : [];
-  const developerTotalByFeature = new Map<string, number>();
-  for (const task of featureDeveloperTasks) {
-    developerTotalByFeature.set(
-      task.parentTaskId!,
-      (developerTotalByFeature.get(task.parentTaskId!) ?? 0) + 1,
-    );
-  }
-  const readyByFeature = new Map<string, TaskModel[]>();
-  for (const task of readyDeveloperTasks) {
-    const list = readyByFeature.get(task.parentTaskId!) ?? [];
-    list.push(task);
-    readyByFeature.set(task.parentTaskId!, list);
-  }
-  const readyFeatureItems: WorkQueueItem[] = [];
-  for (const [featureId, readyTasks] of readyByFeature) {
-    const feature = readyFeatureById.get(featureId);
-    if (!feature) continue;
-    const latest = [...readyTasks].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0];
-    const total = Math.max(developerTotalByFeature.get(featureId) ?? 0, readyTasks.length);
-    readyFeatureItems.push({
-      id: itemId('qa_test_work', 'subtask', latest.id),
-      bucketCode: 'qa_test_work',
-      subjectType: 'subtask',
-      subjectId: latest.id,
-      featureTaskId: featureId,
-      title: feature.title,
-      reason: `${readyTasks.length} dari ${total} subtask Developer siap diuji.`,
-      nextAction: nextAction('review_subtask', 'Review Subtask'),
-      status: 'in_review',
-      workState: 'actionable',
-      priority: feature.priority,
-      dueDate: feature.dueDate,
-      sourceUpdatedAt: iso(latest.updatedAt),
-    });
-  }
+  // One card per QA subtask, opening that subtask. The reason carries the Developer readiness
+  // for the Requirements it covers (ADR-041), so no separate Feature card points elsewhere.
   const testItems = [
-    ...readyFeatureItems,
-    ...tasks
-      .filter((task) => !(task.status === 'in_review' && task.deliveryArea !== 'qa'))
-      .map<WorkQueueItem>((task) => {
-        const isReview = task.status === 'in_review';
-        const action = isReview
-          ? nextAction('review_subtask', 'Review Subtask')
-          : task.status === 'changes_requested'
-            ? nextAction('resume_qa_task', 'Resume QA Task')
-            : nextAction('execute_qa_task', 'Execute QA Task');
-        return {
-          id: itemId('qa_test_work', 'subtask', task.id),
-          bucketCode: 'qa_test_work',
-          subjectType: 'subtask',
-          subjectId: task.id,
-          featureTaskId: task.parentTaskId!,
-          title: task.title,
-          reason: isReview
-            ? 'QA subtask is waiting for independent QA review.'
-            : `QA subtask is assigned to you and is ${task.status.replaceAll('_', ' ')}.`,
-          nextAction: action,
-          status: task.status,
-          workState: 'actionable',
-          priority: task.priority,
-          dueDate: task.dueDate,
-          sourceUpdatedAt: iso(task.updatedAt),
-        };
-      }),
+    ...tasks.map<WorkQueueItem>((task) => {
+      const isReview = task.status === 'in_review';
+      const action = isReview
+        ? nextAction('review_subtask', 'Review Subtask')
+        : task.status === 'changes_requested'
+          ? nextAction('resume_qa_task', 'Resume QA Task')
+          : nextAction('execute_qa_task', 'Execute QA Task');
+      return {
+        id: itemId('qa_test_work', 'subtask', task.id),
+        bucketCode: 'qa_test_work',
+        subjectType: 'subtask',
+        subjectId: task.id,
+        featureTaskId: task.parentTaskId!,
+        title: task.title,
+        reason: isReview
+          ? 'Subtask QA menunggu review.'
+          : describeReadiness(
+              readinessByQaSubtask.get(task.id) ?? {
+                scope: 'feature',
+                total: 0,
+                ready: 0,
+                isReadyToTest: false,
+                pending: [],
+              },
+            ),
+        nextAction: action,
+        status: task.status,
+        workState: 'actionable',
+        priority: task.priority,
+        dueDate: task.dueDate,
+        sourceUpdatedAt: iso(task.updatedAt),
+      };
+    }),
   ];
   const retestItems = bugs.map<WorkQueueItem>((bug) => ({
     id: itemId('qa_retest_work', 'bug', bug.id),
@@ -916,8 +860,47 @@ async function attachHandoffMessages(
   }
   const reviewByTask = new Map(reviewTasks.map((task) => [task.id, task]));
 
+  // E2E-SDLC-FLOW P2: a QA card is the QA subtask, while "ready for QA" messages are written on
+  // the Developer subtasks of the same Feature. Show the newest of those on the QA card, as a
+  // fresh thread (replies go to the QA subtask, not to another task's thread).
+  const siblingReadyByFeature = new Map<string, TaskCommentModel>();
+  if (queueRole === 'qa') {
+    const featureIds = Array.from(new Set(items.map((item) => item.featureTaskId).filter(Boolean)));
+    const siblings = featureIds.length
+      ? await TaskModel.findAll({
+          where: {
+            workspaceId,
+            parentTaskId: { [Op.in]: featureIds as string[] },
+            [Op.or]: [{ deliveryArea: { [Op.ne]: 'qa' } }, { deliveryArea: { [Op.is]: null } }],
+          },
+          attributes: ['id', 'parentTaskId'],
+          transaction,
+        })
+      : [];
+    const featureBySibling = new Map(siblings.map((task) => [task.id, task.parentTaskId!]));
+    const siblingComments = siblings.length
+      ? await TaskCommentModel.findAll({
+          where: {
+            workspaceId,
+            taskId: { [Op.in]: siblings.map((task) => task.id) },
+            handoffKind: 'ready_for_qa',
+          },
+          attributes: ['id', 'taskId', 'authorId', 'handoffKind', 'body', 'createdAt'],
+          order: [['createdAt', 'DESC']],
+          transaction,
+        })
+      : [];
+    for (const comment of siblingComments) {
+      const featureId = featureBySibling.get(comment.taskId);
+      if (featureId && !siblingReadyByFeature.has(featureId)) {
+        siblingReadyByFeature.set(featureId, comment);
+      }
+    }
+  }
+
   const userIds = new Set<string>();
   for (const comment of latestByTask.values()) userIds.add(comment.authorId);
+  for (const comment of siblingReadyByFeature.values()) userIds.add(comment.authorId);
   for (const task of reviewTasks) if (task.reviewedBy) userIds.add(task.reviewedBy);
   const users =
     userIds.size > 0
@@ -930,7 +913,20 @@ async function attachHandoffMessages(
   const nameById = new Map(users.map((user) => [user.id, user.name?.trim() || user.email]));
 
   for (const item of items) {
-    const comment = latestByTask.get(item.subjectId);
+    const own = latestByTask.get(item.subjectId);
+    const sibling = item.featureTaskId ? siblingReadyByFeature.get(item.featureTaskId) : undefined;
+    if (sibling && (!own || sibling.createdAt > own.createdAt)) {
+      item.sender = { id: sibling.authorId, name: nameById.get(sibling.authorId) || 'Anggota tim' };
+      item.lastMessage = {
+        id: sibling.id,
+        threadRootId: null,
+        body: sibling.body,
+        kind: sibling.handoffKind,
+        createdAt: iso(sibling.createdAt),
+      };
+      continue;
+    }
+    const comment = own;
     if (comment) {
       item.sender = {
         id: comment.authorId,

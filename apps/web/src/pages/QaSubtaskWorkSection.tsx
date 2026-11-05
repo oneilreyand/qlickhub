@@ -21,7 +21,8 @@ import { getAreaLabel } from '../lib/utils/featureDisplay';
 import { getTestCaseNewPath, getTestCaseRunPath } from '../lib/utils/taskRoutes';
 import { useDeveloperReadiness } from '../lib/hooks/useDeveloperReadiness';
 import { startQaSubtaskIfTodo } from '../lib/utils/startQaSubtask';
-import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
+import { selectCurrentUserId } from '../store/authSlice';
+import { selectActiveWorkspaceRole } from '../store/workspaceSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { Modal } from '../components/ui/molecules/Modal';
@@ -53,7 +54,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
   const location = useLocation();
   const dispatch = useAppDispatch();
   const currentUserId = useAppSelector(selectCurrentUserId);
-  const userRole = (useAppSelector(selectCurrentUserRole) || '').toLowerCase();
+  const userRole = (useAppSelector(selectActiveWorkspaceRole) || '').toLowerCase();
   const activeWorkspaceId = useAppSelector((state) => state.workspace.activeWorkspaceId);
 
   const [executions, setExecutions] = useState<TaskTestCaseExecution[]>([]);
@@ -78,10 +79,18 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
 
   const parentId = subtask.parentTaskId;
   const canExecute = userRole === 'qa' && subtask.assigneeId === currentUserId;
-  const readiness = useDeveloperReadiness(activeWorkspaceId ?? undefined, parentId, reloadKey);
+  const assigneeName = subtask.assigneeId ? memberName(subtask.assigneeId) : undefined;
+  const readOnlyReason = canExecute
+    ? null
+    : !subtask.assigneeId
+      ? 'Subtask QA ini belum ditugaskan. Test Case dan hasil uji diisi oleh QA yang ditugaskan.'
+      : userRole === 'qa'
+        ? `Subtask ini ditugaskan ke ${assigneeName ?? 'QA lain'}. Hanya QA yang ditugaskan yang dapat menambah Test Case dan mencatat hasil uji.`
+        : `Peran Anda di workspace ini bukan QA. Test Case dan hasil uji diisi oleh ${assigneeName ?? 'QA yang ditugaskan'}.`;
+  const readiness = useDeveloperReadiness(activeWorkspaceId ?? undefined, subtask.id, reloadKey);
   const preparing =
     readiness && readiness.total > 0 && !readiness.isReadyToTest
-      ? { ready: readiness.ready, total: readiness.total }
+      ? { ready: readiness.ready, total: readiness.total, scope: readiness.scope }
       : null;
 
   const canDeleteTestCase = useCallback(
@@ -104,6 +113,51 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
     if (!activeWorkspaceId) return;
     const started = await startQaSubtaskIfTodo(activeWorkspaceId, subtaskView, currentUserId);
     if (started) setStartedStatus(started.status);
+  };
+
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approvedIds, setApprovedIds] = useState<Set<string>>(() => new Set());
+  // QA may approve a Developer subtask in review (taskPolicy QA reviewer rule); it must be done
+  // before the QA subtask can be completed.
+  const handleApproveDeveloperWork = async (subtaskId: string) => {
+    if (!activeWorkspaceId) return;
+    setApprovingId(subtaskId);
+    try {
+      await taskService.updateTask(activeWorkspaceId, subtaskId, { status: 'done' });
+      setApprovedIds((current) => new Set(current).add(subtaskId));
+      dispatch(enqueueSnackbar('Pekerjaan Developer disetujui', 'success'));
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Subtask Developer tidak dapat disetujui.',
+          'error',
+        ),
+      );
+    } finally {
+      setApprovingId(null);
+    }
+  };
+  const handleCompleteExecution = async () => {
+    if (!activeWorkspaceId) return;
+    setIsCompleting(true);
+    try {
+      const updated = await taskService.updateTask(activeWorkspaceId, subtask.id, {
+        status: 'done',
+      });
+      setStartedStatus(updated.status);
+      dispatch(enqueueSnackbar('Eksekusi QA selesai. Catat Persetujuan QA.', 'success'));
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(
+          error instanceof Error ? error.message : 'Subtask QA tidak dapat diselesaikan.',
+          'error',
+        ),
+      );
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   const handleActivate = async (execution: TaskTestCaseExecution) => {
@@ -366,6 +420,7 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
         developerNames={developerNames}
         handoff={handoff}
         canExecute={canExecute}
+        readOnlyReason={readOnlyReason}
         preparing={preparing}
         onBack={() => navigate(returnTo, { state: returnState })}
         onOpenFeature={() => {
@@ -389,6 +444,26 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
         onActivateTestCase={(execution) => void handleActivate(execution)}
         activatingTestCaseId={activatingId}
         onImportSpreadsheet={canExecute ? () => setIsImportOpen(true) : undefined}
+        completeExecution={
+          isAssignedQa &&
+          subtaskView.status !== 'done' &&
+          workflowSummary?.qaSubtaskId === subtask.id &&
+          workflowSummary.nextAction.code === 'complete_qa_subtask'
+            ? {
+                onComplete: () => void handleCompleteExecution(),
+                isBusy: isCompleting,
+                pendingReviews: developerSubtasks
+                  .filter((item) => item.status === 'in_review' && !approvedIds.has(item.id))
+                  .map((item) => ({
+                    id: item.id,
+                    title: item.title,
+                    assigneeName: item.assigneeId ? memberName(item.assigneeId) : undefined,
+                  })),
+                onApprove: (subtaskId) => void handleApproveDeveloperWork(subtaskId),
+                approvingId,
+              }
+            : null
+        }
         signOffSlot={
           isAssignedQa && activeWorkspaceId && subtask.parentTaskId ? (
             <ReleaseAssurancePanel

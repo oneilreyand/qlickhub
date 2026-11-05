@@ -1,3 +1,4 @@
+import type { WorkspaceItem } from '../../lib/api/workspaceService';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -67,7 +68,8 @@ function renderPage(role: 'dev' | 'qa', userId: string) {
         error: null,
       },
       workspace: {
-        workspaces: [],
+        // The page authorises by the active Workspace role (E2E-SDLC-FLOW P1).
+        workspaces: [{ id: 'w1', name: 'Workspace', role } as unknown as WorkspaceItem],
         activeWorkspaceId: 'w1',
         members: [],
         isLoading: false,
@@ -203,5 +205,18 @@ describe('BugWorkPage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('location')).toHaveTextContent('/tests/cases/tc1/run'),
     );
+  });
+
+  it('offers the retest only to the QA assigned to the originating QA subtask', async () => {
+    bugMocks.getBug.mockResolvedValue({
+      ...bug,
+      status: 'resolved',
+      originatingTestResult: {
+        testRun: { build: 'b1', environment: 'staging', qaSubtaskId: 'qs1', qaAssigneeId: 'qa-1' },
+      },
+    });
+    renderPage('qa', 'qa-2');
+    expect(await screen.findByText('Total checkout salah')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mulai retest' })).not.toBeInTheDocument();
   });
 });

@@ -17,6 +17,8 @@ import {
 } from '@qlick/contracts';
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
 import { testManagementService } from './testManagementService.js';
+import { developerReadinessForOne } from './developerReadiness.js';
+import { taskService } from '../tasks/taskService.js';
 import { testCaseImportService } from './testCaseImportService.js';
 import { googleSheetImportService } from './googleSheetImportService.js';
 import { sendProblemDetails } from '../../http/problemDetails.js';
@@ -46,6 +48,33 @@ export async function getQaWorkflowSummary(req: AuthenticatedRequest, res: Respo
       req.user!.userId,
     );
     return res.status(200).json({ summary });
+  } catch (error) {
+    return sendProblemDetails(res, error);
+  }
+}
+
+/**
+ * GET /workspaces/:workspaceId/tasks/:taskId/developer-readiness (E2E-SDLC-FLOW P3, ADR-041).
+ * Readable by anyone who can read the QA subtask; the same rule gates recording a result.
+ */
+export async function getDeveloperReadiness(req: AuthenticatedRequest, res: Response) {
+  try {
+    const taskId = z.string().uuid().parse(req.params.taskId);
+    const membership = await requireActiveMember(req.params.workspaceId, req.user!.userId);
+    const task = await taskService.getTask(
+      req.params.workspaceId,
+      taskId,
+      req.user!.userId,
+      membership.role,
+    );
+    if (!task.parentTaskId || task.deliveryArea !== 'qa') {
+      throw new Error('BAD_REQUEST: Developer readiness is only available for a QA subtask.');
+    }
+    const readiness = await developerReadinessForOne(req.params.workspaceId, {
+      id: task.id,
+      parentTaskId: task.parentTaskId,
+    });
+    return res.status(200).json({ readiness });
   } catch (error) {
     return sendProblemDetails(res, error);
   }

@@ -71,6 +71,8 @@ import { evaluateQaCompletionGate } from '../releaseDecisions/qaEvidenceCompleti
 import { iso } from '../../utils/dateUtils.js';
 import { reliableNotificationOutboxService } from '../notifications/reliableNotificationOutboxService.js';
 import { featureReadinessService } from '../featureReadiness/featureReadinessService.js';
+import { developerReadinessForOne } from './developerReadiness.js';
+import { bugService } from '../bugs/bugService.js';
 
 type TestCaseWithLinks = TestCaseModel & { requirementLinks?: TestCaseRequirementModel[] };
 type EvidenceLinkWithAttachment = TestResultEvidenceModel & { attachment?: TaskAttachmentModel };
@@ -734,6 +736,19 @@ export class TestManagementService {
           'CONFLICT: A persisted Feature Readiness Baseline is required before creating a scoped Test Cycle.',
         );
       }
+      // E2E-SDLC-FLOW P3 (K3): a QA subtask has one open cycle. Older open cycles stay as history,
+      // marked superseded, so results and retests always land in the newest candidate.
+      await QaTestCycleModel.update(
+        { status: 'superseded' },
+        {
+          where: {
+            workspaceId: input.workspaceId,
+            qaSubtaskId: input.qaSubtaskId,
+            status: { [Op.in]: ['planned', 'in_progress'] },
+          },
+          transaction,
+        },
+      );
       const created = await QaTestCycleModel.create(
         {
           workspaceId: input.workspaceId,
@@ -1623,6 +1638,18 @@ export class TestManagementService {
         );
       }
 
+      // ADR-041: Pass/Fail is recorded only after the Developer work this QA subtask covers is in
+      // review or done. Enforced here, not only in the browser (E2E-SDLC-FLOW P3).
+      const readiness = await developerReadinessForOne(input.workspaceId, qaSubtask, transaction);
+      if (readiness.total > 0 && !readiness.isReadyToTest) {
+        throw new Error(
+          `CONFLICT: Developer work is not ready to test (${readiness.ready} of ${readiness.total} Developer subtasks in review or done). Waiting for: ${readiness.pending
+            .map((task) => task.title)
+            .join(', ')
+            .slice(0, 300)}.`,
+        );
+      }
+
       const baselineRequirements = await FeatureReadinessBaselineRequirementModel.findAll({
         where: { workspaceId: input.workspaceId, baselineId: cycle.readinessBaselineId },
         attributes: ['requirementId'],
@@ -1932,6 +1959,15 @@ export class TestManagementService {
       }
 
       await run.update({ status: 'completed', completedAt: executedAt }, { transaction });
+
+      if (run.retestBugId) {
+        // E2E-SDLC-FLOW P3: the Retest Attempt is part of the same write as its Result.
+        await bugService.applyRetestAttempt(
+          actorId,
+          { workspaceId: input.workspaceId, bugId: run.retestBugId, testResultId: result.id },
+          transaction,
+        );
+      }
 
       await TestCaseActivityModel.create(
         {

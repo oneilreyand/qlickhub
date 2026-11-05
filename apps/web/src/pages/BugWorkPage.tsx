@@ -8,8 +8,8 @@ import { BugWorkView, type BugResolveValues } from '../components/ui/organisms/m
 import { bugService } from '../lib/api/bugService';
 import { testManagementService } from '../lib/api/testManagementService';
 import { getTestCaseRunPath } from '../lib/utils/taskRoutes';
-import { selectCurrentUserId, selectCurrentUserRole } from '../store/authSlice';
-import { fetchMembers } from '../store/workspaceSlice';
+import { selectCurrentUserId } from '../store/authSlice';
+import { fetchMembers, selectActiveWorkspaceRole } from '../store/workspaceSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
 
@@ -31,7 +31,7 @@ export const BugWorkPage: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const currentUserId = useAppSelector(selectCurrentUserId);
-  const userRole = (useAppSelector(selectCurrentUserRole) || '').toLowerCase();
+  const userRole = (useAppSelector(selectActiveWorkspaceRole) || '').toLowerCase();
   const { activeWorkspaceId, isInitialized, members } = useAppSelector((state) => state.workspace);
   const isReady = isInitialized && Boolean(activeWorkspaceId);
 
@@ -139,7 +139,12 @@ export const BugWorkPage: React.FC = () => {
       workspaceId,
       targetBug.featureTaskId,
     );
-    const mine = cycles.filter((cycle) => cycle.ownerQaId === currentUserId);
+    const originQaSubtaskId = targetBug.originatingTestResult?.testRun.qaSubtaskId;
+    const mine = cycles.filter(
+      (cycle) =>
+        cycle.ownerQaId === currentUserId &&
+        (!originQaSubtaskId || cycle.qaSubtaskId === originQaSubtaskId),
+    );
     if (
       mine.some(
         (cycle) => cycle.candidateFingerprint === candidate && cycle.status === 'in_progress',
@@ -164,6 +169,14 @@ export const BugWorkPage: React.FC = () => {
       build: origin?.build ?? base.build,
       environment: origin?.environment ?? base.environment,
     });
+    if (mine.some((cycle) => cycle.status === 'in_progress' || cycle.status === 'planned')) {
+      dispatch(
+        enqueueSnackbar(
+          'Siklus uji baru dimulai untuk perbaikan ini; siklus sebelumnya ditandai digantikan.',
+          'info',
+        ),
+      );
+    }
   };
 
   const handleReopen = async (reason: string) => {
@@ -228,7 +241,10 @@ export const BugWorkPage: React.FC = () => {
   const canFix =
     ['dev', 'developer'].includes(userRole) &&
     Boolean(bug.assigneeId && currentUserId && bug.assigneeId === currentUserId);
-  const canRetest = userRole === 'qa';
+  // Only the QA assigned to the originating QA subtask may retest (same rule as the API).
+  const originQaAssigneeId = bug.originatingTestResult?.testRun.qaAssigneeId;
+  const canRetest =
+    userRole === 'qa' && (!originQaAssigneeId || originQaAssigneeId === currentUserId);
   const canReopen = ['qa', 'owner', 'admin'].includes(userRole);
   const lastReopen = [...activity]
     .reverse()

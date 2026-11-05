@@ -94,9 +94,16 @@ export const MyTasksPage: React.FC = () => {
           state: { returnTo: '/my-tasks' },
         });
       } catch (error) {
+        // unwrap() melempar objek error serial (bukan Error); tampilkan alasan aslinya.
+        const detail =
+          error && typeof error === 'object' && 'message' in error
+            ? String((error as { message?: unknown }).message || '')
+            : '';
         dispatch(
           enqueueSnackbar(
-            error instanceof Error ? error.message : 'Pekerjaan ini tidak dapat dibuka.',
+            detail
+              ? `Pekerjaan ini tidak dapat dibuka: ${detail}`
+              : 'Pekerjaan ini tidak dapat dibuka.',
             'error',
           ),
         );
@@ -134,14 +141,14 @@ export const MyTasksPage: React.FC = () => {
           const mine = result.tasks.filter(
             (task) => task.deliveryArea === 'qa' && task.assigneeId === currentUserId,
           );
-          const isBlocked = item.workState === 'blocked';
-          const candidates = isBlocked
-            ? mine.filter((task) => task.status !== 'done' && task.status !== 'canceled')
-            : mine
-                .filter((task) => task.status === 'done')
-                .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-          const fallback = isBlocked ? [] : mine.filter((task) => task.status !== 'canceled');
-          const target = candidates[0] ?? fallback[0];
+          // Kartu tertahan dibuat server setelah subtask QA selesai, jadi subtask yang sudah
+          // selesai juga sah sebagai tujuan; yang belum selesai didahulukan.
+          const active = mine.filter((task) => task.status !== 'canceled');
+          const open = active.filter((task) => task.status !== 'done');
+          const done = active
+            .filter((task) => task.status === 'done')
+            .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+          const target = item.workState === 'blocked' ? (open[0] ?? done[0]) : (done[0] ?? open[0]);
           if (target) {
             navigate(`/work/subtasks/${target.id}`, { state: { returnTo: '/my-tasks' } });
           } else {
@@ -162,33 +169,17 @@ export const MyTasksPage: React.FC = () => {
         }
         return;
       }
-      // Tinjau Subtask: QA menyiapkan Test Case di subtask QA miliknya pada Feature yang sama,
-      // bukan membaca halaman kerja Developer. Tanpa subtask QA aktif, halaman subtask dibuka.
-      if (item.nextAction.code === 'review_subtask' && activeWorkspaceId && currentUserId) {
-        try {
-          const result = await taskService.listSubtasks(
-            activeWorkspaceId,
-            item.featureTaskId,
-            1,
-            100,
-          );
-          const qaSubtask = result.tasks.find(
-            (task) =>
-              task.deliveryArea === 'qa' &&
-              task.assigneeId === currentUserId &&
-              task.status !== 'done' &&
-              task.status !== 'canceled',
-          );
-          if (qaSubtask) {
-            navigate(`/work/subtasks/${qaSubtask.id}`, { state: { returnTo: '/my-tasks' } });
-            return;
-          }
-        } catch {
-          // Gagal memuat subtask QA: lanjut ke tujuan bawaan di bawah.
-        }
-      }
+      // E2E-SDLC-FLOW P2: antrean hanya mengirim item yang boleh dibuka penerimanya, jadi kartu
+      // selalu membuka subjeknya sendiri; tidak ada lagi tebakan ke subtask lain.
       if (item.subjectType === 'bug') {
         navigate(getBugWorkPath(item.subjectId), { state: { returnTo: '/my-tasks' } });
+        return;
+      }
+      // E2E-SDLC-FLOW P4: Keputusan Rilis dicatat di panel rilis halaman Feature.
+      if (item.nextAction.code === 'record_release_decision') {
+        navigate(`/work/features/${item.featureTaskId ?? item.subjectId}?fokus=rilis`, {
+          state: { returnTo: '/my-tasks' },
+        });
         return;
       }
       navigate(buildWorkQueueRoute(item, location.search));

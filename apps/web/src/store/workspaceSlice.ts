@@ -1,3 +1,4 @@
+import type { RootState } from './store';
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { workspaceService, WorkspaceItem, WorkspaceMemberItem } from '../lib/api/workspaceService';
 import {
@@ -209,4 +210,15 @@ const workspaceSlice = createSlice({
 });
 
 export const { setActiveWorkspaceId, clearWorkspaceError } = workspaceSlice.actions;
+
+/**
+ * E2E-SDLC-FLOW P1: the signed-in user's role in the active Workspace. Workspace actions (Test
+ * Case, run, Bug, sign-off, subtask work) are authorised by this role on the API, so the web app
+ * uses it too. The global account role only decides who may create a Workspace.
+ */
+export const selectActiveWorkspaceRole = (state: RootState): string => {
+  const { workspaces, activeWorkspaceId } = state.workspace;
+  const active = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
+  return (active?.role || active?.myRole || '').toLowerCase();
+};
 export default workspaceSlice.reducer;
