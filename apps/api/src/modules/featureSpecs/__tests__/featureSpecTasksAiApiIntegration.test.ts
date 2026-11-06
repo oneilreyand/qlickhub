@@ -261,6 +261,8 @@ describe('Feature Spec AI Tasks service (P5d-1: AC-5.6, AC-5.7)', () => {
       body: JSON.stringify({ version: spec.version }),
     });
     assert.strictEqual(response.status, 200);
+    assert.ok(lastRequest);
+    assert.strictEqual(lastRequest.timeoutMs, 90_000);
     const responseSchema = z.object({ featureSpec: FeatureSpecSchema });
     const generated = responseSchema.parse(await response.json());
     const read = await fetch(path, { headers: { cookie } });
@@ -666,6 +668,8 @@ describe('Feature Spec AI Tasks service (P5d-1: AC-5.6, AC-5.7)', () => {
 
   test('AC-5.6: an AI answer in the wrong shape or an AI failure is reported and nothing is saved', async () => {
     const spec = await createSpec();
+    const versionsBefore = await FeatureSpecVersionModel.count({ where: { specId: spec.id } });
+    const activityBefore = await TaskActivityModel.count({ where: { taskId: spec.featureTaskId } });
     nextTasks = { subtasks: [subtask('Hanya satu')] };
     await assert.rejects(
       featureSpecAiService.generateTasks(po.id, input(spec.id, spec.version)),
@@ -678,6 +682,16 @@ describe('Feature Spec AI Tasks service (P5d-1: AC-5.6, AC-5.7)', () => {
     );
     const after = await featureSpecService.getById(workspace.id, spec.id, po.id);
     assert.strictEqual(after.version, spec.version);
+    assert.deepStrictEqual(after.tasks, spec.tasks);
+    assert.strictEqual(
+      await FeatureSpecVersionModel.count({ where: { specId: spec.id } }),
+      versionsBefore,
+    );
+    assert.strictEqual(
+      await TaskActivityModel.count({ where: { taskId: spec.featureTaskId } }),
+      activityBefore,
+    );
+    assert.strictEqual(await TaskModel.count({ where: { parentTaskId: spec.featureTaskId } }), 0);
   });
 
   test('AC-5.6: existing Tasks need replace=true; replacing keeps the old version in history', async () => {
