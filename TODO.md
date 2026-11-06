@@ -38,6 +38,14 @@ Workspace → Folder → Feature / Story (root Task)
 
 ## Active work
 
+- [ ] **Todo** (Codex — 2026-11-07) — **SUBTASK-SCHEDULE-WITHIN-FEATURE (F1): Server menolak tanggal Feature yang membuat subtask aktif keluar rentang, dan tanggal subtask di luar rentang Feature.** Siap dikerjakan (K1 rekomendasi: tolak). Rencana: [F1–F4](docs/plans/QLICKHUB_FOLLOWUP_F1_F4_PLAN.md#f1--jadwal-subtask-harus-di-dalam-rentang-feature). Policies: `SDLC-001`, `SDLC-002`, `TEST-001`.
+      Layer: PRD=Todo, BE=Todo, FE=Todo.
+- [ ] **Todo** (Codex — 2026-11-07) — **PRODUCT-BRIEF-CHANGE-CONTROL (F3): Perubahan scope Brief yang sudah disetujui wajib disetujui ulang, diberitahukan ke Developer/QA, dan membatalkan sign-off lama.** Menunggu keputusan Owner K3, K4. Rencana: [F1–F4](docs/plans/QLICKHUB_FOLLOWUP_F1_F4_PLAN.md#f3--perubahan-brief-setelah-disetujui). Policies: `SDLC-001`, `SDLC-002`, `RELEASE-001`.
+      Layer: PRD=Todo, BE=Todo, FE=Todo.
+- [ ] **Todo** (Codex — 2026-11-07) — **FEATURE-REFERENCES-MEDIA (F2): Bagian Referensi & Media di halaman Feature — banyak tautan, galeri gambar, video lewat tautan.** Menunggu keputusan Owner K2. Rencana: [F1–F4](docs/plans/QLICKHUB_FOLLOWUP_F1_F4_PLAN.md#f2--referensi--media-di-halaman-feature). Policies: `SDLC-001`, `SDLC-002`, `DATA-001`.
+      Layer: PRD=Todo, BE=Todo, FE=Todo.
+- [ ] **Todo** (Codex — 2026-11-07) — **RELEASE-UAT-DEPLOY-SMOKE (F4): Alur rilis di aplikasi setelah Keputusan Rilis — UAT staging, catat deploy, smoke test produksi, status Live.** Menunggu keputusan Owner K5–K7; butuh ADR baru. Rencana: [F1–F4](docs/plans/QLICKHUB_FOLLOWUP_F1_F4_PLAN.md#f4--alur-rilis-di-aplikasi-uat-staging-catat-deploy-smoke-test-produksi). Policies: `SDLC-001`, `SDLC-002`, `RELEASE-001`.
+      Layer: PRD=Todo, BE=Todo, FE=Todo.
 - [ ] **Blocked** (Codex — 2026-11-06) — **PRODUCTION-DATA-RESET-PRESERVE-IDENTITY-2026-11-06: Hapus data kerja Production sambil mempertahankan akun, Workspace, keanggotaan/role, specialty, izin, pengaturan, sesi login, dan metadata migrasi.** Bagian database selesai atas instruksi eksplisit `hapus`: 395 record di 58 tabel dihapus secara transaksional; readback 67 tabel membuktikan seluruh target kosong, 4 user, 1 Workspace `essential`, 3 membership, dan 80 migrasi tetap ada. Fresh Task Hub terautentikasi menampilkan 0 Feature dan tidak ada folder. Backup privat tetap disimpan; pemulihan lokal dengan 80 migrasi kanonikal, 67 fingerprint, 224 FK, dan 30 pengaturan trigger lulus. Bagian Google Drive tetap ditunda/Blocked karena identifier root Production membutuhkan verifikasi passkey Vercel yang belum dapat diselesaikan; tidak ada file provider yang dihapus. [Laporan](docs/reports/PRODUCTION_DATA_RESET_PRESERVE_IDENTITY_2026-11-06.md). Policies: `AUTH-002`, `DATA-001`, `DATA-002`, `AI-001`, `AI-013`, `TEST-001`, `DOC-003`, `DOC-004`.
       Layer: PRD=N/A, BE=N/A, FE=N/A.
 
