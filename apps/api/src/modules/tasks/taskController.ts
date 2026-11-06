@@ -3,6 +3,7 @@ import {
   TaskListQuerySchema,
   CreateTaskSchema,
   UpdateTaskSchema,
+  CompleteQaReviewSchema,
   MoveTaskSchema,
   CompleteTaskSchema,
   TaskActivityQuerySchema,
@@ -271,6 +272,25 @@ export class TaskController {
 
       const task = await taskService.updateTask(req.user!.userId, workspaceId, taskId, input);
       res.status(200).json({ data: task });
+    } catch (err) {
+      formatProblemDetails(err, res);
+    }
+  }
+
+  async completeQaReview(
+    req: AuthenticatedRequest,
+    res: Response,
+    _next: NextFunction,
+  ): Promise<void> {
+    try {
+      const input = CompleteQaReviewSchema.parse(req.body ?? {});
+      const result = await taskService.completeQaReview(
+        req.user!.userId,
+        req.params.workspaceId,
+        req.params.taskId,
+        input.approveSubtaskIds,
+      );
+      res.status(200).json({ data: result });
     } catch (err) {
       formatProblemDetails(err, res);
     }

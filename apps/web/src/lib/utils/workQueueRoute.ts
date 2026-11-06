@@ -12,6 +12,7 @@ export interface WorkQueueRouteContext {
 const actionFocusTarget: Record<WorkQueueNextActionCode, WorkQueueFocusTarget> = {
   add_requirement: null,
   complete_requirement: null,
+  approve_product_brief: null,
   record_release_decision: null,
   schedule_feature: null,
   review_timeline: null,

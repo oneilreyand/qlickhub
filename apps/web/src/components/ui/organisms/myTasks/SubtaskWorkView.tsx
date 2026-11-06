@@ -5,10 +5,13 @@ import type {
   Task,
   TaskComment,
   TaskStatus,
+  TaskTestCaseExecution,
 } from '@qlick/contracts';
 import { Button } from '../../atoms/Button';
 import { FormattedText } from '../../atoms/FormattedText';
 import { TaskDetailPageFrame } from '../taskDetail/TaskDetailPageFrame';
+import { DeveloperTestCasesSection } from './DeveloperTestCasesSection';
+import { formatQaHandoffBody } from '../../../../lib/utils/qaHandoff';
 import { formatDateRange, getAreaLabel } from '../../../../lib/utils/featureDisplay';
 
 const cardClass =
@@ -51,6 +54,9 @@ export interface SubtaskWorkViewProps {
   /** `message` is an optional handoff note for QA, saved as a `ready_for_qa` comment (P4a). */
   onSendToQa: (message?: string) => void;
   onPostComment: (body: string) => Promise<void> | void;
+  /** E2E-SDLC-FLOW P7: Test Case QA (hanya baca); `undefined` menyembunyikan bagian ini. */
+  testExecutions?: TaskTestCaseExecution[] | null;
+  testExecutionsError?: string | null;
 }
 
 /**
@@ -74,6 +80,8 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
   onStart,
   onSendToQa,
   onPostComment,
+  testExecutions,
+  testExecutionsError = null,
 }) => {
   const requirementNodes = useMemo(
     () =>
@@ -103,6 +111,9 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
   const allChecked = criteria.length === 0 || checkedCount === criteria.length;
 
   const [handoffMessage, setHandoffMessage] = useState('');
+  // E2E-SDLC-FLOW P7 (AC-14): build dan lingkungan mengisi awal form siklus uji QA.
+  const [handoffBuild, setHandoffBuild] = useState('');
+  const [handoffEnvironment, setHandoffEnvironment] = useState('');
   const [reply, setReply] = useState('');
   const [isPosting, setIsPosting] = useState(false);
   const submitReply = async () => {
@@ -188,6 +199,35 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
                 />
               </label>
             )}
+            {canSend && (
+              <div className="grid w-full grid-cols-2 gap-2 sm:w-80">
+                {(
+                  [
+                    ['Build / versi (opsional)', handoffBuild, setHandoffBuild, 'mis. web-1.4.2'],
+                    [
+                      'Lingkungan (opsional)',
+                      handoffEnvironment,
+                      setHandoffEnvironment,
+                      'mis. staging',
+                    ],
+                  ] as const
+                ).map(([label, value, setValue, placeholder]) => (
+                  <label
+                    key={label}
+                    className="flex flex-col gap-1 text-xs font-semibold text-stone-700 dark:text-stone-300"
+                  >
+                    {label}
+                    <input
+                      value={value}
+                      onChange={(event) => setValue(event.target.value)}
+                      maxLength={100}
+                      placeholder={placeholder}
+                      className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm font-normal text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-stone-700 dark:bg-[#1C1A19] dark:text-stone-100"
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
             {canStart ? (
               <Button variant="primary" isLoading={isUpdatingStatus} onClick={onStart}>
                 Mulai dikerjakan
@@ -197,7 +237,9 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
                 variant="primary"
                 isLoading={isUpdatingStatus}
                 disabled={!allChecked}
-                onClick={() => onSendToQa(handoffMessage.trim() || undefined)}
+                onClick={() =>
+                  onSendToQa(formatQaHandoffBody(handoffMessage, handoffBuild, handoffEnvironment))
+                }
               >
                 Kirim ke QA
               </Button>
@@ -286,6 +328,14 @@ export const SubtaskWorkView: React.FC<SubtaskWorkViewProps> = ({
               memverifikasi lewat Test Case.
             </p>
           </section>
+
+          {testExecutions !== undefined && (
+            <DeveloperTestCasesSection
+              requirementNodes={requirementNodes}
+              executions={testExecutions}
+              error={testExecutionsError}
+            />
+          )}
 
           <section aria-labelledby="subtask-disc" className={`${cardClass} space-y-3 p-5`}>
             <h2 id="subtask-disc" className={cardTitleClass}>

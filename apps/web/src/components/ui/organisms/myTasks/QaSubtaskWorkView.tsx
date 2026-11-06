@@ -473,15 +473,13 @@ export const QaSubtaskWorkView: React.FC<QaSubtaskWorkViewProps> = ({
                   variant="primary"
                   size="sm"
                   isLoading={completeExecution.isBusy}
-                  disabled={completeExecution.pendingReviews.length > 0}
-                  title={
-                    completeExecution.pendingReviews.length > 0
-                      ? 'Setujui dulu pekerjaan Developer di atas'
-                      : undefined
-                  }
+                  disabled={completeExecution.approvingId !== null}
                   onClick={completeExecution.onComplete}
                 >
-                  Selesaikan Eksekusi QA
+                  {/* E2E-SDLC-FLOW P7 (AC-15): satu klik, satu transaksi di server. */}
+                  {completeExecution.pendingReviews.length > 0
+                    ? 'Setujui semua & selesaikan eksekusi'
+                    : 'Selesaikan Eksekusi QA'}
                 </Button>
               </div>
             </section>

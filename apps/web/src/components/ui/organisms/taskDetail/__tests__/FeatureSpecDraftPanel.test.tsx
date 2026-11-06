@@ -72,13 +72,13 @@ describe('Feature Spec PRD/Tasks workflow (P5e)', () => {
     const spec = featureSpecFixture();
     spec.tasks.subtasks![0].requirementKeys = ['removed'];
     setup('tasks', { spec });
-    const missing = screen.getByRole('link', { name: /R1 · Simpan checkout: belum dicakup/ });
+    const missing = screen.getByRole('link', { name: /Requirement 1 · Simpan checkout: belum dicakup/ });
     expect(document.querySelector(missing.getAttribute('href')!)).not.toBeNull();
     expect(screen.getByRole('link', { name: /Requirement removed tidak ada/ })).toHaveAttribute(
       'href',
       '#tasks-subtasks-0--requirementKeys',
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Lepas tautan removed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lepas tautan requirement lama' }));
     expect(
       screen.queryByRole('link', { name: /Requirement removed tidak ada/ }),
     ).not.toBeInTheDocument();

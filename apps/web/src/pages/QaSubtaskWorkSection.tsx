@@ -138,14 +138,23 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
       setApprovingId(null);
     }
   };
-  const handleCompleteExecution = async () => {
+  // E2E-SDLC-FLOW P7 (AC-15): approving the remaining tested Developer work and completing the QA
+  // subtask is one server transaction; if the QA gate fails, no approval is kept.
+  const handleCompleteExecution = async (approveSubtaskIds: string[]) => {
     if (!activeWorkspaceId) return;
     setIsCompleting(true);
     try {
-      const updated = await taskService.updateTask(activeWorkspaceId, subtask.id, {
-        status: 'done',
+      const result = await taskService.completeQaReview(
+        activeWorkspaceId,
+        subtask.id,
+        approveSubtaskIds,
+      );
+      setApprovedIds((current) => {
+        const next = new Set(current);
+        approveSubtaskIds.forEach((id) => next.add(id));
+        return next;
       });
-      setStartedStatus(updated.status);
+      setStartedStatus(result.qaSubtask.status);
       dispatch(enqueueSnackbar('Eksekusi QA selesai. Catat Persetujuan QA.', 'success'));
       setReloadKey((key) => key + 1);
     } catch (error) {
@@ -220,6 +229,9 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
     }
     return [...seen.values()];
   }, [requirementNodes]);
+  const pendingDeveloperReviews = developerSubtasks.filter(
+    (item) => item.status === 'in_review' && !approvedIds.has(item.id),
+  );
   const developerNames = useMemo(
     () => [
       ...new Set(
@@ -450,15 +462,14 @@ export const QaSubtaskWorkSection: React.FC<QaSubtaskWorkSectionProps> = ({
           workflowSummary?.qaSubtaskId === subtask.id &&
           workflowSummary.nextAction.code === 'complete_qa_subtask'
             ? {
-                onComplete: () => void handleCompleteExecution(),
+                onComplete: () =>
+                  void handleCompleteExecution(pendingDeveloperReviews.map((item) => item.id)),
                 isBusy: isCompleting,
-                pendingReviews: developerSubtasks
-                  .filter((item) => item.status === 'in_review' && !approvedIds.has(item.id))
-                  .map((item) => ({
-                    id: item.id,
-                    title: item.title,
-                    assigneeName: item.assigneeId ? memberName(item.assigneeId) : undefined,
-                  })),
+                pendingReviews: pendingDeveloperReviews.map((item) => ({
+                  id: item.id,
+                  title: item.title,
+                  assigneeName: item.assigneeId ? memberName(item.assigneeId) : undefined,
+                })),
                 onApprove: (subtaskId) => void handleApproveDeveloperWork(subtaskId),
                 approvingId,
               }

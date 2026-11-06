@@ -218,7 +218,25 @@ export interface FeaturePrdSummaryProps {
   showBrief: boolean;
   onEditBrief: () => void;
   onManageRequirements: () => void;
+  /** E2E-SDLC-FLOW P7: QA baru bisa memulai siklus uji setelah Brief disetujui. */
+  canApproveBrief?: boolean;
+  onApproveBrief?: () => Promise<void> | void;
 }
+
+const BRIEF_STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  draft: {
+    label: 'Draft',
+    className: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300',
+  },
+  in_review: {
+    label: 'Menunggu persetujuan',
+    className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
+  },
+  approved: {
+    label: 'Disetujui',
+    className: 'bg-[#F1F9DC] text-[#3F6212] dark:bg-[#253014] dark:text-[#B1E743]',
+  },
+};
 
 export const FeaturePrdSummary: React.FC<FeaturePrdSummaryProps> = ({
   productBrief,
@@ -228,8 +246,24 @@ export const FeaturePrdSummary: React.FC<FeaturePrdSummaryProps> = ({
   showBrief,
   onEditBrief,
   onManageRequirements,
+  canApproveBrief = false,
+  onApproveBrief,
 }) => {
   const version = productBrief?.currentVersion;
+  const briefStatus = productBrief?.document?.status;
+  const statusCopy = briefStatus ? BRIEF_STATUS_LABELS[briefStatus] : undefined;
+  const [approving, setApproving] = React.useState(false);
+  const canApprove =
+    canApproveBrief && Boolean(onApproveBrief) && Boolean(version) && briefStatus !== 'approved';
+  const handleApprove = async () => {
+    if (!onApproveBrief || approving) return;
+    setApproving(true);
+    try {
+      await onApproveBrief();
+    } finally {
+      setApproving(false);
+    }
+  };
   const nodes = trace?.requirements ?? [];
 
   return (
@@ -237,11 +271,33 @@ export const FeaturePrdSummary: React.FC<FeaturePrdSummaryProps> = ({
       {showBrief && (
         <section aria-label="Product Brief" className={`${cardClass} p-5`}>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className={cardTitleClass}>Product Brief</h2>
-            <Button variant="outline" size="sm" onClick={onEditBrief}>
-              Edit
-            </Button>
+            <div className="flex items-center gap-2">
+              <h2 className={cardTitleClass}>Product Brief</h2>
+              {statusCopy && (
+                <span
+                  data-testid="product-brief-status"
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${statusCopy.className}`}
+                >
+                  {statusCopy.label}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {canApprove && (
+                <Button size="sm" onClick={() => void handleApprove()} disabled={approving}>
+                  {approving ? 'Menyetujui…' : 'Setujui Brief'}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={onEditBrief}>
+                Edit
+              </Button>
+            </div>
           </div>
+          {canApprove && (
+            <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+              QA belum bisa memulai siklus uji sampai Brief disetujui.
+            </p>
+          )}
           {briefError ? (
             <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">
               {briefError}

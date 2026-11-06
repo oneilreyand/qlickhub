@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type {
+  TaskTestCaseExecution,
   ParentTaskDeliveryTrace,
   SubtaskAcceptanceCheck,
   TaskComment,
@@ -13,6 +14,7 @@ import { SubtaskWorkView } from '../components/ui/organisms/myTasks/SubtaskWorkV
 import { useTaskWithParent } from '../lib/hooks/useTaskWithParent';
 import { taskService } from '../lib/api/taskService';
 import { traceabilityService } from '../lib/api/traceabilityService';
+import { testManagementService } from '../lib/api/testManagementService';
 import { selectCurrentUserId } from '../store/authSlice';
 import { fetchMembers, selectActiveWorkspaceRole } from '../store/workspaceSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -99,6 +101,33 @@ export const SubtaskWorkPage: React.FC = () => {
       isCurrent = false;
     };
     // Hanya dimuat ulang saat subtask berganti, bukan saat status berubah.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspaceId, task?.id, isQaSubtask]);
+
+  // E2E-SDLC-FLOW P7 (AC-13): Test Case QA sebagai patokan Developer, hanya baca.
+  const [testExecutions, setTestExecutions] = useState<TaskTestCaseExecution[] | null>(null);
+  const [testExecutionsError, setTestExecutionsError] = useState<string | null>(null);
+  useEffect(() => {
+    let isCurrent = true;
+    setTestExecutions(null);
+    setTestExecutionsError(null);
+    if (!activeWorkspaceId || !task || isQaSubtask) return undefined;
+    testManagementService
+      .getTaskTestExecutions(activeWorkspaceId, task.id)
+      .then((result) => {
+        if (isCurrent) setTestExecutions(result.executions);
+      })
+      .catch((error: unknown) => {
+        if (isCurrent) {
+          setTestExecutions([]);
+          setTestExecutionsError(
+            error instanceof Error ? error.message : 'Test Case QA tidak dapat dimuat.',
+          );
+        }
+      });
+    return () => {
+      isCurrent = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkspaceId, task?.id, isQaSubtask]);
 
@@ -290,6 +319,8 @@ export const SubtaskWorkPage: React.FC = () => {
         void changeStatus('in_review', 'Subtask dikirim ke QA untuk diverifikasi', message)
       }
       onPostComment={postComment}
+      testExecutions={testExecutions}
+      testExecutionsError={testExecutionsError}
     />
   );
 };

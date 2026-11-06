@@ -20,6 +20,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { RootState } from '../../../store/store';
 import { fetchTasks } from '../../../store/taskSlice';
 import { fetchFolderTree } from '../../../store/folderSlice';
+import { useRoleAwareWorkQueue } from '../../../lib/hooks/useRoleAwareWorkQueue';
 
 export const OverviewStoreDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -213,10 +214,13 @@ export const OverviewStoreDashboard: React.FC = () => {
   const isQA = userRole === 'qa';
   const isPO = userRole === 'po';
 
-  const myAssignedTasks = tasks.filter((t) => t.assigneeId === currentUser?.id);
-  const myPendingTasks = myAssignedTasks.filter(
-    (t) => t.status !== 'done' && t.status !== 'canceled',
-  );
+  // E2E-SDLC-FLOW P7 (AC-12): angka kartu sama dengan Tugas Saya, yaitu item antrean kerja yang
+  // perlu ditindak (tanpa "Menunggu Orang Lain" dan "Bisa Diambil"). Daftar task global di sini
+  // bisa terpotong filter/halaman sehingga tidak dipakai sebagai sumber angka.
+  const { state: workQueueState } = useRoleAwareWorkQueue(activeWorkspaceId ?? undefined);
+  const myActionableCount = (workQueueState.queue?.buckets ?? [])
+    .filter((bucket) => bucket.code !== 'waiting_on_others' && bucket.code !== 'available_to_claim')
+    .reduce((total, bucket) => total + bucket.items.length, 0);
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -652,13 +656,15 @@ export const OverviewStoreDashboard: React.FC = () => {
               <h3 className="text-sm font-bold text-stone-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-[#B1E743] transition-colors flex items-center gap-1.5">
                 <span>Tugas Saya (My Tasks)</span>
                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                  {myPendingTasks.length} Aktif
+                  {workQueueState.isLoading ? '…' : `${myActionableCount} Aktif`}
                 </span>
               </h3>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                {myPendingTasks.length > 0
-                  ? `${myPendingTasks.length} tugas menunggu pengerjaan Anda`
-                  : 'Semua tugas yang ditugaskan ke Anda sudah selesai'}
+                {workQueueState.isLoading
+                  ? 'Memuat antrean kerja…'
+                  : myActionableCount > 0
+                    ? `${myActionableCount} tugas menunggu pengerjaan Anda`
+                    : 'Semua tugas yang ditugaskan ke Anda sudah selesai'}
               </p>
             </div>
           </div>

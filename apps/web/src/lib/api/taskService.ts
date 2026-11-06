@@ -129,6 +129,19 @@ export const taskService = {
     return res.data;
   },
 
+  /** E2E-SDLC-FLOW P7: QA approves tested Developer subtasks and completes its QA subtask atomically. */
+  async completeQaReview(
+    workspaceId: string,
+    qaSubtaskId: string,
+    approveSubtaskIds: string[],
+  ): Promise<{ qaSubtask: Task; approvedSubtasks: Task[] }> {
+    const res = await apiClient<{ data: { qaSubtask: Task; approvedSubtasks: Task[] } }>(
+      `/workspaces/${workspaceId}/tasks/${qaSubtaskId}/complete-qa-review`,
+      { method: 'POST', body: JSON.stringify({ approveSubtaskIds }) },
+    );
+    return res.data;
+  },
+
   /** ADR-038: Developer/QA claims a matching open subtask; 409 when taken or changed. */
   async claimTask(
     workspaceId: string,

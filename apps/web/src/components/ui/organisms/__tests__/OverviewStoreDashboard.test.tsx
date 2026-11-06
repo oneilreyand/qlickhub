@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
@@ -12,6 +12,11 @@ import uiReducer from '../../../../store/uiSlice';
 import reportReducer from '../../../../store/reportSlice';
 import authReducer from '../../../../store/authSlice';
 import { RootState } from '../../../../store/store';
+
+const queueMock = vi.hoisted(() => ({ getRoleAwareQueue: vi.fn() }));
+vi.mock('../../../../lib/api/workQueueService', () => ({
+  workQueueService: { getRoleAwareQueue: (...a: unknown[]) => queueMock.getRoleAwareQueue(...a) },
+}));
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -36,6 +41,33 @@ const renderWithProviders = (ui: React.ReactElement, preloadedState?: Partial<Ro
 };
 
 describe('OverviewStoreDashboard', () => {
+  it('counts Tugas Saya from the work queue, without waiting or claimable items (E2E-SDLC-FLOW P7, AC-12)', async () => {
+    const items = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `item-${i}` }));
+    queueMock.getRoleAwareQueue.mockResolvedValue({
+      buckets: [
+        { code: 'needs_action', items: items(2) },
+        { code: 'in_progress', items: items(1) },
+        { code: 'waiting_on_others', items: items(4) },
+        { code: 'available_to_claim', items: items(3) },
+      ],
+    });
+    renderWithProviders(<OverviewStoreDashboard />, {
+      auth: {
+        currentUser: { id: 'usr-1', name: 'Dev User', email: 'dev@example.com', role: 'dev' },
+        isAuthenticated: true,
+        showOnboardingModal: false,
+        status: 'succeeded',
+        error: null,
+      },
+      workspace: {
+        activeWorkspaceId: 'ws-1',
+        workspaces: [],
+      } as never,
+    });
+    expect(await screen.findByText('3 Aktif')).toBeInTheDocument();
+    expect(screen.getByText('3 tugas menunggu pengerjaan Anda')).toBeInTheDocument();
+  });
+
   it('renders overview header, current month date range info, and preserves banner carousel', () => {
     renderWithProviders(<OverviewStoreDashboard />);
 

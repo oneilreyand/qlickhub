@@ -507,20 +507,24 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
             className="w-full sm:w-auto"
             onClick={openDecisionModal}
             disabled={buttonDisabled}
+            // E2E-SDLC-FLOW P7: penjelasan prasyarat hanya muncul saat tombol tidak bisa dipakai
+            // (kecuali mode tolak-saja yang memang perlu dijelaskan).
             title={
-              isSelfApproval
-                ? 'Pemberi persetujuan QA tidak dapat membuat Keputusan Rilis untuk persetujuan yang sama'
-                : mode === 'qa' && isQaWorkflowSummaryLoading
-                  ? 'Memeriksa kesiapan Persetujuan QA…'
-                  : mode === 'qa' && qaWorkflowSummaryError
-                    ? 'Kesiapan Persetujuan QA belum dapat dipastikan. Coba muat ulang.'
-                    : qaRejectOnly
-                      ? 'Persetujuan belum memenuhi syarat; Anda tetap dapat mencatat penolakan.'
-                      : mode === 'qa' && qaWorkflowSummary
-                        ? `Selesaikan langkah berikutnya terlebih dahulu: ${qaWorkflowSummary.nextAction.label}.`
-                        : mode === 'release' && !latestActiveQaSignOff
-                          ? 'Catat persetujuan QA sebelum membuat Keputusan Rilis'
-                          : undefined
+              !buttonDisabled && !qaRejectOnly
+                ? undefined
+                : isSelfApproval
+                  ? 'Pemberi persetujuan QA tidak dapat membuat Keputusan Rilis untuk persetujuan yang sama'
+                  : mode === 'qa' && isQaWorkflowSummaryLoading
+                    ? 'Memeriksa kesiapan Persetujuan QA…'
+                    : mode === 'qa' && qaWorkflowSummaryError
+                      ? 'Kesiapan Persetujuan QA belum dapat dipastikan. Coba muat ulang.'
+                      : qaRejectOnly
+                        ? 'Persetujuan belum memenuhi syarat; Anda tetap dapat mencatat penolakan.'
+                        : mode === 'qa' && qaWorkflowSummary
+                          ? `Selesaikan langkah berikutnya terlebih dahulu: ${qaWorkflowSummary.nextAction.label}.`
+                          : mode === 'release' && !latestActiveQaSignOff
+                            ? 'Catat persetujuan QA sebelum membuat Keputusan Rilis'
+                            : undefined
             }
             leftIcon={
               mode === 'qa' ? (

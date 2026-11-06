@@ -102,6 +102,7 @@ const termLabels: Record<string, string> = {
 const actionLabels: Record<string, string> = {
   add_requirement: 'Tambahkan Requirement',
   complete_requirement: 'Lengkapi Requirement',
+  approve_product_brief: 'Setujui Brief',
   record_release_decision: 'Catat Keputusan Rilis',
   schedule_feature: 'Atur Jadwal Feature',
   review_timeline: 'Tinjau Timeline',
@@ -205,6 +206,8 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
   const [bucketFilter, setBucketFilter] = useState('all');
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // E2E-SDLC-FLOW P7: "Menunggu Orang Lain" hanya informasi, jadi dilipat secara default.
+  const [waitingOpen, setWaitingOpen] = useState(false);
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
   const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
   const [historyItemId, setHistoryItemId] = useState<string | null>(null);
@@ -653,19 +656,46 @@ export const RoleAwareWorkQueuePanel: React.FC<RoleAwareWorkQueuePanelProps> = (
             const listItems = allItems.filter((item) => item.id !== startHere?.id);
             if (listItems.length === 0) return null;
             const items = isExpanded ? listItems : listItems.slice(0, SECTION_LIMIT);
+            const collapsible = bucket.code === 'waiting_on_others';
+            const isOpen = !collapsible || waitingOpen || bucketFilter === bucket.code;
+            const countLabel =
+              allItems.length === bucket.total
+                ? bucket.total
+                : `${allItems.length} dari ${bucket.total}`;
+            const listId = `work-queue-bucket-${bucket.code}`;
             return (
               <section key={bucket.code} aria-label={bucketLabels[bucket.code]}>
                 <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-stone-900 dark:text-stone-100">
-                  {bucketIcons[bucket.code]}
-                  {bucketLabels[bucket.code]}
-                  <span className="text-xs font-normal text-stone-500 dark:text-stone-400">
-                    {allItems.length === bucket.total
-                      ? bucket.total
-                      : `${allItems.length} dari ${bucket.total}`}
-                  </span>
+                  {collapsible ? (
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 rounded-md text-left hover:text-stone-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B1E743] dark:hover:text-stone-300"
+                      aria-expanded={isOpen}
+                      aria-controls={listId}
+                      onClick={() => setWaitingOpen((open) => !open)}
+                    >
+                      {bucketIcons[bucket.code]}
+                      {bucketLabels[bucket.code]}
+                      <span className="text-xs font-normal text-stone-500 dark:text-stone-400">
+                        {countLabel} · {isOpen ? 'Sembunyikan' : 'Tampilkan'}
+                      </span>
+                    </button>
+                  ) : (
+                    <>
+                      {bucketIcons[bucket.code]}
+                      {bucketLabels[bucket.code]}
+                      <span className="text-xs font-normal text-stone-500 dark:text-stone-400">
+                        {countLabel}
+                      </span>
+                    </>
+                  )}
                 </h3>
-                <div className="space-y-3">{items.map((item) => renderItemCard(item))}</div>
-                {listItems.length > SECTION_LIMIT && (
+                {isOpen && (
+                  <div id={listId} className="space-y-3">
+                    {items.map((item) => renderItemCard(item))}
+                  </div>
+                )}
+                {isOpen && listItems.length > SECTION_LIMIT && (
                   <div className="mt-2">
                     <Button
                       variant="ghost"

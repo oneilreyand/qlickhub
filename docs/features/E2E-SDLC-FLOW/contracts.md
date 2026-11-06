@@ -34,11 +34,17 @@ new_code, renamed_at)` for audit and `down`. `requirement_findings.requirement_c
 | Bug context (`BugWithContextSchema`)                                          | `originatingTestResult.testRun.qaSubtaskId` and `qaAssigneeId` (optional).                                                       |
 
 | `GET /v1/notifications` and realtime/push (`InAppNotificationSchema`) | `bugId` (optional) on Bug notifications; push `data.bugId` and link `/work/bugs/:id`. |
+| `POST /v1/workspaces/:workspaceId/tasks/:taskId/complete-qa-review` | New (P7). Route `qa`; only the QA assigned to the QA subtask. Body `CompleteQaReviewSchema` `{ approveSubtaskIds }` (Developer subtasks of the same Feature in `in_review`). One transaction: each approval uses the QA reviewer transition, then the QA subtask goes `done` through the QA completion gate; any failure rolls back all. `409` for a subtask not in review. Body `{ data: { qaSubtask, approvedSubtasks } }`. |
+| `GET /v1/workspaces/:workspaceId/my-work-queue` (P7) | Planner item `approve_product_brief` ("Setujui Brief") while the Feature's primary Product Brief is not `approved`. |
+| `GET /v1/workspaces/:workspaceId/tasks/:taskId/test-executions` (P7, existing) | Now read by the Developer work page (read-only); no API change. |
 
-Sources: `packages/contracts/src/notification.ts` (`bugId`), `packages/contracts/src/testManagement.ts` (`DeveloperReadinessSchema`),
+Sources: `packages/contracts/src/notification.ts` (`bugId`), `packages/contracts/src/task.ts` (`CompleteQaReviewSchema`), `packages/contracts/src/workQueue.ts` (`approve_product_brief`), `packages/contracts/src/testManagement.ts` (`DeveloperReadinessSchema`),
 `packages/contracts/src/bug.ts`.
 
 ## Boundary notes
+
+- P7 adds no migration. The Developer build and environment travel as labelled lines
+  (`Build:`, `Lingkungan:`) in the existing `ready_for_qa` comment (`apps/web/src/lib/utils/qaHandoff.ts`).
 
 - Backend: `developerReadiness.ts`, `testManagementService.ts`, `bugService.ts`,
   `workQueueService.ts`, `aiTaskDraftPersistence.ts`, `requirementCodes.ts`.

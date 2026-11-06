@@ -37,6 +37,7 @@ import {
 import {
   createTaskImpl,
   updateTaskImpl,
+  completeQaReviewImpl,
   moveTaskImpl,
   completeTaskImpl,
 } from './internal/taskLifecycle.js';
@@ -112,6 +113,16 @@ export class TaskService {
     input: UpdateTaskInput,
   ): Promise<Task> {
     return updateTaskImpl(actorId, workspaceId, taskId, input);
+  }
+
+  /** E2E-SDLC-FLOW P7 (AC-15): approve tested Developer subtasks and complete the QA subtask atomically. */
+  async completeQaReview(
+    actorId: string,
+    workspaceId: string,
+    qaSubtaskId: string,
+    approveSubtaskIds: string[],
+  ): Promise<{ qaSubtask: Task; approvedSubtasks: Task[] }> {
+    return completeQaReviewImpl(actorId, workspaceId, qaSubtaskId, approveSubtaskIds);
   }
 
   /**

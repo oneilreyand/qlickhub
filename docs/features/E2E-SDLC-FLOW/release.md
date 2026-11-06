@@ -24,32 +24,36 @@ editor karena tanda `$` di pola regex; versi kedua memakai `\Z` dan berhasil. Se
 | Phase | PR                                                       | Tier | File Tier 2                             | Merge commit                     | Memicu deploy Production? | Deployment ID / waktu                                             |
 | ----- | -------------------------------------------------------- | ---- | --------------------------------------- | -------------------------------- | ------------------------- | ----------------------------------------------------------------- |
 | P1–P6 | [#105](https://github.com/oneilreyand/qlickhub/pull/105) | 2    | lihat [PHASE-01](phases/PHASE-01.md) §5 | `f521444` (2026-11-05 15:54 WIB) | ya                        | Vercel otomatis dari `f521444`; health dicek 2026-11-05 08:55 UTC |
+| P7    | PR P7 (dibuat Owner)                                     | 1    | tidak ada (tanpa migrasi)               | —                                | ya                        | —                                                                 |
+
+P7 tidak membawa migrasi, ADR, atau file Tier 2 lain, jadi PR-nya Tier 1 dan tidak butuh gerbang
+migrasi Production. Setelah merge, ulang singkat di Production (P7-QA-1).
 
 ## 2. Verifikasi di environment target
 
-| AC    | Environment | Observasi / perintah                                                                                                             | Level | Hasil                                                       |
-| ----- | ----------- | -------------------------------------------------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------- |
-| —     | Production  | `GET /v1/health` → `status: ok`, database `connected`, `migrations.latest` = `20261105000096-add-notification-bug-id.cjs` (80)   | E4    | Passed                                                      |
-| AC-8  | Production  | Supabase SQL Editor: `SELECT count(*) FROM requirement_code_renames` = 5; `SequelizeMeta` sampai `20261105000096`                | E4    | Passed (data); tampilan `REQ-00x` di UI menyusul uji manual |
-| AC-10 | Production  | Backfill `bug_notifications_linked` = 0 (belum ada notifikasi Bug lama yang bisa ditautkan); klik lonceng → halaman Bug          | E4    | Menunggu uji manual                                         |
-| AC-9  | Production  | Bundle Production memuat UI baru (chunk `SubtaskWorkPage` berisi "Selesaikan Eksekusi QA"); skenario E2E manual satu Feature uji | E4    | Menunggu uji manual                                         |
+| AC    | Environment | Observasi / perintah                                                                                                                                                                                                                                                                                                                                                                                                    | Level | Hasil                                                           |
+| ----- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | --------------------------------------------------------------- |
+| —     | Production  | `GET /v1/health` → `status: ok`, database `connected`, `migrations.latest` = `20261105000096-add-notification-bug-id.cjs` (80)                                                                                                                                                                                                                                                                                          | E4    | Passed                                                          |
+| AC-8  | Production  | Supabase SQL Editor: `SELECT count(*) FROM requirement_code_renames` = 5; `SequelizeMeta` sampai `20261105000096`                                                                                                                                                                                                                                                                                                       | E4    | Passed (UI menampilkan `REQ-006` setelah Apply pada uji manual) |
+| AC-10 | Production  | Backfill `bug_notifications_linked` = 0; uji manual 2026-11-05: Developer mengklik notifikasi Bug di lonceng → `/work/bugs/:id` terbuka                                                                                                                                                                                                                                                                                 | E4    | Passed                                                          |
+| AC-9  | Production  | Uji manual 2026-11-05, Feature uji `[UJI E2E]` di Workspace essential, login bergantian: Apply (`REQ-006`) → Brief disetujui → Developer Kirim ke QA → gerbang QA 1/2 lalu 2/2 → siklus uji ditolak saat Brief draf lalu jalan → Gagal + Bug → retest Lulus (Bug `verified` satu penulisan) → setujui Developer → Selesaikan Eksekusi QA → QA Sign-off → QA tanpa panel rilis → Owner "Catat Keputusan Rilis" Disetujui | E4    | Passed                                                          |
 
 ## 3. QA sign-off dan keputusan rilis
 
-| Item               | Isi                                                                                                         |
-| ------------------ | ----------------------------------------------------------------------------------------------------------- |
-| QA sign-off        | Belum                                                                                                       |
-| Keputusan rilis PO | Belum                                                                                                       |
-| Gap yang diterima  | Uji manual Production (AC-9, AC-10) dilakukan setelah rilis; PO "Fitur Pendaftaran Pasien" menyetujui Brief |
-| Rollback plan      | Revert PR; bila perlu `down` migrasi `20261105000096` lalu `20261105000095` (kode lama dipulihkan)          |
+| Item               | Isi                                                                                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QA sign-off        | Tercatat 2026-11-05 di Production untuk Feature uji `[UJI E2E]` (alur AC-9)                                                                                       |
+| Keputusan rilis PO | Disetujui 2026-11-05 oleh reyand (Owner) dari kartu "Catat Keputusan Rilis" untuk Feature uji                                                                     |
+| Gap yang diterima  | Tidak ada untuk P1–P6. Temuan UX uji manual dikerjakan di P7 (AC-11 – AC-15). Persetujuan Brief "Fitur Pendaftaran Pasien" adalah aksi PO produk, bukan gap rilis |
+| Rollback plan      | Revert PR; bila perlu `down` migrasi `20261105000096` lalu `20261105000095` (kode lama dipulihkan)                                                                |
 
 ## 4. Metrik sukses (dari problem.md)
 
-| Metrik                                                  | Baseline | Target | Hasil setelah rilis | Kapan diukur ulang   |
-| ------------------------------------------------------- | -------- | ------ | ------------------- | -------------------- |
-| Langkah alur yang bisa lewat UI                         | 0 dari 9 | 9      | —                   | Hari rilis           |
-| Kartu Tugas Saya yang berujung 403/"tidak dapat dibuka" | ada      | 0      | —                   | Hari rilis           |
-| Retest macet                                            | mungkin  | 0      | —                   | 7 hari setelah rilis |
+| Metrik                                                  | Baseline | Target | Hasil setelah rilis       | Kapan diukur ulang   |
+| ------------------------------------------------------- | -------- | ------ | ------------------------- | -------------------- |
+| Langkah alur yang bisa lewat UI                         | 0 dari 9 | 9      | 9 (uji manual 2026-11-05) | Hari rilis           |
+| Kartu Tugas Saya yang berujung 403/"tidak dapat dibuka" | ada      | 0      | 0 (uji manual 2026-11-05) | Hari rilis           |
+| Retest macet                                            | mungkin  | 0      | —                         | 7 hari setelah rilis |
 
 ## 5. Checklist penutupan
 
@@ -58,4 +62,4 @@ editor karena tanda `$` di pola regex; versi kedua memakai `\Z` dan berhasil. Se
 - [x] `docs/features/FEATURE_CATALOG.md` diperbarui
 - [x] SSoT/ADR terdampak sudah sesuai implementasi (ADR-041, Workflow §5–§6, `QA-010`)
 - [ ] `TODO.md` → Done dan dipindah ke arsip
-- [ ] Follow-up/Bug tertaut, tidak dibiarkan di catatan bebas
+- [x] Follow-up/Bug tertaut, tidak dibiarkan di catatan bebas (temuan UX → P7 di [breakdown.md](breakdown.md))
