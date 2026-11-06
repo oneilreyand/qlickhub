@@ -92,4 +92,4 @@ rilis PO atas Feature ini; keduanya butuh Owner/PO.
 
 ## TODO update
 
-E2E-SDLC-FLOW tetap In progress sampai P7 dirilis dan diulang singkat di Production.
+E2E-SDLC-FLOW Done 2026-11-06: P7 dirilis lewat PR #107 dan diulang singkat di Production (AC-11 – AC-13 lulus); item dipindah ke [arsip TODO 2026-11-06](../archive/TODO_COMPLETED_2026-11-06.md).

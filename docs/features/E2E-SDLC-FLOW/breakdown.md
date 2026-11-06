@@ -29,15 +29,15 @@ flowchart LR
     P6 --> P7["P7 UX lanjutan + Test Case untuk Developer<br/>AC-11 – AC-15"]
 ```
 
-| Phase | Tujuan (hasil yang bisa dilihat user)                                                                                             | AC            | WRA  | Bergantung pada | Status          |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---- | --------------- | --------------- |
-| P1    | Tombol mengikuti role Workspace; tombol terkunci punya alasan                                                                     | AC-1          | 4/16 | —               | Kandidat teruji |
-| P2    | Kartu QA per subtask QA dengan kesiapan dari server; gerbang Test Run                                                             | AC-2, AC-3    | 7/16 | P1              | Kandidat teruji |
-| P3    | Retest satu transaksi, satu siklus terbuka, Bug ke Developer yang benar                                                           | AC-4–AC-6     | 8/16 | P2              | Kandidat teruji |
-| P4    | PO mencatat Keputusan Rilis dari halaman Feature                                                                                  | AC-7          | 5/16 | P1              | Kandidat teruji |
-| P5    | Kode `REQ-001`, Brief disetujui di Feature, QA menutup eksekusi, E2E                                                              | AC-8, AC-9    | 8/16 | P1–P4           | Kandidat teruji |
-| P6    | Notifikasi Bug (lonceng dan push) membuka halaman Bug                                                                             | AC-10         | 5/16 | P5              | Kandidat teruji |
-| P7    | Kartu dan tombol Setujui Brief, angka Tugas Saya, Test Case untuk Developer, build dari serah-terima, setujui + selesaikan atomik | AC-11 – AC-15 | 7/16 | P1–P6           | Kandidat teruji |
+| Phase | Tujuan (hasil yang bisa dilihat user)                                                                                             | AC            | WRA  | Bergantung pada | Status            |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---- | --------------- | ----------------- |
+| P1    | Tombol mengikuti role Workspace; tombol terkunci punya alasan                                                                     | AC-1          | 4/16 | —               | Kandidat teruji   |
+| P2    | Kartu QA per subtask QA dengan kesiapan dari server; gerbang Test Run                                                             | AC-2, AC-3    | 7/16 | P1              | Kandidat teruji   |
+| P3    | Retest satu transaksi, satu siklus terbuka, Bug ke Developer yang benar                                                           | AC-4–AC-6     | 8/16 | P2              | Kandidat teruji   |
+| P4    | PO mencatat Keputusan Rilis dari halaman Feature                                                                                  | AC-7          | 5/16 | P1              | Kandidat teruji   |
+| P5    | Kode `REQ-001`, Brief disetujui di Feature, QA menutup eksekusi, E2E                                                              | AC-8, AC-9    | 8/16 | P1–P4           | Kandidat teruji   |
+| P6    | Notifikasi Bug (lonceng dan push) membuka halaman Bug                                                                             | AC-10         | 5/16 | P5              | Kandidat teruji   |
+| P7    | Kartu dan tombol Setujui Brief, angka Tugas Saya, Test Case untuk Developer, build dari serah-terima, setujui + selesaikan atomik | AC-11 – AC-15 | 7/16 | P1–P6           | Dirilis (PR #107) |
 
 ## 2. Task per phase
 

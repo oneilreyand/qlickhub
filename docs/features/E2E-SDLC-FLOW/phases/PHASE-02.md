@@ -40,5 +40,5 @@ Hasil lengkap di [testing.md](../testing.md) §2.
 
 ## 5. Hasil
 
-- PR: dibuat Owner dari `feat/e2e-sdlc-flow-p7` — Tier 1 (tidak ada migrasi, ADR, SSoT, Policy Registry, atau `quality/**`).
+- PR: [#107](https://github.com/oneilreyand/qlickhub/pull/107), di-merge Owner 2026-11-06 (`eaac5a0`) — Tier 1 (tidak ada migrasi, ADR, SSoT, Policy Registry, atau `quality/**`).
 - Lanjut ke [testing.md](../testing.md) untuk tahap 5.
