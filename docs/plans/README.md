@@ -23,3 +23,6 @@ Small changes on the Quick path use the [Quick Card template](QUICK_CARD_TEMPLAT
 Rencana [Qlick Hub Product MCP](../features/QLICKHUB-PRODUCT-MCP/README.md) mencatat grooming
 Owner/PO di agent, konfirmasi publish langsung di agent, serta target setup Codex, Claude, dan
 Antigravity. OAuth provider, ADR/SSoT Apply, dan breakdown implementasi masih menunggu keputusan.
+
+Aktif: [Rencana lanjutan F1–F4](QLICKHUB_FOLLOWUP_F1_F4_PLAN.md) — jadwal subtask, referensi & media,
+perubahan Brief, dan alur rilis (2026-11-07).
