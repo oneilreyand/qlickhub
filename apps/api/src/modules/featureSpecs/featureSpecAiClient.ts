@@ -13,6 +13,8 @@ export interface FeatureSpecAiRequest {
   prompt: string;
   /** Gemini response schema (OpenAPI subset) so the model returns JSON of the expected shape. */
   responseSchema: Record<string, unknown>;
+  /** Server-selected budget; callers without an override retain the 30-second deadline. */
+  timeoutMs?: number;
 }
 
 /** Narrow port so tests can inject a fake instead of calling Gemini. */
@@ -43,7 +45,7 @@ export class GeminiFeatureSpecAiClient implements FeatureSpecAiClient {
             temperature: 0.3,
           },
         }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(request.timeoutMs ?? REQUEST_TIMEOUT_MS),
       });
     } catch {
       throw new FeatureSpecAiUnavailableError('The AI service did not respond. Try again.');
