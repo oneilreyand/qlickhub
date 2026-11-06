@@ -16,6 +16,9 @@ flowchart LR
 
 ## Pilih Jalur Anda
 
+Untuk rencana grooming Owner/PO melalui agent dan publish ke aplikasi, buka
+[Qlick Hub Product MCP](QLICKHUB-PRODUCT-MCP/README.md) (Draft, belum diimplementasikan).
+
 | Jika ingin…                          | Buka                                                                                           | Hasilnya                                                                          |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | Melihat seluruh Feature saat ini     | [Feature Catalog](FEATURE_CATALOG.md)                                                          | Daftar 33 Feature, kelompok produk, status, tujuan, dan pembaca utama.            |
