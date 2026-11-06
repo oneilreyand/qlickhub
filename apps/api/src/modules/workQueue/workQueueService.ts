@@ -12,6 +12,8 @@ import type {
 import { RoleAwareWorkQueueSchema } from '@qlick/contracts';
 import { sequelize } from '../../db/sequelize.js';
 import {
+  QaDocumentModel,
+  TaskDocumentModel,
   BugModel,
   QaTestCycleModel,
   QaSignOffCancellationModel,
@@ -258,6 +260,21 @@ async function plannerBuckets(
         )
       : new Set<string>();
 
+  // E2E-SDLC-FLOW P7: a Feature with Requirements but an unapproved Product Brief blocks QA.
+  const briefLinks = await TaskDocumentModel.findAll({
+    where: { workspaceId, taskId: { [Op.in]: featureIds }, linkType: 'primary_prd' },
+    include: [{ model: QaDocumentModel, as: 'document', attributes: ['status', 'docType'] }],
+    transaction,
+  });
+  const unapprovedBriefFeatureIds = new Set(
+    briefLinks
+      .filter((link) => {
+        const document = (link as TaskDocumentModel & { document?: QaDocumentModel }).document;
+        return document?.docType === 'product_brief' && document.status !== 'approved';
+      })
+      .map((link) => link.taskId),
+  );
+
   const requirementItems: WorkQueueItem[] = [];
   const releaseItems: WorkQueueItem[] = [];
   const timelineItems: WorkQueueItem[] = [];
@@ -283,6 +300,22 @@ async function plannerBuckets(
         nextAction: noRequirements
           ? nextAction('add_requirement', 'Add Requirement')
           : nextAction('complete_requirement', 'Complete Requirement'),
+        status: feature.status,
+        workState: 'actionable',
+        priority: feature.priority,
+        dueDate: feature.dueDate,
+        sourceUpdatedAt: iso(feature.updatedAt),
+      });
+    } else if (unapprovedBriefFeatureIds.has(feature.id)) {
+      requirementItems.push({
+        id: itemId('po_requirement_work', 'feature', feature.id),
+        bucketCode: 'po_requirement_work',
+        subjectType: 'feature',
+        subjectId: feature.id,
+        featureTaskId: feature.id,
+        title: feature.title,
+        reason: 'Brief Produk belum disetujui; QA belum bisa memulai siklus uji.',
+        nextAction: nextAction('approve_product_brief', 'Setujui Brief'),
         status: feature.status,
         workState: 'actionable',
         priority: feature.priority,

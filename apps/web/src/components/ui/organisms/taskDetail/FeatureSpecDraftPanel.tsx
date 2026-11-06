@@ -25,6 +25,19 @@ interface Props {
   onDirtyChange: (dirty: boolean) => void;
 }
 
+/** E2E-SDLC-FLOW P7: kunci draf (`R-…`) internal; pengguna melihat nomor dan judul requirement. */
+function requirementLabelsFor(
+  requirements: Array<{ key: string; title?: string | null }>,
+  keys: string[] | undefined,
+) {
+  return (keys ?? [])
+    .map((key) => {
+      const index = requirements.findIndex((requirement) => requirement.key === key);
+      return index < 0 ? 'Requirement lama' : `Requirement ${index + 1}`;
+    })
+    .join(', ');
+}
+
 /** Stage orchestration; repeated presentation stays in editors/checklist and API work in the hook. */
 export function FeatureSpecDraftPanel({
   spec,
@@ -67,8 +80,7 @@ export function FeatureSpecDraftPanel({
   const targets: Record<string, string> = {};
   (spec.prd.requirements ?? []).forEach((requirement, index) => {
     const path = `tasks.coverage.requirements[${index}]`;
-    labels[path] =
-      `${requirement.key} · ${requirement.title ?? 'Requirement'}: belum dicakup subtask`;
+    labels[path] = `Requirement ${index + 1} · ${requirement.title ?? ''}: belum dicakup subtask`;
     targets[path] = tasks.subtasks?.length ? 'tasks-subtasks-0--requirementKeys' : 'tasks-subtasks';
   });
   (prd.requirements ?? []).forEach((requirement, index) => {
@@ -276,7 +288,7 @@ export function FeatureSpecDraftPanel({
                       ? 'Terbuka untuk diambil'
                       : (members.find((member) => member.userId === row.assigneeId)?.user?.name ??
                         'Penanggung jawab tersimpan')}{' '}
-                    · {row.requirementKeys?.join(', ')}
+                    · {requirementLabelsFor(spec.prd.requirements ?? [], row.requirementKeys)}
                   </p>
                 </li>
               ))}

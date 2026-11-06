@@ -81,6 +81,11 @@ taskRoutes.post(
   requireWorkspaceMember(['owner', 'admin', 'po', 'dev', 'qa']),
   (req, res, next) => taskController.completeTask(req, res, next),
 );
+// E2E-SDLC-FLOW P7 (AC-15): QA approve + complete in one transaction; the service checks the
+// assigned QA, the QA reviewer transition, and the QA completion gate.
+taskRoutes.post('/:taskId/complete-qa-review', requireWorkspaceMember(['qa']), (req, res, next) =>
+  taskController.completeQaReview(req, res, next),
+);
 
 // ADR-038 (P5g-2): claim is Developer/QA only; release and reassign are Planner only.
 // The route guard narrows roles; taskAssignment enforces area, specialty, and state.

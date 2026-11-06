@@ -176,6 +176,13 @@ export const MyTasksPage: React.FC = () => {
         return;
       }
       // E2E-SDLC-FLOW P4: Keputusan Rilis dicatat di panel rilis halaman Feature.
+      // E2E-SDLC-FLOW P7: Brief disetujui di tahap PRD halaman Feature.
+      if (item.nextAction.code === 'approve_product_brief') {
+        navigate(`/work/features/${item.featureTaskId ?? item.subjectId}?tahap=prd`, {
+          state: { returnTo: '/my-tasks' },
+        });
+        return;
+      }
       if (item.nextAction.code === 'record_release_decision') {
         navigate(`/work/features/${item.featureTaskId ?? item.subjectId}?fokus=rilis`, {
           state: { returnTo: '/my-tasks' },

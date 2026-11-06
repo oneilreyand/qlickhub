@@ -64,8 +64,64 @@ const brief = {
     outScope: [{ id: 'b', text: 'Drag & drop kartu' }],
   },
 } as never;
+/** Brief with a document status, for the P7 approve action. */
+const briefWithStatus = (status: string) =>
+  ({
+    ...(brief as object),
+    document: { title: 'Brief', status },
+  }) as never;
 
 describe('FeaturePrdSummary', () => {
+  it('shows the Brief status and lets a planner approve a draft Brief (E2E-SDLC-FLOW P7, AC-11)', async () => {
+    const onApproveBrief = vi.fn().mockResolvedValue(undefined);
+    const draft = briefWithStatus('draft');
+    const { rerender } = render(
+      <FeaturePrdSummary
+        productBrief={draft}
+        trace={trace}
+        showBrief
+        onEditBrief={vi.fn()}
+        onManageRequirements={vi.fn()}
+        canApproveBrief
+        onApproveBrief={onApproveBrief}
+      />,
+    );
+    expect(screen.getByTestId('product-brief-status')).toHaveTextContent('Draft');
+    expect(screen.getByText(/QA belum bisa memulai siklus uji/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Setujui Brief' }));
+    expect(onApproveBrief).toHaveBeenCalledTimes(1);
+
+    const approved = briefWithStatus('approved');
+    rerender(
+      <FeaturePrdSummary
+        productBrief={approved}
+        trace={trace}
+        showBrief
+        onEditBrief={vi.fn()}
+        onManageRequirements={vi.fn()}
+        canApproveBrief
+        onApproveBrief={onApproveBrief}
+      />,
+    );
+    expect(screen.getByTestId('product-brief-status')).toHaveTextContent('Disetujui');
+    expect(screen.queryByRole('button', { name: 'Setujui Brief' })).not.toBeInTheDocument();
+  });
+
+  it('hides the approve action from non-planners', () => {
+    render(
+      <FeaturePrdSummary
+        productBrief={briefWithStatus('draft')}
+        trace={trace}
+        showBrief
+        onEditBrief={vi.fn()}
+        onManageRequirements={vi.fn()}
+        canApproveBrief={false}
+        onApproveBrief={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Setujui Brief' })).not.toBeInTheDocument();
+  });
+
   it('menampilkan brief, scope, dan REQ → AC dari jejak delivery', () => {
     const onEditBrief = vi.fn();
     const onManage = vi.fn();

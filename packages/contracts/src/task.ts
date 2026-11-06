@@ -315,6 +315,16 @@ export const CompleteTaskSchema = z.object({
 export type CompleteTaskInput = z.infer<typeof CompleteTaskSchema>;
 
 /**
+ * E2E-SDLC-FLOW P7 (AC-15): QA approves the Developer subtasks in review that it tested and
+ * completes its QA subtask in one transaction.
+ */
+export const CompleteQaReviewSchema = z.object({
+  approveSubtaskIds: z.array(z.string().uuid()).max(100).default([]),
+});
+
+export type CompleteQaReviewInput = z.infer<typeof CompleteQaReviewSchema>;
+
+/**
  * Task query and date filter parameters.
  */
 export const TaskListQuerySchema = z

@@ -79,9 +79,7 @@ export function FeatureSpecPrdEditor({
           disabled={disabled}
           className="space-y-4 rounded-xl border border-stone-200 p-4 dark:border-stone-700"
         >
-          <legend className="px-1 font-semibold">
-            Requirement {index + 1} · {row.key}
-          </legend>
+          <legend className="px-1 font-semibold">Requirement {index + 1}</legend>
           <Input
             id={`prd-requirements-${index}--title`}
             label="Judul Requirement · Wajib"

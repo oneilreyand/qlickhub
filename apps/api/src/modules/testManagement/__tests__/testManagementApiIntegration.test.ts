@@ -1286,6 +1286,59 @@ describe('Canonical Test Management HTTP API Integration Tests (AGY-3.1)', () =>
     }
   });
 
+  test('complete-qa-review approves and completes atomically, rolling back on a failed gate (E2E-SDLC-FLOW P7)', async () => {
+    const inReview = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: task.id,
+      deliveryArea: 'frontend',
+      title: 'Atomic review screen',
+      priority: 'high',
+      status: 'in_review',
+      reporterId: po.id,
+      assigneeId: dev.id,
+    });
+    const stillWorking = await TaskModel.create({
+      workspaceId: workspaceA.id,
+      parentTaskId: task.id,
+      deliveryArea: 'backend',
+      title: 'Atomic review API',
+      priority: 'high',
+      status: 'in_progress',
+      reporterId: po.id,
+      assigneeId: dev.id,
+    });
+    const url = `${baseUrl}/workspaces/${workspaceA.id}/tasks/${qaSubtask.id}/complete-qa-review`;
+    const post = (cookie: string, approveSubtaskIds: string[]) =>
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify({ approveSubtaskIds }),
+      });
+    try {
+      // Only QA may call it.
+      assert.strictEqual((await post(devCookie, [inReview.id])).status, 403);
+
+      // A subtask that is not in review cannot be approved; nothing changes.
+      const notInReview = await post(qaCookie, [inReview.id, stillWorking.id]);
+      assert.strictEqual(notInReview.status, 409);
+      await inReview.reload();
+      assert.strictEqual(inReview.status, 'in_review');
+
+      // The QA completion gate fails (Developer work still in progress): the approval rolls back.
+      const gateFails = await post(qaCookie, [inReview.id]);
+      assert.ok(gateFails.status >= 400 && gateFails.status < 500, `status ${gateFails.status}`);
+      await inReview.reload();
+      await qaSubtask.reload();
+      assert.strictEqual(inReview.status, 'in_review');
+      assert.notStrictEqual(qaSubtask.status, 'done');
+    } finally {
+      await TaskModel.destroy({
+        where: { id: [inReview.id, stillWorking.id] },
+        force: true,
+      } as never);
+    }
+  });
+
   test('a new QA cycle supersedes the older open cycle of the same QA subtask (E2E-SDLC-FLOW K3)', async () => {
     const older = await createScopedCycle('checkout-web-k3-1', 'commit:k3-1');
     const newer = await createScopedCycle('checkout-web-k3-2', 'commit:k3-2');

@@ -212,6 +212,7 @@ describe('RoleAwareWorkQueuePanel "Mulai dari sini" dan "Menunggu orang lain" (A
     );
 
     const waiting = screen.getByRole('region', { name: 'Menunggu Orang Lain' });
+    fireEvent.click(within(waiting).getByRole('button', { expanded: false }));
     expect(within(waiting).getByText('Fitur laporan')).toBeInTheDocument();
     expect(within(waiting).getByText('Menunggu Developer')).toBeInTheDocument();
     expect(
@@ -248,6 +249,7 @@ describe('RoleAwareWorkQueuePanel "Mulai dari sini" dan "Menunggu orang lain" (A
     );
 
     const waiting = screen.getByRole('region', { name: 'Menunggu Orang Lain' });
+    fireEvent.click(within(waiting).getByRole('button', { expanded: false }));
     expect(within(waiting).getByText('Form pembayaran')).toBeInTheDocument();
     expect(within(waiting).getByText('Menunggu QA')).toBeInTheDocument();
     expect(

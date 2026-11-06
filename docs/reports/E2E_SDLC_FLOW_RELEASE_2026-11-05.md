@@ -81,7 +81,7 @@ identik dengan migrasi kanonis), lalu berhasil di Production.
 
 ## Risks or follow-up
 
-1. Uji manual Production satu putaran (AC-9, AC-10), lalu QA sign-off dan Keputusan Rilis PO di release.md.
+1. Selesai 2026-11-05: uji manual Production satu putaran (AC-9, AC-10) lulus; QA sign-off dan Keputusan Rilis Feature uji tercatat (release.md). Temuan UX dikerjakan di P7 (AC-11 – AC-15).
 2. PO "Fitur Pendaftaran Pasien" mengubah Status Brief Produk menjadi Disetujui.
 3. Gerbang migrasi CI bekerja (menahan merge sampai Production siap); tetap manual di sisi penerapan.
 
@@ -92,4 +92,4 @@ rilis PO atas Feature ini; keduanya butuh Owner/PO.
 
 ## TODO update
 
-E2E-SDLC-FLOW tetap In progress sampai uji manual Production selesai.
+E2E-SDLC-FLOW tetap In progress sampai P7 dirilis dan diulang singkat di Production.

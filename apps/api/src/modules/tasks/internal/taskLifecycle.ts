@@ -526,298 +526,384 @@ export async function createTaskImpl(actorId: string, input: CreateTaskInput): P
 // Update task
 // ---------------------------------------------------------------------------
 
+type TaskUpdateResult = Awaited<ReturnType<typeof updateTaskInTransaction>>;
+
 export async function updateTaskImpl(
   actorId: string,
   workspaceId: string,
   taskId: string,
   input: UpdateTaskInput,
 ): Promise<Task> {
-  const updatedResult = await sequelize.transaction(async (transaction) => {
-    const task = await TaskModel.findOne({
-      where: { id: taskId, workspaceId },
+  const updatedResult = await sequelize.transaction((transaction) =>
+    updateTaskInTransaction(actorId, workspaceId, taskId, input, transaction),
+  );
+  await notifyTaskUpdated(actorId, workspaceId, updatedResult);
+  return updatedResult.formatted;
+}
+
+/**
+ * E2E-SDLC-FLOW P7 (AC-15): QA approves the Developer subtasks it tested and completes its QA
+ * subtask in one transaction. Every step uses the same rules as a single update (QA reviewer
+ * transition, QA completion gate), so a failing step rolls back the approvals as well.
+ */
+export async function completeQaReviewImpl(
+  actorId: string,
+  workspaceId: string,
+  qaSubtaskId: string,
+  approveSubtaskIds: string[],
+): Promise<{ qaSubtask: Task; approvedSubtasks: Task[] }> {
+  const results = await sequelize.transaction(async (transaction) => {
+    const qaSubtask = await TaskModel.findOne({
+      where: { id: qaSubtaskId, workspaceId },
       transaction,
     });
-
-    if (!task) {
-      throw new Error('NOT_FOUND: Task not found in this workspace.');
+    if (!qaSubtask || !qaSubtask.parentTaskId || qaSubtask.deliveryArea !== 'qa') {
+      throw new Error('NOT_FOUND: QA subtask not found in this workspace.');
     }
-
-    const membership = await getActorMembership(workspaceId, actorId, transaction);
-    assertCanMutateTask(
-      membership.role,
-      actorId,
-      {
-        parentTaskId: task.parentTaskId,
-        assigneeId: task.assigneeId,
-        status: task.status,
-        deliveryArea: task.deliveryArea,
-      },
-      input,
-    );
-
-    if (input.parentTaskId !== undefined && input.parentTaskId !== task.parentTaskId) {
-      throw new Error('BAD_REQUEST: A task parent cannot be changed after creation.');
+    if (qaSubtask.assigneeId !== actorId) {
+      throw new Error('FORBIDDEN: Only the QA assigned to this subtask can complete it.');
     }
-
-    if (!task.parentTaskId && input.deliveryArea !== undefined) {
-      throw new Error('BAD_REQUEST: Delivery area is allowed only for subtasks.');
-    }
-
-    if (task.parentTaskId && input.deliveryArea === null) {
-      throw new Error('BAD_REQUEST: Delivery area is required for subtasks.');
-    }
-
-    const changes: Record<string, { old: any; new: any }> = {};
-    let requiresSubtaskFolderMove = false;
-
-    if (input.folderId !== undefined && input.folderId !== task.folderId) {
-      if (task.parentTaskId) {
+    const uniqueIds = [...new Set(approveSubtaskIds)];
+    const approved: TaskUpdateResult[] = [];
+    for (const subtaskId of uniqueIds) {
+      const developerSubtask = await TaskModel.findOne({
+        where: { id: subtaskId, workspaceId, parentTaskId: qaSubtask.parentTaskId },
+        transaction,
+      });
+      if (
+        !developerSubtask ||
+        developerSubtask.deliveryArea === 'qa' ||
+        developerSubtask.status !== 'in_review'
+      ) {
         throw new Error(
-          'BAD_REQUEST: Subtask folder cannot be modified directly; move the parent task instead.',
+          'CONFLICT: Only Developer subtasks of this Feature that are in review can be approved.',
+        );
+      }
+      approved.push(
+        await updateTaskInTransaction(
+          actorId,
+          workspaceId,
+          subtaskId,
+          { status: 'done' },
+          transaction,
+        ),
+      );
+    }
+    const completed = await updateTaskInTransaction(
+      actorId,
+      workspaceId,
+      qaSubtaskId,
+      { status: 'done' },
+      transaction,
+    );
+    return { approved, completed };
+  });
+  for (const result of [...results.approved, results.completed]) {
+    await notifyTaskUpdated(actorId, workspaceId, result);
+  }
+  return {
+    qaSubtask: results.completed.formatted,
+    approvedSubtasks: results.approved.map((result) => result.formatted),
+  };
+}
+
+async function updateTaskInTransaction(
+  actorId: string,
+  workspaceId: string,
+  taskId: string,
+  input: UpdateTaskInput,
+  transaction: Transaction,
+) {
+  const task = await TaskModel.findOne({
+    where: { id: taskId, workspaceId },
+    transaction,
+  });
+
+  if (!task) {
+    throw new Error('NOT_FOUND: Task not found in this workspace.');
+  }
+
+  const membership = await getActorMembership(workspaceId, actorId, transaction);
+  assertCanMutateTask(
+    membership.role,
+    actorId,
+    {
+      parentTaskId: task.parentTaskId,
+      assigneeId: task.assigneeId,
+      status: task.status,
+      deliveryArea: task.deliveryArea,
+    },
+    input,
+  );
+
+  if (input.parentTaskId !== undefined && input.parentTaskId !== task.parentTaskId) {
+    throw new Error('BAD_REQUEST: A task parent cannot be changed after creation.');
+  }
+
+  if (!task.parentTaskId && input.deliveryArea !== undefined) {
+    throw new Error('BAD_REQUEST: Delivery area is allowed only for subtasks.');
+  }
+
+  if (task.parentTaskId && input.deliveryArea === null) {
+    throw new Error('BAD_REQUEST: Delivery area is required for subtasks.');
+  }
+
+  const changes: Record<string, { old: any; new: any }> = {};
+  let requiresSubtaskFolderMove = false;
+
+  if (input.folderId !== undefined && input.folderId !== task.folderId) {
+    if (task.parentTaskId) {
+      throw new Error(
+        'BAD_REQUEST: Subtask folder cannot be modified directly; move the parent task instead.',
+      );
+    }
+
+    if (input.folderId !== null) {
+      const folder = await WorkFolderModel.findOne({
+        where: { id: input.folderId, workspaceId },
+        transaction,
+      });
+
+      if (!folder) {
+        throw new Error('NOT_FOUND: Target folder not found in this workspace.');
+      }
+
+      if (folder.archivedAt !== null) {
+        throw new Error('BAD_REQUEST: Cannot move task into an archived folder.');
+      }
+    }
+    changes['folderId'] = { old: task.folderId, new: input.folderId };
+    task.folderId = input.folderId;
+    requiresSubtaskFolderMove = true;
+  }
+
+  if (input.title !== undefined && input.title !== task.title) {
+    changes['title'] = { old: task.title, new: input.title };
+    task.title = input.title;
+  }
+
+  if (input.description !== undefined && input.description !== task.description) {
+    changes['description'] = { old: task.description, new: input.description };
+    task.description = input.description;
+  }
+
+  if (input.deliveryArea !== undefined && input.deliveryArea !== task.deliveryArea) {
+    changes['deliveryArea'] = { old: task.deliveryArea, new: input.deliveryArea };
+    task.deliveryArea = input.deliveryArea;
+  }
+
+  if (input.priority !== undefined && input.priority !== task.priority) {
+    changes['priority'] = { old: task.priority, new: input.priority };
+    task.priority = input.priority;
+  }
+
+  let roleCheckResult: {
+    isMismatch: boolean;
+    assigneeRole?: string;
+    assigneeSpecialties?: DeveloperSpecialty[];
+  } = { isMismatch: false };
+  if (!task.parentTaskId) {
+    if (task.assigneeId !== null) {
+      task.assigneeId = null;
+    }
+  } else if (
+    (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) ||
+    (input.deliveryArea !== undefined && input.deliveryArea !== changes['deliveryArea']?.old)
+  ) {
+    const nextAssigneeId = input.assigneeId !== undefined ? input.assigneeId : task.assigneeId;
+    await assertAssigneeBelongsToWorkspace(workspaceId, nextAssigneeId, transaction);
+    roleCheckResult = await assertRoleMatchesDeliveryArea(
+      workspaceId,
+      nextAssigneeId,
+      task.deliveryArea,
+      input.allowRoleMismatch,
+      input.roleMismatchReason,
+      membership.role,
+      transaction,
+    );
+    if (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) {
+      changes['assigneeId'] = { old: task.assigneeId, new: input.assigneeId };
+      task.assigneeId = input.assigneeId;
+      // ADR-038: a Planner naming an assignee on an open subtask assigns it; the open queue
+      // never holds a named assignee (tasks_open_subtask_unassigned).
+      if (input.assigneeId && task.assignmentMode === 'open') {
+        changes['assignmentMode'] = { old: 'open', new: 'assigned' };
+        task.assignmentMode = 'assigned';
+      }
+    }
+  }
+
+  if (input.startDate !== undefined && input.startDate !== task.startDate) {
+    changes['startDate'] = { old: task.startDate, new: input.startDate };
+    task.startDate = input.startDate;
+  }
+
+  if (input.dueDate !== undefined && input.dueDate !== task.dueDate) {
+    changes['dueDate'] = { old: task.dueDate, new: input.dueDate };
+    task.dueDate = input.dueDate;
+  }
+
+  if (input.reviewNotes !== undefined && input.reviewNotes !== task.reviewNotes) {
+    changes['reviewNotes'] = { old: task.reviewNotes, new: input.reviewNotes };
+    task.reviewNotes = input.reviewNotes;
+  }
+
+  if (input.status !== undefined && input.status !== task.status) {
+    // Strict Guard: A parent task cannot be marked done if any subtask is incomplete
+    if (input.status === 'done' && !task.parentTaskId) {
+      const incompleteSubtasks = await TaskModel.findAll({
+        where: {
+          workspaceId,
+          parentTaskId: task.id,
+          status: { [Op.notIn]: ['done', 'canceled'] },
+        },
+        attributes: ['id', 'title', 'deliveryArea', 'status'],
+        transaction,
+      });
+
+      if (incompleteSubtasks.length > 0) {
+        const incompleteList = incompleteSubtasks
+          .map((st) => `"${st.title}" (${st.deliveryArea || 'subtask'}: ${st.status})`)
+          .join(', ');
+        throw new Error(
+          `BAD_REQUEST: Cannot complete task while subtasks are incomplete. Please complete all subtasks first: ${incompleteList}`,
+        );
+      }
+    }
+
+    // Dependency Check: QA Subtask cannot be done until all sibling development subtasks are done
+    if (input.status === 'done' && task.parentTaskId && task.deliveryArea === 'qa') {
+      const incompleteDevelopment = await TaskModel.findAll({
+        where: {
+          workspaceId,
+          parentTaskId: task.parentTaskId,
+          deliveryArea: { [Op.in]: ['frontend', 'backend', 'mobile', 'fullstack'] },
+          status: { [Op.notIn]: ['done', 'canceled'] },
+        },
+        attributes: ['id', 'title', 'deliveryArea', 'status'],
+        transaction,
+      });
+
+      if (incompleteDevelopment.length > 0) {
+        const incompleteList = incompleteDevelopment
+          .map((st) => `"${st.title}" (${st.deliveryArea}: ${st.status})`)
+          .join(', ');
+        throw new Error(
+          `BAD_REQUEST: Cannot mark QA subtask as Done until all development subtasks are completed: ${incompleteList}`,
         );
       }
 
-      if (input.folderId !== null) {
-        const folder = await WorkFolderModel.findOne({
-          where: { id: input.folderId, workspaceId },
-          transaction,
-        });
+      await assertQaCompletionGate(workspaceId, task.parentTaskId, task.id, actorId, transaction);
+    }
 
-        if (!folder) {
-          throw new Error('NOT_FOUND: Target folder not found in this workspace.');
-        }
-
-        if (folder.archivedAt !== null) {
-          throw new Error('BAD_REQUEST: Cannot move task into an archived folder.');
-        }
+    // Review notes validation on changes_requested
+    if (input.status === 'changes_requested') {
+      if (!input.reviewNotes && !task.reviewNotes) {
+        throw new Error(
+          'BAD_REQUEST: Review notes are required when requesting changes on a subtask.',
+        );
       }
-      changes['folderId'] = { old: task.folderId, new: input.folderId };
-      task.folderId = input.folderId;
-      requiresSubtaskFolderMove = true;
-    }
-
-    if (input.title !== undefined && input.title !== task.title) {
-      changes['title'] = { old: task.title, new: input.title };
-      task.title = input.title;
-    }
-
-    if (input.description !== undefined && input.description !== task.description) {
-      changes['description'] = { old: task.description, new: input.description };
-      task.description = input.description;
-    }
-
-    if (input.deliveryArea !== undefined && input.deliveryArea !== task.deliveryArea) {
-      changes['deliveryArea'] = { old: task.deliveryArea, new: input.deliveryArea };
-      task.deliveryArea = input.deliveryArea;
-    }
-
-    if (input.priority !== undefined && input.priority !== task.priority) {
-      changes['priority'] = { old: task.priority, new: input.priority };
-      task.priority = input.priority;
-    }
-
-    let roleCheckResult: {
-      isMismatch: boolean;
-      assigneeRole?: string;
-      assigneeSpecialties?: DeveloperSpecialty[];
-    } = { isMismatch: false };
-    if (!task.parentTaskId) {
-      if (task.assigneeId !== null) {
-        task.assigneeId = null;
-      }
-    } else if (
-      (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) ||
-      (input.deliveryArea !== undefined && input.deliveryArea !== changes['deliveryArea']?.old)
-    ) {
-      const nextAssigneeId = input.assigneeId !== undefined ? input.assigneeId : task.assigneeId;
-      await assertAssigneeBelongsToWorkspace(workspaceId, nextAssigneeId, transaction);
-      roleCheckResult = await assertRoleMatchesDeliveryArea(
-        workspaceId,
-        nextAssigneeId,
-        task.deliveryArea,
-        input.allowRoleMismatch,
-        input.roleMismatchReason,
-        membership.role,
-        transaction,
-      );
-      if (input.assigneeId !== undefined && input.assigneeId !== task.assigneeId) {
-        changes['assigneeId'] = { old: task.assigneeId, new: input.assigneeId };
-        task.assigneeId = input.assigneeId;
-        // ADR-038: a Planner naming an assignee on an open subtask assigns it; the open queue
-        // never holds a named assignee (tasks_open_subtask_unassigned).
-        if (input.assigneeId && task.assignmentMode === 'open') {
-          changes['assignmentMode'] = { old: 'open', new: 'assigned' };
-          task.assignmentMode = 'assigned';
+      task.reviewedBy = actorId;
+      changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
+    } else if (input.status === 'done' && task.parentTaskId) {
+      if (task.deliveryArea === 'qa') {
+        if (task.reviewedBy !== null) {
+          changes['reviewedBy'] = { old: task.reviewedBy, new: null };
+          task.reviewedBy = null;
         }
-      }
-    }
-
-    if (input.startDate !== undefined && input.startDate !== task.startDate) {
-      changes['startDate'] = { old: task.startDate, new: input.startDate };
-      task.startDate = input.startDate;
-    }
-
-    if (input.dueDate !== undefined && input.dueDate !== task.dueDate) {
-      changes['dueDate'] = { old: task.dueDate, new: input.dueDate };
-      task.dueDate = input.dueDate;
-    }
-
-    if (input.reviewNotes !== undefined && input.reviewNotes !== task.reviewNotes) {
-      changes['reviewNotes'] = { old: task.reviewNotes, new: input.reviewNotes };
-      task.reviewNotes = input.reviewNotes;
-    }
-
-    if (input.status !== undefined && input.status !== task.status) {
-      // Strict Guard: A parent task cannot be marked done if any subtask is incomplete
-      if (input.status === 'done' && !task.parentTaskId) {
-        const incompleteSubtasks = await TaskModel.findAll({
-          where: {
-            workspaceId,
-            parentTaskId: task.id,
-            status: { [Op.notIn]: ['done', 'canceled'] },
-          },
-          attributes: ['id', 'title', 'deliveryArea', 'status'],
-          transaction,
-        });
-
-        if (incompleteSubtasks.length > 0) {
-          const incompleteList = incompleteSubtasks
-            .map((st) => `"${st.title}" (${st.deliveryArea || 'subtask'}: ${st.status})`)
-            .join(', ');
-          throw new Error(
-            `BAD_REQUEST: Cannot complete task while subtasks are incomplete. Please complete all subtasks first: ${incompleteList}`,
-          );
-        }
-      }
-
-      // Dependency Check: QA Subtask cannot be done until all sibling development subtasks are done
-      if (input.status === 'done' && task.parentTaskId && task.deliveryArea === 'qa') {
-        const incompleteDevelopment = await TaskModel.findAll({
-          where: {
-            workspaceId,
-            parentTaskId: task.parentTaskId,
-            deliveryArea: { [Op.in]: ['frontend', 'backend', 'mobile', 'fullstack'] },
-            status: { [Op.notIn]: ['done', 'canceled'] },
-          },
-          attributes: ['id', 'title', 'deliveryArea', 'status'],
-          transaction,
-        });
-
-        if (incompleteDevelopment.length > 0) {
-          const incompleteList = incompleteDevelopment
-            .map((st) => `"${st.title}" (${st.deliveryArea}: ${st.status})`)
-            .join(', ');
-          throw new Error(
-            `BAD_REQUEST: Cannot mark QA subtask as Done until all development subtasks are completed: ${incompleteList}`,
-          );
-        }
-
-        await assertQaCompletionGate(workspaceId, task.parentTaskId, task.id, actorId, transaction);
-      }
-
-      // Review notes validation on changes_requested
-      if (input.status === 'changes_requested') {
-        if (!input.reviewNotes && !task.reviewNotes) {
-          throw new Error(
-            'BAD_REQUEST: Review notes are required when requesting changes on a subtask.',
-          );
-        }
-        task.reviewedBy = actorId;
-        changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
-      } else if (input.status === 'done' && task.parentTaskId) {
-        if (task.deliveryArea === 'qa') {
-          if (task.reviewedBy !== null) {
-            changes['reviewedBy'] = { old: task.reviewedBy, new: null };
-            task.reviewedBy = null;
-          }
-        } else {
-          changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
-          task.reviewedBy = actorId;
-        }
-      }
-
-      changes['status'] = { old: task.status, new: input.status };
-      task.status = input.status;
-      if (input.status === 'done') {
-        task.completedAt = new Date();
       } else {
-        task.completedAt = null;
-      }
-
-      // If a subtask is reopened (status changed from done to an active status), reopen the parent task if it was marked done
-      if (task.parentTaskId && input.status !== 'done' && input.status !== 'canceled') {
-        const parentTask = await TaskModel.findOne({
-          where: { id: task.parentTaskId, workspaceId },
-          transaction,
-        });
-        if (parentTask && parentTask.status === 'done') {
-          parentTask.status = 'in_progress';
-          parentTask.completedAt = null;
-          await parentTask.save({ transaction });
-          await logActivity(
-            workspaceId,
-            parentTask.id,
-            actorId,
-            'task.reopened',
-            { reason: `Subtask "${task.title}" status changed to ${input.status}` },
-            transaction,
-          );
-        }
+        changes['reviewedBy'] = { old: task.reviewedBy, new: actorId };
+        task.reviewedBy = actorId;
       }
     }
 
-    const scheduleIssue = getTaskScheduleValidationIssue(task.startDate, task.dueDate);
-    if (scheduleIssue) {
-      throw new Error(`BAD_REQUEST: ${scheduleIssue.message}`);
+    changes['status'] = { old: task.status, new: input.status };
+    task.status = input.status;
+    if (input.status === 'done') {
+      task.completedAt = new Date();
+    } else {
+      task.completedAt = null;
     }
 
-    await task.save({ transaction });
-
-    if (requiresSubtaskFolderMove) {
-      await moveDirectSubtasksToFolder(workspaceId, task.id, task.folderId, actorId, transaction);
-    }
-
-    // Record Activity audit event for updates
-    if (Object.keys(changes).length > 0) {
-      const actionPrefix = task.parentTaskId ? 'subtask.' : 'task.';
-      const primaryAction =
-        Object.keys(changes).length === 1
-          ? `${actionPrefix}${Object.keys(changes)[0]}_updated`
-          : `${actionPrefix}updated`;
-      await logActivity(
-        workspaceId,
-        task.id,
-        actorId,
-        primaryAction,
-        {
-          changes,
-          ...(roleCheckResult.isMismatch
-            ? {
-                roleMismatchOverride: true,
-                roleMismatchReason: input.roleMismatchReason,
-                assigneeRole: roleCheckResult.assigneeRole,
-                assigneeSpecialties: roleCheckResult.assigneeSpecialties,
-                deliveryArea: task.deliveryArea,
-              }
-            : {}),
-          ...(input.status === 'changes_requested' || input.reviewNotes
-            ? { reviewNotes: input.reviewNotes || task.reviewNotes, reviewedBy: actorId }
-            : {}),
-        },
+    // If a subtask is reopened (status changed from done to an active status), reopen the parent task if it was marked done
+    if (task.parentTaskId && input.status !== 'done' && input.status !== 'canceled') {
+      const parentTask = await TaskModel.findOne({
+        where: { id: task.parentTaskId, workspaceId },
         transaction,
-      );
+      });
+      if (parentTask && parentTask.status === 'done') {
+        parentTask.status = 'in_progress';
+        parentTask.completedAt = null;
+        await parentTask.save({ transaction });
+        await logActivity(
+          workspaceId,
+          parentTask.id,
+          actorId,
+          'task.reopened',
+          { reason: `Subtask "${task.title}" status changed to ${input.status}` },
+          transaction,
+        );
+      }
     }
+  }
 
-    return {
-      formatted: formatTask(task),
-      changes,
-      title: task.title,
-      id: task.id,
-      assigneeId: task.assigneeId,
-      reporterId: task.reporterId,
-    };
-  });
+  const scheduleIssue = getTaskScheduleValidationIssue(task.startDate, task.dueDate);
+  if (scheduleIssue) {
+    throw new Error(`BAD_REQUEST: ${scheduleIssue.message}`);
+  }
 
+  await task.save({ transaction });
+
+  if (requiresSubtaskFolderMove) {
+    await moveDirectSubtasksToFolder(workspaceId, task.id, task.folderId, actorId, transaction);
+  }
+
+  // Record Activity audit event for updates
+  if (Object.keys(changes).length > 0) {
+    const actionPrefix = task.parentTaskId ? 'subtask.' : 'task.';
+    const primaryAction =
+      Object.keys(changes).length === 1
+        ? `${actionPrefix}${Object.keys(changes)[0]}_updated`
+        : `${actionPrefix}updated`;
+    await logActivity(
+      workspaceId,
+      task.id,
+      actorId,
+      primaryAction,
+      {
+        changes,
+        ...(roleCheckResult.isMismatch
+          ? {
+              roleMismatchOverride: true,
+              roleMismatchReason: input.roleMismatchReason,
+              assigneeRole: roleCheckResult.assigneeRole,
+              assigneeSpecialties: roleCheckResult.assigneeSpecialties,
+              deliveryArea: task.deliveryArea,
+            }
+          : {}),
+        ...(input.status === 'changes_requested' || input.reviewNotes
+          ? { reviewNotes: input.reviewNotes || task.reviewNotes, reviewedBy: actorId }
+          : {}),
+      },
+      transaction,
+    );
+  }
+
+  return {
+    formatted: formatTask(task),
+    changes,
+    title: task.title,
+    id: task.id,
+    assigneeId: task.assigneeId,
+    reporterId: task.reporterId,
+  };
+}
+
+async function notifyTaskUpdated(
+  actorId: string,
+  workspaceId: string,
+  updatedResult: TaskUpdateResult,
+): Promise<void> {
   // Trigger 1: User di-assign task on update (new or changed assignee)
   if (
     updatedResult.changes.assigneeId &&
@@ -867,8 +953,6 @@ export async function updateTaskImpl(
         .catch(() => {});
     }
   }
-
-  return updatedResult.formatted;
 }
 
 // ---------------------------------------------------------------------------

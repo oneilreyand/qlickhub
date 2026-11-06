@@ -524,6 +524,29 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     }
   };
 
+  // E2E-SDLC-FLOW P7 (AC-11): PO menyetujui Brief tanpa membuka editor; isi tetap sama.
+  const handleApproveProductBrief = async () => {
+    if (!effectiveWorkspaceId || !task || !productBrief) return;
+    try {
+      const saved = await qaDocumentService.upsertProductBrief(effectiveWorkspaceId, task.id, {
+        title: productBrief.document.title,
+        contentMarkdown: productBrief.currentVersion.contentMarkdown,
+        inScope: productBrief.currentVersion.inScope,
+        outScope: productBrief.currentVersion.outScope,
+        acceptanceCriteria: productBrief.currentVersion.acceptanceCriteria,
+        ownerId: productBrief.document.ownerId || undefined,
+        status: 'approved',
+      });
+      setProductBrief(saved);
+      dispatch(enqueueSnackbar('Brief Produk disetujui', 'success'));
+      onDataChanged?.();
+    } catch (error) {
+      dispatch(
+        enqueueSnackbar(errorMessage(error, 'Brief Produk tidak dapat disetujui.'), 'error'),
+      );
+    }
+  };
+
   const loadRequirements = async (requestId?: number) => {
     if (!effectiveWorkspaceId || !task) return;
     try {
@@ -1597,6 +1620,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     }
                     onApplied={() => {
                       void loadSubtasks();
+                      // E2E-SDLC-FLOW P7 (AC-11): requirement baru langsung tampil di tahap Task.
+                      void loadDeliveryTrace();
+                      void loadRequirements();
                       onDataChanged?.();
                     }}
                     onContinue={() => commitTabChange('task-summary')}
@@ -1616,6 +1642,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         showBrief={!task.parentTaskId}
                         onEditBrief={() => handleTabChange('brief')}
                         onManageRequirements={() => handleTabChange('prd')}
+                        canApproveBrief={canPlan}
+                        onApproveBrief={handleApproveProductBrief}
                       />
                     }
                     rail={

@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   deleteTestCase: vi.fn(),
   getQaWorkflowSummary: vi.fn(),
   updateTask: vi.fn(),
+  completeQaReview: vi.fn(),
 }));
 
 vi.mock('../../lib/api/taskService', () => ({
@@ -34,6 +35,7 @@ vi.mock('../../lib/api/taskService', () => ({
     listTaskActivity: (...a: unknown[]) => mocks.listTaskActivity(...a),
     listSubtasks: (...a: unknown[]) => mocks.listSubtasks(...a),
     updateTask: (...a: unknown[]) => mocks.updateTask(...a),
+    completeQaReview: (...a: unknown[]) => mocks.completeQaReview(...a),
   },
 }));
 vi.mock('../../components/ui/organisms/ReleaseAssurancePanel', () => ({
@@ -210,19 +212,41 @@ describe('SubtaskWorkPage for a QA subtask (AC-3.7)', () => {
     mocks.updateTask.mockImplementation((_w: string, id: string, input: { status: string }) =>
       Promise.resolve({ ...(id === qaSubtaskId ? qaSubtask : devSubtask), status: input.status }),
     );
+    mocks.completeQaReview.mockResolvedValue({
+      qaSubtask: { ...qaSubtask, status: 'done' },
+      approvedSubtasks: [],
+    });
     renderPage();
 
-    const complete = await screen.findByRole('button', { name: 'Selesaikan Eksekusi QA' });
-    expect(complete).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Setujui Form pembayaran' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Setujui Form pembayaran' }));
     await waitFor(() =>
       expect(mocks.updateTask).toHaveBeenCalledWith(workspaceId, devSubtaskId, { status: 'done' }),
     );
-    await waitFor(() => expect(complete).toBeEnabled());
+    const complete = await screen.findByRole('button', { name: 'Selesaikan Eksekusi QA' });
     fireEvent.click(complete);
     await waitFor(() =>
-      expect(mocks.updateTask).toHaveBeenCalledWith(workspaceId, qaSubtaskId, { status: 'done' }),
+      expect(mocks.completeQaReview).toHaveBeenCalledWith(workspaceId, qaSubtaskId, []),
     );
+  });
+
+  it('approves all tested Developer work and completes QA in one call (P7, AC-15)', async () => {
+    mocks.getQaWorkflowSummary.mockResolvedValue({
+      qaSubtaskId,
+      nextAction: { code: 'complete_qa_subtask', label: 'Selesaikan Eksekusi QA' },
+    });
+    mocks.completeQaReview.mockResolvedValue({
+      qaSubtask: { ...qaSubtask, status: 'done' },
+      approvedSubtasks: [{ ...devSubtask, status: 'done' }],
+    });
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Setujui semua & selesaikan eksekusi' }),
+    );
+    await waitFor(() =>
+      expect(mocks.completeQaReview).toHaveBeenCalledWith(workspaceId, qaSubtaskId, [devSubtaskId]),
+    );
+    expect(mocks.updateTask).not.toHaveBeenCalled();
   });
 
   it('hides the completion action until the QA gate allows it', async () => {

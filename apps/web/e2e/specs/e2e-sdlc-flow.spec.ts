@@ -58,7 +58,12 @@ async function addEvidence(page: Page, url: string) {
   await page.getByRole('button', { name: 'Tambah tautan' }).click();
 }
 
-async function developerSendsToQa(browser: Browser, email: string, title: string) {
+async function developerSendsToQa(
+  browser: Browser,
+  email: string,
+  title: string,
+  handoff?: { build: string; environment: string; testCase: string },
+) {
   const dev = await signIn(browser, email);
   await openQueueCard(dev.page, title);
   await expect(dev.page).toHaveURL(/\/work\/subtasks\//);
@@ -74,6 +79,15 @@ async function developerSendsToQa(browser: Browser, email: string, title: string
     await expect(criteria.nth(index)).toBeChecked();
   }
   await expect(dev.page.getByText(`${count} dari ${count} dicek`)).toBeVisible();
+  if (handoff) {
+    // P7 (AC-13): the Developer sees the QA Test Case read-only as its reference.
+    const testCases = dev.page.getByRole('region', { name: 'Test Case QA' });
+    await expect(testCases).toContainText(handoff.testCase);
+    await expect(testCases).toContainText('Belum diuji');
+    // P7 (AC-14): build and environment go with the handoff and prefill the QA cycle form.
+    await dev.page.getByLabel('Build / versi (opsional)').fill(handoff.build);
+    await dev.page.getByLabel('Lingkungan (opsional)').fill(handoff.environment);
+  }
   await dev.page.getByRole('button', { name: 'Kirim ke QA' }).click();
   await expect(dev.page.getByRole('button', { name: 'Kirim ke QA' })).toHaveCount(0, {
     timeout: 30_000,
@@ -201,17 +215,20 @@ test('one Feature runs from idea to Release Decision through the UI (E2E-SDLC-FL
     await expect(po.page.getByRole('dialog')).toBeHidden({ timeout: 30_000 });
 
     // Apply leaves the Product Brief as a draft; QA can start a Test Cycle once the PO approves it.
-    await po.page.goto(`${featurePath}?tahap=prd`);
+    // P7 (AC-11): Tugas Saya asks the PO to approve the Brief and opens the PRD stage.
+    await po.page.goto('/my-tasks');
     await po.page
-      .getByRole('region', { name: 'Product Brief' })
-      .getByRole('button', { name: 'Edit' })
+      .getByRole('button', { name: /Setujui Brief/ })
+      .first()
       .click();
-    await po.page.getByLabel('Status Brief Produk').selectOption('approved');
-    await po.page.getByRole('button', { name: 'Simpan', exact: true }).click();
-    // Saved: the editor either closes or has nothing left to save.
-    await expect(
-      po.page.getByRole('button', { name: 'Simpan', exact: true }).and(po.page.locator(':enabled')),
-    ).toHaveCount(0, { timeout: 30_000 });
+    await expect(po.page).toHaveURL(/tahap=prd/);
+    const brief = po.page.getByRole('region', { name: 'Product Brief' });
+    await expect(brief.getByTestId('product-brief-status')).not.toHaveText('Disetujui');
+    await brief.getByRole('button', { name: 'Setujui Brief' }).click();
+    await expect(brief.getByTestId('product-brief-status')).toHaveText('Disetujui', {
+      timeout: 30_000,
+    });
+    await expect(brief.getByRole('button', { name: 'Setujui Brief' })).toHaveCount(0);
     await po.close();
   });
 
@@ -244,8 +261,12 @@ test('one Feature runs from idea to Release Decision through the UI (E2E-SDLC-FL
     await qa.close();
   });
 
-  await test.step('4. Developer FE sends to QA', () =>
-    developerSendsToQa(browser, fixture.devFe.email, titles.fe));
+  await test.step('4. Developer FE reads the QA Test Case and sends to QA with its build', () =>
+    developerSendsToQa(browser, fixture.devFe.email, titles.fe, {
+      build: 'web-pasien-1',
+      environment: 'staging',
+      testCase: titles.testCase,
+    }));
 
   await test.step('5. QA runs the Test Case: Gagal, then sends a Bug to Developer BE', async () => {
     const qa = await signIn(browser, fixture.qa.email);
@@ -253,9 +274,10 @@ test('one Feature runs from idea to Release Decision through the UI (E2E-SDLC-FL
     await expect(qa.page.getByRole('region', { name: 'Tahap Siapkan Test Case' })).toHaveCount(0);
     await qa.page.getByRole('button', { name: 'Gagal' }).first().click();
     await expect(qa.page).toHaveURL(/\/tests\/cases\/.+\/run/);
+    // P7 (AC-14): the Developer handoff prefilled build and environment.
+    await expect(qa.page.getByLabel('Build')).toHaveValue('web-pasien-1');
+    await expect(qa.page.getByLabel('Environment')).toHaveValue('staging');
     await qa.page.getByLabel('Kandidat (commit atau tag)').fill('commit:pasien-1');
-    await qa.page.getByLabel('Build').fill('web-pasien-1');
-    await qa.page.getByLabel('Environment').fill('staging');
     await qa.page.getByRole('button', { name: 'Mulai siklus uji' }).click();
     await expect(qa.page.getByText('Siklus uji dimulai')).toBeVisible();
     await qa.page
@@ -286,12 +308,11 @@ test('one Feature runs from idea to Release Decision through the UI (E2E-SDLC-FL
   await test.step('7. QA completes the QA subtask and records QA Sign-off', async () => {
     const qa = await signIn(browser, fixture.qa.email);
     await openQueueCard(qa.page, titles.qa);
-    // QA approves the Developer work it tested, then closes its own QA subtask.
-    for (const title of [titles.be, titles.fe]) {
-      await qa.page.getByRole('button', { name: `Setujui ${title}` }).click();
-      await expect(qa.page.getByRole('button', { name: `Setujui ${title}` })).toHaveCount(0);
-    }
-    await qa.page.getByRole('button', { name: 'Selesaikan Eksekusi QA' }).click();
+    // QA approves the Developer work it tested: one per item, then the rest together with
+    // closing its own QA subtask in one transaction (P7, AC-15).
+    await qa.page.getByRole('button', { name: `Setujui ${titles.be}` }).click();
+    await expect(qa.page.getByRole('button', { name: `Setujui ${titles.be}` })).toHaveCount(0);
+    await qa.page.getByRole('button', { name: 'Setujui semua & selesaikan eksekusi' }).click();
     await expect(qa.page.getByText('Eksekusi QA selesai. Catat Persetujuan QA.')).toBeVisible();
     const signOff = qa.page.getByRole('button', { name: 'Catat Persetujuan QA' });
     await expect(signOff).toBeEnabled({ timeout: 30_000 });

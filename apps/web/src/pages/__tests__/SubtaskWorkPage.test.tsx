@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   createTaskComment: vi.fn(),
   getTrace: vi.fn(),
   getMembers: vi.fn(),
+  getTaskTestExecutions: vi.fn(),
 }));
 
 vi.mock('../../lib/api/taskService', () => ({
@@ -34,6 +35,11 @@ vi.mock('../../lib/api/taskService', () => ({
 }));
 vi.mock('../../lib/api/traceabilityService', () => ({
   traceabilityService: { getParentTaskDeliveryTrace: (...a: unknown[]) => mocks.getTrace(...a) },
+}));
+vi.mock('../../lib/api/testManagementService', () => ({
+  testManagementService: {
+    getTaskTestExecutions: (...a: unknown[]) => mocks.getTaskTestExecutions(...a),
+  },
 }));
 vi.mock('../../lib/api/workspaceService', () => ({
   workspaceService: { getMembers: (...a: unknown[]) => mocks.getMembers(...a) },
@@ -115,6 +121,7 @@ describe('SubtaskWorkPage', () => {
     mocks.listAcceptanceChecks.mockResolvedValue({ checks: [] });
     mocks.getTrace.mockResolvedValue({ requirements: [] });
     mocks.getMembers.mockResolvedValue([]);
+    mocks.getTaskTestExecutions.mockResolvedValue({ executions: [] });
   });
 
   it('loads the subtask and lets the assigned developer start it', async () => {
@@ -161,6 +168,56 @@ describe('SubtaskWorkPage', () => {
       expect(mocks.setAcceptanceCheck).toHaveBeenCalledWith(workspaceId, subtaskId, 'a1', true),
     );
     expect(await screen.findByText('Dicek oleh Dev')).toBeInTheDocument();
+  });
+
+  it('shows QA Test Cases of its requirements read-only with the last result (AC-13)', async () => {
+    mocks.getTrace.mockResolvedValue({
+      requirements: [
+        {
+          requirement: { id: 'r1', code: 'REQ-001', title: 'Simpan pasien' },
+          acceptanceCriteria: [{ id: 'a1', code: 'AC-1', text: 'Form tampil' }],
+          implementingSubtasks: [{ id: subtaskId }],
+        },
+      ],
+    });
+    const testCase = (id: string, title: string, requirementIds: string[]) => ({
+      id,
+      title,
+      status: 'active',
+      requirementIds,
+      steps: ['Buka form', 'Simpan'],
+      preconditions: null,
+      expectedResult: 'Pasien tersimpan',
+    });
+    mocks.getTaskTestExecutions.mockResolvedValue({
+      executions: [
+        {
+          testCase: testCase('t1', 'TC-01 simpan valid', ['r1']),
+          latestRun: { result: { status: 'passed' } },
+          testRuns: [],
+        },
+        { testCase: testCase('t2', 'TC-02 nama kosong', ['r1']), latestRun: null, testRuns: [] },
+        { testCase: testCase('t3', 'TC lain', ['r9']), latestRun: null, testRuns: [] },
+      ],
+    });
+    renderPage();
+
+    const section = await screen.findByRole('region', { name: 'Test Case QA' });
+    expect(await screen.findByTestId('dev-test-case-summary')).toHaveTextContent(
+      '2 Test Case · 1 Lulus',
+    );
+    expect(section).toHaveTextContent('REQ-001 · Simpan pasien');
+    expect(section).toHaveTextContent('TC-01 simpan valid');
+    expect(section).toHaveTextContent('Belum diuji');
+    expect(section).not.toHaveTextContent('TC lain');
+    expect(section.querySelector('button')).toBeNull();
+  });
+
+  it('shows an empty state when QA has no Test Case yet', async () => {
+    renderPage();
+    expect(
+      await screen.findByText(/QA belum menulis Test Case untuk requirement subtask ini/),
+    ).toBeInTheDocument();
   });
 
   it('restores saved checks after a reload', async () => {

@@ -64,9 +64,7 @@ export function FeatureSpecTasksEditor({
           disabled={disabled}
           className="space-y-4 rounded-xl border border-stone-200 p-4 dark:border-stone-700"
         >
-          <legend className="px-1 font-semibold">
-            Subtask {index + 1} · {row.key}
-          </legend>
+          <legend className="px-1 font-semibold">Subtask {index + 1}</legend>
           <Input
             id={`tasks-subtasks-${index}--title`}
             label="Judul subtask · Wajib"
@@ -166,11 +164,11 @@ export function FeatureSpecTasksEditor({
           )}
           <fieldset id={`tasks-subtasks-${index}--requirementKeys`} className="space-y-2">
             <legend className="mb-2 text-sm font-semibold">Requirement terkait · Wajib</legend>
-            {(spec.prd.requirements ?? []).map((requirement) => (
+            {(spec.prd.requirements ?? []).map((requirement, requirementIndex) => (
               <Checkbox
                 key={requirement.key}
                 id={`tasks-${row.key}-${requirement.key}`}
-                label={`${requirement.key} · ${requirement.title}`}
+                label={`Requirement ${requirementIndex + 1} · ${requirement.title}`}
                 checked={row.requirementKeys?.includes(requirement.key) ?? false}
                 onChange={(event) =>
                   update(index, {
@@ -188,7 +186,7 @@ export function FeatureSpecTasksEditor({
               )
               .map((key) => (
                 <div key={key} className="space-y-1 text-sm text-rose-700 dark:text-rose-300">
-                  <p>Requirement {key} tidak lagi ada di PRD.</p>
+                  <p>Satu requirement yang tertaut tidak lagi ada di PRD.</p>
                   <Button
                     variant="outline"
                     onClick={() =>
@@ -199,7 +197,7 @@ export function FeatureSpecTasksEditor({
                       })
                     }
                   >
-                    Lepas tautan {key}
+                    Lepas tautan requirement lama
                   </Button>
                 </div>
               ))}

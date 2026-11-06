@@ -25,6 +25,8 @@ export type WorkQueueBucketCode = z.infer<typeof WorkQueueBucketCodeSchema>;
 export const WorkQueueNextActionCodeSchema = z.enum([
   'add_requirement',
   'complete_requirement',
+  /** E2E-SDLC-FLOW P7: QA cannot start a Test Cycle until the Product Brief is approved. */
+  'approve_product_brief',
   'record_release_decision',
   'schedule_feature',
   'review_timeline',

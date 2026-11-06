@@ -30,6 +30,7 @@ import {
   useDeveloperReadiness,
 } from '../lib/hooks/useDeveloperReadiness';
 import { startQaSubtaskIfTodo } from '../lib/utils/startQaSubtask';
+import { latestQaHandoffBuild, type QaHandoffBuild } from '../lib/utils/qaHandoff';
 import { traceabilityService } from '../lib/api/traceabilityService';
 import { testManagementService } from '../lib/api/testManagementService';
 import { getTestCaseRunPath } from '../lib/utils/taskRoutes';
@@ -50,7 +51,47 @@ function toFailure(error: unknown): LoadFailure {
   };
 }
 
+/**
+ * E2E-SDLC-FLOW P7 (AC-14): build terbaru yang disebut Developer saat "Kirim ke QA" di subtask
+ * Developer Feature ini (komentar `ready_for_qa`).
+ */
+async function loadLatestHandoffBuild(workspaceId: string, featureTaskId: string) {
+  const subtasks = await taskService.listSubtasks(workspaceId, featureTaskId, 1, 100);
+  const developerSubtasks = subtasks.tasks.filter(
+    (item) => item.deliveryArea !== 'qa' && (item.status === 'in_review' || item.status === 'done'),
+  );
+  const lists = await Promise.all(
+    developerSubtasks.map((item) => taskService.listTaskComments(workspaceId, item.id, 1, 50)),
+  );
+  return latestQaHandoffBuild(lists.flatMap((list) => list.comments));
+}
+
+/** Serah-terima yang lebih baru dari siklus terakhir mengisi awal form; selain itu siklus terakhir. */
+function cycleDefaultsFrom(
+  lastCycle: {
+    candidateFingerprint: string;
+    build: string;
+    environment: string;
+    createdAt: string;
+  } | null,
+  handoff: QaHandoffBuild | null,
+): CycleFormValues {
+  if (handoff && (!lastCycle || handoff.createdAt > lastCycle.createdAt)) {
+    return {
+      candidateFingerprint: handoff.build || lastCycle?.candidateFingerprint || '',
+      build: handoff.build || lastCycle?.build || '',
+      environment: handoff.environment || lastCycle?.environment || '',
+    };
+  }
+  return {
+    candidateFingerprint: lastCycle?.candidateFingerprint ?? '',
+    build: lastCycle?.build ?? '',
+    environment: lastCycle?.environment ?? '',
+  };
+}
+
 interface PageData {
+  handoff: QaHandoffBuild | null;
   testCase: TestCase;
   subtask: Task;
   executions: TaskTestCaseExecution[];
@@ -139,10 +180,11 @@ export const TestCaseRunPage: React.FC = () => {
           return;
         }
 
-        const [workspace, cycles, versions] = await Promise.all([
+        const [workspace, cycles, versions, handoff] = await Promise.all([
           testManagementService.getTaskTestExecutions(ws, subtask.id),
           testManagementService.listQaTestCycles(ws, subtask.parentTaskId, subtask.id),
           testManagementService.listTestCaseVersionCoverage(ws, testCase.id).catch(() => []),
+          loadLatestHandoffBuild(ws, subtask.parentTaskId).catch(() => null),
         ]);
         if (!isCurrent) return;
         setData({
@@ -151,6 +193,7 @@ export const TestCaseRunPage: React.FC = () => {
           executions: workspace.executions,
           cycles,
           versionId: versions.find((version) => version.lifecycleStatus === 'active')?.id ?? null,
+          handoff,
         });
       } catch (loadError) {
         if (isCurrent) setFailure(toFailure(loadError));
@@ -466,11 +509,7 @@ export const TestCaseRunPage: React.FC = () => {
           : null
       }
       cycle={activeCycle}
-      cycleDefaults={{
-        candidateFingerprint: lastCycle?.candidateFingerprint ?? '',
-        build: lastCycle?.build ?? '',
-        environment: lastCycle?.environment ?? '',
-      }}
+      cycleDefaults={cycleDefaultsFrom(lastCycle, data.handoff)}
       isStartingCycle={isStartingCycle}
       onStartCycle={(values) => void handleStartCycle(values)}
       run={currentRun}
