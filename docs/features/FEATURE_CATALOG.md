@@ -26,6 +26,7 @@ utama membantu navigasi saja; hak akses dan urutan kerja tetap mengikuti
 
 | Feature                                                                                       | Pembaca utama              | Tujuan singkat                                              | Status                                                  |
 | --------------------------------------------------------------------------------------------- | -------------------------- | ----------------------------------------------------------- | ------------------------------------------------------- |
+| [Qlick Hub Product MCP](QLICKHUB-PRODUCT-MCP/README.md)                                       | Owner/Admin, PO            | Grooming di agent lalu publish Feature secara eksplisit.    | Draft — belum diimplementasikan                         |
 | [Requirement Context Ownership](REQUIREMENT_CONTEXT_OWNERSHIP.md)                             | PO, Developer, QA          | Menjaga konteks Requirement dan ownership planning.         | Active                                                  |
 | [Requirement-Guided Subtask Planning](REQUIREMENT_GUIDED_SUBTASK_PLANNING.md)                 | PO, Developer              | Membuat Subtask dari Requirement dan Acceptance Criteria.   | Active                                                  |
 | [Guarded Mistaken Requirement Deletion](GUARDED_MISTAKEN_REQUIREMENT_DELETION.md)             | PO, Owner/Admin            | Mengamankan penghapusan Requirement yang salah dibuat.      | Active                                                  |

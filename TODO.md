@@ -38,6 +38,9 @@ Workspace → Folder → Feature / Story (root Task)
 
 ## Active work
 
+- [ ] **Todo** (Codex — 2026-11-03) — **QLICKHUB-PRODUCT-MCP: Owner/PO grooming di agent pribadi lalu publish Feature lengkap ke Qlick Hub dengan konfirmasi langsung di agent, tanpa approval grant sekali-pakai.** Draft dokumentasi tersimpan atas instruksi Owner “update docnya”; bukan approval G0–G3 atau implementasi. Keputusan terbuka: OAuth provider, registrasi client, host, ADR/SSoT Apply, serta pemecahan WRA auth/publish. Target client Codex, Claude, Antigravity belum diuji. [Feature](docs/features/QLICKHUB-PRODUCT-MCP/README.md), [setup draft](docs/features/QLICKHUB-PRODUCT-MCP/setup.md), [laporan docs](docs/reports/QLICKHUB_PRODUCT_MCP_DOCS_2026-11-03.md). Policies: `DOC-005`, `DOC-006`, `SDLC-001`, `SDLC-002`, `AUTH-001`, `AUTH-002`, `AI-001`, `AI-006`, `DATA-001`, `CONTRACT-001`, `TEST-001`.
+      Layer: PRD=In progress, BE=Todo, FE=Todo.
+
 - [ ] **In progress** (Codex — 2026-11-06) — **FEATURE-SPEC-TASK-AI-TIMEOUT: Naikkan budget generator Task AI menjadi 90 detik sambil mempertahankan default operasi Feature Spec AI lain 30 detik.** Owner menyetujui `ok naikkan`, lalu `naikkan ke prod`/`lanjut` untuk rilis. Kandidat lulus suite 49/49 pada PostgreSQL disposable/80 migration; native HTTP menerima fixture Task pada 31.040 ms, default menolak pada 30.008 ms. Batas 90 detik dan failure tanpa perubahan draf/history/audit teruji. Rilis diproses dari branch terpisah melalui PR Tier 1, auto-merge, dan Vercel Git integration; sisa verifikasi deployment Production. [Quick Card](docs/plans/quick/FEATURE-SPEC-TASK-AI-TIMEOUT.md), [laporan](docs/reports/FEATURE_SPEC_TASK_AI_TIMEOUT_2026-11-06.md). Policies: `AI-001`, `AI-002`, `AI-009`, `AI-013`, `AI-020`, `TEST-001`, `SDLC-001`, `SDLC-002`.
       Layer: PRD=Done, BE=Done, FE=N/A.
 

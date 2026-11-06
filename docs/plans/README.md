@@ -19,3 +19,7 @@ and verification commands remain in the repository. It does not create new attac
 New Feature work records its plan in the Feature folder stages (`problem.md` to `breakdown.md`)
 under [Agent Guidelines §2B](../4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc).
 Small changes on the Quick path use the [Quick Card template](QUICK_CARD_TEMPLATE.md).
+
+Rencana [Qlick Hub Product MCP](../features/QLICKHUB-PRODUCT-MCP/README.md) mencatat grooming
+Owner/PO di agent, konfirmasi publish langsung di agent, serta target setup Codex, Claude, dan
+Antigravity. OAuth provider, ADR/SSoT Apply, dan breakdown implementasi masih menunggu keputusan.

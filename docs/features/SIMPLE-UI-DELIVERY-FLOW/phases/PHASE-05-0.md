@@ -8,6 +8,10 @@
 
 ## 1. Temuan dan alasan
 
+Catatan perencanaan 2026-11-03: scope P9 dijabarkan dalam draft
+[QLICKHUB-PRODUCT-MCP](../../QLICKHUB-PRODUCT-MCP/README.md). MCP tetap di luar Tahap 5;
+tautan ini bukan persetujuan implementasi, OAuth, atau aktivasi policy.
+
 | Temuan                                                                                                                                                                                                                                                                  |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | P5a-1 (tabel `feature_plans` berisi judul dan ide saja) dibatalkan oleh Owner (chat, 2026-10-29): bentuk Plan yang terpisah dari PRD dan Task tidak cocok dengan arah baru. Branch `feat/simple-ui-p5a1-feature-plan` tidak di-merge dan migrasi 92 tidak masuk `main`. |
