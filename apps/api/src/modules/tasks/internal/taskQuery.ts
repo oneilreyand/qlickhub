@@ -1,3 +1,5 @@
+import type { TaskAttributes } from '../../../db/models/task.js';
+import { attachFeatureScheduleConstraints } from './taskFeatureSchedule.js';
 /**
  * Task Query Implementation
  *
@@ -41,8 +43,14 @@ import { attachPlanningStages } from './taskPlanningStage.js';
 // Formatting helper
 // ---------------------------------------------------------------------------
 
+type TaskJson = TaskAttributes & { subtasks?: TaskJson[] };
+
 export function formatTask(t: TaskModel): Task {
-  const json = t.toJSON();
+  return formatTaskJson(t.toJSON());
+}
+
+/** Sequelize toJSON also converts included children to plain records. */
+function formatTaskJson(json: TaskJson): Task {
   return {
     id: json.id,
     workspaceId: json.workspaceId,
@@ -67,9 +75,7 @@ export function formatTask(t: TaskModel): Task {
     completedAt: json.completedAt ? new Date(json.completedAt).toISOString() : null,
     createdAt: json.createdAt ? new Date(json.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: json.updatedAt ? new Date(json.updatedAt).toISOString() : new Date().toISOString(),
-    ...((json as any).subtasks && {
-      subtasks: (json as any).subtasks.map((st: any) => formatTask(st)),
-    }),
+    ...(json.subtasks && { subtasks: json.subtasks.map(formatTaskJson) }),
   } as Task;
 }
 
@@ -324,7 +330,10 @@ export async function listTasksImpl(
     offset,
   });
 
-  let tasks = await attachPlanningStages(workspaceId, rows.map(formatTask));
+  let tasks = await attachPlanningStages(
+    workspaceId,
+    await attachFeatureScheduleConstraints(workspaceId, rows.map(formatTask)),
+  );
 
   if (query.includeSubtaskSummary) {
     tasks = await attachSubtaskSummaries(workspaceId, tasks);
@@ -381,7 +390,12 @@ export async function getTaskImpl(
     assertCanAccessTask(actorRole, actorId, task, hasAssignedSubtask);
   }
 
-  return (await attachPlanningStages(workspaceId, [formatTask(task)]))[0];
+  return (
+    await attachPlanningStages(
+      workspaceId,
+      await attachFeatureScheduleConstraints(workspaceId, [formatTask(task)]),
+    )
+  )[0];
 }
 
 // ---------------------------------------------------------------------------

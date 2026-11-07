@@ -50,6 +50,19 @@ export const TaskScheduleHealthSchema = z.object({
 
 export type TaskScheduleHealth = z.infer<typeof TaskScheduleHealthSchema>;
 
+export const FEATURE_SCHEDULE_CONFLICT_CODE = 'FEATURE_SCHEDULE_CONFLICT';
+export const SUBTASK_SCHEDULE_OUT_OF_RANGE_CODE = 'SUBTASK_SCHEDULE_OUT_OF_RANGE';
+
+/** Backend-owned parent range constraint, including unchanged legacy records (DOMAIN-005). */
+export const FeatureScheduleConstraintSchema = z.object({
+  status: z.enum(['within', 'outside', 'unbounded', 'unscheduled', 'ignored']),
+  label: z.string(),
+  reason: z.string().optional(),
+  featureStartDate: DateStringSchema.nullable(),
+  featureDueDate: DateStringSchema.nullable(),
+});
+export type FeatureScheduleConstraint = z.infer<typeof FeatureScheduleConstraintSchema>;
+
 export const TaskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 
 export type TaskPriority = z.infer<typeof TaskPrioritySchema>;
@@ -165,6 +178,7 @@ export const TaskSchemaBase = z.object({
   startDate: DateStringSchema.nullable().optional(),
   dueDate: DateStringSchema.nullable().optional(),
   scheduleHealth: TaskScheduleHealthSchema.optional(),
+  featureScheduleConstraint: FeatureScheduleConstraintSchema.optional(),
   completedAt: z.string().nullable().optional(),
   subtaskSummary: SubtaskSummarySchema.optional(),
   createdAt: z.string(),

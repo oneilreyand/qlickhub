@@ -1,3 +1,4 @@
+import { FeatureScheduleConstraintBadge } from './FeatureScheduleConstraint';
 import React from 'react';
 import {
   Code2,
@@ -110,6 +111,8 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
         >
           {subtask.title}
         </span>
+
+        <FeatureScheduleConstraintBadge constraint={subtask.featureScheduleConstraint} />
 
         {/* Schedule Health Badge */}
         <TaskScheduleHealthBadge

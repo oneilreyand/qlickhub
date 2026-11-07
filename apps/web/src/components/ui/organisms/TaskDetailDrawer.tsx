@@ -1,3 +1,4 @@
+import { FEATURE_SCHEDULE_CONFLICT_CODE } from '@qlick/contracts';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { HandoffTimeline } from './HandoffTimeline';
 import { FeatureSpecDraftPanel } from './taskDetail/FeatureSpecDraftPanel';
@@ -77,7 +78,7 @@ import {
 } from './taskDetail';
 
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { updateTask, moveTask, completeTask } from '../../../store/taskSlice';
+import { updateTask, completeTask } from '../../../store/taskSlice';
 import { enqueueSnackbar, addInAppNotification } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
 import { selectCurrentUserId } from '../../../store/authSlice';
@@ -138,7 +139,9 @@ const TaskDetailLoadingBody: React.FC = () => (
 );
 
 function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback;
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string')
+    return error.message;
+  return fallback;
 }
 
 type DetailFrameProps = Pick<
@@ -272,6 +275,8 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  useEffect(() => setSaveError(null), [task?.id]);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [isProductBriefDirty, setIsProductBriefDirty] = useState(false);
@@ -904,20 +909,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       return;
     }
 
+    setSaveError(null);
     setIsSaving(true);
     try {
-      if (canEditPlanning && folderId !== (task.folderId || null)) {
-        await dispatch(
-          moveTask({
-            workspaceId: activeWorkspaceId,
-            taskId: task.id,
-            input: { targetFolderId: folderId },
-          }),
-        ).unwrap();
-      }
-
       const input = canEditPlanning
         ? {
+            ...(folderId !== (task.folderId || null) ? { folderId } : {}),
             title: title.trim(),
             description: description.trim() || null,
             ...(canEditStatus ? { status } : {}),
@@ -943,6 +940,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       if (layout === 'page') commitTabChange('task-summary');
       else onClose();
     } catch (err) {
+      setSaveError(errorMessage(err, 'Task gagal diperbarui'));
       dispatch(
         enqueueSnackbar(err instanceof Error ? err.message : 'Task gagal diperbarui', 'error'),
       );
@@ -1190,7 +1188,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     } catch (err) {
       const status = (err as { status?: number }).status;
       const missing = (err as { missingFields?: string[] }).missingFields;
-      if (status === 409) {
+      if (status === 409 && (err as { code?: string }).code !== FEATURE_SCHEDULE_CONFLICT_CODE) {
         reloadFeatureSpec();
         dispatch(
           enqueueSnackbar(
@@ -1688,6 +1686,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   />
                 )}
 
+              {saveError && <Alert tone="error">{saveError}</Alert>}
               {/* TAB 1: OVERVIEW */}
               {activeTab === 'overview' && (
                 <TaskDetailOverviewTab

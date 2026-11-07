@@ -1,3 +1,5 @@
+import { useFeatureScheduleRange } from '../../../lib/hooks/useFeatureScheduleRange';
+import { FeatureScheduleRange } from '../molecules/FeatureScheduleConstraint';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   getTaskScheduleValidationIssue,
@@ -62,6 +64,13 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { range: featureRange, refreshAfterError } = useFeatureScheduleRange(
+    activeWorkspaceId,
+    parentTask?.id,
+    parentTask?.startDate,
+    parentTask?.dueDate,
+  );
   const [eligibleRequirements, setEligibleRequirements] = useState<Requirement[]>([]);
   const [selectedRequirementIds, setSelectedRequirementIds] = useState<string[]>([]);
   const [isRequirementsLoading, setIsRequirementsLoading] = useState(false);
@@ -71,6 +80,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
 
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
+      setSubmitError(null);
       setTitle('');
       setDescription('');
       setDeliveryArea(initialDeliveryArea || 'frontend');
@@ -189,6 +199,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       return;
     }
 
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       await taskService.createSubtask(activeWorkspaceId, parentTask.id, {
@@ -209,6 +220,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       onCreated();
       onClose();
     } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Subtask gagal dibuat.');
+      await refreshAfterError(err);
       dispatch(
         enqueueSnackbar(err instanceof Error ? err.message : 'Subtask gagal dibuat.', 'error'),
       );
@@ -460,6 +473,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
           </div>
         </div>
 
+        <FeatureScheduleRange startDate={featureRange.startDate} dueDate={featureRange.dueDate} />
+        {submitError && <Alert tone="error">{submitError}</Alert>}
         {/* Start Date and Due Date Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -472,6 +487,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             <Input
               type="date"
               id="subtask-start-date"
+              min={featureRange.startDate || undefined}
+              max={featureRange.dueDate || undefined}
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               aria-invalid={Boolean(scheduleIssue)}
@@ -489,6 +506,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             <Input
               type="date"
               id="subtask-due-date"
+              min={featureRange.startDate || undefined}
+              max={featureRange.dueDate || undefined}
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               aria-invalid={Boolean(scheduleIssue)}

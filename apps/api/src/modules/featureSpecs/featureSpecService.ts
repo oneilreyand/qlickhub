@@ -1,3 +1,7 @@
+import {
+  lockFeatureSchedule,
+  assertSubtasksWithinFeatureSchedule,
+} from '../tasks/internal/taskFeatureSchedule.js';
 import { Op, Transaction } from 'sequelize';
 import { createHash } from 'node:crypto';
 import {
@@ -241,6 +245,14 @@ async function syncPlanToFeature(
   if (plan.dueDate) changes.dueDate = plan.dueDate;
   if (Object.keys(changes).length === 0) return;
 
+  const root = await lockFeatureSchedule(spec.workspaceId, spec.featureTaskId, transaction);
+  const nextSchedule = {
+    startDate: changes.startDate ?? root.startDate,
+    dueDate: changes.dueDate ?? root.dueDate,
+  };
+  if (nextSchedule.startDate !== root.startDate || nextSchedule.dueDate !== root.dueDate) {
+    await assertSubtasksWithinFeatureSchedule(spec.workspaceId, root, nextSchedule, transaction);
+  }
   await TaskModel.update(changes, {
     where: { id: spec.featureTaskId, workspaceId: spec.workspaceId },
     transaction,

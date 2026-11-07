@@ -1,4 +1,8 @@
 /// <reference types="vite/client" />
+import {
+  FEATURE_SCHEDULE_CONFLICT_CODE,
+  SUBTASK_SCHEDULE_OUT_OF_RANGE_CODE,
+} from '@qlick/contracts';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/v1';
 export const RATE_LIMIT_EVENT = 'qlickhub:rate-limit';
@@ -86,6 +90,12 @@ export function getHumanReadableApiErrorMessage(
   serverMessage?: string,
 ): string {
   const normalizedCode = code?.toUpperCase();
+  if (
+    normalizedCode === FEATURE_SCHEDULE_CONFLICT_CODE ||
+    normalizedCode === SUBTASK_SCHEDULE_OUT_OF_RANGE_CODE
+  ) {
+    return serverMessage || 'Jadwal tidak sesuai rentang Feature. Periksa tanggal lalu coba lagi.';
+  }
   const normalizedServerMessage = serverMessage?.toLowerCase() || '';
 
   if (normalizedCode === 'INVALID_CREDENTIALS') {

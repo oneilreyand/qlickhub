@@ -1,3 +1,5 @@
+import { useFeatureScheduleRange } from '../../../lib/hooks/useFeatureScheduleRange';
+import { FeatureScheduleRange } from '../molecules/FeatureScheduleConstraint';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FileText, MessageSquare, Settings, AlertCircle, Trash2, Undo2 } from 'lucide-react';
 import type {
@@ -203,6 +205,13 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   const [reviewNotes, setReviewNotes] = useState(subtask.reviewNotes || '');
   const [deliveryArea, setDeliveryArea] = useState<DeliveryArea | ''>(subtask.deliveryArea || '');
   const [isSavingMeta, setIsSavingMeta] = useState(false);
+  const [metaError, setMetaError] = useState<string | null>(null);
+  const { range: featureRange, refreshAfterError } = useFeatureScheduleRange(
+    workspaceId,
+    subtask.parentTaskId,
+    subtask.featureScheduleConstraint?.featureStartDate,
+    subtask.featureScheduleConstraint?.featureDueDate,
+  );
   const [isReleasing, setIsReleasing] = useState(false);
   // ADR-038: open work waits in the matching Developer/QA queue; Planner may return work there.
   const isOpenAssignment = subtask.assignmentMode === 'open';
@@ -474,6 +483,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       dispatch(enqueueSnackbar(scheduleIssueMessage || 'Jadwal Subtask belum valid.', 'error'));
       return;
     }
+    setMetaError(null);
     setIsSavingMeta(true);
     try {
       const updated = await taskService.updateTask(workspaceId, subtask.id, {
@@ -518,6 +528,8 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       );
       onSubtaskUpdated?.(updated);
     } catch (err) {
+      setMetaError(err instanceof Error ? err.message : 'Detail gagal diperbarui');
+      await refreshAfterError(err);
       dispatch(
         enqueueSnackbar(err instanceof Error ? err.message : 'Detail gagal diperbarui', 'error'),
       );
@@ -726,6 +738,15 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     </Select>
                   </div>
 
+                  <div className="sm:col-span-2">
+                    {subtask.featureScheduleConstraint && (
+                      <FeatureScheduleRange
+                        startDate={featureRange.startDate}
+                        dueDate={featureRange.dueDate}
+                      />
+                    )}
+                    {metaError && <Alert tone="error">{metaError}</Alert>}
+                  </div>
                   <div>
                     <label
                       htmlFor={`subtask-start-date-${subtask.id}`}
@@ -736,6 +757,16 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     <Input
                       type="date"
                       id={`subtask-start-date-${subtask.id}`}
+                      min={
+                        subtask.featureScheduleConstraint?.status !== 'ignored'
+                          ? featureRange.startDate || undefined
+                          : undefined
+                      }
+                      max={
+                        subtask.featureScheduleConstraint?.status !== 'ignored'
+                          ? featureRange.dueDate || undefined
+                          : undefined
+                      }
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                       disabled={!canMutate || !isPlanner}
@@ -756,6 +787,16 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     <Input
                       type="date"
                       id={`subtask-due-date-${subtask.id}`}
+                      min={
+                        subtask.featureScheduleConstraint?.status !== 'ignored'
+                          ? featureRange.startDate || undefined
+                          : undefined
+                      }
+                      max={
+                        subtask.featureScheduleConstraint?.status !== 'ignored'
+                          ? featureRange.dueDate || undefined
+                          : undefined
+                      }
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
                       disabled={!canMutate || !isPlanner}

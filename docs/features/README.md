@@ -16,6 +16,10 @@ flowchart LR
 
 ## Pilih Jalur Anda
 
+Untuk rencana validasi jadwal F1, buka
+[Subtask Schedule Within Feature](SUBTASK-SCHEDULE-WITHIN-FEATURE/README.md)
+(G0–G3 disetujui; implementasi/test lokal, belum Production).
+
 Untuk rencana grooming Owner/PO melalui agent dan publish ke aplikasi, buka
 [Qlick Hub Product MCP](QLICKHUB-PRODUCT-MCP/README.md) (Draft, belum diimplementasikan).
 

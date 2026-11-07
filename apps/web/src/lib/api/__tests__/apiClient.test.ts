@@ -189,3 +189,17 @@ describe('apiClient error metadata', () => {
     window.removeEventListener(RATE_LIMIT_EVENT, onRateLimit);
   });
 });
+
+describe('Feature schedule error contract', () => {
+  it('retains actionable server dates and child names for the dedicated range codes', () => {
+    const conflict =
+      'Rentang Feature 2026-11-01–2026-11-15 bertentangan dengan Subtask Integrasi API: 2026-11-20.';
+    expect(getHumanReadableApiErrorMessage(409, 'FEATURE_SCHEDULE_CONFLICT', conflict)).toBe(
+      conflict,
+    );
+    const range = 'Jadwal Subtask harus di dalam rentang Feature 2026-11-01–2026-11-30.';
+    expect(getHumanReadableApiErrorMessage(400, 'SUBTASK_SCHEDULE_OUT_OF_RANGE', range)).toBe(
+      range,
+    );
+  });
+});

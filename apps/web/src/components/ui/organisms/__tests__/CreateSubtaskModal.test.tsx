@@ -7,7 +7,7 @@ import { CreateSubtaskModal } from '../CreateSubtaskModal';
 import taskReducer from '../../../../store/taskSlice';
 import workspaceReducer from '../../../../store/workspaceSlice';
 import uiReducer from '../../../../store/uiSlice';
-import type { Task } from '@qlick/contracts';
+import { TaskSchema, type Task } from '@qlick/contracts';
 
 const createSubtaskMock = vi.fn();
 const listRequirementsMock = vi.fn();
@@ -33,9 +33,10 @@ vi.mock('../../../../lib/api/requirementService', () => ({
   },
 }));
 
-const mockParentTask: Task = {
-  id: 'parent-12345678-aaaa-bbbb-cccc-ddddeeeeffff',
-  workspaceId: 'ws-11111111-2222-3333-4444-555555555555',
+/** Contract-validated frontend factory; never a Production record. */
+const mockParentTask: Task = TaskSchema.parse({
+  id: '12345678-aaaa-4bbb-8ccc-ddddeeeeffff',
+  workspaceId: '21111111-2222-4333-8444-555555555555',
   folderId: null,
   parentTaskId: null,
   deliveryArea: null,
@@ -44,43 +45,51 @@ const mockParentTask: Task = {
   status: 'todo',
   priority: 'high',
   assigneeId: null,
-  reporterId: 'user-1',
-  position: 0,
+  reporterId: '31111111-2222-4333-8444-555555555555',
+  assignmentMode: 'assigned',
   startDate: null,
   dueDate: null,
   completedAt: null,
   createdAt: '2026-08-14T00:00:00.000Z',
   updatedAt: '2026-08-14T00:00:00.000Z',
-};
+});
 
 describe('CreateSubtaskModal UI Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listRequirementsMock.mockResolvedValue([
       {
-        id: 'req-11111111-2222-4333-8444-555555555555',
+        id: '11111111-2222-4333-8444-555555555555',
         workspaceId: mockParentTask.workspaceId,
         code: 'REQ-101',
         title: 'OAuth login requirement',
         description: null,
         url: null,
         status: 'active',
-        createdBy: 'user-1',
+        createdBy: '31111111-2222-4333-8444-555555555555',
         createdAt: '2026-09-11T00:00:00.000Z',
         updatedAt: '2026-09-11T00:00:00.000Z',
       },
     ]);
     listTaskRequirementLinksMock.mockResolvedValue([
       {
-        id: 'link-1',
+        id: '61111111-2222-4333-8444-555555555555',
         workspaceId: mockParentTask.workspaceId,
         taskId: mockParentTask.id,
-        requirementId: 'req-11111111-2222-4333-8444-555555555555',
-        linkedBy: 'user-1',
+        requirementId: '11111111-2222-4333-8444-555555555555',
+        linkedBy: '31111111-2222-4333-8444-555555555555',
         createdAt: '2026-09-11T00:00:00.000Z',
       },
     ]);
-    createSubtaskMock.mockResolvedValue({ id: 'subtask-1' });
+    createSubtaskMock.mockResolvedValue(
+      TaskSchema.parse({
+        ...mockParentTask,
+        id: '71111111-2222-4333-8444-555555555555',
+        parentTaskId: mockParentTask.id,
+        deliveryArea: 'frontend',
+        assigneeId: '41111111-2222-4333-8444-555555555555',
+      }),
+    );
   });
 
   test('Renders plan subtask modal fields when open', async () => {
@@ -97,7 +106,7 @@ describe('CreateSubtaskModal UI Component', () => {
               id: mockParentTask.workspaceId,
               name: 'Test Workspace',
               slug: 'test-workspace',
-              ownerId: 'user-1',
+              ownerId: '31111111-2222-4333-8444-555555555555',
               role: 'owner' as const,
               createdAt: '2026-08-14T00:00:00.000Z',
               updatedAt: '2026-08-14T00:00:00.000Z',
@@ -152,7 +161,7 @@ describe('CreateSubtaskModal UI Component', () => {
   });
 
   test('preselects a parent Requirement and submits it with the new Subtask', async () => {
-    const requirementId = 'req-11111111-2222-4333-8444-555555555555';
+    const requirementId = '11111111-2222-4333-8444-555555555555';
     const store = configureStore({
       reducer: {
         task: taskReducer,
@@ -166,7 +175,7 @@ describe('CreateSubtaskModal UI Component', () => {
               id: mockParentTask.workspaceId,
               name: 'Test Workspace',
               slug: 'test-workspace',
-              ownerId: 'user-1',
+              ownerId: '31111111-2222-4333-8444-555555555555',
               role: 'owner' as const,
               createdAt: '2026-08-14T00:00:00.000Z',
               updatedAt: '2026-08-14T00:00:00.000Z',
@@ -175,13 +184,17 @@ describe('CreateSubtaskModal UI Component', () => {
           activeWorkspaceId: mockParentTask.workspaceId,
           members: [
             {
-              id: 'member-dev-1',
+              id: '51111111-2222-4333-8444-555555555555',
               workspaceId: mockParentTask.workspaceId,
-              userId: 'dev-1',
+              userId: '41111111-2222-4333-8444-555555555555',
               role: 'dev' as const,
               specialties: ['frontend' as const],
               joinedAt: '2026-08-14T00:00:00.000Z',
-              user: { id: 'dev-1', name: 'Frontend Developer', email: 'dev@example.com' },
+              user: {
+                id: '41111111-2222-4333-8444-555555555555',
+                name: 'Frontend Developer',
+                email: 'dev@example.com',
+              },
             },
           ],
           isLoading: false,
@@ -196,7 +209,7 @@ describe('CreateSubtaskModal UI Component', () => {
       <Provider store={store}>
         <MemoryRouter>
           <CreateSubtaskModal
-            parentTask={mockParentTask}
+            parentTask={{ ...mockParentTask, startDate: '2026-09-01', dueDate: '2026-09-30' }}
             isOpen={true}
             initialRequirementIds={[requirementId]}
             onClose={vi.fn()}
@@ -206,6 +219,15 @@ describe('CreateSubtaskModal UI Component', () => {
       </Provider>,
     );
 
+    expect(screen.getByLabelText('Tanggal Mulai (pasangan opsional)')).toHaveAttribute(
+      'min',
+      '2026-09-01',
+    );
+    expect(screen.getByLabelText('Tanggal Tenggat (pasangan opsional)')).toHaveAttribute(
+      'max',
+      '2026-09-30',
+    );
+    expect(screen.getByText(/Rentang Feature: 2026-09-01/)).toBeVisible();
     const requirementCheckbox = await screen.findByRole('checkbox', {
       name: /REQ-101.*OAuth login requirement/i,
     });
@@ -214,7 +236,9 @@ describe('CreateSubtaskModal UI Component', () => {
     fireEvent.change(screen.getByLabelText('Judul Subtask *'), {
       target: { value: 'Implement OAuth login' },
     });
-    fireEvent.change(screen.getByLabelText('Pelaksana'), { target: { value: 'dev-1' } });
+    fireEvent.change(screen.getByLabelText('Pelaksana'), {
+      target: { value: '41111111-2222-4333-8444-555555555555' },
+    });
     fireEvent.change(screen.getByLabelText('Tanggal Mulai (pasangan opsional)'), {
       target: { value: '2026-09-01' },
     });
@@ -254,7 +278,7 @@ describe('CreateSubtaskModal UI Component', () => {
       ],
       redactedCrossWorkspaceCount: 1,
       unscheduledActiveCount: 2,
-      assigneeId: 'dev-1',
+      assigneeId: '41111111-2222-4333-8444-555555555555',
     });
 
     const store = configureStore({
@@ -270,7 +294,7 @@ describe('CreateSubtaskModal UI Component', () => {
               id: mockParentTask.workspaceId,
               name: 'Test Workspace',
               slug: 'test-workspace',
-              ownerId: 'user-1',
+              ownerId: '31111111-2222-4333-8444-555555555555',
               role: 'owner' as const,
               createdAt: '2026-08-14T00:00:00.000Z',
               updatedAt: '2026-08-14T00:00:00.000Z',
@@ -279,13 +303,17 @@ describe('CreateSubtaskModal UI Component', () => {
           activeWorkspaceId: mockParentTask.workspaceId,
           members: [
             {
-              id: 'member-dev-1',
+              id: '51111111-2222-4333-8444-555555555555',
               workspaceId: mockParentTask.workspaceId,
-              userId: 'dev-1',
+              userId: '41111111-2222-4333-8444-555555555555',
               role: 'dev' as const,
               specialties: ['frontend' as const],
               joinedAt: '2026-08-14T00:00:00.000Z',
-              user: { id: 'dev-1', name: 'Frontend Developer', email: 'dev@example.com' },
+              user: {
+                id: '41111111-2222-4333-8444-555555555555',
+                name: 'Frontend Developer',
+                email: 'dev@example.com',
+              },
             },
           ],
           isLoading: false,
@@ -312,7 +340,9 @@ describe('CreateSubtaskModal UI Component', () => {
     fireEvent.change(screen.getByLabelText('Judul Subtask *'), {
       target: { value: 'Subtask with advisory conflict' },
     });
-    fireEvent.change(screen.getByLabelText('Pelaksana'), { target: { value: 'dev-1' } });
+    fireEvent.change(screen.getByLabelText('Pelaksana'), {
+      target: { value: '41111111-2222-4333-8444-555555555555' },
+    });
     fireEvent.change(screen.getByLabelText('Tanggal Mulai (pasangan opsional)'), {
       target: { value: '2026-09-01' },
     });
@@ -338,7 +368,7 @@ describe('CreateSubtaskModal UI Component', () => {
         mockParentTask.id,
         expect.objectContaining({
           title: 'Subtask with advisory conflict',
-          assigneeId: 'dev-1',
+          assigneeId: '41111111-2222-4333-8444-555555555555',
           startDate: '2026-09-01',
           dueDate: '2026-09-05',
         }),

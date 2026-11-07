@@ -1,3 +1,4 @@
+import { FeatureScheduleError } from './internal/taskFeatureSchedule.js';
 import { Response, NextFunction } from 'express';
 import {
   TaskListQuerySchema,
@@ -19,7 +20,16 @@ import { taskService } from './taskService.js';
 import { taskDiscussionService } from './taskDiscussionService.js';
 import { taskAcceptanceCheckService } from './taskAcceptanceCheckService.js';
 import { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
-import { formatProblemDetails } from '../../http/problemDetails.js';
+import { formatProblemDetails, toProblemDetail } from '../../http/problemDetails.js';
+
+function formatTaskProblemDetails(error: unknown, res: Response): void {
+  if (error instanceof FeatureScheduleError) {
+    const problem = toProblemDetail(error);
+    res.status(problem.status).json({ ...problem, code: error.code });
+    return;
+  }
+  formatProblemDetails(error, res);
+}
 
 export class TaskController {
   async listTasks(req: AuthenticatedRequest, res: Response, _next: NextFunction): Promise<void> {
@@ -238,7 +248,7 @@ export class TaskController {
       const task = await taskService.createTask(userId, input);
       res.status(201).json({ data: task });
     } catch (err) {
-      formatProblemDetails(err, res);
+      formatTaskProblemDetails(err, res);
     }
   }
 
@@ -260,7 +270,7 @@ export class TaskController {
       const subtask = await taskService.createTask(userId, input);
       res.status(201).json({ data: subtask });
     } catch (err) {
-      formatProblemDetails(err, res);
+      formatTaskProblemDetails(err, res);
     }
   }
 
@@ -273,7 +283,7 @@ export class TaskController {
       const task = await taskService.updateTask(req.user!.userId, workspaceId, taskId, input);
       res.status(200).json({ data: task });
     } catch (err) {
-      formatProblemDetails(err, res);
+      formatTaskProblemDetails(err, res);
     }
   }
 
@@ -365,7 +375,7 @@ export class TaskController {
       const task = await taskService.updateTask(req.user!.userId, workspaceId, taskId, input);
       res.status(200).json({ data: task });
     } catch (err) {
-      formatProblemDetails(err, res);
+      formatTaskProblemDetails(err, res);
     }
   }
 
