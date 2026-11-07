@@ -1331,6 +1331,62 @@ describe('TaskDetailDrawer UI Component', () => {
       expect(await screen.findByRole('region', { name: 'Root task' })).toBeInTheDocument();
     });
 
+    test('F1 saves folder and schedule together and retains the draft after a range conflict', async () => {
+      const { taskService } = await import('../../../../lib/api/taskService');
+      const folderId = '11111111-1111-4111-8111-111111111111';
+      const onClose = vi.fn();
+      const onDataChanged = vi.fn();
+      vi.mocked(taskService.moveTask).mockResolvedValue({ ...mockTask, folderId });
+      vi.mocked(taskService.updateTask).mockRejectedValueOnce(
+        Object.assign(new Error('Subtask fixture: 2026-08-05–2026-08-14 di luar rentang.'), {
+          status: 409,
+          code: 'FEATURE_SCHEDULE_CONFLICT',
+        }),
+      );
+      renderWithRedux(
+        <TaskDetailDrawer
+          layout="page"
+          initialTab="task-summary"
+          task={mockTask}
+          folders={[
+            {
+              id: folderId,
+              workspaceId: mockTask.workspaceId,
+              name: 'Target fixture',
+              parentFolderId: null,
+              position: 0,
+              createdBy: mockTask.reporterId,
+              archivedAt: null,
+              createdAt: mockTask.createdAt,
+              updatedAt: mockTask.updatedAt,
+              children: [],
+            },
+          ]}
+          onClose={onClose}
+          onDataChanged={onDataChanged}
+        />,
+        'po',
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit detail' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Folder dan status' }));
+      fireEvent.change(screen.getByLabelText('Lokasi folder'), { target: { value: folderId } });
+      fireEvent.change(screen.getByLabelText('Tenggat'), { target: { value: '2026-08-10' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+      await waitFor(() =>
+        expect(taskService.updateTask).toHaveBeenCalledWith(
+          mockTask.workspaceId,
+          mockTask.id,
+          expect.objectContaining({ folderId, dueDate: '2026-08-10' }),
+        ),
+      );
+      expect(taskService.moveTask).not.toHaveBeenCalled();
+      expect(await screen.findByRole('alert')).toHaveTextContent('Subtask fixture');
+      expect(screen.getByLabelText('Lokasi folder')).toHaveValue(folderId);
+      expect(screen.getByLabelText('Tenggat')).toHaveValue('2026-08-10');
+      expect(onClose).not.toHaveBeenCalled();
+      expect(onDataChanged).not.toHaveBeenCalled();
+    });
+
     test('tahap Plan menampilkan Ide awal dan diskusi tertutup', async () => {
       renderWithRedux(
         <TaskDetailDrawer

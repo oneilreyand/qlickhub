@@ -1,3 +1,4 @@
+import { FeatureScheduleConstraintBadge } from '../../molecules/FeatureScheduleConstraint';
 import React from 'react';
 import { Check, ChevronDown, Circle, Hand } from 'lucide-react';
 import type { ParentTaskDeliveryTrace, ProductBrief, Requirement, Task } from '@qlick/contracts';
@@ -563,8 +564,11 @@ export const FeatureTaskSummary: React.FC<FeatureTaskSummaryProps> = ({
                       <span className="w-9 shrink-0 rounded-md bg-stone-100 px-1.5 py-0.5 text-center text-[11px] font-bold text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                         {getAreaLabel(subtask.deliveryArea)}
                       </span>
-                      <span className="min-w-0 flex-1 basis-56 text-sm font-semibold text-stone-900 dark:text-stone-100">
-                        {subtask.title}
+                      <span className="flex min-w-0 flex-1 basis-56 flex-wrap items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-100">
+                        <span>{subtask.title}</span>
+                        <FeatureScheduleConstraintBadge
+                          constraint={subtask.featureScheduleConstraint}
+                        />
                       </span>
                       <span className="flex flex-wrap gap-1">
                         {codes.map((code) => (

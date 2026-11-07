@@ -1,3 +1,5 @@
+import { FeatureScheduleRange } from '../../molecules/FeatureScheduleConstraint';
+import { Alert } from '../../atoms/Alert';
 import React from 'react';
 import { Check, Circle } from 'lucide-react';
 import {
@@ -122,13 +124,16 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
   const aiBadge = (key: string) =>
     draft.aiFilledFields?.some((field) => field === key) ? <AiBadge /> : null;
 
+  const [saveError, setSaveError] = React.useState<string | null>(null);
   const save = async (complete: boolean) => {
+    setSaveError(null);
     setIsSaving(true);
     try {
       await onSave(draft, complete);
-    } catch {
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Plan gagal disimpan.');
       // Pesan galat ditampilkan oleh pemanggil; bila server menolak karena field kosong, tampilkan penandanya.
-      setShowErrors(true);
+      if ((error as { status?: number }).status !== 409) setShowErrors(true);
     } finally {
       setIsSaving(false);
     }
@@ -151,6 +156,8 @@ export const FeatureSpecPlanPanel: React.FC<FeatureSpecPlanPanelProps> = ({
         </span>
       </div>
 
+      {saveError && <Alert tone="error">{saveError}</Alert>}
+      <FeatureScheduleRange startDate={draft.startDate} dueDate={draft.dueDate} feature />
       <div className="space-y-5">
         <div className="space-y-1.5">
           <label

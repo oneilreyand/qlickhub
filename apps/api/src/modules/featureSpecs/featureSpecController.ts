@@ -1,3 +1,4 @@
+import { FeatureScheduleError } from '../tasks/internal/taskFeatureSchedule.js';
 import type { Response } from 'express';
 import {
   AnswerFeatureSpecQuestionSchema,
@@ -12,7 +13,7 @@ import {
   SaveFeatureSpecSectionSchema,
 } from '@qlick/contracts';
 import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
-import { sendProblemDetails } from '../../http/problemDetails.js';
+import { toProblemDetail, sendProblemDetails } from '../../http/problemDetails.js';
 import { FeatureSpecAiUnavailableError } from './featureSpecAiClient.js';
 import {
   FeatureSpecQuestionsUnansweredError,
@@ -21,6 +22,10 @@ import {
 import { FeatureSpecIncompleteError, featureSpecService } from './featureSpecService.js';
 
 function sendError(res: Response, error: unknown): Response {
+  if (error instanceof FeatureScheduleError) {
+    const problem = toProblemDetail(error);
+    return res.status(problem.status).json({ ...problem, code: error.code });
+  }
   if (error instanceof FeatureSpecIncompleteError) {
     return res.status(400).json({
       type: 'https://tools.ietf.org/html/rfc9457',

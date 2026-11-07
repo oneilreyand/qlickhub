@@ -27,6 +27,7 @@ import {
   persistTaskAssignmentNotification,
 } from './taskLifecycle.js';
 import { formatTask } from './taskQuery.js';
+import { attachFeatureScheduleConstraints } from './taskFeatureSchedule.js';
 
 type AssignmentChannel = 'claim' | 'release' | 'reassign';
 
@@ -136,7 +137,9 @@ export async function claimTaskImpl(
     task.assignmentMode = 'assigned';
     await task.save({ transaction });
     await recordAssignment(task, actorId, 'claim', null, transaction);
-    return formatTask(task);
+    return (
+      await attachFeatureScheduleConstraints(workspaceId, [formatTask(task)], transaction)
+    )[0];
   });
 }
 
@@ -165,7 +168,9 @@ export async function releaseTaskImpl(
     task.assignmentMode = 'open';
     await task.save({ transaction });
     await recordAssignment(task, actorId, 'release', fromAssigneeId, transaction);
-    return formatTask(task);
+    return (
+      await attachFeatureScheduleConstraints(workspaceId, [formatTask(task)], transaction)
+    )[0];
   });
 }
 
@@ -201,7 +206,12 @@ export async function reassignTaskImpl(
     task.assignmentMode = 'assigned';
     await task.save({ transaction });
     await recordAssignment(task, actorId, 'reassign', fromAssigneeId, transaction);
-    return { formatted: formatTask(task), title: task.title };
+    return {
+      formatted: (
+        await attachFeatureScheduleConstraints(workspaceId, [formatTask(task)], transaction)
+      )[0],
+      title: task.title,
+    };
   });
 
   if (input.assigneeId !== actorId) {

@@ -1,3 +1,4 @@
+import { FeatureScheduleRange } from '../../molecules/FeatureScheduleConstraint';
 import React, { useState } from 'react';
 import {
   TrendingUp,
@@ -106,6 +107,10 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
 }) => {
   const [advanced, setAdvanced] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const parentRange =
+    task.parentTaskId && task.featureScheduleConstraint?.status !== 'ignored'
+      ? task.featureScheduleConstraint
+      : undefined;
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
   const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
 
@@ -267,6 +272,8 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
               </label>
               <input
                 id="task-start-date"
+                min={parentRange?.featureStartDate || undefined}
+                max={parentRange?.featureDueDate || undefined}
                 type="date"
                 value={startDate}
                 onChange={(event) => onStartDateChange(event.target.value)}
@@ -285,6 +292,8 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
               </label>
               <input
                 id="task-due-date"
+                min={parentRange?.featureStartDate || undefined}
+                max={parentRange?.featureDueDate || undefined}
                 type="date"
                 value={dueDate}
                 onChange={(event) => onDueDateChange(event.target.value)}
@@ -295,6 +304,13 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
               />
             </div>
           </div>
+          <FeatureScheduleRange
+            startDate={
+              task.parentTaskId ? task.featureScheduleConstraint?.featureStartDate : startDate
+            }
+            dueDate={task.parentTaskId ? task.featureScheduleConstraint?.featureDueDate : dueDate}
+            feature={!task.parentTaskId}
+          />
           {scheduleIssue && canEditPlanning && (
             <p
               id="task-detail-schedule-error"
@@ -531,6 +547,8 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                 <Input
                   type="date"
                   id="task-start-date"
+                  min={parentRange?.featureStartDate || undefined}
+                  max={parentRange?.featureDueDate || undefined}
                   value={startDate}
                   onChange={(e) => onStartDateChange(e.target.value)}
                   disabled={!canEditPlanning}
@@ -548,6 +566,8 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                 <Input
                   type="date"
                   id="task-due-date"
+                  min={parentRange?.featureStartDate || undefined}
+                  max={parentRange?.featureDueDate || undefined}
                   value={dueDate}
                   onChange={(e) => onDueDateChange(e.target.value)}
                   disabled={!canEditPlanning}
@@ -557,6 +577,13 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
               </div>
             </div>
 
+            <FeatureScheduleRange
+              startDate={
+                task.parentTaskId ? task.featureScheduleConstraint?.featureStartDate : startDate
+              }
+              dueDate={task.parentTaskId ? task.featureScheduleConstraint?.featureDueDate : dueDate}
+              feature={!task.parentTaskId}
+            />
             {scheduleIssue && canEditPlanning && (
               <p
                 id="task-detail-schedule-error"

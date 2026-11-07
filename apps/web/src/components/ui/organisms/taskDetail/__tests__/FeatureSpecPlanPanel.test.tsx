@@ -158,4 +158,20 @@ describe('FeatureSpecPlanRail', () => {
     fireEvent.click(screen.getByRole('button', { name: /Lihat PRD/ }));
     expect(onOpenPrd).toHaveBeenCalledTimes(1);
   });
+  it('keeps edited dates and announces the server schedule conflict after 409', async () => {
+    const onSave = vi
+      .fn()
+      .mockRejectedValue(
+        new Error('Rentang Feature bertentangan dengan Subtask Integrasi API: 2026-11-20.'),
+      );
+    render(<FeatureSpecPlanPanel spec={makeSpec(completePlan)} canEdit onSave={onSave} />);
+    const due = screen.getByLabelText(/Tenggat/);
+    fireEvent.change(due, { target: { value: '2026-11-15' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan draf' }));
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Subtask Integrasi API'),
+    );
+    expect(due).toHaveValue('2026-11-15');
+    expect(screen.getByRole('button', { name: 'Simpan draf' })).toBeEnabled();
+  });
 });

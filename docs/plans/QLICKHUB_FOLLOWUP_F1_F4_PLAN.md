@@ -48,6 +48,10 @@ Aturan:
 - AC-F1.2 Given Feature 1–30 Nov, when subtask dibuat 25 Nov–5 Des, then `400` dengan rentang 1–30 Nov.
 - AC-F1.3 Given subtask `done` bertenggat 20 Nov, when tenggat Feature diubah ke 15 Nov, then perubahan diterima.
 
+Keputusan Owner F1, 2026-11-07 (`ok` atas G0–G3): K1 tolak tanpa auto-shift; L1 edit tanggal
+legacy wajib menghasilkan rentang valid penuh, edit non-tanggal tetap boleh; L2 reopen keluar
+rentang ditolak. Data lama tidak diubah massal. [ADR-042](../adr/ADR-042-SUBTASK-SCHEDULE-WITHIN-FEATURE.md).
+
 ## F2 — Referensi & Media di halaman Feature
 
 Satu bagian "Referensi & Media" di tahap PRD halaman Feature, tepat di bawah Product Brief. Sudah
@@ -153,24 +157,24 @@ F4 butuh ADR baru dan dipecah tiga fase: (a) jenis siklus dan environment, (b) c
 
 ## Keputusan Owner
 
-| ID  | Untuk | Pertanyaan                                                                | Rekomendasi                                           | Keputusan |
-| --- | ----- | ------------------------------------------------------------------------- | ----------------------------------------------------- | --------- |
-| K1  | F1    | Tanggal Feature dipersempit: tolak saja, atau tawarkan menggeser subtask? | Tolak dulu; tawaran geser menyusul                    | Belum     |
-| K2  | F2    | Siapa boleh menambah tautan dan gambar?                                   | Owner/Admin/PO                                        | Belum     |
-| K3  | F3    | Persetujuan ulang Brief: PO yang sama, atau harus Owner/Admin?            | PO yang sama                                          | Belum     |
-| K4  | F3    | Feature yang sudah dirilis: Brief dikunci, tambahan jadi Feature baru?    | Ya                                                    | Belum     |
-| K5  | F4    | UAT staging dijalankan siapa?                                             | QA untuk regresi, PO untuk penerimaan bisnis          | Belum     |
-| K6  | F4    | Catat deploy oleh siapa?                                                  | Developer atau Owner/Admin; webhook pipeline menyusul | Belum     |
-| K7  | F4    | Tahap UAT, deploy, smoke wajib atau per Workspace?                        | Per Workspace, default aktif                          | Belum     |
+| ID  | Untuk | Pertanyaan                                                                | Rekomendasi                                           | Keputusan                              |
+| --- | ----- | ------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------- |
+| K1  | F1    | Tanggal Feature dipersempit: tolak saja, atau tawarkan menggeser subtask? | Tolak dulu; tawaran geser menyusul                    | Tolak; Owner ok, 2026-11-07 (G0–G3 F1) |
+| K2  | F2    | Siapa boleh menambah tautan dan gambar?                                   | Owner/Admin/PO                                        | Belum                                  |
+| K3  | F3    | Persetujuan ulang Brief: PO yang sama, atau harus Owner/Admin?            | PO yang sama                                          | Belum                                  |
+| K4  | F3    | Feature yang sudah dirilis: Brief dikunci, tambahan jadi Feature baru?    | Ya                                                    | Belum                                  |
+| K5  | F4    | UAT staging dijalankan siapa?                                             | QA untuk regresi, PO untuk penerimaan bisnis          | Belum                                  |
+| K6  | F4    | Catat deploy oleh siapa?                                                  | Developer atau Owner/Admin; webhook pipeline menyusul | Belum                                  |
+| K7  | F4    | Tahap UAT, deploy, smoke wajib atau per Workspace?                        | Per Workspace, default aktif                          | Belum                                  |
 
 Pelaksana tidak memulai F2–F4 sebelum keputusan yang relevan terisi di tabel ini oleh Owner.
 
 ## Risiko
 
-| Risiko                                                                  | Mitigasi                                                                |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| F1 menolak edit pada Feature lama yang subtasknya sudah di luar rentang | Data lama hanya ditandai; hanya perubahan yang memperburuk yang ditolak |
-| Upload gambar besar gagal di batas body Vercel                          | Kompres di browser; pesan batas sebelum upload; video lewat tautan      |
-| F3 menambah langkah PO pada perubahan kecil                             | Pilihan Redaksional; persetujuan ulang hanya bila scope berubah         |
-| F4 menambah tahap yang belum dipakai semua tim                          | Aktif/nonaktif per Workspace (K7)                                       |
-| Data kerja Production kosong setelah reset 2026-11-06                   | Uji ulang tiap fase memakai Feature uji baru bertanda `[UJI]`           |
+| Risiko                                                                  | Mitigasi                                                                                        |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| F1 menolak edit pada Feature lama yang subtasknya sudah di luar rentang | Data lama ditandai; edit tanggal wajib valid penuh, edit non-tanggal tetap boleh (L1 disetujui) |
+| Upload gambar besar gagal di batas body Vercel                          | Kompres di browser; pesan batas sebelum upload; video lewat tautan                              |
+| F3 menambah langkah PO pada perubahan kecil                             | Pilihan Redaksional; persetujuan ulang hanya bila scope berubah                                 |
+| F4 menambah tahap yang belum dipakai semua tim                          | Aktif/nonaktif per Workspace (K7)                                                               |
+| Data kerja Production kosong setelah reset 2026-11-06                   | Uji ulang tiap fase memakai Feature uji baru bertanda `[UJI]`                                   |
