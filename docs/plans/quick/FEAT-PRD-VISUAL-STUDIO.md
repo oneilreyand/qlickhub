@@ -18,6 +18,9 @@
   - `apps/web/src/components/ui/molecules/__tests__/RichTextEditor.test.tsx`
   - `apps/web/src/components/ui/organisms/taskDetail/PrdDiagramStudioModal.tsx`
   - `apps/web/src/components/ui/organisms/taskDetail/TaskDetailProductBriefTab.tsx`
+  - `apps/web/src/components/ui/organisms/taskDetail/TaskDetailOverviewTab.tsx`
+  - `apps/web/src/components/ui/organisms/taskDetail/FeatureStagePanels.tsx`
+  - `apps/web/src/components/ui/organisms/TaskDetailDrawer.tsx`
   - `apps/web/src/components/ui/organisms/taskDetail/FeatureSpecPrdEditor.tsx`
   - `apps/web/src/components/ui/organisms/taskDetail/__tests__/TaskDetailProductBriefTab.test.tsx`
   - `apps/web/src/components/ui/organisms/taskDetail/__tests__/PrdDiagramStudioModal.test.tsx`
@@ -49,6 +52,6 @@
 
 ## Hasil
 
-- Perintah — exit code — pass/fail/skip: Dalam proses eksekusi
-- PR dan tier: Tier 1
+- Perintah — exit code — pass/fail/skip: `npm run validate` (exit 0), unit tests lulus 100%, role resolution & studio integration verified
+- PR dan tier: PR #118, Tier 1
 - Gap: Tidak ada

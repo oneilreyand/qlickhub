@@ -32,7 +32,7 @@ export interface TaskDetailProductBriefTabProps {
   onCancel?: () => void;
 }
 
-const isPlanner = (role: string) => ['owner', 'admin', 'po'].includes(role);
+const isPlanner = (role: string) => ['owner', 'admin', 'po'].includes((role || '').toLowerCase());
 
 const newScopeItem = (position: number): ProductBriefScopeItem => ({
   id: crypto.randomUUID(),

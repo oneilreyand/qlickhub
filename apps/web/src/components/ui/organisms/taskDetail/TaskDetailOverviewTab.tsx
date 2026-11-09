@@ -28,6 +28,7 @@ import { TaskScheduleHealthBadge } from '../../molecules/TaskScheduleHealthBadge
 import { calculateRoleOverlapAndBottlenecks } from '../../../../lib/utils/scheduleHealth';
 import type { ReleaseReadinessViewState } from '../../../../lib/hooks/useReleaseReadinessMap';
 import { getIndonesianTaskScheduleMessage } from '../../../../lib/i18n/indonesianCopy';
+import { PrdDiagramStudioModal } from './PrdDiagramStudioModal';
 
 const STATUS_LABELS: Record<string, string> = {
   todo: 'Belum dikerjakan',
@@ -107,6 +108,12 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
 }) => {
   const [advanced, setAdvanced] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+
+  const handleApplyDiagram = (snippet: string) => {
+    onDescriptionChange?.(description ? `${description}\n\n${snippet}` : snippet);
+    setIsStudioOpen(false);
+  };
   const parentRange =
     task.parentTaskId && task.featureScheduleConstraint?.status !== 'ignored'
       ? task.featureScheduleConstraint
@@ -214,6 +221,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                 onChange={onDescriptionChange}
                 minRows={6}
                 disabled={!canEditTask}
+                onOpenDiagramStudio={canPlan ? () => setIsStudioOpen(true) : undefined}
                 placeholder="Ringkasan, tujuan, dan kebutuhan utama Task..."
               />
             ) : (
@@ -450,6 +458,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
             minRows={12}
             fillHeight
             disabled={!canEditTask}
+            onOpenDiagramStudio={canPlan ? () => setIsStudioOpen(true) : undefined}
             placeholder="Ringkasan, tujuan, dan kebutuhan utama Task dalam bentuk paragraf, bullet, atau heading..."
           />
         </div>
@@ -782,6 +791,13 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
           </Card>
         </div>
       </div>
+      {canPlan && (
+        <PrdDiagramStudioModal
+          isOpen={isStudioOpen}
+          onClose={() => setIsStudioOpen(false)}
+          onApplyToPrd={handleApplyDiagram}
+        />
+      )}
     </div>
   );
 };

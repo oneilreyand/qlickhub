@@ -235,10 +235,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const effectiveWorkspaceId = activeWorkspaceId || task?.workspaceId;
   const activeWorkspace =
     workspaces.find((workspace) => workspace.id === effectiveWorkspaceId) || workspaces[0];
-  const canPlan = Boolean(
-    activeWorkspace && ['owner', 'admin', 'po'].includes(activeWorkspace.role),
-  );
-  const userWorkspaceRole = (activeWorkspace?.role || '').toLowerCase();
+  const userWorkspaceRole = (
+    activeWorkspace?.role ||
+    activeWorkspace?.myRole ||
+    (activeWorkspace && currentUserId && activeWorkspace.ownerId === currentUserId ? 'owner' : '')
+  ).toLowerCase();
+  const canPlan = Boolean(activeWorkspace && ['owner', 'admin', 'po'].includes(userWorkspaceRole));
   // Feature Spec (P5a): hanya untuk Feature utama; Feature lama tanpa Spec memakai tampilan lama.
   const {
     spec: featureSpec,
@@ -851,7 +853,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const isAssignedQaExecutor = Boolean(
     isSubtask &&
     task.deliveryArea === 'qa' &&
-    activeWorkspace?.role === 'qa' &&
+    userWorkspaceRole === 'qa' &&
     task.assigneeId === currentUserId,
   );
   const canEditTask = canPlan || isAssignedExecutor;
@@ -859,9 +861,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     isSubtask && task.deliveryArea === 'qa' ? isAssignedQaExecutor : canEditTask;
   const canCompleteThisTask = isSubtask
     ? Boolean(
-        task.deliveryArea === 'qa'
-          ? isAssignedQaExecutor
-          : canPlan || (activeWorkspace && activeWorkspace.role === 'qa'),
+        task.deliveryArea === 'qa' ? isAssignedQaExecutor : canPlan || userWorkspaceRole === 'qa',
       )
     : canPlan;
   const canEditPlanning = canPlan;
@@ -1047,7 +1047,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             body.trim(),
             'mention',
             task.id,
-            activeWorkspace?.role?.toUpperCase() || 'Member',
+            userWorkspaceRole ? userWorkspaceRole.toUpperCase() : 'MEMBER',
           ),
         );
       }
@@ -1806,7 +1806,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   canPlan={canPlan && !task.parentTaskId}
                   canMutate={Boolean(
                     activeWorkspace &&
-                    ['owner', 'admin', 'po', 'dev', 'qa'].includes(activeWorkspace.role),
+                    ['owner', 'admin', 'po', 'dev', 'qa'].includes(userWorkspaceRole),
                   )}
                   unreadCommentMap={unreadSubtaskCommentMap}
                   onClearSubtaskUnread={(subtaskId) => {
