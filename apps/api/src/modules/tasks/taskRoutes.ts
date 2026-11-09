@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import { taskController } from './taskController.js';
+import { taskLinkController } from './taskLinkController.js';
 
 export const taskRoutes = Router({ mergeParams: true });
 
@@ -59,6 +60,31 @@ taskRoutes.patch('/:taskId/comments/:commentId', requireWorkspaceMember(), (req,
 );
 taskRoutes.delete('/:taskId/comments/:commentId', requireWorkspaceMember(), (req, res, next) =>
   taskController.deleteTaskComment(req, res, next),
+);
+
+// Task Links (F2 - FEATURE-REFERENCES-MEDIA)
+taskRoutes.get('/:taskId/links', requireWorkspaceMember(), (req, res, next) =>
+  taskLinkController.listTaskLinks(req, res, next),
+);
+taskRoutes.post(
+  '/:taskId/links',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  (req, res, next) => taskLinkController.createTaskLink(req, res, next),
+);
+taskRoutes.put(
+  '/:taskId/links/reorder',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  (req, res, next) => taskLinkController.reorderTaskLinks(req, res, next),
+);
+taskRoutes.patch(
+  '/:taskId/links/:linkId',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  (req, res, next) => taskLinkController.updateTaskLink(req, res, next),
+);
+taskRoutes.delete(
+  '/:taskId/links/:linkId',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  (req, res, next) => taskLinkController.deleteTaskLink(req, res, next),
 );
 
 taskRoutes.patch(

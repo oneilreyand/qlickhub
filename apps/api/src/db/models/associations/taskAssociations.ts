@@ -4,6 +4,7 @@ import { WorkFolderModel } from '../workFolder.js';
 import { FolderActivityModel } from '../folderActivity.js';
 import { TaskModel } from '../task.js';
 import { TaskAttachmentModel } from '../taskAttachment.js';
+import { TaskLinkModel } from '../taskLink.js';
 import { TaskActivityModel } from '../taskActivity.js';
 import { TaskCommentModel } from '../taskComment.js';
 import { TaskCommentMentionModel } from '../taskCommentMention.js';
@@ -173,6 +174,40 @@ export function setupTaskAssociations() {
     foreignKey: 'uploaderId',
     as: 'uploader',
     onDelete: 'RESTRICT',
+  });
+
+  // Task Link Associations
+  TaskModel.hasMany(TaskLinkModel, {
+    foreignKey: 'taskId',
+    as: 'links',
+    onDelete: 'CASCADE',
+  });
+  TaskLinkModel.belongsTo(TaskModel, {
+    foreignKey: 'taskId',
+    as: 'task',
+    onDelete: 'CASCADE',
+  });
+
+  WorkspaceModel.hasMany(TaskLinkModel, {
+    foreignKey: 'workspaceId',
+    as: 'taskLinks',
+    onDelete: 'CASCADE',
+  });
+  TaskLinkModel.belongsTo(WorkspaceModel, {
+    foreignKey: 'workspaceId',
+    as: 'workspace',
+    onDelete: 'CASCADE',
+  });
+
+  UserModel.hasMany(TaskLinkModel, {
+    foreignKey: 'createdBy',
+    as: 'createdTaskLinks',
+    onDelete: 'SET NULL',
+  });
+  TaskLinkModel.belongsTo(UserModel, {
+    foreignKey: 'createdBy',
+    as: 'creator',
+    onDelete: 'SET NULL',
   });
 
   // Task Activity Associations

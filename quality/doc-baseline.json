@@ -148,11 +148,6 @@
     },
     {
       "rule": "DS-R01",
-      "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/attachments",
-      "file": "apps/api/src/modules/attachments/attachmentRoutes.ts:16"
-    },
-    {
-      "rule": "DS-R01",
       "key": "endpoint:GET /v1/workspaces/:workspaceId/tasks/:taskId/attachments/:attachmentId/download",
       "file": "apps/api/src/modules/attachments/attachmentRoutes.ts:27"
     },
@@ -340,11 +335,6 @@
       "rule": "DS-R01",
       "key": "endpoint:POST /v1/workspaces/:workspaceId/task-creation-permissions",
       "file": "apps/api/src/modules/workspaces/workspaceRoutes.ts:79"
-    },
-    {
-      "rule": "DS-R01",
-      "key": "endpoint:POST /v1/workspaces/:workspaceId/tasks/:taskId/attachments",
-      "file": "apps/api/src/modules/attachments/attachmentRoutes.ts:21"
     },
     {
       "rule": "DS-R01",

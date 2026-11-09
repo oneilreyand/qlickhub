@@ -106,11 +106,11 @@ describe('WorkspaceSwitcher', () => {
     expect(screen.queryByRole('button', { name: /^buat workspace$/i })).not.toBeInTheDocument();
   });
 
-  it('offers the Leader Hub shortcut only to owner and admin', async () => {
+  it('does not render the Executive Leader Hub shortcut in the dropdown', async () => {
     const user = userEvent.setup();
     const owner = renderSwitcher('owner');
     await user.click(screen.getByRole('button', { name: /ganti workspace/i }));
-    expect(screen.getByText('Executive Leader Hub')).toBeInTheDocument();
+    expect(screen.queryByText('Executive Leader Hub')).toBeNull();
     owner.unmount();
 
     renderSwitcher('dev');

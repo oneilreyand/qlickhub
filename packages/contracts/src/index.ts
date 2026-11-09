@@ -26,3 +26,4 @@ export * from './notification.js';
 export * from './capacity.js';
 export * from './aiTaskGenerator.js';
 export * from './leader.js';
+export * from './taskLink.js';

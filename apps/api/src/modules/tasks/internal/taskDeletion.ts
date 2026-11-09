@@ -29,6 +29,7 @@ import {
   FeatureReadinessReviewModel,
   FeatureReadinessBaselineModel,
   RequirementFindingModel,
+  TaskLinkModel,
 } from '../../../db/models/index.js';
 import { logActivity } from './taskLifecycle.js';
 
@@ -129,6 +130,11 @@ export async function deleteTaskImpl(
         `CONFLICT: Unlink or remove permitted Task records before deletion. Immutable delivery history cannot be deleted (${requirementLinks} Requirement link(s), ${documentLinks} document link(s), ${attachments} attachment(s), ${bugs} Bug(s), ${readinessReviews} readiness review(s), ${readinessBaselines} readiness baseline(s), ${requirementFindings} Requirement finding(s), ${qaSignOffs} active QA Sign-off(s), ${releaseDecisions} active Release Decision(s)).`,
       );
     }
+
+    await TaskLinkModel.destroy({
+      where: { workspaceId, taskId: { [Op.in]: targetTaskIds } },
+      transaction,
+    });
 
     for (const st of subtasks) {
       await st.destroy({ transaction }); // Note: Using paranoid destroy by default in sequelize if configured
