@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const TaskLinkTypeSchema = z.enum(['figma', 'document', 'sheet', 'video', 'other']);
+export const TaskLinkTypeSchema = z.enum(['figma', 'document', 'sheet', 'video', 'image', 'other']);
 export type TaskLinkType = z.infer<typeof TaskLinkTypeSchema>;
 
 export const TaskLinkSchema = z.object({

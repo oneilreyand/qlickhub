@@ -10,6 +10,7 @@ import {
   Table,
   Video,
   Palette,
+  Image as ImageIcon,
   Link as LinkIcon,
   AlertCircle,
 } from 'lucide-react';
@@ -27,6 +28,22 @@ export interface FeatureReferencesPanelProps {
   onLinksChange?: (links: TaskLink[]) => void;
 }
 
+const IMAGE_EXTENSION_REGEX = /\.(png|jpe?g|webp|svg|gif)($|\?|#)/i;
+const YOUTUBE_REGEX = /(?:youtube\.com|youtu\.be)/i;
+const LOOM_REGEX = /loom\.com/i;
+const FIGMA_REGEX = /figma\.com/i;
+const GOOGLE_DOC_REGEX = /docs\.google\.com\/document/i;
+const GOOGLE_SHEET_REGEX = /docs\.google\.com\/spreadsheets/i;
+
+function detectLinkType(url: string): TaskLinkType {
+  if (IMAGE_EXTENSION_REGEX.test(url)) return 'image';
+  if (FIGMA_REGEX.test(url)) return 'figma';
+  if (YOUTUBE_REGEX.test(url) || LOOM_REGEX.test(url)) return 'video';
+  if (GOOGLE_SHEET_REGEX.test(url)) return 'sheet';
+  if (GOOGLE_DOC_REGEX.test(url)) return 'document';
+  return 'other';
+}
+
 const LINK_TYPE_META: Record<
   TaskLinkType,
   { label: string; icon: React.FC<{ className?: string }>; badgeClass: string }
@@ -36,6 +53,12 @@ const LINK_TYPE_META: Record<
     icon: Palette,
     badgeClass:
       'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+  },
+  image: {
+    label: 'Gambar / Mockup',
+    icon: ImageIcon,
+    badgeClass:
+      'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800',
   },
   document: {
     label: 'Dokumen',
@@ -399,7 +422,16 @@ export const FeatureReferencesPanel: React.FC<FeatureReferencesPanelProps> = ({
               type="url"
               placeholder="https://figma.com/file/..."
               value={formUrl}
-              onChange={(e) => setFormUrl(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormUrl(val);
+                if (!editingLink) {
+                  const detected = detectLinkType(val);
+                  if (detected !== 'other') {
+                    setFormType(detected);
+                  }
+                }
+              }}
               required
             />
           </div>
@@ -419,6 +451,7 @@ export const FeatureReferencesPanel: React.FC<FeatureReferencesPanelProps> = ({
               className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 transition focus:border-[#B1E743] focus:outline-none focus:ring-2 focus:ring-[#B1E743]/20 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
             >
               <option value="figma">Figma / Desain</option>
+              <option value="image">Gambar / Mockup (URL)</option>
               <option value="document">Dokumen / Spesifikasi</option>
               <option value="sheet">Spreadsheet / Data</option>
               <option value="video">Video (YouTube / Loom / Drive)</option>

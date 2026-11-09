@@ -28,18 +28,18 @@
   - Given beberapa tautan pada Feature yang sama,
   - When pengguna berwenang mengklik tombol naik/turun atau memindahkan urutan tautan,
   - Then urutan baru disimpan di database (`sort_order`) dan tampilan segera terbarui tanpa reload halaman.
-- **AC-F2.5 (Galeri Multi-Gambar & Kompresi)**:
-  - Given pengguna berwenang mengunggah gambar (PNG, JPG, WebP),
-  - When ukuran gambar sebelum upload melebihi 4 MB,
-  - Then gambar dikompresi di browser sebelum dikirim ke API lampiran `product_media`. Gambar yang berhasil diunggah tampil dalam galeri grid dengan opsi klik untuk memperbesar (lightbox modal).
+- **AC-F2.5 (Galeri Gambar Berbasis Tautan URL)**:
+  - Given tautan gambar yang tersimpan (bertipe `image` atau berakhiran ekstensi `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`, `.gif`),
+  - When galeri visual dirender di bawah bagian referensi,
+  - Then gambar tampil dalam galeri grid responsif dengan nama/judul, thumbnail, tombol "Perbesar" (Lightbox Modal), dan tautan direct buka URL target (`target="_blank"`). Seluruh media dikelola murni berbasis tautan tanpa upload berkas biner lokal.
 - **AC-F2.6 (Inline Video Player YouTube)**:
   - Given tautan video YouTube yang valid,
   - When tautan tersebut dibuka dalam kartu media,
   - Then tersedia opsi pemutaran video langsung di tempat menggunakan embedded player tanpa harus meninggalkan halaman Feature.
 - **AC-F2.7 (Enforcement Hak Akses / RBAC)**:
   - Given pengguna dengan peran `developer` atau `qa`,
-  - When mengirim request mutasi (`POST`, `PATCH`, `DELETE`, `PUT /reorder` pada endpoint tautan atau upload `product_media`),
-  - Then backend menolak dengan HTTP `403 Forbidden`. Pada antarmuka pengguna, tombol Tambah, Edit, Hapus, dan Upload disembunyikan.
+  - When mengirim request mutasi (`POST`, `PATCH`, `DELETE`, `PUT /reorder` pada endpoint tautan),
+  - Then backend menolak dengan HTTP `403 Forbidden`. Pada antarmuka pengguna, tombol Tambah, Edit, dan Hapus disembunyikan.
 - **AC-F2.8 (Akses Baca-Saja di Desk Developer & QA)**:
   - Given Developer atau QA membuka halaman kerja subtask,
   - When melihat ringkasan "Referensi Feature",

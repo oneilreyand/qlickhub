@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TaskAttachment, TaskLink } from '@qlick/contracts';
+import type { TaskLink } from '@qlick/contracts';
 import { FeatureReferencesAndMedia } from '../FeatureReferencesAndMedia';
 import { FeatureReferencesPanel } from '../FeatureReferencesPanel';
 import { FeatureMediaGallery } from '../FeatureMediaGallery';
@@ -13,21 +13,8 @@ const taskLinkServiceMocks = vi.hoisted(() => ({
   reorderLinks: vi.fn(),
 }));
 
-const attachmentServiceMocks = vi.hoisted(() => ({
-  listAttachments: vi.fn(),
-  uploadAttachment: vi.fn(),
-  deleteAttachment: vi.fn(),
-  getDownloadUrl: vi
-    .fn()
-    .mockImplementation((_ws: string, _t: string, id: string) => `/download/${id}`),
-}));
-
 vi.mock('../../../../../lib/api/taskLinkService', () => ({
   taskLinkService: taskLinkServiceMocks,
-}));
-
-vi.mock('../../../../../lib/api/attachmentService', () => ({
-  attachmentService: attachmentServiceMocks,
 }));
 
 const mockLinks: TaskLink[] = [
@@ -55,34 +42,15 @@ const mockLinks: TaskLink[] = [
     createdAt: '2026-11-09T00:00:00.000Z',
     updatedAt: '2026-11-09T00:00:00.000Z',
   },
-];
-
-const mockAttachments: TaskAttachment[] = [
   {
-    id: 'att-1',
+    id: 'link-3',
     workspaceId: 'ws-1',
     taskId: 'task-1',
-    fileName: 'dashboard-preview.png',
-    fileSize: 102400,
-    mimeType: 'image/png',
-    storageProvider: 'local',
-    category: 'product_media',
-    caption: 'Dashboard high fidelity',
-    uploaderId: 'user-1',
-    createdAt: '2026-11-09T00:00:00.000Z',
-    updatedAt: '2026-11-09T00:00:00.000Z',
-  },
-  {
-    id: 'att-2',
-    workspaceId: 'ws-1',
-    taskId: 'task-1',
-    fileName: 'qa-result.png',
-    fileSize: 51200,
-    mimeType: 'image/png',
-    storageProvider: 'local',
-    category: 'qa_evidence', // should be excluded from product_media gallery
-    caption: null,
-    uploaderId: 'user-2',
+    title: 'Dashboard Preview Image',
+    url: 'https://example.com/assets/dashboard-preview.png',
+    linkType: 'image',
+    sortOrder: 2,
+    createdBy: 'user-1',
     createdAt: '2026-11-09T00:00:00.000Z',
     updatedAt: '2026-11-09T00:00:00.000Z',
   },
@@ -92,7 +60,6 @@ describe('FeatureReferencesAndMedia', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     taskLinkServiceMocks.listLinks.mockResolvedValue([...mockLinks]);
-    attachmentServiceMocks.listAttachments.mockResolvedValue([...mockAttachments]);
   });
 
   it('renders both references and media gallery within the section container', async () => {
@@ -104,6 +71,7 @@ describe('FeatureReferencesAndMedia', () => {
     await waitFor(() => {
       expect(screen.getByText('Figma UI Mockups')).toBeInTheDocument();
       expect(screen.getAllByText('Demo Walkthrough Video').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Dashboard Preview Image').length).toBeGreaterThan(0);
     });
   });
 
@@ -150,19 +118,19 @@ describe('FeatureReferencesAndMedia', () => {
       });
 
       expect(screen.getByTestId('add-link-button')).toBeInTheDocument();
-      expect(screen.getAllByRole('button', { name: /Sunting tautan/i })).toHaveLength(2);
-      expect(screen.getAllByRole('button', { name: /Hapus tautan/i })).toHaveLength(2);
+      expect(screen.getAllByRole('button', { name: /Sunting tautan/i })).toHaveLength(3);
+      expect(screen.getAllByRole('button', { name: /Hapus tautan/i })).toHaveLength(3);
     });
 
     it('validates URL protocol and calls createLink when adding a reference link', async () => {
       taskLinkServiceMocks.createLink.mockResolvedValue({
-        id: 'link-3',
+        id: 'link-4',
         workspaceId: 'ws-1',
         taskId: 'task-1',
         title: 'Project Roadmap',
         url: 'https://docs.google.com/spreadsheets/d/123',
         linkType: 'sheet',
-        sortOrder: 2,
+        sortOrder: 3,
         createdBy: 'user-1',
         createdAt: '2026-11-09T00:00:00.000Z',
         updatedAt: '2026-11-09T00:00:00.000Z',
@@ -234,7 +202,7 @@ describe('FeatureReferencesAndMedia', () => {
   });
 
   describe('FeatureMediaGallery', () => {
-    it('filters attachments to category="product_media" and displays images', async () => {
+    it('displays image links in visual gallery with thumbnail and direct URL link', () => {
       render(
         <FeatureMediaGallery
           workspaceId="ws-1"
@@ -244,15 +212,18 @@ describe('FeatureReferencesAndMedia', () => {
         />,
       );
 
-      await waitFor(() => {
-        expect(screen.getByText('dashboard-preview.png')).toBeInTheDocument();
-      });
+      expect(screen.getByText('Gambar & Mockup Produk (1)')).toBeInTheDocument();
+      expect(screen.getByText('Dashboard Preview Image')).toBeInTheDocument();
 
-      // 'qa-result.png' has category 'qa_evidence', should not be listed in media gallery
-      expect(screen.queryByText('qa-result.png')).not.toBeInTheDocument();
+      const img = screen.getByAltText('Dashboard Preview Image');
+      expect(img).toHaveAttribute('src', 'https://example.com/assets/dashboard-preview.png');
+
+      const urlLink = screen.getByRole('link', { name: /Buka URL/i });
+      expect(urlLink).toHaveAttribute('href', 'https://example.com/assets/dashboard-preview.png');
+      expect(urlLink).toHaveAttribute('target', '_blank');
     });
 
-    it('embeds video player iframe when external video link is present in links', async () => {
+    it('embeds video player iframe when external video link is present in links', () => {
       render(
         <FeatureMediaGallery
           workspaceId="ws-1"
@@ -262,34 +233,14 @@ describe('FeatureReferencesAndMedia', () => {
         />,
       );
 
-      await waitFor(() => {
-        expect(screen.getByText('Video Penjelasan Produk')).toBeInTheDocument();
-      });
+      expect(screen.getByText('Video Penjelasan Produk')).toBeInTheDocument();
 
       const iframe = screen.getByTitle('Demo Walkthrough Video');
       expect(iframe).toBeInTheDocument();
       expect(iframe).toHaveAttribute('src', expect.stringContaining('/embed/dQw4w9WgXcQ'));
     });
 
-    it('enforces RBAC on upload: hides upload button for canManage = false', async () => {
-      render(
-        <FeatureMediaGallery
-          workspaceId="ws-1"
-          taskId="task-1"
-          canManage={false}
-          links={mockLinks}
-        />,
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText('dashboard-preview.png')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByRole('button', { name: /Unggah Gambar/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /Hapus gambar/i })).not.toBeInTheDocument();
-    });
-
-    it('enforces RBAC on upload: shows upload and delete button for canManage = true', async () => {
+    it('enforces link-only policy: does not contain local upload button or input', () => {
       render(
         <FeatureMediaGallery
           workspaceId="ws-1"
@@ -299,12 +250,52 @@ describe('FeatureReferencesAndMedia', () => {
         />,
       );
 
-      await waitFor(() => {
-        expect(screen.getByText('dashboard-preview.png')).toBeInTheDocument();
-      });
+      expect(screen.queryByRole('button', { name: /Unggah Gambar/i })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('file-upload-input')).not.toBeInTheDocument();
+      expect(document.querySelector('input[type="file"]')).toBeNull();
+    });
 
-      expect(screen.getByRole('button', { name: /Unggah Gambar/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Hapus gambar/i })).toBeInTheDocument();
+    it('enforces RBAC on image media deletion: hidden for canManage = false, enabled for canManage = true', async () => {
+      const { rerender } = render(
+        <FeatureMediaGallery
+          workspaceId="ws-1"
+          taskId="task-1"
+          canManage={false}
+          links={mockLinks}
+        />,
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Hapus gambar Dashboard Preview Image' }),
+      ).not.toBeInTheDocument();
+
+      taskLinkServiceMocks.deleteLink.mockResolvedValue(undefined);
+      const onLinksChangeMock = vi.fn();
+
+      rerender(
+        <FeatureMediaGallery
+          workspaceId="ws-1"
+          taskId="task-1"
+          canManage={true}
+          links={mockLinks}
+          onLinksChange={onLinksChangeMock}
+        />,
+      );
+
+      const deleteBtn = screen.getByRole('button', {
+        name: 'Hapus gambar Dashboard Preview Image',
+      });
+      expect(deleteBtn).toBeInTheDocument();
+
+      fireEvent.click(deleteBtn);
+
+      expect(screen.getByRole('heading', { name: 'Hapus Media Referensi' })).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('confirm-delete-media-button'));
+
+      await waitFor(() => {
+        expect(taskLinkServiceMocks.deleteLink).toHaveBeenCalledWith('ws-1', 'task-1', 'link-3');
+        expect(onLinksChangeMock).toHaveBeenCalledWith(mockLinks.filter((l) => l.id !== 'link-3'));
+      });
     });
   });
 });

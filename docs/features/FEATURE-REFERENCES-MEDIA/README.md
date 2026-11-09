@@ -23,7 +23,7 @@ Keputusan Owner K2 telah ditetapkan: hak akses kelola tautan dan media dibatasi 
 
 ## 1. Tujuan dan Pengguna
 
-Menyediakan wadah terstruktur bernama "Referensi & Media" pada tahap PRD halaman Feature di bawah Product Brief. PO, Admin, dan Owner dapat menambahkan banyak tautan eksternal (Figma, Dokumen, Spreadsheet, Video), mengunggah gambar mockup ke galeri, dan mengatur urutan tautan. Developer dan QA dapat langsung mengklik tautan (_direct redirect_ ke tab baru browser), memperbesar gambar, dan memutar video di tempat tanpa opsi mengedit. Rincian ada di [problem.md](problem.md) dan [solution.md](solution.md).
+Menyediakan wadah terstruktur bernama "Referensi & Media" pada tahap PRD halaman Feature di bawah Product Brief. PO, Admin, dan Owner dapat menambahkan tautan eksternal (Figma, Dokumen, Spreadsheet, Video, Gambar/Mockup), menampilkan visual galeri gambar dan pemutar video tersemat murni dari link URL, dan mengatur urutan tautan. Developer dan QA dapat langsung mengklik tautan (_direct redirect_ ke tab baru browser), memperbesar gambar via lightbox, dan memutar video di tempat tanpa opsi mengedit. Rincian ada di [problem.md](problem.md) dan [solution.md](solution.md).
 
 ## 2. Requirement dan Acceptance Criteria
 
@@ -50,7 +50,7 @@ User flow per layar ada di [product.md](product.md) §3.
 
 ## 4. Data dan Relasi
 
-Tabel database baru `task_links` berelasi many-to-one ke `workspaces(id)` dan `tasks(id)` dengan `ON DELETE CASCADE`. Galeri gambar memanfaatkan model `task_attachments` kategori `product_media`. Rincian skema di [contracts.md](contracts.md).
+Tabel database baru `task_links` berelasi many-to-one ke `workspaces(id)` dan `tasks(id)` dengan `ON DELETE CASCADE`. Galeri gambar dan media memanfaatkan tautan referensi bertipe `image` atau format berkas gambar (URL) tanpa upload biner lokal. Rincian skema di [contracts.md](contracts.md).
 
 ## 5. API dan Shared Contract
 
