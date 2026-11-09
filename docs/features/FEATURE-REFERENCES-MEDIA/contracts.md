@@ -15,7 +15,7 @@ CREATE TABLE task_links (
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
   url TEXT NOT NULL,
-  link_type VARCHAR(32) NOT NULL DEFAULT 'other', -- 'figma' | 'document' | 'sheet' | 'video' | 'other'
+  link_type VARCHAR(32) NOT NULL DEFAULT 'other', -- 'figma' | 'document' | 'sheet' | 'video' | 'image' | 'other'
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -28,7 +28,7 @@ CREATE INDEX idx_task_links_workspace_task ON task_links(workspace_id, task_id, 
 ## 2. Shared Types (TypeScript di `packages/contracts`)
 
 ```typescript
-export type TaskLinkType = 'figma' | 'document' | 'sheet' | 'video' | 'other';
+export type TaskLinkType = 'figma' | 'document' | 'sheet' | 'video' | 'image' | 'other';
 
 export interface TaskLink {
   id: string;
