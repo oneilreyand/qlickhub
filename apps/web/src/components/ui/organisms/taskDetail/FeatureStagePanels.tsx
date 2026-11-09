@@ -304,7 +304,7 @@ export const FeaturePrdSummary: React.FC<FeaturePrdSummaryProps> = ({
                   className="border-[#3F6212] text-[#166534] hover:bg-[#B1E743]/10 dark:border-[#B1E743] dark:text-[#B1E743]"
                 >
                   <GitFork className="mr-1.5 h-3.5 w-3.5" />
-                  Diagram &amp; Grafik Studio
+                  Tambah Diagram
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={onEditBrief}>

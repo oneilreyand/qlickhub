@@ -303,7 +303,10 @@ describe('TaskDetailProductBriefTab', () => {
     );
   });
 
-  test('renders Diagram & Grafik Studio button for Owner/Admin/PO and allows applying diagram to context', () => {
+  test('opens Mermaid Studio and inserts a reviewed diagram into the context draft', async () => {
+    (window as unknown as { __qlick_mermaid: unknown }).__qlick_mermaid = {
+      render: async () => ({ svg: '<svg />' }),
+    };
     render(
       <TaskDetailProductBriefTab
         task={task}
@@ -317,18 +320,21 @@ describe('TaskDetailProductBriefTab', () => {
 
     const studioBtn = screen.getByTestId('brief-diagram-studio-btn');
     expect(studioBtn).toBeInTheDocument();
-    expect(studioBtn).toHaveTextContent('Diagram & Grafik Studio');
+    expect(studioBtn).toHaveTextContent('Tambah Diagram');
 
     // Click to open studio
     fireEvent.click(studioBtn);
-    expect(screen.getByText('Diagram & Grafik Studio')).toBeInTheDocument();
-    expect(screen.getByText('Terapkan ke PRD')).toBeInTheDocument();
-
-    // Click Terapkan ke PRD
-    fireEvent.click(screen.getByText('Terapkan ke PRD'));
-
-    // Studio closes and context is updated
-    expect(screen.queryByText('Terapkan ke PRD')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Judul diagram'), {
+      target: { value: 'Checkout flow' },
+    });
+    fireEvent.change(screen.getByLabelText('Kode Mermaid'), {
+      target: { value: 'flowchart LR\nA --> B' },
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Sisipkan ke|Perbarui Diagram/ })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Sisipkan ke|Perbarui Diagram/ }));
+    expect(screen.queryByTestId('prd-diagram-studio')).not.toBeInTheDocument();
     expect(screen.getByDisplayValue(/```mermaid/)).toBeInTheDocument();
     expect(screen.getByText('Perubahan belum disimpan')).toBeInTheDocument();
   });

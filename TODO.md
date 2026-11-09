@@ -38,6 +38,9 @@ Workspace → Folder → Feature / Story (root Task)
 
 ## Active work
 
+- [ ] **In progress** (Codex — 2026-11-09) — **FEAT-PRD-MERMAID-STUDIO: Sederhanakan Studio menjadi input Mermaid + preview dengan edit ulang blok beridentitas.** Kandidat lokal P1–P2 teruji; G5 independen dan publikasi belum dilakukan. [Feature](docs/features/FEAT-PRD-MERMAID-STUDIO/README.md). Policies: `UI-001`, `UI-003`, `DATA-001`, `CONTRACT-001`, `TEST-001`.
+      Layer: PRD=Done, BE=Done, FE=Done.
+
 - [ ] **In progress** (Codex — 2026-11-07) — **SUBTASK-SCHEDULE-WITHIN-FEATURE: [F1] Server menolak tanggal Feature yang membuat subtask aktif keluar rentang, dan tanggal subtask di luar rentang Feature.** G0–G3/K1/L1/L2 disetujui Owner; ADR-042/DOMAIN-005 dicatat dahulu. G5 lokal Accepted oleh verifier Standards dan Spec setelah atomic Save folder/tanggal serta metadata assignment diperbaiki. API PostgreSQL 671/671 (F1 16/16), frontend 838/838, kontrak 109/109, E2E 6/6 pada tiga viewport Light/Dark, validate/build lulus. Owner `ok kerjakan` mengotorisasi kelanjutan ke persiapan PR Tier 2; merge menunggu label Owner dan verifikasi Production belum dilakukan. Tanpa migrasi baru atau mutasi data Production. [Feature](docs/features/SUBTASK-SCHEDULE-WITHIN-FEATURE/README.md), [laporan G5](docs/reports/SUBTASK_SCHEDULE_WITHIN_FEATURE_G5_2026-11-07.md). Policies: `DOMAIN-005`, `SDLC-001`, `SDLC-002`, `TEST-001`, `DOC-002`, `AUTH-002`, `CONTRACT-001`, `AI-020`.
       Layer: PRD=Done, BE=Done, FE=Done.
 - [ ] **Todo** (Codex — 2026-11-07) — **PRODUCT-BRIEF-CHANGE-CONTROL: [F3] Perubahan scope Brief yang sudah disetujui wajib disetujui ulang, diberitahukan ke Developer/QA, dan membatalkan sign-off lama.** Menunggu keputusan Owner K3, K4. Rencana: [F1–F4](docs/plans/QLICKHUB_FOLLOWUP_F1_F4_PLAN.md#f3--perubahan-brief-setelah-disetujui). Policies: `SDLC-001`, `SDLC-002`, `RELEASE-001`.

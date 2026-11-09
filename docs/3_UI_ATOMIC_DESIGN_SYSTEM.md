@@ -366,3 +366,12 @@ Review mencatat batas tanggung jawab, props/state/event yang diekspor, konsumen 
 menjaga perilaku sebelum dan sesudah pemecahan, serta temuan duplikasi/artefak usang. Tidak ada
 temuan hanya valid jika pencarian dan scope review dicatat. Policies: `UI-001`, `UI-002`, `UI-003`,
 `UI-004`.
+
+### Mermaid Studio (FEAT-PRD-MERMAID-STUDIO)
+
+[Mermaid Studio](features/FEAT-PRD-MERMAID-STUDIO/README.md) memakai Modal, Input, Textarea,
+Select, Alert dan Button existing. `PrdDiagramList` mengomposisi viewer blok dokumen dengan aksi
+edit dari host yang berizin. Studio berisi judul, source Mermaid dan preview: dua kolom pada
+layar lebar, vertikal pada phone/tablet. Source dan metadata mengikuti shared contract; tombol
+sisipkan memperbarui draf, kemudian penyimpanan dokumen existing tetap diperlukan. Viewer chart
+legacy tetap tersedia; builder grafik dan kanvas node telah digantikan oleh editor source.

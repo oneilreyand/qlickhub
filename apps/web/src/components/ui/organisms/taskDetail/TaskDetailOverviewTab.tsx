@@ -1,3 +1,5 @@
+import { PrdDiagramList } from '../../molecules/PrdDiagramList';
+import type { PrdDiagramMatch } from '@qlick/contracts';
 import { FeatureScheduleRange } from '../../molecules/FeatureScheduleConstraint';
 import React, { useState } from 'react';
 import {
@@ -109,9 +111,18 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
   const [advanced, setAdvanced] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioTarget, setStudioTarget] = useState<PrdDiagramMatch | null>(null);
+  const closeStudio = () => {
+    setIsStudioOpen(false);
+    setStudioTarget(null);
+  };
+  const editDiagram = (diagram: PrdDiagramMatch) => {
+    setStudioTarget(diagram);
+    setIsStudioOpen(true);
+  };
 
   const handleApplyDiagram = (snippet: string) => {
-    onDescriptionChange?.(description ? `${description}\n\n${snippet}` : snippet);
+    onDescriptionChange?.(snippet);
     setIsStudioOpen(false);
   };
   const parentRange =
@@ -161,6 +172,25 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
   const scheduleOverlapAnalysis = React.useMemo(() => {
     return calculateRoleOverlapAndBottlenecks(task, subtasks, productBrief, members);
   }, [task, subtasks, productBrief, members]);
+
+  React.useEffect(() => {
+    setIsStudioOpen(false);
+    setStudioTarget(null);
+  }, [task.id]);
+
+  const studio = canPlan ? (
+    <PrdDiagramStudioModal
+      key={task.id}
+      isOpen={isStudioOpen}
+      onClose={closeStudio}
+      onApplyToPrd={handleApplyDiagram}
+      documentMarkdown={description ?? ''}
+      initialTarget={studioTarget}
+      maxLength={5000}
+      disabled={!canPlan || isSaving}
+      documentLabel="Deskripsi"
+    />
+  ) : null;
 
   if (simple) {
     const bottleneck =
@@ -222,6 +252,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
                 minRows={6}
                 disabled={!canEditTask}
                 onOpenDiagramStudio={canPlan ? () => setIsStudioOpen(true) : undefined}
+                onEditDiagram={canPlan ? editDiagram : undefined}
                 placeholder="Ringkasan, tujuan, dan kebutuhan utama Task..."
               />
             ) : (
@@ -429,6 +460,13 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
             <span className="font-semibold underline">Lihat subtask</span>
           </div>
         )}
+        {!advanced && (
+          <PrdDiagramList
+            markdown={description ?? ''}
+            onEdit={canPlan && !isSaving ? editDiagram : undefined}
+          />
+        )}
+        {studio}
       </div>
     );
   }
@@ -459,6 +497,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
             fillHeight
             disabled={!canEditTask}
             onOpenDiagramStudio={canPlan ? () => setIsStudioOpen(true) : undefined}
+            onEditDiagram={canPlan ? editDiagram : undefined}
             placeholder="Ringkasan, tujuan, dan kebutuhan utama Task dalam bentuk paragraf, bullet, atau heading..."
           />
         </div>
@@ -791,13 +830,7 @@ export const TaskDetailOverviewTab: React.FC<TaskDetailOverviewTabProps> = ({
           </Card>
         </div>
       </div>
-      {canPlan && (
-        <PrdDiagramStudioModal
-          isOpen={isStudioOpen}
-          onClose={() => setIsStudioOpen(false)}
-          onApplyToPrd={handleApplyDiagram}
-        />
-      )}
+      {studio}
     </div>
   );
 };

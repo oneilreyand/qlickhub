@@ -1,3 +1,5 @@
+import type { FeatureSpecPrd } from '@qlick/contracts';
+import { inspectPrdDiagrams } from '@qlick/contracts';
 import {
   lockFeatureSchedule,
   assertSubtasksWithinFeatureSchedule,
@@ -480,6 +482,12 @@ export const featureSpecService = {
 
       const content = FEATURE_SPEC_SECTION_SCHEMAS[input.section].parse(input.content ?? {});
       const prd = input.section === 'prd' ? content : spec.prd;
+      if (input.section === 'prd') {
+        const diagramErrors = inspectPrdDiagrams(
+          (content as FeatureSpecPrd).brief?.context ?? '',
+        ).errors;
+        if (diagramErrors.length) throw new Error(`BAD_REQUEST: ${diagramErrors[0]}`);
+      }
       if (input.complete) {
         const evaluation = evaluateFeatureSpecSection(input.section, content, { prd });
         const missingFields = [...evaluation.missingFields];
