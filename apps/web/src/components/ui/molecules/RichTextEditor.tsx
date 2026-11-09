@@ -20,6 +20,7 @@ import {
   Maximize2,
   Minimize2,
   X,
+  GitFork,
 } from 'lucide-react';
 import { FormattedText } from '../atoms/FormattedText';
 
@@ -37,6 +38,7 @@ export interface RichTextEditorProps {
   className?: string;
   defaultTab?: 'write' | 'preview';
   fillHeight?: boolean;
+  onOpenDiagramStudio?: () => void;
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -53,6 +55,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   className = '',
   defaultTab = 'preview',
   fillHeight = false,
+  onOpenDiagramStudio,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>(defaultTab);
@@ -476,6 +479,18 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             >
               <VideoIcon className="h-3.5 w-3.5" />
             </button>
+            {onOpenDiagramStudio && (
+              <button
+                type="button"
+                disabled={disabled || activeTab === 'preview'}
+                onClick={onOpenDiagramStudio}
+                title="Studio Diagram & Grafik (Flowchart & Metric Chart)"
+                data-testid="rich-text-diagram-studio-btn"
+                className="p-1.5 rounded-lg text-[#166534] bg-[#B1E743]/15 hover:bg-[#B1E743]/25 dark:text-[#B1E743] dark:hover:bg-[#B1E743]/20 disabled:opacity-40 transition-colors"
+              >
+                <GitFork className="h-3.5 w-3.5" />
+              </button>
+            )}
             <button
               type="button"
               disabled={disabled || activeTab === 'preview'}

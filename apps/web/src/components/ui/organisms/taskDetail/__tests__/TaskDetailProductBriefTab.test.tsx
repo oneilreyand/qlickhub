@@ -302,4 +302,64 @@ describe('TaskDetailProductBriefTab', () => {
       ),
     );
   });
+
+  test('renders Diagram & Grafik Studio button for Owner/Admin/PO and allows applying diagram to context', () => {
+    render(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="owner"
+        productBrief={brief}
+        loadError={null}
+        onReload={vi.fn()}
+      />,
+    );
+
+    const studioBtn = screen.getByTestId('brief-diagram-studio-btn');
+    expect(studioBtn).toBeInTheDocument();
+    expect(studioBtn).toHaveTextContent('Diagram & Grafik Studio');
+
+    // Click to open studio
+    fireEvent.click(studioBtn);
+    expect(screen.getByText('Diagram & Grafik Studio')).toBeInTheDocument();
+    expect(screen.getByText('Terapkan ke PRD')).toBeInTheDocument();
+
+    // Click Terapkan ke PRD
+    fireEvent.click(screen.getByText('Terapkan ke PRD'));
+
+    // Studio closes and context is updated
+    expect(screen.queryByText('Terapkan ke PRD')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue(/```mermaid/)).toBeInTheDocument();
+    expect(screen.getByText('Perubahan belum disimpan')).toBeInTheDocument();
+  });
+
+  test('does NOT render Diagram & Grafik Studio button for Developer or QA roles', () => {
+    const { rerender } = render(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="dev"
+        productBrief={brief}
+        loadError={null}
+        onReload={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId('brief-diagram-studio-btn')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('rich-text-diagram-studio-btn')).not.toBeInTheDocument();
+
+    rerender(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="qa"
+        productBrief={brief}
+        loadError={null}
+        onReload={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId('brief-diagram-studio-btn')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('rich-text-diagram-studio-btn')).not.toBeInTheDocument();
+  });
 });

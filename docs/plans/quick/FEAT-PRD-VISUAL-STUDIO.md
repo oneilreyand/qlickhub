@@ -14,24 +14,29 @@
 - File/path:
   - `apps/web/src/components/ui/molecules/MermaidViewer.tsx`
   - `apps/web/src/components/ui/molecules/PrdMetricChartViewer.tsx`
+  - `apps/web/src/components/ui/molecules/RichTextEditor.tsx`
+  - `apps/web/src/components/ui/molecules/__tests__/RichTextEditor.test.tsx`
   - `apps/web/src/components/ui/organisms/taskDetail/PrdDiagramStudioModal.tsx`
-  - `apps/web/src/components/ui/atoms/FormattedText.tsx`
+  - `apps/web/src/components/ui/organisms/taskDetail/TaskDetailProductBriefTab.tsx`
   - `apps/web/src/components/ui/organisms/taskDetail/FeatureSpecPrdEditor.tsx`
-  - `apps/web/src/components/ui/atoms/__tests__/FormattedText.test.tsx`
+  - `apps/web/src/components/ui/organisms/taskDetail/__tests__/TaskDetailProductBriefTab.test.tsx`
   - `apps/web/src/components/ui/organisms/taskDetail/__tests__/PrdDiagramStudioModal.test.tsx`
+  - `apps/web/src/components/ui/atoms/FormattedText.tsx`
+  - `apps/web/src/components/ui/atoms/__tests__/FormattedText.test.tsx`
   - `docs/plans/quick/FEAT-PRD-VISUAL-STUDIO.md`
-- Bukan scope: Perubahan skema PostgreSQL, endpoint backend, otorisasi role, migrasi data, atau alur rilis aplikasi.
+- Bukan scope: Perubahan skema PostgreSQL, endpoint backend, atau migrasi data.
 
 ## Acceptance Criteria → bukti
 
-| AC                                                        | Bukti yang dibutuhkan (E-level) | Perintah / observasi                                               |
-| :-------------------------------------------------------- | :------------------------------ | :----------------------------------------------------------------- |
-| AC-STUDIO-1 (Tombol studio di editor PRD)                 | E2 (Unit / Component)           | `npm --prefix apps/web run test -- PrdDiagramStudioModal.test.tsx` |
-| AC-STUDIO-2 (Drag & Drop kanvas interaktif alur & metrik) | E2 (Unit / Component)           | `npm --prefix apps/web run test -- PrdDiagramStudioModal.test.tsx` |
-| AC-STUDIO-3 (Konversi ke Markdown terstruktur)            | E2 (Unit / Component)           | `npm --prefix apps/web run test -- PrdDiagramStudioModal.test.tsx` |
-| AC-STUDIO-4 (Viewer Mermaid SVG & Metric Chart di PRD)    | E2 (Unit / Component)           | `npm --prefix apps/web run test -- FormattedText.test.tsx`         |
-| AC-STUDIO-5 (Lightbox zoom modal diagram)                 | E2 (Unit / Component)           | `npm --prefix apps/web run test -- FormattedText.test.tsx`         |
-| AC-STUDIO-6 (Lazy loading & code splitting bundle)        | E1 (Static / Build)             | `npm --prefix apps/web run build`                                  |
+| AC                                                                      | Bukti yang dibutuhkan (E-level) | Perintah / observasi                                                                           |
+| :---------------------------------------------------------------------- | :------------------------------ | :--------------------------------------------------------------------------------------------- |
+| AC-STUDIO-1 (Tombol studio di editor PRD & Brief Produk)                | E2 (Unit / Component)           | `npm --prefix apps/web run test -- TaskDetailProductBriefTab.test.tsx`                         |
+| AC-STUDIO-2 (Drag & Drop kanvas interaktif alur & metrik)               | E2 (Unit / Component)           | `npm --prefix apps/web run test -- PrdDiagramStudioModal.test.tsx`                             |
+| AC-STUDIO-3 (Konversi ke Markdown terstruktur)                          | E2 (Unit / Component)           | `npm --prefix apps/web run test -- PrdDiagramStudioModal.test.tsx`                             |
+| AC-STUDIO-4 (Viewer Mermaid SVG & Metric Chart di PRD)                  | E2 (Unit / Component)           | `npm --prefix apps/web run test -- FormattedText.test.tsx`                                     |
+| AC-STUDIO-5 (Lightbox zoom modal diagram)                               | E2 (Unit / Component)           | `npm --prefix apps/web run test -- FormattedText.test.tsx`                                     |
+| AC-STUDIO-6 (Lazy loading & code splitting bundle)                      | E1 (Static / Build)             | `npm --prefix apps/web run build`                                                              |
+| AC-STUDIO-7 (RBAC: Hanya Owner/Admin/PO yang dapat membuka & buat alur) | E2 (Unit / Component)           | `npm --prefix apps/web run test -- TaskDetailProductBriefTab.test.tsx RichTextEditor.test.tsx` |
 
 ## Approval Window
 

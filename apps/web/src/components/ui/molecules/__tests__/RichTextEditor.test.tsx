@@ -168,4 +168,26 @@ describe('RichTextEditor Molecule', () => {
       expect.stringContaining('https://cdn.example.com/demo.mp4'),
     );
   });
+
+  it('renders Diagram & Grafik Studio button when onOpenDiagramStudio is provided and calls it on click', () => {
+    const handleOpenStudio = vi.fn();
+    const { rerender } = render(
+      <RichTextEditor
+        label="PRD Context"
+        value=""
+        onChange={vi.fn()}
+        defaultTab="write"
+        onOpenDiagramStudio={handleOpenStudio}
+      />,
+    );
+
+    const studioBtn = screen.getByTestId('rich-text-diagram-studio-btn');
+    expect(studioBtn).toBeInTheDocument();
+    fireEvent.click(studioBtn);
+    expect(handleOpenStudio).toHaveBeenCalledTimes(1);
+
+    // When onOpenDiagramStudio is not passed, button should not render
+    rerender(<RichTextEditor label="PRD Context" value="" onChange={vi.fn()} defaultTab="write" />);
+    expect(screen.queryByTestId('rich-text-diagram-studio-btn')).not.toBeInTheDocument();
+  });
 });
