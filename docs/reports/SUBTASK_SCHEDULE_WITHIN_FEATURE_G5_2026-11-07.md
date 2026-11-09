@@ -181,3 +181,65 @@ approval through GitHub; live release acceptance follows actual deployment and t
 
 F1 remains **In progress**, PRD/BE/FE Done locally, G5 Accepted; merge/target verification pending.
 F2–F4 unchanged.
+
+## PR and CI continuation
+
+[PR #112](https://github.com/oneilreyand/qlickhub/pull/112) was created from `98cd8f87`, with
+squash auto-merge enabled and no Owner label. Pre-commit formatting changed no reviewed runtime
+file (hash comparison); worktree was clean after the commit. SDLC change evaluation passed.
+The Owner gate correctly reported five Tier 2 paths and the missing `owner-approved` label.
+
+[Initial CI run](https://github.com/oneilreyand/qlickhub/actions/runs/42358532498) verify succeeded:
+API 671/671, contracts 109/109, frontend 838/838, migration policy/build/typechecks passed. The CI
+docsys run intentionally skipped its four browser portal tests under CI (25 pass/4 skip); local
+validation executed all 29. No skip was added by F1. Vercel Preview status succeeded.
+
+The full CI E2E job exposed a suite-order dependency: `qa-role-isolation.spec.ts` closes its
+file-shared Sequelize singleton, then Playwright reuses that worker for the new F1 file.
+Its beforeAll failed with ConnectionManager closed before any F1 browser assertion. Initial
+E2E result: 33 pass, 2 fail, 10 not run, 1 pre-existing mobile full-flow skip. Log retained at
+`/private/tmp/qlickhub-f1-ci-e2e-failure.log`. This failure was not counted as passing.
+
+Remediation is confined to the F1 spec: a distinct worker-scoped fixture owns seed and connection
+teardown, which runs once after that worker completes. It cannot share the previous suites' closed
+singleton. Assertion count, permissions, database persistence and retry/skip policy remain intact.
+This follows [Playwright worker fixtures](https://playwright.dev/docs/test-fixtures#worker-scoped-fixtures).
+No application code or enforcement configuration changed in this amendment. Final full-suite
+outcomes and reviewer evidence are recorded below after execution.
+
+The first local full rerun used alternate web/API ports. All 12 F1 browser cases passed, while
+the existing QA direct-fetch authorization case failed in both projects because its test URL is
+fixed at localhost:4100. That full result was 43 pass / 2 fail / 1 pre-existing skip, exit 1, and
+is preserved in `/private/tmp/qlickhub-f1-g5-e2e-full.log`. Standard ports were confirmed free;
+the final full run uses the existing CI ports rather than changing that unrelated test. The
+fixture's required destructuring was adjusted to a worker browser dependency so ESLint passes
+without disabling a rule. No application code, test assertion or skip was changed.
+
+### Final test-only amendment — reviewed 2026-11-09
+
+Owner `lanjutkan` renewed the bounded continuation: finalize the existing F1 test fix/evidence,
+commit and push to the same PR #112, then verify CI and stop at the Owner Tier 2 gate. Amendment
+baseline is `98cd8f87`; the Feature/main baseline remains `a717ba76`. WRA/AC/impact from F1 remain
+valid; the delta changes only the test fixture lifecycle and documentation, with no application,
+contract, permission, migration or Production mutation. Recovery is a normal follow-up revert,
+without history rewrite. The window ends at verified PR/Owner gate or the usual stop condition.
+
+The final standard-port command `npm --prefix apps/web run test:e2e` completed **45 pass / 0 fail /
+1 pre-existing skip** in **2.6 minutes**. Runtime test environment selected only the disposable
+PostgreSQL cluster; the harness created and removed its own canonical-migrated database. All
+**12/12 F1 cases** pass, as do both existing QA direct-fetch authorization cases. The unchanged
+skip is `e2e-sdlc-flow.spec.ts`'s duplicate mobile full-flow case; no new skip was introduced.
+Primary log: `/private/tmp/qlickhub-f1-g5-e2e-full-final.log`; Playwright last-run status is
+`passed` with an empty failedTests list. No application test needed an expectation change.
+
+The independent Standards verifier inspected the final source diff and complete final log and
+returned **Accepted for the test-only amendment**, zero actionable findings, on 2026-11-09.
+It confirmed worker ownership/teardown and unchanged assertions, persistence, authorization,
+retry and skip policy. Earlier app Standards/Spec acceptance remains in force. The earlier
+verifier turn interrupted by an account usage limit did not produce an acceptance result;
+the resumed verifier performed the primary-evidence review above.
+
+`npx eslint apps/web/e2e/specs/subtask-feature-schedule.spec.ts` and `git diff --check` both exit 0.
+Documentation checks are run after recording this amendment. The prior application API/web/
+contract/build evidence and initial remote verify remain applicable because application code is
+unchanged. Remote CI for the new commit is not inferred from those prior successes.

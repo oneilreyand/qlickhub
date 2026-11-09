@@ -1,12 +1,28 @@
-import { expect, test } from '@playwright/test';
+import { expect, test as base } from '@playwright/test';
 import { FeatureSpecSchema, TaskSchema } from '@qlick/contracts';
 import { TaskModel } from '../../../api/src/db/models/index';
+import { sequelize } from '../../../api/src/db/sequelize';
 import { seedFeaturePlanning } from '../support/featurePlanningSeed';
 
 /** Accounts/Workspace factories are persisted; user data is created through authenticated HTTP. */
-let fixture: Awaited<ReturnType<typeof seedFeaturePlanning>>;
-test.beforeAll(async () => {
-  fixture = await seedFeaturePlanning();
+const test = base.extend<
+  {},
+  {
+    scheduleFixture: Awaited<ReturnType<typeof seedFeaturePlanning>>;
+  }
+>({
+  // A distinct worker fixture keeps this suite independent of file-scoped database cleanup
+  // in earlier suites. Own the connection for this worker, then close it exactly once.
+  scheduleFixture: [
+    async ({ browser: _browser }, use) => {
+      try {
+        await use(await seedFeaturePlanning());
+      } finally {
+        await sequelize.close();
+      }
+    },
+    { scope: 'worker' },
+  ],
 });
 const api = `http://localhost:${process.env.BROWSER_TEST_API_PORT || 4100}/v1`;
 
@@ -18,6 +34,7 @@ for (const viewport of [
   for (const theme of ['light', 'dark']) {
     test(`F1 Plan conflict and legacy indicator ${viewport.width}px ${theme}`, async ({
       page,
+      scheduleFixture: fixture,
     }, testInfo) => {
       await page.setViewportSize(viewport);
       await page.addInitScript((value) => localStorage.setItem('theme', value), theme);

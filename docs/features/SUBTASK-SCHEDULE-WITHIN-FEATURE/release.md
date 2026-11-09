@@ -11,6 +11,11 @@ review/perbaikan/validasi dan persiapan commit/push/PR pada branch
 `codex/f1-subtask-schedule-plan`, baseline a717ba76. Scope dan masa berlaku window ada pada
 [breakdown](breakdown.md#window-lanjutan-g5--2026-11-07).
 
+[PR #112](https://github.com/oneilreyand/qlickhub/pull/112) dibuat dari commit `98cd8f87`;
+auto-merge squash sudah aktif. Amendemen hanya lifecycle test F1 sudah lulus E2E penuh lokal
+45 pass/0 fail/1 skip lama; verifier independen Accepted pada 2026-11-09. CI verify awal lulus,
+sedangkan CI E2E awal gagal karena koneksi fixture ditutup suite sebelumnya; CI amendemen
+akan dijalankan setelah push.
 PR wajib memakai tiered auto-merge squash (AI-020). Kandidat ini **Tier 2**, karena lima path:
 
 - `docs/1_ARCHITECTURE.md`
