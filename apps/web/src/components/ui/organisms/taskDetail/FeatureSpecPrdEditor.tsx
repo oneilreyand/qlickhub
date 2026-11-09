@@ -1,7 +1,10 @@
+import { useState } from 'react';
+import { GitFork } from 'lucide-react';
 import type { FeatureSpecPrd } from '@qlick/contracts';
 import { Button } from '../../atoms/Button';
 import { Input } from '../../atoms/Input';
 import { Textarea } from '../../atoms/Textarea';
+import { PrdDiagramStudioModal } from './PrdDiagramStudioModal';
 
 export function FeatureSpecPrdEditor({
   value,
@@ -12,6 +15,7 @@ export function FeatureSpecPrdEditor({
   onChange: (next: FeatureSpecPrd) => void;
   disabled: boolean;
 }) {
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
   const requirements = value.requirements ?? [];
   const update = (
     index: number,
@@ -21,10 +25,39 @@ export function FeatureSpecPrdEditor({
       ...value,
       requirements: requirements.map((row, i) => (i === index ? { ...row, ...changes } : row)),
     });
+
+  const handleApplyDiagram = (snippet: string) => {
+    const currentContext = value.brief?.context || '';
+    const newContext = currentContext ? `${currentContext}\n\n${snippet}` : snippet;
+    onChange({
+      ...value,
+      brief: {
+        ...value.brief,
+        context: newContext,
+      },
+    });
+  };
+
   return (
     <div className="space-y-5">
       <fieldset disabled={disabled} className="space-y-4">
-        <legend className="mb-3 font-semibold">Product Brief</legend>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <legend className="font-semibold text-stone-900 dark:text-stone-100">
+            Product Brief
+          </legend>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            onClick={() => setIsStudioOpen(true)}
+            data-testid="open-diagram-studio-button"
+            className="h-8 border-[#3F6212] text-[#166534] hover:bg-[#B1E743]/10 dark:border-[#B1E743] dark:text-[#B1E743]"
+          >
+            <GitFork className="mr-1.5 h-3.5 w-3.5" />
+            <span>Diagram & Grafik Studio</span>
+          </Button>
+        </div>
         {(['context', 'inScope', 'outScope'] as const).map((key) => (
           <Textarea
             key={key}
@@ -159,6 +192,12 @@ export function FeatureSpecPrdEditor({
           </div>
         </fieldset>
       ))}
+
+      <PrdDiagramStudioModal
+        isOpen={isStudioOpen}
+        onClose={() => setIsStudioOpen(false)}
+        onApplyToPrd={handleApplyDiagram}
+      />
     </div>
   );
 }
