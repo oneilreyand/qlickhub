@@ -43,6 +43,7 @@ export const FeatureReferencesAndMedia: React.FC<FeatureReferencesAndMediaProps>
           taskId={taskId}
           canManage={canManage}
           links={links}
+          onLinksChange={setLinks}
         />
       </div>
     </section>
