@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import type { Task } from '@qlick/contracts';
+import { TaskSchema, type Task } from '@qlick/contracts';
 
 import { TaskDetailOverviewTab } from '../TaskDetailOverviewTab';
 
@@ -274,5 +274,61 @@ describe('TaskDetailOverviewTab', () => {
     expect(screen.getByLabelText('Status')).toBeDisabled();
     expect(screen.getByLabelText('Prioritas')).toBeDisabled();
     expect(screen.getByLabelText('Tanggal Mulai')).toBeDisabled();
+  });
+  test.each([false, true])('shows server parent bounds for child in simple=%s layout', (simple) => {
+    // Contract-valid child factory for rendering only; backend evidence is in F1 PostgreSQL tests.
+    const child = TaskSchema.parse({
+      ...baseTask,
+      parentTaskId: '20000000-0000-4000-8000-000000000001',
+      folderId: null,
+      deliveryArea: 'backend',
+      description: null,
+      assigneeId: null,
+      assignmentMode: 'assigned',
+      reporterId: '30000000-0000-4000-8000-000000000001',
+      featureScheduleConstraint: {
+        status: 'within',
+        label: 'Dalam jadwal Feature',
+        featureStartDate: '2026-09-01',
+        featureDueDate: '2026-09-30',
+      },
+    });
+    render(
+      <TaskDetailOverviewTab
+        task={child}
+        simple={simple}
+        description="Schedule fixture"
+        onDescriptionChange={onDescriptionChangeMock}
+        status="todo"
+        onStatusChange={onStatusChangeMock}
+        priority="high"
+        onPriorityChange={onPriorityChangeMock}
+        folderId={null}
+        onFolderIdChange={onFolderIdChangeMock}
+        startDate="2026-09-01"
+        onStartDateChange={onStartDateChangeMock}
+        dueDate="2026-09-10"
+        onDueDateChange={onDueDateChangeMock}
+        flatFolders={[]}
+        canEditTask
+        canEditStatus
+        canPlan
+        canEditPlanning
+        isAssignedExecutor={false}
+        productBrief={null}
+        subtasks={[]}
+        members={[]}
+        onSelectTab={onSelectTabMock}
+      />,
+    );
+    expect(screen.getByLabelText(simple ? 'Mulai' : 'Tanggal Mulai')).toHaveAttribute(
+      'min',
+      '2026-09-01',
+    );
+    expect(screen.getByLabelText(simple ? 'Tenggat' : 'Tanggal Tenggat')).toHaveAttribute(
+      'max',
+      '2026-09-30',
+    );
+    expect(screen.getByText(/Rentang Feature: 2026-09-01/)).toBeVisible();
   });
 });

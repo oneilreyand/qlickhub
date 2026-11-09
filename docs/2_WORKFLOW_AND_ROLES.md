@@ -220,6 +220,22 @@ legacy tetap transitional dan tidak boleh diklaim telah memenuhi kebijakan ini.
 5. **Kelengkapan Timeline Task dan Subtask**: Jadwal boleh tidak ditentukan dengan mengosongkan `startDate` dan `dueDate`. Jika jadwal ditentukan, kedua tanggal wajib diisi dan `startDate` tidak boleh melewati `dueDate`. Aturan ini berlaku saat pembuatan maupun perubahan Task dan Subtask serta ditegakkan kembali oleh backend dan database.
 6. **Batas Evidence Gate**: Sampai Test Run memiliki scope Feature yang eksplisit, penyelesaian Subtask QA belum boleh diklaim sebagai bukti readiness. Readiness tetap dihitung backend melalui §7; pemasangan evidence gate pada transisi Subtask QA dilakukan setelah scope Test Run tidak dapat bercampur antar-Feature.
 
+### Jadwal Subtask dalam Feature
+
+`DOMAIN-005`, [ADR-042](adr/ADR-042-SUBTASK-SCHEDULE-WITHIN-FEATURE.md): subtask aktif yang
+terjadwal harus berada di dalam rentang Feature terjadwal (batas inklusif). Perubahan tanggal
+Feature yang menyisakan subtask aktif di luar rentang ditolak 409 dengan nama/jadwal child;
+create/edit tanggal subtask di luar rentang ditolak 400 dengan rentang Feature. Semua perubahan
+terkait di-rollback tanpa audit sukses pada penolakan; semua writer termasuk sinkronisasi Plan
+memakai invariant yang sama. Feature tanpa jadwal tidak membatasi child; child tanpa jadwal
+boleh tetap tanpa jadwal. Subtask done/canceled diabaikan. Membuka kembali terminal menjadi aktif
+dengan jadwal di luar parent ditolak sampai Planner memperbaiki jadwalnya.
+
+Data lama tidak diubah massal: server memberi penanda keluar rentang. Edit non-tanggal tetap
+boleh sesuai policy; saat tanggal diubah, hasil harus valid penuh (tidak cukup hanya memperbaiki
+sebagian). Tidak ada auto-shift atau perubahan izin planning. Aturan workload advisory FLOW-007
+berbeda dari invariant containment ini dan tetap tidak memblokir assignment.
+
 ### Deteksi Konflik Penugasan dan Kapasitas Tim
 
 - Ketika Planner (`owner`, `admin`, `po`) merencanakan atau mengubah Subtask dan memilih pelaksana serta tanggal mulai dan tenggat yang valid, backend mengevaluasi irisan jadwal terhadap subtask aktif pelaksana tersebut (`FLOW-007`).

@@ -1,3 +1,8 @@
+import {
+  lockFeatureSchedule,
+  assertSubtasksWithinFeatureSchedule,
+  attachFeatureScheduleConstraints,
+} from './taskFeatureSchedule.js';
 /**
  * Task Lifecycle Implementation
  *
@@ -318,6 +323,8 @@ export async function createTaskInTransaction(
       throw new Error('BAD_REQUEST: Cannot create subtask under another subtask.');
     }
 
+    parentTaskRecord = await lockFeatureSchedule(workspaceId, parentTaskId, transaction);
+
     targetFolderId = parentTaskRecord.folderId;
   }
 
@@ -391,6 +398,16 @@ export async function createTaskInTransaction(
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
   if (scheduleIssue) {
     throw new Error(`BAD_REQUEST: ${scheduleIssue.message}`);
+  }
+
+  if (parentTaskRecord) {
+    await assertSubtasksWithinFeatureSchedule(
+      workspaceId,
+      parentTaskRecord,
+      parentTaskRecord,
+      transaction,
+      { startDate, dueDate, status: status || 'todo' },
+    );
   }
 
   const task = await TaskModel.create(
@@ -496,7 +513,9 @@ export async function createTaskInTransaction(
   );
 
   return {
-    formatted: formatTask(task),
+    formatted: (
+      await attachFeatureScheduleConstraints(workspaceId, [formatTask(task)], transaction)
+    )[0],
     assigneeId: task.assigneeId,
     title: task.title,
     id: task.id,
@@ -614,7 +633,7 @@ async function updateTaskInTransaction(
   input: UpdateTaskInput,
   transaction: Transaction,
 ) {
-  const task = await TaskModel.findOne({
+  let task = await TaskModel.findOne({
     where: { id: taskId, workspaceId },
     transaction,
   });
@@ -635,6 +654,36 @@ async function updateTaskInTransaction(
     },
     input,
   );
+
+  const root = await lockFeatureSchedule(workspaceId, task.parentTaskId || task.id, transaction);
+  if (task.parentTaskId) {
+    task = await TaskModel.findOne({
+      where: { id: taskId, workspaceId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!task) throw new Error('NOT_FOUND: Task not found in this workspace.');
+  } else task = root;
+  // Recheck permissions against the fresh row after waiting for concurrent writers.
+  assertCanMutateTask(
+    membership.role,
+    actorId,
+    {
+      parentTaskId: task.parentTaskId,
+      assigneeId: task.assigneeId,
+      status: task.status,
+      deliveryArea: task.deliveryArea,
+    },
+    input,
+  );
+  const scheduleChanged =
+    (input.startDate !== undefined && input.startDate !== task.startDate) ||
+    (input.dueDate !== undefined && input.dueDate !== task.dueDate);
+  const reopens =
+    (task.status === 'done' || task.status === 'canceled') &&
+    input.status !== undefined &&
+    input.status !== 'done' &&
+    input.status !== 'canceled';
 
   if (input.parentTaskId !== undefined && input.parentTaskId !== task.parentTaskId) {
     throw new Error('BAD_REQUEST: A task parent cannot be changed after creation.');
@@ -852,6 +901,16 @@ async function updateTaskInTransaction(
     throw new Error(`BAD_REQUEST: ${scheduleIssue.message}`);
   }
 
+  if (scheduleChanged || reopens) {
+    await assertSubtasksWithinFeatureSchedule(
+      workspaceId,
+      root,
+      task.parentTaskId ? root : task,
+      transaction,
+      task.parentTaskId ? task : undefined,
+    );
+  }
+
   await task.save({ transaction });
 
   if (requiresSubtaskFolderMove) {
@@ -890,7 +949,9 @@ async function updateTaskInTransaction(
   }
 
   return {
-    formatted: formatTask(task),
+    formatted: (
+      await attachFeatureScheduleConstraints(workspaceId, [formatTask(task)], transaction)
+    )[0],
     changes,
     title: task.title,
     id: task.id,

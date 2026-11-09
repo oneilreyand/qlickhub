@@ -12,12 +12,13 @@ then update this index.
 
 ## Domain and Hierarchy
 
-| Policy ID  | Rule summary                                                                                                       | Canonical source                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| DOMAIN-001 | A Folder hierarchy has a maximum depth of two levels.                                                              | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
-| DOMAIN-002 | A Feature/Story is a root Task and may have only one direct Subtask level.                                         | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
-| DOMAIN-003 | Requirements belong to a Workspace and link many-to-many to root Tasks.                                            | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
-| DOMAIN-004 | Product Brief owns Feature context/scope; Requirement owns stable Acceptance Criteria and its specific source URL. | [Architecture §4](1_ARCHITECTURE.md#aturan-hierarki-data)                    |
+| Policy ID  | Rule summary                                                                                                                                           | Canonical source                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| DOMAIN-001 | A Folder hierarchy has a maximum depth of two levels.                                                                                                  | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
+| DOMAIN-002 | A Feature/Story is a root Task and may have only one direct Subtask level.                                                                             | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
+| DOMAIN-003 | Requirements belong to a Workspace and link many-to-many to root Tasks.                                                                                | [Architecture §4](1_ARCHITECTURE.md#4-diagram-relasi-entitas--hierarki-data) |
+| DOMAIN-004 | Product Brief owns Feature context/scope; Requirement owns stable Acceptance Criteria and its specific source URL.                                     | [Architecture §4](1_ARCHITECTURE.md#aturan-hierarki-data)                    |
+| DOMAIN-005 | Active scheduled Subtasks stay within a scheduled Feature; invalid date edits and out-of-range reopen are rejected, legacy is flagged without rewrite. | [Workflow §4](2_WORKFLOW_AND_ROLES.md#jadwal-subtask-dalam-feature)          |
 
 ## Authentication and Authorization
 

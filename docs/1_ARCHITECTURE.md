@@ -146,6 +146,8 @@ erDiagram
    dipertahankan sebagai histori tetapi bukan sumber kanonikal. Keputusan lengkap dicatat dalam
    [ADR-010](adr/ADR-010-PRODUCT-BRIEF-REQUIREMENT-CONTEXT-OWNERSHIP.md).
 
+Jadwal parent/child mengikuti [Workflow — Jadwal Subtask dalam Feature](2_WORKFLOW_AND_ROLES.md#jadwal-subtask-dalam-feature) (`DOMAIN-005`).
+
 ### Baseline Kesiapan Feature
 
 - Status Requirement `active` menyatakan definisi Requirement dapat digunakan; status itu bukan
