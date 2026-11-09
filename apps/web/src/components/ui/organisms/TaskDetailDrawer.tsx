@@ -1642,6 +1642,9 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         onManageRequirements={() => handleTabChange('prd')}
                         canApproveBrief={canPlan}
                         onApproveBrief={handleApproveProductBrief}
+                        workspaceId={effectiveWorkspaceId}
+                        taskId={task.id}
+                        canManageReferences={canPlan}
                       />
                     }
                     rail={

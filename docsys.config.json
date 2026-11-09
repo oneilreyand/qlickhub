@@ -164,6 +164,7 @@
         "TaskCommentMentionModel",
         "TaskCommentModel",
         "TaskDocumentModel",
+        "TaskLinkModel",
         "TaskModel",
         "WorkFolderModel"
       ],

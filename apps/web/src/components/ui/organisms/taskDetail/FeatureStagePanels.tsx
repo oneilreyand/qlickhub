@@ -5,6 +5,7 @@ import type { ParentTaskDeliveryTrace, ProductBrief, Requirement, Task } from '@
 import { Button } from '../../atoms/Button';
 import { FormattedText } from '../../atoms/FormattedText';
 import { TaskStatusBadge } from '../../molecules/TaskStatusBadge';
+import { FeatureReferencesAndMedia } from './FeatureReferencesAndMedia';
 import {
   formatDateRange,
   formatShortDate,
@@ -222,6 +223,9 @@ export interface FeaturePrdSummaryProps {
   /** E2E-SDLC-FLOW P7: QA baru bisa memulai siklus uji setelah Brief disetujui. */
   canApproveBrief?: boolean;
   onApproveBrief?: () => Promise<void> | void;
+  workspaceId?: string;
+  taskId?: string;
+  canManageReferences?: boolean;
 }
 
 const BRIEF_STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -249,6 +253,9 @@ export const FeaturePrdSummary: React.FC<FeaturePrdSummaryProps> = ({
   onManageRequirements,
   canApproveBrief = false,
   onApproveBrief,
+  workspaceId,
+  taskId,
+  canManageReferences,
 }) => {
   const version = productBrief?.currentVersion;
   const briefStatus = productBrief?.document?.status;
@@ -343,6 +350,14 @@ export const FeaturePrdSummary: React.FC<FeaturePrdSummaryProps> = ({
             </p>
           )}
         </section>
+      )}
+
+      {workspaceId && taskId && (
+        <FeatureReferencesAndMedia
+          workspaceId={workspaceId}
+          taskId={taskId}
+          canManage={Boolean(canManageReferences)}
+        />
       )}
 
       <section aria-label="Requirement dan Acceptance Criteria" className={cardClass}>

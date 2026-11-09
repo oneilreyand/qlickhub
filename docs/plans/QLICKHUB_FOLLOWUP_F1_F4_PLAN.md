@@ -157,15 +157,15 @@ F4 butuh ADR baru dan dipecah tiga fase: (a) jenis siklus dan environment, (b) c
 
 ## Keputusan Owner
 
-| ID  | Untuk | Pertanyaan                                                                | Rekomendasi                                           | Keputusan                              |
-| --- | ----- | ------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------- |
-| K1  | F1    | Tanggal Feature dipersempit: tolak saja, atau tawarkan menggeser subtask? | Tolak dulu; tawaran geser menyusul                    | Tolak; Owner ok, 2026-11-07 (G0–G3 F1) |
-| K2  | F2    | Siapa boleh menambah tautan dan gambar?                                   | Owner/Admin/PO                                        | Belum                                  |
-| K3  | F3    | Persetujuan ulang Brief: PO yang sama, atau harus Owner/Admin?            | PO yang sama                                          | Belum                                  |
-| K4  | F3    | Feature yang sudah dirilis: Brief dikunci, tambahan jadi Feature baru?    | Ya                                                    | Belum                                  |
-| K5  | F4    | UAT staging dijalankan siapa?                                             | QA untuk regresi, PO untuk penerimaan bisnis          | Belum                                  |
-| K6  | F4    | Catat deploy oleh siapa?                                                  | Developer atau Owner/Admin; webhook pipeline menyusul | Belum                                  |
-| K7  | F4    | Tahap UAT, deploy, smoke wajib atau per Workspace?                        | Per Workspace, default aktif                          | Belum                                  |
+| ID  | Untuk | Pertanyaan                                                                | Rekomendasi                                           | Keputusan                                                |
+| --- | ----- | ------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------- |
+| K1  | F1    | Tanggal Feature dipersempit: tolak saja, atau tawarkan menggeser subtask? | Tolak dulu; tawaran geser menyusul                    | Tolak; Owner ok, 2026-11-07 (G0–G3 F1)                   |
+| K2  | F2    | Siapa boleh menambah tautan dan gambar?                                   | Owner/Admin/PO                                        | Owner/Admin/PO; instruksi Owner 2026-11-09 (draft G0–G3) |
+| K3  | F3    | Persetujuan ulang Brief: PO yang sama, atau harus Owner/Admin?            | PO yang sama                                          | Belum                                                    |
+| K4  | F3    | Feature yang sudah dirilis: Brief dikunci, tambahan jadi Feature baru?    | Ya                                                    | Belum                                                    |
+| K5  | F4    | UAT staging dijalankan siapa?                                             | QA untuk regresi, PO untuk penerimaan bisnis          | Belum                                                    |
+| K6  | F4    | Catat deploy oleh siapa?                                                  | Developer atau Owner/Admin; webhook pipeline menyusul | Belum                                                    |
+| K7  | F4    | Tahap UAT, deploy, smoke wajib atau per Workspace?                        | Per Workspace, default aktif                          | Belum                                                    |
 
 Pelaksana tidak memulai F2–F4 sebelum keputusan yang relevan terisi di tabel ini oleh Owner.
 
