@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, Lock, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, GitFork, Lock, Plus, Trash2 } from 'lucide-react';
 import type {
   ProductBrief,
   ProductBriefScopeItem,
@@ -16,6 +16,7 @@ import { IconButton } from '../../atoms/IconButton';
 import { Input } from '../../atoms/Input';
 import { Select } from '../../atoms/Select';
 import { RichTextEditor } from '../../molecules/RichTextEditor';
+import { PrdDiagramStudioModal } from './PrdDiagramStudioModal';
 
 export interface TaskDetailProductBriefTabProps {
   task: Task;
@@ -69,6 +70,12 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
   );
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+
+  const handleApplyDiagram = (snippet: string) => {
+    setContentMarkdown((prev) => (prev ? `${prev}\n\n${snippet}` : snippet));
+    setIsStudioOpen(false);
+  };
 
   useEffect(() => {
     setCurrentBrief(productBrief);
@@ -339,11 +346,27 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
           <h2 className="text-[15px] font-semibold text-stone-900 dark:text-stone-100">
             Product Brief
           </h2>
-          <span className="text-xs text-stone-500 dark:text-stone-400">
-            {currentBrief
-              ? `Menyunting · akan jadi v${currentBrief.currentVersion.version + 1}`
-              : 'Draf baru'}
-          </span>
+          <div className="flex items-center gap-2">
+            {canPlan && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isSaving}
+                onClick={() => setIsStudioOpen(true)}
+                data-testid="brief-diagram-studio-btn-simple"
+                className="h-7 border-[#3F6212] text-[#166534] hover:bg-[#B1E743]/10 dark:border-[#B1E743] dark:text-[#B1E743] text-xs"
+              >
+                <GitFork className="mr-1 h-3 w-3" />
+                <span>Diagram & Grafik Studio</span>
+              </Button>
+            )}
+            <span className="text-xs text-stone-500 dark:text-stone-400">
+              {currentBrief
+                ? `Menyunting · akan jadi v${currentBrief.currentVersion.version + 1}`
+                : 'Draf baru'}
+            </span>
+          </div>
         </div>
         {!canPlan && (
           <Alert tone="info" title="Brief Produk hanya dapat dilihat">
@@ -363,15 +386,28 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
             onChange={setContentMarkdown}
             disabled={!canPlan || isSaving}
             minRows={6}
+            onOpenDiagramStudio={canPlan ? () => setIsStudioOpen(true) : undefined}
           />
         ) : (
           <div className="space-y-1.5">
-            <label
-              htmlFor="product-brief-context"
-              className="text-xs font-semibold text-stone-600 dark:text-stone-300"
-            >
-              Konteks: kenapa Feature ini perlu ada?
-            </label>
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="product-brief-context"
+                className="text-xs font-semibold text-stone-600 dark:text-stone-300"
+              >
+                Konteks: kenapa Feature ini perlu ada?
+              </label>
+              {canPlan && (
+                <button
+                  type="button"
+                  onClick={() => setIsStudioOpen(true)}
+                  disabled={isSaving}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#166534] hover:underline dark:text-[#B1E743]"
+                >
+                  <GitFork className="h-3 w-3" /> Diagram & Grafik Studio
+                </button>
+              )}
+            </div>
             <textarea
               id="product-brief-context"
               rows={4}
@@ -429,6 +465,13 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
             </Button>
           </div>
         )}
+        {canPlan && (
+          <PrdDiagramStudioModal
+            isOpen={isStudioOpen}
+            onClose={() => setIsStudioOpen(false)}
+            onApplyToPrd={handleApplyDiagram}
+          />
+        )}
       </Card>
     );
   }
@@ -445,9 +488,25 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
             </p>
           </div>
         </div>
-        <span className="self-start rounded-lg bg-[#B1E743]/20 px-2.5 py-1 text-xs font-bold text-[#141413] dark:text-[#B1E743]">
-          {currentBrief ? `v${currentBrief.currentVersion.version}` : 'Draf baru'}
-        </span>
+        <div className="flex items-center gap-2.5 self-start">
+          {canPlan && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isSaving}
+              onClick={() => setIsStudioOpen(true)}
+              data-testid="brief-diagram-studio-btn"
+              className="h-8 border-[#3F6212] text-[#166534] hover:bg-[#B1E743]/10 dark:border-[#B1E743] dark:text-[#B1E743]"
+            >
+              <GitFork className="mr-1.5 h-3.5 w-3.5" />
+              <span>Diagram & Grafik Studio</span>
+            </Button>
+          )}
+          <span className="self-start rounded-lg bg-[#B1E743]/20 px-2.5 py-1 text-xs font-bold text-[#141413] dark:text-[#B1E743]">
+            {currentBrief ? `v${currentBrief.currentVersion.version}` : 'Draf baru'}
+          </span>
+        </div>
       </div>
 
       {!canPlan && (
@@ -478,6 +537,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
             disabled={!canPlan || isSaving}
             minRows={12}
             fillHeight
+            onOpenDiagramStudio={canPlan ? () => setIsStudioOpen(true) : undefined}
             placeholder="Jelaskan masalah, hasil bagi pengguna, keputusan, dan tautan pendukung. Contoh: [PRD Utama](https://...)"
           />
         </div>
@@ -532,6 +592,13 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
           )}
         </div>
       </div>
+      {canPlan && (
+        <PrdDiagramStudioModal
+          isOpen={isStudioOpen}
+          onClose={() => setIsStudioOpen(false)}
+          onApplyToPrd={handleApplyDiagram}
+        />
+      )}
     </Card>
   );
 };
