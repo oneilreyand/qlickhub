@@ -16,6 +16,8 @@ import {
   Code2,
 } from 'lucide-react';
 import { MediaLightboxModal, MediaLightboxType } from '../molecules/MediaLightboxModal';
+import { MermaidViewer } from '../molecules/MermaidViewer';
+import { PrdMetricChartViewer } from '../molecules/PrdMetricChartViewer';
 
 // Regex patterns to detect media URLs
 const IMAGE_EXT_REGEX = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)(\?.*)?$/i;
@@ -381,6 +383,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
   const elements: React.ReactNode[] = [];
 
   let inCodeBlock = false;
+  let codeBlockLang = '';
   let codeBlockBuffer: string[] = [];
 
   const parseInlineFormatting = (text: string): React.ReactNode[] => {
@@ -487,18 +490,27 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
     // Code block toggle
     if (trimmedLine.startsWith('```')) {
       if (inCodeBlock) {
-        elements.push(
-          <pre
-            key={`code-${i}`}
-            className="my-2 rounded-xl bg-stone-900 dark:bg-stone-950 p-3 text-xs text-stone-100 overflow-x-auto font-mono border border-stone-800"
-          >
-            <code>{codeBlockBuffer.join('\n')}</code>
-          </pre>,
-        );
+        const rawCode = codeBlockBuffer.join('\n');
+        if (codeBlockLang === 'mermaid') {
+          elements.push(<MermaidViewer key={`mermaid-${i}`} code={rawCode} />);
+        } else if (codeBlockLang === 'chart') {
+          elements.push(<PrdMetricChartViewer key={`chart-${i}`} code={rawCode} />);
+        } else {
+          elements.push(
+            <pre
+              key={`code-${i}`}
+              className="my-2 rounded-xl bg-stone-900 dark:bg-stone-950 p-3 text-xs text-stone-100 overflow-x-auto font-mono border border-stone-800"
+            >
+              <code>{rawCode}</code>
+            </pre>,
+          );
+        }
         codeBlockBuffer = [];
+        codeBlockLang = '';
         inCodeBlock = false;
       } else {
         inCodeBlock = true;
+        codeBlockLang = trimmedLine.slice(3).trim().toLowerCase();
       }
       continue;
     }
@@ -877,14 +889,21 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
 
   // Handle unclosed code block
   if (inCodeBlock && codeBlockBuffer.length > 0) {
-    elements.push(
-      <pre
-        key="code-unclosed"
-        className="my-2 rounded-xl bg-stone-900 dark:bg-stone-950 p-3 text-xs text-stone-100 overflow-x-auto font-mono border border-stone-800"
-      >
-        <code>{codeBlockBuffer.join('\n')}</code>
-      </pre>,
-    );
+    const rawCode = codeBlockBuffer.join('\n');
+    if (codeBlockLang === 'mermaid') {
+      elements.push(<MermaidViewer key="mermaid-unclosed" code={rawCode} />);
+    } else if (codeBlockLang === 'chart') {
+      elements.push(<PrdMetricChartViewer key="chart-unclosed" code={rawCode} />);
+    } else {
+      elements.push(
+        <pre
+          key="code-unclosed"
+          className="my-2 rounded-xl bg-stone-900 dark:bg-stone-950 p-3 text-xs text-stone-100 overflow-x-auto font-mono border border-stone-800"
+        >
+          <code>{rawCode}</code>
+        </pre>,
+      );
+    }
   }
 
   return (
