@@ -1,6 +1,6 @@
 import { FeatureScheduleConstraintBadge } from '../../molecules/FeatureScheduleConstraint';
 import React from 'react';
-import { Check, ChevronDown, Circle, Hand } from 'lucide-react';
+import { Check, ChevronDown, Circle, GitFork, Hand } from 'lucide-react';
 import type { ParentTaskDeliveryTrace, ProductBrief, Requirement, Task } from '@qlick/contracts';
 import { Button } from '../../atoms/Button';
 import { FormattedText } from '../../atoms/FormattedText';
@@ -294,6 +294,17 @@ export const FeaturePrdSummary: React.FC<FeaturePrdSummaryProps> = ({
               {canApprove && (
                 <Button size="sm" onClick={() => void handleApprove()} disabled={approving}>
                   {approving ? 'Menyetujui…' : 'Setujui Brief'}
+                </Button>
+              )}
+              {canManageReferences && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onEditBrief}
+                  className="border-[#3F6212] text-[#166534] hover:bg-[#B1E743]/10 dark:border-[#B1E743] dark:text-[#B1E743]"
+                >
+                  <GitFork className="mr-1.5 h-3.5 w-3.5" />
+                  Diagram &amp; Grafik Studio
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={onEditBrief}>
