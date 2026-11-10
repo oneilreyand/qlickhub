@@ -1,3 +1,4 @@
+import type { PrdDiagramMatch } from '@qlick/contracts';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   Bold,
@@ -39,6 +40,7 @@ export interface RichTextEditorProps {
   defaultTab?: 'write' | 'preview';
   fillHeight?: boolean;
   onOpenDiagramStudio?: () => void;
+  onEditDiagram?: (diagram: PrdDiagramMatch) => void;
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -56,6 +58,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   defaultTab = 'preview',
   fillHeight = false,
   onOpenDiagramStudio,
+  onEditDiagram,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>(defaultTab);
@@ -588,7 +591,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             }`}
           >
             {value && value.trim() ? (
-              <FormattedText content={value} />
+              <FormattedText
+                onEditDiagram={!disabled ? onEditDiagram : undefined}
+                content={value}
+              />
             ) : (
               <p className="text-xs italic text-stone-400 dark:text-stone-500">
                 {placeholder || 'Belum ada konten. Buka mode Tulis untuk menambahkan teks.'}

@@ -58,3 +58,5 @@ Criteria dan [Policy Registry](../POLICY_REGISTRY.md), tanpa menyalin aturan glo
 Sebelum handoff, jalankan `npm run docs:check`. Status kartu yang diizinkan adalah `Draft`,
 `Active`, `Superseded`, dan `Archived`; kartu Active tidak boleh berisi placeholder yang belum
 diselesaikan.
+
+[Mermaid Studio](FEAT-PRD-MERMAID-STUDIO/README.md): input source, preview, dan edit ulang blok PRD; P1–P2 lokal disetujui.

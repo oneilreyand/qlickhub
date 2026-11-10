@@ -7,6 +7,8 @@ export interface MermaidViewerProps {
   code: string;
   title?: string;
   className?: string;
+  onStatusChange?: (status: 'loading' | 'valid' | 'error', source: string) => void;
+  onEdit?: () => void;
 }
 
 let mermaidPromise: Promise<any> | null = null;
@@ -24,19 +26,6 @@ async function getMermaidInstance(): Promise<any> {
           'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs',
         );
         const instance = mod.default || mod;
-        const isDark = document.documentElement.classList.contains('dark');
-        instance.initialize({
-          startOnLoad: false,
-          theme: isDark ? 'dark' : 'neutral',
-          themeVariables: {
-            fontFamily: 'Inter, sans-serif',
-            primaryColor: '#B1E743',
-            primaryTextColor: '#141413',
-            primaryBorderColor: '#3F6212',
-            lineColor: isDark ? '#94A3B8' : '#475569',
-          },
-          securityLevel: 'loose',
-        });
         (window as any).__qlick_mermaid = instance;
         return instance;
       } catch (err) {
@@ -52,6 +41,8 @@ export const MermaidViewer: React.FC<MermaidViewerProps> = ({
   code,
   title = 'Diagram Alur Sistem',
   className = '',
+  onStatusChange,
+  onEdit,
 }) => {
   const [svgHtml, setSvgHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +50,19 @@ export const MermaidViewer: React.FC<MermaidViewerProps> = ({
   const [showRawCode, setShowRawCode] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef(onStatusChange);
+  useEffect(() => {
+    statusRef.current = onStatusChange;
+  }, [onStatusChange]);
+  const [retry, setRetry] = useState(0);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  useEffect(() => {
+    const observer = new MutationObserver(() =>
+      setIsDark(document.documentElement.classList.contains('dark')),
+    );
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -68,11 +72,14 @@ export const MermaidViewer: React.FC<MermaidViewerProps> = ({
       setSvgHtml(null);
       setError('Kode diagram kosong');
       setIsLoading(false);
+      statusRef.current?.('error', cleanCode);
       return;
     }
 
     setIsLoading(true);
     setError(null);
+    setSvgHtml(null);
+    statusRef.current?.('loading', cleanCode);
 
     const renderDiagram = async () => {
       try {
@@ -82,14 +89,28 @@ export const MermaidViewer: React.FC<MermaidViewerProps> = ({
           throw new Error('Engine Mermaid tidak tersedia di environment ini.');
         }
 
+        mermaid.initialize?.({
+          startOnLoad: false,
+          securityLevel: 'strict',
+          theme: isDark ? 'dark' : 'neutral',
+          themeVariables: {
+            fontFamily: 'Inter, sans-serif',
+            primaryColor: '#B1E743',
+            primaryTextColor: '#141413',
+            primaryBorderColor: '#3F6212',
+            lineColor: isDark ? '#94A3B8' : '#475569',
+          },
+        });
         const uniqueId = `mmd-${Math.random().toString(36).substring(2, 9)}`;
         const { svg } = await mermaid.render(uniqueId, cleanCode);
         if (!isCancelled) {
+          statusRef.current?.('valid', cleanCode);
           setSvgHtml(svg);
           setError(null);
         }
       } catch (err: any) {
         if (!isCancelled) {
+          statusRef.current?.('error', cleanCode);
           // Tangani error sintaks atau jaringan
           setError(err?.message || 'Gagal merender diagram Mermaid');
           setSvgHtml(null);
@@ -101,12 +122,13 @@ export const MermaidViewer: React.FC<MermaidViewerProps> = ({
       }
     };
 
-    void renderDiagram();
+    const timer = window.setTimeout(() => void renderDiagram(), 250);
 
     return () => {
       isCancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [code]);
+  }, [code, retry, isDark]);
 
   return (
     <div
@@ -114,7 +136,7 @@ export const MermaidViewer: React.FC<MermaidViewerProps> = ({
       className={`my-3 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-xs dark:border-stone-800 dark:bg-stone-900/60 ${className}`}
     >
       {/* Header Bar */}
-      <div className="flex items-center justify-between border-b border-stone-100 bg-stone-50/70 px-4 py-2.5 dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex flex-wrap gap-2 items-center justify-between border-b border-stone-100 bg-stone-50/70 px-4 py-2.5 dark:border-stone-800 dark:bg-stone-900">
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 rounded-full bg-[#166534] dark:bg-[#B1E743]" />
           <h4 className="text-xs font-bold text-stone-800 dark:text-stone-200">{title}</h4>
@@ -123,7 +145,12 @@ export const MermaidViewer: React.FC<MermaidViewerProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          {onEdit && (
+            <Button type="button" variant="outline" size="sm" onClick={onEdit}>
+              Edit Diagram
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -186,6 +213,9 @@ export const MermaidViewer: React.FC<MermaidViewerProps> = ({
                 </p>
               </div>
             </div>
+            <Button type="button" variant="outline" onClick={() => setRetry((v) => v + 1)}>
+              Coba lagi
+            </Button>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400 mb-1">
                 Sintaks Asli:

@@ -1,3 +1,6 @@
+import { PrdDiagramStudioModal } from '../components/ui/organisms/taskDetail/PrdDiagramStudioModal';
+import { PrdDiagramList } from '../components/ui/molecules/PrdDiagramList';
+import type { PrdDiagramMatch } from '@qlick/contracts';
 import React, { useState } from 'react';
 import {
   Plus,
@@ -197,6 +200,13 @@ export const ComponentGalleryPage: React.FC = () => {
         </p>
       </div>
 
+      <Section
+        category="Organisms"
+        title="Mermaid Studio"
+        description="Demo interaktif komponen; tidak menyimpan ke server."
+      >
+        <DiagramStudioDemo />
+      </Section>
       {/* 1. ATOMS SECTION */}
       <div className="space-y-4">
         <h2 className="text-xs font-bold uppercase tracking-wider text-stone-400">1. Atoms</h2>
@@ -984,3 +994,37 @@ export const ComponentGalleryPage: React.FC = () => {
     </div>
   );
 };
+
+/** Isolated gallery interaction: all content is entered by the person using the demo. */
+function DiagramStudioDemo() {
+  const [markdown, setMarkdown] = useState('');
+  const [open, setOpen] = useState(false);
+  const [target, setTarget] = useState<PrdDiagramMatch | null>(null);
+  return (
+    <div className="min-w-0 space-y-3">
+      <Button
+        variant="outline"
+        onClick={() => {
+          setTarget(null);
+          setOpen(true);
+        }}
+      >
+        Tambah Diagram
+      </Button>
+      <PrdDiagramList
+        markdown={markdown}
+        onEdit={(diagram) => {
+          setTarget(diagram);
+          setOpen(true);
+        }}
+      />
+      <PrdDiagramStudioModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onApplyToPrd={setMarkdown}
+        documentMarkdown={markdown}
+        initialTarget={target}
+      />
+    </div>
+  );
+}

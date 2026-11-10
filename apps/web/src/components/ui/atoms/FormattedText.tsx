@@ -1,3 +1,4 @@
+import { inspectPrdDiagrams, type PrdDiagramMatch } from '@qlick/contracts';
 import React, { useState } from 'react';
 import {
   ZoomIn,
@@ -343,12 +344,14 @@ export interface FormattedTextProps {
   content: string;
   className?: string;
   onImageClick?: (src: string, alt: string) => void;
+  onEditDiagram?: (diagram: PrdDiagramMatch) => void;
 }
 
 export const FormattedText: React.FC<FormattedTextProps> = ({
   content,
   className = '',
   onImageClick,
+  onEditDiagram,
 }) => {
   const [lightbox, setLightbox] = useState<{
     isOpen: boolean;
@@ -380,6 +383,14 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
   };
 
   const lines = content.split('\n');
+  const diagrams = inspectPrdDiagrams(content).diagrams;
+  const offsets: number[] = [];
+  let offset = 0;
+  for (const line of lines) {
+    offsets.push(offset);
+    offset += line.length + 1;
+  }
+  const byOffset = new Map(diagrams.map((diagram) => [diagram.start, diagram]));
   const elements: React.ReactNode[] = [];
 
   let inCodeBlock = false;
@@ -486,6 +497,20 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmedLine = line.trim();
+
+    const diagram = !inCodeBlock ? byOffset.get(offsets[i]) : undefined;
+    if (diagram) {
+      elements.push(
+        <MermaidViewer
+          key={`diagram-${diagram.start}`}
+          code={diagram.source}
+          title={diagram.id ? diagram.title : undefined}
+          onEdit={onEditDiagram ? () => onEditDiagram(diagram) : undefined}
+        />,
+      );
+      i += (diagram.raw.match(/\n/g) ?? []).length;
+      continue;
+    }
 
     // Code block toggle
     if (trimmedLine.startsWith('```')) {

@@ -1,3 +1,5 @@
+import { PrdDiagramList } from '../../molecules/PrdDiagramList';
+import type { PrdDiagramMatch } from '@qlick/contracts';
 import React, { useEffect, useState } from 'react';
 import { BookOpen, GitFork, Lock, Plus, Trash2 } from 'lucide-react';
 import type {
@@ -71,13 +73,24 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioTarget, setStudioTarget] = useState<PrdDiagramMatch | null>(null);
+  const closeStudio = () => {
+    setIsStudioOpen(false);
+    setStudioTarget(null);
+  };
+  const editDiagram = (diagram: PrdDiagramMatch) => {
+    setStudioTarget(diagram);
+    setIsStudioOpen(true);
+  };
 
   const handleApplyDiagram = (snippet: string) => {
-    setContentMarkdown((prev) => (prev ? `${prev}\n\n${snippet}` : snippet));
+    setContentMarkdown(snippet);
     setIsStudioOpen(false);
   };
 
   useEffect(() => {
+    setIsStudioOpen(false);
+    setStudioTarget(null);
     setCurrentBrief(productBrief);
     setTitle(productBrief?.document.title || `Brief Produk ${task.title}`);
     setContentMarkdown(productBrief?.currentVersion.contentMarkdown || '');
@@ -358,7 +371,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
                 className="h-7 border-[#3F6212] text-[#166534] hover:bg-[#B1E743]/10 dark:border-[#B1E743] dark:text-[#B1E743] text-xs"
               >
                 <GitFork className="mr-1 h-3 w-3" />
-                <span>Diagram & Grafik Studio</span>
+                <span>Tambah Diagram</span>
               </Button>
             )}
             <span className="text-xs text-stone-500 dark:text-stone-400">
@@ -387,6 +400,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
             disabled={!canPlan || isSaving}
             minRows={6}
             onOpenDiagramStudio={canPlan ? () => setIsStudioOpen(true) : undefined}
+            onEditDiagram={canPlan ? editDiagram : undefined}
           />
         ) : (
           <div className="space-y-1.5">
@@ -404,7 +418,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
                   disabled={isSaving}
                   className="inline-flex items-center gap-1 text-xs font-semibold text-[#166534] hover:underline dark:text-[#B1E743]"
                 >
-                  <GitFork className="h-3 w-3" /> Diagram & Grafik Studio
+                  <GitFork className="h-3 w-3" /> Tambah Diagram
                 </button>
               )}
             </div>
@@ -425,6 +439,12 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
               Format lanjutan (judul, tautan, gambar)
             </button>
           </div>
+        )}
+        {!advanced && (
+          <PrdDiagramList
+            markdown={contentMarkdown}
+            onEdit={canPlan && !isSaving ? editDiagram : undefined}
+          />
         )}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {renderSimpleScope('in', 'Dalam scope', 'Item scope', inScope)}
@@ -467,9 +487,14 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
         )}
         {canPlan && (
           <PrdDiagramStudioModal
+            key={task.id}
             isOpen={isStudioOpen}
-            onClose={() => setIsStudioOpen(false)}
+            onClose={closeStudio}
             onApplyToPrd={handleApplyDiagram}
+            documentMarkdown={contentMarkdown ?? ''}
+            initialTarget={studioTarget}
+            maxLength={100000}
+            disabled={!canPlan || isSaving}
           />
         )}
       </Card>
@@ -500,7 +525,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
               className="h-8 border-[#3F6212] text-[#166534] hover:bg-[#B1E743]/10 dark:border-[#B1E743] dark:text-[#B1E743]"
             >
               <GitFork className="mr-1.5 h-3.5 w-3.5" />
-              <span>Diagram & Grafik Studio</span>
+              <span>Tambah Diagram</span>
             </Button>
           )}
           <span className="self-start rounded-lg bg-[#B1E743]/20 px-2.5 py-1 text-xs font-bold text-[#141413] dark:text-[#B1E743]">
@@ -538,6 +563,7 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
             minRows={12}
             fillHeight
             onOpenDiagramStudio={canPlan ? () => setIsStudioOpen(true) : undefined}
+            onEditDiagram={canPlan ? editDiagram : undefined}
             placeholder="Jelaskan masalah, hasil bagi pengguna, keputusan, dan tautan pendukung. Contoh: [PRD Utama](https://...)"
           />
         </div>
@@ -594,9 +620,14 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
       </div>
       {canPlan && (
         <PrdDiagramStudioModal
+          key={task.id}
           isOpen={isStudioOpen}
-          onClose={() => setIsStudioOpen(false)}
+          onClose={closeStudio}
           onApplyToPrd={handleApplyDiagram}
+          documentMarkdown={contentMarkdown ?? ''}
+          initialTarget={studioTarget}
+          maxLength={100000}
+          disabled={!canPlan || isSaving}
         />
       )}
     </Card>

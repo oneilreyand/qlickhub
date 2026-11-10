@@ -193,3 +193,94 @@ describe('Feature Spec required fields (ADR-036)', () => {
     assert.ok(CreateFeatureSpecSchema.safeParse({ workspaceId, title: 'x', idea: 'y' }).success);
   });
 });
+
+// Managed diagram contract fixtures. They are not application or live database records.
+import { inspectPrdDiagrams, putPrdDiagram, serializePrdDiagram } from './prdDiagram.js';
+const diagramFixture = {
+  schemaVersion: 1 as const,
+  id: '54fd5966-ad1a-4129-bcf5-7fa0c887621f',
+  title: 'Checkout',
+  revision: 1,
+  source: 'flowchart LR\nA[Keranjang] --> B[Bayar]',
+};
+
+describe('Managed Mermaid document blocks', () => {
+  test('round trips Unicode/title delimiters and source exactly once', () => {
+    const fixture = { ...diagramFixture, title: 'PO --> QA <review> & café' };
+    const raw = serializePrdDiagram(fixture);
+    const read = inspectPrdDiagrams(raw);
+    assert.deepStrictEqual(read.errors, []);
+    assert.strictEqual(read.diagrams[0].title, fixture.title);
+    assert.strictEqual(read.diagrams[0].source, fixture.source);
+    assert.strictEqual(raw.split(fixture.source).length, 2);
+  });
+  test('replaces exactly one block while preserving surrounding bytes and other diagrams', () => {
+    const first = serializePrdDiagram(diagramFixture);
+    const second = serializePrdDiagram({
+      ...diagramFixture,
+      id: '42a76b6f-6927-4679-89d7-b82e447a1712',
+    });
+    const before = `# Context\r\n\r\n${first}\r\n\r\n${second}\r\nEnd  `;
+    const selected = inspectPrdDiagrams(before).diagrams[0];
+    const after = putPrdDiagram(
+      before,
+      { ...diagramFixture, source: 'flowchart TD\nA --> C' },
+      selected,
+    );
+    const parsed = inspectPrdDiagrams(after);
+    assert.strictEqual(parsed.diagrams.length, 2);
+    assert.strictEqual(parsed.diagrams[0].id, diagramFixture.id);
+    assert.strictEqual(parsed.diagrams[0].revision, 2);
+    assert.strictEqual(after.slice(parsed.diagrams[0].end), before.slice(selected.end));
+    assert.strictEqual(after.slice(0, parsed.diagrams[0].start), before.slice(0, selected.start));
+  });
+  test('no-op preserves the original document and revision', () => {
+    const text = serializePrdDiagram(diagramFixture);
+    assert.strictEqual(
+      putPrdDiagram(text, diagramFixture, inspectPrdDiagrams(text).diagrams[0]),
+      text,
+    );
+  });
+  test('legacy Mermaid gets managed only when explicitly edited', () => {
+    const text = 'Intro\n\n```mermaid\nflowchart LR\nA-->B\n```\nTail';
+    const match = inspectPrdDiagrams(text).diagrams[0];
+    assert.strictEqual(match.id, undefined);
+    const after = putPrdDiagram(text, diagramFixture, match);
+    assert.strictEqual(inspectPrdDiagrams(after).diagrams[0].revision, 1);
+    assert.ok(after.startsWith('Intro\n\n'));
+    assert.ok(after.endsWith('\nTail'));
+  });
+  test('rejects duplicate IDs, malformed metadata, missing endings and oversized documents', () => {
+    const raw = serializePrdDiagram(diagramFixture);
+    for (const text of [
+      raw + '\n' + raw,
+      raw.replace('"revision":1', '"revision":0'),
+      raw.replace('<!-- /qlick-diagram -->', ''),
+    ]) {
+      assert.ok(inspectPrdDiagrams(text).errors.length);
+      assert.throws(() => putPrdDiagram(text, diagramFixture));
+    }
+    assert.throws(() => putPrdDiagram('Intro', diagramFixture, null, 20), /batas/);
+  });
+  test('never interprets metadata or Mermaid examples inside another code fence', () => {
+    const raw = serializePrdDiagram(diagramFixture);
+    assert.deepStrictEqual(inspectPrdDiagrams('````markdown\n' + raw + '\n````'), {
+      diagrams: [],
+      errors: [],
+    });
+  });
+  test('supports source containing backticks without closing the outer fence', () => {
+    const source = 'flowchart LR\nA["```text"] --> B';
+    const raw = serializePrdDiagram({ ...diagramFixture, source });
+    assert.strictEqual(inspectPrdDiagrams(raw).diagrams[0].source, source);
+  });
+  test('rejects stale/deleted targets and never silently appends them', () => {
+    const raw = serializePrdDiagram(diagramFixture);
+    const match = inspectPrdDiagrams(raw).diagrams[0];
+    assert.throws(
+      () => putPrdDiagram(raw.replace('Checkout', 'Updated'), diagramFixture, match),
+      /berubah/,
+    );
+    assert.throws(() => putPrdDiagram('', diagramFixture, match), /berubah/);
+  });
+});

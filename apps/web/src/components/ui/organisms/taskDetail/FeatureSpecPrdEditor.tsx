@@ -1,3 +1,4 @@
+import type { PrdDiagramMatch } from '@qlick/contracts';
 import { useState } from 'react';
 import { GitFork } from 'lucide-react';
 import type { FeatureSpecPrd } from '@qlick/contracts';
@@ -5,6 +6,7 @@ import { Button } from '../../atoms/Button';
 import { Input } from '../../atoms/Input';
 import { Textarea } from '../../atoms/Textarea';
 import { PrdDiagramStudioModal } from './PrdDiagramStudioModal';
+import { PrdDiagramList } from '../../molecules/PrdDiagramList';
 
 export function FeatureSpecPrdEditor({
   value,
@@ -16,6 +18,11 @@ export function FeatureSpecPrdEditor({
   disabled: boolean;
 }) {
   const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioTarget, setStudioTarget] = useState<PrdDiagramMatch | null>(null);
+  const closeStudio = () => {
+    setIsStudioOpen(false);
+    setStudioTarget(null);
+  };
   const requirements = value.requirements ?? [];
   const update = (
     index: number,
@@ -27,13 +34,11 @@ export function FeatureSpecPrdEditor({
     });
 
   const handleApplyDiagram = (snippet: string) => {
-    const currentContext = value.brief?.context || '';
-    const newContext = currentContext ? `${currentContext}\n\n${snippet}` : snippet;
     onChange({
       ...value,
       brief: {
         ...value.brief,
-        context: newContext,
+        context: snippet,
       },
     });
   };
@@ -52,10 +57,9 @@ export function FeatureSpecPrdEditor({
             disabled={disabled}
             onClick={() => setIsStudioOpen(true)}
             data-testid="open-diagram-studio-button"
-            className="h-8 border-[#3F6212] text-[#166534] hover:bg-[#B1E743]/10 dark:border-[#B1E743] dark:text-[#B1E743]"
           >
             <GitFork className="mr-1.5 h-3.5 w-3.5" />
-            <span>Diagram & Grafik Studio</span>
+            <span>Tambah Diagram</span>
           </Button>
         </div>
         {(['context', 'inScope', 'outScope'] as const).map((key) => (
@@ -77,6 +81,17 @@ export function FeatureSpecPrdEditor({
             }
           />
         ))}
+        <PrdDiagramList
+          markdown={value.brief?.context ?? ''}
+          onEdit={
+            !disabled
+              ? (diagram) => {
+                  setStudioTarget(diagram);
+                  setIsStudioOpen(true);
+                }
+              : undefined
+          }
+        />
       </fieldset>
       <div id="prd-requirements" className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold">Requirement dan Acceptance Criteria</h3>
@@ -195,8 +210,11 @@ export function FeatureSpecPrdEditor({
 
       <PrdDiagramStudioModal
         isOpen={isStudioOpen}
-        onClose={() => setIsStudioOpen(false)}
+        onClose={closeStudio}
         onApplyToPrd={handleApplyDiagram}
+        documentMarkdown={value.brief?.context ?? ''}
+        initialTarget={studioTarget}
+        disabled={disabled}
       />
     </div>
   );

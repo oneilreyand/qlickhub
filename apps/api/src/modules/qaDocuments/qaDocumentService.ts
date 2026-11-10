@@ -1,3 +1,4 @@
+import { inspectPrdDiagrams } from '@qlick/contracts';
 import { sequelize } from '../../db/sequelize.js';
 import {
   QaDocumentModel,
@@ -274,6 +275,8 @@ export class QaDocumentService {
       }
       if (doc.docType === 'product_brief') {
         assertCanManageProductBrief(member.role);
+        const diagramErrors = inspectPrdDiagrams(input.contentMarkdown).errors;
+        if (diagramErrors.length) throw new Error(`BAD_REQUEST: ${diagramErrors[0]}`);
       }
 
       const nextVersionNumber = doc.currentVersion + 1;
@@ -356,6 +359,8 @@ export class QaDocumentService {
   ): Promise<ProductBrief> {
     const member = await requireActiveMember(workspaceId, actorId, options.transaction);
     assertCanManageProductBrief(member.role);
+    const diagramErrors = inspectPrdDiagrams(input.contentMarkdown).errors;
+    if (diagramErrors.length) throw new Error(`BAD_REQUEST: ${diagramErrors[0]}`);
 
     const task = await TaskModel.findOne({
       where: { id: taskId, workspaceId },

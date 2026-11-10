@@ -1,3 +1,4 @@
+import { inspectPrdDiagrams, putPrdDiagram, serializePrdDiagram } from '@qlick/contracts';
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import type { Server } from 'node:http';
@@ -941,4 +942,144 @@ describe('Feature Spec Apply HTTP/PostgreSQL (P5d-2)', () => {
       assert.match(stdout, /# fail 0(?:\r?\n|$)/);
     },
   );
+  test('Mermaid blocks round-trip through authenticated Spec and Brief APIs without duplicate or cross-Workspace writes', async () => {
+    // Contract-valid diagram factory, persisted and read back from this disposable PostgreSQL database.
+    const diagram = {
+      schemaVersion: 1 as const,
+      id: '54fd5966-ad1a-4129-bcf5-7fa0c887621f',
+      title: 'Checkout flow',
+      revision: 1,
+      source: 'flowchart LR\nA[Keranjang] --> B[Checkout]',
+    };
+    const context = `Konteks bisnis\n\n${serializePrdDiagram(diagram)}\n\nCatatan akhir`;
+    let spec = await readySpec({ prd: { ...prd, brief: { ...prd.brief, context } } });
+    const headers = { 'Content-Type': 'application/json', cookie: cookies.get(po.id)! };
+    const endpoint = `${base}/workspaces/${workspace.id}/feature-specs/${spec.id}`;
+    const read = await fetch(endpoint, { headers });
+    assert.equal(read.status, 200);
+    const reopened = z
+      .object({ featureSpec: FeatureSpecSchema })
+      .parse(await read.json()).featureSpec;
+    assert.equal(reopened.prd.brief?.context, context);
+    const target = inspectPrdDiagrams(context).diagrams[0];
+    const changed = putPrdDiagram(
+      context,
+      { ...diagram, source: diagram.source + '\nB --> C[Konfirmasi]' },
+      target,
+      5000,
+    );
+    const content = { ...spec.prd, brief: { ...spec.prd.brief, context: changed } };
+    const body = JSON.stringify({ version: spec.version, content, complete: false });
+    const oldVersion = spec.version;
+    const save = await fetch(endpoint + '/sections/prd', { method: 'PUT', headers, body });
+    assert.equal(save.status, 200);
+    spec = z.object({ featureSpec: FeatureSpecSchema }).parse(await save.json()).featureSpec;
+    assert.equal(spec.version, oldVersion + 1);
+    assert.equal(spec.prd.brief?.context, changed);
+    assert.equal(inspectPrdDiagrams(changed).diagrams.length, 1);
+    assert.equal(inspectPrdDiagrams(changed).diagrams[0].revision, 2);
+    const stale = await fetch(endpoint + '/sections/prd', { method: 'PUT', headers, body });
+    assert.equal(stale.status, 409);
+    for (const actor of [dev, qa]) {
+      const denied = await fetch(endpoint + '/sections/prd', {
+        method: 'PUT',
+        headers: { ...headers, cookie: cookies.get(actor.id)! },
+        body: JSON.stringify({ version: spec.version, content, complete: false }),
+      });
+      assert.equal(denied.status, 403);
+    }
+    const wrongWorkspace = await fetch(
+      `${base}/workspaces/${otherWorkspace.id}/feature-specs/${spec.id}`,
+      {
+        headers: { cookie: cookies.get(owner.id)! },
+      },
+    );
+    assert.equal(wrongWorkspace.status, 404);
+    const malformed = await fetch(endpoint + '/sections/prd', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        version: spec.version,
+        content: {
+          ...content,
+          brief: { ...content.brief, context: changed + '\n' + serializePrdDiagram(diagram) },
+        },
+        complete: false,
+      }),
+    });
+    assert.equal(malformed.status, 400);
+    assert.equal((await FeatureSpecModel.findByPk(spec.id))?.version, spec.version);
+    const applied = await request(spec);
+    assert.equal(applied.status, 200);
+    const briefEndpoint = `${base}/workspaces/${workspace.id}/tasks/${spec.featureTaskId}/product-brief`;
+    const briefRead = await fetch(briefEndpoint, { headers });
+    assert.equal(briefRead.status, 200);
+    const brief = z.object({ brief: ProductBriefSchema }).parse(await briefRead.json()).brief;
+    assert.equal(brief.currentVersion.contentMarkdown, changed);
+    // Main Brief PUT must reject malformed/duplicate blocks before writing any version or audit.
+    const beforeRejectedBrief = await counts();
+    for (const invalidMarkdown of [
+      changed + '\n' + serializePrdDiagram(diagram),
+      changed.replace('<!-- /qlick-diagram -->', ''),
+    ]) {
+      const rejectedBrief = await fetch(briefEndpoint, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          title: brief.document.title,
+          contentMarkdown: invalidMarkdown,
+          inScope: brief.currentVersion.inScope,
+          outScope: brief.currentVersion.outScope,
+          acceptanceCriteria: brief.currentVersion.acceptanceCriteria,
+          status: 'draft',
+        }),
+      });
+      assert.equal(rejectedBrief.status, 400);
+      assert.deepEqual(await counts(), beforeRejectedBrief);
+      const unchangedRead = await fetch(briefEndpoint, { headers });
+      const unchangedBrief = z
+        .object({ brief: ProductBriefSchema })
+        .parse(await unchangedRead.json()).brief;
+      assert.equal(unchangedBrief.currentVersion.version, brief.currentVersion.version);
+      assert.equal(unchangedBrief.currentVersion.contentMarkdown, changed);
+    }
+    const third = putPrdDiagram(
+      changed,
+      { ...diagram, title: 'Alur checkout final', source: diagram.source },
+      inspectPrdDiagrams(changed).diagrams[0],
+    );
+    const briefWrite = await fetch(briefEndpoint, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        title: brief.document.title,
+        contentMarkdown: third,
+        inScope: brief.currentVersion.inScope,
+        outScope: brief.currentVersion.outScope,
+        acceptanceCriteria: brief.currentVersion.acceptanceCriteria,
+        status: 'draft',
+      }),
+    });
+    assert.equal(briefWrite.status, 200);
+    const briefAgain = await fetch(briefEndpoint, { headers });
+    const persisted = z.object({ brief: ProductBriefSchema }).parse(await briefAgain.json()).brief;
+    assert.equal(persisted.currentVersion.contentMarkdown, third);
+    assert.equal(persisted.currentVersion.version, 2);
+    assert.equal(inspectPrdDiagrams(third).diagrams[0].id, diagram.id);
+    assert.equal(inspectPrdDiagrams(third).diagrams[0].revision, 3);
+    const row = await QaDocumentVersionModel.findByPk(persisted.currentVersion.id);
+    assert.equal(row?.contentMarkdown, third);
+    const audit = await TaskActivityModel.findOne({
+      where: { taskId: spec.featureTaskId, action: 'product_brief_version_created' },
+    });
+    assert.ok(audit);
+    const appliedWrite = await fetch(endpoint + '/sections/prd', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ version: spec.version + 1, content, complete: false }),
+    });
+    assert.equal(appliedWrite.status, 400);
+    assert.ok(third.startsWith('Konteks bisnis\n\n'));
+    assert.ok(third.endsWith('\n\nCatatan akhir'));
+  });
 });

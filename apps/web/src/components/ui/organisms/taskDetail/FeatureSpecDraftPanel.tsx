@@ -178,7 +178,7 @@ export function FeatureSpecDraftPanel({
             </Alert>
           )}
           {section === 'prd' ? (
-            <FeatureSpecPrdEditor value={prd} onChange={setPrd} disabled={disabled} />
+            <FeatureSpecPrdEditor key={spec.id} value={prd} onChange={setPrd} disabled={disabled} />
           ) : (
             <FeatureSpecTasksEditor
               spec={spec}
