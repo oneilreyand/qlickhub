@@ -211,3 +211,13 @@ independent review and publication are pending. It is not marked Done or Product
 - `git diff --check`: exit 0. New source/document files also checked separately for unintended trailing whitespace.
 - Temporary fixture servers and disposable cluster are shut down after verification. Database files belong only to this task; no Production data or environment was modified.
 - Verdict: **tested local candidate; independent G5 pending**, not a Production completion.
+
+## Release review correction — 2026-11-10
+
+Review independen menemukan bahwa validasi service Brief pada kandidat awal hanya berada di jalur
+createDocumentVersion, belum di upsertProductBrief utama. Bukti awal 47 tes membuktikan happy path
+Brief dan penolakan malformed Spec, tetapi belum membuktikan penolakan malformed Brief. Klaim
+validasi pada seluruh jalur Brief tidak lengkap saat laporan awal dibuat. Perbaikan dan regresi
+HTTP negatif main Brief (red 200→expected400, kemudian green 47/47) dicatat pada
+[laporan rilis](FEAT_PRD_MERMAID_STUDIO_RELEASE_2026-11-09.md). Tidak menyamakan keberhasilan tes awal
+dengan cakupan yang belum diuji.

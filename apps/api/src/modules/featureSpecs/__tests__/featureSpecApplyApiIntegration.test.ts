@@ -1016,6 +1016,33 @@ describe('Feature Spec Apply HTTP/PostgreSQL (P5d-2)', () => {
     assert.equal(briefRead.status, 200);
     const brief = z.object({ brief: ProductBriefSchema }).parse(await briefRead.json()).brief;
     assert.equal(brief.currentVersion.contentMarkdown, changed);
+    // Main Brief PUT must reject malformed/duplicate blocks before writing any version or audit.
+    const beforeRejectedBrief = await counts();
+    for (const invalidMarkdown of [
+      changed + '\n' + serializePrdDiagram(diagram),
+      changed.replace('<!-- /qlick-diagram -->', ''),
+    ]) {
+      const rejectedBrief = await fetch(briefEndpoint, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          title: brief.document.title,
+          contentMarkdown: invalidMarkdown,
+          inScope: brief.currentVersion.inScope,
+          outScope: brief.currentVersion.outScope,
+          acceptanceCriteria: brief.currentVersion.acceptanceCriteria,
+          status: 'draft',
+        }),
+      });
+      assert.equal(rejectedBrief.status, 400);
+      assert.deepEqual(await counts(), beforeRejectedBrief);
+      const unchangedRead = await fetch(briefEndpoint, { headers });
+      const unchangedBrief = z
+        .object({ brief: ProductBriefSchema })
+        .parse(await unchangedRead.json()).brief;
+      assert.equal(unchangedBrief.currentVersion.version, brief.currentVersion.version);
+      assert.equal(unchangedBrief.currentVersion.contentMarkdown, changed);
+    }
     const third = putPrdDiagram(
       changed,
       { ...diagram, title: 'Alur checkout final', source: diagram.source },
