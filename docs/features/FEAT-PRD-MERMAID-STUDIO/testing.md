@@ -1,7 +1,7 @@
 # FEAT-PRD-MERMAID-STUDIO — Test & Review
 
-**Status:** Menunggu persetujuan
-**Verifier:** Belum ada verifier/CI independen; hasil executable lokal dilaporkan oleh pelaksana.
+**Status:** Disetujui
+**Disetujui:** Verifier Standards dan Spec independen, 2026-11-10, kandidat `52c4cad5`; temuan P1 telah diperbaiki dan evidence primer diperiksa. CI dan Production smoke tetap gerbang terpisah.
 
 Evidence lengkap dan quality review: [laporan](../../reports/FEAT_PRD_MERMAID_STUDIO_2026-11-09.md).
 

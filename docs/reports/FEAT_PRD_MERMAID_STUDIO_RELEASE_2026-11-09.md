@@ -66,3 +66,24 @@ Total initial review: Standards 1, Spec 1; temuan terburuk adalah bypass validas
 - Setelah build: scoped HTTP/PostgreSQL command pada laporan P1–P2 diulang → exit 0,
   **47 passed, 0 failed, 0 skipped**; regression assertions main Brief termasuk di dalamnya.
 - Recheck kedua reviewer, required CI dan deployment masih menunggu sumber primer berikutnya.
+
+## Final independent review — candidate 52c4cad5
+
+### Standards
+
+**Accepted.** Initial P1 upsert validation gap is resolved; shared validator now runs after Planner
+authorization and before writes. Reviewer rechecked the actual helper/write paths and authenticated
+negative regression, including unchanged persisted content/version/rows/audit. Primary scoped suite:
+47 passed, 0 failed, 0 skipped. No unresolved standards violations.
+
+### Spec
+
+**Accepted.** Main Brief validation now matches the approved P2 contract and MMD-06. Reviewer checked
+47/47 HTTP/PostgreSQL primary evidence and independently reran contract file tests: 20 passed,
+0 failed, 0 skipped. No remaining mismatch or unapproved expansion. Whole-Brief concurrency,
+server-side syntax validation and CDN pinning remain documented follow-ups.
+
+Final review summary: Standards 1 original finding resolved, Spec 1 original finding resolved;
+**0 open findings on either axis**. Required CI and Production smoke are separate pending gates.
+Rollback target observed before release: Vercel deployment `dpl_5ktrCxXmXp1FywdSqJ4t6rMAuGNy`,
+Production READY. No schema rollback is required.
