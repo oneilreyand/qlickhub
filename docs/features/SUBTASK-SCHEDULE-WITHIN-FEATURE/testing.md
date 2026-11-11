@@ -97,3 +97,22 @@ Bukti terbaru dan perintah exact: [laporan G5](../../reports/SUBTASK_SCHEDULE_WI
 18 screenshot rerun disimpan pada `/private/tmp/qlickhub-f1-g5-browser-evidence-20261107`;
 pelaksana memeriksa phone Plan conflict, tablet dark legacy dan desktop child conflict.
 Bukti awal Phase 1 tetap dipertahankan. CI dan verifikasi Production/G6 belum diklaim lulus.
+
+## Temuan Production 2026-11-11 — peringatan dini rentang Feature di form subtask
+
+Smoke Production terautentikasi: [laporan](../../reports/PRODUCTION_SMOKE_F1_F2_MERMAID_2026-11-11.md).
+AC-F1.1 (409 dengan nama/tanggal child, tanpa perubahan data), AC-F1.4 (child keluar rentang
+ditolak, data tetap) dan AC-F1.7 (perubahan root yang valid diterima) teramati di Production.
+
+Temuan Owner: form subtask baru memberi tahu setelah Simpan. Perbaikan disetujui Owner lewat chat
+2026-11-11 (`ok kerjakan`) dalam scope AC-F1.11 (form child menampilkan rentang):
+`SubtaskAccordionItem` menampilkan pesan dan menonaktifkan `Simpan Detail` begitu tanggal draf yang
+diubah berada di luar rentang Feature. Batas tetap berasal dari backend
+(`featureScheduleConstraint` / `useFeatureScheduleRange`); server tetap otoritatif dan tidak ada
+perubahan kontrak, API, data, atau authorization. Subtask legacy di luar rentang tetap bisa
+menyimpan perubahan non-tanggal karena pesan hanya muncul bila tanggal draf diubah.
+
+Evidence (clone `main` @ `431fcac8` + perubahan, Node 22): regression test baru
+`warns as soon as a subtask date leaves the Feature range and blocks saving (F1)` lulus, termasuk
+tanggal tepat di batas yang tetap diterima; hasil suite lengkap dicatat pada deskripsi PR.
+Batas: belum diperiksa visual di tiga viewport/Dark, dan belum diverifikasi di Production.

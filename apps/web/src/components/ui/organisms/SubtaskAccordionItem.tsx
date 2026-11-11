@@ -252,6 +252,26 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   const [isDeletingSubtask, setIsDeletingSubtask] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
+  // Early hint only: the bounds come from the backend and the server stays authoritative on save.
+  const hasFeatureBounds =
+    subtask.featureScheduleConstraint?.status !== 'ignored' &&
+    Boolean(featureRange.startDate && featureRange.dueDate);
+  const scheduleDraftChanged =
+    startDate !== (subtask.startDate || '') || dueDate !== (subtask.dueDate || '');
+  const isOutsideFeatureBounds = (value: string) =>
+    Boolean(
+      value &&
+      featureRange.startDate &&
+      featureRange.dueDate &&
+      (value < featureRange.startDate || value > featureRange.dueDate),
+    );
+  const featureRangeIssueMessage =
+    hasFeatureBounds &&
+    scheduleDraftChanged &&
+    !scheduleIssue &&
+    (isOutsideFeatureBounds(startDate) || isOutsideFeatureBounds(dueDate))
+      ? `Jadwal Subtask harus di dalam rentang Feature ${featureRange.startDate}–${featureRange.dueDate}.`
+      : null;
 
   useEffect(() => {
     setPriority(subtask.priority);
@@ -481,6 +501,10 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   const handleSaveMeta = async () => {
     if (scheduleIssue) {
       dispatch(enqueueSnackbar(scheduleIssueMessage || 'Jadwal Subtask belum valid.', 'error'));
+      return;
+    }
+    if (featureRangeIssueMessage) {
+      dispatch(enqueueSnackbar(featureRangeIssueMessage, 'error'));
       return;
     }
     setMetaError(null);
@@ -770,9 +794,11 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                       disabled={!canMutate || !isPlanner}
-                      aria-invalid={Boolean(scheduleIssue)}
+                      aria-invalid={Boolean(scheduleIssue || featureRangeIssueMessage)}
                       aria-describedby={
-                        scheduleIssue ? `subtask-schedule-error-${subtask.id}` : undefined
+                        scheduleIssue || featureRangeIssueMessage
+                          ? `subtask-schedule-error-${subtask.id}`
+                          : undefined
                       }
                     />
                   </div>
@@ -800,9 +826,11 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
                       disabled={!canMutate || !isPlanner}
-                      aria-invalid={Boolean(scheduleIssue)}
+                      aria-invalid={Boolean(scheduleIssue || featureRangeIssueMessage)}
                       aria-describedby={
-                        scheduleIssue ? `subtask-schedule-error-${subtask.id}` : undefined
+                        scheduleIssue || featureRangeIssueMessage
+                          ? `subtask-schedule-error-${subtask.id}`
+                          : undefined
                       }
                     />
                   </div>
@@ -814,6 +842,15 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     className="text-xs text-rose-600 dark:text-rose-400"
                   >
                     {scheduleIssueMessage}
+                  </p>
+                )}
+                {featureRangeIssueMessage && isPlanner && (
+                  <p
+                    id={`subtask-schedule-error-${subtask.id}`}
+                    role="alert"
+                    className="text-xs text-rose-600 dark:text-rose-400"
+                  >
+                    {featureRangeIssueMessage}
                   </p>
                 )}
 
@@ -946,7 +983,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                         variant="primary"
                         onClick={handleSaveMeta}
                         isLoading={isSavingMeta}
-                        disabled={isReleasing}
+                        disabled={isReleasing || Boolean(featureRangeIssueMessage)}
                       >
                         Simpan Detail
                       </Button>
