@@ -1,6 +1,7 @@
 # FEAT-PRD-MERMAID-STUDIO — Release & Close
 
-**Status:** Draft
+**Status:** Selesai
+**Disetujui:** Owner (Reyand), 2026-11-11 — G6 lewat chat (`ok`) setelah smoke Production terautentikasi
 
 Kandidat lokal pada `codex/prd-mermaid-studio`; belum ada push, PR, merge atau deployment.
 Scope saat ini Tier 1: tidak menyentuh file pola Tier 2. Klasifikasi harus dihitung lagi jika diff
@@ -35,3 +36,24 @@ smoke HTTP/browser. Status Ready untuk pengiriman melalui existing Git integrati
 Production smoke hanya dilakukan bila sesi/credential yang sah tersedia, tanpa membuat sesi palsu.
 
 Bukti rilis: [laporan rilis](../../reports/FEAT_PRD_MERMAID_STUDIO_RELEASE_2026-11-09.md).
+
+## Penutupan G6 — 2026-11-11
+
+Kalimat pembuka di atas menggambarkan kandidat lokal 2026-11-09 dan dipertahankan sebagai histori.
+Keadaan akhir:
+
+| Item                                                   | Bukti                                                                                                                                           |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Merge                                                  | PR #119 (`4f0938a2`, Studio Mermaid), PR #121 (`431fcac8`, satu pintu masuk Studio)                                                             |
+| Deploy                                                 | Production melayani bundle setelah tiap merge; health `ok`, 81 migrasi; tanpa migrasi untuk Feature ini                                         |
+| Smoke terautentikasi (Owner, Feature uji `[UJI F1F2]`) | Sisip diagram → simpan Brief (`PUT` 200) → edit ulang → simpan; GET: satu blok `qlick-diagram:v1`, `revision` 2; ringkasan PRD merender diagram |
+| Temuan Production                                      | Tombol `Tambah Diagram` ganda — diperbaiki PR #121 dan diverifikasi di Production                                                               |
+| Keputusan                                              | G6 diterima Owner lewat chat 2026-11-11 (`ok`)                                                                                                  |
+
+Bukti: [smoke Production](../../reports/PRODUCTION_SMOKE_F1_F2_MERMAID_2026-11-11.md),
+[bukti baca-saja](../../reports/PRODUCTION_READONLY_EVIDENCE_2026-11-11.md), [testing](testing.md).
+
+Gap yang diterima: role Developer/QA (view-only), viewport phone/tablet dan Dark tidak diulang di
+Production; bukti lokal MMD-04 dan MMD-07 tetap berlaku. Tampilan Brief non-sederhana masih punya
+tombol kepala dan tombol toolbar editor. Data uji tertinggal di Feature `[UJI F1F2]`.
+Rollback: revert PR #121/#119 lewat gate yang sama; tidak ada schema undo.
