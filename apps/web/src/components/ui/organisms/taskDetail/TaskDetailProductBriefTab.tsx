@@ -360,20 +360,6 @@ export const TaskDetailProductBriefTab: React.FC<TaskDetailProductBriefTabProps>
             Product Brief
           </h2>
           <div className="flex items-center gap-2">
-            {canPlan && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={isSaving}
-                onClick={() => setIsStudioOpen(true)}
-                data-testid="brief-diagram-studio-btn-simple"
-                className="h-7 border-[#3F6212] text-[#166534] hover:bg-[#B1E743]/10 dark:border-[#B1E743] dark:text-[#B1E743] text-xs"
-              >
-                <GitFork className="mr-1 h-3 w-3" />
-                <span>Tambah Diagram</span>
-              </Button>
-            )}
             <span className="text-xs text-stone-500 dark:text-stone-400">
               {currentBrief
                 ? `Menyunting · akan jadi v${currentBrief.currentVersion.version + 1}`

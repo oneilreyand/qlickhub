@@ -303,6 +303,22 @@ describe('TaskDetailProductBriefTab', () => {
     );
   });
 
+  test('shows a single Tambah Diagram entry in the simple Feature page editor', () => {
+    render(
+      <TaskDetailProductBriefTab
+        task={task}
+        workspaceId={task.workspaceId}
+        userRole="owner"
+        productBrief={brief}
+        loadError={null}
+        onReload={vi.fn()}
+        simple
+      />,
+    );
+
+    expect(screen.getAllByRole('button', { name: /Tambah Diagram/ })).toHaveLength(1);
+  });
+
   test('opens Mermaid Studio and inserts a reviewed diagram into the context draft', async () => {
     (window as unknown as { __qlick_mermaid: unknown }).__qlick_mermaid = {
       render: async () => ({ svg: '<svg />' }),
