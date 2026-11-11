@@ -2,21 +2,21 @@
 
 **Status:** Active
 **Owner:** Reyand
-**Last reviewed:** 2026-11-09
+**Last reviewed:** 2026-11-11
 **Applicable Policy IDs:** DOC-005, SDLC-001, UI-001, UI-003, CONTRACT-001, DATA-001, TEST-001
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal                | Catatan                                       |
-| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | --------------------------------------- | --------------------------------------------- |
-| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | Owner (Reyand), 2026-11-09              |                                               |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | Owner (Reyand), 2026-11-09              | ADR: —                                        |
-| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner (Reyand), 2026-11-09              |                                               |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner (Reyand), 2026-11-09              | Jalur: Standar; P1–P2 disetujui               |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner (Reyand), 2026-11-09              | file yang sudah ada di `_template`            |
-| 4 Build           | [phases/](phases/)                                                                     | Selesai     | dalam window G3 | Owner (Reyand), 2026-11-09              | Kandidat 52c4cad5 teruji                      |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Disetujui   | G5              | Standards dan Spec verifier, 2026-11-10 | Accepted; 0 open findings. CI/release pending |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                                       |                                               |
+| Tahap             | Dokumen                                                                                | Status    | Gerbang         | Disetujui oleh / tanggal                | Catatan                                       |
+| ----------------- | -------------------------------------------------------------------------------------- | --------- | --------------- | --------------------------------------- | --------------------------------------------- |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui | G0              | Owner (Reyand), 2026-11-09              |                                               |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui | G1              | Owner (Reyand), 2026-11-09              | ADR: —                                        |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui | G2              | Owner (Reyand), 2026-11-09              |                                               |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui | G3              | Owner (Reyand), 2026-11-09              | Jalur: Standar; P1–P2 disetujui               |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui | bagian G2       | Owner (Reyand), 2026-11-09              | file yang sudah ada di `_template`            |
+| 4 Build           | [phases/](phases/)                                                                     | Selesai   | dalam window G3 | Owner (Reyand), 2026-11-09              | Kandidat 52c4cad5 teruji                      |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Disetujui | G5              | Standards dan Spec verifier, 2026-11-10 | Accepted; 0 open findings. CI/release pending |
+| 6 Release & Close | [release.md](release.md)                                                               | Selesai   | G6              | Owner (Reyand), 2026-11-11              | PR #119, #121; smoke Production lulus         |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 (Ini terpisah dari **Status** kartu di atas, yang tetap `Draft` / `Active` / `Superseded` / `Archived`.)

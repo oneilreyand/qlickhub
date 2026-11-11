@@ -116,3 +116,8 @@ Evidence (clone `main` @ `431fcac8` + perubahan, Node 22): regression test baru
 `warns as soon as a subtask date leaves the Feature range and blocks saving (F1)` lulus, termasuk
 tanggal tepat di batas yang tetap diterima; hasil suite lengkap dicatat pada deskripsi PR.
 Batas: belum diperiksa visual di tiga viewport/Dark, dan belum diverifikasi di Production.
+
+Verifikasi Production 2026-11-11 setelah PR #122 (`d8e08941`): pada subtask `[UJI F1F2] Subtask backend`,
+Due Date draf 2026-12-10 langsung menampilkan `Jadwal Subtask harus di dalam rentang Feature 2026-11-12–2026-11-21.`
+dan `Simpan Detail` nonaktif; dikembalikan ke 2026-11-20, pesan hilang dan tombol aktif. Tidak ada
+yang disimpan. Role Developer/QA dan viewport lain belum diperiksa.
