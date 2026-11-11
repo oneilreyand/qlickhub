@@ -10,6 +10,7 @@ import taskReducer from '../../../../store/taskSlice';
 import uiReducer from '../../../../store/uiSlice';
 import { capacityService } from '../../../../lib/api/capacityService';
 import { requirementService } from '../../../../lib/api/requirementService';
+import { taskService } from '../../../../lib/api/taskService';
 import type { Task, Requirement } from '@qlick/contracts';
 
 vi.mock('../../../../lib/api/capacityService', () => ({
@@ -432,5 +433,84 @@ describe('SubtaskAccordionItem Component', () => {
     expect(
       await screen.findByText(/Belum ada Requirement aktif yang terhubung ke Feature ini/i),
     ).toBeInTheDocument();
+  });
+
+  test('warns as soon as a subtask date leaves the Feature range and blocks saving (F1)', async () => {
+    vi.mocked(requirementService.listTaskRequirementLinks).mockResolvedValueOnce([]);
+
+    const store = configureStore({
+      reducer: {
+        workspace: workspaceReducer,
+        task: taskReducer,
+        ui: uiReducer,
+      },
+      preloadedState: {
+        workspace: {
+          workspaces: [
+            {
+              id: 'ws-1',
+              name: 'Test Workspace',
+              slug: 'test-workspace',
+              role: 'po' as const,
+              ownerId: 'po-1',
+              createdAt: '2026-01-01',
+              updatedAt: '2026-01-01',
+            },
+          ],
+          activeWorkspaceId: 'ws-1',
+          members: mockMembers as any,
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: true,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Accordion>
+            <SubtaskAccordionItem
+              subtask={{
+                ...mockSubtask,
+                featureScheduleConstraint: {
+                  status: 'within',
+                  label: 'Dalam jadwal Feature',
+                  featureStartDate: '2026-09-01',
+                  featureDueDate: '2026-09-10',
+                },
+              }}
+              workspaceId="ws-1"
+              currentUserId="po-1"
+              eligibleRequirements={[]}
+              members={mockMembers}
+              canMutate={true}
+              canPlan={true}
+            />
+          </Accordion>
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Subtask UI Implementation/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Detail/i }));
+
+    const dueDate = await screen.findByLabelText('Due Date');
+    const save = screen.getByRole('button', { name: 'Simpan Detail' });
+    expect(save).toBeEnabled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    fireEvent.change(dueDate, { target: { value: '2026-09-11' } });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Jadwal Subtask harus di dalam rentang Feature 2026-09-01–2026-09-10.',
+    );
+    expect(save).toBeDisabled();
+    expect(taskService.updateTask).not.toHaveBeenCalled();
+
+    // The boundary date itself is allowed.
+    fireEvent.change(dueDate, { target: { value: '2026-09-10' } });
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(save).toBeEnabled();
   });
 });
