@@ -204,6 +204,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
   const [dueDate, setDueDate] = useState(subtask.dueDate || '');
   const [reviewNotes, setReviewNotes] = useState(subtask.reviewNotes || '');
   const [deliveryArea, setDeliveryArea] = useState<DeliveryArea | ''>(subtask.deliveryArea || '');
+  const [assigneeClearedForArea, setAssigneeClearedForArea] = useState<DeliveryArea | null>(null);
   const [isSavingMeta, setIsSavingMeta] = useState(false);
   const [metaError, setMetaError] = useState<string | null>(null);
   const { range: featureRange, refreshAfterError } = useFeatureScheduleRange(
@@ -280,6 +281,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
     setDueDate(subtask.dueDate || '');
     setReviewNotes(subtask.reviewNotes || '');
     setDeliveryArea(subtask.deliveryArea || '');
+    setAssigneeClearedForArea(null);
   }, [
     subtask.id,
     subtask.priority,
@@ -317,19 +319,42 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
       Boolean(assigneeId && startDate && dueDate && !scheduleIssue),
   });
 
+  const isMemberEligibleForArea = React.useCallback(
+    (member: { role: string; specialties?: DeveloperSpecialty[] }, area: DeliveryArea) => {
+      if (['owner', 'admin', 'po'].includes(member.role)) return true;
+      if (area === 'frontend' || area === 'backend' || area === 'mobile' || area === 'fullstack') {
+        return (
+          member.role === 'dev' && developerSupportsDeliveryArea(member.specialties || [], area)
+        );
+      }
+      if (area === 'qa') return member.role === 'qa';
+      return true;
+    },
+    [],
+  );
+
   const filteredMembers = React.useMemo(() => {
     const area = deliveryArea || subtask.deliveryArea;
     if (!area) return members;
-    return members.filter((m) => {
-      const planner = ['owner', 'admin', 'po'].includes(m.role);
-      if (planner) return true;
-      if (area === 'frontend' || area === 'backend' || area === 'mobile' || area === 'fullstack') {
-        return m.role === 'dev' && developerSupportsDeliveryArea(m.specialties || [], area);
-      }
-      if (area === 'qa') return m.role === 'qa';
-      return true;
-    });
-  }, [members, deliveryArea, subtask.deliveryArea]);
+    return members.filter((m) => isMemberEligibleForArea(m, area));
+  }, [members, deliveryArea, subtask.deliveryArea, isMemberEligibleForArea]);
+
+  // The dropdown must always show the person that Save will send. When the area changes and the
+  // selected member no longer fits it, clear the selection instead of keeping a hidden value.
+  const handleDeliveryAreaChange = (nextArea: DeliveryArea | '') => {
+    setDeliveryArea(nextArea);
+    const selected = members.find((m) => m.userId === assigneeId);
+    if (nextArea && selected && !isMemberEligibleForArea(selected, nextArea)) {
+      setAssigneeId('');
+      setAssigneeClearedForArea(nextArea);
+    } else {
+      setAssigneeClearedForArea(null);
+    }
+  };
+  const selectedAssigneeOutsideList =
+    assigneeId && !filteredMembers.some((m) => m.userId === assigneeId)
+      ? members.find((m) => m.userId === assigneeId)
+      : undefined;
 
   // Load comments for this subtask
   const loadSubtaskData = async () => {
@@ -714,7 +739,9 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     </label>
                     <Select
                       value={deliveryArea}
-                      onChange={(e) => setDeliveryArea(e.target.value as DeliveryArea | '')}
+                      onChange={(e) =>
+                        handleDeliveryAreaChange(e.target.value as DeliveryArea | '')
+                      }
                       disabled={!canMutate || !isPlanner}
                     >
                       <option value="">Tidak ada</option>
@@ -732,18 +759,36 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     </label>
                     <Select
                       value={assigneeId}
-                      onChange={(e) => setAssigneeId(e.target.value)}
+                      onChange={(e) => {
+                        setAssigneeId(e.target.value);
+                        setAssigneeClearedForArea(null);
+                      }}
                       disabled={!canMutate || !isPlanner}
                     >
                       <option value="">
                         {isOpenAssignment ? 'Terbuka — tersedia untuk diambil' : 'Belum ditugaskan'}
                       </option>
+                      {selectedAssigneeOutsideList && (
+                        <option value={selectedAssigneeOutsideList.userId}>
+                          {selectedAssigneeOutsideList.user?.name ||
+                            selectedAssigneeOutsideList.user?.email ||
+                            selectedAssigneeOutsideList.userId}{' '}
+                          ({selectedAssigneeOutsideList.role.toUpperCase()}) — tidak sesuai area
+                        </option>
+                      )}
                       {filteredMembers.map((m) => (
                         <option key={m.userId} value={m.userId}>
                           {m.user?.name || m.user?.email || m.userId} ({m.role.toUpperCase()})
                         </option>
                       ))}
                     </Select>
+                    {assigneeClearedForArea && (
+                      <p role="status" className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                        Assignee dikosongkan karena tidak sesuai area{' '}
+                        {assigneeClearedForArea.toUpperCase()}. Pilih pelaksana baru sebelum
+                        menyimpan.
+                      </p>
+                    )}
                   </div>
 
                   <div>
