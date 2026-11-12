@@ -24,7 +24,7 @@ import {
   WorkspaceMemberModel,
   UserModel,
 } from '../../../db/models/index.js';
-import { assertCanAccessTask } from '../../../policies/taskPolicy.js';
+import { assertTaskAccessForActor } from './taskAccess.js';
 import {
   TaskListQuery,
   TaskListQuerySchema,
@@ -365,29 +365,8 @@ export async function getTaskImpl(
     throw new Error('NOT_FOUND: Task not found in this workspace.');
   }
 
-  if (actorRole && (actorRole === 'dev' || actorRole === 'qa')) {
-    let hasAssignedSubtask: boolean;
-    if (!task.parentTaskId) {
-      const count = await TaskModel.count({
-        where: {
-          workspaceId,
-          parentTaskId: task.id,
-          assigneeId: actorId,
-        },
-      });
-      hasAssignedSubtask = count > 0;
-    } else {
-      const count = await TaskModel.count({
-        where: {
-          workspaceId,
-          parentTaskId: task.parentTaskId,
-          assigneeId: actorId,
-        },
-      });
-      hasAssignedSubtask = count > 0;
-    }
-
-    assertCanAccessTask(actorRole, actorId, task, hasAssignedSubtask);
+  if (actorRole) {
+    await assertTaskAccessForActor(workspaceId, task, actorId, actorRole);
   }
 
   return (

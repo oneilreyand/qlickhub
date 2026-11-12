@@ -152,6 +152,19 @@ describe('Task Links HTTP / PostgreSQL Integration (F2 - FEATURE-REFERENCES-MEDI
       assigneeId: dev.id,
     });
 
+    // AUTH-013: a QA member reads Feature references through the QA Subtask assigned to them.
+    await TaskModel.create({
+      workspaceId: workspace.id,
+      folderId: folder.id,
+      parentTaskId: featureTask.id,
+      deliveryArea: 'qa',
+      title: 'QA Checkout v2',
+      status: 'todo',
+      priority: 'medium',
+      reporterId: po.id,
+      assigneeId: qa.id,
+    });
+
     ownerCookie = await createAuthCookie(owner);
     poCookie = await createAuthCookie(po);
     devCookie = await createAuthCookie(dev);
@@ -302,7 +315,7 @@ describe('Task Links HTTP / PostgreSQL Integration (F2 - FEATURE-REFERENCES-MEDI
     assert.strictEqual(qaReorder.status, 403);
   });
 
-  test('AC-F2.3 & AC-F2.8: Developer and QA can read all links (view-only)', async () => {
+  test('AC-F2.3 & AC-F2.8: Developer and QA working on the Feature can read all links (view-only)', async () => {
     const devList = await fetch(
       `${baseUrl}/workspaces/${workspace.id}/tasks/${featureTask.id}/links`,
       {

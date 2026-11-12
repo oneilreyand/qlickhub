@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
+import { requireTaskReadAccess } from '../../http/middleware/requireTaskReadAccess.js';
 import {
   listWorkspaceDocuments,
   getDocumentDetails,
@@ -21,54 +22,56 @@ qaDocumentRoutes.use(authenticate);
 qaDocumentRoutes.get(
   '/workspaces/:workspaceId/documents',
   requireWorkspaceMember(),
-  listWorkspaceDocuments
+  listWorkspaceDocuments,
 );
 
 qaDocumentRoutes.get(
   '/workspaces/:workspaceId/documents/:documentId',
   requireWorkspaceMember(),
-  getDocumentDetails
+  getDocumentDetails,
 );
 
 qaDocumentRoutes.post(
   '/workspaces/:workspaceId/documents',
   requireWorkspaceMember(['owner', 'admin', 'qa']),
-  createDocument
+  createDocument,
 );
 
 qaDocumentRoutes.post(
   '/workspaces/:workspaceId/documents/:documentId/versions',
   requireWorkspaceMember(['owner', 'admin', 'qa']),
-  createDocumentVersion
+  createDocumentVersion,
 );
 
 qaDocumentRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/product-brief',
   requireWorkspaceMember(),
-  getProductBrief
+  requireTaskReadAccess(),
+  getProductBrief,
 );
 
 qaDocumentRoutes.put(
   '/workspaces/:workspaceId/tasks/:taskId/product-brief',
   requireWorkspaceMember(['owner', 'admin', 'po']),
-  upsertProductBrief
+  upsertProductBrief,
 );
 
 // Task QA document linking
 qaDocumentRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/documents',
   requireWorkspaceMember(),
-  listTaskDocuments
+  requireTaskReadAccess(),
+  listTaskDocuments,
 );
 
 qaDocumentRoutes.post(
   '/workspaces/:workspaceId/tasks/:taskId/documents',
   requireWorkspaceMember(['owner', 'admin', 'qa']),
-  linkDocumentToTask
+  linkDocumentToTask,
 );
 
 qaDocumentRoutes.delete(
   '/workspaces/:workspaceId/tasks/:taskId/documents/:documentId',
   requireWorkspaceMember(['owner', 'admin', 'qa']),
-  unlinkDocumentFromTask
+  unlinkDocumentFromTask,
 );

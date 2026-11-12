@@ -51,3 +51,4 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-040](ADR-040-SCHEDULED-JOBS-VIA-SUPABASE-CRON.md)                        | Scheduled jobs via Supabase Cron and a backend-only bearer secret    |
 | [ADR-041](ADR-041-QA-READINESS-PER-REQUIREMENT-AND-SERVER-SIDE-QA-FLOW.md)    | QA readiness per Requirement and a server-side QA flow               |
 | [ADR-042](ADR-042-SUBTASK-SCHEDULE-WITHIN-FEATURE.md)                         | Subtask schedule within Feature                                      |
+| [ADR-043](ADR-043-TASK-SCOPED-READ-ACCESS.md)                                 | Task-scoped reads follow task-level access                           |
