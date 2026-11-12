@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
+import { requireTaskReadAccess } from '../../http/middleware/requireTaskReadAccess.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import { taskController } from './taskController.js';
 import { taskLinkController } from './taskLinkController.js';
 
 export const taskRoutes = Router({ mergeParams: true });
 
-// All task operations require authentication. Reads are available to every
-// workspace member; mutations are further constrained by role here and by
-// task policy in TaskService.
+// All task operations require authentication. Task-scoped reads follow task-level access
+// (AUTH-013): planners read every task, Developer/QA only tasks of Features they work on.
+// Mutations are further constrained by role here and by task policy in TaskService.
 taskRoutes.use(authenticate);
 
 taskRoutes.get('/', requireWorkspaceMember(), (req, res, next) =>
@@ -36,12 +37,18 @@ taskRoutes.post(
   (req, res, next) => taskController.createSubtask(req, res, next),
 );
 
-taskRoutes.get('/:taskId/activity', requireWorkspaceMember(), (req, res, next) =>
-  taskController.listTaskActivity(req, res, next),
+taskRoutes.get(
+  '/:taskId/activity',
+  requireWorkspaceMember(),
+  requireTaskReadAccess(),
+  (req, res, next) => taskController.listTaskActivity(req, res, next),
 );
 
-taskRoutes.get('/:taskId/acceptance-checks', requireWorkspaceMember(), (req, res, next) =>
-  taskController.listAcceptanceChecks(req, res, next),
+taskRoutes.get(
+  '/:taskId/acceptance-checks',
+  requireWorkspaceMember(),
+  requireTaskReadAccess(),
+  (req, res, next) => taskController.listAcceptanceChecks(req, res, next),
 );
 taskRoutes.put(
   '/:taskId/acceptance-checks/:criterionId',
@@ -49,6 +56,8 @@ taskRoutes.put(
   (req, res, next) => taskController.setAcceptanceCheck(req, res, next),
 );
 
+// Discussion stays readable by every Workspace member: any member can be mentioned and must be
+// able to read the thread to reply (ADR-043 §Pengecualian).
 taskRoutes.get('/:taskId/comments', requireWorkspaceMember(), (req, res, next) =>
   taskController.listTaskComments(req, res, next),
 );
@@ -63,8 +72,11 @@ taskRoutes.delete('/:taskId/comments/:commentId', requireWorkspaceMember(), (req
 );
 
 // Task Links (F2 - FEATURE-REFERENCES-MEDIA)
-taskRoutes.get('/:taskId/links', requireWorkspaceMember(), (req, res, next) =>
-  taskLinkController.listTaskLinks(req, res, next),
+taskRoutes.get(
+  '/:taskId/links',
+  requireWorkspaceMember(),
+  requireTaskReadAccess(),
+  (req, res, next) => taskLinkController.listTaskLinks(req, res, next),
 );
 taskRoutes.post(
   '/:taskId/links',
