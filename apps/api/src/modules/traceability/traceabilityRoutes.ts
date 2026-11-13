@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
+import { requireTaskReadAccess } from '../../http/middleware/requireTaskReadAccess.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import {
   getTraceabilitySummary,
@@ -23,6 +24,7 @@ traceabilityRoutes.get(
 traceabilityRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/delivery-trace',
   requireWorkspaceMember(),
+  requireTaskReadAccess(),
   getParentTaskDeliveryTrace,
 );
 

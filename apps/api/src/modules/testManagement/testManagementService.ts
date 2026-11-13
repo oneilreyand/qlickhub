@@ -55,7 +55,7 @@ import {
   UserModel,
   WorkspaceMemberModel,
 } from '../../db/models/index.js';
-import { assertCanAccessTask } from '../../policies/taskPolicy.js';
+import { assertTaskAccessForActor } from '../tasks/internal/taskAccess.js';
 import {
   assertCanAddTestResultEvidence,
   assertCanCreateTestCase,
@@ -935,11 +935,7 @@ export class TestManagementService {
       throw new Error('NOT_FOUND: Parent Feature not found in this workspace.');
     }
 
-    const hasAssignedSubtask =
-      (await TaskModel.count({
-        where: { workspaceId, parentTaskId: featureTask.id, assigneeId: actorId },
-      })) > 0;
-    assertCanAccessTask(membership.role, actorId, requestedTask, hasAssignedSubtask);
+    await assertTaskAccessForActor(workspaceId, requestedTask, actorId, membership.role);
 
     const subtasks = await TaskModel.findAll({
       where: { workspaceId, parentTaskId: featureTask.id },

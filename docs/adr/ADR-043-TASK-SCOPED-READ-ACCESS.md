@@ -25,7 +25,8 @@ Aturan kanonikal `AUTH-013` ada pada
 
 - **Phase 1:** tautan referensi, Product Brief, dokumen task, riwayat aktivitas, acceptance checks,
   daftar dan unduhan lampiran.
-- **Phase 2:** requirement task, delivery trace, catatan rilis/sign-off, readiness dan handoff.
+- **Phase 2:** requirement task, delivery trace, catatan rilis/sign-off, readiness dan temuannya,
+  handoff, ringkasan alur QA; eksekusi tes memakai fungsi yang sama.
 
 ### Pengecualian
 

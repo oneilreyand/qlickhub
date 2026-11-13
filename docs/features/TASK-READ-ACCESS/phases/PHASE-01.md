@@ -33,4 +33,5 @@ berdiskusi"; dicatat sebagai pengecualian di ADR-043 untuk keputusan Owner.
 
 ## 5. Hasil
 
-Kandidat lokal teruji; menunggu PR Tier 2 dan label Owner. Belum dirilis.
+Merge lewat PR #124 (`cb8d23be`, 2026-11-12) dengan label Owner. Verifikasi Production belum
+dijalankan.

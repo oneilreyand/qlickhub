@@ -346,7 +346,7 @@ Keputusan ini dijelaskan dalam
 ### Akses Baca Data Task
 
 - Planner (Owner, Admin, PO) membaca semua task di Workspace. Developer dan QA membaca sebuah task beserta data yang melekat padanya hanya bila task itu ditugaskan kepada mereka, mereka pelapornya, atau mereka memegang Subtask di Feature yang sama (`AUTH-013`).
-- Aturan ini berlaku untuk detail task, daftar Subtask, eksekusi tes, tautan referensi, Product Brief, dokumen task, riwayat aktivitas, acceptance checks dan lampiran. Requirement task, delivery trace, catatan rilis, readiness dan handoff menyusul pada Phase 2.
+- Aturan ini berlaku untuk detail task, daftar Subtask, eksekusi tes, tautan referensi, Product Brief, dokumen task, riwayat aktivitas, acceptance checks, lampiran, requirement task, delivery trace, catatan rilis, readiness beserta temuannya, handoff, dan ringkasan alur QA.
 - Pengecualian: membaca diskusi task tetap terbuka bagi semua anggota Workspace agar anggota yang di-mention dapat membalas. Backend menegakkan aturan ini; halaman yang tersembunyi di UI bukan otorisasi (`AUTH-002`). Keputusan tercatat di [ADR-043](adr/ADR-043-TASK-SCOPED-READ-ACCESS.md).
 
 ### Batas Privasi Kapasitas Lintas Workspace

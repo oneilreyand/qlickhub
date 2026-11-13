@@ -7,16 +7,16 @@
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal   | Catatan                            |
-| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | -------------------------- | ---------------------------------- |
-| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | Owner (Reyand), 2026-11-12 | chat: celah akses ingin diperbaiki |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | Owner (Reyand), 2026-11-12 | ADR: lihat solution.md             |
-| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner (Reyand), 2026-11-12 |                                    |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner (Reyand), 2026-11-12 | Jalur: Penuh; Phase 1 dan 2        |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner (Reyand), 2026-11-12 |                                    |
-| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                          | Phase 1 kandidat lokal             |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Draft       | G5              | —                          | Verifier: CI PR + Owner (Tier 2)   |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                          |                                    |
+| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal   | Catatan                                       |
+| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | -------------------------- | --------------------------------------------- |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | Owner (Reyand), 2026-11-12 | chat: celah akses ingin diperbaiki            |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | Owner (Reyand), 2026-11-12 | ADR: lihat solution.md                        |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner (Reyand), 2026-11-12 |                                               |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner (Reyand), 2026-11-12 | Jalur: Penuh; Phase 1 dan 2                   |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner (Reyand), 2026-11-12 |                                               |
+| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                          | Phase 1 merge PR #124; Phase 2 kandidat lokal |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Draft       | G5              | —                          | Verifier: CI PR + Owner (Tier 2)              |
+| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                          |                                               |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 (Ini terpisah dari **Status** kartu di atas, yang tetap `Draft` / `Active` / `Superseded` / `Archived`.)

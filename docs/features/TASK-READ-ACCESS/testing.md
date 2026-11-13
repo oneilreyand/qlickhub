@@ -6,14 +6,14 @@
 
 ## 1. Matriks AC → bukti
 
-| AC   | Bukti                                                                                                                | Level | Status      |
-| ---- | -------------------------------------------------------------------------------------------------------------------- | ----- | ----------- |
-| AC-1 | `taskReadAccessIntegration.test.ts`: dev/qa tanpa akses → 403 `FORBIDDEN` pada enam route, untuk Feature dan Subtask | E3    | Lulus lokal |
-| AC-2 | Test yang sama: pemegang Subtask → 200 pada Feature dan Subtask saudara; isi tautan terbaca                          | E3    | Lulus lokal |
-| AC-3 | Test yang sama: PO dan pelapor → 200                                                                                 | E3    | Lulus lokal |
-| AC-4 | Test yang sama: GET comments 200 untuk anggota tanpa akses task                                                      | E3    | Lulus lokal |
-| AC-5 | Test yang sama: task di luar Workspace → 404; `taskLinksIntegration.test.ts` tetap lulus                             | E3    | Lulus lokal |
-| AC-6 | Phase 2                                                                                                              | E3    | Belum mulai |
+| AC   | Bukti                                                                                                                                                              | Level | Status      |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | ----------- |
+| AC-1 | `taskReadAccessIntegration.test.ts`: dev/qa tanpa akses → 403 `FORBIDDEN` pada enam route, untuk Feature dan Subtask                                               | E3    | Lulus lokal |
+| AC-2 | Test yang sama: pemegang Subtask → 200 pada Feature dan Subtask saudara; isi tautan terbaca                                                                        | E3    | Lulus lokal |
+| AC-3 | Test yang sama: PO dan pelapor → 200                                                                                                                               | E3    | Lulus lokal |
+| AC-4 | Test yang sama: GET comments 200 untuk anggota tanpa akses task                                                                                                    | E3    | Lulus lokal |
+| AC-5 | Test yang sama: task di luar Workspace → 404; `taskLinksIntegration.test.ts` tetap lulus                                                                           | E3    | Lulus lokal |
+| AC-6 | Test yang sama: tujuh route Phase 2 pada Feature → 403 tanpa akses, 200 untuk PO dan pemegang Subtask; developer-readiness dan qa-workflow-summary pada Subtask QA | E3    | Lulus lokal |
 
 ## 2. Outcome pemeriksaan
 
@@ -29,8 +29,8 @@ Tidak ada perubahan UI.
 ## 4. Quality review (AI-010)
 
 - Reuse: aturan `assertCanAccessTask` dipakai ulang; duplikasi query di `getTaskImpl` dihapus.
-- Perilaku tumpang tindih: `testManagementService` masih menghitung akses sendiri; disatukan pada
-  Phase 2.
+- Perilaku tumpang tindih: `testManagementService.getTaskTestExecutions` kini memakai
+  `assertTaskAccessForActor`; tidak ada turunan aturan kedua yang tersisa.
 - Kode usang: tidak ada yang ditemukan pada file yang disentuh.
 - Dokumentasi: ADR-043, `AUTH-013`, Architecture §5, folder ini.
 

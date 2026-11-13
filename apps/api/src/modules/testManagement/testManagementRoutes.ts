@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
+import { requireTaskReadAccess } from '../../http/middleware/requireTaskReadAccess.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import {
   addTestResultEvidenceLink,
@@ -38,6 +39,7 @@ testManagementRoutes.use(authenticate);
 testManagementRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/test-executions',
   requireWorkspaceMember(),
+  requireTaskReadAccess(),
   getTaskTestExecutions,
 );
 testManagementRoutes.get(
@@ -48,6 +50,7 @@ testManagementRoutes.get(
 testManagementRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/qa-workflow-summary',
   requireWorkspaceMember(['qa']),
+  requireTaskReadAccess(),
   getQaWorkflowSummary,
 );
 testManagementRoutes.post(
