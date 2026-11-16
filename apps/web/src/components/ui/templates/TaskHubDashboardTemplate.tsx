@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { FolderTreeNode, Task } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { Drawer } from '../molecules/Drawer';
@@ -27,6 +27,7 @@ import {
 } from '../../../store/folderSlice';
 import { fetchTasks, fetchTaskById, setSelectedTaskId } from '../../../store/taskSlice';
 import { useDebounce } from '../../../lib/hooks/useDebounce';
+import { usePatchSearchParams } from '../../../lib/hooks/usePatchSearchParams';
 import { useReleaseReadinessMap } from '../../../lib/hooks/useReleaseReadinessMap';
 import { traceabilityService } from '../../../lib/api/traceabilityService';
 import {
@@ -61,7 +62,7 @@ function findFolderInTree(folders: FolderTreeNode[], folderId: string): FolderTr
 
 export const TaskHubDashboardTemplate: React.FC = () => {
   const dispatch = useAppDispatch();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, patchSearchParams] = usePatchSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -145,9 +146,9 @@ export const TaskHubDashboardTemplate: React.FC = () => {
 
   const updateTaskHubQuery = useCallback(
     (patch: Parameters<typeof patchTaskHubQueryState>[1], replace = false) => {
-      setSearchParams((current) => patchTaskHubQueryState(current, patch), { replace });
+      patchSearchParams((current) => patchTaskHubQueryState(current, patch), replace);
     },
-    [setSearchParams],
+    [patchSearchParams],
   );
 
   useEffect(() => {
