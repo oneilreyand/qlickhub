@@ -62,4 +62,15 @@ Kegagalan tidak dihapus dari tabel. Tindak lanjut: perbaiki & ulang, Bug, re-pla
 | P5 reconciliation | Independent P5 review                                | Source-to-AC inspection, Kanban source/test recheck, and rerun 73-test suite                                                        | Accepted — blocker recorded and remediated in P3.3; Feature-wide G5 remains open | AC-1.1, AC-2.1/2.2, AC-3.1/3.2 |
 | P3.3              | Independent P3.3 review + authenticated E4 re-review | Query scope, Kanban fetch/render, focused tests, PostgreSQL pagination evidence, typecheck/docs/diff, persisted browser observation | Accepted — page 1 → 2 → 1 observed using persisted 25-subtask fixture            | AC-3.1, AC-3.2                 |
 
+## Verifikasi Production 2026-11-16 (Claude, sesi Owner, baca-saja kecuali preferensi tema)
+
+| AC     | Observasi di `https://qlickhub.vercel.app`                                                                                                                                                                                                    | Hasil                          |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| AC-1.1 | Tema diganti ke Gelap lewat tombol header, lalu muat penuh halaman: `localStorage.theme = dark`, `<html class="dark">`, latar `rgb(20, 20, 19)`; skrip bootstrap tema inline berada sebelum modul React di HTML. Tema dikembalikan ke Terang. | Lulus                          |
+| AC-2.1 | Filter `q=UJI` + `status=todo`, pindah Daftar → Kanban → Jadwal Feature → Daftar: pencarian, status dan hasil tetap.                                                                                                                          | Lulus untuk perpindahan view   |
+| AC-2.1 | Mengetik pencarian lalu langsung mengganti status membuang teks pencarian terakhir (`UJI F1` → `UJI`).                                                                                                                                        | Temuan → `TASKHUB-FILTER-RACE` |
+| AC-2.2 | Task Hub dan detail Feature `[UJI F1F2]` pada 375×812, 768×1024 dan lebar panel 914 px: `scrollWidth` sama dengan lebar viewport; tabel Daftar di 768 px bergulir di dalam kontainernya sendiri.                                              | Lulus (1440 px tidak diukur)   |
+
+Kartu: [TASKHUB-FILTER-RACE](../../plans/quick/TASKHUB-FILTER-RACE.md).
+
 Gap yang diterima harus disetujui eksplisit dan dicatat di [release.md](release.md).
