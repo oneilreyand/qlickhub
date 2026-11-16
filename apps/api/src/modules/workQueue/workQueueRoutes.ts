@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../../http/middleware/authenticate.js';
+import { requireTaskReadAccess } from '../../http/middleware/requireTaskReadAccess.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import { getFeatureHandoffs, getRoleAwareWorkQueue } from './workQueueController.js';
 
@@ -32,5 +33,6 @@ workQueueRoutes.get(
   '/workspaces/:workspaceId/features/:featureTaskId/handoffs',
   validateWorkspaceId,
   requireWorkspaceMember(),
+  requireTaskReadAccess('featureTaskId'),
   getFeatureHandoffs,
 );

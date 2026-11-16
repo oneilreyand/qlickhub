@@ -56,10 +56,11 @@ taskRoutes.put(
   (req, res, next) => taskController.setAcceptanceCheck(req, res, next),
 );
 
-// Discussion stays readable by every Workspace member: any member can be mentioned and must be
-// able to read the thread to reply (ADR-043 §Pengecualian).
-taskRoutes.get('/:taskId/comments', requireWorkspaceMember(), (req, res, next) =>
-  taskController.listTaskComments(req, res, next),
+taskRoutes.get(
+  '/:taskId/comments',
+  requireWorkspaceMember(),
+  requireTaskReadAccess(),
+  (req, res, next) => taskController.listTaskComments(req, res, next),
 );
 taskRoutes.post('/:taskId/comments', requireWorkspaceMember(), (req, res, next) =>
   taskController.createTaskComment(req, res, next),

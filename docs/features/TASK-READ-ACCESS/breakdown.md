@@ -29,7 +29,11 @@ Tiap phase satu PR Tier 2 yang dapat di-revert sendiri, dengan integration test 
 
 ### Phase 2 — Route requirement, trace, rilis, readiness, handoff
 
-- BE: pasang middleware (`taskId`/`featureTaskId`) dan tes per route. Dirinci setelah Phase 1.
+- BE: `requireTaskReadAccess` pada GET requirements, delivery-trace, test-executions,
+  qa-workflow-summary (`taskId`) dan release-records, readiness, readiness/findings, handoffs
+  (`featureTaskId`); `getTaskTestExecutions` memakai `assertTaskAccessForActor`.
+- FE: tidak ada.
+- QA/Evidence: kasus Phase 2 pada `taskReadAccessIntegration.test.ts`; suite API penuh.
 
 ## 3. Risiko lintas phase
 
@@ -39,4 +43,4 @@ web: `TaskDetailDrawer`, `SubtaskWorkPage`, `QaSubtaskWorkSection`, `TestCaseRun
 ## 4. Stop condition yang sudah terlihat
 
 Tes yang ada gagal karena alur sah bergantung pada baca tanpa akses task; perlu perubahan kontrak
-atau migrasi; Owner mencabut pengecualian diskusi.
+atau migrasi.

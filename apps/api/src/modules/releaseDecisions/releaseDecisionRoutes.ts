@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
+import { requireTaskReadAccess } from '../../http/middleware/requireTaskReadAccess.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import {
   cancelQaSignOff,
@@ -23,6 +24,7 @@ releaseDecisionRoutes.get(
 releaseDecisionRoutes.get(
   '/workspaces/:workspaceId/features/:featureTaskId/release-records',
   requireWorkspaceMember(),
+  requireTaskReadAccess('featureTaskId'),
   listFeatureReleaseRecords,
 );
 releaseDecisionRoutes.post(

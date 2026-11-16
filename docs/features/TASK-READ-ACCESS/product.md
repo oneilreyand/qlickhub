@@ -17,7 +17,7 @@ Batas akses per Feature berlaku sama untuk detail task dan data yang melekat pad
 | REQ-1 Baca mengikuti akses task | AC-1 | Developer/QA tanpa penugasan, bukan pelapor, tanpa Subtask di Feature → GET route Phase 1 pada Feature atau Subtask-nya 403 `FORBIDDEN` | 1     |
 | REQ-1                           | AC-2 | Developer/QA yang memegang Subtask → GET route Phase 1 pada Feature dan Subtask saudaranya 200                                          | 1     |
 | REQ-1                           | AC-3 | Planner membaca semua task; pelapor membaca task yang ia laporkan → 200                                                                 | 1     |
-| REQ-2 Pengecualian diskusi      | AC-4 | Anggota Workspace mana pun → GET diskusi tetap 200                                                                                      | 1     |
+| REQ-2 Diskusi ikut aturan akses | AC-4 | Developer/QA tanpa akses task → GET diskusi 403; pemegang Subtask dan planner 200 (Owner 2026-11-16, menggantikan pengecualian awal)    | 2     |
 | REQ-3 Tanpa regresi             | AC-5 | Task tidak ada di Workspace → perilaku not-found yang ada; bentuk respons sukses tidak berubah                                          | 1     |
 | REQ-1                           | AC-6 | Sama dengan AC-1 sampai AC-3 untuk requirement task, delivery trace, catatan rilis/sign-off, readiness, handoff                         | 2     |
 
@@ -40,7 +40,8 @@ Lihat [contracts.md](contracts.md) dan [authorization.md](authorization.md).
 
 ## 6. Di luar scope
 
-Mutasi, endpoint tingkat Workspace, perubahan UI, dan pencabutan pengecualian diskusi.
+Mutasi (termasuk menulis pesan diskusi dan validasi mention), endpoint tingkat Workspace, dan
+perubahan UI.
 
 ## 7. Unknown yang tersisa
 

@@ -40,5 +40,5 @@ Mutasi, aturan role per endpoint, model data, dan UI tidak diubah. Membaca disku
 
 ## 7. Unknown
 
-Apakah pengecualian diskusi tetap diinginkan Owner; apakah endpoint tingkat Workspace yang memuat
+Apakah endpoint tingkat Workspace yang memuat
 data per Feature perlu aturan serupa. Keduanya tidak menghalangi Phase 1.

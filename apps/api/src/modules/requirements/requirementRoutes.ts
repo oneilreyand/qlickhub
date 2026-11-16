@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
+import { requireTaskReadAccess } from '../../http/middleware/requireTaskReadAccess.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import {
   listWorkspaceRequirements,
@@ -66,6 +67,7 @@ requirementRoutes.patch(
 requirementRoutes.get(
   '/workspaces/:workspaceId/tasks/:taskId/requirements',
   requireWorkspaceMember(),
+  requireTaskReadAccess(),
   listTaskRequirements,
 );
 

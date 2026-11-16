@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../http/middleware/authenticate.js';
+import { requireTaskReadAccess } from '../../http/middleware/requireTaskReadAccess.js';
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import {
   createFeatureReadinessBaseline,
@@ -20,6 +21,7 @@ featureReadinessRoutes.use(authenticate);
 featureReadinessRoutes.get(
   '/workspaces/:workspaceId/features/:featureTaskId/readiness',
   requireWorkspaceMember(),
+  requireTaskReadAccess('featureTaskId'),
   getFeatureReadiness,
 );
 featureReadinessRoutes.post(
@@ -36,6 +38,7 @@ featureReadinessRoutes.post(
 featureReadinessRoutes.get(
   '/workspaces/:workspaceId/features/:featureTaskId/readiness/findings',
   requireWorkspaceMember(),
+  requireTaskReadAccess('featureTaskId'),
   getRequirementFindings,
 );
 featureReadinessRoutes.post(

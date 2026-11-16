@@ -6,18 +6,20 @@
 
 ## 1. Merge dan deploy
 
-| Phase | PR           | Tier | File Tier 2                                                                                           | Memicu deploy Production? |
-| ----- | ------------ | ---- | ----------------------------------------------------------------------------------------------------- | ------------------------- |
-| 1     | belum dibuat | 2    | `docs/adr/**`, `docs/1_ARCHITECTURE.md`, `docs/POLICY_REGISTRY.md`, `apps/api/src/http/middleware/**` | ya                        |
+| Phase | PR                            | Tier | File Tier 2                                                                                           | Memicu deploy Production? |
+| ----- | ----------------------------- | ---- | ----------------------------------------------------------------------------------------------------- | ------------------------- |
+| 1     | #124 (`cb8d23be`, 2026-11-12) | 2    | `docs/adr/**`, `docs/1_ARCHITECTURE.md`, `docs/POLICY_REGISTRY.md`, `apps/api/src/http/middleware/**` | ya                        |
+| 2     | belum dibuat                  | 2    | `docs/adr/**`, `docs/1_ARCHITECTURE.md`                                                               | ya                        |
 
 Tanpa migrasi. Rollback: revert PR.
 
 ## 2. Verifikasi di environment target
 
-| AC   | Environment | Observasi                                                                          | Hasil |
-| ---- | ----------- | ---------------------------------------------------------------------------------- | ----- |
-| AC-1 | Production  | Akun QA tanpa penugasan: GET links, product-brief, activity pada Feature uji → 403 | belum |
-| AC-2 | Production  | Akun QA pemegang Subtask QA pada Feature uji → 200                                 | belum |
+| AC   | Environment | Observasi                                                                                          | Hasil |
+| ---- | ----------- | -------------------------------------------------------------------------------------------------- | ----- |
+| AC-1 | Production  | Akun QA tanpa penugasan: GET links, product-brief, activity pada Feature uji → 403                 | belum |
+| AC-2 | Production  | Akun QA pemegang Subtask QA pada Feature uji → 200                                                 | belum |
+| AC-6 | Production  | Akun QA tanpa penugasan: GET requirements, delivery-trace, release-records pada Feature lain → 403 | belum |
 
 ## 3. QA sign-off dan keputusan rilis
 

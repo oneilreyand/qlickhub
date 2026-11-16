@@ -14,8 +14,8 @@ import { accessTokenCookieName, signToken } from '../../auth/jwt.js';
 import { sessionManager } from '../../auth/sessionManager.js';
 
 /**
- * AUTH-013 / ADR-043: task-scoped reads follow task-level access. Persisted factories on the
- * disposable PostgreSQL test database; no mocks.
+ * AUTH-013 / ADR-043: task-scoped reads follow task-level access (Phase 1 and Phase 2). Persisted
+ * factories on the disposable PostgreSQL test database; no mocks.
  */
 describe('Task-scoped read access HTTP / PostgreSQL Integration (AUTH-013)', () => {
   const stamp = Date.now();
@@ -186,9 +186,64 @@ describe('Task-scoped read access HTTP / PostgreSQL Integration (AUTH-013)', () 
     }
   });
 
-  test('Discussion stays readable by every Workspace member (ADR-043 exception)', async () => {
-    const res = await read('devOther', feature.id, 'comments');
-    assert.strictEqual(res.status, 200);
+  // Phase 2 (ADR-043): requirement links, delivery trace, test executions, release records,
+  // readiness, findings and handoffs of a Feature follow the same rule.
+  const PHASE_2_READS = [
+    'tasks/:id/requirements',
+    'tasks/:id/delivery-trace',
+    'tasks/:id/test-executions',
+    'features/:id/release-records',
+    'features/:id/readiness',
+    'features/:id/readiness/findings',
+    'features/:id/handoffs',
+  ] as const;
+  const readFeatureScoped = (actor: string, template: string) =>
+    fetch(`${baseUrl}/workspaces/${workspace.id}/${template.replace(':id', feature.id)}`, {
+      headers: { Cookie: cookies[actor] },
+    });
+
+  test('Phase 2 reads of a Feature are denied without task access and allowed with it', async () => {
+    for (const template of PHASE_2_READS) {
+      for (const actor of ['devOther', 'qaOther']) {
+        const res = await readFeatureScoped(actor, template);
+        assert.strictEqual(res.status, 403, `${actor} ${template}`);
+        const body = (await res.json()) as { code?: string };
+        assert.strictEqual(body.code, 'FORBIDDEN', `${actor} ${template} code`);
+      }
+      for (const actor of ['po', 'devAssigned', 'qaAssigned']) {
+        const res = await readFeatureScoped(actor, template);
+        assert.strictEqual(res.status, 200, `${actor} ${template}`);
+      }
+    }
+  });
+
+  test('Subtask-level readiness and QA workflow reads follow task access', async () => {
+    const subtaskRead = (actor: string, taskId: string, path: string) =>
+      fetch(`${baseUrl}/workspaces/${workspace.id}/tasks/${taskId}/${path}`, {
+        headers: { Cookie: cookies[actor] },
+      });
+
+    // Developer readiness is defined on a QA Subtask and already resolves the task with the actor.
+    const readinessDenied = await subtaskRead('devOther', qaSubtask.id, 'developer-readiness');
+    assert.strictEqual(readinessDenied.status, 403);
+    const readinessAllowed = await subtaskRead('qaAssigned', qaSubtask.id, 'developer-readiness');
+    assert.strictEqual(readinessAllowed.status, 200);
+
+    const qaDenied = await subtaskRead('qaOther', qaSubtask.id, 'qa-workflow-summary');
+    assert.strictEqual(qaDenied.status, 403);
+    const qaAllowed = await subtaskRead('qaAssigned', qaSubtask.id, 'qa-workflow-summary');
+    assert.strictEqual(qaAllowed.status, 200);
+  });
+
+  test('Discussion reads follow task access (ADR-043, Owner decision 2026-11-16)', async () => {
+    for (const actor of ['devOther', 'qaOther']) {
+      const res = await read(actor, feature.id, 'comments');
+      assert.strictEqual(res.status, 403, `${actor} comments`);
+    }
+    for (const actor of ['po', 'devAssigned', 'qaAssigned']) {
+      const res = await read(actor, feature.id, 'comments');
+      assert.strictEqual(res.status, 200, `${actor} comments`);
+    }
   });
 
   test('A task that does not exist in the Workspace is left to the route handler', async () => {
