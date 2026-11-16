@@ -694,7 +694,10 @@ export const ReleaseAssurancePanel: React.FC<ReleaseAssurancePanelProps> = ({
                 <p>Langkah berikutnya: {qaWorkflowSummary.nextAction.label}.</p>
                 {isSimple && (
                   <p className="mt-1">
-                    Anda tetap dapat mencatat penolakan sambil menunggu syarat di atas terpenuhi.
+                    {/* RELEASE-DEADLOCK-A1 opens rejection only once a Test Cycle exists. */}
+                    {qaRejectOnly
+                      ? 'Anda tetap dapat mencatat penolakan sambil menunggu syarat di atas terpenuhi.'
+                      : 'Penolakan dapat dicatat setelah versi yang diuji ditetapkan.'}
                   </p>
                 )}
                 {!isSimple && qaWorkflowSummary.blockers.length > 0 && (

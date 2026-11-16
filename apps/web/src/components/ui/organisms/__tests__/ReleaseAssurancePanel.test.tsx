@@ -369,10 +369,28 @@ describe('ReleaseAssurancePanel', () => {
       },
     });
     expect(await screen.findByText(/Keputusan akhir QA untuk Feature ini/)).toBeInTheDocument();
-    expect(screen.getByText(/Anda tetap dapat mencatat penolakan/)).toBeInTheDocument();
+    // Without a Test Cycle the button is disabled, so the hint must not promise a rejection
+    // (Production finding 2026-11-16; previously this test expected the contradictory hint).
+    expect(screen.queryByText(/Anda tetap dapat mencatat penolakan/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Penolakan dapat dicatat setelah versi yang diuji ditetapkan.'),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Catat Persetujuan QA' })).toBeDisabled();
     expect(
       screen.queryByText('Tetapkan versi yang diuji terlebih dahulu.'),
     ).not.toBeInTheDocument();
+  });
+
+  it('simple variant promises a rejection only when one can be recorded (RELEASE-DEADLOCK-A1)', async () => {
+    renderPanel('qa', {
+      variant: 'simple',
+      qaWorkflowSummary: qaWorkflowSummary(
+        { code: 'resolve_bug_retest', label: 'Selesaikan Retest Bug' },
+        ['unverified_bug'],
+      ),
+    });
+    expect(await screen.findByText(/Anda tetap dapat mencatat penolakan/)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Catat Persetujuan QA' })).toBeEnabled();
   });
 
   it('fails closed for a blocked QA workflow and restricts sign-off to its backend-selected cycle', async () => {

@@ -63,3 +63,23 @@ Belum: menunggu CI `verify` pada PR.
 Quality review Phase 2: kode `critical_high_bugs` tidak lagi dihasilkan tetapi tetap di kontrak dan label UI demi snapshot
 lama (disengaja, ADR-031 D3); field `criticalOrHighUnverified` tetap diisi di snapshot baru dan tidak dipakai gate
 (follow-up: putuskan apakah dipertahankan sebagai informasi).
+
+## Pemeriksaan Production 2026-11-16 (Claude, sesi QA Mandor Reyand 01)
+
+Feature uji `[UJI F1F2]` (`2d7630a8-…`), QA Subtask `[UJI] Subtask QA` (`c6436c4f-…`), build
+`index-BRkz43K1.js` (`main` @ `cab5fffe`). Belum ada Requirement, Test Case, maupun siklus uji.
+
+| Observasi                                                                                                                                    | Hasil                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Gate menampilkan baris "Bug belum terverifikasi" (A2)                                                                                        | Lulus (tampilan)                       |
+| Tombol "Catat Persetujuan QA" nonaktif dengan alasan "Menunggu Kesiapan Feature"; tanpa siklus uji, penolakan memang belum bisa dicatat (A1) | Sesuai desain (A1 butuh siklus uji)    |
+| Teks varian sederhana tetap berkata "Anda tetap dapat mencatat penolakan…" padahal tombol nonaktif                                           | Temuan → diperbaiki pada perubahan ini |
+
+Perbaikan: teks hanya menjanjikan penolakan bila `qaRejectOnly` (ada siklus uji); tanpa siklus uji
+teks berbunyi "Penolakan dapat dicatat setelah versi yang diuji ditetapkan." Ekspektasi test lama
+yang mengharapkan teks kontradiktif diganti, karena test di bawahnya sudah menegaskan tombol
+nonaktif pada keadaan yang sama. Disetujui Owner lewat chat 2026-11-16 ("jalankan yang belum
+selesai"), dalam scope REQ-A1-01 dan UI-001; tanpa perubahan API atau data.
+
+AC-1.1 di Production (QA menolak dengan alasan saat gate gagal) belum dibuktikan: membutuhkan
+Requirement + AC, Test Case, dan siklus uji pada Feature uji.
