@@ -513,4 +513,105 @@ describe('SubtaskAccordionItem Component', () => {
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
     expect(save).toBeEnabled();
   });
+
+  test('clears the assignee when the delivery area no longer fits the selected member', async () => {
+    vi.mocked(requirementService.listTaskRequirementLinks).mockResolvedValueOnce([]);
+    const members = [
+      ...mockMembers,
+      {
+        userId: '22222222-2222-4222-8222-222222222222',
+        role: 'qa',
+        user: { name: 'QA Tester', email: 'qa1@example.com' },
+      },
+    ];
+
+    const store = configureStore({
+      reducer: {
+        workspace: workspaceReducer,
+        task: taskReducer,
+        ui: uiReducer,
+      },
+      preloadedState: {
+        workspace: {
+          workspaces: [
+            {
+              id: 'ws-1',
+              name: 'Test Workspace',
+              slug: 'test-workspace',
+              role: 'po' as const,
+              ownerId: 'po-1',
+              createdAt: '2026-01-01',
+              updatedAt: '2026-01-01',
+            },
+          ],
+          activeWorkspaceId: 'ws-1',
+          members: members as any,
+          isLoading: false,
+          isMembersLoading: false,
+          isInitialized: true,
+          error: null,
+        },
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Accordion>
+            <SubtaskAccordionItem
+              subtask={mockSubtask}
+              workspaceId="ws-1"
+              currentUserId="po-1"
+              eligibleRequirements={[]}
+              members={members}
+              canMutate={true}
+              canPlan={true}
+            />
+          </Accordion>
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Subtask UI Implementation/i }));
+    fireEvent.click(await screen.findByRole('tab', { name: /Detail/i }));
+
+    const [areaSelect, assigneeSelect] = (await screen.findAllByRole(
+      'combobox',
+    )) as HTMLSelectElement[];
+    expect(assigneeSelect.value).toBe('11111111-1111-4111-8111-111111111111');
+
+    // Frontend Developer does not fit a QA subtask: the dropdown and the saved value must agree.
+    fireEvent.change(areaSelect, { target: { value: 'qa' } });
+    expect(assigneeSelect.value).toBe('');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Assignee dikosongkan karena tidak sesuai area QA.',
+    );
+
+    // Saving now sends what is shown (unassigned), never the hidden previous member.
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan Detail' }));
+    await waitFor(() =>
+      expect(taskService.updateTask).toHaveBeenLastCalledWith(
+        'ws-1',
+        'subtask-123',
+        expect.objectContaining({ deliveryArea: 'qa', assigneeId: null }),
+      ),
+    );
+
+    fireEvent.change(assigneeSelect, {
+      target: { value: '22222222-2222-4222-8222-222222222222' },
+    });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan Detail' }));
+    await waitFor(() =>
+      expect(taskService.updateTask).toHaveBeenLastCalledWith(
+        'ws-1',
+        'subtask-123',
+        expect.objectContaining({
+          deliveryArea: 'qa',
+          assigneeId: '22222222-2222-4222-8222-222222222222',
+        }),
+      ),
+    );
+  });
 });
