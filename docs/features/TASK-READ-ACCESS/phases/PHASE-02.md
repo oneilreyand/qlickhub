@@ -23,6 +23,8 @@
 - `requireTaskReadAccess('featureTaskId')` pada GET `features/:featureTaskId/release-records`,
   `readiness`, `readiness/findings`, `handoffs`.
 - `getTaskTestExecutions` memakai `assertTaskAccessForActor` (perilaku sama, satu definisi).
+- GET `tasks/:taskId/comments` kini memakai `requireTaskReadAccess()` atas keputusan Owner
+  2026-11-16 (pengecualian diskusi dicabut).
 - `developer-readiness` tidak diubah: handler sudah memuat task lewat `taskService.getTask` dengan
   role aktor; dibuktikan test.
 

@@ -43,4 +43,4 @@ web: `TaskDetailDrawer`, `SubtaskWorkPage`, `QaSubtaskWorkSection`, `TestCaseRun
 ## 4. Stop condition yang sudah terlihat
 
 Tes yang ada gagal karena alur sah bergantung pada baca tanpa akses task; perlu perubahan kontrak
-atau migrasi; Owner mencabut pengecualian diskusi.
+atau migrasi.

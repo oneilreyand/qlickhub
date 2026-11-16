@@ -8,7 +8,7 @@ Aturan kanonikal: [Architecture §5](../../1_ARCHITECTURE.md#akses-baca-data-tas
 | Baca task-scoped (Phase 1)                                                      | Owner/Admin/PO | Dev/QA dengan akses task | Dev/QA tanpa akses task |
 | ------------------------------------------------------------------------------- | -------------- | ------------------------ | ----------------------- |
 | links, product-brief, documents, activity, acceptance-checks, attachments (GET) | 200            | 200                      | 403                     |
-| comments (GET)                                                                  | 200            | 200                      | 200 (pengecualian)      |
+| comments (GET), sejak keputusan Owner 2026-11-16                                | 200            | 200                      | 403                     |
 
 | Baca task-scoped (Phase 2)                                                                                                | Owner/Admin/PO | Dev/QA dengan akses task | Dev/QA tanpa akses task |
 | ------------------------------------------------------------------------------------------------------------------------- | -------------- | ------------------------ | ----------------------- |

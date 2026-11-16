@@ -28,11 +28,13 @@ Aturan kanonikal `AUTH-013` ada pada
 - **Phase 2:** requirement task, delivery trace, catatan rilis/sign-off, readiness dan temuannya,
   handoff, ringkasan alur QA; eksekusi tes memakai fungsi yang sama.
 
-### Pengecualian
+### Diskusi
 
-Membaca diskusi (`GET …/tasks/:taskId/comments`) tetap terbuka bagi semua anggota Workspace: setiap
-anggota dapat di-mention dan harus bisa membaca thread untuk membalas (perilaku yang sudah diuji
-pada `taskDiscussionApi.test.ts`). Pengecualian ini dapat dicabut dengan ADR lanjutan.
+Phase 1–2 sempat mengecualikan baca diskusi (`GET …/tasks/:taskId/comments`). Owner mencabut
+pengecualian itu lewat chat 2026-11-16 ("Tutup, ikut aturan akses"): baca diskusi kini mengikuti
+aturan yang sama. Konsekuensinya, anggota yang di-mention tetapi tidak memiliki akses ke Feature
+menerima notifikasi tetapi tidak dapat membuka thread-nya. Menulis pesan dan validasi mention tidak
+diubah oleh keputusan ini dan dicatat sebagai tindak lanjut.
 
 ## Alternatives and consequences
 

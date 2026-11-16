@@ -235,9 +235,15 @@ describe('Task-scoped read access HTTP / PostgreSQL Integration (AUTH-013)', () 
     assert.strictEqual(qaAllowed.status, 200);
   });
 
-  test('Discussion stays readable by every Workspace member (ADR-043 exception)', async () => {
-    const res = await read('devOther', feature.id, 'comments');
-    assert.strictEqual(res.status, 200);
+  test('Discussion reads follow task access (ADR-043, Owner decision 2026-11-16)', async () => {
+    for (const actor of ['devOther', 'qaOther']) {
+      const res = await read(actor, feature.id, 'comments');
+      assert.strictEqual(res.status, 403, `${actor} comments`);
+    }
+    for (const actor of ['po', 'devAssigned', 'qaAssigned']) {
+      const res = await read(actor, feature.id, 'comments');
+      assert.strictEqual(res.status, 200, `${actor} comments`);
+    }
   });
 
   test('A task that does not exist in the Workspace is left to the route handler', async () => {

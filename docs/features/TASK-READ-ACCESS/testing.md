@@ -11,7 +11,7 @@
 | AC-1 | `taskReadAccessIntegration.test.ts`: dev/qa tanpa akses → 403 `FORBIDDEN` pada enam route, untuk Feature dan Subtask                                               | E3    | Lulus lokal |
 | AC-2 | Test yang sama: pemegang Subtask → 200 pada Feature dan Subtask saudara; isi tautan terbaca                                                                        | E3    | Lulus lokal |
 | AC-3 | Test yang sama: PO dan pelapor → 200                                                                                                                               | E3    | Lulus lokal |
-| AC-4 | Test yang sama: GET comments 200 untuk anggota tanpa akses task                                                                                                    | E3    | Lulus lokal |
+| AC-4 | Test yang sama: GET comments 403 untuk Dev/QA tanpa akses, 200 untuk PO dan pemegang Subtask; `taskDiscussionApi.test.ts` 7/7 tetap lulus                          | E3    | Lulus lokal |
 | AC-5 | Test yang sama: task di luar Workspace → 404; `taskLinksIntegration.test.ts` tetap lulus                                                                           | E3    | Lulus lokal |
 | AC-6 | Test yang sama: tujuh route Phase 2 pada Feature → 403 tanpa akses, 200 untuk PO dan pemegang Subtask; developer-readiness dan qa-workflow-summary pada Subtask QA | E3    | Lulus lokal |
 

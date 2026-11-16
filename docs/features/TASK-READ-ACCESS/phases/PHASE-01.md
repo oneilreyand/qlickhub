@@ -20,7 +20,8 @@
 - `taskAccess.ts`: `assertTaskAccessForActor`, dipakai `getTaskImpl` (perilaku sama) dan middleware.
 - `requireTaskReadAccess`: dipasang pada GET links, activity, acceptance-checks (tasks), GET
   product-brief dan documents (qaDocuments), GET daftar dan unduhan lampiran.
-- GET comments sengaja tidak diubah (pengecualian ADR-043).
+- GET comments sengaja tidak diubah pada Phase 1; pengecualian dicabut Owner 2026-11-16 dan
+  ditangani pada Phase 2.
 
 ## 3. Pemeriksaan yang dijalankan
 
