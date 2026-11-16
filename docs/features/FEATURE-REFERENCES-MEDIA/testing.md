@@ -51,3 +51,11 @@ Pengujian dilakukan berlapis (Backend Integration + Frontend Component + Accessi
 3. **Repository Validation Gate:**
    - Command: `npm run validate`
    - Hasil: Exit code 0 (docs governance, docsys, env examples, SDLC, migrations prod, agent policy, tier paths, theme check, lint, typecheck all passed).
+
+## Production 2026-11-16 — sesi QA (Mandor Reyand 01)
+
+Pada `[UJI F1F2]` QA melihat bagian Referensi & Media dengan 5 tautan dan galeri, tanpa tombol
+Tambah Tautan, Sunting, Hapus, atau Pindahkan (AC-F2.7 sisi UI, AC-F2.8). Form Product Brief untuk
+QA bertanda "Brief Produk hanya dapat dilihat", isian nonaktif, tanpa Simpan dan tanpa Tambah
+Diagram. Catatan UX: tombol ringkasan tetap berlabel "Edit" bagi QA, dan tampilan baca-saja memuat
+sumber mentah blok diagram di textarea.

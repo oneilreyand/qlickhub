@@ -121,3 +121,9 @@ Verifikasi Production 2026-11-11 setelah PR #122 (`d8e08941`): pada subtask `[UJ
 Due Date draf 2026-12-10 langsung menampilkan `Jadwal Subtask harus di dalam rentang Feature 2026-11-12–2026-11-21.`
 dan `Simpan Detail` nonaktif; dikembalikan ke 2026-11-20, pesan hilang dan tombol aktif. Tidak ada
 yang disimpan. Role Developer/QA dan viewport lain belum diperiksa.
+
+Production 2026-11-16, sesi QA (Mandor Reyand 01) pada `[UJI F1F2]`: form root task tampil
+"Task hanya dapat dilihat" dengan Judul, Deskripsi, Prioritas, Mulai, Tenggat nonaktif dan tanpa
+tombol Simpan; tab Detail `[UJI] Subtask QA` menampilkan Delivery Area, Assignee, Prioritas, Start
+Date, Due Date nonaktif tanpa Simpan Detail. Penolakan 403 dari server untuk QA tidak diuji ulang di
+Production (bukti PostgreSQL AC-F1.9 tetap berlaku).

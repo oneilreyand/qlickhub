@@ -1,6 +1,6 @@
 # QUICK — TASKHUB-FILTER-RACE Filter Task Hub tidak hilang saat dua filter diubah berdekatan
 
-**Status:** Disetujui
+**Status:** Selesai
 **WRA:** 2/16 — layer 1 (hook + template web), validasi 1 (hook test + CI)
 
 Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
@@ -47,4 +47,6 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Hook test 2/2 lulus; test pembanding pada `useSearchParams` lama gagal dengan hasil yang
   ditunjukkan di atas. Suite web, typecheck, lint dan validate dicatat pada deskripsi PR.
 - PR dan tier: Tier 1 (tidak ada path Tier 2).
-- Gap: belum diverifikasi ulang di Production setelah deploy.
+- Production 2026-11-16 setelah PR #128 (bundle `index-BRkz43K1.js`): mengetik `UJI F1` lalu
+  langsung memilih status menghasilkan `?tab=tasks&q=UJI+F1&status=todo`, teks pencarian tetap.
+- Gap: tidak ada.
