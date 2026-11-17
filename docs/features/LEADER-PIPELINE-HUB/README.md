@@ -3,7 +3,7 @@
 **Status:** Draft
 **Owner:** Owner Qlick Hub
 **Last reviewed:** 2026-11-17
-**Applicable Policy IDs:** AUTH-001, AUTH-002, AUTH-011, FLOW-007, DATA-001, DATA-005, CONTRACT-001, UI-001, TEST-001, SDLC-001
+**Applicable Policy IDs:** AUTH-001, AUTH-002, AUTH-011, FLOW-007, FLOW-011, DATA-001, DATA-005, CONTRACT-001, UI-001, TEST-001, SDLC-001
 
 Leader Hub tab Ringkasan: pipeline SDLC per Feature, kesehatan dengan alasan, hambatan terbuka, dan beban tim berbasis poin. Berbeda dari LEADER-SDLC-HUB (Codex, tab "Aktivitas periode").
 
@@ -16,7 +16,7 @@ Leader Hub tab Ringkasan: pipeline SDLC per Feature, kesehatan dengan alasan, ha
 | 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner melalui chat, 2026-11-17 |                                                                     |
 | 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner melalui chat, 2026-11-17 | Jalur: Penuh                                                        |
 | (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner melalui chat, 2026-11-17 |                                                                     |
-| 4 Build           | [phases/](phases/)                                                                     | Belum mulai | dalam window G3 | —                              | P1–P7                                                               |
+| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                              | P1 kandidat lokal; P2–P7 belum mulai                                |
 | 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                              | Verifier: CI + review independen                                    |
 | 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                              |                                                                     |
 
