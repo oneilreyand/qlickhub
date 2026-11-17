@@ -1,6 +1,6 @@
 # ADR-047 — Cross-workspace task relations and redaction
 
-- **Status:** Proposed — menjadi Accepted saat G2 [MY-WORK-REPORT](../features/MY-WORK-REPORT/README.md) disetujui
+- **Status:** Accepted — G2 disetujui Owner 2026-11-17 ("Setuju G2 G3 semua")
 - **Date:** 2026-11-17
 - **Decision owner:** Owner, chat 2026-11-17: G0/G1 program WORK-VISIBILITY "Setuju semua (Recommended)"
 - **Feature:** [MY-WORK-REPORT](../features/MY-WORK-REPORT/README.md); mengamandemen ADR-024 dan `AUTH-011`

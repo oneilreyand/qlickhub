@@ -13,6 +13,10 @@ import {
   WorkspaceMember,
   QaAssuranceRolloutSettings,
   UpdateQaAssuranceRolloutSettingsInput,
+  WorkCalendar,
+  UpdateWorkCalendarInput,
+  WorkspaceHoliday,
+  CreateWorkspaceHolidayInput,
 } from '@qlick/contracts';
 
 export type WorkspaceItem = Omit<WorkspaceWithRole, 'allowQaTaskCreation' | 'role'> & {
@@ -131,5 +135,38 @@ export const workspaceService = {
       },
     );
     return res.data;
+  },
+
+  async getWorkCalendar(workspaceId: string): Promise<WorkCalendar> {
+    const res = await apiClient<{ data: WorkCalendar }>(`/workspaces/${workspaceId}/calendar`);
+    return res.data;
+  },
+
+  async updateWorkCalendar(
+    workspaceId: string,
+    input: UpdateWorkCalendarInput,
+  ): Promise<WorkCalendar> {
+    const res = await apiClient<{ data: WorkCalendar }>(`/workspaces/${workspaceId}/calendar`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+    return res.data;
+  },
+
+  async addWorkspaceHoliday(
+    workspaceId: string,
+    input: CreateWorkspaceHolidayInput,
+  ): Promise<WorkspaceHoliday> {
+    const res = await apiClient<{ data: WorkspaceHoliday }>(
+      `/workspaces/${workspaceId}/calendar/holidays`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return res.data;
+  },
+
+  async removeWorkspaceHoliday(workspaceId: string, holidayId: string): Promise<void> {
+    await apiClient(`/workspaces/${workspaceId}/calendar/holidays/${holidayId}`, {
+      method: 'DELETE',
+    });
   },
 };

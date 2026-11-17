@@ -1,6 +1,6 @@
 # ADR-046 — Member & Access hub and time-bound membership
 
-- **Status:** Proposed — menjadi Accepted saat G2 [MEMBER-ACCESS-HUB](../features/MEMBER-ACCESS-HUB/README.md) disetujui
+- **Status:** Accepted — G2 disetujui Owner 2026-11-17 ("Setuju G2 G3 semua")
 - **Date:** 2026-11-17
 - **Decision owner:** Owner, chat 2026-11-17: G0/G1 program WORK-VISIBILITY "Setuju semua (Recommended)" (D10)
 - **Feature:** [MEMBER-ACCESS-HUB](../features/MEMBER-ACCESS-HUB/README.md)

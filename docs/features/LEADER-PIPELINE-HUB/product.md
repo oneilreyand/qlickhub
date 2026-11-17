@@ -1,7 +1,8 @@
 # LEADER-PIPELINE-HUB — Tahap 2: PRD (Product Requirements)
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G2 — disetujui oleh PO
+**Disetujui:** Owner melalui chat, 2026-11-17 — "Setuju G2 G3 semua (Recommended)" setelah merge PR #132
 **Solusi terpilih:** [solution.md](solution.md)
 **Applicable Policy IDs:** DOC-005, UI-001, UI-002, AUTH-002, DATA-005
 

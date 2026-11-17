@@ -9,6 +9,12 @@
 Merge ke `main` otomatis men-deploy Production (Vercel). Setiap phase dicatat di sini: PR, tier,
 file Tier 2 (migrasi, ADR, middleware), merge commit, dan nama bundle setelah deploy.
 
+| Phase | Branch / PR               | Tier                          | Migrasi Production                                                                                                                                                                                    | Catatan                            |
+| ----- | ------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| P1    | `feat/work-foundation-p1` | 2 (ADR)                       | —                                                                                                                                                                                                     | read-only audit                    |
+| P2    | `feat/work-foundation-p2` | 2 (migrasi, registry)         | `20261117000098-add-workspace-work-calendar` dijalankan Owner 2026-11-17 dengan `npm run db:migrate:prod` (0,918 s; sebelumnya Production di `20261109000097`, dicek read-only lewat `SequelizeMeta`) | sebelum merge, sesuai gate ADR-039 |
+| P3    | `feat/work-foundation-p3` | 2 (migrasi, policy, registry) | `20261117000099-add-task-effort` — dijalankan Owner sebelum merge                                                                                                                                     | —                                  |
+
 ## 2. Verifikasi di environment target
 
 Smoke Production read-only per phase setelah deploy; mutasi hanya pada data uji yang disetujui Owner.

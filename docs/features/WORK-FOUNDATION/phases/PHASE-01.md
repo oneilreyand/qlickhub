@@ -1,6 +1,6 @@
 # WORK-FOUNDATION — Tahap 4: Build Phase 01 — Audit histori status
 
-**Status:** Menunggu persetujuan
+**Status:** Kandidat teruji
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-1.1
 **Applicable Policy IDs:** AI-009, AI-013, AI-014
@@ -20,16 +20,26 @@
 
 ## 2. Log perubahan
 
-Diisi saat build.
+| Task    | File berubah                                                                                                                    | Ringkasan                                                                                                                         | Commit       |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| P1-BE-1 | `apps/api/src/modules/tasks/internal/statusHistoryAudit.ts`, `apps/api/scripts/auditStatusHistory.cjs`, `apps/api/package.json` | Audit SELECT-only dalam transaksi `READ ONLY`; `npm run audit:status-history [-- --workspace <uuid>]` mencetak JSON per Workspace | PR phase ini |
+| P1-QA-1 | `apps/api/src/modules/tasks/__tests__/statusHistoryAuditIntegration.test.ts`                                                    | Seed: lengkap, `done` tanpa event/`completedAt`, aktif tanpa event, todo, soft-deleted, Workspace lain                            | PR phase ini |
 
 ## 3. Pemeriksaan yang dijalankan
 
-Diisi saat build.
+| Perintah                                                                         | Environment                 | Exit code          | Pass / fail / skip                            | AC     |
+| -------------------------------------------------------------------------------- | --------------------------- | ------------------ | --------------------------------------------- | ------ |
+| `node --test dist/modules/tasks/__tests__/statusHistoryAuditIntegration.test.js` | PostgreSQL 16 lokal (cloud) | 0                  | 2/2 pass                                      | AC-1.1 |
+| `node scripts/auditStatusHistory.cjs` terhadap database test                     | PostgreSQL 16 lokal         | 0                  | JSON 60 Workspace; jumlah baris tidak berubah | AC-1.1 |
+| suite API penuh, `npm run validate`                                              | lokal                       | lihat bagian Hasil | —                                             | —      |
 
 ## 4. Deviasi dari rencana
 
-Diisi saat build.
+| Deviasi                                                                                             | Alasan                                                                                | Masih dalam scope? | Persetujuan baru? |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------ | ----------------- |
+| Lokasi `apps/api/scripts/*.cjs` + modul di `modules/tasks/internal/`, bukan `apps/api/src/scripts/` | Mengikuti pola skrip `db:*` yang sudah ada; logika bisa diuji dengan integration test | Ya                 | Tidak             |
 
 ## 5. Hasil
 
-Diisi saat build; lanjut ke [testing.md](../testing.md).
+- PR: Tier 2 (ADR berubah status) — lanjut ke [testing.md](../testing.md).
+- Menjalankan audit ke database Production adalah stop condition: hanya read-only dan dengan izin Owner.

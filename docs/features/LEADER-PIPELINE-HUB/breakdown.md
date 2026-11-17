@@ -1,7 +1,8 @@
 # LEADER-PIPELINE-HUB — Tahap 3: Breakdown (Phase → Task BE · FE · QA)
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G3 — disetujui oleh Owner; persetujuan ini sekaligus Approval Window berurutan untuk P1–P7
+**Disetujui:** Owner melalui chat, 2026-11-17 — "Setuju G2 G3 semua (Recommended)" setelah merge PR #132
 **PRD:** [product.md](product.md)
 **Applicable Policy IDs:** AI-002, AI-009, AI-014, SDLC-001
 

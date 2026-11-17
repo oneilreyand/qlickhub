@@ -1,7 +1,8 @@
 # WORK-FOUNDATION — Tahap 3: Breakdown (Phase → Task BE · FE · QA)
 
-**Status:** Menunggu persetujuan
+**Status:** Disetujui
 **Gerbang:** G3 — disetujui oleh Owner; persetujuan ini sekaligus Approval Window untuk phase pertama
+**Disetujui:** Owner melalui chat, 2026-11-17 — "Setuju G2 G3 semua (Recommended)" setelah merge PR #132
 **PRD:** [product.md](product.md)
 **Applicable Policy IDs:** AI-002, AI-009, AI-014, SDLC-001, DATA-002
 
@@ -21,13 +22,13 @@ flowchart LR
   P5["P5 Hambatan<br/>AC-5.x"]
 ```
 
-| Phase | Tujuan                                 | AC            | WRA  | Bergantung | Status      |
-| ----- | -------------------------------------- | ------------- | ---- | ---------- | ----------- |
-| P1    | Laporan kualitas histori status        | AC-1.1        | 3/16 | —          | Belum mulai |
-| P2    | Kalender Workspace + hitung hari kerja | AC-2.1–AC-2.4 | 7/16 | —          | Belum mulai |
-| P3    | Effort Subtask                         | AC-3.1–AC-3.4 | 7/16 | P2         | Belum mulai |
-| P4    | Kapasitas pribadi + cuti               | AC-4.1–AC-4.4 | 7/16 | P2         | Belum mulai |
-| P5    | Hambatan + notifikasi PIC              | AC-5.1–AC-5.4 | 8/16 | —          | Belum mulai |
+| Phase | Tujuan                                 | AC            | WRA  | Bergantung | Status         |
+| ----- | -------------------------------------- | ------------- | ---- | ---------- | -------------- |
+| P1    | Laporan kualitas histori status        | AC-1.1        | 3/16 | —          | Belum mulai    |
+| P2    | Kalender Workspace + hitung hari kerja | AC-2.1–AC-2.4 | 7/16 | —          | Kandidat lokal |
+| P3    | Effort Subtask                         | AC-3.1–AC-3.4 | 7/16 | P2         | Kandidat lokal |
+| P4    | Kapasitas pribadi + cuti               | AC-4.1–AC-4.4 | 7/16 | P2         | Belum mulai    |
+| P5    | Hambatan + notifikasi PIC              | AC-5.1–AC-5.4 | 8/16 | —          | Kandidat lokal |
 
 ## 2. Task per phase
 

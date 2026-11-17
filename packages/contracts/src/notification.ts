@@ -14,6 +14,7 @@ export const NotificationTypeSchema = z.enum([
   'release_decision',
   'test_failed',
   'workspace_membership',
+  'blocker',
 ]);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 

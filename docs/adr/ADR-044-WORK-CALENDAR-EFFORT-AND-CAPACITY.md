@@ -1,6 +1,6 @@
 # ADR-044 — Work calendar, effort points, and personal capacity
 
-- **Status:** Proposed — menjadi Accepted saat G2 [WORK-FOUNDATION](../features/WORK-FOUNDATION/README.md) disetujui
+- **Status:** Accepted — G2 disetujui Owner 2026-11-17 ("Setuju G2 G3 semua")
 - **Date:** 2026-11-17
 - **Decision owner:** Owner, chat 2026-11-17: G0/G1 program WORK-VISIBILITY "Setuju semua (Recommended)" (D3, D4, D5, D6)
 - **Feature:** [WORK-FOUNDATION](../features/WORK-FOUNDATION/README.md), dipakai oleh

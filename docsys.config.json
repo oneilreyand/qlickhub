@@ -149,6 +149,8 @@
         "UserFcmTokenModel",
         "UserModel",
         "WorkspaceMemberModel",
+        "WorkspaceHolidayModel",
+        "TaskBlockerModel",
         "WorkspaceMemberSpecialtyModel",
         "WorkspaceMembershipActivityModel",
         "WorkspaceModel"

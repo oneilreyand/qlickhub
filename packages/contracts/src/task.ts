@@ -155,6 +155,23 @@ export const SubtaskSummarySchema = z.object({
 export type SubtaskSummary = z.infer<typeof SubtaskSummarySchema>;
 
 /**
+ * WORK-FOUNDATION P3 (ADR-044): effort size of a Subtask. Points live only here so the frontend
+ * and backend never compute their own scale.
+ */
+export const TaskEffortSchema = z.enum(['xs', 's', 'm', 'l', 'xl']);
+export type TaskEffort = z.infer<typeof TaskEffortSchema>;
+export const TASK_EFFORT_POINTS: Record<TaskEffort, number> = { xs: 1, s: 2, m: 3, l: 5, xl: 8 };
+export const TASK_EFFORT_LABEL: Record<TaskEffort, string> = {
+  xs: 'XS',
+  s: 'S',
+  m: 'M',
+  l: 'L',
+  xl: 'XL',
+};
+export const SUBTASK_EFFORT_REQUIRED_MESSAGE =
+  'Effort wajib diisi untuk Subtask yang dijadwalkan (XS, S, M, L, atau XL).';
+
+/**
  * Persisted Task entity schema.
  */
 export const TaskSchemaBase = z.object({
@@ -165,6 +182,7 @@ export const TaskSchemaBase = z.object({
   featureStage: FeaturePlanningStageSchema.nullable().optional(),
   featureStageSource: z.enum(['spec', 'legacy']).nullable().optional(),
   deliveryArea: DeliveryAreaSchema.nullable().optional(),
+  effort: TaskEffortSchema.nullable().optional(),
   title: z.string().trim().min(1, 'Task title is required').max(200),
   description: z.string().nullable().optional(),
   status: TaskStatusSchema,
@@ -202,6 +220,7 @@ export const CreateTaskSchema = z
     folderId: z.string().uuid().nullable().optional(),
     parentTaskId: z.string().uuid().nullable().optional(),
     deliveryArea: DeliveryAreaSchema.nullable().optional(),
+    effort: TaskEffortSchema.nullable().optional(),
     title: z.string().trim().min(1, 'Task title is required').max(200),
     description: z.string().max(5000).optional(),
     status: TaskStatusSchema.optional().default('todo'),
@@ -237,6 +256,22 @@ export const CreateTaskSchema = z
       });
     }
 
+    if (!data.parentTaskId && data.effort) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'effort is allowed only for subtasks',
+        path: ['effort'],
+      });
+    }
+
+    if (data.parentTaskId && data.startDate && data.dueDate && !data.effort) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: SUBTASK_EFFORT_REQUIRED_MESSAGE,
+        path: ['effort'],
+      });
+    }
+
     if (!data.parentTaskId && data.requirementIds && data.requirementIds.length > 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -266,6 +301,7 @@ export const UpdateTaskSchema = z
     folderId: z.string().uuid().nullable().optional(),
     parentTaskId: z.string().uuid().nullable().optional(),
     deliveryArea: DeliveryAreaSchema.nullable().optional(),
+    effort: TaskEffortSchema.nullable().optional(),
     title: z.string().trim().min(1, 'Task title is required').max(200).optional(),
     description: z.string().max(5000).nullable().optional(),
     status: TaskStatusSchema.optional(),

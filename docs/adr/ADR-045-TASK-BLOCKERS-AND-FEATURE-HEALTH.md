@@ -1,6 +1,6 @@
 # ADR-045 — Task blockers and Feature health
 
-- **Status:** Proposed — menjadi Accepted saat G2 [WORK-FOUNDATION](../features/WORK-FOUNDATION/README.md) dan [LEADER-PIPELINE-HUB](../features/LEADER-PIPELINE-HUB/README.md) disetujui
+- **Status:** Accepted — G2 disetujui Owner 2026-11-17 ("Setuju G2 G3 semua")
 - **Date:** 2026-11-17
 - **Decision owner:** Owner, chat 2026-11-17: G0/G1 program WORK-VISIBILITY "Setuju semua (Recommended)" (D5, D9)
 - **Feature:** [WORK-FOUNDATION](../features/WORK-FOUNDATION/README.md) (blocker), [LEADER-PIPELINE-HUB](../features/LEADER-PIPELINE-HUB/README.md) (kesehatan)

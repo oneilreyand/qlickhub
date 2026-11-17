@@ -9,6 +9,7 @@ import type {
   DeliveryArea,
   DeveloperSpecialty,
   Requirement,
+  TaskEffort,
 } from '@qlick/contracts';
 import { developerSupportsDeliveryArea, getTaskScheduleValidationIssue } from '@qlick/contracts';
 import {
@@ -33,6 +34,7 @@ import { taskService } from '../../../lib/api/taskService';
 import { requirementService } from '../../../lib/api/requirementService';
 import { useAssignmentConflictPreview } from '../../../lib/hooks/useAssignmentConflictPreview';
 import { AssignmentConflictBanner } from '../molecules/AssignmentConflictBanner';
+import { EffortPicker } from '../molecules/EffortPicker';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { useRealtimeEvents } from '../../../hooks/useRealtimeEvents';
@@ -199,6 +201,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
 
   // Settings / Meta local states
   const [priority, setPriority] = useState<TaskPriority>(subtask.priority);
+  const [effort, setEffort] = useState<TaskEffort | null>(subtask.effort ?? null);
   const [assigneeId, setAssigneeId] = useState(subtask.assigneeId || '');
   const [startDate, setStartDate] = useState(subtask.startDate || '');
   const [dueDate, setDueDate] = useState(subtask.dueDate || '');
@@ -276,6 +279,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
 
   useEffect(() => {
     setPriority(subtask.priority);
+    setEffort(subtask.effort ?? null);
     setAssigneeId(subtask.assigneeId || '');
     setStartDate(subtask.startDate || '');
     setDueDate(subtask.dueDate || '');
@@ -537,6 +541,7 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
     try {
       const updated = await taskService.updateTask(workspaceId, subtask.id, {
         priority,
+        ...(effort !== (subtask.effort ?? null) ? { effort } : {}),
         assigneeId: assigneeId || null,
         startDate: startDate || null,
         dueDate: dueDate || null,
@@ -880,6 +885,12 @@ export const SubtaskAccordionItem: React.FC<SubtaskAccordionItemProps> = ({
                     />
                   </div>
                 </div>
+                <EffortPicker
+                  id={`subtask-effort-${subtask.id}`}
+                  value={effort}
+                  onChange={setEffort}
+                  disabled={!canMutate || !isPlanner}
+                />
                 {scheduleIssue && isPlanner && (
                   <p
                     id={`subtask-schedule-error-${subtask.id}`}

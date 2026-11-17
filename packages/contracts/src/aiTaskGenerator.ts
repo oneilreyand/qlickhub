@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   TaskPrioritySchema,
   DeliveryAreaSchema,
+  TaskEffortSchema,
   TaskSchema,
   getTaskScheduleValidationIssue,
 } from './task.js';
@@ -45,6 +46,7 @@ export const GeneratedSubtaskDraftSchema = z.object({
   title: z.string().trim().min(1, 'Judul subtask wajib diisi').max(200),
   description: z.string().optional().default(''),
   deliveryArea: DeliveryAreaSchema,
+  effort: TaskEffortSchema.nullable().optional(),
   priority: TaskPrioritySchema.default('medium'),
   enabled: z.boolean().default(true),
 });

@@ -3,22 +3,22 @@
 **Status:** Draft
 **Owner:** Owner Qlick Hub
 **Last reviewed:** 2026-11-17
-**Applicable Policy IDs:** AUTH-001, AUTH-002, FLOW-002, FLOW-004, DATA-001, DATA-002, DATA-005, DATA-006, CONTRACT-001, UI-001, TEST-001, SDLC-001
+**Applicable Policy IDs:** AUTH-001, AUTH-002, FLOW-002, FLOW-008, FLOW-009, FLOW-010, FLOW-004, DATA-001, DATA-002, DATA-005, DATA-006, CONTRACT-001, UI-001, TEST-001, SDLC-001
 
 Fondasi data untuk Laporan Saya dan Leader Hub: kalender kerja Workspace, effort Subtask, kapasitas orang, hambatan (blocker), dan audit histori status.
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status               | Gerbang         | Disetujui oleh / tanggal       | Catatan                                                                                                                                  |
-| ----------------- | -------------------------------------------------------------------------------------- | -------------------- | --------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui            | G0              | Owner melalui chat, 2026-11-17 | Program WORK-VISIBILITY                                                                                                                  |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui            | G1              | Owner melalui chat, 2026-11-17 | ADR: [ADR 044](../../adr/README.md), [ADR 045](../../adr/README.md) |
-| 2 PRD             | [product.md](product.md)                                                               | Menunggu persetujuan | G2              | —                              |                                                                                                                                          |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Menunggu persetujuan | G3              | —                              | Jalur: Penuh                                                                                                                             |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Menunggu persetujuan | bagian G2       | —                              |                                                                                                                                          |
-| 4 Build           | [phases/](phases/)                                                                     | Belum mulai          | dalam window G3 | —                              | P1–P5                                                                                                                                    |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai          | G5              | —                              | Verifier: CI + review independen                                                                                                         |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai          | G6              | —                              |                                                                                                                                          |
+| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal       | Catatan                                                             |
+| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------------ | ------------------------------------------------------------------- |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | Owner melalui chat, 2026-11-17 | Program WORK-VISIBILITY                                             |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | Owner melalui chat, 2026-11-17 | ADR: [ADR 044](../../adr/README.md), [ADR 045](../../adr/README.md) |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner melalui chat, 2026-11-17 |                                                                     |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner melalui chat, 2026-11-17 | Jalur: Penuh                                                        |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner melalui chat, 2026-11-17 |                                                                     |
+| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                              | P1–P3 PR; P5 kandidat lokal; P4 belum mulai                         |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                              | Verifier: CI + review independen                                    |
+| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                              |                                                                     |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 

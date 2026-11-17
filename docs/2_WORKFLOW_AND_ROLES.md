@@ -244,6 +244,34 @@ berbeda dari invariant containment ini dan tetap tidak memblokir assignment.
 - Peringatan bersifat **murni advisory**: form dan API tidak pernah memblokir penugasan, tidak melakukan auto-reassign, dan tidak menurunkan prioritas.
 - Subtask dari Workspace lain disamarkan secara ketat (`AUTH-011`) kecuali jika aktor terbukti memiliki membership aktif di Workspace asal. Kebijakan ini diatur dalam [ADR-024](adr/ADR-024-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md).
 
+### Kalender Kerja Workspace
+
+Setiap Workspace punya kalender kerja: zona waktu IANA (default `Asia/Jakarta`), hari kerja dalam nomor
+hari ISO (1 = Senin … 7 = Minggu; default Senin–Jumat), dan daftar hari libur bertanggal. Perhitungan
+"hari ini", keterlambatan, dan jumlah hari kerja yang tersedia untuk sebuah task memakai kalender
+Workspace task itu, dihitung di backend; hari libur dan hari di luar hari kerja tidak dihitung. Semua
+anggota dapat membaca kalender; hanya Owner/Admin yang dapat mengubahnya, dan Workspace yang
+diarsipkan bersifat hanya-baca. Dasar keputusan: ADR-044.
+
+### Effort Subtask
+
+Setiap Subtask dapat diberi effort ukuran kaos: XS = 1, S = 2, M = 3, L = 5, XL = 8 poin. Skala dan
+poinnya hanya didefinisikan di `packages/contracts` sehingga sama di semua Workspace dan dapat
+dijumlahkan lintas Workspace. Effort adalah field perencanaan: hanya Owner/Admin/PO yang dapat
+mengisi atau mengubahnya, dan perubahan tercatat di riwayat Subtask. Subtask baru yang dibuat dengan
+jadwal lengkap wajib memiliki effort; Subtask lama tanpa effort tetap sah, ditampilkan sebagai
+"beban belum diukur", dan tidak pernah diisi otomatis. Effort hanya berlaku untuk Subtask, bukan
+Feature. Dasar keputusan: ADR-044.
+
+### Hambatan pada Task
+
+Hambatan dicatat sebagai record terpisah pada task, bukan sebagai status: kategori (menunggu
+klarifikasi, dependency, review, lingkungan/infra, akses, pihak eksternal, lainnya), deskripsi, dan PIC
+yang harus bertindak. Siapa pun yang boleh membaca task (`AUTH-013`) dapat membaca dan membuka hambatan;
+PIC harus anggota aktif Workspace dan menerima notifikasi. Hambatan hanya dapat ditutup oleh
+pembukanya, PIC-nya, atau Owner/Admin/PO. Membuka dan menutup hambatan tercatat di riwayat task dan
+tidak pernah mengubah status task, gate QA, atau gate rilis. Dasar keputusan: ADR-045.
+
 ### Definisi Putaran Review dan Pengembalian
 
 - Satu putaran review dimiliki oleh satu Development Subtask, satu jenis review, dan satu baseline.

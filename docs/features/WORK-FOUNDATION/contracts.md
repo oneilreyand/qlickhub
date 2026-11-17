@@ -20,9 +20,9 @@ Semua migrasi aditif, punya `down`, dan diuji dari database bersih (`DATA-002`).
 Contract baru: `packages/contracts/src/workCalendar.ts`, `blocker.ts`; tambahan di `task.ts`
 (effort + peta poin) dan `capacity.ts` (kapasitas, cuti). Endpoint (prefix `/v1`):
 
-- `GET/PUT /workspaces/:workspaceId/calendar`, `POST /workspaces/:workspaceId/calendar/holidays`, `DELETE …/holidays/:holidayId`
+- `GET /v1/workspaces/:workspaceId/calendar`, `PUT /v1/workspaces/:workspaceId/calendar`, `POST /v1/workspaces/:workspaceId/calendar/holidays`, `DELETE /v1/workspaces/:workspaceId/calendar/holidays/:holidayId`
 - `GET/PUT /me/capacity`, `GET/PUT /users/:userId/capacity`, `GET/POST/DELETE /users/:userId/time-off[/:id]`
-- `GET/POST /workspaces/:workspaceId/tasks/:taskId/blockers`, `POST …/blockers/:blockerId/resolve`
+- `GET /v1/workspaces/:workspaceId/tasks/:taskId/blockers`, `POST /v1/workspaces/:workspaceId/tasks/:taskId/blockers`, `POST /v1/workspaces/:workspaceId/tasks/:taskId/blockers/:blockerId/resolve`; notifikasi tipe `blocker` ke PIC lewat outbox
 - Effort lewat endpoint create/update Subtask yang sudah ada.
 
 ## Boundary notes
