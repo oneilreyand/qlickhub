@@ -28,6 +28,9 @@ utama membantu navigasi saja; hak akses dan urutan kerja tetap mengikuti
 | --------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------- |
 | [FEAT-PRD-MERMAID-STUDIO](FEAT-PRD-MERMAID-STUDIO/README.md)                                  | Owner/Admin/PO; member view-only      | Input Mermaid, preview, edit blok tersimpan                 | Rilis Production; G6 2026-11-11                                 |
 | [TASK-READ-ACCESS](TASK-READ-ACCESS/README.md)                                                | Owner/Admin/PO; Developer/QA dibatasi | Baca data task mengikuti akses task (AUTH-013)              | Phase 1 kandidat lokal                                          |
+| [WORK-FOUNDATION](WORK-FOUNDATION/README.md)                                                  | Owner/Admin, PO, Developer, QA        | Kalender kerja, effort Subtask, kapasitas orang, hambatan   | Draft — G0/G1 disetujui, G2/G3 menunggu                         |
+| [MY-WORK-REPORT](MY-WORK-REPORT/README.md)                                                    | Semua role                            | Laporan Saya lintas Workspace                               | Draft — G0/G1 disetujui, G2/G3 menunggu; UI di galeri           |
+| [LEADER-PIPELINE-HUB](LEADER-PIPELINE-HUB/README.md)                                          | Owner/Admin                           | Pipeline SDLC, kesehatan, hambatan, beban tim               | Draft — G0/G1 disetujui, G2/G3 menunggu; UI di galeri           |
 | [Subtask Schedule Within Feature](SUBTASK-SCHEDULE-WITHIN-FEATURE/README.md)                  | Owner/Admin, PO, Developer, QA        | Batas jadwal subtask di dalam Feature dan penanda legacy.   | G5 lokal Accepted — PR Tier 2/release pending; belum Production |
 | [Feature References & Media](FEATURE-REFERENCES-MEDIA/README.md)                              | Owner/Admin, PO, Developer, QA        | Tautan eksternal, galeri gambar, dan video embed di PRD.    | Draft — G0–G3 menunggu persetujuan Owner                        |
 | [Qlick Hub Product MCP](QLICKHUB-PRODUCT-MCP/README.md)                                       | Owner/Admin, PO                       | Grooming di agent lalu publish Feature secara eksplisit.    | Draft — belum diimplementasikan                                 |
@@ -62,11 +65,12 @@ utama membantu navigasi saja; hak akses dan urutan kerja tetap mengikuti
 
 ## 3. Workspace, Membership, dan Collaboration
 
-| Feature                                                               | Pembaca utama   | Tujuan singkat                                  | Status |
-| --------------------------------------------------------------------- | --------------- | ----------------------------------------------- | ------ |
-| [Discussion Author-Only Mutation](DISCUSSION_AUTHOR_ONLY_MUTATION.md) | Semua role      | Membatasi perubahan Discussion pada penulisnya. | Active |
-| [Multi-Workspace Member Access](MULTI_WORKSPACE_MEMBER_ACCESS_UX.md)  | Owner/Admin, PO | Akses anggota pada banyak Workspace.            | Active |
-| [Workspace Permanent Deletion](WORKSPACE_PERMANENT_DELETION.md)       | Owner/Admin     | Penghapusan permanen Workspace dengan guard.    | Active |
+| Feature                                                               | Pembaca utama   | Tujuan singkat                                         | Status                                  |
+| --------------------------------------------------------------------- | --------------- | ------------------------------------------------------ | --------------------------------------- |
+| [MEMBER-ACCESS-HUB](MEMBER-ACCESS-HUB/README.md)                      | Owner/Admin     | Anggota & Akses lintas Workspace, akses berbatas waktu | Draft — G0/G1 disetujui, G2/G3 menunggu |
+| [Discussion Author-Only Mutation](DISCUSSION_AUTHOR_ONLY_MUTATION.md) | Semua role      | Membatasi perubahan Discussion pada penulisnya.        | Active                                  |
+| [Multi-Workspace Member Access](MULTI_WORKSPACE_MEMBER_ACCESS_UX.md)  | Owner/Admin, PO | Akses anggota pada banyak Workspace.                   | Active                                  |
+| [Workspace Permanent Deletion](WORKSPACE_PERMANENT_DELETION.md)       | Owner/Admin     | Penghapusan permanen Workspace dengan guard.           | Active                                  |
 
 ## 4. Security dan Reliability
 

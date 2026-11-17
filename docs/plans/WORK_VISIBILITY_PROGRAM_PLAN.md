@@ -1,6 +1,6 @@
 # WORK-VISIBILITY — Rencana Program: Laporan Saya, Leader Hub SDLC, dan Anggota & Akses
 
-**Status:** Draft — Tahap 0 (Problem) dan Tahap 1 (Opsi Solusi), menunggu G0/G1 Owner
+**Status:** G0/G1 disetujui — Owner melalui chat, 2026-11-17: "Setuju semua (Recommended)" (D1–D10 sesuai rekomendasi) dan "Semua 4 Feature". Dipecah ke folder Feature [WORK-FOUNDATION](../features/WORK-FOUNDATION/README.md), [MEMBER-ACCESS-HUB](../features/MEMBER-ACCESS-HUB/README.md), [MY-WORK-REPORT](../features/MY-WORK-REPORT/README.md), dan [LEADER-PIPELINE-HUB](../features/LEADER-PIPELINE-HUB/README.md); G2/G3 per Feature menunggu persetujuan.
 **Disusun:** Claude, 2026-10-29 (Asia/Jakarta)
 **Baseline inspeksi:** `3c2254c` (read-only); disimpan di repo dari `main` @ `04ff4f4`
 **Jalur SDLC:** Penuh (lintas role, data/migrasi, authorization) — `SDLC-001`, `SDLC-002`
@@ -16,6 +16,17 @@ ditulis per Feature. Dokumen ini belum menjadi policy dan tidak memberi izin mut
 Kalender & Kapasitas). Canvas Design privat hanya berkas kerja; acuan di repo mengikuti `DOC-007`.
 
 ---
+
+## Pembaruan 2026-11-17
+
+- F4 memakai ID **LEADER-PIPELINE-HUB** karena `LEADER-SDLC-HUB` sudah dipakai Codex untuk tab
+  "Aktivitas periode" (keputusan Owner 2026-11-17).
+- Relasi antar task memakai tabel baru **`task_relations`**; `task_links` sudah ada dan berisi tautan URL
+  referensi (PR #120-an), sehingga nama di §6 F2 dan §9 tidak dipakai.
+- ADR yang diwajibkan §8: ADR-044 (kalender, effort, kapasitas), ADR-045 (hambatan, kesehatan),
+  ADR-046 (Anggota & Akses, akses berbatas waktu), ADR-047 (relasi antar task lintas Workspace).
+- UI Laporan Saya dan Leader Hub Ringkasan sudah di-slice ke Galeri Komponen dengan data fixture
+  (PR #130, #131).
 
 ## 1. Ringkasan
 
