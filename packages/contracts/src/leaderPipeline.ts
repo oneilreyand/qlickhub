@@ -94,6 +94,9 @@ export const LeaderOpenBlockerSchema = z.object({
   ageDays: z.number().int().min(0),
   picUserId: z.string().uuid(),
   picName: z.string(),
+  /** LEADER-PIPELINE-HUB P4: last "Ping PIC" and when the next one is allowed (null = now). */
+  lastPingedAt: z.string().nullable(),
+  nextPingAvailableAt: z.string().nullable(),
 });
 export type LeaderOpenBlocker = z.infer<typeof LeaderOpenBlockerSchema>;
 

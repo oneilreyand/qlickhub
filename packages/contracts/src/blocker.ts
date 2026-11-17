@@ -51,3 +51,13 @@ export const ResolveTaskBlockerSchema = z.object({
   resolutionNote: z.string().trim().max(1000).optional(),
 });
 export type ResolveTaskBlockerInput = z.infer<typeof ResolveTaskBlockerSchema>;
+
+/** LEADER-PIPELINE-HUB P4 (ADR-045): a leader may ping the PIC of an open blocker once an hour. */
+export const BLOCKER_PING_COOLDOWN_MINUTES = 60;
+
+export const TaskBlockerPingResultSchema = z.object({
+  blockerId: z.string().uuid(),
+  pingedAt: z.string(),
+  nextPingAvailableAt: z.string(),
+});
+export type TaskBlockerPingResult = z.infer<typeof TaskBlockerPingResultSchema>;

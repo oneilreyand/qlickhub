@@ -3,7 +3,12 @@ import { CreateTaskBlockerSchema, ResolveTaskBlockerSchema } from '@qlick/contra
 import type { WorkspaceRole } from '@qlick/contracts';
 import { WorkspaceRequest } from '../../policies/workspacePolicy.js';
 import { sendProblemDetails } from '../../http/problemDetails.js';
-import { listTaskBlockers, openTaskBlocker, resolveTaskBlocker } from './internal/taskBlockers.js';
+import {
+  listTaskBlockers,
+  openTaskBlocker,
+  pingTaskBlockerPic,
+  resolveTaskBlocker,
+} from './internal/taskBlockers.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -48,6 +53,20 @@ export const taskBlockerController = {
         req.workspaceMembership!.role as WorkspaceRole,
         parsed.data,
       );
+      return res.status(200).json({ data });
+    } catch (error) {
+      return sendProblemDetails(res, error);
+    }
+  },
+
+  /** LEADER-PIPELINE-HUB P4: Owner/Admin pings the PIC (route enforces the role). */
+  async ping(req: WorkspaceRequest, res: Response) {
+    try {
+      const { workspaceId, taskId, blockerId } = req.params;
+      if (!UUID.test(taskId) || !UUID.test(blockerId)) {
+        throw new Error('NOT_FOUND: Hambatan tidak ditemukan.');
+      }
+      const data = await pingTaskBlockerPic(workspaceId, taskId, blockerId, req.user!.userId);
       return res.status(200).json({ data });
     } catch (error) {
       return sendProblemDetails(res, error);

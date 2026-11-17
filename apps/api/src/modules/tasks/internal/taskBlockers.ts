@@ -1,12 +1,15 @@
 import type {
   CreateTaskBlockerInput,
+  TaskBlockerPingResult,
   ResolveTaskBlockerInput,
   TaskBlocker,
   WorkspaceRole,
 } from '@qlick/contracts';
-import { TASK_BLOCKER_CATEGORY_LABEL } from '@qlick/contracts';
+import { BLOCKER_PING_COOLDOWN_MINUTES, TASK_BLOCKER_CATEGORY_LABEL } from '@qlick/contracts';
+import { Op } from 'sequelize';
 import { sequelize } from '../../../db/sequelize.js';
 import {
+  TaskActivityModel,
   TaskBlockerModel,
   TaskModel,
   UserModel,
@@ -153,4 +156,87 @@ export async function resolveTaskBlocker(
     );
     return format(blocker);
   });
+}
+
+const COOLDOWN_MS = BLOCKER_PING_COOLDOWN_MINUTES * 60 * 1000;
+
+const timeFormatter = new Intl.DateTimeFormat('id-ID', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Asia/Jakarta',
+});
+
+/**
+ * LEADER-PIPELINE-HUB P4 (ADR-045): a leader (Owner/Admin, enforced by the route) reminds the PIC
+ * of an open blocker. One notification per ping, recorded as `*.blocker_pinged`; at most once per
+ * hour per blocker. The row lock on the blocker serialises concurrent pings.
+ */
+export async function pingTaskBlockerPic(
+  workspaceId: string,
+  taskId: string,
+  blockerId: string,
+  actorId: string,
+  now: Date = new Date(),
+): Promise<TaskBlockerPingResult> {
+  const task = await requireTask(workspaceId, taskId);
+  const result = await sequelize.transaction(async (transaction) => {
+    const blocker = await TaskBlockerModel.findOne({
+      where: { id: blockerId, workspaceId, taskId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!blocker) throw new Error('NOT_FOUND: Hambatan tidak ditemukan.');
+    if (blocker.resolvedAt) throw new Error('CONFLICT: Hambatan ini sudah ditutup.');
+    if (blocker.picUserId === actorId) {
+      throw new Error('BAD_REQUEST: Anda sendiri PIC hambatan ini.');
+    }
+    const lastPing = await TaskActivityModel.findOne({
+      where: {
+        workspaceId,
+        taskId,
+        action: { [Op.in]: ['task.blocker_pinged', 'subtask.blocker_pinged'] },
+        metadataJson: { blockerId },
+      },
+      order: [['createdAt', 'DESC']],
+      transaction,
+    });
+    if (lastPing && now.getTime() - lastPing.createdAt.getTime() < COOLDOWN_MS) {
+      const next = new Date(lastPing.createdAt.getTime() + COOLDOWN_MS);
+      throw new Error(
+        `TOO_MANY_REQUESTS: PIC sudah di-ping. Ping berikutnya bisa pukul ${timeFormatter.format(next)} WIB.`,
+      );
+    }
+    const activity = await logActivity(
+      workspaceId,
+      taskId,
+      actorId,
+      `${actionPrefix(task)}blocker_pinged`,
+      { blockerId, picUserId: blocker.picUserId },
+      transaction,
+    );
+    const actor = await UserModel.findByPk(actorId, { transaction });
+    const outboxIds = await reliableNotificationOutboxService.enqueue(
+      `task-blocker-ping:${blocker.id}:${activity.id}`,
+      [
+        {
+          userId: blocker.picUserId,
+          workspaceId,
+          taskId,
+          actorId,
+          type: 'blocker',
+          title: 'Pengingat hambatan',
+          message: `${actor?.name || 'Leader Workspace'} menunggu tindak lanjut hambatan "${blocker.description}" pada "${task.title}".`,
+          payload: { blockerId: blocker.id },
+        },
+      ],
+      transaction,
+    );
+    return { pingedAt: activity.createdAt, outboxIds };
+  });
+  if (result.outboxIds.length) void reliableNotificationOutboxService.dispatch(result.outboxIds);
+  return {
+    blockerId,
+    pingedAt: result.pingedAt.toISOString(),
+    nextPingAvailableAt: new Date(result.pingedAt.getTime() + COOLDOWN_MS).toISOString(),
+  };
 }

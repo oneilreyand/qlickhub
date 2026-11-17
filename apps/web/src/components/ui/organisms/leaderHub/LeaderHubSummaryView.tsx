@@ -22,6 +22,8 @@ export interface LeaderHubSummaryViewProps {
   onRetry?: () => void;
   onOpenFeature?: (featureId: string) => void;
   onPingPic?: (blockerId: string) => void;
+  /** Blocker whose ping is in flight (P4). */
+  pingingBlockerId?: string | null;
   onOpenBlocker?: (blockerId: string) => void;
   onSeeAllBlockers?: () => void;
   /** Number of blockers listed on the summary; the rest sit behind "Lihat semua". */
@@ -49,6 +51,7 @@ export const LeaderHubSummaryView: React.FC<LeaderHubSummaryViewProps> = ({
   onRetry,
   onOpenFeature,
   onPingPic,
+  pingingBlockerId,
   onOpenBlocker,
   onSeeAllBlockers,
   blockerPreviewLimit = 4,
@@ -107,6 +110,7 @@ export const LeaderHubSummaryView: React.FC<LeaderHubSummaryViewProps> = ({
           blockers={data.openBlockers.slice(0, blockerPreviewLimit)}
           totalCount={data.stats.openBlockers}
           onPingPic={onPingPic}
+          pingingBlockerId={pingingBlockerId}
           onOpenBlocker={onOpenBlocker}
           onSeeAll={onSeeAllBlockers}
         />
