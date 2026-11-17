@@ -263,6 +263,15 @@ jadwal lengkap wajib memiliki effort; Subtask lama tanpa effort tetap sah, ditam
 "beban belum diukur", dan tidak pernah diisi otomatis. Effort hanya berlaku untuk Subtask, bukan
 Feature. Dasar keputusan: ADR-044.
 
+### Hambatan pada Task
+
+Hambatan dicatat sebagai record terpisah pada task, bukan sebagai status: kategori (menunggu
+klarifikasi, dependency, review, lingkungan/infra, akses, pihak eksternal, lainnya), deskripsi, dan PIC
+yang harus bertindak. Siapa pun yang boleh membaca task (`AUTH-013`) dapat membaca dan membuka hambatan;
+PIC harus anggota aktif Workspace dan menerima notifikasi. Hambatan hanya dapat ditutup oleh
+pembukanya, PIC-nya, atau Owner/Admin/PO. Membuka dan menutup hambatan tercatat di riwayat task dan
+tidak pernah mengubah status task, gate QA, atau gate rilis. Dasar keputusan: ADR-045.
+
 ### Definisi Putaran Review dan Pengembalian
 
 - Satu putaran review dimiliki oleh satu Development Subtask, satu jenis review, dan satu baseline.

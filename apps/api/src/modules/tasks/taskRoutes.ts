@@ -4,6 +4,7 @@ import { requireTaskReadAccess } from '../../http/middleware/requireTaskReadAcce
 import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import { taskController } from './taskController.js';
 import { taskLinkController } from './taskLinkController.js';
+import { taskBlockerController } from './taskBlockerController.js';
 
 export const taskRoutes = Router({ mergeParams: true });
 
@@ -42,6 +43,23 @@ taskRoutes.get(
   requireWorkspaceMember(),
   requireTaskReadAccess(),
   (req, res, next) => taskController.listTaskActivity(req, res, next),
+);
+
+// Blockers (WORK-FOUNDATION P5, ADR-045): readable and openable by anyone who may read the task.
+taskRoutes.get('/:taskId/blockers', requireWorkspaceMember(), requireTaskReadAccess(), (req, res) =>
+  taskBlockerController.list(req, res),
+);
+taskRoutes.post(
+  '/:taskId/blockers',
+  requireWorkspaceMember(),
+  requireTaskReadAccess(),
+  (req, res) => taskBlockerController.open(req, res),
+);
+taskRoutes.post(
+  '/:taskId/blockers/:blockerId/resolve',
+  requireWorkspaceMember(),
+  requireTaskReadAccess(),
+  (req, res) => taskBlockerController.resolve(req, res),
 );
 
 taskRoutes.get(

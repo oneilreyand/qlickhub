@@ -62,4 +62,5 @@ export * from './qaAssuranceRolloutSettings.js';
 export * from './qaAssuranceRolloutEvent.js';
 export * from './taskLink.js';
 export * from './workspaceHoliday.js';
+export * from './taskBlocker.js';
 import './associations.js';

@@ -16,3 +16,4 @@ export { TaskHubDatePresetBar } from '../../components/ui/organisms/taskHub/Task
 export { TaskHubErrorBanner } from '../../components/ui/organisms/taskHub/TaskHubErrorBanner';
 export { TaskHubHeader } from '../../components/ui/organisms/taskHub/TaskHubHeader';
 export { TaskHubMetrics } from '../../components/ui/organisms/taskHub/TaskHubMetrics';
+export { TaskBlockersSection } from './TaskBlockersSection';

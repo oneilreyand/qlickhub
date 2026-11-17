@@ -3,7 +3,7 @@
 **Status:** Draft
 **Owner:** Owner Qlick Hub
 **Last reviewed:** 2026-11-17
-**Applicable Policy IDs:** AUTH-001, AUTH-002, FLOW-002, FLOW-008, FLOW-009, FLOW-004, DATA-001, DATA-002, DATA-005, DATA-006, CONTRACT-001, UI-001, TEST-001, SDLC-001
+**Applicable Policy IDs:** AUTH-001, AUTH-002, FLOW-002, FLOW-008, FLOW-009, FLOW-010, FLOW-004, DATA-001, DATA-002, DATA-005, DATA-006, CONTRACT-001, UI-001, TEST-001, SDLC-001
 
 Fondasi data untuk Laporan Saya dan Leader Hub: kalender kerja Workspace, effort Subtask, kapasitas orang, hambatan (blocker), dan audit histori status.
 
@@ -16,7 +16,7 @@ Fondasi data untuk Laporan Saya dan Leader Hub: kalender kerja Workspace, effort
 | 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner melalui chat, 2026-11-17 |                                                                     |
 | 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner melalui chat, 2026-11-17 | Jalur: Penuh                                                        |
 | (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner melalui chat, 2026-11-17 |                                                                     |
-| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                              | P1–P2 PR; P3 kandidat lokal; P4–P5 belum mulai                      |
+| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                              | P1–P3 PR; P5 kandidat lokal; P4 belum mulai                         |
 | 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                              | Verifier: CI + review independen                                    |
 | 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                              |                                                                     |
 

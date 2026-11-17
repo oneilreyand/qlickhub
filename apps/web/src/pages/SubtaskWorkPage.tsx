@@ -20,6 +20,7 @@ import { fetchMembers, selectActiveWorkspaceRole } from '../store/workspaceSlice
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { updateTask } from '../store/taskSlice';
+import { TaskBlockersSection } from '../features/tasks/TaskBlockersSection';
 
 /**
  * Halaman kerja subtask (ADR-035): menggantikan drawer subtask lewat tautan langsung.
@@ -280,47 +281,59 @@ export const SubtaskWorkPage: React.FC = () => {
     );
   }
 
+  const blockers = activeWorkspaceId ? (
+    <div className="mx-auto mt-4 max-w-4xl">
+      <TaskBlockersSection workspaceId={activeWorkspaceId} taskId={task.id} />
+    </div>
+  ) : null;
+
   if (task.deliveryArea === 'qa') {
     return (
-      <QaSubtaskWorkSection
-        subtask={task}
-        parentTask={parentTask}
-        trace={trace}
-        memberName={memberName}
-      />
+      <>
+        <QaSubtaskWorkSection
+          subtask={task}
+          parentTask={parentTask}
+          trace={trace}
+          memberName={memberName}
+        />
+        {blockers}
+      </>
     );
   }
 
   return (
-    <SubtaskWorkView
-      subtask={task}
-      parentTask={parentTask}
-      trace={trace}
-      comments={comments}
-      assigneeName={task.assigneeId ? memberName(task.assigneeId) : undefined}
-      resolveMemberName={memberName}
-      canChangeStatus={isPlanner || isAssignedDev}
-      acceptanceChecks={acceptanceChecks}
-      canCheckCriteria={canCheckCriteria}
-      onToggleCriterion={(criterionId, checked) => void toggleCriterion(criterionId, checked)}
-      isUpdatingStatus={isUpdatingStatus}
-      onBack={() => navigate(returnTo, { state: returnState })}
-      onOpenFeature={() => {
-        if (parentTask)
-          navigate(`/work/features/${parentTask.id}`, {
-            state: {
-              returnTo: `${location.pathname}${location.search}`,
-              returnState: location.state,
-            },
-          });
-      }}
-      onStart={() => void changeStatus('in_progress', 'Subtask mulai dikerjakan')}
-      onSendToQa={(message) =>
-        void changeStatus('in_review', 'Subtask dikirim ke QA untuk diverifikasi', message)
-      }
-      onPostComment={postComment}
-      testExecutions={testExecutions}
-      testExecutionsError={testExecutionsError}
-    />
+    <>
+      <SubtaskWorkView
+        subtask={task}
+        parentTask={parentTask}
+        trace={trace}
+        comments={comments}
+        assigneeName={task.assigneeId ? memberName(task.assigneeId) : undefined}
+        resolveMemberName={memberName}
+        canChangeStatus={isPlanner || isAssignedDev}
+        acceptanceChecks={acceptanceChecks}
+        canCheckCriteria={canCheckCriteria}
+        onToggleCriterion={(criterionId, checked) => void toggleCriterion(criterionId, checked)}
+        isUpdatingStatus={isUpdatingStatus}
+        onBack={() => navigate(returnTo, { state: returnState })}
+        onOpenFeature={() => {
+          if (parentTask)
+            navigate(`/work/features/${parentTask.id}`, {
+              state: {
+                returnTo: `${location.pathname}${location.search}`,
+                returnState: location.state,
+              },
+            });
+        }}
+        onStart={() => void changeStatus('in_progress', 'Subtask mulai dikerjakan')}
+        onSendToQa={(message) =>
+          void changeStatus('in_review', 'Subtask dikirim ke QA untuk diverifikasi', message)
+        }
+        onPostComment={postComment}
+        testExecutions={testExecutions}
+        testExecutionsError={testExecutionsError}
+      />
+      {blockers}
+    </>
   );
 };

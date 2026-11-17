@@ -17,6 +17,9 @@ import {
   SubtaskAcceptanceChecksResponse,
   TaskAssignmentMutation,
   ReassignTaskInput,
+  TaskBlocker,
+  CreateTaskBlockerInput,
+  ResolveTaskBlockerInput,
 } from '@qlick/contracts';
 
 export const taskService = {
@@ -300,5 +303,37 @@ export const taskService = {
   getAttachmentDownloadUrl(workspaceId: string, taskId: string, attachmentId: string): string {
     const base = (import.meta as any).env?.VITE_API_URL || '/v1';
     return `${base}/workspaces/${workspaceId}/tasks/${taskId}/attachments/${attachmentId}/download`;
+  },
+
+  async listTaskBlockers(workspaceId: string, taskId: string): Promise<TaskBlocker[]> {
+    const res = await apiClient<{ data: TaskBlocker[] }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/blockers`,
+    );
+    return res.data;
+  },
+
+  async openTaskBlocker(
+    workspaceId: string,
+    taskId: string,
+    input: CreateTaskBlockerInput,
+  ): Promise<TaskBlocker> {
+    const res = await apiClient<{ data: TaskBlocker }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/blockers`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return res.data;
+  },
+
+  async resolveTaskBlocker(
+    workspaceId: string,
+    taskId: string,
+    blockerId: string,
+    input: ResolveTaskBlockerInput = {},
+  ): Promise<TaskBlocker> {
+    const res = await apiClient<{ data: TaskBlocker }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/blockers/${blockerId}/resolve`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return res.data;
   },
 };

@@ -29,3 +29,4 @@ export * from './leader.js';
 export * from './taskLink.js';
 export * from './prdDiagram.js';
 export * from './workCalendar.js';
+export * from './blocker.js';
