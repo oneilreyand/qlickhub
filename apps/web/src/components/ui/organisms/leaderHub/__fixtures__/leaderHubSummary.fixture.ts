@@ -119,6 +119,8 @@ export const leaderHubSummaryFixture: LeaderHubSummaryData = {
       category: 'clarification',
       ageDays: 3,
       picName: 'Sari (PO)',
+      // Pinged recently: the gallery shows the one-hour cooldown state (P4).
+      nextPingAvailableAt: '2099-01-01T03:30:00.000Z',
     },
     {
       id: 'fixture-blocker-staging',

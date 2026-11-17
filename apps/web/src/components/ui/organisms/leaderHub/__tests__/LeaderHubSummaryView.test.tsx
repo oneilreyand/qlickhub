@@ -67,6 +67,28 @@ describe('LeaderHubSummaryView', () => {
     expect(onSeeAllBlockers).toHaveBeenCalledTimes(1);
   });
 
+  it('disables Ping PIC during the one-hour cooldown and explains why', () => {
+    renderView({ status: 'ready', data: leaderHubSummaryFixture }, { onPingPic: vi.fn() });
+    const cooling = screen.getByRole('button', {
+      name: 'Ping PIC Sari (PO) untuk Klarifikasi aturan retensi log',
+    });
+    expect(cooling).toBeDisabled();
+    expect(cooling).toHaveAccessibleDescription(/PIC sudah di-ping · bisa lagi pukul/);
+    expect(
+      screen.getByRole('button', { name: 'Ping PIC Dimas untuk Menunggu akses sandbox bank' }),
+    ).toBeEnabled();
+  });
+
+  it('disables every Ping PIC while one ping is in flight', () => {
+    renderView(
+      { status: 'ready', data: leaderHubSummaryFixture },
+      { onPingPic: vi.fn(), pingingBlockerId: 'fixture-blocker-sandbox' },
+    );
+    for (const button of screen.getAllByRole('button', { name: /^Ping PIC/ })) {
+      expect(button).toBeDisabled();
+    }
+  });
+
   it('hides blocker actions when no handler is given (read-only use)', () => {
     renderView({ status: 'ready', data: leaderHubSummaryFixture });
     expect(screen.queryByRole('button', { name: /Ping PIC/ })).not.toBeInTheDocument();

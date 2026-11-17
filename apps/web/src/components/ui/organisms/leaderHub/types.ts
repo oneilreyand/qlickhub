@@ -60,6 +60,8 @@ export interface LeaderOpenBlocker {
   category: LeaderBlockerCategory;
   ageDays: number;
   picName: string;
+  /** ISO time the next "Ping PIC" is allowed; absent/null or past = allowed now (P4). */
+  nextPingAvailableAt?: string | null;
 }
 
 export interface LeaderTeamAreaLoad {

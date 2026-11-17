@@ -11,6 +11,15 @@ function ageChipClass(ageDays: number): string {
   return 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300';
 }
 
+const timeFormatter = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+/** Returns the time label when the ping is still cooling down, otherwise null. */
+function pingCooldownLabel(nextPingAvailableAt: string | null | undefined, now: Date) {
+  if (!nextPingAvailableAt) return null;
+  const next = new Date(nextPingAvailableAt);
+  return next.getTime() > now.getTime() ? timeFormatter.format(next) : null;
+}
+
 export interface OpenBlockersPanelProps {
   blockers: LeaderOpenBlocker[];
   /** Total open blockers; may exceed the rows shown here. */
@@ -18,6 +27,10 @@ export interface OpenBlockersPanelProps {
   onPingPic?: (blockerId: string) => void;
   onOpenBlocker?: (blockerId: string) => void;
   onSeeAll?: () => void;
+  /** Blocker whose ping request is in flight (P4). */
+  pingingBlockerId?: string | null;
+  /** Injected for tests; defaults to now. */
+  now?: Date;
 }
 
 export const OpenBlockersPanel: React.FC<OpenBlockersPanelProps> = ({
@@ -26,6 +39,8 @@ export const OpenBlockersPanel: React.FC<OpenBlockersPanelProps> = ({
   onPingPic,
   onOpenBlocker,
   onSeeAll,
+  pingingBlockerId = null,
+  now = new Date(),
 }) => (
   <section
     aria-labelledby="leader-blockers-title"
@@ -51,58 +66,73 @@ export const OpenBlockersPanel: React.FC<OpenBlockersPanelProps> = ({
       </p>
     ) : (
       <ul className="mt-4 space-y-3">
-        {blockers.map((blocker) => (
-          <li
-            key={blocker.id}
-            className="flex flex-col gap-3 rounded-xl border border-stone-200/80 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-stone-800"
-          >
-            <div className="min-w-0">
-              <p className="font-semibold text-stone-900 dark:text-white">{blocker.title}</p>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                {blocker.taskName} · {blocker.workspaceName}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <span
-                  className={`${CHIP} bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300`}
-                >
-                  {BLOCKER_CATEGORY_LABEL[blocker.category]}
-                </span>
-                <span className={`${CHIP} ${ageChipClass(blocker.ageDays)}`}>
-                  {blocker.ageDays} hari
-                </span>
-                <span
-                  className={`${CHIP} bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300`}
-                >
-                  PIC: {blocker.picName}
-                </span>
-              </div>
-            </div>
-            {(onPingPic || onOpenBlocker) && (
-              <div className="flex shrink-0 gap-2">
-                {onPingPic && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPingPic(blocker.id)}
-                    aria-label={`Ping PIC ${blocker.picName} untuk ${blocker.title}`}
+        {blockers.map((blocker) => {
+          const cooldownUntil = pingCooldownLabel(blocker.nextPingAvailableAt, now);
+          const cooldownId = `leader-blocker-ping-${blocker.id}`;
+          return (
+            <li
+              key={blocker.id}
+              className="flex flex-col gap-3 rounded-xl border border-stone-200/80 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between dark:border-stone-800"
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-stone-900 dark:text-white">{blocker.title}</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400">
+                  {blocker.taskName} · {blocker.workspaceName}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span
+                    className={`${CHIP} bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300`}
                   >
-                    Ping PIC
-                  </Button>
-                )}
-                {onOpenBlocker && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onOpenBlocker(blocker.id)}
-                    aria-label={`Buka ${blocker.title}`}
+                    {BLOCKER_CATEGORY_LABEL[blocker.category]}
+                  </span>
+                  <span className={`${CHIP} ${ageChipClass(blocker.ageDays)}`}>
+                    {blocker.ageDays} hari
+                  </span>
+                  <span
+                    className={`${CHIP} bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300`}
                   >
-                    Buka
-                  </Button>
-                )}
+                    PIC: {blocker.picName}
+                  </span>
+                </div>
               </div>
-            )}
-          </li>
-        ))}
+              {(onPingPic || onOpenBlocker) && (
+                <div className="flex shrink-0 gap-2">
+                  {onPingPic && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={Boolean(cooldownUntil) || pingingBlockerId !== null}
+                      isLoading={pingingBlockerId === blocker.id}
+                      onClick={() => onPingPic(blocker.id)}
+                      aria-label={`Ping PIC ${blocker.picName} untuk ${blocker.title}`}
+                      aria-describedby={cooldownUntil ? cooldownId : undefined}
+                    >
+                      Ping PIC
+                    </Button>
+                  )}
+                  {onOpenBlocker && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onOpenBlocker(blocker.id)}
+                      aria-label={`Buka ${blocker.title}`}
+                    >
+                      Buka
+                    </Button>
+                  )}
+                </div>
+              )}
+              {onPingPic && cooldownUntil && (
+                <p
+                  id={cooldownId}
+                  className="text-xs text-stone-500 sm:basis-full sm:text-right dark:text-stone-400"
+                >
+                  PIC sudah di-ping · bisa lagi pukul {cooldownUntil}
+                </p>
+              )}
+            </li>
+          );
+        })}
       </ul>
     )}
   </section>

@@ -61,6 +61,12 @@ taskRoutes.post(
   requireTaskReadAccess(),
   (req, res) => taskBlockerController.resolve(req, res),
 );
+// Ping PIC (LEADER-PIPELINE-HUB P4): leaders only, at most once an hour per blocker.
+taskRoutes.post(
+  '/:taskId/blockers/:blockerId/ping',
+  requireWorkspaceMember(['owner', 'admin']),
+  (req, res) => taskBlockerController.ping(req, res),
+);
 
 taskRoutes.get(
   '/:taskId/acceptance-checks',

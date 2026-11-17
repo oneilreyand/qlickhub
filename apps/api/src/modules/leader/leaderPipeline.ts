@@ -1,4 +1,5 @@
 import { Op, QueryTypes } from 'sequelize';
+import { BLOCKER_PING_COOLDOWN_MINUTES } from '@qlick/contracts';
 import type {
   FeaturePlanningStage,
   LeaderOpenBlocker,
@@ -271,19 +272,46 @@ export async function getLeaderPipelineSummary(
     (a, b) => order[a.health] - order[b.health] || a.featureName.localeCompare(b.featureName, 'id'),
   );
 
-  const openBlockers: LeaderOpenBlocker[] = relevantBlockers.map((blocker) => ({
-    id: blocker.id,
-    taskId: blocker.taskId,
-    taskTitle: taskTitle.get(blocker.taskId) ?? '',
-    featureId: featureOfTask.get(blocker.taskId)!,
-    workspaceId: blocker.workspaceId,
-    workspaceName: workspaceById.get(blocker.workspaceId)?.name ?? '',
-    category: blocker.category as TaskBlockerCategory,
-    description: blocker.description,
-    ageDays: Math.max(0, Math.floor((now.getTime() - blocker.openedAt.getTime()) / DAY_MS)),
-    picUserId: blocker.picUserId,
-    picName: picName.get(blocker.picUserId) ?? 'Anggota Workspace',
-  }));
+  const lastPings = relevantBlockers.length
+    ? await sequelize.query<{ blocker_id: string; last_pinged_at: Date }>(
+        `SELECT a.metadata_json ->> 'blockerId' AS blocker_id, MAX(a.created_at) AS last_pinged_at
+           FROM task_activity a
+          WHERE a.action IN ('task.blocker_pinged', 'subtask.blocker_pinged')
+            AND a.metadata_json ->> 'blockerId' IN (:blockerIds)
+          GROUP BY a.metadata_json ->> 'blockerId'`,
+        {
+          type: QueryTypes.SELECT,
+          replacements: { blockerIds: relevantBlockers.map((blocker) => blocker.id) },
+        },
+      )
+    : [];
+  const lastPingByBlocker = new Map(
+    lastPings.map((row) => [row.blocker_id, new Date(row.last_pinged_at)]),
+  );
+  const cooldownMs = BLOCKER_PING_COOLDOWN_MINUTES * 60 * 1000;
+
+  const openBlockers: LeaderOpenBlocker[] = relevantBlockers.map((blocker) => {
+    const lastPing = lastPingByBlocker.get(blocker.id) ?? null;
+    const nextPing =
+      lastPing && now.getTime() - lastPing.getTime() < cooldownMs
+        ? new Date(lastPing.getTime() + cooldownMs)
+        : null;
+    return {
+      id: blocker.id,
+      taskId: blocker.taskId,
+      taskTitle: taskTitle.get(blocker.taskId) ?? '',
+      featureId: featureOfTask.get(blocker.taskId)!,
+      workspaceId: blocker.workspaceId,
+      workspaceName: workspaceById.get(blocker.workspaceId)?.name ?? '',
+      category: blocker.category as TaskBlockerCategory,
+      description: blocker.description,
+      ageDays: Math.max(0, Math.floor((now.getTime() - blocker.openedAt.getTime()) / DAY_MS)),
+      picUserId: blocker.picUserId,
+      picName: picName.get(blocker.picUserId) ?? 'Anggota Workspace',
+      lastPingedAt: lastPing ? lastPing.toISOString() : null,
+      nextPingAvailableAt: nextPing ? nextPing.toISOString() : null,
+    };
+  });
   openBlockers.sort((a, b) => b.ageDays - a.ageDays);
   const averageAge = openBlockers.length
     ? Math.round(

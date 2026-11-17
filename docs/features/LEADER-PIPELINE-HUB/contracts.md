@@ -15,6 +15,17 @@ dengan pekerjaan LEADER-SDLC-HUB). Endpoint P1: `GET /v1/leader/pipeline` dengan
 `workspaceIds=<uuid,uuid>`; P4: `POST /v1/workspaces/:workspaceId/tasks/:taskId/blockers/:blockerId/ping`.
 View-model UI di `organisms/leaderHub/types.ts` dipetakan dari contract.
 
+### Ping PIC (P4)
+
+`POST /v1/workspaces/:workspaceId/tasks/:taskId/blockers/:blockerId/ping`, hanya Owner/Admin Workspace itu.
+Tanpa body; respons `{ data: { blockerId, pingedAt, nextPingAvailableAt } }` (`TaskBlockerPingResultSchema`
+di `blocker.ts`). Setiap ping mencatat aktivitas `subtask.blocker_pinged` / `task.blocker_pinged`
+(`metadata_json.blockerId`) dan satu notifikasi `blocker` ke PIC lewat outbox. Batas
+`BLOCKER_PING_COOLDOWN_MINUTES` = 60 per hambatan (bukan per leader), dihitung dari aktivitas terakhir;
+lebih cepat → 429 dengan jam berikutnya. Hambatan tertutup → 409; leader yang juga PIC → 400; id tidak
+dikenal → 404. Tanpa migrasi. `GET /v1/leader/pipeline` menambah `lastPingedAt` dan `nextPingAvailableAt`
+(null bila boleh ping sekarang) pada setiap `openBlockers`.
+
 ### Pemetaan tahap (P1)
 
 | Tahap                   | Aktif bila                                                                                          | Umur dihitung dari                                      |
