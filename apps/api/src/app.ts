@@ -26,6 +26,7 @@ import { qrisSandboxRoutes } from './modules/qrisSandbox/qrisSandboxRoutes.js';
 import { capacityRoutes } from './modules/capacity/capacityRoutes.js';
 import { leaderRoutes } from './modules/leader/leaderRoutes.js';
 import { memberAccessRoutes } from './modules/workspaces/memberAccessRoutes.js';
+import { leaderPipelineRoutes } from './modules/leader/leaderPipelineRoutes.js';
 import { aiTaskGeneratorRoutes } from './modules/ai/aiTaskGeneratorRoutes.js';
 import { corsOptions, enforceTrustedOrigin } from './http/middleware/origin.js';
 import { apiRateLimiter } from './http/middleware/rateLimit.js';
@@ -85,6 +86,7 @@ export const createApp = () => {
   app.use('/v1', capacityRoutes);
   app.use('/v1', leaderRoutes);
   app.use('/v1', memberAccessRoutes);
+  app.use('/v1', leaderPipelineRoutes);
   app.use('/v1/workspaces', workspaceRoutes);
   app.use('/v1/workspaces/:workspaceId/folders', folderRoutes);
   app.use('/v1/projects/:projectId/folders', folderRoutes);

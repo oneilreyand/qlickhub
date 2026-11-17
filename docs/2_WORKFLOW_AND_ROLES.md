@@ -272,6 +272,19 @@ PIC harus anggota aktif Workspace dan menerima notifikasi. Hambatan hanya dapat 
 pembukanya, PIC-nya, atau Owner/Admin/PO. Membuka dan menutup hambatan tercatat di riwayat task dan
 tidak pernah mengubah status task, gate QA, atau gate rilis. Dasar keputusan: ADR-045.
 
+### Kesehatan Feature untuk Leader
+
+Leader Hub menghitung tahap setiap Feature aktif dan kesehatannya di backend, untuk Workspace tempat
+aktor menjadi Owner atau Admin. Tahap: Plan, PRD, Task (status Feature Spec), Dev (masih ada Subtask
+Development yang belum dikirim review), Review, QA (semua Subtask Development selesai, belum ada QA
+sign-off yang disetujui), Rilis (sign-off disetujui, belum ada keputusan rilis disetujui), lalu
+Verifikasi Prod dan Monitoring yang belum dilacak dan tidak pernah dianggap selesai. Kesehatan:
+_Terhambat_ bila ada hambatan terbuka atau Feature melewati batas hari tahapnya; _Berisiko_ bila ada
+Subtask telat, belum dimulai dengan sisa ≤2 hari kerja, diminta perbaikan ≥2 kali, belum punya
+pelaksana/jadwal/effort, atau ada bug critical/high terbuka sejak tahap QA; selain itu _Aman_. Setiap
+status membawa alasan yang menunjuk task, hambatan, atau bug. Semua aksi bersifat saran; tidak ada
+perubahan otomatis. Dasar keputusan: ADR-045.
+
 ### Definisi Putaran Review dan Pengembalian
 
 - Satu putaran review dimiliki oleh satu Development Subtask, satu jenis review, dan satu baseline.
