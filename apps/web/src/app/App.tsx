@@ -41,6 +41,11 @@ const ReportPage = lazy(async () => ({
   default: (await loadRouteModuleWithRecovery('reports', () => import('../pages/ReportPage')))
     .ReportPage,
 }));
+const MyWorkReportPage = lazy(async () => ({
+  default: (
+    await loadRouteModuleWithRecovery('my-report', () => import('../pages/MyWorkReportPage'))
+  ).MyWorkReportPage,
+}));
 const LeaderHubPage = lazy(async () => ({
   default: (await loadRouteModuleWithRecovery('leader-hub', () => import('../pages/LeaderHubPage')))
     .LeaderHubPage,
@@ -241,6 +246,18 @@ export const App: React.FC = () => {
                 <Suspense fallback={protectedPageFallback}>
                   <AppLayout>
                     <ReportPage />
+                  </AppLayout>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-report"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={protectedPageFallback}>
+                  <AppLayout>
+                    <MyWorkReportPage />
                   </AppLayout>
                 </Suspense>
               </ProtectedRoute>

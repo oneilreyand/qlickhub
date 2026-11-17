@@ -272,6 +272,21 @@ mengatur default Workspace (1–200 poin) di kalender kerja. Cuti disimpan hanya
 tanggal tanpa alasan; rentang cuti milik orang yang sama tidak boleh bertumpuk. Hari cuti dan hari
 libur tidak dihitung sebagai hari kerja saat menghitung beban. Dasar keputusan: ADR-044.
 
+### Laporan Saya
+
+Setiap orang melihat kerjaannya sendiri lintas Workspace aktif yang tidak diarsipkan: Subtask yang
+ditugaskan kepadanya, ditambah Feature yang ia laporkan di Workspace tempat ia Owner/Admin/PO. Kerjaan
+yang dibatalkan tidak dihitung. Setiap kerjaan masuk tepat satu kategori, dihitung di backend dengan
+kalender Workspace kerjaan itu: Selesai tepat waktu (tanggal selesai ≤ tenggat), Selesai telat, Telat
+(belum selesai dan tenggat sudah lewat), Berisiko (belum telat dan: sisa ≤2 hari kerja dengan status
+To do, ≥70% hari kerja terpakai dengan status To do, atau ada hambatan terbuka), Sesuai jadwal, dan
+Tanpa jadwal (termasuk kerjaan selesai yang tanggal selesainya tidak tercatat). Beban harian = jumlah
+(poin effort ÷ hari kerja Subtask) untuk Subtask yang dijadwalkan pada hari itu, dibagi kapasitas
+harian (kapasitas mingguan ÷ hari kerja orang itu); hari libur Workspace dan hari cuti tidak dihitung;
+di atas 100% berarti melebihi kapasitas, beserta kerjaan penyebabnya. Subtask berjadwal tanpa effort
+ditampilkan sebagai "beban belum diukur", tidak dihitung nol. Laporan tidak pernah membandingkan orang.
+Dasar keputusan: ADR-044.
+
 ### Hambatan pada Task
 
 Hambatan dicatat sebagai record terpisah pada task, bukan sebagai status: kategori (menunggu

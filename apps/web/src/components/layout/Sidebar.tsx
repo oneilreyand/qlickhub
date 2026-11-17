@@ -8,6 +8,7 @@ import {
   Layers,
   Building2,
   FileBarChart,
+  UserRoundCheck,
   CheckSquare,
   BookOpen,
   Crown,
@@ -58,6 +59,11 @@ const navItems: NavItem[] = [
     name: 'Laporan',
     path: '/reports',
     icon: FileBarChart,
+  },
+  {
+    name: 'Laporan Saya',
+    path: '/my-report',
+    icon: UserRoundCheck,
   },
   {
     name: 'Leader Hub',

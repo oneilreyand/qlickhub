@@ -80,10 +80,11 @@ describe('Sidebar Role-based Visibility', () => {
     expect(screen.getByRole('button', { name: /ganti workspace/i })).toBeInTheDocument();
   });
 
-  it('hides the Lainnya group when a role has no secondary destinations', () => {
+  it('gives every role Laporan Saya under Lainnya (MY-WORK-REPORT P1)', () => {
     renderSidebar('dev');
 
-    expect(screen.queryByText('Lainnya')).toBeNull();
+    expect(screen.getByText('Lainnya')).toBeInTheDocument();
+    expect(screen.getByText('Laporan Saya')).toBeInTheDocument();
   });
 
   it('aligns the brand divider with the 80px application header', () => {

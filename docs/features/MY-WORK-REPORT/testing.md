@@ -9,21 +9,21 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT.
 
 ## 1. Matriks AC → bukti
 
-| AC     | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI | API/PostgreSQL | UAT/runtime | Status  |
-| ------ | ----- | ---------------- | -------------- | ------- | -------------- | ----------- | ------- |
-| AC-1.1 | P1    | E3               | —              | —       | —              | —           | Planned |
-| AC-1.2 | P1    | E3               | —              | —       | —              | —           | Planned |
-| AC-1.3 | P1    | E3               | —              | —       | —              | —           | Planned |
-| AC-1.4 | P1    | E3               | —              | —       | —              | —           | Planned |
-| AC-1.5 | P1    | E4               | —              | —       | —              | —           | Planned |
-| AC-2.1 | P2    | E3               | —              | —       | —              | —           | Planned |
-| AC-2.2 | P2    | E3               | —              | —       | —              | —           | Planned |
-| AC-3.1 | P3    | E3               | —              | —       | —              | —           | Planned |
-| AC-3.2 | P3    | E1               | —              | —       | —              | —           | Planned |
-| AC-4.1 | P4    | E3               | —              | —       | —              | —           | Planned |
-| AC-4.2 | P4    | E3               | —              | —       | —              | —           | Planned |
-| AC-4.3 | P4    | E3               | —              | —       | —              | —           | Planned |
-| AC-5.1 | P5    | E4               | —              | —       | —              | —           | Planned |
+| AC     | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI                                                            | API/PostgreSQL                                        | UAT/runtime                  | Status         |
+| ------ | ----- | ---------------- | -------------- | ------------------------------------------------------------------ | ----------------------------------------------------- | ---------------------------- | -------------- |
+| AC-1.1 | P1    | E3               | E3             | `MyWorkReportPage.test.tsx`                                        | `workReportApiIntegration.test.ts` (PostgreSQL lokal) | —                            | Kandidat lokal |
+| AC-1.2 | P1    | E3               | E3             | —                                                                  | `workReportApiIntegration.test.ts` (PostgreSQL lokal) | —                            | Kandidat lokal |
+| AC-1.3 | P1    | E3               | E3             | —                                                                  | `workReportApiIntegration.test.ts` (PostgreSQL lokal) | —                            | Kandidat lokal |
+| AC-1.4 | P1    | E3               | E3             | `MyWorkReportPage.test.tsx`                                        | `workReportApiIntegration.test.ts` (PostgreSQL lokal) | —                            | Kandidat lokal |
+| AC-1.5 | P1    | E4               | E2             | `MyWorkReportPage.test.tsx`; cek visual lokal desktop/ponsel/gelap | —                                                     | UAT Production setelah merge | Kandidat lokal |
+| AC-2.1 | P2    | E3               | E3             | `workReportRules.test.ts`, `MyWorkReportPage.test.tsx`             | `workReportApiIntegration.test.ts` (PostgreSQL lokal) | —                            | Kandidat lokal |
+| AC-2.2 | P2    | E3               | E3             | `workReportRules.test.ts`, `MyWorkReportPage.test.tsx`             | `workReportApiIntegration.test.ts` (PostgreSQL lokal) | —                            | Kandidat lokal |
+| AC-3.1 | P3    | E3               | —              | —                                                                  | —                                                     | —                            | Planned        |
+| AC-3.2 | P3    | E1               | —              | —                                                                  | —                                                     | —                            | Planned        |
+| AC-4.1 | P4    | E3               | —              | —                                                                  | —                                                     | —                            | Planned        |
+| AC-4.2 | P4    | E3               | —              | —                                                                  | —                                                     | —                            | Planned        |
+| AC-4.3 | P4    | E3               | —              | —                                                                  | —                                                     | —                            | Planned        |
+| AC-5.1 | P5    | E4               | —              | —                                                                  | —                                                     | —                            | Planned        |
 
 ## 2. Outcome pemeriksaan
 

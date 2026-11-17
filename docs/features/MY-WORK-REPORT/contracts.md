@@ -11,7 +11,7 @@ Membaca `tasks`, `task_activities`, `task_blockers`, kalender dan kapasitas (WOR
 ## API and executable contract
 
 Contract baru `myWorkReport.ts` dan `taskRelation.ts`. Endpoint: `GET /v1/me/work-report?from&to&workspaceId`
-(+ `format=csv`), `GET/POST /v1/workspaces/:workspaceId/tasks/:taskId/relations`, `DELETE …/relations/:relationId`.
+(+ `punctuality`, `format=csv`; periode maks 92 hari; P1/P2, `FLOW-013`), `GET/POST /v1/workspaces/:workspaceId/tasks/:taskId/relations`, `DELETE …/relations/:relationId`.
 View-model UI di `organisms/myWorkReport/types.ts` dipetakan dari contract, bukan sebaliknya.
 
 ## Boundary notes

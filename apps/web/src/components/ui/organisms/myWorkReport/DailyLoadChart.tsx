@@ -103,6 +103,12 @@ export const DailyLoadChart: React.FC<DailyLoadChartProps> = ({
         </div>
       )}
 
+      {load.unmeasuredNote && (
+        <p className="mt-3 rounded-xl border border-dashed border-stone-300 px-4 py-3 text-sm text-stone-700 dark:border-stone-700 dark:text-stone-300">
+          {load.unmeasuredNote}
+        </p>
+      )}
+
       {load.conflictNote && (
         <p className="mt-3 rounded-xl bg-rose-50 px-4 py-3 text-sm text-stone-800 dark:bg-rose-950/40 dark:text-stone-200">
           {load.conflictNote}{' '}
