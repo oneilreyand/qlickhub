@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DateStringSchema } from './dateFilter.js';
+import { IsoDateSchema, WeeklyCapacityPointsSchema } from './workCalendar.js';
 import { DeliveryAreaSchema, TaskPrioritySchema, TaskStatusSchema } from './task.js';
 
 /**
@@ -178,3 +179,51 @@ export const TeamCapacityTimelineResponseSchema = z.object({
 });
 
 export type TeamCapacityTimelineResponse = z.infer<typeof TeamCapacityTimelineResponseSchema>;
+
+/**
+ * WORK-FOUNDATION P4 (ADR-044): one weekly capacity per person across Workspaces.
+ * Effective = the person's override, else the smallest default of their active Workspaces, else 15.
+ */
+export const CapacitySourceSchema = z.enum(['override', 'workspace_default', 'system_default']);
+export type CapacitySource = z.infer<typeof CapacitySourceSchema>;
+
+export const UserTimeOffSchema = z.object({
+  id: z.string().uuid(),
+  startDate: z.string(),
+  endDate: z.string(),
+});
+export type UserTimeOff = z.infer<typeof UserTimeOffSchema>;
+
+export const UserCapacitySchema = z.object({
+  userId: z.string().uuid(),
+  /** The person's own override; null = follows the Workspace default. */
+  weeklyPoints: z.number().int().nullable(),
+  effectiveWeeklyPoints: z.number().int(),
+  source: CapacitySourceSchema,
+  /** Upcoming and ongoing time off (end date today or later), earliest first. */
+  timeOff: z.array(UserTimeOffSchema),
+  /** Whether the caller may change this person's capacity and time off. */
+  canEdit: z.boolean(),
+});
+export type UserCapacity = z.infer<typeof UserCapacitySchema>;
+
+export const UpdateUserCapacitySchema = z.object({
+  /** null removes the override and falls back to the Workspace default. */
+  weeklyPoints: WeeklyCapacityPointsSchema.nullable(),
+});
+export type UpdateUserCapacityInput = z.infer<typeof UpdateUserCapacitySchema>;
+
+export const CreateUserTimeOffSchema = z
+  .object({ startDate: IsoDateSchema, endDate: IsoDateSchema })
+  .refine((value) => value.endDate >= value.startDate, {
+    message: 'Tanggal selesai tidak boleh sebelum tanggal mulai',
+    path: ['endDate'],
+  })
+  .refine(
+    (value) =>
+      (Date.parse(`${value.endDate}T00:00:00Z`) - Date.parse(`${value.startDate}T00:00:00Z`)) /
+        86_400_000 <
+      366,
+    { message: 'Cuti maksimal 366 hari per rentang', path: ['endDate'] },
+  );
+export type CreateUserTimeOffInput = z.infer<typeof CreateUserTimeOffSchema>;

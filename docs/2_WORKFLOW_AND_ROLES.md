@@ -263,6 +263,15 @@ jadwal lengkap wajib memiliki effort; Subtask lama tanpa effort tetap sah, ditam
 "beban belum diukur", dan tidak pernah diisi otomatis. Effort hanya berlaku untuk Subtask, bukan
 Feature. Dasar keputusan: ADR-044.
 
+### Kapasitas dan Cuti
+
+Setiap orang punya satu kapasitas per minggu dalam poin effort yang berlaku di semua Workspace.
+Nilai efektifnya: kapasitas yang diatur orang itu sendiri; bila belum diatur, default terkecil dari
+Workspace aktif (tidak diarsipkan) tempat ia menjadi anggota; bila tidak ada, 15 poin. Owner/Admin
+mengatur default Workspace (1–200 poin) di kalender kerja. Cuti disimpan hanya sebagai rentang
+tanggal tanpa alasan; rentang cuti milik orang yang sama tidak boleh bertumpuk. Hari cuti dan hari
+libur tidak dihitung sebagai hari kerja saat menghitung beban. Dasar keputusan: ADR-044.
+
 ### Hambatan pada Task
 
 Hambatan dicatat sebagai record terpisah pada task, bukan sebagai status: kategori (menunggu

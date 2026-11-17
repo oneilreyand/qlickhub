@@ -37,6 +37,7 @@ export async function getWorkCalendar(workspaceId: string): Promise<WorkCalendar
     workspaceId,
     timezone: workspace.timezone,
     workingDays: [...workspace.workingDays].map(Number).sort((a, b) => a - b),
+    defaultWeeklyCapacityPoints: workspace.defaultWeeklyCapacityPoints,
     holidays: holidays.map(formatHoliday),
   };
 }
@@ -49,6 +50,9 @@ export async function updateWorkCalendar(
   assertNotArchived(workspace);
   workspace.timezone = input.timezone;
   workspace.workingDays = input.workingDays;
+  if (input.defaultWeeklyCapacityPoints !== undefined) {
+    workspace.defaultWeeklyCapacityPoints = input.defaultWeeklyCapacityPoints;
+  }
   await workspace.save();
   return getWorkCalendar(workspaceId);
 }

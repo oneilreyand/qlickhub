@@ -7,6 +7,7 @@ const calendar = {
   workspaceId: '123e4567-e89b-12d3-a456-426614174000',
   timezone: 'Asia/Jakarta',
   workingDays: [1, 2, 3, 4, 5],
+  defaultWeeklyCapacityPoints: 15,
   holidays: [
     { id: '223e4567-e89b-12d3-a456-426614174001', date: '2026-12-25', name: 'Hari Raya Natal' },
   ],
@@ -38,6 +39,27 @@ describe('WorkCalendarCard (WORK-FOUNDATION P2)', () => {
     expect(onSave).toHaveBeenCalledWith({
       timezone: 'Asia/Makassar',
       workingDays: [1, 2, 3, 4, 5, 6],
+      defaultWeeklyCapacityPoints: 15,
+    });
+  });
+
+  it('saves the default weekly capacity and rejects values outside 1–200 (WF P4)', () => {
+    const onSave = vi.fn();
+    render(<WorkCalendarCard {...baseProps} onSave={onSave} />);
+    const input = screen.getByLabelText('Kapasitas default (poin per minggu)');
+    const save = screen.getByRole('button', { name: 'Simpan kalender' });
+
+    fireEvent.change(input, { target: { value: '0' } });
+    expect(screen.getByText('Isi bilangan bulat 1–200.')).toBeInTheDocument();
+    expect(save).toBeDisabled();
+
+    fireEvent.change(input, { target: { value: '12' } });
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+    expect(onSave).toHaveBeenCalledWith({
+      timezone: 'Asia/Jakarta',
+      workingDays: [1, 2, 3, 4, 5],
+      defaultWeeklyCapacityPoints: 12,
     });
   });
 
@@ -75,9 +97,12 @@ describe('WorkCalendarCard (WORK-FOUNDATION P2)', () => {
   it('is read-only for members who cannot manage the Workspace', () => {
     render(<WorkCalendarCard {...baseProps} canManage={false} />);
     expect(
-      screen.getByText('Hanya Owner atau Admin yang dapat mengubah kalender kerja.'),
+      screen.getByText(
+        'Hanya Owner atau Admin yang dapat mengubah kalender kerja dan kapasitas default.',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Zona waktu')).toBeDisabled();
+    expect(screen.getByLabelText('Kapasitas default (poin per minggu)')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Senin' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Simpan kalender' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Tambah' })).not.toBeInTheDocument();

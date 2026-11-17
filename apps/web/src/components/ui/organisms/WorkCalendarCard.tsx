@@ -12,7 +12,10 @@ import { Input } from '../atoms/Input';
 import { LoadingSpinner } from '../atoms/LoadingSpinner';
 import { Select } from '../atoms/Select';
 
-/** WORK-FOUNDATION P2 (ADR-044): Workspace work calendar — time zone, working days, holidays. */
+/**
+ * WORK-FOUNDATION P2/P4 (ADR-044): Workspace work calendar — time zone, working days, holidays —
+ * and the default weekly capacity in effort points.
+ */
 
 const WEEKDAYS = [
   { day: 1, short: 'Sen', long: 'Senin' },
@@ -68,6 +71,7 @@ export const WorkCalendarCard: React.FC<WorkCalendarCardProps> = ({
 }) => {
   const [timezone, setTimezone] = useState('Asia/Jakarta');
   const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [capacity, setCapacity] = useState('15');
   const [showHolidayForm, setShowHolidayForm] = useState(false);
   const [holidayDate, setHolidayDate] = useState('');
   const [holidayName, setHolidayName] = useState('');
@@ -76,6 +80,7 @@ export const WorkCalendarCard: React.FC<WorkCalendarCardProps> = ({
     if (calendar) {
       setTimezone(calendar.timezone);
       setWorkingDays(calendar.workingDays);
+      setCapacity(String(calendar.defaultWeeklyCapacityPoints));
     }
   }, [calendar]);
 
@@ -86,9 +91,19 @@ export const WorkCalendarCard: React.FC<WorkCalendarCardProps> = ({
     return [...TIMEZONE_OPTIONS, { value: calendar.timezone, label: calendar.timezone }];
   }, [calendar]);
 
+  const capacityValue = Number(capacity);
+  const capacityError =
+    capacity.trim() === '' ||
+    !Number.isInteger(capacityValue) ||
+    capacityValue < 1 ||
+    capacityValue > 200
+      ? 'Isi bilangan bulat 1–200.'
+      : null;
   const isDirty =
     calendar !== null &&
-    (timezone !== calendar.timezone || workingDays.join(',') !== calendar.workingDays.join(','));
+    (timezone !== calendar.timezone ||
+      workingDays.join(',') !== calendar.workingDays.join(',') ||
+      capacityValue !== calendar.defaultWeeklyCapacityPoints);
   const disabled = !canManage || isSaving;
 
   const toggleDay = (day: number) => {
@@ -115,9 +130,11 @@ export const WorkCalendarCard: React.FC<WorkCalendarCardProps> = ({
       <div className="flex items-start gap-2 border-b border-stone-100 pb-3 dark:border-stone-800">
         <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-stone-700 dark:text-[#B1E743]" />
         <div>
-          <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">Kalender kerja</h2>
+          <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+            Kalender kerja &amp; kapasitas
+          </h2>
           <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
-            Dipakai untuk menghitung telat, berisiko, dan hari kerja yang tersedia.
+            Dipakai untuk menghitung telat, berisiko, hari kerja tersedia, dan beban tim.
           </p>
         </div>
       </div>
@@ -147,7 +164,7 @@ export const WorkCalendarCard: React.FC<WorkCalendarCardProps> = ({
         <>
           {!canManage && (
             <p className="text-[11px] text-stone-500 dark:text-stone-400">
-              Hanya Owner atau Admin yang dapat mengubah kalender kerja.
+              Hanya Owner atau Admin yang dapat mengubah kalender kerja dan kapasitas default.
             </p>
           )}
           <Select
@@ -196,12 +213,33 @@ export const WorkCalendarCard: React.FC<WorkCalendarCardProps> = ({
             )}
           </fieldset>
 
+          <div>
+            <Input
+              id="default-weekly-capacity"
+              label="Kapasitas default (poin per minggu)"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={200}
+              value={capacity}
+              disabled={disabled}
+              error={canManage ? (capacityError ?? undefined) : undefined}
+              onChange={(event) => setCapacity(event.target.value)}
+            />
+            <p className="mt-1 text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
+              XS 1 · S 2 · M 3 · L 5 · XL 8 poin. Dipakai untuk anggota yang belum mengatur
+              kapasitas sendiri; anggota di beberapa Workspace memakai default terkecil.
+            </p>
+          </div>
+
           {canManage && (
             <Button
               size="sm"
-              disabled={!isDirty || workingDays.length === 0}
+              disabled={!isDirty || workingDays.length === 0 || Boolean(capacityError)}
               isLoading={isSaving}
-              onClick={() => onSave({ timezone, workingDays })}
+              onClick={() =>
+                onSave({ timezone, workingDays, defaultWeeklyCapacityPoints: capacityValue })
+              }
             >
               Simpan kalender
             </Button>

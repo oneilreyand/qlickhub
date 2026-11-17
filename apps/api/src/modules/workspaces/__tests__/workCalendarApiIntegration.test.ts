@@ -76,7 +76,7 @@ describe('Workspace work calendar HTTP / PostgreSQL Integration', () => {
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
-  test('AC-2.3: a new Workspace uses Asia/Jakarta and Monday–Friday', async () => {
+  test('AC-2.3: a new Workspace uses Asia/Jakarta and Monday–Friday, capacity 15', async () => {
     const response = await call('dev', 'GET', '/calendar');
     assert.strictEqual(response.status, 200);
     const { data } = (await response.json()) as { data: unknown };
@@ -84,6 +84,7 @@ describe('Workspace work calendar HTTP / PostgreSQL Integration', () => {
       workspaceId: workspace.id,
       timezone: 'Asia/Jakarta',
       workingDays: [1, 2, 3, 4, 5],
+      defaultWeeklyCapacityPoints: 15,
       holidays: [],
     });
   });
