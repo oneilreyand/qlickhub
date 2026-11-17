@@ -1,35 +1,54 @@
 # MY-WORK-REPORT — Tahap 4: Build Phase 01 — API + halaman Laporan Saya
 
-**Status:** Menunggu persetujuan
+**Status:** Kandidat teruji
 **Breakdown:** [../breakdown.md](../breakdown.md)
-**AC phase ini:** AC-1.1–AC-1.5
-**Applicable Policy IDs:** AI-009, AI-013, AI-014
+**AC phase ini:** AC-1.1–AC-1.5 (dibangun bersama P2: AC-2.1, AC-2.2)
+**Applicable Policy IDs:** AI-009, AI-013, AI-014, FLOW-013, AUTH-011
 
 ## 1. Approval Window
 
-| Item                             | Isi                                                                                                                                                                                                         |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Task ID                          | P1-BE-1, P1-FE-1, P1-QA-1                                                                                                                                                                                   |
-| Branch / baseline commit         | dibuat dari `origin/main` saat G3 disetujui                                                                                                                                                                 |
-| File/path yang diizinkan         | `packages/contracts/src/myWorkReport.ts`, `apps/api/src/modules/myWork/**`, `apps/web/src/pages/MyWorkReportPage.tsx`, `organisms/myWorkReport/**`, `App.tsx`, `Sidebar.tsx`, test-nya, dokumen Feature ini |
-| Urutan aksi yang diizinkan       | edit → test → commit → patch ke folder Owner → Owner push branch → PR → merge oleh Owner                                                                                                                    |
-| Pemeriksaan yang akan dijalankan | build, integration PostgreSQL, web test, E4 phone/desktop, `npm run validate`                                                                                                                               |
-| Risiko & recovery                | revert PR; migrasi aditif punya `down`                                                                                                                                                                      |
-| Masa berlaku                     | sampai PR phase ini dibuat                                                                                                                                                                                  |
-| Disetujui                        | Owner melalui chat, 2026-11-17 — "Setuju G2 G3 semua (Recommended)" setelah merge PR #132                                                                                                                   |
+| Item                             | Isi                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Task ID                          | P1-BE-1, P1-FE-1, P1-QA-1                                                                                                                                                                                                                                                                                           |
+| Branch / baseline commit         | `feat/my-work-report-p1` di atas `feat/work-foundation-p4` (butuh kapasitas WF P4)                                                                                                                                                                                                                                  |
+| File/path yang diizinkan         | `packages/contracts/src/myWorkReport.ts`, `apps/api/src/modules/myWork/**`, `app.ts` (mount), `apps/web/src/pages/MyWorkReportPage.tsx`, `features/myWork/*`, `myWorkReportService.ts`, `organisms/myWorkReport/**`, `App.tsx`, `Sidebar.tsx`, test-nya, Workflow + Policy Registry (FLOW-013), dokumen Feature ini |
+| Urutan aksi yang diizinkan       | edit → test → commit → patch ke folder Owner → Owner push branch → PR → merge oleh Owner                                                                                                                                                                                                                            |
+| Pemeriksaan yang akan dijalankan | build, integration PostgreSQL, web test, E4 phone/desktop, `npm run validate`                                                                                                                                                                                                                                       |
+| Risiko & recovery                | revert PR; migrasi aditif punya `down`                                                                                                                                                                                                                                                                              |
+| Masa berlaku                     | sampai PR phase ini dibuat                                                                                                                                                                                                                                                                                          |
+| Disetujui                        | Owner melalui chat, 2026-11-17 — "Setuju G2 G3 semua (Recommended)" setelah merge PR #132                                                                                                                                                                                                                           |
 
 ## 2. Log perubahan
 
-Diisi saat build.
+| Task    | File berubah                                                                                                                                                                                                                | Ringkasan                                                                                                                                                                                                                                                                                                                                                                             | Commit       |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| P1-BE-1 | `myWorkReport.ts` (contracts), `modules/myWork/workReport.ts`, `workReportRules.ts`, `myWorkRoutes.ts`, `app.ts`                                                                                                            | `GET /v1/me/work-report?from&to[&workspaceId][&punctuality][&format=csv]`: hanya milik pemanggil; Workspace aktif tidak diarsipkan; Subtask yang ditugaskan + Feature yang dilaporkan (Owner/Admin/PO); 6 kategori dihitung dengan kalender Workspace task; periode maks 92 hari; Workspace di luar keanggotaan → 403; CSV dengan BOM dan pengaman formula; satu query per jenis data | PR phase ini |
+| P2-BE-1 | `workReportRules.ts` (`computeDailyLoad`)                                                                                                                                                                                   | Beban harian lintas Workspace per ADR-044 (lihat PHASE-02)                                                                                                                                                                                                                                                                                                                            | PR phase ini |
+| P1-FE-1 | `MyWorkReportPage.tsx`, `features/myWork/*`, `myWorkReportService.ts`, `App.tsx`, `Sidebar.tsx`, `MyWorkReportHeader` (export nonaktif bila kosong), `WorkItemsTable` (filter status bisa dikendalikan), `MyWorkReportView` | Halaman `/my-report` dan menu "Laporan Saya" (grup Lainnya); filter periode dan Workspace lewat backend, filter status di tabel dipakai juga oleh Export CSV; klik kerjaan ke detail Subtask/Feature; state loading/empty/error/tanpa Workspace                                                                                                                                       | PR phase ini |
+| P1-QA-1 | `workReportRules.test.ts`, `workReportApiIntegration.test.ts`, `MyWorkReportPage.test.tsx`, `AppRoutes.test.tsx`                                                                                                            | 5 unit (kategori + beban angka manual), 5 integration (AC-1.1–AC-1.4, AC-2.1, AC-2.2), 3 page                                                                                                                                                                                                                                                                                         | PR phase ini |
+| SSoT    | Workflow, Policy Registry                                                                                                                                                                                                   | FLOW-013                                                                                                                                                                                                                                                                                                                                                                              | PR phase ini |
 
 ## 3. Pemeriksaan yang dijalankan
 
-Diisi saat build.
+| Perintah                                                          | Environment                 | Exit code | Pass / fail / skip              | AC                            |
+| ----------------------------------------------------------------- | --------------------------- | --------- | ------------------------------- | ----------------------------- |
+| `node --test …/myWork/__tests__/*.test.js`                        | PostgreSQL 16 lokal         | 0         | 10/10                           | AC-1.1–AC-1.4, AC-2.1, AC-2.2 |
+| `npx vitest run …/MyWorkReportPage.test.tsx …/myWorkReport …/app` | lokal                       | 0         | lulus                           | AC-1.1, AC-1.4, AC-1.5        |
+| Suite API penuh + Vitest penuh                                    | PostgreSQL 16 lokal         | 0         | API 734/734, Web 904/904        | regresi                       |
+| Cek visual `/my-report` (desktop 1280, ponsel 390, gelap)         | Chromium lokal, data contoh | —         | tanpa scroll horizontal halaman | AC-1.5                        |
+| `npm run validate`                                                | lokal                       | 0         | pass                            | —                             |
 
 ## 4. Deviasi dari rencana
 
-Diisi saat build.
+| Deviasi                                                                                                   | Alasan                                                                       | Masih dalam scope? | Persetujuan baru? |
+| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------ | ----------------- |
+| P1 dan P2 dalam satu PR                                                                                   | Grafik beban adalah bagian halaman yang sama; kapasitas WF P4 sudah tersedia | Ya                 | Tidak             |
+| Kolom Kewajaran waktu tampil "Belum dihitung"; kartu Irisan kosong                                        | Diisi di P3 dan P4                                                           | Ya                 | Tidak             |
+| Kerjaan selesai tanpa tanggal selesai masuk "Tanpa jadwal" dengan alasan "tanggal selesai tidak tercatat" | Tidak merekonstruksi histori (DATA-005)                                      | Ya                 | Tidak             |
+| Pilihan periode: dua minggu ini + depan, dua minggu lalu, bulan ini, bulan lalu                           | Cukup untuk pilot; periode bebas menyusul bila diminta                       | Ya                 | Tidak             |
+| Menu "Laporan Saya" masuk grup Lainnya, bukan menu utama                                                  | Perubahan navigasi utama butuh konfirmasi Owner (stop condition P5)          | Ya                 | Tidak             |
 
 ## 5. Hasil
 
-Diisi saat build; lanjut ke [testing.md](../testing.md).
+- PR: Tier 2 (Workflow, Policy Registry); tanpa migrasi.
+- Lanjut ke [testing.md](../testing.md).

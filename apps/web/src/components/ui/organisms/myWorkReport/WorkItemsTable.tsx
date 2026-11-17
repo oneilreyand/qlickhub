@@ -16,10 +16,23 @@ const FAIRNESS_CLASS: Record<WorkItemRow['timeFairness'], string> = {
 export interface WorkItemsTableProps {
   items: WorkItemRow[];
   onOpenItem?: (id: string) => void;
+  /** Controlled status filter (so Export CSV can use the same filter); uncontrolled when absent. */
+  statusFilter?: 'all' | WorkPunctuality;
+  onStatusFilterChange?: (value: 'all' | WorkPunctuality) => void;
 }
 
-export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({ items, onOpenItem }) => {
-  const [statusFilter, setStatusFilter] = useState<'all' | WorkPunctuality>('all');
+export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
+  items,
+  onOpenItem,
+  statusFilter: controlledFilter,
+  onStatusFilterChange,
+}) => {
+  const [localFilter, setLocalFilter] = useState<'all' | WorkPunctuality>('all');
+  const statusFilter = controlledFilter ?? localFilter;
+  const setStatusFilter = (value: 'all' | WorkPunctuality) => {
+    setLocalFilter(value);
+    onStatusFilterChange?.(value);
+  };
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
 
   const filtered = useMemo(

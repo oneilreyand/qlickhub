@@ -32,3 +32,4 @@ export * from './workCalendar.js';
 export * from './blocker.js';
 export * from './memberAccess.js';
 export * from './leaderPipeline.js';
+export * from './myWorkReport.js';

@@ -10,7 +10,7 @@ import { DailyLoadChart } from './DailyLoadChart';
 import { AttentionList } from './AttentionList';
 import { CrossWorkspaceLinks } from './CrossWorkspaceLinks';
 import { WorkItemsTable } from './WorkItemsTable';
-import type { MyWorkReportData } from './types';
+import type { MyWorkReportData, WorkPunctuality } from './types';
 
 export type MyWorkReportState =
   | { status: 'loading' }
@@ -23,6 +23,8 @@ export interface MyWorkReportViewProps {
   onRetry?: () => void;
   onOpenItem?: (id: string) => void;
   onSeeConflictCause?: () => void;
+  statusFilter?: 'all' | WorkPunctuality;
+  onStatusFilterChange?: (value: 'all' | WorkPunctuality) => void;
 }
 
 const LoadingSkeleton: React.FC = () => (
@@ -46,6 +48,8 @@ export const MyWorkReportView: React.FC<MyWorkReportViewProps> = ({
   onRetry,
   onOpenItem,
   onSeeConflictCause,
+  statusFilter,
+  onStatusFilterChange,
 }) => {
   if (state.status === 'loading') return <LoadingSkeleton />;
 
@@ -79,7 +83,9 @@ export const MyWorkReportView: React.FC<MyWorkReportViewProps> = ({
   }
 
   const { data } = state;
-  if (data.items.length === 0) {
+  // Empty only when nothing exists in the period; a status filter with no rows keeps the summary.
+  const total = Object.values(data.counts).reduce((sum, count) => sum + count, 0);
+  if (total === 0 && data.items.length === 0) {
     return (
       <EmptyState
         icon={<FileBarChart2 className="h-6 w-6" />}
@@ -101,7 +107,12 @@ export const MyWorkReportView: React.FC<MyWorkReportViewProps> = ({
         <AttentionList items={data.attention} onOpenItem={onOpenItem} />
       </div>
       <CrossWorkspaceLinks links={data.crossWorkspace} />
-      <WorkItemsTable items={data.items} onOpenItem={onOpenItem} />
+      <WorkItemsTable
+        items={data.items}
+        onOpenItem={onOpenItem}
+        statusFilter={statusFilter}
+        onStatusFilterChange={onStatusFilterChange}
+      />
     </div>
   );
 };

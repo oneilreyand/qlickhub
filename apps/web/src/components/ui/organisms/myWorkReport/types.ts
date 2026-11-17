@@ -43,6 +43,8 @@ export interface DailyLoad {
   days: DailyLoadDay[];
   /** One sentence on why the over-capacity days happen; omitted when there are none. */
   conflictNote?: string;
+  /** Scheduled work without effort ("beban belum diukur", AC-2.2); omitted when none. */
+  unmeasuredNote?: string;
 }
 
 export interface AttentionItem {

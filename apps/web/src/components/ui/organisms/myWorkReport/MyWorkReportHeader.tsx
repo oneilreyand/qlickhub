@@ -17,6 +17,8 @@ export interface MyWorkReportHeaderProps {
   workspaceValue: string;
   onWorkspaceChange: (value: string) => void;
   onExportCsv?: () => void;
+  /** Export is disabled when the filtered list is empty. */
+  exportDisabled?: boolean;
   isExporting?: boolean;
 }
 
@@ -29,6 +31,7 @@ export const MyWorkReportHeader: React.FC<MyWorkReportHeaderProps> = ({
   workspaceValue,
   onWorkspaceChange,
   onExportCsv,
+  exportDisabled = false,
   isExporting = false,
 }) => (
   <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -74,6 +77,7 @@ export const MyWorkReportHeader: React.FC<MyWorkReportHeaderProps> = ({
           variant="outline"
           leftIcon={<Download className="h-4 w-4" />}
           onClick={onExportCsv}
+          disabled={exportDisabled}
           isLoading={isExporting}
           className="min-h-[44px]"
         >
