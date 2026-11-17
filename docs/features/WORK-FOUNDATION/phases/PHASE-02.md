@@ -1,0 +1,53 @@
+# WORK-FOUNDATION — Tahap 4: Build Phase 02 — Kalender Workspace
+
+**Status:** Kandidat teruji
+**Breakdown:** [../breakdown.md](../breakdown.md)
+**AC phase ini:** AC-2.1, AC-2.2, AC-2.3, AC-2.4
+**Applicable Policy IDs:** AI-009, AI-013, AI-014, FLOW-008, DATA-002
+
+## 1. Approval Window
+
+| Item                             | Isi                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Task ID                          | P2-BE-1, P2-BE-2, P2-FE-1, P2-QA-1                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Branch / baseline commit         | `feat/work-foundation-p2` di atas `feat/work-foundation-p1` @ `eba8f587`                                                                                                                                                                                                                                                                                                                                                                                          |
+| File/path yang diizinkan         | migrasi `20261117000098-add-workspace-work-calendar.cjs`; model `workspace.ts`, `workspaceHoliday.ts`; `packages/contracts/src/workCalendar.ts`; `apps/api/src/modules/workspaces/**` (route, controller, `internal/workCalendar.ts`, `internal/workingDays.ts`, test); Web `WorkCalendarCard`, `WorkCalendarSettings`, `workspaceService.ts`, `WorkspaceSettingsPage.tsx`; `docs/2_WORKFLOW_AND_ROLES.md`, `docs/POLICY_REGISTRY.md` (FLOW-008); dokumen Feature |
+| Urutan aksi yang diizinkan       | edit → test → commit → patch ke folder Owner → Owner push branch → PR → merge oleh Owner (setelah PR P1)                                                                                                                                                                                                                                                                                                                                                          |
+| Pemeriksaan yang akan dijalankan | migrasi up/down + clean migration, integration PostgreSQL, unit, web test, `npm run validate`, screenshot terang/gelap                                                                                                                                                                                                                                                                                                                                            |
+| Risiko & recovery                | migrasi aditif dengan default; `down` menghapus tabel dan kolom; revert PR                                                                                                                                                                                                                                                                                                                                                                                        |
+| Masa berlaku                     | sampai PR phase ini dibuat                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Disetujui                        | Owner melalui chat, 2026-11-17 — "Setuju G2 G3 semua (Recommended)" setelah merge PR #132                                                                                                                                                                                                                                                                                                                                                                         |
+
+## 2. Log perubahan
+
+| Task    | File berubah                                                                                                                              | Ringkasan                                                                                                                                                                                                            | Commit       |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| P2-BE-1 | migrasi, `workspace.ts`, `workspaceHoliday.ts`, `models/index.ts`                                                                         | `workspaces.timezone` (default Asia/Jakarta), `workspaces.working_days` SMALLINT[] (default 1–5, CHECK 1–7), tabel `workspace_holidays` (unik per tanggal, CASCADE)                                                  | PR phase ini |
+| P2-BE-2 | `workCalendar.ts` (contracts), `workspaces/internal/workCalendar.ts`, `workingDays.ts`, `workCalendarController.ts`, `workspaceRoutes.ts` | GET (anggota), PUT + POST/DELETE libur (Owner/Admin); validasi zona waktu IANA, hari unik, tanggal valid; 409 untuk tanggal ganda dan Workspace diarsipkan; hitung hari kerja inklusif dan "hari ini" per zona waktu | PR phase ini |
+| P2-FE-1 | `WorkCalendarCard.tsx`, `features/workspaces/WorkCalendarSettings.tsx`, `workspaceService.ts`, `WorkspaceSettingsPage.tsx`                | Kartu Kalender kerja di Pengaturan Workspace: zona waktu, hari kerja, tambah/hapus libur, hanya-baca untuk non Owner/Admin, loading/error/retry                                                                      | PR phase ini |
+| P2-QA-1 | `workCalendarApiIntegration.test.ts`, `workingDays.test.ts`, `WorkCalendarCard.test.tsx`                                                  | 5 integration, 5 unit, 5 komponen                                                                                                                                                                                    | PR phase ini |
+| SSoT    | `docs/2_WORKFLOW_AND_ROLES.md`, `docs/POLICY_REGISTRY.md`                                                                                 | Aturan kanonis FLOW-008 (ADR-044 butir 1)                                                                                                                                                                            | PR phase ini |
+
+## 3. Pemeriksaan yang dijalankan
+
+| Perintah                                                                 | Environment             | Exit code   | Pass / fail / skip                                                          | AC             |
+| ------------------------------------------------------------------------ | ----------------------- | ----------- | --------------------------------------------------------------------------- | -------------- |
+| `sequelize-cli db:migrate`, `db:migrate:undo`, `db:migrate`              | PostgreSQL 16 lokal     | 0           | kolom dan tabel hilang setelah undo, kembali setelah migrate                | AC-2.1         |
+| `npm run db:verify:clean-migrations`                                     | database sekali pakai   | 0           | pass                                                                        | —              |
+| `node --test …/workCalendarApiIntegration.test.js …/workingDays.test.js` | PostgreSQL 16 lokal     | 0           | 10/10                                                                       | AC-2.1–AC-2.4  |
+| `vitest run WorkCalendarCard.test.tsx` + `src/pages/__tests__`           | jsdom                   | 0           | 92/92                                                                       | AC-2.1, AC-2.2 |
+| Screenshot Playwright 460 px terang/gelap (Owner dan hanya-baca)         | harness lokal sementara | 0           | sesuai desain `05-pengaturan-kalender-kapasitas.webp` bagian Kalender kerja | AC-2.1         |
+| Suite API penuh, suite web penuh, `npm run validate`                     | lokal                   | lihat Hasil | —                                                                           | regresi        |
+
+## 4. Deviasi dari rencana
+
+| Deviasi                                                             | Alasan                                                                | Masih dalam scope? | Persetujuan baru? |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------ | ----------------- |
+| Tombol "Impor libur nasional" dari desain tidak dibuat              | Butuh sumber data eksternal; tidak ada AC-nya                         | Ya (ditunda)       | Tidak             |
+| Kartu ditambahkan ke halaman Pengaturan yang ada, belum sebagai tab | Penataan tab adalah MEMBER-ACCESS-HUB P6                              | Ya                 | Tidak             |
+| Perubahan kalender belum dicatat di activity                        | Tidak ada AC audit untuk kalender; tabel activity Workspace belum ada | Ya                 | Tidak             |
+
+## 5. Hasil
+
+- PR: Tier 2 (migrasi, POLICY_REGISTRY, Workflow). Merge setelah PR P1.
+- Lanjut ke [testing.md](../testing.md).

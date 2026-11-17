@@ -30,6 +30,7 @@ import {
   WorkspaceMembersTable,
   InviteMemberModal,
   AdminResetPasswordModal,
+  WorkCalendarSettings,
 } from '../features/workspaces';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { Button } from '../components/ui/atoms/Button';
@@ -473,6 +474,12 @@ export const WorkspaceSettingsPage: React.FC = () => {
             canManage={canManageMembers && !isArchived}
             isUpdating={isUpdatingPolicy}
             onToggle={(checked) => void handleToggleQaPolicy(checked)}
+          />
+
+          <WorkCalendarSettings
+            key={activeWorkspace.id}
+            workspaceId={activeWorkspace.id}
+            canManage={canManageMembers && !isArchived}
           />
 
           <QaAssuranceRolloutCard

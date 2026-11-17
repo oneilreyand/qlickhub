@@ -244,6 +244,15 @@ berbeda dari invariant containment ini dan tetap tidak memblokir assignment.
 - Peringatan bersifat **murni advisory**: form dan API tidak pernah memblokir penugasan, tidak melakukan auto-reassign, dan tidak menurunkan prioritas.
 - Subtask dari Workspace lain disamarkan secara ketat (`AUTH-011`) kecuali jika aktor terbukti memiliki membership aktif di Workspace asal. Kebijakan ini diatur dalam [ADR-024](adr/ADR-024-WORKLOAD-CONFLICT-AND-CROSS-WORKSPACE-PRIVACY-BOUNDARY.md).
 
+### Kalender Kerja Workspace
+
+Setiap Workspace punya kalender kerja: zona waktu IANA (default `Asia/Jakarta`), hari kerja dalam nomor
+hari ISO (1 = Senin … 7 = Minggu; default Senin–Jumat), dan daftar hari libur bertanggal. Perhitungan
+"hari ini", keterlambatan, dan jumlah hari kerja yang tersedia untuk sebuah task memakai kalender
+Workspace task itu, dihitung di backend; hari libur dan hari di luar hari kerja tidak dihitung. Semua
+anggota dapat membaca kalender; hanya Owner/Admin yang dapat mengubahnya, dan Workspace yang
+diarsipkan bersifat hanya-baca. Dasar keputusan: ADR-044.
+
 ### Definisi Putaran Review dan Pengembalian
 
 - Satu putaran review dimiliki oleh satu Development Subtask, satu jenis review, dan satu baseline.

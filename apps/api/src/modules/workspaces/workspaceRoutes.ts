@@ -23,6 +23,12 @@ import {
   getQaAssuranceRollout,
   updateQaAssuranceRollout,
 } from './workspaceController.js';
+import {
+  addWorkspaceHolidayHandler,
+  deleteWorkspaceHolidayHandler,
+  getWorkCalendarHandler,
+  updateWorkCalendarHandler,
+} from './workCalendarController.js';
 
 export const workspaceRoutes = Router();
 
@@ -50,6 +56,24 @@ workspaceRoutes.patch(
   '/:workspaceId/qa-assurance-rollout',
   requireWorkspaceMember(['owner', 'admin']),
   updateQaAssuranceRollout,
+);
+
+// Work calendar (WORK-FOUNDATION P2, ADR-044)
+workspaceRoutes.get('/:workspaceId/calendar', requireWorkspaceMember(), getWorkCalendarHandler);
+workspaceRoutes.put(
+  '/:workspaceId/calendar',
+  requireWorkspaceMember(['owner', 'admin']),
+  updateWorkCalendarHandler,
+);
+workspaceRoutes.post(
+  '/:workspaceId/calendar/holidays',
+  requireWorkspaceMember(['owner', 'admin']),
+  addWorkspaceHolidayHandler,
+);
+workspaceRoutes.delete(
+  '/:workspaceId/calendar/holidays/:holidayId',
+  requireWorkspaceMember(['owner', 'admin']),
+  deleteWorkspaceHolidayHandler,
 );
 
 // Member management

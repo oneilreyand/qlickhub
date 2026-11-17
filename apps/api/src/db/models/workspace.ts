@@ -9,13 +9,21 @@ export interface WorkspaceAttributes {
   ownerId: string;
   allowQaTaskCreation?: boolean;
   archivedAt?: Date | null;
+  timezone?: string;
+  workingDays?: number[];
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export interface WorkspaceCreationAttributes extends Optional<WorkspaceAttributes, 'id' | 'description' | 'allowQaTaskCreation' | 'archivedAt'> {}
+export interface WorkspaceCreationAttributes extends Optional<
+  WorkspaceAttributes,
+  'id' | 'description' | 'allowQaTaskCreation' | 'archivedAt' | 'timezone' | 'workingDays'
+> {}
 
-export class WorkspaceModel extends Model<WorkspaceAttributes, WorkspaceCreationAttributes> implements WorkspaceAttributes {
+export class WorkspaceModel
+  extends Model<WorkspaceAttributes, WorkspaceCreationAttributes>
+  implements WorkspaceAttributes
+{
   declare id: string;
   declare name: string;
   declare slug: string;
@@ -23,6 +31,8 @@ export class WorkspaceModel extends Model<WorkspaceAttributes, WorkspaceCreation
   declare ownerId: string;
   declare allowQaTaskCreation: boolean;
   declare archivedAt: Date | null;
+  declare timezone: string;
+  declare workingDays: number[];
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -63,11 +73,22 @@ WorkspaceModel.init(
       allowNull: true,
       field: 'archived_at',
     },
+    timezone: {
+      type: DataTypes.STRING(64),
+      allowNull: false,
+      defaultValue: 'Asia/Jakarta',
+    },
+    workingDays: {
+      type: DataTypes.ARRAY(DataTypes.SMALLINT),
+      allowNull: false,
+      defaultValue: [1, 2, 3, 4, 5],
+      field: 'working_days',
+    },
   },
   {
     sequelize,
     tableName: 'workspaces',
     timestamps: true,
     underscored: true,
-  }
+  },
 );

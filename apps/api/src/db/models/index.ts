@@ -61,4 +61,5 @@ export * from './notificationOutbox.js';
 export * from './qaAssuranceRolloutSettings.js';
 export * from './qaAssuranceRolloutEvent.js';
 export * from './taskLink.js';
+export * from './workspaceHoliday.js';
 import './associations.js';
