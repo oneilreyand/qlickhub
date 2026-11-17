@@ -1,5 +1,6 @@
 import { PrdDiagramStudioModal } from '../components/ui/organisms/taskDetail/PrdDiagramStudioModal';
 import { PrdDiagramList } from '../components/ui/molecules/PrdDiagramList';
+import { LeaderHubSummaryGalleryDemo } from './gallery/LeaderHubSummaryGalleryDemo';
 import type { PrdDiagramMatch } from '@qlick/contracts';
 import React, { useState } from 'react';
 import {
@@ -200,6 +201,13 @@ export const ComponentGalleryPage: React.FC = () => {
         </p>
       </div>
 
+      <Section
+        category="Organisms"
+        title="Leader Hub — Ringkasan"
+        description="Slicing desain 02-leader-hub-ringkasan dengan data contoh (fixture); belum tersambung ke API."
+      >
+        <LeaderHubSummaryGalleryDemo />
+      </Section>
       <Section
         category="Organisms"
         title="Mermaid Studio"
