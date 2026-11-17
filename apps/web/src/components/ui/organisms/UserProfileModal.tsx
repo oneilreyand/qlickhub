@@ -5,7 +5,7 @@ import { enqueueSnackbar } from '../../../store/uiSlice';
 import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
-import { User as UserIcon, Lock, ShieldCheck, Check } from 'lucide-react';
+import { User as UserIcon, Lock, ShieldCheck, Check, Gauge } from 'lucide-react';
 import { Alert } from '../atoms/Alert';
 
 interface UserProfileModalProps {
@@ -13,6 +13,8 @@ interface UserProfileModalProps {
   onClose: () => void;
   currentUser: User | null;
   onProfileUpdated?: (updatedUser: User) => void;
+  /** WORK-FOUNDATION P4: content of the "Kapasitas & Cuti" tab; the tab is hidden when absent. */
+  capacitySlot?: React.ReactNode;
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
@@ -20,9 +22,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onClose,
   currentUser,
   onProfileUpdated,
+  capacitySlot,
 }) => {
   const dispatch = useAppDispatch();
-  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'capacity'>('profile');
 
   // Profile Form State
   const [name, setName] = useState(currentUser?.name || '');
@@ -109,11 +112,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title="Pengaturan Akun" size="md">
       <div className="space-y-6">
         {/* Navigation Tabs */}
-        <div className="flex border-b border-stone-200 dark:border-stone-800 gap-4">
+        <div className="flex gap-4 overflow-x-auto border-b border-stone-200 dark:border-stone-800">
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
-            className={`pb-3 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${
+            className={`pb-3 text-sm font-semibold whitespace-nowrap transition-colors flex items-center gap-2 border-b-2 ${
               activeTab === 'profile'
                 ? 'border-[#B1E743] text-stone-900 dark:text-[#B1E743] dark:border-[#B1E743]'
                 : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
@@ -125,7 +128,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('password')}
-            className={`pb-3 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${
+            className={`pb-3 text-sm font-semibold whitespace-nowrap transition-colors flex items-center gap-2 border-b-2 ${
               activeTab === 'password'
                 ? 'border-[#B1E743] text-stone-900 dark:text-[#B1E743] dark:border-[#B1E743]'
                 : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
@@ -134,6 +137,20 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <Lock className="h-4 w-4" />
             Ubah Kata Sandi
           </button>
+          {capacitySlot && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('capacity')}
+              className={`pb-3 text-sm font-semibold whitespace-nowrap transition-colors flex items-center gap-2 border-b-2 ${
+                activeTab === 'capacity'
+                  ? 'border-[#B1E743] text-stone-900 dark:text-[#B1E743] dark:border-[#B1E743]'
+                  : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
+              }`}
+            >
+              <Gauge className="h-4 w-4" />
+              Kapasitas &amp; Cuti
+            </button>
+          )}
         </div>
 
         {/* Tab 1: Profile Information */}
@@ -189,6 +206,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
           </form>
         )}
+
+        {/* Tab 3: Capacity & time off (WORK-FOUNDATION P4) */}
+        {activeTab === 'capacity' && capacitySlot}
 
         {/* Tab 2: Change Password */}
         {activeTab === 'password' && (

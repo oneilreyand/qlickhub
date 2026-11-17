@@ -11,13 +11,20 @@ export interface WorkspaceAttributes {
   archivedAt?: Date | null;
   timezone?: string;
   workingDays?: number[];
+  defaultWeeklyCapacityPoints?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export interface WorkspaceCreationAttributes extends Optional<
   WorkspaceAttributes,
-  'id' | 'description' | 'allowQaTaskCreation' | 'archivedAt' | 'timezone' | 'workingDays'
+  | 'id'
+  | 'description'
+  | 'allowQaTaskCreation'
+  | 'archivedAt'
+  | 'timezone'
+  | 'workingDays'
+  | 'defaultWeeklyCapacityPoints'
 > {}
 
 export class WorkspaceModel
@@ -33,6 +40,7 @@ export class WorkspaceModel
   declare archivedAt: Date | null;
   declare timezone: string;
   declare workingDays: number[];
+  declare defaultWeeklyCapacityPoints: number;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -83,6 +91,12 @@ WorkspaceModel.init(
       allowNull: false,
       defaultValue: [1, 2, 3, 4, 5],
       field: 'working_days',
+    },
+    defaultWeeklyCapacityPoints: {
+      type: DataTypes.SMALLINT,
+      allowNull: false,
+      defaultValue: 15,
+      field: 'default_weekly_capacity_points',
     },
   },
   {

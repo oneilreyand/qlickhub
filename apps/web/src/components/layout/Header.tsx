@@ -23,6 +23,7 @@ import { IconButton } from '../ui/atoms/IconButton';
 import { NotificationBell, useNotifications } from '../../features/notifications';
 
 import { UserProfileModal } from '../ui/organisms/UserProfileModal';
+import { MyCapacitySettings } from '../../features/capacity/MyCapacitySettings';
 import { ActiveSessionsModal } from '../auth/ActiveSessionsModal';
 import { useDismissableLayer } from '../../hooks/useDismissableLayer';
 import { getSectionLabel } from '../../lib/utils/sectionLabel';
@@ -260,6 +261,7 @@ export const Header: React.FC<HeaderProps> = ({
           name: effectiveName,
           role: currentUser?.role || 'dev',
         }}
+        capacitySlot={<MyCapacitySettings />}
       />
 
       {/* Active Sessions & Devices Modal */}

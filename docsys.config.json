@@ -148,6 +148,8 @@
         "TaskCreationPermissionModel",
         "UserFcmTokenModel",
         "UserModel",
+        "UserCapacityModel",
+        "UserTimeOffModel",
         "WorkspaceMemberModel",
         "WorkspaceHolidayModel",
         "TaskBlockerModel",

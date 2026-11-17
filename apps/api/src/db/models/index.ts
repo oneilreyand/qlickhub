@@ -63,4 +63,6 @@ export * from './qaAssuranceRolloutEvent.js';
 export * from './taskLink.js';
 export * from './workspaceHoliday.js';
 export * from './taskBlocker.js';
+export * from './userCapacity.js';
+export * from './userTimeOff.js';
 import './associations.js';
