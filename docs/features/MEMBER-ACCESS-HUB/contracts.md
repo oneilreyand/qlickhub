@@ -12,7 +12,7 @@
 
 ## API and executable contract
 
-Contract baru `packages/contracts/src/memberAccess.ts`. Endpoint: `GET /v1/me/member-access`,
+Contract baru `packages/contracts/src/memberAccess.ts`. Endpoint: `GET /v1/me/member-access` (P1, hanya baca),
 `POST /v1/workspaces/:workspaceId/members/:userId/resend-invitation`, `DELETE …/invitation`,
 `GET/POST/DELETE /v1/me/role-templates`, `POST /v1/me/member-access/import` (pratinjau dan commit).
 Perubahan role/spesialisasi/`expiresAt` memakai endpoint keanggotaan per Workspace yang ada.

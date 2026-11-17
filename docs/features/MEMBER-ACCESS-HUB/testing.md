@@ -1,6 +1,6 @@
 # MEMBER-ACCESS-HUB — Tahap 5: Test & Review
 
-**Status:** Belum mulai
+**Status:** Berjalan
 **Gerbang:** G5 — verifier independen atau CI yang mencakup seluruh AC
 **Applicable Policy IDs:** AI-003, AI-004, AI-008, AI-010, TEST-001, DOC-005
 
@@ -9,22 +9,22 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT.
 
 ## 1. Matriks AC → bukti
 
-| AC     | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI | API/PostgreSQL | UAT/runtime | Status  |
-| ------ | ----- | ---------------- | -------------- | ------- | -------------- | ----------- | ------- |
-| AC-1.1 | P1    | E3               | —              | —       | —              | —           | Planned |
-| AC-1.2 | P1    | E3               | —              | —       | —              | —           | Planned |
-| AC-2.1 | P2    | E4               | —              | —       | —              | —           | Planned |
-| AC-2.2 | P2    | E3               | —              | —       | —              | —           | Planned |
-| AC-2.3 | P2    | E3               | —              | —       | —              | —           | Planned |
-| AC-3.1 | P3    | E3               | —              | —       | —              | —           | Planned |
-| AC-3.2 | P3    | E3               | —              | —       | —              | —           | Planned |
-| AC-3.3 | P3    | E3               | —              | —       | —              | —           | Planned |
-| AC-4.1 | P4    | E3               | —              | —       | —              | —           | Planned |
-| AC-4.2 | P4    | E3               | —              | —       | —              | —           | Planned |
-| AC-5.1 | P5    | E3               | —              | —       | —              | —           | Planned |
-| AC-5.2 | P5    | E3               | —              | —       | —              | —           | Planned |
-| AC-5.3 | P5    | E4               | —              | —       | —              | —           | Planned |
-| AC-6.1 | P6    | E4               | —              | —       | —              | —           | Planned |
+| AC     | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI                              | API/PostgreSQL   | UAT/runtime | Status         |
+| ------ | ----- | ---------------- | -------------- | ------------------------------------ | ---------------- | ----------- | -------------- |
+| AC-1.1 | P1    | E3               | E3             | `memberAccessApiIntegration.test.ts` | PostgreSQL lokal | —           | Kandidat lokal |
+| AC-1.2 | P1    | E3               | E3             | `memberAccessApiIntegration.test.ts` | PostgreSQL lokal | —           | Kandidat lokal |
+| AC-2.1 | P2    | E4               | —              | —                                    | —                | —           | Planned        |
+| AC-2.2 | P2    | E3               | —              | —                                    | —                | —           | Planned        |
+| AC-2.3 | P2    | E3               | —              | —                                    | —                | —           | Planned        |
+| AC-3.1 | P3    | E3               | —              | —                                    | —                | —           | Planned        |
+| AC-3.2 | P3    | E3               | —              | —                                    | —                | —           | Planned        |
+| AC-3.3 | P3    | E3               | —              | —                                    | —                | —           | Planned        |
+| AC-4.1 | P4    | E3               | —              | —                                    | —                | —           | Planned        |
+| AC-4.2 | P4    | E3               | —              | —                                    | —                | —           | Planned        |
+| AC-5.1 | P5    | E3               | —              | —                                    | —                | —           | Planned        |
+| AC-5.2 | P5    | E3               | —              | —                                    | —                | —           | Planned        |
+| AC-5.3 | P5    | E4               | —              | —                                    | —                | —           | Planned        |
+| AC-6.1 | P6    | E4               | —              | —                                    | —                | —           | Planned        |
 
 ## 2. Outcome pemeriksaan
 

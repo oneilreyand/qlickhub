@@ -21,14 +21,14 @@ flowchart LR
   P6["P6 Tab Pengaturan (butuh WORK-FOUNDATION P2)"]
 ```
 
-| Phase | Tujuan                          | AC             | WRA  | Bergantung         | Status      |
-| ----- | ------------------------------- | -------------- | ---- | ------------------ | ----------- |
-| P1    | API agregat akses               | AC-1.1, AC-1.2 | 6/16 | —                  | Belum mulai |
-| P2    | Halaman matriks + undang        | AC-2.1–AC-2.3  | 6/16 | P1                 | Belum mulai |
-| P3    | Kirim ulang / batalkan undangan | AC-3.1–AC-3.3  | 6/16 | P1                 | Belum mulai |
-| P4    | Template role + CSV             | AC-4.1, AC-4.2 | 8/16 | P2                 | Belum mulai |
-| P5    | Akses berbatas waktu            | AC-5.1–AC-5.3  | 8/16 | P1                 | Belum mulai |
-| P6    | Tab Pengaturan Workspace        | AC-6.1         | 5/16 | WORK-FOUNDATION P2 | Belum mulai |
+| Phase | Tujuan                          | AC             | WRA  | Bergantung         | Status         |
+| ----- | ------------------------------- | -------------- | ---- | ------------------ | -------------- |
+| P1    | API agregat akses               | AC-1.1, AC-1.2 | 6/16 | —                  | Kandidat lokal |
+| P2    | Halaman matriks + undang        | AC-2.1–AC-2.3  | 6/16 | P1                 | Belum mulai    |
+| P3    | Kirim ulang / batalkan undangan | AC-3.1–AC-3.3  | 6/16 | P1                 | Belum mulai    |
+| P4    | Template role + CSV             | AC-4.1, AC-4.2 | 8/16 | P2                 | Belum mulai    |
+| P5    | Akses berbatas waktu            | AC-5.1–AC-5.3  | 8/16 | P1                 | Belum mulai    |
+| P6    | Tab Pengaturan Workspace        | AC-6.1         | 5/16 | WORK-FOUNDATION P2 | Belum mulai    |
 
 ## 2. Task per phase
 

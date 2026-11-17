@@ -3,22 +3,22 @@
 **Status:** Draft
 **Owner:** Owner Qlick Hub
 **Last reviewed:** 2026-11-17
-**Applicable Policy IDs:** AUTH-001, AUTH-002, DATA-001, DATA-002, CONTRACT-001, UI-001, UI-002, TEST-001, SDLC-001
+**Applicable Policy IDs:** AUTH-001, AUTH-002, AUTH-014, DATA-001, DATA-002, CONTRACT-001, UI-001, UI-002, TEST-001, SDLC-001
 
 Halaman Anggota & Akses lintas Workspace untuk Owner/Admin, status undangan, template role, undangan CSV, akses berbatas waktu, dan penataan ulang Pengaturan Workspace menjadi tab.
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal       | Catatan                             |
-| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------------ | ----------------------------------- |
-| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | Owner melalui chat, 2026-11-17 | Program WORK-VISIBILITY             |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | Owner melalui chat, 2026-11-17 | ADR: [ADR 046](../../adr/README.md) |
-| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner melalui chat, 2026-11-17 |                                     |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner melalui chat, 2026-11-17 | Jalur: Penuh                        |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner melalui chat, 2026-11-17 |                                     |
-| 4 Build           | [phases/](phases/)                                                                     | Belum mulai | dalam window G3 | —                              | P1–P6                               |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                              | Verifier: CI + review independen    |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                              |                                     |
+| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal       | Catatan                              |
+| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------------ | ------------------------------------ |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | Owner melalui chat, 2026-11-17 | Program WORK-VISIBILITY              |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | Owner melalui chat, 2026-11-17 | ADR: [ADR 046](../../adr/README.md)  |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner melalui chat, 2026-11-17 |                                      |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner melalui chat, 2026-11-17 | Jalur: Penuh                         |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner melalui chat, 2026-11-17 |                                      |
+| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                              | P1 kandidat lokal; P2–P6 belum mulai |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                              | Verifier: CI + review independen     |
+| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                              |                                      |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 
