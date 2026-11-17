@@ -1,6 +1,7 @@
 import { PrdDiagramStudioModal } from '../components/ui/organisms/taskDetail/PrdDiagramStudioModal';
 import { PrdDiagramList } from '../components/ui/molecules/PrdDiagramList';
 import { LeaderHubSummaryGalleryDemo } from './gallery/LeaderHubSummaryGalleryDemo';
+import { MyWorkReportGalleryDemo } from './gallery/MyWorkReportGalleryDemo';
 import type { PrdDiagramMatch } from '@qlick/contracts';
 import React, { useState } from 'react';
 import {
@@ -207,6 +208,13 @@ export const ComponentGalleryPage: React.FC = () => {
         description="Slicing desain 02-leader-hub-ringkasan dengan data contoh (fixture); belum tersambung ke API."
       >
         <LeaderHubSummaryGalleryDemo />
+      </Section>
+      <Section
+        category="Organisms"
+        title="Laporan Saya"
+        description="Slicing desain 01-laporan-saya dengan data contoh (fixture); belum tersambung ke API."
+      >
+        <MyWorkReportGalleryDemo />
       </Section>
       <Section
         category="Organisms"
