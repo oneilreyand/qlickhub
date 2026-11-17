@@ -13,7 +13,10 @@ file Tier 2 (migrasi, ADR, middleware), merge commit, dan nama bundle setelah de
 | ----- | ------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | P1    | `feat/work-foundation-p1` | 2 (ADR)                       | —                                                                                                                                                                                                     | read-only audit                    |
 | P2    | `feat/work-foundation-p2` | 2 (migrasi, registry)         | `20261117000098-add-workspace-work-calendar` dijalankan Owner 2026-11-17 dengan `npm run db:migrate:prod` (0,918 s; sebelumnya Production di `20261109000097`, dicek read-only lewat `SequelizeMeta`) | sebelum merge, sesuai gate ADR-039 |
-| P3    | `feat/work-foundation-p3` | 2 (migrasi, policy, registry) | `20261117000099-add-task-effort` — dijalankan Owner sebelum merge                                                                                                                                     | —                                  |
+| P3    | `feat/work-foundation-p3` | 2 (migrasi, policy, registry) | `20261117000099-add-task-effort` dijalankan Owner 2026-11-17 (0,765 s; sebelumnya Production di `20261117000098`)                                                                                     | sebelum merge                      |
+| P5    | `feat/work-foundation-p5` | 2 (migrasi, registry)         | `20261117000100-create-task-blockers` dijalankan Owner sebelum merge; `/v1/health` Production 2026-11-17 09:00 UTC: `latest = 20261117000100-create-task-blockers.cjs`, `applied = 84`                | notifikasi baru ke PIC             |
+
+P1, P2, P3 dan P5 masuk `main` bersama lewat PR #134 (`9941c5f2`, branch bertumpuk).
 
 ## 2. Verifikasi di environment target
 

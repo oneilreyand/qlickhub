@@ -16,7 +16,7 @@
 | Pemeriksaan yang akan dijalankan | build, integration PostgreSQL, `npm run validate`                                                   |
 | Risiko & recovery                | revert PR; migrasi aditif punya `down`                                                              |
 | Masa berlaku                     | sampai PR phase ini dibuat                                                                          |
-| Disetujui                        | menunggu G3                                                                                         |
+| Disetujui                        | Owner melalui chat, 2026-11-17 — "Setuju G2 G3 semua (Recommended)" setelah merge PR #132           |
 
 ## 2. Log perubahan
 
