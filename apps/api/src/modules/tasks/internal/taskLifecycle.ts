@@ -273,6 +273,7 @@ export async function createTaskInTransaction(
     folderId,
     parentTaskId,
     deliveryArea,
+    effort,
     title,
     description,
     status,
@@ -416,6 +417,7 @@ export async function createTaskInTransaction(
       folderId: targetFolderId,
       parentTaskId: parentTaskId || null,
       deliveryArea: deliveryArea || null,
+      effort: parentTaskId ? effort || null : null,
       title,
       description: description || null,
       status: status || 'todo',
@@ -697,6 +699,10 @@ async function updateTaskInTransaction(
     throw new Error('BAD_REQUEST: Delivery area is required for subtasks.');
   }
 
+  if (!task.parentTaskId && input.effort) {
+    throw new Error('BAD_REQUEST: Effort is allowed only for subtasks.');
+  }
+
   const changes: Record<string, { old: any; new: any }> = {};
   let requiresSubtaskFolderMove = false;
 
@@ -744,6 +750,11 @@ async function updateTaskInTransaction(
   if (input.priority !== undefined && input.priority !== task.priority) {
     changes['priority'] = { old: task.priority, new: input.priority };
     task.priority = input.priority;
+  }
+
+  if (input.effort !== undefined && input.effort !== task.effort) {
+    changes['effort'] = { old: task.effort, new: input.effort };
+    task.effort = input.effort;
   }
 
   let roleCheckResult: {

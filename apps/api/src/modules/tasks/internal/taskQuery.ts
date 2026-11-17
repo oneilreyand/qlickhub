@@ -57,6 +57,7 @@ function formatTaskJson(json: TaskJson): Task {
     folderId: json.folderId || null,
     parentTaskId: json.parentTaskId || null,
     deliveryArea: (json.deliveryArea as DeliveryArea) || null,
+    effort: json.effort || null,
     title: json.title,
     description: json.description || null,
     status: json.status,

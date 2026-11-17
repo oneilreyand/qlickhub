@@ -9,25 +9,25 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT.
 
 ## 1. Matriks AC → bukti
 
-| AC     | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI                                                           | API/PostgreSQL   | UAT/runtime | Status         |
-| ------ | ----- | ---------------- | -------------- | ----------------------------------------------------------------- | ---------------- | ----------- | -------------- |
-| AC-1.1 | P1    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-2.1 | P2    | E3               | E3             | `workCalendarApiIntegration.test.ts`, `WorkCalendarCard.test.tsx` | PostgreSQL lokal | —           | Kandidat lokal |
-| AC-2.2 | P2    | E3               | E3             | integration 403, data tidak berubah                               | PostgreSQL lokal | —           | Kandidat lokal |
-| AC-2.3 | P2    | E3               | E3             | integration default                                               | PostgreSQL lokal | —           | Kandidat lokal |
-| AC-2.4 | P2    | E2               | E2             | `workingDays.test.ts` 5/5                                         | —                | —           | Kandidat lokal |
-| AC-3.1 | P3    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-3.2 | P3    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-3.3 | P3    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-3.4 | P3    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-4.1 | P4    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-4.2 | P4    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-4.3 | P4    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-4.4 | P4    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-5.1 | P5    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-5.2 | P5    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-5.3 | P5    | E3               | —              | —                                                                 | —                | —           | Planned        |
-| AC-5.4 | P5    | E4               | —              | —                                                                 | —                | —           | Planned        |
+| AC     | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI                                                                          | API/PostgreSQL   | UAT/runtime | Status         |
+| ------ | ----- | ---------------- | -------------- | -------------------------------------------------------------------------------- | ---------------- | ----------- | -------------- |
+| AC-1.1 | P1    | E3               | —              | —                                                                                | —                | —           | Planned        |
+| AC-2.1 | P2    | E3               | E3             | `workCalendarApiIntegration.test.ts`, `WorkCalendarCard.test.tsx`                | PostgreSQL lokal | —           | Kandidat lokal |
+| AC-2.2 | P2    | E3               | E3             | integration 403, data tidak berubah                                              | PostgreSQL lokal | —           | Kandidat lokal |
+| AC-2.3 | P2    | E3               | E3             | integration default                                                              | PostgreSQL lokal | —           | Kandidat lokal |
+| AC-2.4 | P2    | E2               | E2             | `workingDays.test.ts` 5/5                                                        | —                | —           | Kandidat lokal |
+| AC-3.1 | P3    | E3               | E3             | `taskEffortApiIntegration.test.ts`                                               | PostgreSQL lokal | —           | Kandidat lokal |
+| AC-3.2 | P3    | E3               | E3             | integration 400 + `CreateSubtaskModal.test.tsx` + E2E `subtask-feature-schedule` | PostgreSQL lokal | —           | Kandidat lokal |
+| AC-3.3 | P3    | E3               | E3             | integration 403 + activity                                                       | PostgreSQL lokal | —           | Kandidat lokal |
+| AC-3.4 | P3    | E3               | E3             | integration Apply draft                                                          | PostgreSQL lokal | —           | Kandidat lokal |
+| AC-4.1 | P4    | E3               | —              | —                                                                                | —                | —           | Planned        |
+| AC-4.2 | P4    | E3               | —              | —                                                                                | —                | —           | Planned        |
+| AC-4.3 | P4    | E3               | —              | —                                                                                | —                | —           | Planned        |
+| AC-4.4 | P4    | E3               | —              | —                                                                                | —                | —           | Planned        |
+| AC-5.1 | P5    | E3               | —              | —                                                                                | —                | —           | Planned        |
+| AC-5.2 | P5    | E3               | —              | —                                                                                | —                | —           | Planned        |
+| AC-5.3 | P5    | E3               | —              | —                                                                                | —                | —           | Planned        |
+| AC-5.4 | P5    | E4               | —              | —                                                                                | —                | —           | Planned        |
 
 ## 2. Outcome pemeriksaan
 

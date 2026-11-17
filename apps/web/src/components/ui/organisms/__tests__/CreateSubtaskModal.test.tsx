@@ -245,6 +245,13 @@ describe('CreateSubtaskModal UI Component', () => {
     fireEvent.change(screen.getByLabelText('Tanggal Tenggat (pasangan opsional)'), {
       target: { value: '2026-09-05' },
     });
+    // WORK-FOUNDATION P3 (AC-3.2): a scheduled Subtask needs an effort before it can be saved.
+    fireEvent.click(screen.getByRole('button', { name: 'Buat Subtask' }));
+    expect(
+      screen.getByText('Effort wajib diisi untuk Subtask yang dijadwalkan (XS, S, M, L, atau XL).'),
+    ).toBeInTheDocument();
+    expect(createSubtaskMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Effort M, 3 poin' }));
     fireEvent.click(screen.getByRole('button', { name: 'Buat Subtask' }));
 
     await waitFor(() => {
@@ -252,6 +259,7 @@ describe('CreateSubtaskModal UI Component', () => {
         mockParentTask.workspaceId,
         mockParentTask.id,
         expect.objectContaining({
+          effort: 'm',
           requirementIds: [requirementId],
           startDate: '2026-09-01',
           dueDate: '2026-09-05',
@@ -360,6 +368,7 @@ describe('CreateSubtaskModal UI Component', () => {
     });
 
     // Crucial business rule: Assignment remains strictly advisory, user CAN still submit!
+    fireEvent.click(screen.getByRole('button', { name: 'Effort S, 2 poin' }));
     fireEvent.click(screen.getByRole('button', { name: 'Buat Subtask' }));
 
     await waitFor(() => {

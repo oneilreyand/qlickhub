@@ -253,6 +253,16 @@ Workspace task itu, dihitung di backend; hari libur dan hari di luar hari kerja 
 anggota dapat membaca kalender; hanya Owner/Admin yang dapat mengubahnya, dan Workspace yang
 diarsipkan bersifat hanya-baca. Dasar keputusan: ADR-044.
 
+### Effort Subtask
+
+Setiap Subtask dapat diberi effort ukuran kaos: XS = 1, S = 2, M = 3, L = 5, XL = 8 poin. Skala dan
+poinnya hanya didefinisikan di `packages/contracts` sehingga sama di semua Workspace dan dapat
+dijumlahkan lintas Workspace. Effort adalah field perencanaan: hanya Owner/Admin/PO yang dapat
+mengisi atau mengubahnya, dan perubahan tercatat di riwayat Subtask. Subtask baru yang dibuat dengan
+jadwal lengkap wajib memiliki effort; Subtask lama tanpa effort tetap sah, ditampilkan sebagai
+"beban belum diukur", dan tidak pernah diisi otomatis. Effort hanya berlaku untuk Subtask, bukan
+Feature. Dasar keputusan: ADR-044.
+
 ### Definisi Putaran Review dan Pengembalian
 
 - Satu putaran review dimiliki oleh satu Development Subtask, satu jenis review, dan satu baseline.

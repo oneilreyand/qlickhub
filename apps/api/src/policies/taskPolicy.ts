@@ -138,13 +138,14 @@ export function assertCanMutateTask(
       input.assigneeId !== undefined ||
       input.priority !== undefined ||
       input.deliveryArea !== undefined ||
+      input.effort !== undefined ||
       input.folderId !== undefined ||
       input.parentTaskId !== undefined ||
       input.startDate !== undefined ||
       input.dueDate !== undefined
     ) {
       throw new Error(
-        'FORBIDDEN: Developers cannot modify subtask planning fields (title, assignee, priority, delivery area, folder, or schedule dates).',
+        'FORBIDDEN: Developers cannot modify subtask planning fields (title, assignee, priority, delivery area, effort, folder, or schedule dates).',
       );
     }
 
@@ -185,13 +186,14 @@ export function assertCanMutateTask(
       input.assigneeId !== undefined ||
       input.priority !== undefined ||
       input.deliveryArea !== undefined ||
+      input.effort !== undefined ||
       input.folderId !== undefined ||
       input.parentTaskId !== undefined ||
       input.startDate !== undefined ||
       input.dueDate !== undefined
     ) {
       throw new Error(
-        'FORBIDDEN: QA members cannot modify subtask planning fields (title, assignee, priority, delivery area, folder, or schedule dates).',
+        'FORBIDDEN: QA members cannot modify subtask planning fields (title, assignee, priority, delivery area, effort, folder, or schedule dates).',
       );
     }
 

@@ -84,6 +84,7 @@ describe('F1 Feature/subtask schedule HTTP and PostgreSQL', () => {
     const result = await request(`/${root.id}/subtasks`, 'POST', {
       title: 'Integrasi API fixture',
       deliveryArea: 'backend',
+      effort: 'm',
       assigneeId: owner.id,
       ...dates,
     });
@@ -125,6 +126,7 @@ describe('F1 Feature/subtask schedule HTTP and PostgreSQL', () => {
     const result = await request(`/${root.id}/subtasks`, 'POST', {
       title: 'Invalid fixture',
       deliveryArea: 'backend',
+      effort: 'm',
       assigneeId: owner.id,
       startDate: '2026-11-25',
       dueDate: '2026-12-05',
@@ -262,6 +264,7 @@ describe('F1 Feature/subtask schedule HTTP and PostgreSQL', () => {
     const unscheduled = await request(`/${root.id}/subtasks`, 'POST', {
       title: 'Unscheduled fixture',
       deliveryArea: 'backend',
+      effort: 'm',
       assigneeId: owner.id,
     });
     assert.equal(unscheduled.status, 201);
@@ -400,6 +403,7 @@ describe('F1 Feature/subtask schedule HTTP and PostgreSQL', () => {
           parentTaskId: root.id,
           title: 'Concurrent persisted child fixture',
           deliveryArea: 'backend',
+          effort: 'm',
           assigneeId: owner.id,
           startDate: '2026-11-05',
           dueDate: '2026-11-20',
@@ -430,6 +434,7 @@ describe('F1 Feature/subtask schedule HTTP and PostgreSQL', () => {
       pending = request(`/${root.id}/subtasks`, 'POST', {
         title: 'Racing child fixture',
         deliveryArea: 'backend',
+        effort: 'm',
         assigneeId: owner.id,
         startDate: '2026-11-05',
         dueDate: '2026-11-20',
@@ -479,6 +484,7 @@ describe('F1 Feature/subtask schedule HTTP and PostgreSQL', () => {
     const result = await request(`/${sub.id}/subtasks`, 'POST', {
       title: 'Nested fixture rejected',
       deliveryArea: 'backend',
+      effort: 'm',
       assigneeId: owner.id,
     });
     assert.equal(result.status, 400);

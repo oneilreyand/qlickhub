@@ -60,6 +60,7 @@ for (const viewport of [
         data: {
           title: `F1 API integration ${viewport.width} ${theme}`,
           deliveryArea: 'backend',
+          effort: 'm',
           assigneeId: fixture.po.id,
           startDate: '2026-11-05',
           dueDate: '2026-11-20',
@@ -105,6 +106,7 @@ for (const viewport of [
         data: {
           title: 'F1 legacy child fixture',
           deliveryArea: 'backend',
+          effort: 'm',
           assigneeId: fixture.po.id,
           startDate: '2026-11-05',
           dueDate: '2026-11-20',
@@ -166,6 +168,7 @@ for (const viewport of [
       await start.fill('2026-11-05');
       await end.fill('2026-11-20');
       expect((await end.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      await modal.getByRole('button', { name: 'Effort M, 3 poin' }).click();
       const changed = await page.request.patch(`${tasks}/${modalRoot.id}`, {
         data: { dueDate: '2026-11-15' },
       });

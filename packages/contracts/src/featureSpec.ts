@@ -5,6 +5,7 @@ import {
   TaskSchema,
   FeaturePlanningStageSchema,
   TaskAssignmentModeSchema,
+  TaskEffortSchema,
 } from './task.js';
 
 /**
@@ -97,6 +98,7 @@ export const FeatureSpecSubtaskSchema = z.object({
   title: ShortTextSchema.optional(),
   description: LongTextSchema.optional(),
   deliveryArea: DeliveryAreaSchema.nullable().optional(),
+  effort: TaskEffortSchema.nullable().optional(),
   priority: TaskPrioritySchema.nullable().optional(),
   startDate: DateOnlySchema.nullable().optional(),
   dueDate: DateOnlySchema.nullable().optional(),

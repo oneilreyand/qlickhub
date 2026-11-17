@@ -20,6 +20,7 @@ export interface ReviewedDraftContents {
     title: string;
     description: string;
     deliveryArea: CreateTaskInput['deliveryArea'];
+    effort?: CreateTaskInput['effort'];
     priority: CreateTaskInput['priority'];
     requirementKeys: string[];
     assigneeId?: string | null;
@@ -93,6 +94,7 @@ export async function persistReviewedDraftInTransaction(
           title: item.title.trim(),
           description: item.description.trim(),
           deliveryArea: item.deliveryArea,
+          effort: item.effort ?? null,
           priority: item.priority,
           status: 'todo',
           assigneeId: item.assigneeId,
@@ -111,6 +113,7 @@ export async function persistReviewedDraftInTransaction(
           parentTaskId: rootTask.id,
           folderId: rootTask.folderId,
           deliveryArea: item.deliveryArea,
+          effort: item.effort ?? null,
           title: item.title.trim(),
           description: item.description.trim() || null,
           priority: item.priority,

@@ -7,6 +7,8 @@ import {
   type Requirement,
   type DeliveryArea,
   type TaskPriority,
+  type TaskEffort,
+  SUBTASK_EFFORT_REQUIRED_MESSAGE,
   developerSupportsDeliveryArea,
 } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
@@ -22,6 +24,7 @@ import { taskService } from '../../../lib/api/taskService';
 import { requirementService } from '../../../lib/api/requirementService';
 import { useAssignmentConflictPreview } from '../../../lib/hooks/useAssignmentConflictPreview';
 import { AssignmentConflictBanner } from '../molecules/AssignmentConflictBanner';
+import { EffortPicker } from '../molecules/EffortPicker';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
@@ -63,6 +66,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
   const [assigneeId, setAssigneeId] = useState<string>('');
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [effort, setEffort] = useState<TaskEffort | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { range: featureRange, refreshAfterError } = useFeatureScheduleRange(
@@ -160,6 +164,8 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
 
   const scheduleIssue = getTaskScheduleValidationIssue(startDate, dueDate);
   const scheduleIssueMessage = getIndonesianTaskScheduleMessage(scheduleIssue);
+  const isScheduled = Boolean(startDate && dueDate);
+  const effortMissing = isScheduled && !effort;
 
   const selectedMember = members.find((m) => m.userId === assigneeId);
   const selectedAssigneeName =
@@ -199,6 +205,11 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
       return;
     }
 
+    if (effortMissing) {
+      dispatch(enqueueSnackbar(SUBTASK_EFFORT_REQUIRED_MESSAGE, 'error'));
+      return;
+    }
+
     setSubmitError(null);
     setIsSubmitting(true);
     try {
@@ -206,6 +217,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
         title: title.trim(),
         description: description.trim() || undefined,
         deliveryArea,
+        effort: effort ?? undefined,
         status: 'todo',
         priority,
         assigneeId,
@@ -524,6 +536,13 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
             {scheduleIssueMessage}
           </p>
         )}
+
+        <EffortPicker
+          value={effort}
+          onChange={setEffort}
+          required={isScheduled}
+          error={effortMissing ? SUBTASK_EFFORT_REQUIRED_MESSAGE : null}
+        />
 
         {/* Advisory Conflict Banner */}
         {!scheduleIssue && (

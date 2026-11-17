@@ -1,6 +1,12 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../sequelize.js';
-import { TaskStatus, TaskPriority, DeliveryArea, TaskAssignmentMode } from '@qlick/contracts';
+import {
+  TaskStatus,
+  TaskPriority,
+  DeliveryArea,
+  TaskAssignmentMode,
+  TaskEffort,
+} from '@qlick/contracts';
 
 export interface TaskAttributes {
   id: string;
@@ -8,6 +14,7 @@ export interface TaskAttributes {
   folderId?: string | null;
   parentTaskId?: string | null;
   deliveryArea?: DeliveryArea | null;
+  effort?: TaskEffort | null;
   title: string;
   description?: string | null;
   status: TaskStatus;
@@ -31,6 +38,7 @@ export interface TaskCreationAttributes extends Optional<
   | 'folderId'
   | 'parentTaskId'
   | 'deliveryArea'
+  | 'effort'
   | 'description'
   | 'status'
   | 'priority'
@@ -54,6 +62,7 @@ export class TaskModel
   declare folderId: string | null;
   declare parentTaskId: string | null;
   declare deliveryArea: DeliveryArea | null;
+  declare effort: TaskEffort | null;
   declare title: string;
   declare description: string | null;
   declare status: TaskStatus;
@@ -103,6 +112,10 @@ TaskModel.init(
       type: DataTypes.ENUM('frontend', 'backend', 'mobile', 'fullstack', 'qa'),
       allowNull: true,
       field: 'delivery_area',
+    },
+    effort: {
+      type: DataTypes.ENUM('xs', 's', 'm', 'l', 'xl'),
+      allowNull: true,
     },
     title: {
       type: DataTypes.STRING(255),

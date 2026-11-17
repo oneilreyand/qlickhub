@@ -26,7 +26,7 @@ flowchart LR
 | ----- | -------------------------------------- | ------------- | ---- | ---------- | -------------- |
 | P1    | Laporan kualitas histori status        | AC-1.1        | 3/16 | —          | Belum mulai    |
 | P2    | Kalender Workspace + hitung hari kerja | AC-2.1–AC-2.4 | 7/16 | —          | Kandidat lokal |
-| P3    | Effort Subtask                         | AC-3.1–AC-3.4 | 7/16 | P2         | Belum mulai    |
+| P3    | Effort Subtask                         | AC-3.1–AC-3.4 | 7/16 | P2         | Kandidat lokal |
 | P4    | Kapasitas pribadi + cuti               | AC-4.1–AC-4.4 | 7/16 | P2         | Belum mulai    |
 | P5    | Hambatan + notifikasi PIC              | AC-5.1–AC-5.4 | 8/16 | —          | Belum mulai    |
 

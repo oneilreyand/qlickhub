@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { Task, DeliveryArea } from '@qlick/contracts';
 import { TaskStatusBadge } from './TaskStatusBadge';
+import { EffortBadge } from './EffortPicker';
 import { TaskScheduleHealthBadge } from './TaskScheduleHealthBadge';
 import { Avatar } from '../atoms/Avatar';
 import { calculateSubtaskScheduleHealth } from '../../../lib/utils/scheduleHealth';
@@ -101,6 +102,7 @@ export const SubtaskSummaryRow: React.FC<SubtaskSummaryRowProps> = ({
       {/* Left side: Area badge, Title, and Indicators */}
       <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
         {renderDeliveryBadge(subtask.deliveryArea)}
+        <EffortBadge effort={subtask.effort} />
 
         <span
           className={`font-semibold text-xs sm:text-sm truncate max-w-full ${

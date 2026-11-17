@@ -207,6 +207,7 @@ function reviewedDraftForApply(spec: FeatureSpecModel): ReviewedDraftContents {
         title: row.title!.trim(),
         description: row.description!.trim(),
         deliveryArea: row.deliveryArea!,
+        effort: row.effort ?? null,
         priority: row.priority!,
         startDate,
         dueDate,
