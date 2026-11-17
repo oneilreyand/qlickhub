@@ -52,7 +52,7 @@ the decision history, then follow its links to the canonical rule and implementa
 | [ADR-041](ADR-041-QA-READINESS-PER-REQUIREMENT-AND-SERVER-SIDE-QA-FLOW.md)    | QA readiness per Requirement and a server-side QA flow               |
 | [ADR-042](ADR-042-SUBTASK-SCHEDULE-WITHIN-FEATURE.md)                         | Subtask schedule within Feature                                      |
 | [ADR-043](ADR-043-TASK-SCOPED-READ-ACCESS.md)                                 | Task-scoped reads follow task-level access                           |
-| [ADR-044](ADR-044-WORK-CALENDAR-EFFORT-AND-CAPACITY.md)                       | Work calendar, effort points, personal capacity (Proposed)           |
-| [ADR-045](ADR-045-TASK-BLOCKERS-AND-FEATURE-HEALTH.md)                        | Task blockers and Feature health (Proposed)                          |
-| [ADR-046](ADR-046-MEMBER-ACCESS-HUB-AND-TIME-BOUND-MEMBERSHIP.md)             | Member & Access hub, time-bound membership (Proposed)                |
-| [ADR-047](ADR-047-CROSS-WORKSPACE-TASK-RELATIONS.md)                          | Cross-workspace task relations and redaction (Proposed)              |
+| [ADR-044](ADR-044-WORK-CALENDAR-EFFORT-AND-CAPACITY.md)                       | Work calendar, effort points, personal capacity                      |
+| [ADR-045](ADR-045-TASK-BLOCKERS-AND-FEATURE-HEALTH.md)                        | Task blockers and Feature health                                     |
+| [ADR-046](ADR-046-MEMBER-ACCESS-HUB-AND-TIME-BOUND-MEMBERSHIP.md)             | Member & Access hub, time-bound membership                           |
+| [ADR-047](ADR-047-CROSS-WORKSPACE-TASK-RELATIONS.md)                          | Cross-workspace task relations and redaction                         |

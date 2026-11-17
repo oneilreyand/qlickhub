@@ -1,6 +1,6 @@
 # WORK-FOUNDATION — Tahap 5: Test & Review
 
-**Status:** Belum mulai
+**Status:** Berjalan
 **Gerbang:** G5 — verifier independen atau CI yang mencakup seluruh AC
 **Applicable Policy IDs:** AI-003, AI-004, AI-008, AI-010, TEST-001, DOC-005
 
