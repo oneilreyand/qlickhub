@@ -57,6 +57,7 @@ export const LeaderHealthReasonCodeSchema = z.enum([
   'changes_requested_repeated',
   'severe_bug_open',
   'subtask_unplanned',
+  'assignee_over_capacity',
 ]);
 export type LeaderHealthReasonCode = z.infer<typeof LeaderHealthReasonCodeSchema>;
 
@@ -100,6 +101,59 @@ export const LeaderOpenBlockerSchema = z.object({
 });
 export type LeaderOpenBlocker = z.infer<typeof LeaderOpenBlockerSchema>;
 
+/** LEADER-PIPELINE-HUB P3 (ADR-044): team load in effort points vs capacity, this week. */
+export const LeaderTeamAreaKeySchema = z.enum([
+  'frontend',
+  'backend',
+  'mobile',
+  'fullstack',
+  'developer',
+  'qa',
+  'po',
+  'lead',
+]);
+export type LeaderTeamAreaKey = z.infer<typeof LeaderTeamAreaKeySchema>;
+
+export const LEADER_TEAM_AREA_LABEL: Record<LeaderTeamAreaKey, string> = {
+  frontend: 'Frontend',
+  backend: 'Backend',
+  mobile: 'Mobile',
+  fullstack: 'Fullstack',
+  developer: 'Developer',
+  qa: 'QA',
+  po: 'PO',
+  lead: 'Owner/Admin',
+};
+
+export const LeaderTeamMemberLoadSchema = z.object({
+  userId: z.string().uuid(),
+  name: z.string(),
+  area: LeaderTeamAreaKeySchema,
+  /** Active Workspaces of this person (all of them, not only the ones the leader leads). */
+  workspaceCount: z.number().int().min(0),
+  /** Week load across all their Workspaces: Σ points ÷ capacity for the week × 100. */
+  percent: z.number().int().min(0),
+  weeklyCapacityPoints: z.number().int(),
+  /** Scheduled Subtasks this week without effort (not counted). */
+  unmeasuredCount: z.number().int().min(0),
+});
+export type LeaderTeamMemberLoad = z.infer<typeof LeaderTeamMemberLoadSchema>;
+
+export const LeaderTeamLoadSchema = z.object({
+  weekFrom: z.string(),
+  weekTo: z.string(),
+  areas: z.array(
+    z.object({
+      key: LeaderTeamAreaKeySchema,
+      label: z.string(),
+      percent: z.number().int().min(0),
+      memberCount: z.number().int().min(0),
+    }),
+  ),
+  members: z.array(LeaderTeamMemberLoadSchema),
+});
+export type LeaderTeamLoad = z.infer<typeof LeaderTeamLoadSchema>;
+
 export const LeaderPipelineSummarySchema = z.object({
   generatedAt: z.string(),
   workspaces: z.array(z.object({ id: z.string().uuid(), name: z.string() })),
@@ -113,6 +167,7 @@ export const LeaderPipelineSummarySchema = z.object({
   }),
   features: z.array(LeaderPipelineFeatureSchema),
   openBlockers: z.array(LeaderOpenBlockerSchema),
+  teamLoad: LeaderTeamLoadSchema,
 });
 export type LeaderPipelineSummary = z.infer<typeof LeaderPipelineSummarySchema>;
 

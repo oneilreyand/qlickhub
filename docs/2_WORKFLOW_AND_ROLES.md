@@ -305,9 +305,15 @@ sign-off yang disetujui), Rilis (sign-off disetujui, belum ada keputusan rilis d
 Verifikasi Prod dan Monitoring yang belum dilacak dan tidak pernah dianggap selesai. Kesehatan:
 _Terhambat_ bila ada hambatan terbuka atau Feature melewati batas hari tahapnya; _Berisiko_ bila ada
 Subtask telat, belum dimulai dengan sisa ≤2 hari kerja, diminta perbaikan ≥2 kali, belum punya
-pelaksana/jadwal/effort, atau ada bug critical/high terbuka sejak tahap QA; selain itu _Aman_. Setiap
-status membawa alasan yang menunjuk task, hambatan, atau bug. Semua aksi bersifat saran; tidak ada
-perubahan otomatis. Dasar keputusan: ADR-045.
+pelaksana/jadwal/effort, pelaksananya melebihi kapasitas minggu ini, atau ada bug critical/high
+terbuka sejak tahap QA; selain itu _Aman_. Setiap status membawa alasan yang menunjuk task, hambatan,
+atau bug. Semua aksi bersifat saran; tidak ada perubahan otomatis. Dasar keputusan: ADR-045.
+
+Beban tim di Leader Hub memakai aturan beban Laporan Saya (ADR-044) untuk minggu berjalan: per anggota
+= jumlah poin effort minggu ini dari semua Workspace aktifnya ÷ kapasitas minggu itu (hari cuti tidak
+dihitung), dan per spesialisasi = gabungan poin ÷ gabungan kapasitas anggotanya. Aturan lama "≥3
+Subtask aktif" tidak dipakai lagi untuk menilai beban. Leader hanya melihat persentase; judul kerjaan
+dari Workspace yang tidak ia pimpin tidak ditampilkan.
 
 ### Definisi Putaran Review dan Pengembalian
 
