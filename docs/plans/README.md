@@ -20,9 +20,10 @@ New Feature work records its plan in the Feature folder stages (`problem.md` to 
 under [Agent Guidelines §2B](../4_AGENT_DEV_GUIDELINES.md#2b-tahap-sdlc-feature-staged-feature-sdlc).
 Small changes on the Quick path use the [Quick Card template](QUICK_CARD_TEMPLATE.md).
 
-Rencana [Qlick Hub Product MCP](../features/QLICKHUB-PRODUCT-MCP/README.md) mencatat grooming
-Owner/PO di agent, konfirmasi publish langsung di agent, serta target setup Codex, Claude, dan
-Antigravity. OAuth provider, ADR/SSoT Apply, dan breakdown implementasi masih menunggu keputusan.
+Rencana [Qlick Hub Product MCP](../features/QLICKHUB-PRODUCT-MCP/README.md) mencatat satu server MCP
+untuk semua role dari agent pilihan, rilis bertahap v1–v3; perluasan semua role ada di
+[rencana perluasan](QLICKHUB_MCP_ALL_ROLES_PLAN.md) (Owner memilih K1–K8, 2026-11-18). OAuth
+provider, host, ADR/SSoT Apply dan write agent, serta breakdown implementasi masih menunggu keputusan.
 
 Aktif: [Rencana lanjutan F1–F4](QLICKHUB_FOLLOWUP_F1_F4_PLAN.md) — jadwal subtask, referensi & media,
 perubahan Brief, dan alur rilis (2026-11-07).

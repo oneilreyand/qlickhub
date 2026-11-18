@@ -1,7 +1,7 @@
 # Qlick Hub MCP — Panduan setup yang direncanakan
 
 **Status:** Draft — endpoint belum tersedia; langkah belum diuji terhadap Qlick Hub
-**Last reviewed:** 2026-11-03
+**Last reviewed:** 2026-11-18
 
 Semua anggota memakai akun Qlick Hub sendiri. URL berikut placeholder, bukan layanan live:
 https://YOUR-QLICKHUB-API/mcp. Host final dan kompatibilitas OAuth diputuskan sebelum staging.
@@ -54,6 +54,25 @@ per versi harus diverifikasi pada pilot, jangan menyimpulkan bahwa tombol Store 
 
 [Dokumentasi resmi Antigravity](https://antigravity.google/docs/mcp).
 
+## Client Tier B: OpenCode dan Gemini CLI (belum diuji)
+
+Keduanya mendukung server MCP remote menurut dokumentasi vendor. Sintaks konfigurasi, alur OAuth,
+dan dukungan prompts/tools/list_changed belum diverifikasi terhadap Qlick Hub; jangan anggap
+kompatibel sebelum hasil UAT tercatat di testing.md.
+
+- OpenCode: tambahkan server remote ke konfigurasi MCP OpenCode, lalu jalankan alur autentikasi
+  yang disediakan. [Dokumentasi resmi OpenCode](https://opencode.ai/docs/mcp-servers).
+- Gemini CLI: tambahkan server HTTP ke pengaturan MCP Gemini CLI, lalu autentikasi lewat perintah
+  MCP di CLI. [Dokumentasi resmi Gemini CLI](https://geminicli.com/docs/tools/mcp-server/).
+
+Client MCP lain dapat dicoba dengan URL yang sama; hasilnya dicatat sebagai Tier B.
+
+## Instruksi per role
+
+Instruksi perilaku per role (grooming, kerjakan subtask, uji AC) direncanakan sebagai MCP prompts
+dari server (K8), sehingga isinya sama di semua client dan tidak disalin ke file instruksi per
+client. Bila client belum mendukung prompts, gunakan instruksi bersama di bawah untuk grooming.
+
 ## Instruksi grooming bersama
 
 ```text
@@ -68,3 +87,4 @@ konfirmasi publish tetap di agent, tanpa approval code/link tambahan Qlick Hub.
 Client mungkin tetap meminta izin pemanggilan tool sesuai pengaturannya.
 Jangan menaruh password, access/refresh token, atau secret di prompt/repository.
 Hasil uji login/preview/publish per client dicatat di testing.md, saat ini belum ada.
+Setiap anggota memakai akun sendiri; tool yang tampil mengikuti role-nya (lihat authorization.md).

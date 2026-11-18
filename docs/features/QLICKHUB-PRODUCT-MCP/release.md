@@ -7,11 +7,18 @@
 Belum ada PR, deployment, endpoint final, client UAT, QA sign-off, atau keputusan rilis.
 G0–G3 tetap draft.
 
-Rencana rollout: bukti disposable PostgreSQL → MCP Inspector lokal → staging read-only →
-staging publish akun Planner → UAT Codex/Claude/Antigravity → review keamanan dan QA →
-persetujuan deploy → pilot tim terbatas → evaluasi sebelum perluasan.
+Rencana rollout bertahap (K2), setiap rilis melalui urutan: bukti disposable PostgreSQL → MCP
+Inspector lokal → staging → UAT client Tier A (Tier B dicatat) → review keamanan dan QA →
+persetujuan deploy → pilot tim terbatas → evaluasi sebelum rilis berikutnya.
 
-Rencana recovery: matikan MCP write/endpoint dan cabut grants terkait; UI/REST normal tetap tersedia.
+| Rilis | Isi                                                               | Syarat masuk                                     |
+| ----- | ----------------------------------------------------------------- | ------------------------------------------------ |
+| v1    | OAuth, profil/Workspace, bantuan assign, preview, publish Planner | Keputusan OAuth/host, ADR Apply publish, G3      |
+| v2    | Baca untuk semua role, ringkasan Leader, filter tools/list        | v1 dievaluasi; P7 Accepted                       |
+| v3    | Tulis Developer dan QA dengan konfirmasi per write, MCP prompts   | ADR K3 Accepted; v2 dievaluasi; P8a/P8b Accepted |
+
+Rencana recovery: matikan tool write per rilis atau endpoint MCP dan cabut grants terkait; UI/REST
+normal tetap tersedia.
 Pertahankan receipt/audit dan data Feature yang telah dipublish; rollback tidak menghapus data user.
 Migration additive diverifikasi clean dan recovery-nya sebelum deployment. Rekonsiliasi timeout
 memakai idempotency receipt, bukan mencoba key baru.
